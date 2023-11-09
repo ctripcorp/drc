@@ -91,7 +91,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String ROWS_FILTER_WHITELIST_TARGET_GROUP_ID = "rows.filter.whitelist.targetGroupId";
 
     private static final String DEFAULT_OPS_APPROVAL_URL = "http://osg.ops.ctripcorp.com/api/11102";
-    private static final String DEFAULT_APPROVAL_DETAIL_URL = "http://rc.ops.ctripcorp.com/#/approvalcenter/approve-detail";
+    private static final String DEFAULT_APPROVAL_DETAIL_URL = "http://rc.ops.ctripcorp.com/#/approvalcenter/approve-detail?ticketId=";
     private static final String OPS_APPROVAL_URL = "ops.approval.url";
     private static final String OPS_APPROVAL_TOKEN = "aps.approval.token";
     private static final String CONFLICT_CC_EMAIL = "conflict_cc_email";

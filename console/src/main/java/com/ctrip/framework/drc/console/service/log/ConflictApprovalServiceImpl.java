@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -68,15 +70,38 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
 
     @Override
     public List<ConflictApprovalView> getConflictApprovalViews(ConflictApprovalQueryParam param) throws Exception {
+        if (StringUtils.isNotBlank(param.getDbName()) || StringUtils.isNotBlank(param.getTableName())) {
+            List<ConflictAutoHandleBatchTbl> batchTbls = conflictAutoHandleBatchTblDao.queryByDb(param.getDbName(), param.getTableName());
+            if (CollectionUtils.isEmpty(batchTbls)) {
+                return new ArrayList<>();
+            }
+            List<Long> batchIds = batchTbls.stream().map(ConflictAutoHandleBatchTbl::getId).collect(Collectors.toList());
+            param.setBatchIds(batchIds);
+        }
+
         List<ConflictApprovalTbl> conflictApprovalTbls = conflictApprovalTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictApprovalTbls)) {
             return new ArrayList<>();
         }
 
+        List<Long> batchIds = conflictApprovalTbls.stream().map(ConflictApprovalTbl::getBatchId).collect(Collectors.toList());
+        List<ConflictAutoHandleBatchTbl> batchTbls = conflictAutoHandleBatchTblDao.queryByIds(batchIds);
+        Map<Long, ConflictAutoHandleBatchTbl> batchTblMap = batchTbls.stream().collect(Collectors.toMap(ConflictAutoHandleBatchTbl::getId, Function.identity()));
+
+        String approvalDetailUrl = domainConfig.getApprovalDetailUrl();
         List<ConflictApprovalView> views = conflictApprovalTbls.stream().map(source -> {
             ConflictApprovalView target = new ConflictApprovalView();
-            BeanUtils.copyProperties(source, target);
+            BeanUtils.copyProperties(source, target, "createTime");
             target.setApprovalId(source.getId());
+
+            String createTime = DateUtils.longToString(source.getCreateTime().getTime());
+            target.setCreateTime(createTime);
+            target.setApprovalDetailUrl(approvalDetailUrl + source.getTicketId());
+            ConflictAutoHandleBatchTbl batchTbl = batchTblMap.get(source.getBatchId());
+            if (batchTbl != null) {
+                target.setDbName(batchTbl.getDbName());
+                target.setTableName(batchTbl.getTableName());
+            }
             return target;
         }).collect(Collectors.toList());
         return views;

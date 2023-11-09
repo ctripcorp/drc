@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.param.log;
 
 import com.ctrip.framework.drc.core.http.PageReq;
 
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/10/31 11:15
@@ -11,7 +13,16 @@ public class ConflictApprovalQueryParam {
     private String tableName;
     private String applicant;
     private Integer approvalResult;
+    private List<Long> batchIds;
     private PageReq pageReq;
+
+    public List<Long> getBatchIds() {
+        return batchIds;
+    }
+
+    public void setBatchIds(List<Long> batchIds) {
+        this.batchIds = batchIds;
+    }
 
     public String getDbName() {
         return dbName;

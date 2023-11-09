@@ -14,19 +14,19 @@ public class ConflictRowsLogView {
     private String srcRegion;
     private String dstRegion;
     private String rawSql;
-    private String rawResult;
+    private String rawSqlResult;
     private String handleSql;
     private String handleSqlResult;
     private String dstRowRecord;
     private Long conflictTrxLogId;
 
 
-    public String getRawResult() {
-        return rawResult;
+    public String getRawSqlResult() {
+        return rawSqlResult;
     }
 
-    public void setRawResult(String rawResult) {
-        this.rawResult = rawResult;
+    public void setRawSqlResult(String rawSqlResult) {
+        this.rawSqlResult = rawSqlResult;
     }
 
     public String getHandleSqlResult() {

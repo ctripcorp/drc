@@ -103,8 +103,17 @@ export default {
         },
         {
           title: '备注',
-          key: 'remark',
-          tooltip: true
+          key: 'approvalDetailUrl',
+          width: 200,
+          render: (h, params) => {
+            const row = params.row
+            return h('a', {
+              attrs: {
+                href: row.approvalDetailUrl,
+                target: '_blank'
+              }
+            }, '审批链接')
+          }
         },
         {
           title: '审批结果',
@@ -112,9 +121,16 @@ export default {
           width: 150,
           align: 'center',
           render: (h, params) => {
-            const row = params.row
-            const color = row.approvalResult === 0 ? 'blue' : 'volcano'
-            const text = row.approvalResult === 0 ? 'commit' : 'rollBack'
+            const result = params.row.approvalResult
+            let color = 'cyan'
+            let text = '审批中'
+            if (result === 1) {
+              color = 'green'
+              text = '审批通过'
+            } else if (result === 2) {
+              color = 'volcano'
+              text = '审批未通过'
+            }
             return h('Tag', {
               props: {
                 color: color
