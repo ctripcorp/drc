@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import org.apache.commons.lang3.StringUtils;
 
@@ -20,7 +21,7 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
 
     private String registerKey;
 
-    private String consumeType;
+    private ConsumeType consumeType;
 
     private String srcRegion;
 
@@ -35,7 +36,7 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
     public MonitorFilter(OutboundFilterChainContext context) {
         this.outboundMonitorReport = context.getOutboundMonitorReport();
         this.registerKey = context.getRegisterKey();
-        this.consumeType = context.getConsumeType().name();
+        this.consumeType = context.getConsumeType();
         this.srcRegion = context.getSrcRegion();
         this.dstRegion = context.getDstRegion();
     }
@@ -50,6 +51,11 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
 
         LogEventType eventType = value.getEventType();
         boolean trafficCountChange = DynamicConfig.getInstance().getTrafficCountChangeSwitch();
+
+        if (ConsumeType.Replicator == consumeType) {
+            outboundMonitorReport.addSize(value.getEventSize());
+            return false;
+        }
 
         if (gtid_log_event == eventType) {
             transactionSize = value.getEventSize();
@@ -70,7 +76,7 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
             tableMapSize = 0;
         } else if (xid_log_event == eventType) {
             transactionSize += value.getEventSize();
-            outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(dbName, srcRegion, dstRegion, consumeType), transactionSize);
+            outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(dbName, srcRegion, dstRegion, consumeType.name()), transactionSize);
             clear();
         }
 
