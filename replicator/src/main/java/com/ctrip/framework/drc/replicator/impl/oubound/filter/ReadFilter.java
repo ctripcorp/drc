@@ -7,6 +7,8 @@ import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.SizeNotEnoughException;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 
 import java.io.IOException;
@@ -24,10 +26,13 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private ByteBuf headByteBuf = Unpooled.wrappedBuffer(headBuffer);
 
+    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer(2);
+
     private String registerKey;
 
     public ReadFilter(String registerKey) {
         this.registerKey = registerKey;
+        this.compositeByteBuf.addComponent(true, headByteBuf);
     }
 
     @Override
@@ -35,7 +40,7 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         FileChannel fileChannel = value.getFileChannel();
 
         EventReader.readHeader(fileChannel, headBuffer, headByteBuf);
-        value.setHeadByteBuf(headByteBuf);
+        value.setCompositeByteBuf(compositeByteBuf);
 
         LogEventType eventType = LogEventUtils.parseNextLogEventType(headByteBuf);
         value.setEventType(eventType);
@@ -71,5 +76,6 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     @Override
     public void release() {
         EventReader.releaseByteBuf(headByteBuf);
+        EventReader.releaseByteBuf(compositeByteBuf);
     }
 }

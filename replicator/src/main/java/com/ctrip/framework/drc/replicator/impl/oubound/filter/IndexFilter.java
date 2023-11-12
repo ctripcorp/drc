@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.PreviousGtidsLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
-import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -42,7 +41,7 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         FileChannel fileChannel = value.getFileChannel();
         long currentPosition = fileChannel.position();
 
-        DrcIndexLogEvent indexLogEvent = readIndexLogEvent(value);
+        DrcIndexLogEvent indexLogEvent = value.readIndexLogEvent();
         List<Long> indices = indexLogEvent.getIndices();
         if (indices.size() > 1) {
             GtidSet firstGtidSet = readPreviousGtids(fileChannel, indices.get(0));
@@ -62,14 +61,6 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
                 }
             }
         }
-    }
-
-    private DrcIndexLogEvent readIndexLogEvent(OutboundLogEventContext value) {
-        DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent();
-        ByteBuf bodyByteBuf = EventReader.readBody(value.getFileChannel(), value.getEventSize());
-        value.setBodyByteBuf(bodyByteBuf);
-        EventReader.readEvent(indexLogEvent, value.getHeadByteBuf(), bodyByteBuf);
-        return indexLogEvent;
     }
 
     private void restorePosition(FileChannel fileChannel, long restorePosition, long currentPosition) throws IOException {

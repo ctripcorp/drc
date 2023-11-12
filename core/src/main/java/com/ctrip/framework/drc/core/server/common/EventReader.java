@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.server.common;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -57,11 +56,20 @@ public class EventReader {
         return compositeByteBuf;
     }
 
-    public static CompositeByteBuf readEvent(LogEvent logEvent, ByteBuf headByteBuf, ByteBuf bodyByteBuf) {
-        CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
-        compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
+    public static void readEvent(FileChannel fileChannel, long eventSize, LogEvent logEvent, CompositeByteBuf compositeByteBuf) {
+        removeOldBodyByteBuf(compositeByteBuf);
+        ByteBuf newBodyByteBuf = EventReader.readBody(fileChannel, eventSize);
+        compositeByteBuf.addComponent(true, newBodyByteBuf);
         logEvent.read(compositeByteBuf);
-        return compositeByteBuf;
+        compositeByteBuf.release(compositeByteBuf.refCnt() - 1);
+    }
+
+    private static void removeOldBodyByteBuf(CompositeByteBuf compositeByteBuf) {
+        if (compositeByteBuf.numComponents() == 2) {
+            compositeByteBuf.removeComponent(1);
+        }
+        compositeByteBuf.clear();
+        compositeByteBuf.writerIndex(eventHeaderLengthVersionGt1);
     }
 
     public static ByteBuf readBody(FileChannel fileChannel, long eventSize) {
@@ -151,12 +159,6 @@ public class EventReader {
             logger.error("readFixSize error with size {}, remind size {}", size, remindSize, e);
         }
         return false;
-    }
-
-    public static void releaseCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
-        if (compositeByteBuf != null && compositeByteBuf.refCnt() > 0) {
-            compositeByteBuf.release(compositeByteBuf.refCnt());
-        }
     }
 
     public static void releaseByteBuf(ByteBuf byteBuf) {

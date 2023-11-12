@@ -4,7 +4,8 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.server.common.EventReader;
-import io.netty.buffer.ByteBuf;
+import com.google.common.collect.Maps;
+import io.netty.buffer.CompositeByteBuf;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -31,15 +32,13 @@ public class OutboundLogEventContext {
 
     private boolean rewrite;
 
-    private ByteBuf headByteBuf;
-
-    private ByteBuf bodyByteBuf;
+    private CompositeByteBuf compositeByteBuf;
 
     private LogEvent logEvent;
 
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
 
-    private Map<Long, TableMapLogEvent> rowsRelatedTableMap;
+    private Map<Long, TableMapLogEvent> rowsRelatedTableMap = Maps.newHashMap();
 
     private Map<String, TableMapLogEvent> drcTableMap;
 
@@ -104,20 +103,12 @@ public class OutboundLogEventContext {
         this.rewrite = rewrite;
     }
 
-    public ByteBuf getHeadByteBuf() {
-        return headByteBuf;
+    public CompositeByteBuf getCompositeByteBuf() {
+        return compositeByteBuf;
     }
 
-    public void setHeadByteBuf(ByteBuf headByteBuf) {
-        this.headByteBuf = headByteBuf;
-    }
-
-    public ByteBuf getBodyByteBuf() {
-        return bodyByteBuf;
-    }
-
-    public void setBodyByteBuf(ByteBuf bodyByteBuf) {
-        this.bodyByteBuf = bodyByteBuf;
+    public void setCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
+        this.compositeByteBuf = compositeByteBuf;
     }
 
     public void setLogEvent(LogEvent logEvent) {
@@ -234,67 +225,60 @@ public class OutboundLogEventContext {
         this.fileChannelPos = fileChannelPos;
         this.skipEvent = false;
         this.rewrite = false;
-        this.headByteBuf = null;
-        this.bodyByteBuf = null;
         this.logEvent = null;
     }
 
+    public DrcIndexLogEvent readIndexLogEvent() {
+        if (logEvent == null) {
+            DrcIndexLogEvent drcIndexLogEvent = new DrcIndexLogEvent();
+            EventReader.readEvent(fileChannel, eventSize, drcIndexLogEvent, compositeByteBuf);
+            logEvent = drcIndexLogEvent;
+        }
+
+        return (DrcIndexLogEvent) logEvent;
+    }
 
     public GtidLogEvent readGtidEvent() {
-        if (logEvent != null) {
-            return (GtidLogEvent) logEvent;
+        if (logEvent == null) {
+            GtidLogEvent gtidLogEvent = new GtidLogEvent();
+            EventReader.readEvent(fileChannel, eventSize, gtidLogEvent, compositeByteBuf);
+            logEvent = gtidLogEvent;
         }
 
-        GtidLogEvent gtidLogEvent = new GtidLogEvent();
-        if (bodyByteBuf == null) {
-            bodyByteBuf = EventReader.readBody(fileChannel, eventSize);
-        }
-        EventReader.readEvent(gtidLogEvent, headByteBuf, bodyByteBuf);
-        logEvent = gtidLogEvent;
-        return gtidLogEvent;
+        return (GtidLogEvent) logEvent;
     }
 
     public TableMapLogEvent readTableMapEvent() {
-        if (logEvent != null) {
-            return (TableMapLogEvent) logEvent;
+        if (logEvent == null) {
+            TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
+            EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, compositeByteBuf);
+            logEvent = tableMapLogEvent;
         }
 
-        TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
-        if (bodyByteBuf == null) {
-            bodyByteBuf = EventReader.readBody(fileChannel, eventSize);
-        }
-
-        EventReader.readEvent(tableMapLogEvent, headByteBuf, bodyByteBuf);
-        logEvent = tableMapLogEvent;
-        return tableMapLogEvent;
+        return (TableMapLogEvent) logEvent;
     }
 
     public AbstractRowsEvent readRowsEvent() {
-        if (logEvent != null) {
-            return (AbstractRowsEvent) logEvent;
+        if (logEvent == null) {
+            AbstractRowsEvent rowsEvent;
+            switch (eventType) {
+                case write_rows_event_v2:
+                    rowsEvent = new FilteredWriteRowsEvent();
+                    break;
+                case update_rows_event_v2:
+                    rowsEvent = new FilteredUpdateRowsEvent();
+                    break;
+                case delete_rows_event_v2:
+                    rowsEvent = new FilteredDeleteRowsEvent();
+                    break;
+                default:
+                    throw new RuntimeException("row event type does not exist: " + eventType);
+            }
+
+            EventReader.readEvent(fileChannel, eventSize, rowsEvent, compositeByteBuf);
+            logEvent = rowsEvent;
         }
 
-        AbstractRowsEvent rowsEvent;
-        switch (eventType) {
-            case write_rows_event_v2:
-                rowsEvent = new FilteredWriteRowsEvent();
-                break;
-            case update_rows_event_v2:
-                rowsEvent = new FilteredUpdateRowsEvent();
-                break;
-            case delete_rows_event_v2:
-                rowsEvent = new FilteredDeleteRowsEvent();
-                break;
-            default:
-                throw new RuntimeException("row event type does not exist: " + eventType);
-        }
-
-        if (bodyByteBuf == null) {
-            bodyByteBuf = EventReader.readBody(fileChannel, eventSize);
-        }
-
-        EventReader.readEvent(rowsEvent, headByteBuf, bodyByteBuf);
-        logEvent = rowsEvent;
-        return rowsEvent;
+        return (AbstractRowsEvent) logEvent;
     }
 }

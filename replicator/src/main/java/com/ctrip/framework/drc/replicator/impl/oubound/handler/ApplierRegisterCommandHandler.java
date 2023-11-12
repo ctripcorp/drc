@@ -417,10 +417,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean sendEvents(FileChannel fileChannel, GtidSet excludedSet, long endPos) throws Exception {
-
-            Map<Long, TableMapLogEvent> rowsRelatedTableMap = Maps.newHashMap();
             outboundContext.setFileChannel(fileChannel);
-            outboundContext.setRowsRelatedTableMap(rowsRelatedTableMap);
             while (endPos > fileChannel.position() && !channelClosed) {  //read event in while
                 gate.tryPass();
                 if (channelClosed) {
