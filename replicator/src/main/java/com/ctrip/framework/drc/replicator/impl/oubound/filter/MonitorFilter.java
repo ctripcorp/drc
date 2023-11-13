@@ -52,9 +52,9 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
         LogEventType eventType = value.getEventType();
         boolean trafficCountChange = DynamicConfig.getInstance().getTrafficCountChangeSwitch();
 
+        //TODO: for test, can remove
         if (ConsumeType.Replicator == consumeType) {
             outboundMonitorReport.addSize(value.getEventSize());
-            return false;
         }
 
         if (gtid_log_event == eventType) {
@@ -66,7 +66,11 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
             if (!trafficCountChange) {
                 transactionSize += value.getEventSize();
             }
-            dbName = ((TableMapLogEvent) value.getLogEvent()).getSchemaName();
+            if (ConsumeType.Replicator == consumeType) {
+                dbName = registerKey;
+            } else {
+                dbName = ((TableMapLogEvent) value.getLogEvent()).getSchemaName();
+            }
         } else if (LogEventUtils.isRowsEvent(eventType)) {
             if (trafficCountChange) {
                 transactionSize += value.getEventSize() + tableMapSize;

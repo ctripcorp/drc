@@ -25,11 +25,13 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
 
-        if (!value.isEverSeeGtid() && LogEventUtils.isIndexEvent(value.getEventType())) { //first file and skip to first previous gtid event
-            try {
-                trySkip(value);
-            } catch (IOException e) {
-                value.setCause(e);
+        if (LogEventUtils.isIndexEvent(value.getEventType())) { //first file and skip to first previous gtid event
+            if (!value.isEverSeeGtid()) {
+                try {
+                    trySkip(value);
+                } catch (IOException e) {
+                    value.setCause(e);
+                }
             }
             value.setSkipEvent(true);
         }
@@ -39,9 +41,9 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
 
     private void trySkip(OutboundLogEventContext value) throws IOException {
         FileChannel fileChannel = value.getFileChannel();
+        DrcIndexLogEvent indexLogEvent = value.readIndexLogEvent();
         long currentPosition = fileChannel.position();
 
-        DrcIndexLogEvent indexLogEvent = value.readIndexLogEvent();
         List<Long> indices = indexLogEvent.getIndices();
         if (indices.size() > 1) {
             GtidSet firstGtidSet = readPreviousGtids(fileChannel, indices.get(0));
