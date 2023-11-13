@@ -55,12 +55,9 @@ public class OutboundLogEventContext {
     public OutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid) {
+    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
-        this.eventType = eventType;
-        this.eventSize = eventSize;
-        this.gtid = gtid;
     }
 
     public FileChannel getFileChannel() {

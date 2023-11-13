@@ -15,6 +15,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.x
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 
 /**
+ * gtid、query、tablemap1、tablemap2、rows1、rows2、xid
+ *
  * Created by jixinwang on 2023/10/11
  */
 public class TableNameFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
