@@ -7,10 +7,10 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.extract.ExtractFil
 
 /**
  * preFilter
- * ConsumeTypeFilter -> TableFilter -> RowsFilter
+ * ReadFilter -> IndexFilter -> SkipFilter -> TypeFilter -> TableNameFilter -> ExtractFilter
  * <p>
  * postFilter
- * SendFilter
+ * MonitorFilter -> SendFilter
  *
  * @Author limingdong
  * @create 2022/4/22
