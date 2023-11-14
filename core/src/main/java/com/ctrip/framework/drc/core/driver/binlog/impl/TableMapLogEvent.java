@@ -52,6 +52,8 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
 
     private List<List<String>> identifiers;
 
+    private List<ByteBuf> mergedByteBufs;
+
     public TableMapLogEvent() {}
 
     public TableMapLogEvent(final long serverId, final long currentEventStartPosition,
@@ -258,7 +260,19 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
 
     @Override
     protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
-        return mergeByteBuf(headByteBuf, payloadBuf);
+        mergedByteBufs = mergeByteBuf(headByteBuf, payloadBuf);
+        return mergedByteBufs;
+    }
+
+    public void releaseMergedByteBufs() {
+        if (mergedByteBufs == null) {
+            return;
+        }
+        for (ByteBuf byteBuf : mergedByteBufs) {
+            if (byteBuf != null && byteBuf.refCnt() > 0) {
+                byteBuf.release(byteBuf.refCnt());
+            }
+        }
     }
 
     private byte[] payloadToBytes(final LogEventType logEventType) throws IOException {
