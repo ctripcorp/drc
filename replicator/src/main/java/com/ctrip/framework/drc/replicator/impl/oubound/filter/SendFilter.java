@@ -25,6 +25,10 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
     public boolean doFilter(OutboundLogEventContext value) {
         boolean skipEvent = doNext(value, value.isSkipEvent());
 
+        if (value.getCause() != null) {
+            return true;
+        }
+
         if (value.getLogEvent() == null) {
             try {
                 value.getFileChannel().position(value.getFileChannelPos() + value.getEventSize());
@@ -32,11 +36,8 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
                 logger.error("skip position error:", e);
                 value.setCause(e);
                 value.setSkipEvent(true);
+                return true;
             }
-        }
-
-        if (value.getCause() != null) {
-            return true;
         }
 
         if (skipEvent) {
