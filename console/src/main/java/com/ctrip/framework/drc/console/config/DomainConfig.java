@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DomainConfig extends AbstractConfigBean {
+
     
     @Autowired private DefaultConsoleConfig consoleConfig;
 
@@ -90,6 +91,9 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String QCONFIG_API_CONSOLE_TOKEN = "qconfig.api.console.token";
     private static final String ROWS_FILTER_WHITELIST_TARGET_SUB_ENV = "rows.filter.whitelist.targetSubenv";
     private static final String ROWS_FILTER_WHITELIST_TARGET_GROUP_ID = "rows.filter.whitelist.targetGroupId";
+
+    private static final String DOT_TOKEN = "dot.token";
+    private static final String DOT_QUERY_API_URL = "dot.query.api.url";
     
 
     public String getCmsGetServerUrl() {
@@ -239,5 +243,13 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getMysqlApiUrl() {
         return getProperty(MYSQL_API_URL, DEFAULT_MYSQL_API_URL);
+    }
+
+    public String getDotToken() {
+        return getProperty(DOT_TOKEN, "");
+    }
+
+    public String getDotQueryApiUrl() {
+        return getProperty(DOT_QUERY_API_URL, "");
     }
 }

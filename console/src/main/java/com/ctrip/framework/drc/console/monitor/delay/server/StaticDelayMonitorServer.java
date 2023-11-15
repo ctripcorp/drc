@@ -34,6 +34,7 @@ import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
@@ -264,9 +265,14 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log(" CLOSE DEBUG, version" + '(' + formatter.format(System.currentTimeMillis()) + ')', DEBUG, null);
                     long curTime = System.currentTimeMillis();
 
-                    for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
+                    Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
+                    while(iterator.hasNext()) {
+                        Entry<String, Long> entry = iterator.next();
                         String mhaName = entry.getKey();
-                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
+                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) { 
+                            if (isReplicatorMaster) {
+                                iterator.remove();
+                            }
                             continue;
                         }
                         Long receiveTime = entry.getValue();

@@ -8,6 +8,7 @@ public class ConflictTrxLogView {
     private Long conflictTrxLogId;
     private String srcMhaName;
     private String dstMhaName;
+    private String db;
     private String gtid;
     private Long trxRowsNum;
     private Long cflRowsNum;
@@ -36,6 +37,14 @@ public class ConflictTrxLogView {
 
     public void setDstMhaName(String dstMhaName) {
         this.dstMhaName = dstMhaName;
+    }
+
+    public String getDb() {
+        return db;
+    }
+
+    public void setDb(String db) {
+        this.db = db;
     }
 
     public String getGtid() {

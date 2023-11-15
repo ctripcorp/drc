@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.param.log;
 
 import com.ctrip.framework.drc.core.http.PageReq;
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -10,6 +11,8 @@ public class ConflictTrxLogQueryParam {
 
     private String srcMhaName;
     private String dstMhaName;
+    private String db; // db want query,pass by front-end
+    private List<String> dbsWithPermission; // actual execute query dbs
     private String gtId;
     private Long beginHandleTime;
     private Long endHandleTime;
@@ -30,6 +33,22 @@ public class ConflictTrxLogQueryParam {
 
     public void setDstMhaName(String dstMhaName) {
         this.dstMhaName = dstMhaName;
+    }
+
+    public String getDb() {
+        return db;
+    }
+
+    public void setDb(String db) {
+        this.db = db;
+    }
+
+    public List<String> getDbsWithPermission() {
+        return dbsWithPermission;
+    }
+
+    public void setDbsWithPermission(List<String> dbsWithPermission) {
+        this.dbsWithPermission = dbsWithPermission;
     }
 
     public String getGtId() {

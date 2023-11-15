@@ -13,4 +13,6 @@ public interface DbaApiService {
     List<ClusterInfoDto> getDatabaseClusterInfo(String dbName);
 
     List<DbClusterInfoDto> getDatabaseClusterInfoList(String dalClusterName);
+    
+    List<String> getDBsWithQueryPermission();
 }

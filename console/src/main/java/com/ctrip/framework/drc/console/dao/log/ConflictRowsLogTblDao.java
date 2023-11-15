@@ -59,7 +59,7 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private SelectSqlBuilder buildSqlBuilder(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
-                .and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.CONTAINS, Types.VARCHAR)
+                .and().inNullable(DB_NAME, param.getDbsWithPermission(), Types.VARCHAR)
                 .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().equalNullable(SRC_REGION, param.getSrcRegion(), Types.VARCHAR)
                 .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)
