@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
@@ -60,6 +61,8 @@ public class ConflictLogServiceTest {
     private MysqlServiceV2 mysqlService;
     @Mock
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Mock
+    private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
 
     @Before
     public void setUp() {
@@ -69,6 +72,8 @@ public class ConflictLogServiceTest {
     @Test
     public void testGetConflictTrxLogView() throws Exception {
         ConflictTrxLogQueryParam param = new ConflictTrxLogQueryParam();
+        param.setBeginHandleTime(1L);
+        param.setEndHandleTime(1L);
         Mockito.when(conflictTrxLogTblDao.queryByParam(param)).thenReturn(buildConflictTrxLogTbls());
 
         List<ConflictTrxLogView> result = conflictLogService.getConflictTrxLogView(param);
@@ -79,6 +84,8 @@ public class ConflictLogServiceTest {
     public void testGetConflictRowsLogView() throws Exception {
         ConflictRowsLogQueryParam param = new ConflictRowsLogQueryParam();
         param.setGtid("gtid");
+        param.setBeginHandleTime(1L);
+        param.setEndHandleTime(1L);
 
         Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryByParam(param)).thenReturn(buildConflictRowsLogTbls());

@@ -80,8 +80,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
-    private DefaultConsoleConfig defaultConsoleConfig;
-    @Autowired
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
