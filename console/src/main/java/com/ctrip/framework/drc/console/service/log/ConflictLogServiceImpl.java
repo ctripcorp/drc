@@ -6,8 +6,10 @@ import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
@@ -79,6 +81,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
     private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired
+    private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
@@ -95,6 +99,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
+        if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
+            throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
+        }
         List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
             return new ArrayList<>();
@@ -113,8 +120,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<ConflictRowsLogView> getConflictRowsLogView(ConflictRowsLogQueryParam param) throws Exception {
+        if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
+            throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
+        }
         if (StringUtils.isNotBlank(param.getGtid())) {
-            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid());
+            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid(), param.getBeginHandleTime(), param.getEndHandleTime());
             if (conflictTrxLogTbl != null) {
                 param.setConflictTrxLogId(conflictTrxLogTbl.getId());
             }
@@ -307,8 +317,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
     }
 
-    private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) {
-        List<String> conflictDbBlacklist = defaultConsoleConfig.getConflictDbBlacklist();
+    private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
+        List<String> conflictDbBlacklist = conflictDbBlackListTblDao.queryAllExist().stream().map(ConflictDbBlackListTbl::getDbFilter).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(conflictDbBlacklist)) {
             return trxLogs;
         }
@@ -364,19 +374,32 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public List<ConflictRowsLogDetailView> getConflictRowLogDetailView(List<Long> conflictRowLogIds) throws Exception {
+    public ConflictTrxLogDetailView getRowLogDetailView(List<Long> conflictRowLogIds) throws Exception {
+        ConflictTrxLogDetailView view = new ConflictTrxLogDetailView();
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(conflictRowLogIds);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
-            return new ArrayList<>();
+            return view;
         }
 
-        List<ConflictRowsLogDetailView> views = conflictRowsLogTbls.stream().map(source -> {
+        List<ConflictRowsLogDetailView> detailViews = conflictRowsLogTbls.stream().map(source -> {
             ConflictRowsLogDetailView target = new ConflictRowsLogDetailView();
             BeanUtils.copyProperties(source, target);
             target.setRowLogId(source.getId());
             return target;
         }).collect(Collectors.toList());
-        return views;
+        view.setRowsLogDetailViews(detailViews);
+
+        Pair<String, String> mhaPair = getMhaPair(conflictRowsLogTbls);
+        String srcMhaName = mhaPair.getLeft();
+        String dstMhaName = mhaPair.getRight();
+        MhaTblV2 srcMha = mhaTblV2Dao.queryByMhaName(srcMhaName);
+        MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(dstMhaName);
+        DcTbl srcDcTbl = dcTblDao.queryById(srcMha.getDcId());
+        DcTbl dstTbl = dcTblDao.queryById(dstMha.getDcId());
+        view.setSrcRegion(srcDcTbl.getRegionName());
+        view.setDstRegion(dstTbl.getRegionName());
+
+        return view;
     }
 
     @Override
@@ -400,6 +423,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         Pair<String, String> mhaPair = getMhaPair(conflictRowsLogTbls);
         String srcMhaName = mhaPair.getLeft();
+        String dstMhaName = mhaPair.getRight();
 
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
         Map<String, String> uniqueIndexMap = getUniqueIndex(conflictRowsLogTbls, srcMhaName);
@@ -416,15 +440,55 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
 
         boolean writeToDstMha = param.getWriteSide() == 0;
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair;
+        if (writeToDstMha) {
+            columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
+        } else {
+            columnsFilerPair = getTableColumnsFilterFields(dstMhaName, srcMhaName);
+        }
+
+        List<DbReplicationView> dbReplicationViews = columnsFilerPair.getLeft();
+        Map<Long, List<String>> columnFieldMap = columnsFilerPair.getRight();
         List<ConflictAutoHandleView> views = conflictRowsLogTbls.stream().map(source -> {
             ConflictAutoHandleView target = new ConflictAutoHandleView();
             target.setRowLogId(source.getId());
 
-            String handleSql = createConflictHandleSql(source, onUpdateColumnMap, uniqueIndexMap, srcRecordMap, dstRecordMap, writeToDstMha);
+            List<String> filerColumns = new ArrayList<>();
+            if (!CollectionUtils.isEmpty(columnFieldMap)) {
+                String tableName = MySqlUtils.toSqlField(source.getDbName()) + "." + MySqlUtils.toSqlField(source.getTableName());
+                Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+                if (dbReplicationId != null) {
+                    filerColumns = columnFieldMap.get(dbReplicationId);
+                }
+            }
+            String handleSql = createConflictHandleSql(source, onUpdateColumnMap, uniqueIndexMap, srcRecordMap, dstRecordMap, filerColumns, writeToDstMha);
             target.setAutoHandleSql(handleSql);
             return target;
         }).collect(Collectors.toList());
         return views;
+    }
+
+    @Override
+    public void addDbBlacklist(String dbFilter) throws Exception {
+        List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryByDbFilter(dbFilter);
+        if (!CollectionUtils.isEmpty(tbls)) {
+            logger.info("db blacklist already exist");
+            return;
+        }
+
+        ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        tbl.setDbFilter(dbFilter);
+        conflictDbBlackListTblDao.insert(tbl);
+    }
+
+    @Override
+    public void deleteBlacklist(String dbFilter) throws Exception {
+        List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryByDbFilter(dbFilter);
+        if (CollectionUtils.isEmpty(tbls)) {
+            logger.info("db blacklist not exist");
+            return;
+        }
+        conflictDbBlackListTblDao.delete(tbls);
     }
 
     private String createConflictHandleSql(ConflictRowsLogTbl rowLog,
@@ -432,6 +496,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                                            Map<String, String> uniqueIndexMap,
                                            Map<Long, Map<String, Object>> srcRecordMap,
                                            Map<Long, Map<String, Object>> dstRecordMap,
+                                           List<String> filterColumns,
                                            boolean writeToDstMha) {
         Map<String, Object> srcRecord = srcRecordMap.get(rowLog.getId());
         Map<String, Object> dstRecord = dstRecordMap.get(rowLog.getId());
@@ -445,16 +510,23 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         Map<String, Object> sourceRecord = writeToDstMha ? srcRecord : dstRecord;
         Map<String, Object> targetRecord = writeToDstMha ? dstRecord : srcRecord;
-        return createConflictHandleSql(tableName, sourceRecord, targetRecord, onUpdateColumn, uniqueIndex);
+        return createConflictHandleSql(rowLog.getDbName(), rowLog.getTableName(), sourceRecord, targetRecord, filterColumns, onUpdateColumn, uniqueIndex);
     }
 
-    private String createConflictHandleSql(String tableName, Map<String, Object> sourceRecord, Map<String, Object> targetRecord, String onUpdateColumn, String uniqueIndex) {
+    private String createConflictHandleSql(String dbName,
+                                           String tableName,
+                                           Map<String, Object> sourceRecord,
+                                           Map<String, Object> targetRecord,
+                                           List<String> filterColumns,
+                                           String onUpdateColumn,
+                                           String uniqueIndex) {
+        String fullTableName = MySqlUtils.toSqlField(dbName) + "." + MySqlUtils.toSqlField(tableName);
         if (sourceRecord != null && targetRecord != null) {  //update
-            return createUpdateSql(sourceRecord, targetRecord,tableName,  onUpdateColumn, uniqueIndex);
+            return createUpdateSql(sourceRecord, targetRecord, filterColumns, fullTableName, onUpdateColumn, uniqueIndex);
         } else if (sourceRecord != null) {  //insert
-            return createInsertSql(tableName, sourceRecord);
-        } else if (targetRecord != null){  //delete
-            return createDeleteSql(tableName, targetRecord, onUpdateColumn, uniqueIndex);
+            return createInsertSql(fullTableName, sourceRecord, filterColumns);
+        } else if (targetRecord != null) {  //delete
+            return createDeleteSql(fullTableName, targetRecord, onUpdateColumn, uniqueIndex);
         } else {
             return EMPTY_SQL;
         }
@@ -467,28 +539,28 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         String onUpdateCondition = onUpdateColumn + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(onUpdateColumn.replace(MARKS, "")));
         whereCondition.append(uniqueIndexCondition).append(" AND ").append(onUpdateCondition);
 
-        return String.format(DELETE_SQL, MySqlUtils.toSqlField(tableName), whereCondition);
+        return String.format(DELETE_SQL, tableName, whereCondition);
     }
 
-    private String createInsertSql(String tableName, Map<String, Object> sourceRecord) {
+    private String createInsertSql(String tableName, Map<String, Object> sourceRecord, List<String> filterColumns) {
         List<String> columns = new ArrayList<>();
         List<Object> values = new ArrayList<>();
         sourceRecord.forEach((column, value) -> {
-            if (!ROW_LOG_ID.equals(column)) {
-                columns.add(column);
+            if (!ROW_LOG_ID.equals(column) && !filterColumns.contains(column)) {
+                columns.add(MySqlUtils.toSqlField(column));
                 values.add(MySqlUtils.toSqlValue(value));
             }
         });
 
         String columnSql = Joiner.on(",").join(columns);
         String valueSql = Joiner.on(",").join(values);
-        return String.format(INSERT_SQL, MySqlUtils.toSqlField(tableName), columnSql, valueSql);
+        return String.format(INSERT_SQL, tableName, columnSql, valueSql);
     }
 
-    private String createUpdateSql(Map<String, Object> sourceRecord, Map<String, Object> targetRecord, String tableName, String onUpdateColumn, String uniqueIndex) {
+    private String createUpdateSql(Map<String, Object> sourceRecord, Map<String, Object> targetRecord, List<String> filterColumns, String tableName, String onUpdateColumn, String uniqueIndex) {
         List<String> setFields = new ArrayList<>();
         sourceRecord.forEach((column, value) -> {
-            if (!ROW_LOG_ID.equals(column)) {
+            if (!ROW_LOG_ID.equals(column) && !filterColumns.contains(column)) {
                 String setField = MySqlUtils.toSqlField(column) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(value);
                 setFields.add(setField);
             }
@@ -500,7 +572,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         String onUpdateCondition = onUpdateColumn + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(onUpdateColumn.replace(MARKS, "")));
         whereCondition.append(uniqueIndexCondition).append(" AND ").append(onUpdateCondition);
 
-        return String.format(UPDATE_SQL, MySqlUtils.toSqlField(tableName), setFiledSql, whereCondition);
+        return String.format(UPDATE_SQL, tableName, setFiledSql, whereCondition);
     }
 
     private Pair<String, String> getMhaPair(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {

@@ -137,9 +137,9 @@ public class ConflictLogController {
     }
 
     @GetMapping("/rows/detail")
-    public ApiResult<List<ConflictRowsLogDetailView>> getConflictRowLogDetailView(@RequestParam List<Long> conflictRowLogIds) {
+    public ApiResult<ConflictTrxLogDetailView> getConflictRowLogDetailView(@RequestParam List<Long> conflictRowLogIds) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowLogDetailView(conflictRowLogIds));
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getRowLogDetailView(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
@@ -163,6 +163,26 @@ public class ConflictLogController {
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("/db/blacklist")
+    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
+        try {
+            conflictLogService.addDbBlacklist(dbFilter);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/db/blacklist")
+    public ApiResult<Boolean> deleteBlacklist(@RequestParam String dbFilter) {
+        try {
+            conflictLogService.deleteBlacklist(dbFilter);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
 }

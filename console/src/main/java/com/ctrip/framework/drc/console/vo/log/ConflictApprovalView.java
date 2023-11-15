@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.vo.log;
 
-import java.sql.Timestamp;
-
 /**
  * Created by dengquanliang
  * 2023/10/31 11:09
@@ -16,6 +14,15 @@ public class ConflictApprovalView {
     private String applicant;
     private String createTime;
     private String approvalDetailUrl;
+    private Integer executedStatus;
+
+    public Integer getExecutedStatus() {
+        return executedStatus;
+    }
+
+    public void setExecutedStatus(Integer executedStatus) {
+        this.executedStatus = executedStatus;
+    }
 
     public String getApprovalDetailUrl() {
         return approvalDetailUrl;

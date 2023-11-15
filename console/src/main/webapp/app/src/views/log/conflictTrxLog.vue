@@ -15,11 +15,11 @@
               <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"></Input>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" format="yyyy-MM-dd" v-model="queryParam.beginHandleTime"
+              <DatePicker type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
                           placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" v-model="queryParam.endHandleTime"
+              <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
@@ -68,7 +68,9 @@
 export default {
   name: 'conflictTrxLog',
   props: {
-    gtid: String
+    gtid: String,
+    beginHandleTime: String,
+    endHandleTime: String
   },
   data () {
     return {
@@ -79,8 +81,8 @@ export default {
         srcMhaName: null,
         dstMhaName: null,
         gtid: this.gtid,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
         trxResult: null
       },
       tableData: [],
@@ -161,25 +163,25 @@ export default {
     getTrxData () {
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
-      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
-      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      const beginHandleTime = new Date(beginTime).getTime()
+      const endHandleTime = new Date(endTime).getTime()
       console.log('beginTime: ' + beginTime)
       console.log('endTime: ' + endTime)
+      if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
+        this.$Message.warning('请选择时间范围!')
+        return
+      }
       const params = {
         gtId: this.queryParam.gtid,
         srcMhaName: this.queryParam.srcMhaName,
         dstMhaName: this.queryParam.dstMhaName,
         trxResult: this.queryParam.trxResult,
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current
         }
-      }
-      if (!isNaN(beginHandleTime)) {
-        params.beginHandleTime = beginHandleTime
-      }
-      if (!isNaN(endHandleTime) && endHandleTime !== null) {
-        params.endHandleTime = endHandleTime + 24 * 60 * 60 * 1000 - 1
       }
       const reqParam = this.flattenObj(params)
       this.dataLoading = true
@@ -224,22 +226,25 @@ export default {
         srcMhaName: null,
         dstMhaName: null,
         gtid: null,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
         trxResult: null
       }
     },
     queryRowsLog (row, index) {
       this.$emit('tabValueChanged', 'rowsLog')
       this.$emit('gtidChanged', row.gtid)
-      this.$emit('searchModeChanged', 'true')
+      this.$emit('searchModeChanged', true)
+      this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
+      this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
       // this.tabVal = 'rowsLog'
     },
     getLogDetail (row, index) {
       const detail = this.$router.resolve({
         path: '/conflictLogDetail',
         query: {
-          conflictTrxLogId: row.conflictTrxLogId
+          conflictTrxLogId: row.conflictTrxLogId,
+          queryType: '0'
         }
       })
       window.open(detail.href, '_blank')

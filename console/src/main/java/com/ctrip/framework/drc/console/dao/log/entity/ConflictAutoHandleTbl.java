@@ -46,20 +46,6 @@ public class ConflictAutoHandleTbl {
     private String autoHandleSql;
 
     /**
-     * 执行结果 0-执行失败 1-执行成功
-     */
-    @Column(name = "result")
-    @Type(value = Types.TINYINT)
-    private Integer result;
-
-    /**
-     * 备注,失败原因
-     */
-    @Column(name = "remark")
-    @Type(value = Types.VARCHAR)
-    private String remark;
-
-    /**
      * 是否删除, 0-否; 1-是
      */
     @Column(name = "deleted")
@@ -110,22 +96,6 @@ public class ConflictAutoHandleTbl {
 
     public void setAutoHandleSql(String autoHandleSql) {
         this.autoHandleSql = autoHandleSql;
-    }
-
-    public Integer getResult() {
-        return result;
-    }
-
-    public void setResult(Integer result) {
-        this.result = result;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
-    public void setRemark(String remark) {
-        this.remark = remark;
     }
 
     public Integer getDeleted() {

@@ -8,6 +8,9 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.OperateTypeEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -18,6 +21,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -50,6 +54,8 @@ public class MySqlUtils {
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
+
+    private static Map<Endpoint, WriteSqlOperatorWrapper> writeSqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
@@ -602,6 +608,34 @@ public class MySqlUtils {
         }
     }
 
+    public static void removeWriteSqlOperator(Endpoint endpoint) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+        if (writeSqlOperatorWrapper != null) {
+            try {
+                writeSqlOperatorWrapper.stop();
+                writeSqlOperatorWrapper.dispose();
+            } catch (Exception e) {
+                logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+        }
+    }
+
+    private static WriteSqlOperatorWrapper getWriteSqlOperatorWrapper(Endpoint endpoint) {
+        if(writeSqlOperatorMapper.containsKey(endpoint)) {
+            return writeSqlOperatorMapper.get(endpoint);
+        } else {
+            WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+            try {
+                sqlOperatorWrapper.initialize();
+                sqlOperatorWrapper.start();
+            } catch (Exception e) {
+                logger.error("[[db={}:{}]]ColumnUtils.writeSqlOperatorMapper initialize error: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+            writeSqlOperatorMapper.put(endpoint, sqlOperatorWrapper);
+            return sqlOperatorWrapper;
+        }
+    }
+
     protected static String convertListToString(List<String> list) {
         StringBuilder sb = new StringBuilder();
         if(null != list && list.size() > 0) {
@@ -898,6 +932,18 @@ public class MySqlUtils {
             }
         }
         return null;
+    }
+
+    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return writeSqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperator(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        }
     }
 
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {

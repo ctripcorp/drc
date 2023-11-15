@@ -19,6 +19,13 @@ public interface WriteSqlOperator extends SqlOperator {
      */
     void write(Execution execution) throws SQLException;
 
+    /**
+     * write 包含insert、update、delete
+     * @param execution
+     * @return
+     */
+    StatementExecutorResult writeWithResult(Execution execution) throws SQLException;
+
     void insert(Execution execution) throws SQLException;
 
     void update(Execution execution) throws SQLException;

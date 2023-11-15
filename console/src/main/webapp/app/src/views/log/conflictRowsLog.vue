@@ -31,7 +31,7 @@
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
-                          :clearable="false" placeholder="结束日期"></DatePicker>
+                          :confirm= "false" :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
               <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
@@ -62,6 +62,17 @@
       <Col span="4">
         <Row :gutter=10 align="middle">
           <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getData">查询</Button>
+          <i-switch v-model="queryParam.likeSearch" size="large" style="margin-left: 10px">模糊匹配
+            <template #open>
+              <span>模糊匹配</span>
+            </template>
+            <template #close>
+              <span>精确匹配</span>
+            </template>
+          </i-switch>
+        </Row>
+        <Row :gutter=10 align="middle" style="margin-top: 20px">
+          <Button icon="md-refresh" @click="resetParam">重置</Button>
           <i-switch v-model="searchMode" size="large" style="margin-left: 10px">进阶
             <template #open>
               <span>进阶</span>
@@ -70,9 +81,6 @@
               <span>进阶</span>
             </template>
           </i-switch>
-        </Row>
-        <Row :gutter=10 align="middle" style="margin-top: 20px">
-          <Button icon="md-refresh" @click="resetParam">重置</Button>
         </Row>
       </Col>
     </Row>
@@ -181,6 +189,8 @@ export default {
   name: 'conflictRowsLog',
   props: {
     gtid: String,
+    beginHandleTime: String,
+    endHandleTime: String,
     searchMode: Boolean
   },
   components: {
@@ -239,24 +249,13 @@ export default {
         dbName: null,
         tableName: null,
         gtid: this.gtid,
-        beginHandleTime: '2023-11-07 13:00:00',
-        endHandleTime: '2023-11-07 15:00:00',
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
+        likeSearch: false,
         rowResult: null
       },
       tableData: [],
       columns: [
-        // {
-        //   title: '序号',
-        //   width: 75,
-        //   align: 'center',
-        //   // fixed: 'left',
-        //   render: (h, params) => {
-        //     return h(
-        //       'span',
-        //       params.index + 1
-        //     )
-        //   }
-        // },
         {
           type: 'selection',
           width: 60,
@@ -399,7 +398,7 @@ export default {
             const detail = this.$router.resolve({
               path: '/conflictLogDetail',
               query: {
-                byRowLogIds: true,
+                queryType: '1',
                 rowLogIds: rowLogIds,
                 srcRegion: row.srcRegion,
                 dstRegion: row.dstRegion
@@ -455,6 +454,8 @@ export default {
     queryTrxLog (row, index) {
       this.$emit('tabValueChanged', 'trxLog')
       this.$emit('gtidChanged', row.gtid)
+      this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
+      this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
       // this.tabVal = 'rowsLog'
     },
     getUnEqualRecords () {
@@ -490,6 +491,10 @@ export default {
       const endTime = this.queryParam.endHandleTime
       const beginHandleTime = new Date(beginTime).getTime()
       const endHandleTime = new Date(endTime).getTime()
+      if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
+        this.$Message.warning('请选择时间范围!')
+        return
+      }
       // const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
       // const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
       console.log('beginTime: ' + beginTime)
@@ -503,6 +508,7 @@ export default {
         dstRegion: this.queryParam.dstRegion,
         beginHandleTime: beginHandleTime,
         endHandleTime: endHandleTime,
+        likeSearch: this.queryParam.likeSearch,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current
@@ -553,13 +559,13 @@ export default {
         dbName: null,
         tableName: null,
         gtId: null,
-        beginHandleTime: '2023-11-07 13:00:00',
-        endHandleTime: '2023-11-07 15:00:00',
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
         rowResult: null,
         srcRegion: null,
         dstRegion: null
       }
-      this.rowLogIds = null
+      this.rowLogIds = []
     },
     handleChangeSize (val) {
       this.size = val
@@ -569,7 +575,6 @@ export default {
     }
   },
   created () {
-    this.resetParam()
     this.getData()
     this.getRegions()
   }

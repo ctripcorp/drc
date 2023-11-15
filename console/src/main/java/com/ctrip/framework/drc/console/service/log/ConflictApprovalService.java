@@ -16,11 +16,13 @@ public interface ConflictApprovalService {
 
     ConflictCurrentRecordView getConflictRecordView(Long approvalId) throws Exception;
 
-    List<ConflictRowsLogDetailView> getConflictRowLogDetailView(Long approvalId) throws Exception;
+    ConflictTrxLogDetailView getConflictRowLogDetailView(Long approvalId) throws Exception;
 
-    List<ConflictAutoHandleView> getConflictAutoHandleView(Long batchId) throws Exception;
+    List<ConflictAutoHandleView> getConflictAutoHandleView(Long approvalId) throws Exception;
 
     void createConflictApproval(ConflictApprovalCreateParam param) throws Exception;
 
     void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception;
+
+    void executeApproval(Long approvalId) throws Exception;
 }

@@ -59,6 +59,7 @@ public class ApprovalApiServiceImpl implements ApprovalApiService {
         body.put("access_token", request.getToken());
 
         ApprovalApiResponse response = HttpUtils.post(request.getUrl(), body, ApprovalApiResponse.class);
+        logger.info("createApproval response: {}", response);
         return response;
     }
 

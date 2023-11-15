@@ -52,20 +52,20 @@ public class ConflictApprovalCallBackRequest {
     }
 
     public static class Data {
-        private Long batchId;
+        private Long approvalId;
 
-        public Long getBatchId() {
-            return batchId;
+        public Long getApprovalId() {
+            return approvalId;
         }
 
-        public void setBatchId(Long batchId) {
-            this.batchId = batchId;
+        public void setApprovalId(Long approvalId) {
+            this.approvalId = approvalId;
         }
 
         @Override
         public String toString() {
             return "Data{" +
-                    "batchId=" + batchId +
+                    "approvalId=" + approvalId +
                     '}';
         }
     }

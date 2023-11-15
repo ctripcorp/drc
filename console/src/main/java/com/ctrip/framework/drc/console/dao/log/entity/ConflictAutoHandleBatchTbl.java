@@ -80,6 +80,37 @@ public class ConflictAutoHandleBatchTbl {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+
+    /**
+     * 是否执行过, 0-否; 1-是
+     */
+    @Column(name = "status")
+    @Type(value = Types.TINYINT)
+    private Integer status;
+
+    /**
+     * 备注
+     */
+    @Column(name = "remark")
+    @Type(value = Types.VARCHAR)
+    private String remark;
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
     public Long getId() {
         return id;
     }

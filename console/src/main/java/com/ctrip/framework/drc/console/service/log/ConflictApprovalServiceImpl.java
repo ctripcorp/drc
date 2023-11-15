@@ -5,14 +5,21 @@ import com.ctrip.framework.drc.console.dao.log.*;
 import com.ctrip.framework.drc.console.dao.log.entity.*;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.ApprovalTypeEnum;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
+import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiRequest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
@@ -20,7 +27,11 @@ import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -29,10 +40,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -59,14 +73,14 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     private ConflictLogService conflictLogService;
     @Autowired
     private DomainConfig domainConfig;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
 
     private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
-
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final String APPROVED = "Approved";
     private static final String REJECTED = "Rejected";
-    private static final String USERNAME = "ql_deng";
 
     @Override
     public List<ConflictApprovalView> getConflictApprovalViews(ConflictApprovalQueryParam param) throws Exception {
@@ -101,6 +115,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
             if (batchTbl != null) {
                 target.setDbName(batchTbl.getDbName());
                 target.setTableName(batchTbl.getTableName());
+                target.setExecutedStatus(batchTbl.getStatus());
             }
             return target;
         }).collect(Collectors.toList());
@@ -121,7 +136,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     @Override
-    public List<ConflictRowsLogDetailView> getConflictRowLogDetailView(Long approvalId) throws Exception {
+    public ConflictTrxLogDetailView getConflictRowLogDetailView(Long approvalId) throws Exception {
         ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryById(approvalId);
         if (conflictApprovalTbl == null) {
             throw ConsoleExceptionUtils.message("conflict approval not exist");
@@ -129,15 +144,17 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
 
         List<ConflictAutoHandleTbl> conflictAutoHandleTbls = conflictAutoHandleTblDao.queryByBatchId(conflictApprovalTbl.getBatchId());
         List<Long> rowLogIds = conflictAutoHandleTbls.stream().map(ConflictAutoHandleTbl::getRowLogId).collect(Collectors.toList());
-        return conflictLogService.getConflictRowLogDetailView(rowLogIds);
+        return conflictLogService.getRowLogDetailView(rowLogIds);
     }
 
     @Override
-    public List<ConflictAutoHandleView> getConflictAutoHandleView(Long batchId) throws Exception {
-        List<ConflictAutoHandleTbl> conflictAutoHandleTbls = conflictAutoHandleTblDao.queryByBatchId(batchId);
-        if (CollectionUtils.isEmpty(conflictAutoHandleTbls)) {
-            return new ArrayList<>();
+    public List<ConflictAutoHandleView> getConflictAutoHandleView(Long approvalId) throws Exception {
+        ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryById(approvalId);
+        if (conflictApprovalTbl == null) {
+            throw ConsoleExceptionUtils.message("conflict approval not exist");
         }
+
+        List<ConflictAutoHandleTbl> conflictAutoHandleTbls = conflictAutoHandleTblDao.queryByBatchId(conflictApprovalTbl.getBatchId());
         List<Long> rowLogIds = conflictAutoHandleTbls.stream().map(ConflictAutoHandleTbl::getRowLogId).collect(Collectors.toList());
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(rowLogIds);
         Map<Long, ConflictRowsLogTbl> rowsLogTblMap = conflictRowsLogTbls.stream().collect(Collectors.toMap(ConflictRowsLogTbl::getId, Function.identity()));
@@ -170,29 +187,31 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }).collect(Collectors.toList());
         conflictAutoHandleTblDao.insert(autoHandleTbls);
 
-        //ql_deng TODO 2023/11/7: username
         String username = userService.getInfo();
-        if (EnvUtils.fat() && StringUtils.isEmpty(username)) {
-            username = USERNAME;
-        }
+        ConflictApprovalTbl approvalTbl = insertApprovalTbl(batchId, username);
 
-        ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
-        data.setBatchId(batchId);
-        ApprovalApiRequest request = buildRequest(username, username, JsonUtils.toJson(data));
+        ApprovalApiRequest request = buildRequest(username, username, approvalTbl.getId());
         ApprovalApiResponse response = approvalApiService.createApproval(request);
-        insertApprovalTbl(batchId, username, response);
+
+        approvalTbl.setTicketId(response.getData().get(0).getTicket_ID());
+        conflictApprovalTblDao.update(approvalTbl);
     }
 
-    private ApprovalApiRequest buildRequest(String dbOwner, String username, String data) {
+    private ApprovalApiRequest buildRequest(String dbOwner, String username, long approvalId) {
         ApprovalApiRequest request = new ApprovalApiRequest();
         request.setUrl(domainConfig.getOpsApprovalUrl());
-        request.setSourceUrl(domainConfig.getConflictDetailUrl());
+
+        String sourceUrl = domainConfig.getConflictDetailUrl() + "?approvalId=" + approvalId + "&queryType=2";
+        request.setSourceUrl(sourceUrl);
         request.setApprover1(dbOwner);
         request.setApprover2(domainConfig.getDbaApprovers());
         request.setCcEmail(domainConfig.getConflictCcEmail());
         request.setCallBackUrl(domainConfig.getApprovalCallbackUrl());
         request.setUsername(username);
-        request.setData(data);
+
+        ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
+        data.setApprovalId(approvalId);
+        request.setData(JsonUtils.toJson(data));
         request.setToken(domainConfig.getOpsApprovalToken());
 
         return request;
@@ -201,8 +220,8 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     @Override
     public void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception {
         logger.info("approvalCallBack request: ", request);
-        long batchId = request.getData().getBatchId();
-        ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryByBatchId(batchId);
+        long approvalId = request.getData().getApprovalId();
+        ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryById(approvalId);
         if (REJECTED.equalsIgnoreCase(request.getApprovalStatus())) {
             conflictApprovalTbl.setApprovalResult(ApprovalResultEnum.REJECTED.getCode());
             conflictApprovalTbl.setRemark(request.getRejectReason());
@@ -217,14 +236,51 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         conflictApprovalTblDao.update(conflictApprovalTbl);
     }
 
-    private void insertApprovalTbl(Long batchId, String username, ApprovalApiResponse response) throws SQLException {
+    @Override
+    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
+    public void executeApproval(Long approvalId) throws Exception {
+        ConflictApprovalTbl approvalTbl = conflictApprovalTblDao.queryById(approvalId);
+        if (approvalTbl == null) {
+            throw ConsoleExceptionUtils.message("approval not exist");
+        }
+        if (approvalTbl.getApprovalResult() != ApprovalResultEnum.APPROVED.getCode()) {
+            throw ConsoleExceptionUtils.message("approval has not been approved yet!");
+        }
+
+        ConflictAutoHandleBatchTbl batchTbl = conflictAutoHandleBatchTblDao.queryById(approvalTbl.getBatchId());
+        if (batchTbl.getStatus() == BooleanEnum.TRUE.getCode()) {
+            throw ConsoleExceptionUtils.message("approval has already been executed");
+        }
+
+        String targetMha = batchTbl.getTargetMhaType() == 0 ? batchTbl.getDstMhaName() : batchTbl.getSrcMhaName();
+        List<ConflictAutoHandleTbl> conflictAutoHandleTbls = conflictAutoHandleTblDao.queryByBatchId(batchTbl.getId());
+
+        StringBuilder sqlBuilder = new StringBuilder(Constants.BEGIN);
+        List<String> sqlList = conflictAutoHandleTbls.stream().map(e -> Constants.CONFLICT_SQL_PREFIX + e.getAutoHandleSql()).collect(Collectors.toList());
+        String sql = Joiner.on(";\n").join(sqlList);
+        sqlBuilder.append("\n").append(sql).append(";\n").append(Constants.COMMIT);
+
+        MysqlWriteEntity entity = new MysqlWriteEntity(targetMha, sqlBuilder.toString());
+        StatementExecutorResult result = mysqlServiceV2.write(entity);
+        batchTbl.setStatus(result.getResult());
+        batchTbl.setRemark(result.getMessage());
+        conflictAutoHandleBatchTblDao.update(batchTbl);
+        if (result.getResult() != SqlResultEnum.SUCCESS.getCode()) {
+            throw ConsoleExceptionUtils.message(result.getMessage());
+        }
+    }
+
+    private ConflictApprovalTbl insertApprovalTbl(Long batchId, String username) throws SQLException {
         ConflictApprovalTbl approvalTbl = new ConflictApprovalTbl();
         approvalTbl.setBatchId(batchId);
         approvalTbl.setApprovalResult(ApprovalResultEnum.UNDER_APPROVAL.getCode());
         approvalTbl.setApplicant(username);
-        approvalTbl.setTicketId(response.getData().get(0).getTicket_ID());
+        approvalTbl.setTicketId("");
         approvalTbl.setCurrentApproverType(ApprovalTypeEnum.DB_OWNER.getCode());
-        conflictApprovalTblDao.insert(approvalTbl);
+        Long approvalId = conflictApprovalTblDao.insertWithReturnId(approvalTbl);
+
+        approvalTbl.setId(approvalId);
+        return approvalTbl;
     }
 
     private Long insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {
@@ -263,6 +319,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         batchTbl.setTargetMhaType(writeSide);
         batchTbl.setDbName(dbName);
         batchTbl.setTableName(tableName);
+        batchTbl.setStatus(SqlResultEnum.NOT_EXECUTED.getCode());
 
         return conflictAutoHandleBatchTblDao.insertWithReturnId(batchTbl);
     }

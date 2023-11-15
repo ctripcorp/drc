@@ -38,7 +38,7 @@ public class ConflictApprovalController {
     }
 
     @GetMapping("/rows/detail")
-    public ApiResult<List<ConflictRowsLogDetailView>> getConflictRowLogDetailView(@RequestParam Long approvalId) {
+    public ApiResult<ConflictTrxLogDetailView> getConflictRowLogDetailView(@RequestParam Long approvalId) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getConflictRowLogDetailView(approvalId));
             return apiResult;
@@ -60,9 +60,9 @@ public class ConflictApprovalController {
     }
 
     @GetMapping("/detail")
-    public ApiResult<List<ConflictAutoHandleView>> getConflictAutoHandleView(@RequestParam Long batchId) {
+    public ApiResult<List<ConflictAutoHandleView>> getConflictAutoHandleView(@RequestParam Long approvalId) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getConflictAutoHandleView(batchId));
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getConflictAutoHandleView(approvalId));
             return apiResult;
         } catch (Exception e) {
             logger.error("getConflictAutoHandleView fail, ", e);
@@ -91,6 +91,18 @@ public class ConflictApprovalController {
             return apiResult;
         } catch (Exception e) {
             logger.error("createConflictApproval fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("/execute")
+    public ApiResult<Boolean> executeApproval(@RequestParam Long approvalId) {
+        logger.info("executeApproval approvalId: {}", approvalId);
+        try {
+            conflictApprovalService.executeApproval(approvalId);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("executeApproval fail, ", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

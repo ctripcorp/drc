@@ -4,13 +4,17 @@ import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -229,7 +233,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-//    @PossibleRemote(path = "/api/drc/v2/mysql/uniqueIndex")
+    @PossibleRemote(path = "/api/drc/v2/mysql/uniqueIndex")
     public String getFirstUniqueIndex(String mha, String db, String table) {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
@@ -237,5 +241,16 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return null;
         }
         return MySqlUtils.getFirstUniqueIndex(endpoint, db, table);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/write", httpType = HttpRequestEnum.POST, requestClass = MysqlWriteEntity.class)
+    public StatementExecutorResult write(MysqlWriteEntity mysqlWriteEntity) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpointForWrite(mysqlWriteEntity.getMha());
+        if (endpoint == null) {
+            logger.error("write to mha: {}, db not exist", mysqlWriteEntity.getMha());
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), Constants.ENDPOINT_NOT_EXIST);
+        }
+        return MySqlUtils.write(endpoint, mysqlWriteEntity.getSql());
     }
 }

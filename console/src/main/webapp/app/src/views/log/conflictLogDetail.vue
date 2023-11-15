@@ -2,7 +2,7 @@
   <base-component :isFather="isFather" :subMenuName="['1']" :fatherMenu="fatherMenu">
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/conflictLog">冲突事务</BreadcrumbItem>
+      <BreadcrumbItem to="/conflictLog">冲突行</BreadcrumbItem>
       <BreadcrumbItem>冲突详情</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
@@ -11,14 +11,15 @@
           <p slot="title">
             自动冲突处理结果
           </p>
-          <div v-if="!byRowLogIds" class="ivu-list-item-meta-title">事务提交结果：
+          <div v-if="queryType==='0'" class="ivu-list-item-meta-title">事务提交结果：
             <Button :loading="logTableLoading" size="small" :type="trxLog.trxResult==0?'success':'error'">
               {{trxLog.trxResultStr}}
             </Button>
           </div>
           <div class="ivu-list-item-meta-title">所有机房当前冲突行记录：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
-              <Button :loading="recordLoading" size="small" @click="getRecords" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
+              <Button :loading="recordLoading" size="small" @click="getRecords"
+                      :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
             </Tooltip>
           </div>
           <Divider/>
@@ -71,6 +72,7 @@
           <p slot="title">
             选择冲突行自动冲突处理
           </p>
+          <p>写入region</p>
           <Row :gutter=10>
             <Col span="3">
               <Select filterable clearable v-model="writeSide" placeholder="选择写入region">
@@ -78,15 +80,19 @@
               </Select>
             </Col>
             <Col span="4">
-              <Button :loading="sqlLoading" size="middle" @click="generateHandleSql" type="success">生成SQL</Button>
+              <Button v-if="queryType!=='2'" :loading="sqlLoading" size="middle" @click="generateHandleSql" type="success">生成SQL</Button>
+            </Col>
+            <Col span="4">
+              <a v-if="queryType==='2'" target="_blank" :href="this.approvalDetailUrl">审批链接</a>
             </Col>
           </Row>
           <br>
           <div :loading="sqlLoading">
-            <codemirror  v-model="handleSql" :options="options"></codemirror>
+            <codemirror v-model="handleSql" :options="options"></codemirror>
           </div>
           <br>
-          <Button :loading="approvalLoading" size="middle" @click="generateApproval" type="primary">提交审批</Button>
+          <Button v-if="queryType!=='2'" :loading="approvalLoading" size="middle" @click="generateApproval" type="primary">提交审批</Button>
+          <Button v-if="showExecute" :disabled="disabled==='true'" :loading="executeLoading" size="middle" @click="executeApproval" type="primary">执行SQL</Button>
         </Card>
         <Divider/>
       </div>
@@ -110,6 +116,10 @@ export default {
   },
   data () {
     return {
+      disabled: '',
+      executeLoading: false,
+      showExecute: false,
+      approvalDetailUrl: '',
       approvalLoading: false,
       handleSql: '',
       handleSqlList: [],
@@ -118,11 +128,13 @@ export default {
       sqlLoading: false,
       writeSide: 0,
       regionOpt: [],
+      queryType: 0,
       byRowLogIds: false,
       rowLogIds: [],
       conflictTrxLogId: 0,
       recordLoading: false,
       logTableLoading: false,
+      approvalId: 0,
       srcRecords: [],
       dstRecords: [],
       srcTable: {
@@ -216,6 +228,39 @@ export default {
     }
   },
   methods: {
+    executeApproval () {
+      this.executeLoading = true
+      this.axios.post('/api/drc/v2/log/approval/execute?approvalId=' + this.approvalId)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('SQL执行失败! ' + response.data.message)
+          } else {
+            this.$Message.success('SQL执行成功!')
+            this.disabled = 'true'
+            this.getRecords()
+          }
+        })
+        .finally(() => {
+          this.executeLoading = false
+        })
+    },
+    getHandleSql () {
+      this.axios.get('/api/drc/v2/log/approval/detail?approvalId=' + this.approvalId)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询冲突自动处理SQL失败!')
+          } else {
+            const data = response.data
+            this.handleSqlList = data.data
+            const handleSqlList = []
+            data.data.forEach(e => handleSqlList.push(e.autoHandleSql))
+            this.handleSql = handleSqlList.join('\n')
+          }
+        })
+        .finally(() => {
+          this.logTableLoading = false
+        })
+    },
     generateApproval () {
       if (this.handleSqlList.length === 0) {
         this.$Message.warning('未生成SQL！')
@@ -301,6 +346,16 @@ export default {
             this.trxLog.trxResult = data.trxResult
             this.trxLog.trxResultStr = data.trxResult === 0 ? 'commit' : 'rollback'
             this.trxLog.tableData = data.rowsLogDetailViews
+            this.regionOpt = [
+              {
+                key: 0,
+                val: this.trxLog.dstRegion
+              },
+              {
+                key: 1,
+                val: this.trxLog.srcRegion
+              }
+            ]
           }
         })
         .finally(() => {
@@ -314,7 +369,51 @@ export default {
           if (response.data.status === 1) {
             this.$Message.error('查询冲突详情失败!')
           } else {
-            this.trxLog.tableData = response.data.data
+            const data = response.data.data
+            this.trxLog.srcRegion = data.srcRegion
+            this.trxLog.dstRegion = data.dstRegion
+            this.trxLog.trxResult = data.trxResult
+            this.trxLog.trxResultStr = data.trxResult === 0 ? 'commit' : 'rollback'
+            this.trxLog.tableData = data.rowsLogDetailViews
+            this.regionOpt = [
+              {
+                key: 0,
+                val: this.trxLog.dstRegion
+              },
+              {
+                key: 1,
+                val: this.trxLog.srcRegion
+              }
+            ]
+          }
+        })
+        .finally(() => {
+          this.logTableLoading = false
+        })
+    },
+    getTrxLogDetail2 () {
+      this.logTableLoading = true
+      this.axios.get('/api/drc/v2/log/approval/rows/detail?approvalId=' + this.approvalId)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询冲突详情失败!')
+          } else {
+            const data = response.data.data
+            this.trxLog.srcRegion = data.srcRegion
+            this.trxLog.dstRegion = data.dstRegion
+            this.trxLog.trxResult = data.trxResult
+            this.trxLog.trxResultStr = data.trxResult === 0 ? 'commit' : 'rollback'
+            this.trxLog.tableData = data.rowsLogDetailViews
+            this.regionOpt = [
+              {
+                key: 0,
+                val: this.trxLog.dstRegion
+              },
+              {
+                key: 1,
+                val: this.trxLog.srcRegion
+              }
+            ]
           }
         })
         .finally(() => {
@@ -333,9 +432,7 @@ export default {
             this.trxLog.recordEqual = data.recordIsEqual
             this.trxLog.diffStr = data.recordIsEqual ? '数据一致' : '数据不一致'
             this.srcRecords = data.srcRecords
-            // data.srcRecords.forEach(e => this.srcRecords.push(e))
             this.dstRecords = data.dstRecords
-            // data.dstRecords.forEach(e => this.dstRecords.push(e))
           }
         })
         .finally(() => {
@@ -361,11 +458,32 @@ export default {
           this.recordLoading = false
         })
     },
+    getTrxRecords2 () {
+      this.recordLoading = true
+      this.axios.get('/api/drc/v2/log/approval/rows/records?approvalId=' + this.approvalId)
+        .then(response => {
+          if (response.data.status === 1) {
+            // this.$Message.error('查询当前行记录失败!')
+            this.trxLog.diffStr = '数据比对失败'
+          } else {
+            const data = response.data.data
+            this.trxLog.recordEqual = data.recordIsEqual
+            this.trxLog.diffStr = data.recordIsEqual ? '数据一致' : '数据不一致'
+            this.srcRecords = data.srcRecords
+            this.dstRecords = data.dstRecords
+          }
+        })
+        .finally(() => {
+          this.recordLoading = false
+        })
+    },
     getRecords () {
-      if (this.byRowLogIds) {
-        this.getTrxRecords1()
-      } else {
+      if (this.queryType === '0') {
         this.getTrxRecords()
+      } else if (this.queryType === '1') {
+        this.getTrxRecords1()
+      } else if (this.queryType === '2') {
+        this.getTrxRecords2()
       }
     },
     changeSelection (val) {
@@ -382,27 +500,23 @@ export default {
   },
   created () {
     this.conflictTrxLogId = this.$route.query.conflictTrxLogId
-    this.byRowLogIds = this.$route.query.byRowLogIds
+    this.queryType = this.$route.query.queryType
+    this.approvalDetailUrl = this.$route.query.approvalDetailUrl
     this.rowLogIds = this.$route.query.rowLogIds
-    this.trxLog.srcRegion = this.$route.query.srcRegion
-    this.trxLog.dstRegion = this.$route.query.dstRegion
-    if (this.byRowLogIds) {
-      this.getTrxLogDetail1()
-      this.getTrxRecords1()
-    } else {
+    this.approvalId = this.$route.query.approvalId
+    if (this.queryType === '0') {
       this.getTrxLogDetail()
       this.getTrxRecords()
+    } else if (this.queryType === '1') {
+      this.getTrxLogDetail1()
+      this.getTrxRecords1()
+    } else if (this.queryType === '2') {
+      this.showExecute = this.$route.query.showExecute
+      this.disabled = this.$route.query.disabled
+      this.getTrxLogDetail2()
+      this.getTrxRecords2()
+      this.getHandleSql()
     }
-    this.regionOpt = [
-      {
-        key: 0,
-        val: this.trxLog.srcRegion
-      },
-      {
-        key: 1,
-        val: this.trxLog.dstRegion
-      }
-    ]
   }
 }
 </script>

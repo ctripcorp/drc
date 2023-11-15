@@ -196,6 +196,19 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     }
 
     @Override
+    public Endpoint getMasterEndpointForWrite(String mha) {
+        Map<String, Dc> dcs = getDcs();
+        for(Dc dc : dcs.values()) {
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
+            if(null != dbCluster) {
+                return getMasterForWrite(dbCluster);
+            }
+        }
+        return null;
+    }
+
+    @Override
     public List<Endpoint> getMasterEndpointsInAllAccounts(String mha) {
         Map<String, Dc> dcs = getDcs();
         for(Dc dc : dcs.values()) {
@@ -233,6 +246,17 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         for(Db db : dbList) {
             if(db.isMaster()) {
                 return new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue());
+            }
+        }
+        return null;
+    }
+
+    public Endpoint getMasterForWrite(DbCluster dbCluster) {
+        Dbs dbs = dbCluster.getDbs();
+        List<Db> dbList = dbs.getDbs();
+        for(Db db : dbList) {
+            if(db.isMaster()) {
+                return new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getWriteUser(), dbs.getWritePassword(), BooleanEnum.TRUE.isValue());
             }
         }
         return null;

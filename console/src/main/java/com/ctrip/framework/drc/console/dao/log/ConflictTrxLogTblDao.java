@@ -48,10 +48,18 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         return queryOne(sqlBuilder);
     }
 
+    public ConflictTrxLogTbl queryByGtid(String gtid, Long beginHandleTime, Long endHandleTime) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR)
+                .and().greaterThan(HANDLE_TIME, beginHandleTime, Types.BIGINT)
+                .and().lessThan(HANDLE_TIME, endHandleTime, Types.BIGINT);
+        return queryOne(sqlBuilder);
+    }
+
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().likeNullable(SRC_MHA_NAME, param.getSrcMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
-                .and().likeNullable(DST_MHA_NAME, param.getDstMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
+        sqlBuilder.and().equalNullable(SRC_MHA_NAME, param.getSrcMhaName(), Types.VARCHAR)
+                .and().equalNullable(DST_MHA_NAME, param.getDstMhaName(), Types.VARCHAR)
                 .and().equalNullable(GTID, param.getGtId(), Types.VARCHAR)
                 .and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {

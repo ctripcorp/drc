@@ -38,9 +38,13 @@ public interface ConflictLogService {
 
     Pair<String, String> checkSameMhaReplication(List<Long> conflictRowLogIds) throws Exception;
 
-    List<ConflictRowsLogDetailView> getConflictRowLogDetailView(List<Long> conflictRowLogIds) throws Exception;
+    ConflictTrxLogDetailView getRowLogDetailView(List<Long> conflictRowLogIds) throws Exception;
 
     ConflictCurrentRecordView getConflictRowRecordView(List<Long> conflictRowLogIds) throws Exception;
 
     List<ConflictAutoHandleView> createHandleSql(ConflictAutoHandleParam param) throws Exception;
+
+    void addDbBlacklist(String dbFilter) throws Exception;
+
+    void deleteBlacklist(String dbFilter) throws Exception;
 }

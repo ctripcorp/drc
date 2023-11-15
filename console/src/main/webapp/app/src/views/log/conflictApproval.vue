@@ -139,6 +139,29 @@ export default {
           }
         },
         {
+          title: '是否已执行',
+          key: 'executedStatus',
+          width: 150,
+          align: 'center',
+          render: (h, params) => {
+            const result = params.row.executedStatus
+            let color = 'blue'
+            let text = ''
+            if (result === 0) {
+              color = 'blue'
+              text = '未执行'
+            } else if (result === 1) {
+              color = 'volcano'
+              text = '已执行'
+            }
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
           title: '操作',
           slot: 'action',
           width: 150,
@@ -224,12 +247,18 @@ export default {
       }
     },
     getDetail (row, index) {
-      this.$router.push({
+      const disabled = row.approvalResult !== 1 || row.executedStatus !== 0
+      const detail = this.$router.resolve({
         path: '/conflictLogDetail',
         query: {
-          conflictTrxLogId: row.conflictTrxLogId
+          approvalId: row.approvalId,
+          approvalDetailUrl: row.approvalDetailUrl,
+          queryType: '2',
+          showExecute: true,
+          disabled: disabled
         }
       })
+      window.open(detail.href, '_blank')
     },
     handleChangeSize (val) {
       this.size = val

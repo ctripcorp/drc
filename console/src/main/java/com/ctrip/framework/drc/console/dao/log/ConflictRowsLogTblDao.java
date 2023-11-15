@@ -59,11 +59,18 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private SelectSqlBuilder buildSqlBuilder(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
-                .and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.CONTAINS, Types.VARCHAR)
-                .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().equalNullable(SRC_REGION, param.getSrcRegion(), Types.VARCHAR)
                 .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)
                 .and().equalNullable(ROW_RESULT, param.getRowResult(), Types.TINYINT);
+
+        if (param.getLikeSearch()) {
+            sqlBuilder.and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.BEGIN_WITH, Types.VARCHAR)
+                    .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+        } else {
+            sqlBuilder.and().equalNullable(DB_NAME, param.getDbName(), Types.VARCHAR)
+                    .and().equalNullable(TABLE_NAME, param.getTableName(), Types.VARCHAR);
+        }
+
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
             sqlBuilder.and().greaterThan(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
         }

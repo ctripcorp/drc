@@ -1,10 +1,14 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.apache.commons.lang3.StringUtils;
@@ -211,6 +215,17 @@ public class MysqlController {
         } catch (Exception e) {
             logger.error("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table, e);
             return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @PostMapping("write")
+    public ApiResult<StatementExecutorResult> write(@RequestBody MysqlWriteEntity mysqlWriteEntity) {
+        try {
+            logger.info("write to mha entity: {}", mysqlWriteEntity);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.write(mysqlWriteEntity));
+        } catch (Exception e) {
+            logger.info("write to mha entity fail: {}", mysqlWriteEntity, e);
+            return ApiResult.getFailInstance(new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), e.getMessage()));
         }
     }
 
