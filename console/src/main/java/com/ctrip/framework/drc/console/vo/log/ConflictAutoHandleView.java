@@ -41,4 +41,14 @@ public class ConflictAutoHandleView {
     public void setAutoHandleSql(String autoHandleSql) {
         this.autoHandleSql = autoHandleSql;
     }
+
+    @Override
+    public String toString() {
+        return "ConflictAutoHandleView{" +
+                "rowLogId=" + rowLogId +
+                ", dbName='" + dbName + '\'' +
+                ", tableName='" + tableName + '\'' +
+                ", autoHandleSql='" + autoHandleSql + '\'' +
+                '}';
+    }
 }
