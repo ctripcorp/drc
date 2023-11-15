@@ -392,7 +392,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
     
     private List<String> getQueryDbsWithPermission(String queryDb) {
-        List<String>  dbsWantQuery;
+        List<String> dbsWantQuery;
         if (!iamService.canQueryAllCflLog().getLeft()) { // can not query all db
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery) ||
