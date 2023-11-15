@@ -279,7 +279,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(0, 0, 0, tableInfo.getDbName().toLowerCase(), tableInfo.getTableName().toLowerCase(), columnList, tableInfo.getIdentifiers());
             if (writeDirect) {
                 tableMapLogEvent.write(eventStore);
-                tableMapLogEvent.release();
+                tableMapLogEvent.releaseMergedByteBufs();
             } else {
                 transactionCache.add(tableMapLogEvent);
             }
