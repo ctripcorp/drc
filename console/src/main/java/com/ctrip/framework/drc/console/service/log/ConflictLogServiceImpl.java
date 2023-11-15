@@ -397,7 +397,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery) ||
                     (StringUtils.isNotEmpty(queryDb) && !dbsCanQuery.contains(queryDb))) {
-                throw ConsoleExceptionUtils.message("query db without dot permission");
+                throw ConsoleExceptionUtils.message("query db without DOT permission!");
             }
             dbsWantQuery = StringUtils.isBlank(queryDb) ? dbsCanQuery : Lists.newArrayList(queryDb);
         } else { // can query all db

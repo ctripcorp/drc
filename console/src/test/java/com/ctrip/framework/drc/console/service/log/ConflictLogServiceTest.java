@@ -86,7 +86,7 @@ public class ConflictLogServiceTest {
         try {
             result = conflictLogService.getConflictTrxLogView(param);
         } catch (Exception e) {
-            Assert.assertEquals("query db without dot permission", e.getMessage());
+            Assert.assertEquals("query db without DOT permission!", e.getMessage());
         }
 
         // case 2: can not query all db , query a db without dot permission
@@ -95,7 +95,7 @@ public class ConflictLogServiceTest {
             param.setDb("db2");
             result = conflictLogService.getConflictTrxLogView(param);
         } catch (Exception e) {
-            Assert.assertEquals("query db without dot permission", e.getMessage());
+            Assert.assertEquals("query db without DOT permission!", e.getMessage());
         }
         // case 3: can not query all db , query a db with dot permission;
         param.setDb("db1");
