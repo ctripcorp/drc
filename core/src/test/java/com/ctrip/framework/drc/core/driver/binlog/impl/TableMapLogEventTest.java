@@ -22,6 +22,26 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType
 public class TableMapLogEventTest {
 
     @Test
+    public void writeMergedBufTest() {
+        final ByteBuf byteBuf = initLatin1CharsetByteBuf();
+        final TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
+        ByteBuf headerBuf = tableMapLogEvent.getLogEventHeader().getHeaderBuf();
+        ByteBuf payloadBuf = tableMapLogEvent.getPayloadBuf();
+        Assert.assertEquals(1, headerBuf.refCnt());
+        Assert.assertEquals(1, payloadBuf.refCnt());
+
+        List<ByteBuf> mergedByteBufs = tableMapLogEvent.getEventByteBuf(headerBuf, payloadBuf);
+        Assert.assertEquals(1, headerBuf.refCnt());
+        Assert.assertEquals(1, payloadBuf.refCnt());
+        Assert.assertEquals(1, mergedByteBufs.get(0).refCnt());
+
+        tableMapLogEvent.releaseMergedByteBufs();
+        Assert.assertEquals(0, headerBuf.refCnt());
+        Assert.assertEquals(0, payloadBuf.refCnt());
+        Assert.assertEquals(0, mergedByteBufs.get(0).refCnt());
+    }
+
+    @Test
     public void readLatin1CharsetTest() {
         final ByteBuf byteBuf = initLatin1CharsetByteBuf();
         final TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
