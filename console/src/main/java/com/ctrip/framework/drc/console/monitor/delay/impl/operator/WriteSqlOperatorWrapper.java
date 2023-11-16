@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.monitor.execution.Execution;
 import com.ctrip.framework.drc.core.monitor.operator.BaseSqlOperator;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.ReadWriteSqlOperator;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
@@ -53,6 +54,11 @@ public class WriteSqlOperatorWrapper extends BaseSqlOperator implements ReadWrit
     @Override
     public void write(Execution execution) throws SQLException {
         readWriteSqlOperator.write(execution);
+    }
+
+    @Override
+    public StatementExecutorResult writeWithResult(Execution execution) throws SQLException {
+        return readWriteSqlOperator.writeWithResult(execution);
     }
 
     @Override

@@ -1,13 +1,13 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +21,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/drc/v2/log/conflict/")
 public class ConflictLogController {
-    private static final Logger logger = LoggerFactory.getLogger(ConflictLogController.class);
 
     @Autowired
     private ConflictLogService conflictLogService;
@@ -89,7 +88,7 @@ public class ConflictLogController {
     }
 
     @GetMapping("/records/compare")
-    public ApiResult<ConflictRowsRecordCompareView> getConflictRowRecordView(@RequestParam List<Long> conflictRowLogIds) {
+    public ApiResult<ConflictRowsRecordCompareView> compareRowRecords(@RequestParam List<Long> conflictRowLogIds) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.compareRowRecords(conflictRowLogIds));
             return apiResult;
@@ -124,6 +123,66 @@ public class ConflictLogController {
             return ApiResult.getSuccessInstance(conflictLogService.deleteTrxLogsByTime(beginTime, endTime));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/rows/check")
+    public ApiResult<Pair<String, String>> checkSameMhaReplication(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.checkSameMhaReplication(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/rows/detail")
+    public ApiResult<ConflictTrxLogDetailView> getConflictRowLogDetailView(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getRowLogDetailView(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/rows/records")
+    public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("/rows/handleSql")
+    public ApiResult<ConflictAutoHandleView> createHandleSql(@RequestBody ConflictAutoHandleParam param) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.createHandleSql(param));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("/db/blacklist")
+    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
+        try {
+            conflictLogService.addDbBlacklist(dbFilter);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/db/blacklist")
+    public ApiResult<Boolean> deleteBlacklist(@RequestParam String dbFilter) {
+        try {
+            conflictLogService.deleteBlacklist(dbFilter);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
 }

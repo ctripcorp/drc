@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
@@ -10,6 +11,7 @@ import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
+import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -18,7 +20,6 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
-import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -65,6 +66,8 @@ public class ConflictLogServiceTest {
     @Mock
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Mock
+    private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
+    @Mock
     private DbaApiService dbaApiService;
     @Mock
     private IAMService iamService;
@@ -77,8 +80,10 @@ public class ConflictLogServiceTest {
     @Test
     public void testGetConflictTrxLogView() throws Exception {
         ConflictTrxLogQueryParam param = new ConflictTrxLogQueryParam();
+        param.setBeginHandleTime(1L);
+        param.setEndHandleTime(1L);
         Mockito.when(conflictTrxLogTblDao.queryByParam(param)).thenReturn(buildConflictTrxLogTbls());
-        
+
         // case 1: can not query all db , dbsCanQuery is empty
         Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false,null));
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(null);
@@ -88,13 +93,13 @@ public class ConflictLogServiceTest {
         } catch (Exception e) {
             Assert.assertEquals("no db with DOT permission!", e.getMessage());
         }
-        
+
         // case 2: can not query all db , query a db with dot permission;
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db1"));
         param.setDb("db1");
         result = conflictLogService.getConflictTrxLogView(param);
         Assert.assertEquals(1, result.size());
-        
+
         // case 3: can query all db
         Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true,null));
         result = conflictLogService.getConflictTrxLogView(param);
@@ -106,7 +111,11 @@ public class ConflictLogServiceTest {
     public void testGetConflictRowsLogView() throws Exception {
         ConflictRowsLogQueryParam param = new ConflictRowsLogQueryParam();
         param.setGtid("gtid");
-        
+        param.setBeginHandleTime(1L);
+        param.setEndHandleTime(1L);
+
+        Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
+
         Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryByParam(param)).thenReturn(buildConflictRowsLogTbls());
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
@@ -212,6 +221,52 @@ public class ConflictLogServiceTest {
         Assert.assertNotNull(result);
     }
 
+    @Test
+    public void testGetConflictRowLogDetailView() throws Exception {
+        Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
+        Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
+        ConflictTrxLogDetailView result = conflictLogService.getRowLogDetailView(Lists.newArrayList(1L));
+
+        Assert.assertEquals(result.getRowsLogDetailViews().size(), 1);
+    }
+
+    @Test
+    public void testGetConflictRowRecordView02() throws Exception {
+        Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
+
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
+        Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
+
+        ConflictCurrentRecordView result = conflictLogService.getConflictRowRecordView(Lists.newArrayList(1L));
+        Assert.assertEquals(result.getSrcRecords().size(), 1);
+        Assert.assertTrue(result.isRecordIsEqual());
+    }
+
+    @Test
+    public void testCreateHandleSql() throws Exception {
+        Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
+        Mockito.when(mysqlService.getFirstUniqueIndex(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn("id");
+        Mockito.when(mysqlService.getAllOnUpdateColumns(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("datachange_lasttime"));
+
+        ConflictAutoHandleParam param = new ConflictAutoHandleParam();
+        param.setWriteSide(0);
+        param.setRowLogIds(Lists.newArrayList(1L));
+        param.setSrcRecords((List<Map<String, Object>>) getSrcResMap().get("record"));
+        param.setDstRecords((List<Map<String, Object>>) getSrcResMap().get("record"));
+
+        List<ConflictAutoHandleView> result = conflictLogService.createHandleSql(param);
+        Assert.assertEquals(result.size(), 1);
+    }
+
     private Map<String, Object> getSrcResMap() {
         Map<String, Object> res = new HashMap<>();
         res.put("tableName", "db.table");
@@ -219,6 +274,8 @@ public class ConflictLogServiceTest {
         Map<String, Object> records = new HashMap<>();
         records.put("id", 1L);
         records.put("column", "a");
+        records.put("datachange_lasttime", "time");
+        records.put("drc_row_log_id", 1L);
         res.put("record", Lists.newArrayList(records));
 
         Map<String, Object> metaColumn = new HashMap<>();
@@ -236,6 +293,8 @@ public class ConflictLogServiceTest {
         Map<String, Object> records = new HashMap<>();
         records.put("id", 1L);
         records.put("column", "b");
+        records.put("datachange_lasttime", "time");
+        records.put("drc_row_log_id", 1L);
         res.put("record", Lists.newArrayList(records));
 
         Map<String, Object> metaColumn = new HashMap<>();

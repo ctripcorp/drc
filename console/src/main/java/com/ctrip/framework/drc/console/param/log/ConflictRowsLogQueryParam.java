@@ -19,7 +19,16 @@ public class ConflictRowsLogQueryParam {
     private String srcRegion;
     private String dstRegion;
     private Integer rowResult;
+    private boolean likeSearch;
     private PageReq pageReq;
+
+    public boolean getLikeSearch() {
+        return likeSearch;
+    }
+
+    public void setLikeSearch(boolean likeSearch) {
+        this.likeSearch = likeSearch;
+    }
 
     public String getSrcRegion() {
         return srcRegion;

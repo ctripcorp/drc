@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.apache.commons.lang3.StringUtils;
@@ -49,7 +48,7 @@ public class MetaControllerV2 {
             } else {
                 drc = metaProviderV2.getDrc();
             }
-            logger.info("drc:\n {}", drc.toString());
+            logger.debug("drc:\n {}", drc.toString());
             return drc.toString();
         } catch (Exception e) {
             logger.error("get drc fail", e);

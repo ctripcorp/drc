@@ -8,6 +8,9 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.OperateTypeEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -18,6 +21,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -31,6 +35,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,6 +54,8 @@ public class MySqlUtils {
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
+
+    private static Map<Endpoint, WriteSqlOperatorWrapper> writeSqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
@@ -102,6 +109,7 @@ public class MySqlUtils {
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
+    public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = '%s' AND `table_name` = '%s' and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
@@ -114,6 +122,8 @@ public class MySqlUtils {
     private static final int DATACHANGE_LASTTIME_INDEX = 1;
     private static final String EQUAL = "=";
     private static final String SINGLE_QUOTE = "'";
+    private static final String MARKS = "`";
+    public static final String PRIMARY = "PRIMARY";
 
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
@@ -598,6 +608,34 @@ public class MySqlUtils {
         }
     }
 
+    public static void removeWriteSqlOperator(Endpoint endpoint) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+        if (writeSqlOperatorWrapper != null) {
+            try {
+                writeSqlOperatorWrapper.stop();
+                writeSqlOperatorWrapper.dispose();
+            } catch (Exception e) {
+                logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+        }
+    }
+
+    private static WriteSqlOperatorWrapper getWriteSqlOperatorWrapper(Endpoint endpoint) {
+        if(writeSqlOperatorMapper.containsKey(endpoint)) {
+            return writeSqlOperatorMapper.get(endpoint);
+        } else {
+            WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+            try {
+                sqlOperatorWrapper.initialize();
+                sqlOperatorWrapper.start();
+            } catch (Exception e) {
+                logger.error("[[db={}:{}]]ColumnUtils.writeSqlOperatorMapper initialize error: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+            writeSqlOperatorMapper.put(endpoint, sqlOperatorWrapper);
+            return sqlOperatorWrapper;
+        }
+    }
+
     protected static String convertListToString(List<String> list) {
         StringBuilder sb = new StringBuilder();
         if(null != list && list.size() > 0) {
@@ -868,6 +906,46 @@ public class MySqlUtils {
         return dbs;
     }
 
+    public static String getFirstUniqueIndex(Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(INDEX_QUERY, db, table);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+
+            List<List<String>> identifies = extractIndex(rs);
+            int size  = identifies.size();
+            for (int i = 0; i < size; i++) {
+                if (identifies.get(i).size() == 1) {
+                    return identifies.get(i).get(0);
+                }
+            }
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return null;
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
+        return null;
+    }
+
+    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return writeSqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperator(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        }
+    }
+
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
@@ -898,7 +976,13 @@ public class MySqlUtils {
         while (rs.next()) {
             Map<String, Object> rowData = new LinkedHashMap<>();
             for (String columnName : columnList) {
-                rowData.put(columnName, rs.getString(columnName));
+                Object val = rs.getObject(columnName);
+                if (val instanceof Date) {
+                    rowData.put(columnName, String.valueOf(val));
+                } else {
+                    rowData.put(columnName, val);
+                }
+//                rowData.put(columnName, rs.getString(columnName));
             }
             list.add(rowData);
         }
@@ -978,10 +1062,53 @@ public class MySqlUtils {
         return parseResult;
     }
 
-    private static String toStringVal(String val) {
+    public static List<List<String>> extractIndex(ResultSet resultSet) {
+
+        List<List<String>> identifies = Lists.newArrayList();
+
+        try {
+            Map<String, List<String>> uniqueIndexes = Maps.newHashMap();
+            while (resultSet.next()) {
+                String indexName = resultSet.getString(1);
+                List<String> columnNames = uniqueIndexes.get(indexName);
+                if (columnNames == null) {
+                    columnNames = Lists.newArrayList();
+                    uniqueIndexes.put(indexName, columnNames);
+                }
+                columnNames.add(resultSet.getString(2));
+            }
+
+            for (Map.Entry<String, List<String>> entry : uniqueIndexes.entrySet()) {
+                if (PRIMARY.equalsIgnoreCase(entry.getKey())) {
+                    identifies.add(0, entry.getValue());
+                } else {
+                    identifies.add(entry.getValue());
+                }
+            }
+        } catch (Throwable t) {
+            logger.error("IndexExtractor error", t);
+        }
+
+        return identifies;
+    }
+
+    public static String toStringVal(Object val) {
         return SINGLE_QUOTE + val + SINGLE_QUOTE;
     }
 
+    public static String toSqlField(String s) {
+        return MARKS + s + MARKS;
+    }
+
+    public static Object toSqlValue(Object val) {
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Number) {
+            return val;
+        }
+        return toStringVal(val);
+    }
 
     public static final class TableSchemaName {
         private String schema;

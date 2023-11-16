@@ -20,44 +20,39 @@
               </Select>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.dbName" placeholder="库名"
-                     @on-enter="getData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.dbName" placeholder="库名"></Input>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.tableName" placeholder="表名"
-                     @on-enter="getData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.tableName" placeholder="表名"></Input>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
-                          placeholder="起始日期"></DatePicker>
+                          :clearable="false" placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
-                          placeholder="结束日期"></DatePicker>
+                          :confirm= "false" :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
-              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果"
-                      @on-change="getData">
+              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>
           </Row>
           <Row :gutter=10 v-show="searchMode">
             <Col span="12">
-              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"
-                     @on-enter="getData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"></Input>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
-                          placeholder="起始日期"></DatePicker>
+                          :clearable="false" placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
-                          placeholder="结束日期"></DatePicker>
+                          :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="4">
-              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果"
-                      @on-change="getData">
+              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>
@@ -67,10 +62,14 @@
       <Col span="4">
         <Row :gutter=10 align="middle">
           <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getData">查询</Button>
-          <Tooltip content="勾选冲突行进行数据一致性比对">
-            <Button type="primary" :loading="compareLoading" style="margin-left: 10px" @click="compareRecords">数据比对</Button>
-          </Tooltip>
-
+          <i-switch v-model="queryParam.likeSearch" size="large" style="margin-left: 10px">模糊匹配
+            <template #open>
+              <span>模糊匹配</span>
+            </template>
+            <template #close>
+              <span>精确匹配</span>
+            </template>
+          </i-switch>
         </Row>
         <Row :gutter=10 align="middle" style="margin-top: 20px">
           <Button icon="md-refresh" @click="resetParam">重置</Button>
@@ -86,6 +85,22 @@
       </Col>
     </Row>
     <br>
+    <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
+      <Col span="2" style="display: flex;float: left;margin: 5px" >
+        <Dropdown placement="bottom-start">
+          <Button type="default" icon="ios-hammer">
+            批量操作
+            <Icon type="ios-arrow-down"></Icon>
+          </Button>
+          <template #list>
+            <DropdownMenu >
+              <DropdownItem @click.native="compareRecords">数据比对</DropdownItem>
+              <DropdownItem @click.native="getLogDetails">冲突行详情</DropdownItem>
+            </DropdownMenu>
+          </template>
+        </Dropdown>
+      </Col>
+    </Row>
     <Table stripe border :columns="columns" :data="tableData" ref="multipleTable"
            @on-selection-change="changeSelection">
       <template slot-scope="{ row, index }" slot="action">
@@ -144,6 +159,7 @@
             </div>
             <Table :loading="modalLoading" size="small" stripe :columns="item.columns" :data="item.records" border></Table>
           </Card>
+          <Divider/>
           <Card>
             <codemirror v-model="rowData" :options="options"></codemirror>
           </Card>
@@ -173,6 +189,8 @@ export default {
   name: 'conflictRowsLog',
   props: {
     gtid: String,
+    beginHandleTime: String,
+    endHandleTime: String,
     searchMode: Boolean
   },
   components: {
@@ -231,24 +249,13 @@ export default {
         dbName: null,
         tableName: null,
         gtid: this.gtid,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
+        likeSearch: false,
         rowResult: null
       },
       tableData: [],
       columns: [
-        // {
-        //   title: '序号',
-        //   width: 75,
-        //   align: 'center',
-        //   // fixed: 'left',
-        //   render: (h, params) => {
-        //     return h(
-        //       'span',
-        //       params.index + 1
-        //     )
-        //   }
-        // },
         {
           type: 'selection',
           width: 60,
@@ -256,7 +263,7 @@ export default {
         },
         {
           title: '同步方向',
-          key: 'dc',
+          key: 'region',
           width: 160,
           render: (h, params) => {
             const row = params.row
@@ -358,12 +365,11 @@ export default {
       this.axios.get('/api/drc/v2/log/conflict/records/compare?conflictRowLogIds=' + rowLogIds)
         .then(response => {
           if (response.data.status === 1) {
+            this.compareData.compareRowRecords = []
             this.$Message.error({
               content: '数据比对失败! ' + response.data.message,
               duration: 5
             })
-            // this.$Message.error(response.data.message)
-            // this.$Message.error('数据比对失败!')
           } else {
             const data = response.data.data
             this.compareData.compareRowRecords = data.recordDetailList
@@ -373,6 +379,33 @@ export default {
         })
         .finally(() => {
           this.compareLoading = false
+        })
+    },
+    getLogDetails () {
+      const multiData = this.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      const rowLogIds = []
+      const row = multiData[0]
+      multiData.forEach(data => rowLogIds.push(data.conflictRowsLogId))
+      this.axios.get('/api/drc/v2/log/conflict/rows/check?conflictRowLogIds=' + rowLogIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error(response.data.message)
+          } else {
+            const detail = this.$router.resolve({
+              path: '/conflictLogDetail',
+              query: {
+                queryType: '1',
+                rowLogIds: rowLogIds,
+                srcRegion: row.srcRegion,
+                dstRegion: row.dstRegion
+              }
+            })
+            window.open(detail.href, '_blank')
+          }
         })
     },
     changeSelection (val) {
@@ -396,6 +429,8 @@ export default {
             // this.$Message.error(response.data.message)
             this.logDetail.recordEqual = false
             this.logDetail.diffStr = '数据比对失败'
+            this.logDetail.srcRecords = []
+            this.logDetail.dstRecords = []
           } else {
             const data = response.data.data
             this.logDetail.recordEqual = data.recordIsEqual
@@ -416,17 +451,11 @@ export default {
           this.regions = response.data.data
         })
     },
-    getLogDetail (row, index) {
-      this.$router.push({
-        path: '/conflictLogDetail',
-        query: {
-          conflictrowLogId: row.conflictrowLogId
-        }
-      })
-    },
     queryTrxLog (row, index) {
       this.$emit('tabValueChanged', 'trxLog')
       this.$emit('gtidChanged', row.gtid)
+      this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
+      this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
       // this.tabVal = 'rowsLog'
     },
     getUnEqualRecords () {
@@ -455,12 +484,19 @@ export default {
         })
     },
     getData () {
+      this.multiData = []
       this.compareData.compareRowRecords = []
       this.rowLogIds = []
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
-      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
-      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      const beginHandleTime = new Date(beginTime).getTime()
+      const endHandleTime = new Date(endTime).getTime()
+      if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
+        this.$Message.warning('请选择时间范围!')
+        return
+      }
+      // const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
+      // const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
       console.log('beginTime: ' + beginTime)
       console.log('endTime: ' + endTime)
       const params = {
@@ -470,16 +506,13 @@ export default {
         rowResult: this.queryParam.rowResult,
         srcRegion: this.queryParam.srcRegion,
         dstRegion: this.queryParam.dstRegion,
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
+        likeSearch: this.queryParam.likeSearch,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current
         }
-      }
-      if (!isNaN(beginHandleTime)) {
-        params.beginHandleTime = beginHandleTime
-      }
-      if (!isNaN(endHandleTime) && endHandleTime !== null) {
-        params.endHandleTime = endHandleTime
       }
       console.log('params')
       console.log(params)
@@ -526,13 +559,13 @@ export default {
         dbName: null,
         tableName: null,
         gtId: null,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
         rowResult: null,
         srcRegion: null,
         dstRegion: null
       }
-      this.rowLogIds = null
+      this.rowLogIds = []
     },
     handleChangeSize (val) {
       this.size = val
