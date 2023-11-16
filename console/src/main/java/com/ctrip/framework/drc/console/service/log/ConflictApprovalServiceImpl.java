@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.*;
 import com.ctrip.framework.drc.console.dao.log.entity.*;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
@@ -27,6 +29,7 @@ import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -75,6 +78,8 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     private DomainConfig domainConfig;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private DbTblDao dbTblDao;
 
     private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
@@ -177,7 +182,10 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
     public void createConflictApproval(ConflictApprovalCreateParam param) throws Exception {
         List<ConflictHandleSqlDto> handleSqlDtos = param.getHandleSqlDtos();
-        Long batchId = insertBatchTbl(handleSqlDtos, param.getWriteSide());
+        Pair<Long, String> resultPair = insertBatchTbl(handleSqlDtos, param.getWriteSide());
+        Long batchId = resultPair.getLeft();
+        String dbName = resultPair.getRight();
+
         List<ConflictAutoHandleTbl> autoHandleTbls = handleSqlDtos.stream().map(source -> {
             ConflictAutoHandleTbl target = new ConflictAutoHandleTbl();
             target.setBatchId(batchId);
@@ -190,31 +198,18 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         String username = userService.getInfo();
         ConflictApprovalTbl approvalTbl = insertApprovalTbl(batchId, username);
 
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(dbName));
+        if (CollectionUtils.isEmpty(dbTbls)) {
+            throw ConsoleExceptionUtils.message(String.format("db: %s not exist", dbName));
+        }
+        String dbOwner = dbTbls.get(0).getDbOwner();
+
+        //ql_deng TODO 2023/11/16:dbOwner
         ApprovalApiRequest request = buildRequest(username, username, approvalTbl.getId());
         ApprovalApiResponse response = approvalApiService.createApproval(request);
 
         approvalTbl.setTicketId(response.getData().get(0).getTicket_ID());
         conflictApprovalTblDao.update(approvalTbl);
-    }
-
-    private ApprovalApiRequest buildRequest(String dbOwner, String username, long approvalId) {
-        ApprovalApiRequest request = new ApprovalApiRequest();
-        request.setUrl(domainConfig.getOpsApprovalUrl());
-
-        String sourceUrl = domainConfig.getConflictDetailUrl() + "?approvalId=" + approvalId + "&queryType=2";
-        request.setSourceUrl(sourceUrl);
-        request.setApprover1(dbOwner);
-        request.setApprover2(domainConfig.getDbaApprovers());
-        request.setCcEmail(domainConfig.getConflictCcEmail());
-        request.setCallBackUrl(domainConfig.getApprovalCallbackUrl());
-        request.setUsername(username);
-
-        ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
-        data.setApprovalId(approvalId);
-        request.setData(JsonUtils.toJson(data));
-        request.setToken(domainConfig.getOpsApprovalToken());
-
-        return request;
     }
 
     @Override
@@ -270,6 +265,26 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }
     }
 
+    private ApprovalApiRequest buildRequest(String dbOwner, String username, long approvalId) {
+        ApprovalApiRequest request = new ApprovalApiRequest();
+        request.setUrl(domainConfig.getOpsApprovalUrl());
+
+        String sourceUrl = domainConfig.getConflictDetailUrl() + "?approvalId=" + approvalId + "&queryType=2";
+        request.setSourceUrl(sourceUrl);
+        request.setApprover1(dbOwner);
+        request.setApprover2(domainConfig.getDbaApprovers());
+        request.setCcEmail(domainConfig.getConflictCcEmail());
+        request.setCallBackUrl(domainConfig.getApprovalCallbackUrl());
+        request.setUsername(username);
+
+        ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
+        data.setApprovalId(approvalId);
+        request.setData(JsonUtils.toJson(data));
+        request.setToken(domainConfig.getOpsApprovalToken());
+
+        return request;
+    }
+
     private ConflictApprovalTbl insertApprovalTbl(Long batchId, String username) throws SQLException {
         ConflictApprovalTbl approvalTbl = new ConflictApprovalTbl();
         approvalTbl.setBatchId(batchId);
@@ -283,7 +298,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         return approvalTbl;
     }
 
-    private Long insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {
+    private Pair<Long, String> insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {
         List<Long> rowLogIds = handleSqlDtos.stream().map(ConflictHandleSqlDto::getRowLogId).collect(Collectors.toList());
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(rowLogIds);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
@@ -321,6 +336,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         batchTbl.setTableName(tableName);
         batchTbl.setStatus(SqlResultEnum.NOT_EXECUTED.getCode());
 
-        return conflictAutoHandleBatchTblDao.insertWithReturnId(batchTbl);
+        Long batchId = conflictAutoHandleBatchTblDao.insertWithReturnId(batchTbl);
+        return Pair.of(batchId, dbNames.get(0));
     }
 }

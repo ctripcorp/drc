@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.api;
 
-import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiResponse;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ public class ApprovalOpenApiTest {
         body.put("request_body", requestBody);
         body.put("access_token", "ccd863654c9de41eaadf5e60f62c8bcb");
 
-        ApprovalOpenApiResponse res = HttpUtils.post("http://osg.ops.ctripcorp.com/api/11102", body, ApprovalOpenApiResponse.class);
+        ApprovalApiResponse res = HttpUtils.post("http://osg.ops.ctripcorp.com/api/11102", body, ApprovalApiResponse.class);
         System.out.println(res);
     }
 }
