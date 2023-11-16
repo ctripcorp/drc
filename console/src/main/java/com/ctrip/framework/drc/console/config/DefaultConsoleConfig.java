@@ -107,7 +107,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
-    private static final String CONFLICT_DB_BLACKLIST = "conflict.db.blacklist";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -437,14 +436,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
             return new ArrayList<>();
         }
         return Lists.newArrayList(vpcMhaStr.split(","));
-    }
-
-    public List<String> getConflictDbBlacklist() {
-        String dbBlacklist = getProperty(CONFLICT_DB_BLACKLIST);
-        if (StringUtils.isBlank(dbBlacklist)) {
-            return new ArrayList<>();
-        }
-        return Lists.newArrayList(dbBlacklist.split(","));
     }
 
     public String getSwitchCmRegionUrl() {

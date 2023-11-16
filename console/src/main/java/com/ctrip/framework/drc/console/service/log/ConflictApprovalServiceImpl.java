@@ -179,7 +179,6 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     @Override
-    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
     public void createConflictApproval(ConflictApprovalCreateParam param) throws Exception {
         List<ConflictHandleSqlDto> handleSqlDtos = param.getHandleSqlDtos();
         Pair<Long, String> resultPair = insertBatchTbl(handleSqlDtos, param.getWriteSide());
@@ -243,13 +242,14 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }
 
         ConflictAutoHandleBatchTbl batchTbl = conflictAutoHandleBatchTblDao.queryById(approvalTbl.getBatchId());
-        if (batchTbl.getStatus() == BooleanEnum.TRUE.getCode()) {
+        if (batchTbl.getStatus().equals(BooleanEnum.TRUE.getCode())) {
             throw ConsoleExceptionUtils.message("approval has already been executed");
         }
 
         String targetMha = batchTbl.getTargetMhaType() == 0 ? batchTbl.getDstMhaName() : batchTbl.getSrcMhaName();
         List<ConflictAutoHandleTbl> conflictAutoHandleTbls = conflictAutoHandleTblDao.queryByBatchId(batchTbl.getId());
 
+        //ql_deng TODO 2023/11/16:drc filter sql
         StringBuilder sqlBuilder = new StringBuilder(Constants.BEGIN);
         List<String> sqlList = conflictAutoHandleTbls.stream().map(e -> Constants.CONFLICT_SQL_PREFIX + e.getAutoHandleSql()).collect(Collectors.toList());
         String sql = Joiner.on(";\n").join(sqlList);
