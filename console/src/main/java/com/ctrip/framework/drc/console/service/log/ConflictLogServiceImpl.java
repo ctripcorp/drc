@@ -482,7 +482,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             if (!CollectionUtils.isEmpty(columnFieldMap)) {
                 String tableName = MySqlUtils.toSqlField(source.getDbName()) + "." + MySqlUtils.toSqlField(source.getTableName());
                 Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
-                if (dbReplicationId != null) {
+                if (dbReplicationId != null && columnFieldMap.containsKey(dbReplicationId)) {
                     filerColumns = columnFieldMap.get(dbReplicationId);
                 }
             }

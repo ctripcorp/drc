@@ -245,12 +245,12 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/write", httpType = HttpRequestEnum.POST, requestClass = MysqlWriteEntity.class)
-    public StatementExecutorResult write(MysqlWriteEntity mysqlWriteEntity) {
-        Endpoint endpoint = cacheMetaService.getMasterEndpointForWrite(mysqlWriteEntity.getMha());
+    public StatementExecutorResult write(MysqlWriteEntity requestBody) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
         if (endpoint == null) {
-            logger.error("write to mha: {}, db not exist", mysqlWriteEntity.getMha());
+            logger.error("write to mha: {}, db not exist", requestBody.getMha());
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), Constants.ENDPOINT_NOT_EXIST);
         }
-        return MySqlUtils.write(endpoint, mysqlWriteEntity.getSql());
+        return MySqlUtils.write(endpoint, requestBody.getSql());
     }
 }

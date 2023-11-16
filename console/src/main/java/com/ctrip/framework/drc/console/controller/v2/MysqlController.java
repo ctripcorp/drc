@@ -219,12 +219,12 @@ public class MysqlController {
     }
 
     @PostMapping("write")
-    public ApiResult<StatementExecutorResult> write(@RequestBody MysqlWriteEntity mysqlWriteEntity) {
+    public ApiResult<StatementExecutorResult> write(@RequestBody MysqlWriteEntity requestBody) {
         try {
-            logger.info("write to mha entity: {}", mysqlWriteEntity);
-            return ApiResult.getSuccessInstance(mysqlServiceV2.write(mysqlWriteEntity));
+            logger.info("write to mha entity: {}", requestBody);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.write(requestBody));
         } catch (Exception e) {
-            logger.info("write to mha entity fail: {}", mysqlWriteEntity, e);
+            logger.info("write to mha entity fail: {}", requestBody, e);
             return ApiResult.getFailInstance(new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), e.getMessage()));
         }
     }
