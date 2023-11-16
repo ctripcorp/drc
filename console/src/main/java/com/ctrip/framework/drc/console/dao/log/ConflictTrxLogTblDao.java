@@ -22,6 +22,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     private static final String SRC_MHA_NAME = "src_mha_name";
     private static final String DST_MHA_NAME = "dst_mha_name";
+    private static final String DB = "db";
     private static final String GTID = "gtid";
     private static final String HANDLE_TIME = "handle_time";
     private static final String TRX_RESULT = "trx_result";
@@ -58,7 +59,11 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equalNullable(SRC_MHA_NAME, param.getSrcMhaName(), Types.VARCHAR)
+        if (!param.isAdmin()) {
+            sqlBuilder.and().in(DB, param.getDbsWithPermission(), Types.VARCHAR);
+        }
+        sqlBuilder.and().equalNullable(DB, param.getDb(), Types.VARCHAR)
+                .and().equalNullable(SRC_MHA_NAME, param.getSrcMhaName(), Types.VARCHAR)
                 .and().equalNullable(DST_MHA_NAME, param.getDstMhaName(), Types.VARCHAR)
                 .and().equalNullable(GTID, param.getGtId(), Types.VARCHAR)
                 .and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);

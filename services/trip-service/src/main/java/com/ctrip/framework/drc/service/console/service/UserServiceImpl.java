@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.service.console.service;
 
 import com.ctrip.framework.drc.core.service.user.UserService;
+import com.ctrip.infosec.sso.client.CtripSSOTools;
 import com.ctrip.infosec.sso.client.principal.AttributePrincipal;
 import com.ctrip.infosec.sso.client.util.AssertionHolder;
 import com.ctrip.xpipe.config.AbstractConfigBean;
@@ -23,7 +24,7 @@ public class UserServiceImpl extends AbstractConfigBean implements UserService {
         try {
             AttributePrincipal principal = AssertionHolder.getAssertion().getPrincipal();
             // 获取其他的登陆信息如下：
-            Map map=principal.getAttributes();
+            Map map = principal.getAttributes();
             String name=(String) map.get("name");
             return name;
         } catch (Exception e) {

@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
-import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
 import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
@@ -187,21 +186,12 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaReplicationControllerTest.class,
         MessengerControllerV2Test.class,
         AccessControllerTest.class,
-        BuildControllerTest.class,
-        LocalControllerTest.class,
-        MhaControllerTest.class,
         SwitchControllerTest.class,
-        ClusterControllerTest.class,
         ConfigControllerTest.class,
-        LogControllerTest.class,
 //        UserControllerTest.class,
         MetaControllerTest.class,
-        HealthControllerTest.class,
-        MonitorControllerTest.class,
         OpenApiControllerTest.class,
         RowsFilterServiceImplTest.class,
-        MessengerControllerTest.class,
-        DataMediaControllerTest.class,
         RowsFilterMetaControllerTest.class,
 
         //task

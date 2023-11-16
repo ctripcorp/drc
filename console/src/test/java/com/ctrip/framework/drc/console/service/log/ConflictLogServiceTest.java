@@ -17,11 +17,14 @@ import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +67,10 @@ public class ConflictLogServiceTest {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Mock
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
+    @Mock
+    private DbaApiService dbaApiService;
+    @Mock
+    private IAMService iamService;
 
     @Before
     public void setUp() {
@@ -77,8 +84,27 @@ public class ConflictLogServiceTest {
         param.setEndHandleTime(1L);
         Mockito.when(conflictTrxLogTblDao.queryByParam(param)).thenReturn(buildConflictTrxLogTbls());
 
-        List<ConflictTrxLogView> result = conflictLogService.getConflictTrxLogView(param);
+        // case 1: can not query all db , dbsCanQuery is empty
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false,null));
+        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(null);
+        List<ConflictTrxLogView> result = null;
+        try {
+            result = conflictLogService.getConflictTrxLogView(param);
+        } catch (Exception e) {
+            Assert.assertEquals("no db with DOT permission!", e.getMessage());
+        }
+
+        // case 2: can not query all db , query a db with dot permission;
+        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db1"));
+        param.setDb("db1");
+        result = conflictLogService.getConflictTrxLogView(param);
         Assert.assertEquals(1, result.size());
+
+        // case 3: can query all db
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true,null));
+        result = conflictLogService.getConflictTrxLogView(param);
+        Assert.assertEquals(1, result.size());
+
     }
 
     @Test
@@ -89,10 +115,13 @@ public class ConflictLogServiceTest {
         param.setEndHandleTime(1L);
 
         Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
+
+        Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryByParam(param)).thenReturn(buildConflictRowsLogTbls());
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList())).thenReturn(getMhaTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true,null));
 
         List<ConflictRowsLogView> result = conflictLogService.getConflictRowsLogView(param);
         Assert.assertEquals(1, result.size());

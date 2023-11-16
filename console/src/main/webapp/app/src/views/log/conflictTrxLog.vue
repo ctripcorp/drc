@@ -5,14 +5,21 @@
         <Card :padding=5>
           <template #title>查询条件</template>
           <Row :gutter=10>
-            <Col span="8">
-              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"></Input>
+            <Col span="6">
+              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"
+                     @on-enter="getTrxData"></Input>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"></Input>
+              <Input prefix="ios-search" v-model="queryParam.db" placeholder="库名"
+                     @on-enter="getTrxData"></Input>
             </Col>
-            <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"></Input>
+            <Col span="3">
+              <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"
+                     @on-enter="getTrxData"></Input>
+            </Col>
+            <Col span="3">
+              <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"
+                     @on-enter="getTrxData"></Input>
             </Col>
             <Col span="3">
               <DatePicker type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
@@ -83,6 +90,7 @@ export default {
         gtid: this.gtid,
         beginHandleTime: this.beginHandleTime,
         endHandleTime: this.endHandleTime,
+        db: null,
         trxResult: null
       },
       tableData: [],
@@ -91,6 +99,11 @@ export default {
           title: '事务ID',
           key: 'gtid',
           tooltip: true
+        },
+        {
+          title: '库名',
+          key: 'db',
+          width: 200
         },
         {
           title: '源MHA',
@@ -173,6 +186,7 @@ export default {
       }
       const params = {
         gtId: this.queryParam.gtid,
+        db: this.queryParam.db,
         srcMhaName: this.queryParam.srcMhaName,
         dstMhaName: this.queryParam.dstMhaName,
         trxResult: this.queryParam.trxResult,

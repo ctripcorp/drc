@@ -23,13 +23,16 @@ import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -82,6 +85,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Autowired
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
 
+    @Autowired
+    private DbaApiService dbaApiService;
+
+    private IAMService iamService = ServicesUtil.getIAMService();
+
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
     private static final int BATCH_SIZE = 2000;
@@ -95,11 +103,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final String MARKS = "`";
     private static final String EMPTY_SQL = "EMPTY_SQL";
 
+
+
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
         if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
             throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
         }
+        Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
+        param.setAdmin(permissionAndDbsCanQuery.getLeft());
+        param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
+
         List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
             return new ArrayList<>();
@@ -110,7 +124,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             BeanUtils.copyProperties(source, target, "handleTime");
             target.setConflictTrxLogId(source.getId());
             target.setHandleTime(DateUtils.longToString(source.getHandleTime()));
-
             return target;
         }).collect(Collectors.toList());
         return views;
@@ -121,6 +134,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
             throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
         }
+        Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
+        param.setAdmin(adminAndDbs.getLeft());
+        param.setDbsWithPermission(adminAndDbs.getRight());
+
         if (StringUtils.isNotBlank(param.getGtid())) {
             ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid(), param.getBeginHandleTime(), param.getEndHandleTime());
             if (conflictTrxLogTbl != null) {
@@ -359,6 +376,18 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         resultMap.put("trxLogDeleteSize", trxLogDeleteSize);
         resultMap.put("rowLogDeleteSize", rowLogDeleteSize);
         return resultMap;
+    }
+
+    private Pair<Boolean,List<String>> getPermissionAndDbsCanQuery() {
+        if (!iamService.canQueryAllCflLog().getLeft()) {
+            List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
+            if (CollectionUtils.isEmpty(dbsCanQuery)) {
+                throw ConsoleExceptionUtils.message("no db with DOT permission!");
+            }
+            return Pair.of(false, dbsCanQuery);
+        } else {
+            return Pair.of(true, Lists.newArrayList());
+        }
     }
 
     @Override
@@ -782,6 +811,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         conflictTrxLogTbl.setCflRowsNum(trxLog.getCflRowsNum());
         conflictTrxLogTbl.setTrxResult(trxLog.getTrxRes());
         conflictTrxLogTbl.setHandleTime(trxLog.getHandleTime());
+        conflictTrxLogTbl.setDb(trxLog.getCflLogs().get(0).getDb());
         return conflictTrxLogTbl;
     }
 

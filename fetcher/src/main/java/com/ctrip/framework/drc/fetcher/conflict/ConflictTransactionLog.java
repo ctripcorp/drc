@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.fetcher.conflict;
 
+import com.google.common.collect.Lists;
 import java.util.List;
+import org.springframework.util.CollectionUtils;
 
 /**
  * @ClassName ConflictTransaction
@@ -18,6 +20,17 @@ public class ConflictTransactionLog {
     private Long handleTime;
     private List<ConflictRowLog> cflLogs;
     private Integer trxRes; // 0-commit 1-rollback
+    
+    
+    public void brief() {
+        if (!CollectionUtils.isEmpty(cflLogs)) {
+            List<ConflictRowLog> briefLogs = Lists.newArrayList();
+            ConflictRowLog keyedCflRowLog = cflLogs.get(0);
+            keyedCflRowLog.brief();
+            briefLogs.add(keyedCflRowLog);
+            cflLogs = briefLogs;
+        }
+    }
     
     
     public String getSrcMha() {

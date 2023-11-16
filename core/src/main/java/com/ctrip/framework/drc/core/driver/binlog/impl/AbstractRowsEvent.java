@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
-import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
 import com.google.common.collect.Lists;
@@ -162,6 +161,10 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     }
 
     public void loadPostHeader() {
+        if (rowsEventPostHeader != null) {
+            return;
+        }
+
         final ByteBuf payloadBuf = getPayloadBuf();
         // do read row event payload post-header
         rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);

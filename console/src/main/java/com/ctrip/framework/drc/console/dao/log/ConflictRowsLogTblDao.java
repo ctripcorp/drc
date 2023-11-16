@@ -17,7 +17,7 @@ import java.util.List;
  * 2023/9/26 14:26
  */
 @Repository
-public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
+public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
 
     private static final String CONFLICT_TRX_LOG_ID = "conflict_trx_log_id";
     private static final String DB_NAME = "db_name";
@@ -58,6 +58,9 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
 
     private SelectSqlBuilder buildSqlBuilder(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        if (!param.isAdmin()) {
+            sqlBuilder.and().in(DB_NAME, param.getDbsWithPermission(), Types.VARCHAR);
+        }
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
                 .and().equalNullable(SRC_REGION, param.getSrcRegion(), Types.VARCHAR)
                 .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)

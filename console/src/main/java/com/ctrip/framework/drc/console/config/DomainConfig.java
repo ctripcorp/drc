@@ -101,6 +101,10 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CONFLICT_DETAIL_URL = "conflict.detail.url";
     private static final String DBA_APPROVERS = "dba.approvers";
 
+    private static final String DOT_TOKEN = "dot.token";
+    private static final String DOT_QUERY_API_URL = "dot.query.api.url";
+
+
 
     public String getDbaApprovers() {
         return getProperty(DBA_APPROVERS);
@@ -284,5 +288,13 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getMysqlApiUrl() {
         return getProperty(MYSQL_API_URL, DEFAULT_MYSQL_API_URL);
+    }
+
+    public String getDotToken() {
+        return getProperty(DOT_TOKEN, "");
+    }
+
+    public String getDotQueryApiUrl() {
+        return getProperty(DOT_QUERY_API_URL, "");
     }
 }

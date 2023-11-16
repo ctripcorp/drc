@@ -337,10 +337,6 @@ export default {
       that.axios.get('/api/drc/v2/resource/all', { params: reqParam })
         .then(response => {
           console.log('/api/drc/v2/resource/all response:' + response)
-          if (response.data.status === 403) {
-            window.location = '/#/nopermission?permissionCode=' + response.data.data
-            return
-          }
           const data = response.data
           const pageResult = response.data.pageReq
           if (data.status === 1) {

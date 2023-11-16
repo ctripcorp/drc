@@ -523,7 +523,7 @@ export default {
           const data = response.data
           const pageResult = data.pageReq
           if (data.status === 1) {
-            this.$Message.error('查询失败')
+            this.$Message.error(data.message)
           } else if (data.data.length === 0 || pageResult.totalCount === 0) {
             this.total = 0
             this.current = 1
