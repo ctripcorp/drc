@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.controller;
+package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.aop.AuthToken;
 import com.ctrip.framework.drc.console.aop.RateLimit;
@@ -12,12 +12,19 @@ import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Created by dengquanliang

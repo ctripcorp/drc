@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.controller;
+package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;

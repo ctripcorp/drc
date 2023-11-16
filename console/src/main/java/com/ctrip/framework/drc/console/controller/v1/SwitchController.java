@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.controller;
+package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.service.impl.SwitchServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -6,7 +6,11 @@ import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * @author shenhaibo

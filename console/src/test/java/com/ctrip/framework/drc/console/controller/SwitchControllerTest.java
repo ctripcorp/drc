@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.controller.v1.SwitchController;
 import com.ctrip.framework.drc.console.service.impl.SwitchServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;

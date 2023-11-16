@@ -1,44 +1,33 @@
-package com.ctrip.framework.drc.console.controller;
+package com.ctrip.framework.drc.console.controller.v1;
 
 
-import com.ctrip.framework.drc.console.dto.BuildMhaDto;
-import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
-import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.SSOService;
-import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 
 /**
  * @author maojiawei
  * @version 1.0
  * date: 2020-07-28
+ *  todo add token check
  */
 @RestController
 @RequestMapping("/api/drc/v1/access/")
 public class AccessController {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
-    @Autowired
-    private AccessServiceImpl accessServiceImp;
-
-    @Autowired
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
     
     @Autowired
     private SSOService ssoServiceImpl;
     
     
-    @PostMapping("sso/degrade/switch/{isOpen}")
+    @PostMapping("sso/degrade/switch/{isOpen}") 
     public ApiResult changeAllServerSSODegradeStatus(@PathVariable Boolean isOpen) {
         return ssoServiceImpl.degradeAllServer(isOpen);
     }
