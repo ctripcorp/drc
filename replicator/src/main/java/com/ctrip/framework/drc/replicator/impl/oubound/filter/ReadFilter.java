@@ -75,11 +75,6 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     @Override
     public void release() {
-        try {
-            Thread.sleep(20);
-        } catch (InterruptedException e) {
-            logger.error("sleep error when read filter release compositeByteBuf for: {}", registerKey, e);
-        }
         EventReader.releaseByteBuf(compositeByteBuf);
         logger.info("read filter release compositeByteBuf for: {}", registerKey);
     }
