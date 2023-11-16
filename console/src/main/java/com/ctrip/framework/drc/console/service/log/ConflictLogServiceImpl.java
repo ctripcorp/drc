@@ -103,8 +103,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final String MARKS = "`";
     private static final String EMPTY_SQL = "EMPTY_SQL";
 
-
-
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
         if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
