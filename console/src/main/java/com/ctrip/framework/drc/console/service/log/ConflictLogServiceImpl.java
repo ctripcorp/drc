@@ -89,8 +89,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
-        List<String>  dbsWantQuery = getQueryDbsWithPermission(param.getDb());
-        param.setDbsWithPermission(dbsWantQuery);
+        Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
+        param.setAdmin(permissionAndDbsCanQuery.getLeft());
+        param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
+        
         List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
             return new ArrayList<>();
@@ -108,8 +110,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<ConflictRowsLogView> getConflictRowsLogView(ConflictRowsLogQueryParam param) throws Exception {
-        List<String>  dbsWantQuery = getQueryDbsWithPermission(param.getDbName());
-        param.setDbsWithPermission(dbsWantQuery);
+        Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
+        param.setAdmin(adminAndDbs.getLeft());
+        param.setDbsWithPermission(adminAndDbs.getRight());
+        
         if (StringUtils.isNotBlank(param.getGtid())) {
             ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid());
             if (conflictTrxLogTbl != null) {
@@ -391,19 +395,16 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return resultMap;
     }
     
-    private List<String> getQueryDbsWithPermission(String queryDb) {
-        List<String> dbsWantQuery;
-        if (!iamService.canQueryAllCflLog().getLeft()) { // can not query all db
+    private Pair<Boolean,List<String>> getPermissionAndDbsCanQuery() {
+        if (!iamService.canQueryAllCflLog().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
-            if (CollectionUtils.isEmpty(dbsCanQuery) ||
-                    (StringUtils.isNotEmpty(queryDb) && !dbsCanQuery.contains(queryDb))) {
-                throw ConsoleExceptionUtils.message("query db without DOT permission!");
+            if (CollectionUtils.isEmpty(dbsCanQuery)) {
+                throw ConsoleExceptionUtils.message("no db with DOT permission!");
             }
-            dbsWantQuery = StringUtils.isBlank(queryDb) ? dbsCanQuery : Lists.newArrayList(queryDb);
-        } else { // can query all db
-            dbsWantQuery = StringUtils.isBlank(queryDb) ? Lists.newArrayList() : Lists.newArrayList(queryDb);
+            return Pair.of(false, dbsCanQuery);
+        } else {
+            return Pair.of(true, Lists.newArrayList());
         }
-        return dbsWantQuery;
     }
 
     private List<ConflictRowsLogView> getConflictRowsLogViews(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {

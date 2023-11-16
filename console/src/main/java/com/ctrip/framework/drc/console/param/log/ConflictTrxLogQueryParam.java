@@ -11,8 +11,9 @@ public class ConflictTrxLogQueryParam {
 
     private String srcMhaName;
     private String dstMhaName;
-    private String db; // db want query,pass by front-end
-    private List<String> dbsWithPermission; // actual execute query dbs
+    private String db;
+    private List<String> dbsWithPermission; 
+    private boolean admin;
     private String gtId;
     private Long beginHandleTime;
     private Long endHandleTime;
@@ -49,6 +50,14 @@ public class ConflictTrxLogQueryParam {
 
     public void setDbsWithPermission(List<String> dbsWithPermission) {
         this.dbsWithPermission = dbsWithPermission;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
     }
 
     public String getGtId() {

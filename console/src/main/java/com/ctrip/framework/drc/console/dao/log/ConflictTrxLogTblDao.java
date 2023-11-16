@@ -51,7 +51,10 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().inNullable(DB, param.getDbsWithPermission(), Types.VARCHAR)
+        if (!param.isAdmin()) {
+            sqlBuilder.and().in(DB, param.getDbsWithPermission(), Types.VARCHAR);
+        }
+        sqlBuilder.and().equalNullable(DB, param.getDb(), Types.VARCHAR)
                 .and().likeNullable(SRC_MHA_NAME, param.getSrcMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().likeNullable(DST_MHA_NAME, param.getDstMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().equalNullable(GTID, param.getGtId(), Types.VARCHAR)

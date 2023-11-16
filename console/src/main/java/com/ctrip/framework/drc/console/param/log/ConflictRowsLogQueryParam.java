@@ -11,6 +11,7 @@ public class ConflictRowsLogQueryParam {
     private Long conflictTrxLogId;
     private String gtid;
     private List<String> dbsWithPermission;
+    private boolean admin;
     private String dbName;
     private String tableName;
     private Long beginHandleTime;
@@ -42,6 +43,14 @@ public class ConflictRowsLogQueryParam {
 
     public void setGtid(String gtid) {
         this.gtid = gtid;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
     }
 
     public List<String> getDbsWithPermission() {

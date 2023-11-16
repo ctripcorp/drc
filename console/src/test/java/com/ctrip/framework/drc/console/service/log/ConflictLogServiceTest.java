@@ -86,23 +86,16 @@ public class ConflictLogServiceTest {
         try {
             result = conflictLogService.getConflictTrxLogView(param);
         } catch (Exception e) {
-            Assert.assertEquals("query db without DOT permission!", e.getMessage());
+            Assert.assertEquals("no db with DOT permission!", e.getMessage());
         }
-
-        // case 2: can not query all db , query a db without dot permission
+        
+        // case 2: can not query all db , query a db with dot permission;
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db1"));
-        try {
-            param.setDb("db2");
-            result = conflictLogService.getConflictTrxLogView(param);
-        } catch (Exception e) {
-            Assert.assertEquals("query db without DOT permission!", e.getMessage());
-        }
-        // case 3: can not query all db , query a db with dot permission;
         param.setDb("db1");
         result = conflictLogService.getConflictTrxLogView(param);
         Assert.assertEquals(1, result.size());
         
-        // case 4: can query all db
+        // case 3: can query all db
         Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true,null));
         result = conflictLogService.getConflictTrxLogView(param);
         Assert.assertEquals(1, result.size());
