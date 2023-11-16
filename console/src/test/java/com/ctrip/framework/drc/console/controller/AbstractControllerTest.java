@@ -38,7 +38,7 @@ public abstract class AbstractControllerTest extends AbstractTest {
     }
 
     protected MvcResult doNormalGet(String uri) throws Exception {
-        return mvc.perform(MockMvcRequestBuilders.get(uri))
+        return mvc.perform(MockMvcRequestBuilders.get(uri).accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
     }
@@ -70,7 +70,7 @@ public abstract class AbstractControllerTest extends AbstractTest {
     }
 
     protected MvcResult doNormalDelete(String uri) throws Exception {
-        return mvc.perform(MockMvcRequestBuilders.delete(uri))
+        return mvc.perform(MockMvcRequestBuilders.delete(uri).accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
     }
@@ -84,6 +84,7 @@ public abstract class AbstractControllerTest extends AbstractTest {
 
     protected void assertNormalResponse(MvcResult mvcResult) throws Exception {
         MockHttpServletResponse response = mvcResult.getResponse();
+        response.setContentType("application/json");
         int status = response.getStatus();
         String responseStr = response.getContentAsString();
         Assert.assertEquals(200, status);
@@ -95,6 +96,7 @@ public abstract class AbstractControllerTest extends AbstractTest {
     protected void assertNormalResponseWithoutCheckingData(MvcResult mvcResult, ResultCode resultCode) throws Exception {
         MockHttpServletResponse response = mvcResult.getResponse();
         int status = response.getStatus();
+        response.setContentType("application/json");
         String responseStr = response.getContentAsString();
         Assert.assertEquals(200, status);
         ApiResult result = objectMapper.readValue(responseStr, ApiResult.class);

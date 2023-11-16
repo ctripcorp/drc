@@ -1,11 +1,15 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +37,7 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Autowired
     private DomainConfig domainConfig;
+    private UserService userService = ApiContainer.getUserServiceImpl();
 
 
     @Override
@@ -61,7 +66,6 @@ public class DbaApiServiceImpl implements DbaApiService {
     }
 
     @Override
-
     public List<ClusterInfoDto> getDatabaseClusterInfo(String dbName) {
         LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
         requestBody.put("dbName", dbName);
@@ -98,5 +102,42 @@ public class DbaApiServiceImpl implements DbaApiService {
         }
 
         return response.getData();
+    }
+
+    // request
+    // {
+    //    "access_token":"",
+    //    "request_body":{
+    //          "user_name":""
+    //     }
+    // }
+    // response
+    // {
+    //    "success": true,
+    //    "message": "ok",
+    //    "data": ["db1","db2"]
+    // }
+    @Override
+    public List<String> getDBsWithQueryPermission() {
+        String dotToken = domainConfig.getDotToken();
+        String dotQueryApiUrl = domainConfig.getDotQueryApiUrl();
+        String userName = userService.getInfo();
+        LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
+        request.put("access_token", dotToken);
+        request.put("request_body", requestBody);
+        requestBody.put("user_name", userName);
+        
+        String responseString = HttpUtils.post(dotQueryApiUrl, request, String.class);
+        
+        JsonObject jsonObject = JsonUtils.parseObject(responseString);
+        List<String> res = Lists.newArrayList();
+        boolean success = jsonObject.get("success").getAsBoolean();
+        if (success) {
+            jsonObject.get("data").getAsJsonArray().forEach(jsonElement -> res.add(jsonElement.getAsString()));
+        } else {
+            logger.error("getDBsWithQueryPermission failed, use:{}, response: {}", userName, responseString);
+        }
+        return res;
     }
 }
