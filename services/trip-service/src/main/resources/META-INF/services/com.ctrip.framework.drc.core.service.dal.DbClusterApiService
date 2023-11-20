@@ -1,2 +1,2 @@
-com.ctrip.framework.drc.service.console.DbClusterApiServiceImpl
+com.ctrip.framework.drc.service.console.service.DbClusterApiServiceImpl
 

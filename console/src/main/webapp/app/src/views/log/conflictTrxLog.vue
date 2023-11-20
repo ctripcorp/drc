@@ -5,29 +5,32 @@
         <Card :padding=5>
           <template #title>查询条件</template>
           <Row :gutter=10>
-            <Col span="8">
+            <Col span="6">
               <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"
                      @on-enter="getTrxData"></Input>
             </Col>
             <Col span="4">
+              <Input prefix="ios-search" v-model="queryParam.db" placeholder="库名"
+                     @on-enter="getTrxData"></Input>
+            </Col>
+            <Col span="3">
               <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"
                      @on-enter="getTrxData"></Input>
             </Col>
-            <Col span="4">
+            <Col span="3">
               <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"
                      @on-enter="getTrxData"></Input>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" format="yyyy-MM-dd" v-model="queryParam.beginHandleTime"
+              <DatePicker type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
                           placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" v-model="queryParam.endHandleTime"
+              <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
-              <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果"
-                      @on-change="getTrxData">
+              <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>
@@ -72,7 +75,9 @@
 export default {
   name: 'conflictTrxLog',
   props: {
-    gtid: String
+    gtid: String,
+    beginHandleTime: String,
+    endHandleTime: String
   },
   data () {
     return {
@@ -83,8 +88,9 @@ export default {
         srcMhaName: null,
         dstMhaName: null,
         gtid: this.gtid,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
+        db: null,
         trxResult: null
       },
       tableData: [],
@@ -93,6 +99,11 @@ export default {
           title: '事务ID',
           key: 'gtid',
           tooltip: true
+        },
+        {
+          title: '库名',
+          key: 'db',
+          width: 200
         },
         {
           title: '源MHA',
@@ -165,25 +176,26 @@ export default {
     getTrxData () {
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
-      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
-      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      const beginHandleTime = new Date(beginTime).getTime()
+      const endHandleTime = new Date(endTime).getTime()
       console.log('beginTime: ' + beginTime)
       console.log('endTime: ' + endTime)
+      if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
+        this.$Message.warning('请选择时间范围!')
+        return
+      }
       const params = {
         gtId: this.queryParam.gtid,
+        db: this.queryParam.db,
         srcMhaName: this.queryParam.srcMhaName,
         dstMhaName: this.queryParam.dstMhaName,
         trxResult: this.queryParam.trxResult,
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current
         }
-      }
-      if (!isNaN(beginHandleTime)) {
-        params.beginHandleTime = beginHandleTime
-      }
-      if (!isNaN(endHandleTime) && endHandleTime !== null) {
-        params.endHandleTime = endHandleTime + 24 * 60 * 60 * 1000 - 1
       }
       const reqParam = this.flattenObj(params)
       this.dataLoading = true
@@ -228,23 +240,28 @@ export default {
         srcMhaName: null,
         dstMhaName: null,
         gtid: null,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: this.beginHandleTime,
+        endHandleTime: this.endHandleTime,
         trxResult: null
       }
     },
     queryRowsLog (row, index) {
       this.$emit('tabValueChanged', 'rowsLog')
       this.$emit('gtidChanged', row.gtid)
-      this.tabVal = 'rowsLog'
+      this.$emit('searchModeChanged', true)
+      this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
+      this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
+      // this.tabVal = 'rowsLog'
     },
     getLogDetail (row, index) {
-      this.$router.push({
+      const detail = this.$router.resolve({
         path: '/conflictLogDetail',
         query: {
-          conflictTrxLogId: row.conflictTrxLogId
+          conflictTrxLogId: row.conflictTrxLogId,
+          queryType: '0'
         }
       })
+      window.open(detail.href, '_blank')
     },
     handleChangeSize (val) {
       this.size = val

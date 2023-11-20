@@ -46,6 +46,13 @@ public class ConflictTrxLogTbl {
     private String gtid;
 
     /**
+     * 库名
+     */
+    @Column(name = "db")
+    @Type(value = Types.VARCHAR)
+    private String db;
+    
+    /**
      * 事务影响行数
      */
     @Column(name = "trx_rows_num")
@@ -124,6 +131,14 @@ public class ConflictTrxLogTbl {
 
     public void setGtid(String gtid) {
         this.gtid = gtid;
+    }
+
+    public String getDb() {
+        return db;
+    }
+
+    public void setDb(String db) {
+        this.db = db;
     }
 
     public Long getTrxRowsNum() {

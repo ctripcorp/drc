@@ -63,10 +63,15 @@
               <span>Proxy路由</span>
             </MenuItem>
           </Submenu>
-          <MenuItem name="/manage" to="/manage">
-            <Icon type="ios-paper"></Icon>
-            <span>审批管理</span>
-          </MenuItem>
+          <Submenu name="3">
+            <template slot="title">
+              <Icon type="ios-paper"></Icon>
+              审批管理
+            </template>
+            <MenuItem name="/conflictApproval" to="/conflictApproval">
+              <span>冲突处理审批</span>
+            </MenuItem>
+          </Submenu>
         </Menu>
       </Sider>
       <Layout>
@@ -167,6 +172,9 @@ export default {
       case '/v2/resourceV2':
       case '/proxyRouteCluster':
         this.openNames = ['2']
+        break
+      case '/conflictApproval':
+        this.openNames = ['3']
         break
     }
     let activeName = this.$route.path

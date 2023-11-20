@@ -17,6 +17,8 @@ import com.ctrip.framework.drc.monitor.function.cases.truncate.DefaultTableTrunc
 import com.ctrip.framework.drc.monitor.function.cases.truncate.TableTruncate;
 import com.ctrip.framework.drc.monitor.function.operator.DefaultSqlOperator;
 import com.ctrip.framework.drc.monitor.function.operator.ReadWriteSqlOperator;
+import com.ctrip.framework.drc.monitor.function.task.TableCompareTask;
+import com.ctrip.framework.drc.monitor.performance.ConflictTestCase;
 import com.ctrip.framework.drc.monitor.performance.DdlUpdateCase;
 import com.ctrip.framework.drc.monitor.performance.QPSTestPairCase;
 import com.ctrip.framework.drc.monitor.performance.ResultCompareCase;
@@ -77,6 +79,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     protected ScheduledExecutorService dalScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("dal-scheduledExecutorService");
 
     private ScheduledExecutorService unilateralScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("unilateral-scheduledExecutorService");
+    private ScheduledExecutorService compareTableScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("table-compare-scheduledExecutorService");
 
     private boolean writeOneTransaction = true;   // build replication automatically
 
@@ -225,6 +228,15 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
             }
         }, 10, 1, TimeUnit.SECONDS);
 
+
+        TableCompareTask tableCompareTask = new TableCompareTask();
+        compareTableScheduledExecutorService.scheduleWithFixedDelay(() -> {
+            if (ConfigService.getInstance().getAutoTableCompareSwitch()) {
+                tableCompareTask.compare();
+            }
+        }, 10, 100, TimeUnit.SECONDS);
+
+
         if (writeOneTransaction) {
             new MultiDBWriteInTransactionPairCase().test(sourceSqlOperator, reverseSourceSqlOperator); //write one transaction
         }
@@ -274,6 +286,9 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
         if (ConfigService.getInstance().getDrcDdlQpsSwitch()) {
             benchmarkCaseManager.addPairCase(new DdlUpdateCase());
         }
+        if (ConfigService.getInstance().getConflictBenchmarkSwitch()) {
+            benchmarkCaseManager.addPairCase(new ConflictTestCase());
+        }
 
         //ddl
         if (ConfigService.getInstance().getGenericDdlSwitch()) {
@@ -311,6 +326,9 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
             tableTruncate.truncateTable(sourceSqlOperator, TRUNCATE_TABLE_BENCHMARK2);
             tableTruncate.truncateTable(reverseSourceSqlOperator, TRUNCATE_TABLE_BENCHMARK2);
+
+            tableTruncate.truncateTable(sourceSqlOperator, "truncate table bbzbbzdrcbenchmarktmpdb.conflictBenchmark;");
+            tableTruncate.truncateTable(reverseSourceSqlOperator, "truncate table bbzbbzdrcbenchmarktmpdb.conflictBenchmark;");
 
             try {
                 Thread.sleep(2000);

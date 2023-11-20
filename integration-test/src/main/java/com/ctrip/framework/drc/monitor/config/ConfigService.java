@@ -1,11 +1,18 @@
 package com.ctrip.framework.drc.monitor.config;
 
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.google.common.collect.Lists;
+import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by jixinwang on 2020/8/17
  */
 public class ConfigService extends AbstractConfigBean {
+
+    
 
     private static class ConfigServiceHolder {
         private static ConfigService instance = new ConfigService();
@@ -32,6 +39,9 @@ public class ConfigService extends AbstractConfigBean {
     private static final String KEY_AUTO_DAL_SWITCH = "auto.dal.switch";
     private static final String KEY_AUTO_UNI_SWITCH = "auto.uni.switch";
     private static final String KEY_AUTO_BI_SWITCH = "auto.bi.switch";
+    private static final String KEY_AUTO_TABLE_COMPARE_SWITCH = "auto.table.compare.switch";
+    private static final String KEY_AUTO_TABLE_COMPARE_EXCLUDE_MHA = "auto.table.compare.exclude.mha";
+    private static final String KEY_AUTO_TABLE_COMPARE_INCLUDE_MHA = "auto.table.compare.include.mha";
     private static final String UNI_LATERAL_TRUNCATE_SWITCH = "uni.lateral.truncate.switch";
     private static final String UCS_UNIT_ROUTE = "ucs.unit.route";
     private static final String BI_LATERAL_SCHEDULE_PERIOD = "bi.lateral.schedule.period";
@@ -96,7 +106,8 @@ public class ConfigService extends AbstractConfigBean {
     private static final boolean DEFAULT_BINLOG_NOBLOB_ROW_IMAGE_SWITCH = false;
     private static final boolean DEFAULT_BENCHMARK_TWO_SIDE_WRITE_SWITCH =false;
 
-
+    
+    
     public String getDrcMonitorMysqlSrcIp() {
         return getProperty(KEY_DRC_MONITOR_MYSQL_SRC_IP, DEFAULT_DRC_MONITOR_MYSQL_SRC_IP);
     }
@@ -140,6 +151,9 @@ public class ConfigService extends AbstractConfigBean {
     public boolean getAutoDalSwitch() {
         return getBooleanProperty(KEY_AUTO_DAL_SWITCH, DEFAULT_AUTO_DAL_SWITCH);
     }
+    public boolean getAutoTableCompareSwitch() {
+        return getBooleanProperty(KEY_AUTO_TABLE_COMPARE_SWITCH, false);
+    }
 
     public int getDrcMonitorQpsRound() {
         return getIntProperty(KEY_DRC_MONITOR_QPS_ROUND, DEFAULT_DRC_MONITOR_QPS_ROUND);
@@ -177,6 +191,14 @@ public class ConfigService extends AbstractConfigBean {
         return getBooleanProperty(KEY_RESULT_COMPARE_SWITCH, DEFAULT_RESULT_COMPARE_SWITCH);
     }
 
+    public boolean getConflictBenchmarkSwitch() {
+        return getBooleanProperty("conflict.benchmark.switch", false);
+    }
+    
+    public int getConflictBenchmarkQPS() {
+        return getIntProperty("conflict.benchmark.qps", 1000);
+    }
+
     public boolean getDrcDdlQpsSwitch() {
         return getBooleanProperty(KEY_DRC_DDL_QPS_SWITCH, DEFAULT_DRC_DDL_QPS_SWITCH);
     }
@@ -184,7 +206,7 @@ public class ConfigService extends AbstractConfigBean {
     public int getDrcDdlQpsRound() {
         return getIntProperty(KEY_DRC_DDL_QPS_ROUND, DEFAULT_DRC_DDL_QPS_ROUND);
     }
-
+    
     public boolean getGenericDdlSwitch() {
         return getBooleanProperty(KEY_GENERIC_DDL_SWITCH, DEFAULT_GENERIC_DDL_SWITCH);
     }
@@ -251,5 +273,21 @@ public class ConfigService extends AbstractConfigBean {
 
     public int getBiLateralSchedulePeriod() {
         return getIntProperty(BI_LATERAL_SCHEDULE_PERIOD, 3600);
+    }
+
+    public List<String> getExcludeCompareMha() {
+        String property = getProperty(KEY_AUTO_TABLE_COMPARE_EXCLUDE_MHA, "");
+        if (StringUtils.isEmpty(property)) {
+            return Collections.emptyList();
+        }
+        return Lists.newArrayList(property.split(","));
+    }
+
+    public List<String> getCompareMha() {
+        String property = getProperty(KEY_AUTO_TABLE_COMPARE_INCLUDE_MHA, "");
+        if (StringUtils.isEmpty(property)) {
+            return Collections.emptyList();
+        }
+        return Lists.newArrayList(property.split(","));
     }
 }

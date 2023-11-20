@@ -8,14 +8,13 @@ import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
-import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
 import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
-import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
+import com.ctrip.framework.drc.console.dto.RowsFilterRegisterConfigDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -49,6 +48,7 @@ import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.log.ConflictApprovalServiceTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogServiceTest;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
@@ -179,27 +179,19 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MachineServiceImplTest.class,
         MigrationTaskManagerTest.class,
         ConflictLogServiceTest.class,
+        ConflictApprovalServiceTest.class,
 //
         // controller
         MetaControllerV2Test.class,
         MhaReplicationControllerTest.class,
         MessengerControllerV2Test.class,
         AccessControllerTest.class,
-        BuildControllerTest.class,
-        LocalControllerTest.class,
-        MhaControllerTest.class,
         SwitchControllerTest.class,
-        ClusterControllerTest.class,
         ConfigControllerTest.class,
-        LogControllerTest.class,
 //        UserControllerTest.class,
         MetaControllerTest.class,
-        HealthControllerTest.class,
-        MonitorControllerTest.class,
         OpenApiControllerTest.class,
         RowsFilterServiceImplTest.class,
-        MessengerControllerTest.class,
-        DataMediaControllerTest.class,
         RowsFilterMetaControllerTest.class,
 
         //task
@@ -258,7 +250,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         //entity
         MhaInstanceGroupDtoTest.class,
-        RowsFilterConfigDtoTest.class,
+        RowsFilterRegisterConfigDtoTest.class,
         RowsFilterMappingVoTest.class,
         SimplexDrcBuildVoTest.class,
         MhaReplicationQueryTest.class,

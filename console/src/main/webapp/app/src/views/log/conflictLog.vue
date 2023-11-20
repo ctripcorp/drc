@@ -6,12 +6,18 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Tabs v-model="tabValue">
         <TabPane label="冲突行" name="rowsLog">
-          <conflict-rows-log v-if="refresh" :gtid="gtid" v-on:tabValueChanged="updateTabValue"
-                             v-on:gtidChanged="updateGtid"></conflict-rows-log>
+          <conflict-rows-log v-if="refresh" :gtid="gtid" :begin-handle-time="beginHandleTime"
+                             :end-handle-time="endHandleTime"
+                             :searchMode="searchMode" v-on:tabValueChanged="updateTabValue"
+                             v-on:gtidChanged="updateGtid" v-on:beginHandleTimeChanged="updateBeginHandleTime"
+                             v-on:endHandleTimeChanged="updateEndHandleTime"></conflict-rows-log>
         </TabPane>
         <TabPane label="冲突事务" name="trxLog">
-          <conflict-trx-log v-if="!refresh" :gtid="gtid" v-on:tabValueChanged="updateTabValue"
-                            v-on:gtidChanged="updateGtid"></conflict-trx-log>
+          <conflict-trx-log v-if="!refresh" :gtid="gtid" :begin-handle-time="beginHandleTime"
+                            :end-handle-time="endHandleTime" v-on:tabValueChanged="updateTabValue"
+                            v-on:gtidChanged="updateGtid" v-on:searchModeChanged="updateSearchMode"
+                            v-on:beginHandleTimeChanged="updateBeginHandleTime"
+                            v-on:endHandleTimeChanged="updateEndHandleTime"></conflict-trx-log>
         </TabPane>
       </Tabs>
     </Content>
@@ -32,7 +38,12 @@ export default {
     return {
       tabValue: 'rowsLog',
       gtid: null,
-      refresh: true
+      // beginHandleTime: '2023-11-15 10:00:00',
+      beginHandleTime: new Date(new Date().setMinutes(0, 0, 0) - 60 * 60 * 1000),
+      // beginHandleTime: new Date(new Date().setHours(0, 0, 0, 0)),
+      endHandleTime: new Date(new Date().setHours(0, 0, 0, 0) + 24 * 60 * 60 * 1000),
+      refresh: true,
+      searchMode: false
     }
   },
   watch: {
@@ -55,6 +66,15 @@ export default {
     },
     updateGtid (e) {
       this.gtid = e
+    },
+    updateBeginHandleTime (e) {
+      this.beginHandleTime = e
+    },
+    updateEndHandleTime (e) {
+      this.endHandleTime = e
+    },
+    updateSearchMode (e) {
+      this.searchMode = e
     }
   }
 }

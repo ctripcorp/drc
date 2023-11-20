@@ -9,8 +9,8 @@ import java.util.List;
 public class ConflictTrxLogDetailView {
     private Long conflictTrxLogId;
     private Integer trxResult;
-    private String srcDc;
-    private String dstDc;
+    private String srcRegion;
+    private String dstRegion;
     private List<ConflictRowsLogDetailView> rowsLogDetailViews;
 
     public Long getConflictTrxLogId() {
@@ -29,20 +29,20 @@ public class ConflictTrxLogDetailView {
         this.trxResult = trxResult;
     }
 
-    public String getSrcDc() {
-        return srcDc;
+    public String getSrcRegion() {
+        return srcRegion;
     }
 
-    public void setSrcDc(String srcDc) {
-        this.srcDc = srcDc;
+    public void setSrcRegion(String srcRegion) {
+        this.srcRegion = srcRegion;
     }
 
-    public String getDstDc() {
-        return dstDc;
+    public String getDstRegion() {
+        return dstRegion;
     }
 
-    public void setDstDc(String dstDc) {
-        this.dstDc = dstDc;
+    public void setDstRegion(String dstRegion) {
+        this.dstRegion = dstRegion;
     }
 
     public List<ConflictRowsLogDetailView> getRowsLogDetailViews() {

@@ -192,7 +192,7 @@ public class ParseFile extends FetcherSlaveServer {
                         if (firstLoadFile) {
                             DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();
                             snapshotLogEvent.read(compositeByteBuf);
-                            schemaManager.recovery(snapshotLogEvent);
+                            schemaManager.recovery(snapshotLogEvent, true);
                             initMetaSchema();
                             snapshotLogEvent.release();
                             firstLoadFile = false;

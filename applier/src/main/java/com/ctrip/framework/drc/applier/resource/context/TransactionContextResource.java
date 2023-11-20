@@ -323,7 +323,7 @@ public class TransactionContextResource extends AbstractContext
         }
     }
 
-    private void assertDefault(Object value, Object columnDefault, int type) {
+    public static void assertDefault(Object value, Object columnDefault, int type) {
         if (value == null) {
             assert columnDefault == null
                     : "columnDefault != null";

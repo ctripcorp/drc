@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller;
 
+import com.ctrip.framework.drc.console.controller.v1.OpenApiController;
 import com.ctrip.framework.drc.console.service.OpenApiService;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -17,8 +18,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.SQLException;
-
-import static org.junit.Assert.*;
 
 public class OpenApiControllerTest {
     

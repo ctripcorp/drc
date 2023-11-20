@@ -22,9 +22,11 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     private static final String SRC_MHA_NAME = "src_mha_name";
     private static final String DST_MHA_NAME = "dst_mha_name";
+    private static final String DB = "db";
     private static final String GTID = "gtid";
     private static final String HANDLE_TIME = "handle_time";
     private static final String TRX_RESULT = "trx_result";
+    private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
 
     public ConflictTrxLogTblDao() throws SQLException {
         super(ConflictTrxLogTbl.class);
@@ -47,10 +49,22 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         return queryOne(sqlBuilder);
     }
 
+    public ConflictTrxLogTbl queryByGtid(String gtid, Long beginHandleTime, Long endHandleTime) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR)
+                .and().greaterThan(HANDLE_TIME, beginHandleTime, Types.BIGINT)
+                .and().lessThan(HANDLE_TIME, endHandleTime, Types.BIGINT);
+        return queryOne(sqlBuilder);
+    }
+
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().likeNullable(SRC_MHA_NAME, param.getSrcMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
-                .and().likeNullable(DST_MHA_NAME, param.getDstMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
+        if (!param.isAdmin()) {
+            sqlBuilder.and().in(DB, param.getDbsWithPermission(), Types.VARCHAR);
+        }
+        sqlBuilder.and().equalNullable(DB, param.getDb(), Types.VARCHAR)
+                .and().equalNullable(SRC_MHA_NAME, param.getSrcMhaName(), Types.VARCHAR)
+                .and().equalNullable(DST_MHA_NAME, param.getDstMhaName(), Types.VARCHAR)
                 .and().equalNullable(GTID, param.getGtId(), Types.VARCHAR)
                 .and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
@@ -80,5 +94,9 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         }
 
         return conflictTrxLogTbls;
+    }
+
+    public int batchDeleteByHandleTime(long beginTime, long endTime) throws SQLException {
+        return client.delete(WHERE_SQL, new DalHints(), beginTime, endTime);
     }
 }

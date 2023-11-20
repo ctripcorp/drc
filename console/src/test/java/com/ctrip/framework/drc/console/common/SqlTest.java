@@ -113,15 +113,15 @@ public class SqlTest {
                 if (columnName.equals("`datachange_lasttime`")) {
                     continue;
                 }
-                String value = values.get(i).toString();
-                SQLExpr sqlExpr = values.get(i);
-                if (sqlExpr instanceof SQLNullExpr) {
-                    System.out.println(sqlExpr);
-                }
+                SQLExpr valueExpr = values.get(i);
                 if (!firstCondition) {
                     condition.append(" AND ");
                 }
-                condition.append(columnName + " = " + value);
+                if (valueExpr instanceof SQLNullExpr) {
+                    condition.append(columnName + " is " + valueExpr);
+                } else {
+                    condition.append(columnName + " = " + valueExpr);
+                }
                 firstCondition = false;
             }
 

@@ -39,6 +39,10 @@ public class ApiResult<T> {
     public static <T> ApiResult getFailInstance( T data,String message) {
         return getInstance(data, ResultCode.HANDLE_FAIL.getCode(), message);
     }
+    
+    public static <T> ApiResult getNoPermissionResult( T data) {
+        return getInstance(data, ResultCode.NO_PERMISSION.getCode(), ResultCode.NO_PERMISSION.getMessage());
+    }
 
     public Integer getStatus() {
         return status;

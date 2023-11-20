@@ -21,5 +21,7 @@ public interface CacheMetaService {
 
     Endpoint getMasterEndpoint(String mha);
 
+    Endpoint getMasterEndpointForWrite(String mha);
+
     List<Endpoint> getMasterEndpointsInAllAccounts(String mha);
 }

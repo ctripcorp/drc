@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 
 import java.util.List;
 import java.util.Map;
@@ -46,7 +48,11 @@ public interface MysqlServiceV2 {
 
     Long getCurrentTime(String mha);
 
-    Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody);
+    Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception;
 
     List<String> getAllOnUpdateColumns(String mha, String db, String table);
+
+    String getFirstUniqueIndex(String mha, String db, String table);
+
+    StatementExecutorResult write(MysqlWriteEntity requestBody);
 }

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -12,6 +13,7 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.HashMap;
@@ -30,6 +32,8 @@ public class DbaApiServiceTest {
 
     @Mock
     private DomainConfig domainConfig;
+    @Mock
+    private UserService userService;
 
 
     @Before
@@ -64,6 +68,19 @@ public class DbaApiServiceTest {
                     Assert.assertTrue(clusterInfoDto.getNodes().size() > 0);
                 }
             }
+        }
+    }
+
+    @Test
+    public void testGetDBsWithQueryPermission() {
+        try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
+            Mockito.when(domainConfig.getDotToken()).thenReturn("token");
+            Mockito.when(domainConfig.getDotQueryApiUrl()).thenReturn("http://localhost:8080/dot/api/query");
+            Mockito.when(userService.getInfo()).thenReturn("user_name");
+            String responseJson = "{\"data\":[\"db1\",\"db2\"],\"success\":true,\"message\":\"ok\"}";
+            mocked.when(() -> HttpUtils.post(anyString(), any(), any())).thenReturn(responseJson);
+            int size = dbaApiService.getDBsWithQueryPermission().size();
+            Assert.assertEquals(2, size);
         }
     }
 }

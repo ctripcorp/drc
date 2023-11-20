@@ -17,9 +17,15 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
     private String handleSql;
     private String handleSqlRes;
     private int rowRes; // 0-commit 1-rollback
-    
-    // console not related
     private long rowId;
+    
+    public void brief () {
+        rawSql = null;
+        rawRes = null;
+        dstRecord = null;
+        handleSql = null;
+        handleSqlRes = null;
+    }
     
     @Override
     public int compareTo(ConflictRowLog another) {

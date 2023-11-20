@@ -11,10 +11,47 @@ public class ConflictRowsLogView {
     private String tableName;
     private String handleTime;
     private Integer rowResult;
-    private String srcDc;
-    private String dstDc;
+    private String srcRegion;
+    private String dstRegion;
     private String rawSql;
+    private String rawSqlResult;
+    private String handleSql;
+    private String handleSqlResult;
+    private String dstRowRecord;
     private Long conflictTrxLogId;
+
+
+    public String getRawSqlResult() {
+        return rawSqlResult;
+    }
+
+    public void setRawSqlResult(String rawSqlResult) {
+        this.rawSqlResult = rawSqlResult;
+    }
+
+    public String getHandleSqlResult() {
+        return handleSqlResult;
+    }
+
+    public void setHandleSqlResult(String handleSqlResult) {
+        this.handleSqlResult = handleSqlResult;
+    }
+
+    public String getDstRowRecord() {
+        return dstRowRecord;
+    }
+
+    public void setDstRowRecord(String dstRowRecord) {
+        this.dstRowRecord = dstRowRecord;
+    }
+
+    public String getHandleSql() {
+        return handleSql;
+    }
+
+    public void setHandleSql(String handleSql) {
+        this.handleSql = handleSql;
+    }
 
     public Long getConflictTrxLogId() {
         return conflictTrxLogId;
@@ -80,19 +117,19 @@ public class ConflictRowsLogView {
         this.rowResult = rowResult;
     }
 
-    public String getSrcDc() {
-        return srcDc;
+    public String getSrcRegion() {
+        return srcRegion;
     }
 
-    public void setSrcDc(String srcDc) {
-        this.srcDc = srcDc;
+    public void setSrcRegion(String srcRegion) {
+        this.srcRegion = srcRegion;
     }
 
-    public String getDstDc() {
-        return dstDc;
+    public String getDstRegion() {
+        return dstRegion;
     }
 
-    public void setDstDc(String dstDc) {
-        this.dstDc = dstDc;
+    public void setDstRegion(String dstRegion) {
+        this.dstRegion = dstRegion;
     }
 }

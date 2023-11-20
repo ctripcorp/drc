@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.ConnectionObservable;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
@@ -14,9 +15,12 @@ import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractor;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbDisposeTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbDisposeTask.Result;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTask;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.MySQLInstance;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
@@ -26,6 +30,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.wix.mysql.distribution.Version;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
@@ -40,6 +45,8 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractColumns;
@@ -62,13 +69,20 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = \"%s\" AND `table_name` = \"%s\" and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
 
-    private static final String INFORMATION_SCHEMA_QUERY = "select * from information_schema.COLUMNS where `TABLE_SCHEMA`=\"%s\" and `TABLE_NAME`=\"%s\"";
+    private static final String INFORMATION_SCHEMA_QUERY = "select * from information_schema.COLUMNS where `TABLE_SCHEMA`=\"%s\" and `TABLE_NAME`=\"%s\" order by `ORDINAL_POSITION`";
+
+
+    public static final int MAX_DB_START_PARALLEL = 5;
+
+    private static ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(MAX_DB_START_PARALLEL, "Db-Start");
+
 
     private static final int SOCKET_TIMEOUT = 60000;
 
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
     private MySQLInstance embeddedDb;
+    protected Version embeddedDbVersion;
 
     private TransactionCache transactionCache;
 
@@ -83,17 +97,54 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     protected void doInitialize() {
-        inMemoryEndpoint = new DefaultEndPoint(host, port, user, password);
-        PoolProperties poolProperties = getDefaultPoolProperties(inMemoryEndpoint);
-        String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
-        poolProperties.setConnectionProperties(timeout);
-        inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
+        Future<MySQLInstance> dbResult = notifyExecutorService.submit(() -> {
+            inMemoryEndpoint = new DefaultEndPoint(host, port, user, password);
+            PoolProperties poolProperties = getDefaultPoolProperties(inMemoryEndpoint);
+            String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
+            poolProperties.setConnectionProperties(timeout);
+            inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
+            embeddedDbVersion = DynamicConfig.getInstance().getEmbeddedMySQLUpgradeTo8Switch(registryKey) ? Version.v8_0_32 : Version.v5_7_23;
 
-        embeddedDb = isUsed(port)
-                            ? new RetryTask<>(new DbRestoreTask(port, registryKey)).call()
-                            : new RetryTask<>(new DbCreateTask(port, registryKey)).call();
+            // kill existing mysql process if version not match
+            Result result = new RetryTask<>(new DbDisposeTask(port, registryKey, embeddedDbVersion)).call();
+            if (result == Result.FAIL) {
+                throw new DrcServerException(String.format("[EmbeddedDb] dispose error for %s", registryKey));
+            }
+
+            if (isUsed(port)) {
+                logger.info("start restore db for {}:{}", registryKey, port);
+                return new RetryTask<>(new DbRestoreTask(port, registryKey, embeddedDbVersion)).call();
+            } else {
+                logger.info("start create db for {}:{}", registryKey, port);
+                return new RetryTask<>(new DbCreateTask(port, registryKey, embeddedDbVersion)).call();
+            }
+        });
+        try {
+            embeddedDb = dbResult.get();
+        } catch (Throwable e) {
+            throw new DrcServerException("MySQLSchemaManager initialize error", e);
+        }
         if (embeddedDb == null) {
             throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
+        }
+
+        this.afterStart();
+    }
+
+    private void afterStart() {
+        if (embeddedDbVersion == Version.v8_0_32) {
+            setDefaultCollationForUtf8mb4();
+        }
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    private void setDefaultCollationForUtf8mb4() {
+        try (Connection connection = inMemoryDataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.execute("set session default_collation_for_utf8mb4=utf8mb4_general_ci;");
+            statement.execute("set global default_collation_for_utf8mb4=utf8mb4_general_ci;");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -117,6 +168,23 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         }
 
         return tableMeta;
+    }
+
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    @Override
+    public boolean isEmbeddedDbEmpty() {
+        try (Connection connection = inMemoryDataSource.getConnection()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery(SHOW_DATABASES_QUERY)) {
+                    List<String> databases = extractValues(resultSet, null);
+                    return EXCLUDED_DB.containsAll(databases);
+                }
+            }
+        } catch (SQLException e) {
+            DDL_LOGGER.error("queryDb for {} error", registryKey, e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -152,7 +220,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         try (Connection connection = dataSource.getConnection()) {
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery(query)) {
-                    TableInfo tableInfo = extractColumns(resultSet);
+                    TableInfo tableInfo = extractColumns(resultSet, embeddedDbVersion == Version.v8_0_32);
                     String indexQuery = String.format(INDEX_QUERY, schema, table);
                     try (ResultSet indexResultSet = statement.executeQuery(indexQuery)) {
                         List<List<String>> indexes = IndexExtractor.extractIndex(indexResultSet);
@@ -211,7 +279,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(0, 0, 0, tableInfo.getDbName().toLowerCase(), tableInfo.getTableName().toLowerCase(), columnList, tableInfo.getIdentifiers());
             if (writeDirect) {
                 tableMapLogEvent.write(eventStore);
-                tableMapLogEvent.release();
+                tableMapLogEvent.releaseMergedByteBufs();
             } else {
                 transactionCache.add(tableMapLogEvent);
             }
@@ -299,6 +367,15 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         File logDir = fileManager.getDataDir();
         File[] files = logDir.listFiles();
         return files == null || files.length == 0;
+    }
+
+    @Override
+    public boolean shouldRecover(boolean fromLatestLocalBinlog) {
+        boolean dbEmpty = isEmbeddedDbEmpty();
+        if (!dbEmpty) {
+            DDL_LOGGER.info("[Recovery Skip] due to already init for {} (Version: {})", registryKey, embeddedDbVersion);
+        }
+        return dbEmpty;
     }
 
     enum SchemaStatus {
