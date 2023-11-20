@@ -890,9 +890,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) dstResultMap.get("record");
 
         if (CollectionUtils.isEmpty(srcRecords) && CollectionUtils.isEmpty(dstRecords)) {
+            logger.info("both records are empty");
             return true;
         }
         if (CollectionUtils.isEmpty(srcRecords) || CollectionUtils.isEmpty(dstRecords)) {
+            logger.info("src or dst records are empty");
             return false;
         }
         // `db`.`table`
@@ -936,7 +938,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             if (srcValue == null || dstValue == null) {
                 return false;
             }
-            if (!srcValue.equals(dstValue)) {
+            if (!String.valueOf(srcValue).equals(String.valueOf(dstValue))) {
+                logger.info("value not equal, column: {}, srcValue: {}, dstValue: {}", column, srcValue, dstValue);
                 return false;
             }
         }

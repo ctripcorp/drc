@@ -211,22 +211,20 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         conflictApprovalTblDao.update(approvalTbl);
     }
 
+    //ql_deng TODO 2023/11/20:审批通过只有第二级才会回调
     @Override
     public void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception {
-        logger.info("approvalCallBack request: ", request);
+        logger.info("approvalCallBack request: {}", request);
         long approvalId = request.getData().getApprovalId();
         ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryById(approvalId);
         if (REJECTED.equalsIgnoreCase(request.getApprovalStatus())) {
             conflictApprovalTbl.setApprovalResult(ApprovalResultEnum.REJECTED.getCode());
-            conflictApprovalTbl.setRemark(request.getRejectReason());
         } else if (APPROVED.equalsIgnoreCase(request.getApprovalStatus())) {
-            if (ApprovalTypeEnum.DB_OWNER.getCode() == conflictApprovalTbl.getCurrentApproverType()) {
-                conflictApprovalTbl.setCurrentApproverType(ApprovalTypeEnum.DBA.getCode());
-            } else if (ApprovalTypeEnum.DBA.getCode() == conflictApprovalTbl.getCurrentApproverType()) {
-                conflictApprovalTbl.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
-            }
+            conflictApprovalTbl.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
         }
+        conflictApprovalTbl.setRemark(request.getRejectReason());
 
+        logger.info("update approval: {}", conflictApprovalTbl);
         conflictApprovalTblDao.update(conflictApprovalTbl);
     }
 
