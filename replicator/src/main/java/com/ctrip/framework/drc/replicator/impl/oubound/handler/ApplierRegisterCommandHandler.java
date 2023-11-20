@@ -312,7 +312,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (nettyClient != null) {
                 nettyClient.channel().close();
             }
-            filterChain.release();
         }
 
         private File blankUuidSets() {
@@ -395,6 +394,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             } catch (Throwable e) {
                 logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
                 channel.close();
+            } finally {
+                filterChain.release();
             }
         }
 
