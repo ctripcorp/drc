@@ -19,6 +19,7 @@ public class ConflictRowsLogView {
     private String handleSqlResult;
     private String dstRowRecord;
     private Long conflictTrxLogId;
+    private Integer brief;
 
 
     public String getRawSqlResult() {
@@ -131,5 +132,13 @@ public class ConflictRowsLogView {
 
     public void setDstRegion(String dstRegion) {
         this.dstRegion = dstRegion;
+    }
+
+    public Integer getBrief() {
+        return brief;
+    }
+
+    public void setBrief(Integer brief) {
+        this.brief = brief;
     }
 }

@@ -5,14 +5,14 @@
         <Card :padding=5>
           <template #title>查询条件</template>
           <Row :gutter=10 v-show="!searchMode">
-            <Col span="3">
+            <Col span="2">
               <Select filterable clearable v-model="queryParam.srcRegion" placeholder="源region">
                 <Option v-for="item in regions" :value="item.regionName" :key="item.regionName">
                   {{ item.regionName }}
                 </Option>
               </Select>
             </Col>
-            <Col span="3">
+            <Col span="2">
               <Select filterable clearable v-model="queryParam.dstRegion" placeholder="目标region">
                 <Option v-for="item in regions" :value="item.regionName" :key="item.regionName">
                   {{ item.regionName }}
@@ -32,6 +32,11 @@
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           :confirm= "false" :clearable="false" placeholder="结束日期"></DatePicker>
+            </Col>
+            <Col span="2">
+              <Select filterable clearable v-model="queryParam.brief" placeholder="日志情况">
+                <Option v-for="item in briefOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
+              </Select>
             </Col>
             <Col span="2">
               <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
@@ -252,7 +257,8 @@ export default {
         beginHandleTime: this.beginHandleTime,
         endHandleTime: this.endHandleTime,
         likeSearch: false,
-        rowResult: null
+        rowResult: null,
+        brief: null
       },
       tableData: [],
       columns: [
@@ -337,6 +343,16 @@ export default {
         },
         {
           name: 'rollBack',
+          val: 1
+        }
+      ],
+      briefOpts: [
+        {
+          name: '有日志',
+          val: 0
+        },
+        {
+          name: '无日志',
           val: 1
         }
       ],
@@ -509,6 +525,7 @@ export default {
         beginHandleTime: beginHandleTime,
         endHandleTime: endHandleTime,
         likeSearch: this.queryParam.likeSearch,
+        brief: this.queryParam.brief,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current

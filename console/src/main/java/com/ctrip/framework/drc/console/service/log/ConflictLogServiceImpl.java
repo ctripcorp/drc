@@ -324,7 +324,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictRowsLogTbl> conflictRowsLogTbls = new ArrayList<>();
         trxLogs.stream().forEach(trxLog -> {
             Long conflictTrxLogId = trxLogMap.get(trxLog.getGtid());
-            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap);
+            final Integer isBrief = StringUtils.isEmpty(trxLog.getCflLogs().get(0).getRawSql()) ? 1 : 0;
+            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap,isBrief);
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
@@ -813,7 +814,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return conflictTrxLogTbl;
     }
 
-    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap) {
+    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap,Integer isBrief) {
         long srcDcId = mhaMap.getOrDefault(trxLog.getSrcMha(), 0L);
         long dstDcId = mhaMap.getOrDefault(trxLog.getDstMha(), 0L);
         String srcRegion = dcMap.getOrDefault(srcDcId, "");
@@ -834,7 +835,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setRowId(source.getRowId());
             target.setSrcRegion(srcRegion);
             target.setDstRegion(dstRegion);
-
+            target.setBrief(isBrief);
             return target;
         }).collect(Collectors.toList());
 
