@@ -55,6 +55,8 @@ public class MySqlUtils {
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
+    private static Map<Endpoint, WriteSqlOperatorWrapper> writeSqlOperatorMapper = new HashMap<>();
+
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
     public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
@@ -606,14 +608,31 @@ public class MySqlUtils {
         }
     }
 
-    public static void removeWriteSqlOperator(WriteSqlOperatorWrapper writeSqlOperatorWrapper) {
+    public static void removeWriteSqlOperator(Endpoint endpoint) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
         if (writeSqlOperatorWrapper != null) {
             try {
                 writeSqlOperatorWrapper.stop();
                 writeSqlOperatorWrapper.dispose();
             } catch (Exception e) {
-                logger.error("[monitor=tableConsistency] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", e);
+                logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
             }
+        }
+    }
+
+    private static WriteSqlOperatorWrapper getWriteSqlOperatorWrapper(Endpoint endpoint) {
+        if(writeSqlOperatorMapper.containsKey(endpoint)) {
+            return writeSqlOperatorMapper.get(endpoint);
+        } else {
+            WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+            try {
+                sqlOperatorWrapper.initialize();
+                sqlOperatorWrapper.start();
+            } catch (Exception e) {
+                logger.error("[[db={}:{}]]ColumnUtils.writeSqlOperatorMapper initialize error: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+            writeSqlOperatorMapper.put(endpoint, sqlOperatorWrapper);
+            return sqlOperatorWrapper;
         }
     }
 
@@ -916,13 +935,13 @@ public class MySqlUtils {
     }
 
     public static StatementExecutorResult write(Endpoint endpoint, String sql) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             return writeSqlOperatorWrapper.writeWithResult(execution);
         } catch (Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
-            removeWriteSqlOperator(writeSqlOperatorWrapper);
+            removeWriteSqlOperator(endpoint);
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
         }
     }
