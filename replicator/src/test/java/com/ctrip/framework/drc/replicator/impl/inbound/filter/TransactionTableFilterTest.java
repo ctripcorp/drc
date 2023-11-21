@@ -48,6 +48,18 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
         Assert.assertFalse(value.isInExcludeGroup());
         Assert.assertFalse(value.isTransactionTableRelated());
     }
+    
+    @Test
+    public void doFilterDrcWrite() throws IOException {
+        TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
+                1L, 813, 123, "drcmonitordb", "drc_write_filter", Lists.newArrayList(), null, table_map_log_event, 0
+        );
+        value = new InboundLogEventContext(tableMapLogEvent, null, new TransactionFlags(), GTID);
+        
+        transactionTableFilter.doFilter(value);
+        Assert.assertTrue(value.isInExcludeGroup());
+        Assert.assertTrue(value.isTransactionTableRelated());
+    }
 
     @Test
     public void doFilterGtidLogEvent() throws IOException {

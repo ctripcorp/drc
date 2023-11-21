@@ -177,6 +177,8 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest<Boolean> {
 
         // snapshot last
         Map<String, Map<String, String>> ddls = new SchemaSnapshotTask(inMemoryEndpoint, inMemoryDataSource).call();
+        Map<String, Map<String, String>> ddlV2s = new SchemaSnapshotTaskV2(inMemoryEndpoint, inMemoryDataSource).call();
+        Assert.assertEquals(ddls, ddlV2s);
         Assert.assertEquals(ddls.size(), ddlSchemas.size());
         Assert.assertTrue(ddls.containsKey(DB_NAME_1));
         Assert.assertTrue(ddls.containsKey(DB_NAME_2));

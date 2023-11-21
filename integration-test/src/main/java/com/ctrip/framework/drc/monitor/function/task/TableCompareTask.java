@@ -6,10 +6,7 @@ import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemaSnapshotTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeClearTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
@@ -173,9 +170,47 @@ public class TableCompareTask {
         logger.info("[COMPARE][START]-----[mha:{}][{}/{}]", mhaName, mhaCount, mhaNum);
 
         Result mhaResult = this.compareMha(mysql8, mysql5, mhaName, ddlSchemas);
+        this.snapshotPerformanceTest(mysql8, mysql5, mhaName, mhaCount, mhaNum);
         logger.info("[COMPARE][MHA SAME:{}({}/{})]-----[mha:{}][{}/{}]", mhaResult.allSame(), mhaResult.getSameCount(), mhaResult.getTotalCount(), mhaName, mhaCount, mhaNum);
 
         return mhaResult;
+    }
+
+    private void snapshotPerformanceTest(MySQLWrapper mysql8, MySQLWrapper mysql5, String mhaName, int mhaCount, int mhaNum) throws ExecutionException, InterruptedException {
+        Future<Boolean> cloneFuture5 = executorService.submit(() -> {
+            try {
+                long pre = System.currentTimeMillis();
+                logger.info("[MYSQL 5][LOCAL_SNAPSHOT]-----[mha:{}][{}/{}]", mhaName, mhaCount, mhaNum);
+                Map<String, Map<String, String>> snapshot = mysql5.snapshot(mhaName);
+                logger.info("[MYSQL 5][LOCAL_SNAPSHOT][DONE:{} ms]-----[mha:{}][{}/{}]", System.currentTimeMillis() - pre, mhaName, mhaCount, mhaNum);
+                pre = System.currentTimeMillis();
+                logger.info("[MYSQL 5][LOCAL_SNAPSHOT_V2]-----[mha:{}][{}/{}]", mhaName, mhaCount, mhaNum);
+                Map<String, Map<String, String>> snapshotNew = mysql5.snapshotNew(mhaName);
+                logger.info("[MYSQL 5][LOCAL_SNAPSHOT_NEW][DONE:{} ms][SAME:{}]-----[mha:{}][{}/{}]", System.currentTimeMillis() - pre, snapshotNew.equals(snapshot), mhaName, mhaCount, mhaNum);
+                return true;
+            } catch (Throwable e) {
+                logger.info("[MYSQL 5][LOCAL_SNAPSHOT][FAIL SKIP][{}]-----[mha:{}][{}/{}]", e.getMessage(), mhaName, mhaCount, mhaNum);
+                return false;
+            }
+        });
+        Future<Boolean> cloneFuture8 = executorService.submit(() -> {
+            try {
+                long pre = System.currentTimeMillis();
+                logger.info("[MYSQL 8][LOCAL_SNAPSHOT]-----[mha:{}][{}/{}]", mhaName, mhaCount, mhaNum);
+                Map<String, Map<String, String>> snapshot = mysql8.snapshot(mhaName);
+                logger.info("[MYSQL 8][LOCAL_SNAPSHOT][DONE:{} ms]-----[mha:{}][{}/{}]", System.currentTimeMillis() - pre, mhaName, mhaCount, mhaNum);
+                pre = System.currentTimeMillis();
+                logger.info("[MYSQL 8][LOCAL_SNAPSHOT_V2]-----[mha:{}][{}/{}]", mhaName, mhaCount, mhaNum);
+                Map<String, Map<String, String>> snapshotNew = mysql8.snapshotNew(mhaName);
+                logger.info("[MYSQL 8][LOCAL_SNAPSHOT_NEW][DONE:{} ms][SAME:{}]-----[mha:{}][{}/{}]", System.currentTimeMillis() - pre, snapshotNew.equals(snapshot), mhaName, mhaCount, mhaNum);
+                return true;
+            } catch (Throwable e) {
+                logger.info("[MYSQL 8][LOCAL_SNAPSHOT][FAIL SKIP][{}]-----[mha:{}][{}/{}]", e.getMessage(), mhaName, mhaCount, mhaNum);
+                return false;
+            }
+        });
+        cloneFuture5.get();
+        cloneFuture8.get();
     }
 
     private Result compareMha(MySQLWrapper mysql8, MySQLWrapper mysql5, String mhaName, Map<String, Map<String, String>> ddlSchemas) {
@@ -449,6 +484,8 @@ public class TableCompareTask {
                 statement.execute("set session default_collation_for_utf8mb4=utf8mb4_general_ci;");
                 statement.execute("set global default_collation_for_utf8mb4=utf8mb4_general_ci;");
                 statement.execute("set global innodb_print_all_deadlocks=on;");
+                statement.execute("set global innodb_flush_neighbors=1;");
+
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -480,6 +517,26 @@ public class TableCompareTask {
                 }
                 if (!Boolean.TRUE.equals(clone)) {
                     throw new Exception("clone fail!");
+                }
+            });
+        }
+
+        public Map<String, Map<String, String>> snapshot(String mha) throws Exception {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("tbl.compare.localsnapshot." + version.getMajorVersion(), mha, () -> {
+                try {
+                    return new SchemaSnapshotTask(inMemoryEndpoint, inMemoryDataSource).call();
+                } catch (Throwable e) {
+                    throw new Exception("snapshot fail: " + e.getMessage());
+                }
+            });
+        }
+
+        public Map<String, Map<String, String>> snapshotNew(String mha) throws Exception {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("tbl.compare.localsnapshot.v2." + version.getMajorVersion(), mha, () -> {
+                try {
+                    return new SchemaSnapshotTaskV2(inMemoryEndpoint, inMemoryDataSource).call();
+                } catch (Throwable e) {
+                    throw new Exception("snapshot fail: " + e.getMessage());
                 }
             });
         }

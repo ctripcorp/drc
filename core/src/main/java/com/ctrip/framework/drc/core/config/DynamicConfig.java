@@ -12,6 +12,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SOCKET_TIM
 public class DynamicConfig extends AbstractConfigBean {
 
     private static final String CONCURRENCY = "scheme.clone.task.concurrency.%s";
+    private static final String SNAPSHOT_CONCURRENCY = "scheme.snapshot.task.concurrency.%s";
 
     private static final String DATASOURCE_SOCKET_TIMEOUT = "datasource.socket.timeout";
 
@@ -22,6 +23,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String INDEPENDENT_EMBEDDED_MYSQL_SWITCH_KEY = INDEPENDENT_EMBEDDED_MYSQL_SWITCH + ".%s";
     private static final String UPGRADE_EMBEDDED_MYSQL_SWITCH = "upgrade.8.embedded.mysql.switch";
     private static final String UPGRADE_EMBEDDED_MYSQL_SWITCH_KEY = UPGRADE_EMBEDDED_MYSQL_SWITCH + ".%s";
+    private static final String DELAY_EVENT_OLD_SWITCH = "delay.event.old.switch";
 
     private static final String PURGED_GTID_SET_CHECK_SWITCH = "purged.gtid.set.check.switch";
 
@@ -43,6 +45,10 @@ public class DynamicConfig extends AbstractConfigBean {
         return getIntProperty(String.format(CONCURRENCY, key), MAX_ACTIVE);
     }
 
+
+    public int getSnapshotTaskConcurrency() {
+        return getIntProperty(SNAPSHOT_CONCURRENCY, 5);
+    }
     public int getDatasourceSocketTimeout() {
         return getIntProperty(DATASOURCE_SOCKET_TIMEOUT, SOCKET_TIMEOUT);
     }
@@ -79,6 +85,9 @@ public class DynamicConfig extends AbstractConfigBean {
         return Boolean.parseBoolean(value);
     }
 
+    public boolean getOldDelayEventProcessSwitch() {
+        return getBooleanProperty(DELAY_EVENT_OLD_SWITCH, true);
+    }
 
     public boolean getTrafficCountChangeSwitch() {
         return getBooleanProperty(TRAFFIC_COUNT_CHANGE, false);

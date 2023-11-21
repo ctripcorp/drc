@@ -7,6 +7,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,6 +26,11 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
      */
     Map<String/* schema */, Map<String/* table */, String>> snapshot();
 
+    /**
+     * should call it after update schema
+     * @param tableIds related tables
+     */
+    void refresh(List<TableId> tableIds);
     /**
      * recover embedded db from snapshot
      *
