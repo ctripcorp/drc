@@ -32,7 +32,7 @@
                 </Button>
               </Tooltip>
             </div>
-            <Table size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstRegion}})</div>
@@ -44,7 +44,7 @@
                 </Button>
               </Tooltip>
             </div>
-            <Table size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
         </Card>
         <Divider/>
@@ -521,7 +521,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 .ivu-table .table-info-cell-extra-column-add {
   background-color: #2db7f5;
   color: #fff;
@@ -529,6 +529,11 @@ export default {
 
 .ivu-table .table-info-cell-extra-column-diff {
   background-color: #ff6600;
+  color: #fff;
+}
+
+.ivu-table .cell-class-type {
+  background-color: #2db7f5;
   color: #fff;
 }
 

@@ -101,7 +101,7 @@
         </Dropdown>
       </Col>
     </Row>
-    <Table stripe border :columns="columns" :data="tableData" ref="multipleTable"
+    <Table border :columns="columns" :data="tableData" ref="multipleTable"
            @on-selection-change="changeSelection">
       <template slot-scope="{ row, index }" slot="action">
         <Button type="primary" size="small" @click="getLogDetail1(row, index)" style="margin-right: 5px">
@@ -147,7 +147,7 @@
                 <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
               </Tooltip >
             </div>
-            <Table :loading="modalLoading" size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table :loading="modalLoading" size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{logDetail.dstRegion}})</div>
@@ -157,7 +157,7 @@
                 <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
               </Tooltip >
             </div>
-            <Table :loading="modalLoading" size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table :loading="modalLoading" size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
           <Card>
@@ -581,6 +581,9 @@ export default {
 }
 </script>
 
-<style scoped>
-
+<style>
+.ivu-table .cell-class-type {
+  background-color: #2db7f5;
+  color: #fff;
+}
 </style>
