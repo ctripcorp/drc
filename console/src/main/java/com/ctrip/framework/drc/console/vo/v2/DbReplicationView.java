@@ -11,6 +11,24 @@ public class DbReplicationView {
     private String dbName;
     private String logicTableName;
     private List<Integer> filterTypes;
+    private String createTime;
+    private String updateTime;
+
+    public String getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(String createTime) {
+        this.createTime = createTime;
+    }
+
+    public String getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(String updateTime) {
+        this.updateTime = updateTime;
+    }
 
     public Long getDbReplicationId() {
         return dbReplicationId;

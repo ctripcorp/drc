@@ -130,8 +130,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testGetConflictRowRecordView() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "sql", new ArrayList<>(), 12);
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "sql", new ArrayList<>(), 12);
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", new ArrayList<>(), 12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(), 12);
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
@@ -140,10 +140,14 @@ public class ConflictLogServiceTest {
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
         Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
         Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
-        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getSrcResMap());
 
         ConflictCurrentRecordView result = conflictLogService.getConflictRowRecordView(1L, 12);
         Assert.assertTrue(result.isRecordIsEqual());
+
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
+        result = conflictLogService.getConflictRowRecordView(1L, 12);
+        Assert.assertFalse(result.isRecordIsEqual());
     }
 
     @Test
@@ -276,13 +280,16 @@ public class ConflictLogServiceTest {
         records.put("column", "a");
         records.put("datachange_lasttime", "time");
         records.put("drc_row_log_id", 1L);
+        byte[] a = new byte[1];
+        records.put("a", a);
+        records.put("b", null);
         res.put("record", Lists.newArrayList(records));
 
         Map<String, Object> metaColumn = new HashMap<>();
         metaColumn.put("key", "column");
         res.put("metaColumn", Lists.newArrayList(metaColumn));
 
-        res.put("columns", Lists.newArrayList("column"));
+        res.put("columns", Lists.newArrayList(records.keySet()));
         return res;
     }
 
@@ -295,13 +302,16 @@ public class ConflictLogServiceTest {
         records.put("column", "b");
         records.put("datachange_lasttime", "time");
         records.put("drc_row_log_id", 1L);
+        byte[] a = new byte[1];
+        records.put("a", a);
+        records.put("b", "b");
         res.put("record", Lists.newArrayList(records));
 
         Map<String, Object> metaColumn = new HashMap<>();
         metaColumn.put("key", "column");
         res.put("metaColumn", Lists.newArrayList(metaColumn));
 
-        res.put("columns", Lists.newArrayList("column"));
+        res.put("columns", Lists.newArrayList());
         return res;
     }
 

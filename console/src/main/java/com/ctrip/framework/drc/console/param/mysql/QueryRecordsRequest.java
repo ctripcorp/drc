@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.param.mysql;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by dengquanliang
@@ -58,5 +59,18 @@ public class QueryRecordsRequest {
 
     public void setSql(String sql) {
         this.sql = sql;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        QueryRecordsRequest that = (QueryRecordsRequest) o;
+        return columnSize == that.columnSize && Objects.equals(mha, that.mha) && Objects.equals(sql, that.sql) && Objects.equals(onUpdateColumns, that.onUpdateColumns);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mha, sql, onUpdateColumns, columnSize);
     }
 }

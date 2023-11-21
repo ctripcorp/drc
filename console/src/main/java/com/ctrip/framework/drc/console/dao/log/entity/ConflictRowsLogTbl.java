@@ -86,6 +86,14 @@ public class ConflictRowsLogTbl {
     @Column(name = "row_result")
     @Type(value = Types.TINYINT)
     private Integer rowResult;
+    
+    /**
+     *  是否结果: 0-brief 1-brief[row_sql is empty]
+     */
+    @Column(name = "brief")
+    @Type(value = Types.TINYINT)
+    private Integer brief;
+    
 
     /**
      * 事务处理时间
@@ -270,5 +278,13 @@ public class ConflictRowsLogTbl {
 
     public void setDstRegion(String dstRegion) {
         this.dstRegion = dstRegion;
+    }
+
+    public Integer getBrief() {
+        return brief;
+    }
+
+    public void setBrief(Integer brief) {
+        this.brief = brief;
     }
 }

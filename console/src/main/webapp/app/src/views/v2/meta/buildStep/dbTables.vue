@@ -127,7 +127,15 @@ export default {
           key: 'logicTableName'
         },
         {
-          title: '过滤规则配置',
+          title: '创建时间',
+          key: 'createTime'
+        },
+        {
+          title: '修改时间',
+          key: 'updateTime'
+        },
+        {
+          title: '过滤规则',
           key: 'filterTypes',
           width: 300,
           render: (h, params) => {

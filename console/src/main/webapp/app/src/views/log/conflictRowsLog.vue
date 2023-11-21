@@ -5,14 +5,14 @@
         <Card :padding=5>
           <template #title>查询条件</template>
           <Row :gutter=10 v-show="!searchMode">
-            <Col span="3">
+            <Col span="2">
               <Select filterable clearable v-model="queryParam.srcRegion" placeholder="源region">
                 <Option v-for="item in regions" :value="item.regionName" :key="item.regionName">
                   {{ item.regionName }}
                 </Option>
               </Select>
             </Col>
-            <Col span="3">
+            <Col span="2">
               <Select filterable clearable v-model="queryParam.dstRegion" placeholder="目标region">
                 <Option v-for="item in regions" :value="item.regionName" :key="item.regionName">
                   {{ item.regionName }}
@@ -32,6 +32,11 @@
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           :confirm= "false" :clearable="false" placeholder="结束日期"></DatePicker>
+            </Col>
+            <Col span="2">
+              <Select filterable clearable v-model="queryParam.brief" placeholder="日志情况">
+                <Option v-for="item in briefOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
+              </Select>
             </Col>
             <Col span="2">
               <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
@@ -101,7 +106,7 @@
         </Dropdown>
       </Col>
     </Row>
-    <Table stripe border :columns="columns" :data="tableData" ref="multipleTable"
+    <Table border :columns="columns" :data="tableData" ref="multipleTable"
            @on-selection-change="changeSelection">
       <template slot-scope="{ row, index }" slot="action">
         <Button type="primary" size="small" @click="getLogDetail1(row, index)" style="margin-right: 5px">
@@ -147,7 +152,7 @@
                 <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
               </Tooltip >
             </div>
-            <Table :loading="modalLoading" size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table :loading="modalLoading" size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{logDetail.dstRegion}})</div>
@@ -157,7 +162,7 @@
                 <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
               </Tooltip >
             </div>
-            <Table :loading="modalLoading" size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table :loading="modalLoading" size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
           <Card>
@@ -252,7 +257,8 @@ export default {
         beginHandleTime: this.beginHandleTime,
         endHandleTime: this.endHandleTime,
         likeSearch: false,
-        rowResult: null
+        rowResult: null,
+        brief: null
       },
       tableData: [],
       columns: [
@@ -337,6 +343,16 @@ export default {
         },
         {
           name: 'rollBack',
+          val: 1
+        }
+      ],
+      briefOpts: [
+        {
+          name: '有日志',
+          val: 0
+        },
+        {
+          name: '无日志',
           val: 1
         }
       ],
@@ -509,6 +525,7 @@ export default {
         beginHandleTime: beginHandleTime,
         endHandleTime: endHandleTime,
         likeSearch: this.queryParam.likeSearch,
+        brief: this.queryParam.brief,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current
@@ -581,6 +598,9 @@ export default {
 }
 </script>
 
-<style scoped>
-
+<style>
+.ivu-table .cell-class-type {
+  background-color: #2db7f5;
+  color: #fff;
+}
 </style>

@@ -19,9 +19,10 @@ public class ConflictRowsLogQueryParam {
     private String srcRegion;
     private String dstRegion;
     private Integer rowResult;
+    private Integer brief;
     private boolean likeSearch;
     private PageReq pageReq;
-
+    
     public boolean getLikeSearch() {
         return likeSearch;
     }
@@ -124,5 +125,13 @@ public class ConflictRowsLogQueryParam {
 
     public void setPageReq(PageReq pageReq) {
         this.pageReq = pageReq;
+    }
+
+    public Integer getBrief() {
+        return brief;
+    }
+
+    public void setBrief(Integer brief) {
+        this.brief = brief;
     }
 }
