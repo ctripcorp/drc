@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -62,6 +63,7 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         if (!param.isAdmin()) {
             sqlBuilder.and().in(DB_NAME, param.getDbsWithPermission(), Types.VARCHAR);
         }
+
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
                 .and().equalNullable(SRC_REGION, param.getSrcRegion(), Types.VARCHAR)
                 .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)
@@ -69,11 +71,19 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
                 .and().equalNullable(BRIEF, param.getBrief(), Types.TINYINT);
 
         if (param.getLikeSearch()) {
-            sqlBuilder.and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.BEGIN_WITH, Types.VARCHAR)
-                    .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+            if (StringUtils.isNotBlank(param.getDbName())) {
+                sqlBuilder.and().like(DB_NAME, param.getDbName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+            }
+            if (StringUtils.isNotBlank(param.getTableName())) {
+                sqlBuilder.and().like(TABLE_NAME, param.getTableName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+            }
         } else {
-            sqlBuilder.and().equalNullable(DB_NAME, param.getDbName(), Types.VARCHAR)
-                    .and().equalNullable(TABLE_NAME, param.getTableName(), Types.VARCHAR);
+            if (StringUtils.isNotBlank(param.getDbName())) {
+                sqlBuilder.and().equal(DB_NAME, param.getDbName(), Types.VARCHAR);
+            }
+            if (StringUtils.isNotBlank(param.getTableName())) {
+                sqlBuilder.and().equal(TABLE_NAME, param.getTableName(), Types.VARCHAR);
+            }
         }
 
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
