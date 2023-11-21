@@ -7,6 +7,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -62,11 +63,20 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         if (!param.isAdmin()) {
             sqlBuilder.and().in(DB, param.getDbsWithPermission(), Types.VARCHAR);
         }
-        sqlBuilder.and().equalNullable(DB, param.getDb(), Types.VARCHAR)
-                .and().equalNullable(SRC_MHA_NAME, param.getSrcMhaName(), Types.VARCHAR)
-                .and().equalNullable(DST_MHA_NAME, param.getDstMhaName(), Types.VARCHAR)
-                .and().equalNullable(GTID, param.getGtId(), Types.VARCHAR)
-                .and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
+        if (StringUtils.isNotBlank(param.getDb())) {
+            sqlBuilder.and().equal(DB, param.getDb(), Types.VARCHAR);
+        }
+        if (StringUtils.isNotBlank(param.getSrcMhaName())) {
+            sqlBuilder.and().equal(SRC_MHA_NAME, param.getSrcMhaName(), Types.VARCHAR);
+        }
+        if (StringUtils.isNotBlank(param.getDstMhaName())) {
+            sqlBuilder.and().equal(DST_MHA_NAME, param.getDstMhaName(), Types.VARCHAR);
+        }
+        if (StringUtils.isNotBlank(param.getGtId())) {
+            sqlBuilder.and().equal(GTID, param.getGtId(), Types.VARCHAR);
+        }
+        sqlBuilder.and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
+
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
             sqlBuilder.and().greaterThan(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
         }

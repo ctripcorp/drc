@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -23,6 +24,7 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String DB_NAME = "db_name";
     private static final String TABLE_NAME = "table_name";
     private static final String ROW_RESULT = "row_result";
+    private static final String BRIEF = "brief";
     private static final String HANDLE_TIME = "handle_time";
     private static final String SRC_REGION = "src_region";
     private static final String DST_REGION = "dst_region";
@@ -61,17 +63,27 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         if (!param.isAdmin()) {
             sqlBuilder.and().in(DB_NAME, param.getDbsWithPermission(), Types.VARCHAR);
         }
+
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
                 .and().equalNullable(SRC_REGION, param.getSrcRegion(), Types.VARCHAR)
                 .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)
-                .and().equalNullable(ROW_RESULT, param.getRowResult(), Types.TINYINT);
+                .and().equalNullable(ROW_RESULT, param.getRowResult(), Types.TINYINT)
+                .and().equalNullable(BRIEF, param.getBrief(), Types.TINYINT);
 
         if (param.getLikeSearch()) {
-            sqlBuilder.and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.BEGIN_WITH, Types.VARCHAR)
-                    .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+            if (StringUtils.isNotBlank(param.getDbName())) {
+                sqlBuilder.and().like(DB_NAME, param.getDbName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+            }
+            if (StringUtils.isNotBlank(param.getTableName())) {
+                sqlBuilder.and().like(TABLE_NAME, param.getTableName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
+            }
         } else {
-            sqlBuilder.and().equalNullable(DB_NAME, param.getDbName(), Types.VARCHAR)
-                    .and().equalNullable(TABLE_NAME, param.getTableName(), Types.VARCHAR);
+            if (StringUtils.isNotBlank(param.getDbName())) {
+                sqlBuilder.and().equal(DB_NAME, param.getDbName(), Types.VARCHAR);
+            }
+            if (StringUtils.isNotBlank(param.getTableName())) {
+                sqlBuilder.and().equal(TABLE_NAME, param.getTableName(), Types.VARCHAR);
+            }
         }
 
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {

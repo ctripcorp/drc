@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -422,6 +423,8 @@ public class MigrateEntityBuilder {
         tbl1.setDstLogicTableName("table2");
         tbl1.setDstMhaDbMappingId(201L);
         tbl1.setId(200L);
+        tbl1.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        tbl1.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
 
         DbReplicationTbl tbl2 = new DbReplicationTbl();
         tbl2.setDeleted(0);
@@ -432,6 +435,8 @@ public class MigrateEntityBuilder {
         tbl2.setDstMhaDbMappingId(-1L);
         tbl2.setId(201L);
 
+        tbl2.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        tbl2.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
         return Lists.newArrayList(tbl1, tbl2);
     }
 

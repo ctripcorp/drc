@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.service.log;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
@@ -102,6 +101,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final String EQUAL_SYMBOL = "=";
     private static final String MARKS = "`";
     private static final String EMPTY_SQL = "EMPTY_SQL";
+    private static final String CELL_CLASS_TYPE = "cell-class-type";
+    private static final String CELL_CLASS_NAME = "cellClassName";
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -324,7 +325,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictRowsLogTbl> conflictRowsLogTbls = new ArrayList<>();
         trxLogs.stream().forEach(trxLog -> {
             Long conflictTrxLogId = trxLogMap.get(trxLog.getGtid());
-            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap);
+            final Integer isBrief = StringUtils.isEmpty(trxLog.getCflLogs().get(0).getRawSql()) ? 1 : 0;
+            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap,isBrief);
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
@@ -813,7 +815,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return conflictTrxLogTbl;
     }
 
-    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap) {
+    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap,Integer isBrief) {
         long srcDcId = mhaMap.getOrDefault(trxLog.getSrcMha(), 0L);
         long dstDcId = mhaMap.getOrDefault(trxLog.getDstMha(), 0L);
         String srcRegion = dcMap.getOrDefault(srcDcId, "");
@@ -834,7 +836,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setRowId(source.getRowId());
             target.setSrcRegion(srcRegion);
             target.setDstRegion(dstRegion);
-
+            target.setBrief(isBrief);
             return target;
         }).collect(Collectors.toList());
 
@@ -890,9 +892,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) dstResultMap.get("record");
 
         if (CollectionUtils.isEmpty(srcRecords) && CollectionUtils.isEmpty(dstRecords)) {
+            logger.info("both records are empty");
             return true;
         }
         if (CollectionUtils.isEmpty(srcRecords) || CollectionUtils.isEmpty(dstRecords)) {
+            logger.info("src or dst records are empty");
             return false;
         }
         // `db`.`table`
@@ -927,6 +931,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
+        List<String> unEqualColumns = new ArrayList<>();
         for (String column : columns) {
             Object srcValue = srcRecord.get(column);
             Object dstValue = dstRecord.get(column);
@@ -934,13 +939,31 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 continue;
             }
             if (srcValue == null || dstValue == null) {
-                return false;
+                unEqualColumns.add(column);
             }
-            if (!srcValue.equals(dstValue)) {
-                return false;
+            if (!equal(srcValue, dstValue)) {
+                unEqualColumns.add(column);
+                logger.info("value not equal, column: {}, srcValue: {}, dstValue: {}", column, srcValue, dstValue);
             }
         }
+
+        if (!CollectionUtils.isEmpty(unEqualColumns)) {
+            Map<String, String> cellClassMap = new HashMap<>();
+            for (String column : unEqualColumns) {
+                cellClassMap.put(column, CELL_CLASS_TYPE);
+            }
+            srcRecord.put(CELL_CLASS_NAME, cellClassMap);
+            dstRecord.put(CELL_CLASS_NAME, cellClassMap);
+            return false;
+        }
         return true;
+    }
+
+    private boolean equal(Object srcValue, Object dstValue) {
+        if (srcValue instanceof byte[]) {
+            return Arrays.equals((byte[]) srcValue, (byte[]) dstValue);
+        }
+        return String.valueOf(srcValue).equals(String.valueOf(dstValue));
     }
 
     private Long getDbReplicationIdByTableName(String tableName, List<DbReplicationView> dbReplicationViews) {

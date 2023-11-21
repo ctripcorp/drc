@@ -18,10 +18,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
-import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.utils.PreconditionUtils;
-import com.ctrip.framework.drc.console.utils.XmlUtils;
+import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
@@ -383,6 +380,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             target.setLogicTableName(source.getSrcLogicTableName());
             long dbId = srcMhaDbMappingMap.get(source.getSrcMhaDbMappingId());
             target.setDbName(dbTblMap.get(dbId));
+            target.setCreateTime(DateUtils.longToString(source.getCreateTime().getTime()));
+            target.setUpdateTime(DateUtils.longToString(source.getDatachangeLasttime().getTime()));
 
             DbReplicationFilterMappingTbl filterMapping = filterMappingTblsMap.get(source.getId());
             if (filterMapping != null) {
