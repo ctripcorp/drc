@@ -114,7 +114,9 @@ public class SystemConfig {
     public static final String CONSOLE_DELAY_MONITOR_LOG = "delayMonitorLogger";
 
     public static final Logger CONSOLE_DELAY_MONITOR_LOGGER = LoggerFactory.getLogger(CONSOLE_DELAY_MONITOR_LOG);
+    public static final String CONSOLE_DB_DELAY_MONITOR_LOG = "dbDelayMonitorLogger";
 
+    public static final Logger CONSOLE_DB_DELAY_MONITOR_LOGGER = LoggerFactory.getLogger(CONSOLE_DB_DELAY_MONITOR_LOG);
     public static final String CONSOLE_BEACON_HEALTH_LOG = "beaconHealthLogger";
 
     public static final Logger CONSOLE_BEACON_HEALTH_LOGGER = LoggerFactory.getLogger(CONSOLE_BEACON_HEALTH_LOG);

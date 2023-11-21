@@ -1,11 +1,13 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCommandPacket;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayMonitorColumn;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumn;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -178,9 +180,20 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
         public void update(Object args, Observable observable) {
             if (observable instanceof MonitorEventObservable && args instanceof LogEvent) { // monitor delay event and truncate event
                 LogEvent logEvent = (LogEvent) args;
+                boolean dbDelay = false;
                 if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
                     ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
-                    String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                    String delayMonitorSrcDcName;
+                    if (DynamicConfig.getInstance().getOldDelayEventProcessSwitch() && DelayMonitorColumn.match(delayMonitorLogEvent)) {
+                        delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                    } else if (DbDelayMonitorColumn.match(delayMonitorLogEvent)) {
+                        dbDelay = true;
+                        delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                    } else {
+                        delayMonitorLogEvent.release(1);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.parse.fail", key.toString());
+                        return;
+                    }
                     if (!key.region.equalsIgnoreCase(delayMonitorSrcDcName)) {
                         delayMonitorLogEvent.release(1);
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + ":" + delayMonitorSrcDcName);
@@ -192,8 +205,11 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                 if (!added) {
                     release(logEvent);
                 }
-
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.produce", key.toString());
+                if (dbDelay) {
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.produce.v2", key.toString());
+                } else {
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.produce", key.toString());
+                }
                 if (logger.isDebugEnabled()) {
                     logger.debug("[Offer] LogEvent to delayBlockingQueue with result {}", added);
                 }
@@ -268,12 +284,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         @Override
         public String toString() {
-            return "DelayMonitorKey{" +
-                    "srcDcName='" + srcDcName + '\'' +
-                    ", region='" + region + '\'' +
-                    ", clusterName='" + clusterName + '\'' +
-                    ", ip='" + ip + '\'' +
-                    '}';
+            return String.join(".", srcDcName, region, clusterName, ip);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.utils;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
+import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.xpipe.tuple.Pair;
 
@@ -50,5 +51,11 @@ public class RowsEventUtils {
         } else {
             return new Pair<>(byte1, byte0);
         }
+    }
+
+    public static void reset(UpdateRowsEvent updateRowsEvent){
+        updateRowsEvent.getPayloadBuf().readerIndex(0);
+        updateRowsEvent.setChecksum(null);
+        updateRowsEvent.setRowsEventPostHeader(null);
     }
 }

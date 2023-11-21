@@ -79,7 +79,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private static final int SOCKET_TIMEOUT = 60000;
 
-    private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
     private MySQLInstance embeddedDb;
     protected Version embeddedDbVersion;
@@ -185,21 +184,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             DDL_LOGGER.error("queryDb for {} error", registryKey, e);
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public Map<String, Map<String, String>> snapshot() {
-        Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
-        if (!CollectionUtils.isEmpty(snapshot)) {
-            schemaCache.set(snapshot);
-        } else {
-            DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.snapshot", "Blank");
-            if (schemaCache.get() != null) {
-                return schemaCache.get();
-            }
-            return snapshot;
-        }
-        return snapshot;
     }
 
     /**
@@ -328,6 +312,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     @Override
     protected void doDispose() {
         tableInfoMap.clear();
+        schemaCache.clear();
         inMemoryDataSource.close(true);
         embeddedDb.destroy();
         ddlMonitorExecutorService.shutdown();
