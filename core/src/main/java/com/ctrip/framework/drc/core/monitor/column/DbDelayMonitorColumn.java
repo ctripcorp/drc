@@ -81,8 +81,8 @@ public class DbDelayMonitorColumn {
     }
 
     public static String getUpdateRowsBytes(UpdateRowsEvent updateRowsEvent) {
+        RowsEventUtils.reset(updateRowsEvent);
         CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
-        updateRowsEvent.getLogEventHeader().getHeaderBuf().readerIndex(0);
         compositeByteBuf.addComponents(true, updateRowsEvent.getLogEventHeader().getHeaderBuf(), updateRowsEvent.getPayloadBuf());
 
         StringBuilder sb = new StringBuilder();

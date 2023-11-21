@@ -79,6 +79,17 @@ public class DbDelayDto {
         public static DelayInfo parse(String json) {
             return Codec.DEFAULT.decode(json, DelayInfo.class);
         }
+        public static DelayInfo from(String dc, String region, String mhaName, String dbName) {
+            DelayInfo delayInfo = new DelayInfo();
+            delayInfo.setD(dc);
+            delayInfo.setR(region);
+            delayInfo.setM(mhaName);
+            delayInfo.setB(dbName);
+            return delayInfo;
+        }
+        public String toJson(){
+            return Codec.DEFAULT.encode(this);
+        }
 
         @Override
         public boolean equals(Object o) {

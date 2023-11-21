@@ -33,7 +33,7 @@ public class DelayMonitorColumn {
     }
 
     public static List<List<Object>> getAfterPresentRowsValues(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
-        delayMonitorLogEvent.getUpdateRowsEvent().getPayloadBuf().readerIndex(0);
+        RowsEventUtils.reset(delayMonitorLogEvent.getUpdateRowsEvent());
         delayMonitorLogEvent.load(columns);
         UpdateRowsEvent updateRowsEvent = delayMonitorLogEvent.getUpdateRowsEvent();
         return updateRowsEvent.getAfterPresentRowsValues();

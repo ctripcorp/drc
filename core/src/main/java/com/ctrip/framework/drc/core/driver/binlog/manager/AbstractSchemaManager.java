@@ -12,6 +12,7 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.springframework.util.CollectionUtils;
 import org.unidal.tuple.Triple;
 
 import java.util.Collections;
@@ -32,7 +33,7 @@ import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadNam
 public abstract class AbstractSchemaManager extends AbstractLifecycle implements SchemaManager {
 
     protected Map<TableId, TableInfo> tableInfoMap = Maps.newConcurrentMap();
-    protected Map<String, Map<String, String>> schemaCache = null;
+    protected Map<String, Map<String, String>> schemaCache = Maps.newConcurrentMap();
 
     public static final int PORT_STEP = 10000;
 
@@ -77,7 +78,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public synchronized Map<String, Map<String, String>> snapshot() {
-        if (schemaCache == null) {
+        if (CollectionUtils.isEmpty(schemaCache)) {
             schemaCache = doSnapshot(inMemoryEndpoint);
         }
         return Collections.unmodifiableMap(schemaCache);

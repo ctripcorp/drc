@@ -31,8 +31,12 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
 
     @Override
     public void onTableMapLogEvent(TableMapLogEvent tableMapLogEvent) {
-        String tableName = tableMapLogEvent.getTableName().toLowerCase();
-        nextMonitorRowsEvent = tableName.startsWith(DRC_DELAY_MONITOR_TABLE_NAME);
+        if (tableMapLogEvent.getTableName() == null) {
+            nextMonitorRowsEvent = false;
+        } else {
+            String tableName = tableMapLogEvent.getTableName().toLowerCase();
+            nextMonitorRowsEvent = tableName.startsWith(DRC_DELAY_MONITOR_TABLE_NAME);
+        }
     }
 
     @Override

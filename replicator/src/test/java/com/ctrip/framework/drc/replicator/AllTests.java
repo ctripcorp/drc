@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorTableMapL
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlIndexFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TypeConvertFilterTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManagerRefreshTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
@@ -121,6 +122,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         ChannelAttributeKeyTest.class,
         CommandHandlerManagerTest.class,
         TransactionFlagsTest.class,
+        MySQLSchemaManagerRefreshTest.class,
 
         //controller
         ReplicatorContainerControllerTest.class

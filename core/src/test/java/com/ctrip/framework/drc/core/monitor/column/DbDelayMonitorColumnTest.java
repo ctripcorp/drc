@@ -2,16 +2,12 @@ package com.ctrip.framework.drc.core.monitor.column;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
-import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -19,29 +15,34 @@ import java.util.List;
  * Created by jixinwang on 2021/11/11
  */
 public class DbDelayMonitorColumnTest {
-    private static byte[] mhaDelayBytes = new byte[]{
-            (byte) 0xec, (byte) 0x95, (byte) 0x55, (byte) 0x65, (byte) 0x1f, (byte) 0x64, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xa1, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x9b, (byte) 0x9d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) 0x82, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x04, (byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0x02, (byte) 0x00,
-            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x05, (byte) 0x73, (byte) 0x68, (byte) 0x61, (byte) 0x72, (byte) 0x62, (byte) 0x27, (byte) 0x00, (byte) 0x7B, (byte) 0x22,
-            (byte) 0x64, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x73, (byte) 0x68, (byte) 0x61, (byte) 0x72, (byte) 0x62, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x72, (byte) 0x22, (byte) 0x3A, (byte) 0x22,
-            (byte) 0x73, (byte) 0x68, (byte) 0x61, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x6D, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x70, (byte) 0x68, (byte) 0x64, (byte) 0x5F, (byte) 0x74, (byte) 0x65,
-            (byte) 0x73, (byte) 0x74, (byte) 0x32, (byte) 0x22, (byte) 0x7D, (byte) 0x65, (byte) 0x55, (byte) 0x95, (byte) 0x91, (byte) 0x12, (byte) 0x8E, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x28, (byte) 0x00, (byte) 0x7B, (byte) 0x22, (byte) 0x64, (byte) 0x22,
-            (byte) 0x3A, (byte) 0x22, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x72, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x73, (byte) 0x68,
-            (byte) 0x61, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x6D, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74,
-            (byte) 0x5F, (byte) 0x31, (byte) 0x22, (byte) 0x7D, (byte) 0x65, (byte) 0x55, (byte) 0x95, (byte) 0xEC, (byte) 0x14, (byte) 0xD2, (byte) 0xD6, (byte) 0xA3, (byte) 0xB7, (byte) 0xCE
+    byte[] dbDelayBytes = new byte[]{
+            (byte) 0x51, (byte) 0x96, (byte) 0x5c, (byte) 0x65, (byte) 0x1f, (byte) 0xea, (byte) 0x0c, (byte) 0x00, (byte) 0x00, (byte) 0xd0, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xd7, (byte) 0xf1, (byte) 0xd0, (byte) 0x1f, (byte) 0x00, (byte) 0x00,
+            (byte) 0x30, (byte) 0x5D, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x03, (byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0xD9, (byte) 0x41,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x45, (byte) 0x00, (byte) 0x7B, (byte) 0x22, (byte) 0x64, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x6E, (byte) 0x74,
+            (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x72, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22,
+            (byte) 0x2C, (byte) 0x22, (byte) 0x6D, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F, (byte) 0x31,
+            (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x62, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F,
+            (byte) 0x73, (byte) 0x68, (byte) 0x61, (byte) 0x72, (byte) 0x64, (byte) 0x5F, (byte) 0x64, (byte) 0x62, (byte) 0x31, (byte) 0x36, (byte) 0x32, (byte) 0x22, (byte) 0x7D, (byte) 0x65, (byte) 0x5C, (byte) 0x96,
+            (byte) 0x4F, (byte) 0x1C, (byte) 0x98, (byte) 0x00, (byte) 0xD9, (byte) 0x41, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x45, (byte) 0x00, (byte) 0x7B, (byte) 0x22,
+            (byte) 0x64, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x72, (byte) 0x22, (byte) 0x3A, (byte) 0x22,
+            (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x6D, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F,
+            (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F, (byte) 0x31, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x62, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E,
+            (byte) 0x5F, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F, (byte) 0x73, (byte) 0x68, (byte) 0x61, (byte) 0x72, (byte) 0x64, (byte) 0x5F, (byte) 0x64, (byte) 0x62, (byte) 0x31, (byte) 0x36,
+            (byte) 0x32, (byte) 0x22, (byte) 0x7D, (byte) 0x65, (byte) 0x5C, (byte) 0x96, (byte) 0x51, (byte) 0x0E, (byte) 0xB0, (byte) 0xD4, (byte) 0xAC, (byte) 0x61, (byte) 0xAB,
     };
 
-    private static byte[] dbDelayBytes = new byte[]{
-            (byte) 0x65, (byte) 0x23, (byte) 0x57, (byte) 0x65, (byte) 0x1f, (byte) 0xea, (byte) 0x0c, (byte) 0x00, (byte) 0x00, (byte) 0x8e, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xf7, (byte) 0x1f, (byte) 0xc1, (byte) 0x2f, (byte) 0x00, (byte) 0x00,
-            (byte) 0x9A, (byte) 0x91, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x06, (byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0x5B, (byte) 0x33,
-            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0A, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F,
-            (byte) 0x31, (byte) 0x0E, (byte) 0x67, (byte) 0x68, (byte) 0x6F, (byte) 0x73, (byte) 0x74, (byte) 0x31, (byte) 0x5F, (byte) 0x75, (byte) 0x6E, (byte) 0x69, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74,
-            (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x65, (byte) 0x57, (byte) 0x23, (byte) 0x64,
-            (byte) 0x17, (byte) 0x48, (byte) 0x00, (byte) 0x5B, (byte) 0x33, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0A, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F,
-            (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F, (byte) 0x31, (byte) 0x0E, (byte) 0x67, (byte) 0x68, (byte) 0x6F, (byte) 0x73, (byte) 0x74, (byte) 0x31, (byte) 0x5F, (byte) 0x75, (byte) 0x6E,
-            (byte) 0x69, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78,
-            (byte) 0x68, (byte) 0x65, (byte) 0x57, (byte) 0x23, (byte) 0x65, (byte) 0x18, (byte) 0xD8, (byte) 0x78, (byte) 0xE5, (byte) 0xAB, (byte) 0xFF,
+    byte[] mhaDelayBytes = new byte[]{
+            (byte) 0x01, (byte) 0x97, (byte) 0x5c, (byte) 0x65, (byte) 0x1f, (byte) 0xea, (byte) 0x0c, (byte) 0x00, (byte) 0x00, (byte) 0xa6, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x2a, (byte) 0x59, (byte) 0x2c, (byte) 0x22, (byte) 0x00, (byte) 0x00,
+            (byte) 0x59, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x04, (byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0x6E, (byte) 0x0D,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x2A, (byte) 0x00, (byte) 0x7B, (byte) 0x22,
+            (byte) 0x64, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x72, (byte) 0x22, (byte) 0x3A, (byte) 0x22,
+            (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x6D, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E, (byte) 0x5F,
+            (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F, (byte) 0x31, (byte) 0x22, (byte) 0x7D, (byte) 0x65, (byte) 0x5C, (byte) 0x97, (byte) 0x00, (byte) 0x05, (byte) 0x8C, (byte) 0x00, (byte) 0x6E,
+            (byte) 0x0D, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x05, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x2A, (byte) 0x00, (byte) 0x7B,
+            (byte) 0x22, (byte) 0x64, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x72, (byte) 0x22, (byte) 0x3A,
+            (byte) 0x22, (byte) 0x6E, (byte) 0x74, (byte) 0x67, (byte) 0x78, (byte) 0x68, (byte) 0x22, (byte) 0x2C, (byte) 0x22, (byte) 0x6D, (byte) 0x22, (byte) 0x3A, (byte) 0x22, (byte) 0x7A, (byte) 0x79, (byte) 0x6E,
+            (byte) 0x5F, (byte) 0x74, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x5F, (byte) 0x31, (byte) 0x22, (byte) 0x7D, (byte) 0x65, (byte) 0x5C, (byte) 0x97, (byte) 0x01, (byte) 0x12, (byte) 0x3E, (byte) 0xD3,
+            (byte) 0x10, (byte) 0x25, (byte) 0x99,
     };
     private static final String gtid = "abcde123-5678-1234-abcd-abcd1234abcd:123456789";
 
@@ -66,7 +67,7 @@ public class DbDelayMonitorColumnTest {
         ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-        Assert.assertEquals("sha", delayMonitorSrcDcName);
+        Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
         List<List<Object>> afterPresentRowsValues = DelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
         Assert.assertEquals(4, afterPresentRowsValues.get(0).size());
         delayMonitorLogEvent.release();
@@ -77,12 +78,14 @@ public class DbDelayMonitorColumnTest {
         ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         Assert.assertFalse(DbDelayMonitorColumn.match(delayMonitorLogEvent));
+        Assert.assertTrue(DelayMonitorColumn.match(delayMonitorLogEvent));
         String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-        Assert.assertEquals("sha", delayMonitorSrcDcName);
+        Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
 
         eventByteBuf = initByteBuf(dbDelayBytes);
         delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
+        Assert.assertFalse(DelayMonitorColumn.match(delayMonitorLogEvent));
         delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
         Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
     }
@@ -101,17 +104,17 @@ public class DbDelayMonitorColumnTest {
 
         // 3. get rows
         List<List<Object>> afterPresentRowsValues2 = DbDelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
-        Assert.assertEquals(6, afterPresentRowsValues2.get(0).size());
+        Assert.assertEquals(3, afterPresentRowsValues2.get(0).size());
 
         // 4. get dto
         DbDelayDto dbDelayDto = DbDelayMonitorColumn.parseEvent(delayMonitorLogEvent);
         Assert.assertNotNull(dbDelayDto);
         System.out.println(dbDelayDto);
         Assert.assertEquals("zyn_test_1", dbDelayDto.getMha());
-        Assert.assertEquals("ghost1_unitest", dbDelayDto.getDbName());
+        Assert.assertEquals("zyn_test_shard_db162", dbDelayDto.getDbName());
         Assert.assertEquals("ntgxh", dbDelayDto.getRegion());
         Assert.assertEquals("ntgxh", dbDelayDto.getDcName());
-        Assert.assertEquals(Long.valueOf(1700209509636L), dbDelayDto.getDatachangeLasttime());
+        Assert.assertEquals(Long.valueOf(1700566609376L), dbDelayDto.getDatachangeLasttime());
         delayMonitorLogEvent.release();
     }
 
@@ -127,5 +130,15 @@ public class DbDelayMonitorColumnTest {
         Assert.assertEquals(rows1, rwos2);
 
         delayMonitorLogEvent.release();
+    }
+
+    @Test
+    public void testPrint() {
+        ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
+        ByteBuf dbeventByteBuf = initByteBuf(dbDelayBytes);
+        DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
+        DelayMonitorLogEvent dbDelayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(dbeventByteBuf));
+        System.out.println(DbDelayMonitorColumn.getUpdateRowsBytes(delayMonitorLogEvent.getUpdateRowsEvent()));
+        System.out.println(DbDelayMonitorColumn.getUpdateRowsBytes(dbDelayMonitorLogEvent.getUpdateRowsEvent()));
     }
 }
