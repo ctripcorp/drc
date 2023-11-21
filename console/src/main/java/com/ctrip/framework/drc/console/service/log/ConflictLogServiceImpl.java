@@ -50,6 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -962,6 +963,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private boolean equal(Object srcValue, Object dstValue) {
         if (srcValue instanceof byte[]) {
             return Arrays.equals((byte[]) srcValue, (byte[]) dstValue);
+        } else if (srcValue instanceof BigDecimal) {
+            return ((BigDecimal) srcValue).compareTo((BigDecimal) dstValue) == 0;
         }
         return String.valueOf(srcValue).equals(String.valueOf(dstValue));
     }
