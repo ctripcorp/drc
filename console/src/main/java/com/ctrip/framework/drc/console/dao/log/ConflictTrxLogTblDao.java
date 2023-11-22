@@ -35,13 +35,15 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     public List<ConflictTrxLogTbl> queryByParam(ConflictTrxLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);
-        sqlBuilder.selectCount();
-        int count = client.count(sqlBuilder, new DalHints()).intValue();
-        param.getPageReq().setTotalCount(count);
-
-        sqlBuilder = buildSqlBuilder(param);
         sqlBuilder.selectAll().atPage(param.getPageReq().getPageIndex(), param.getPageReq().getPageSize()).orderBy(HANDLE_TIME, false);
         return queryList(sqlBuilder);
+    }
+
+    public int getCount(ConflictTrxLogQueryParam param) throws SQLException {
+        SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);
+        sqlBuilder.selectCount();
+        int count = client.count(sqlBuilder, new DalHints()).intValue();
+        return count;
     }
 
     public ConflictTrxLogTbl queryByGtid(String gtid) throws SQLException {

@@ -36,12 +36,30 @@ public class ConflictLogController {
         }
     }
 
+    @GetMapping("trx/count")
+    public ApiResult<Integer> getTrxCount(ConflictTrxLogQueryParam param) {
+        try {
+            return ApiResult.getSuccessInstance(conflictLogService.getTrxLogCount(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("rows")
     public ApiResult<List<ConflictRowsLogView>> getConflictRowsLogView(ConflictRowsLogQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowsLogView(param));
             apiResult.setPageReq(param.getPageReq());
             return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("rows/count")
+    public ApiResult<Integer> getRowsCount(ConflictRowsLogQueryParam param) {
+        try {
+            return ApiResult.getSuccessInstance(conflictLogService.getRowsLogCount(param));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

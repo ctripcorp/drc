@@ -107,12 +107,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
-        if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
-            throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
-        }
-        Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
-        param.setAdmin(permissionAndDbsCanQuery.getLeft());
-        param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
+        resetParam(param);
 
         List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
@@ -131,22 +126,21 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<ConflictRowsLogView> getConflictRowsLogView(ConflictRowsLogQueryParam param) throws Exception {
-        if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
-            throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
-        }
-        Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
-        param.setAdmin(adminAndDbs.getLeft());
-        param.setDbsWithPermission(adminAndDbs.getRight());
-
-        if (StringUtils.isNotBlank(param.getGtid())) {
-            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid(), param.getBeginHandleTime(), param.getEndHandleTime());
-            if (conflictTrxLogTbl != null) {
-                param.setConflictTrxLogId(conflictTrxLogTbl.getId());
-            }
-        }
-
+        resetParam(param);
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByParam(param);
         return getConflictRowsLogViews(conflictRowsLogTbls);
+    }
+
+    @Override
+    public int getRowsLogCount(ConflictRowsLogQueryParam param) throws Exception {
+        resetParam(param);
+        return conflictRowsLogTblDao.getCount(param);
+    }
+
+    @Override
+    public int getTrxLogCount(ConflictTrxLogQueryParam param) throws Exception {
+        resetParam(param);
+        return conflictTrxLogTblDao.getCount(param);
     }
 
     @Override
@@ -331,6 +325,31 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
+    }
+
+    private void resetParam(ConflictTrxLogQueryParam param) {
+        if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
+            throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
+        }
+        Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
+        param.setAdmin(permissionAndDbsCanQuery.getLeft());
+        param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
+    }
+
+    private void resetParam(ConflictRowsLogQueryParam param) throws Exception {
+        if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
+            throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
+        }
+        Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
+        param.setAdmin(adminAndDbs.getLeft());
+        param.setDbsWithPermission(adminAndDbs.getRight());
+
+        if (StringUtils.isNotBlank(param.getGtid())) {
+            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid(), param.getBeginHandleTime(), param.getEndHandleTime());
+            if (conflictTrxLogTbl != null) {
+                param.setConflictTrxLogId(conflictTrxLogTbl.getId());
+            }
+        }
     }
 
     private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
