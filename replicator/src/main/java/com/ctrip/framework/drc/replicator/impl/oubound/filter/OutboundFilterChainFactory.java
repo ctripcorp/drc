@@ -37,8 +37,11 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         skipFilter.setSuccessor(consumeTypeFilter);
 
         if (ConsumeType.Replicator != context.getConsumeType()) {
+            SchemaFilter schemaFilter = new SchemaFilter(context);
+            consumeTypeFilter.setSuccessor(schemaFilter);
+
             TableNameFilter tableNameFilter = new TableNameFilter(context.getAviatorFilter());
-            consumeTypeFilter.setSuccessor(tableNameFilter);
+            schemaFilter.setSuccessor(tableNameFilter);
 
             if (context.shouldExtract()) {
                 ExtractFilter extractFilter = new ExtractFilter(context);

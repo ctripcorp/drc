@@ -1,17 +1,24 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 
 import java.util.List;
+
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 
 /**
  * @Author limingdong
  * @create 2021/10/9
  */
 public class TransactionOffsetFilter extends AbstractTransactionFilter {
+
+    private String lastTrxSchema = null;
 
     @Override
     public boolean doFilter(ITransactionEvent transactionEvent) {
@@ -22,20 +29,35 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
     protected void calculateNextEventStartPosition(ITransactionEvent transactionEvent) {
         List<LogEvent> logEvents = transactionEvent.getEvents();
 
-        if (canSkipParseTransaction(transactionEvent)) {
-            long nextTransactionStartPosition = 0;
-            GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvents.get(0);
-            for (int i = 1; i < logEvents.size(); ++i) {
-                nextTransactionStartPosition += logEvents.get(i).getLogEventHeader().getEventSize();
+        long nextTransactionStartPosition = 0;
+        FilterLogEvent firstLogEvent = (FilterLogEvent) logEvents.get(0);
+        LogEvent secondLogEvent = logEvents.get(1);
+        LogEvent lastLogEvent = logEvents.get(logEvents.size() - 1);
+
+        for (int i = 2; i < logEvents.size(); i++) {
+            LogEvent logEvent = logEvents.get(i);
+            if (table_map_log_event == logEvent.getLogEventType()) {
+                lastTrxSchema = ((TableMapLogEvent) logEvent).getSchemaName();
             }
+            nextTransactionStartPosition += logEvent.getLogEventHeader().getEventSize();
+        }
+
+        //non-ddl, non-bigTrx
+        if (transactionEvent.canSkipParseTransaction()) {
+            GtidLogEvent gtidLogEvent = (GtidLogEvent) secondLogEvent;
             gtidLogEvent.setNextTransactionOffsetAndUpdateEventSize(nextTransactionStartPosition);
         } else {
-            for (LogEvent logEvent : logEvents) {
-                if (LogEventUtils.isGtidLogEvent(logEvent.getLogEventType())) {
-                    GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
-                    gtidLogEvent.setNextTransactionOffsetAndUpdateEventSize(0);
-                }
+            if (LogEventUtils.isGtidLogEvent(secondLogEvent.getLogEventType())) {
+                GtidLogEvent gtidLogEvent = (GtidLogEvent) secondLogEvent;
+                gtidLogEvent.setNextTransactionOffsetAndUpdateEventSize(0);
             }
+        }
+
+        firstLogEvent.encode(lastTrxSchema,
+                nextTransactionStartPosition + secondLogEvent.getLogEventHeader().getEventSize());
+
+        if (xid_log_event == lastLogEvent.getLogEventType()) {
+            lastTrxSchema = null;
         }
     }
 

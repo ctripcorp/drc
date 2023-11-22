@@ -28,6 +28,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionT
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKeyTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactoryTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.SchemaFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
@@ -104,6 +105,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         DdlIndexFilterTest.class,
         TypeConvertFilterTest.class,
         TransactionTableFilterTest.class,
+        SchemaFilterTest.class,
 
         // ddl
         DdlParserTest.class,

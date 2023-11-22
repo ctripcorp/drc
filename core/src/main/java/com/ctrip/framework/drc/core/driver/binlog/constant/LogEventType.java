@@ -36,7 +36,8 @@ public enum LogEventType {
     drc_ddl_log_event(105, 0),
     drc_delay_monitor_log_event(106, 0),
     drc_index_log_event(107, 0),
-    drc_uuid_log_event(108, 0);
+    drc_uuid_log_event(108, 0),
+    drc_filter_log_event(109, 0);
 
     public static LogEventType getLogEventType(final int type) {
         switch (type) {
@@ -84,6 +85,8 @@ public enum LogEventType {
                 return drc_index_log_event;
             case 108:
                 return drc_uuid_log_event;
+            case 109:
+                return drc_filter_log_event;
             default:
                 return unknown_log_event;
         }
