@@ -7,13 +7,18 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent
 import com.ctrip.framework.drc.core.driver.binlog.impl.QueryLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+
+import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter.DROP_TABLE;
@@ -322,6 +327,24 @@ public class DdlFilterTest extends MockTest {
         verify(schemaManager, times(0)).apply(oriSchemaName, tableName, RENAME_DDL, QueryType.RENAME, gtid);
         verify(schemaManager, times(0)).persistDdl(oriSchemaName, tableName, RENAME_DDL);
         verify(schemaManager, times(0)).persistColumnInfo(tableInfo, false);
+    }
+
+    @Test
+    public void testGet(){
+        List<DdlResult> ddlResults = Lists.newArrayList(
+                new DdlResult("db1","table1","db2","table2"),
+                new DdlResult("db3","table3",null,null),
+                new DdlResult("db4","table41",null,"table42")
+        );
+
+        List<TableId> relatedTables = ddlFilter.getRelatedTables(ddlResults);
+        Assert.assertEquals(5, relatedTables.size());
+        Assert.assertTrue(relatedTables.contains(new TableId("db1","table1")));
+        Assert.assertTrue(relatedTables.contains(new TableId("db2","table2")));
+        Assert.assertTrue(relatedTables.contains(new TableId("db3","table3")));
+        Assert.assertTrue(relatedTables.contains(new TableId("db4","table41")));
+        Assert.assertTrue(relatedTables.contains(new TableId("db4","table42")));
+        Assert.assertFalse(relatedTables.contains(new TableId("db2","table1")));
     }
 
 }
