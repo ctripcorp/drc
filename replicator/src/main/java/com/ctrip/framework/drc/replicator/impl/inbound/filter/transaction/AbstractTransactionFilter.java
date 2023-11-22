@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
@@ -32,19 +33,19 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
             return false;
         }
 
-        LogEvent head = logEvents.get(0);
+        LogEvent head = logEvents.get(1);
         if (!(head instanceof GtidLogEvent)) {  // with two type
             return false;
         }
 
         int eventSize = logEvents.size();
         LogEvent tail = logEvents.get(eventSize - 1);
-        if (xid_log_event != tail.getLogEventType()) { // with two event
+        if (xid_log_event != tail.getLogEventType()) {
             return false;
         }
 
-        if (eventSize > 2) {
-            for (int i = 1; i < eventSize - 1; ++i) {
+        if (eventSize > 3) {
+            for (int i = 2; i < eventSize - 1; ++i) {
                 LogEvent logEvent = logEvents.get(i);
                 LogEventType logEventType = logEvent.getLogEventType();
                 if (logEventType == drc_ddl_log_event) {

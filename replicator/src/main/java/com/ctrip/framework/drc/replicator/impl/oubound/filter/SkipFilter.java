@@ -11,8 +11,6 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.util.Objects;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
@@ -84,19 +82,21 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
             value.setSkipEvent(true);
             long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
             if (nextTransactionOffset > 0) {
-                skipPosition(value, nextTransactionOffset);
+                value.skipPosition(nextTransactionOffset);
                 inExcludeGroup = false;
             }
+            return;
         }
 
         if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
+            value.setSkipEvent(true);
             inExcludeGroup = true;
         }
     }
 
     private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
         if (inExcludeGroup && !LogEventUtils.isSlaveConcerned(eventType)) {
-            skipPosition(value, value.getEventSize() - eventHeaderLengthVersionGt1);
+            value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
             value.setSkipEvent(true);
 
             //skip all transaction, clear in_exclude_group
@@ -148,21 +148,10 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     // first file start with non gtid event, for example gtid in binlog.00001, and tablemap in binlog.00002
     private boolean checkPartialTransaction(OutboundLogEventContext value, boolean everSeeGtid) {
         if (!everSeeGtid && !LogEventUtils.isDrcEvent(value.getEventType())) {
-            skipPosition(value, value.getEventSize() - eventHeaderLengthVersionGt1);
+            value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.partial", registerKey);
             return true;
         }
         return false;
-    }
-
-    private void skipPosition(OutboundLogEventContext value, Long skipSize) {
-        try {
-            FileChannel fileChannel = value.getFileChannel();
-            fileChannel.position(fileChannel.position() + skipSize);
-        } catch (IOException e) {
-            logger.error("skip position error:", e);
-            value.setCause(e);
-            value.setSkipEvent(true);
-        }
     }
 }

@@ -49,7 +49,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         super.setUp();
         when(channel.writeAndFlush(any(ByteBuf.class))).thenReturn(channelFuture);
         String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.Custom.getName());
-        filterChainContext= new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null, channelAttributeKey, "src", "dst");
+        filterChainContext= new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null, null, channelAttributeKey, "src", "dst");
         filterChainFactory = new OutboundFilterChainFactory();
     }
 
@@ -115,7 +115,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
     }
 
     public void testExtract(String properties, int verify1, int verify2) throws Exception {
-        filterChainContext= new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null, channelAttributeKey, "src", "dst");
+        filterChainContext= new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null, null, channelAttributeKey, "src", "dst");
         Filter<OutboundLogEventContext> filterChain = filterChainFactory.createFilterChain(filterChainContext);
 
         // drc_table_map_log_event

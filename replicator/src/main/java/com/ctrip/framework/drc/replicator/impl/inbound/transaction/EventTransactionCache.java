@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.transaction;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionEvent;
@@ -127,6 +128,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
         if (start <= end) {
             TransactionEvent transaction = getTransactionEvent();
+            transaction.addLogEvent(new FilterLogEvent());
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
             }

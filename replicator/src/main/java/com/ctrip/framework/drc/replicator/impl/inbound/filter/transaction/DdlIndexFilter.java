@@ -10,7 +10,9 @@ public class DdlIndexFilter extends AbstractTransactionFilter {
 
     @Override
     public boolean doFilter(ITransactionEvent transactionEvent) {
-        canSkipParseTransaction(transactionEvent);
+        boolean canSkipParseTransaction = canSkipParseTransaction(transactionEvent);
+        transactionEvent.setCanSkipParseTransaction(canSkipParseTransaction);
+
         return doNext(transactionEvent, !transactionEvent.passFilter());  // whether skip filters afterward
     }
 }

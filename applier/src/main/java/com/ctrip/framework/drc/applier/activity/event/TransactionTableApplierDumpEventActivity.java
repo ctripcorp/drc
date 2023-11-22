@@ -29,6 +29,8 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     private boolean needFilter;
 
+    private long lastTrxId = 0;
+
     @InstanceResource
     public TransactionTable transactionTable;
 
@@ -47,7 +49,9 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     @Override
     protected void handleApplierGtidEvent(FetcherEvent event) {
-        String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
+        ApplierGtidEvent applierGtidEvent = (ApplierGtidEvent) event;
+        String currentUuid = applierGtidEvent.getServerUUID().toString();
+        long trxId = applierGtidEvent.getId();
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
             loggerTT.info("[{}]uuid has changed, old uuid is: {}, new uuid is: {}", registryKey, lastUuid, currentUuid);
             GtidSet gtidSet = transactionTable.mergeRecord(currentUuid, true);
@@ -55,7 +59,13 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
             lastUuid = currentUuid;
             filterCount = 0;
             needFilter = true;
+        } else if (trxId > lastTrxId + 1) {
+            for (long i = lastTrxId + 1; i < trxId; i++) {
+                String gtid = currentUuid + ":" + i;
+                transactionTable.recordToMemory(gtid);
+            }
         }
+        lastTrxId = trxId;
 
         if (needFilter) {
             String gtid =  ((ApplierGtidEvent) event).getGtid();

@@ -23,13 +23,16 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     private List<LogEvent> logEvents = Lists.newArrayList();
 
-    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer(TRANSACTION_BUFFER_SIZE * 2);
+    //extra 1 for FilterLogEvent
+    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer((TRANSACTION_BUFFER_SIZE + 1) * 2);
 
     private List<ByteBuf> eventByteBufs = new ArrayList<>();
 
     private boolean isDdl = false;
 
     private int eventSize = 0;
+
+    private boolean canSkipParseTransaction = false;
 
     public void addLogEvent(LogEvent logEvent) {
         logEvents.add(logEvent);
@@ -88,6 +91,16 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
     @Override
     public void setEvents(List<LogEvent> logEvents) {
         this.logEvents = logEvents;
+    }
+
+    @Override
+    public void setCanSkipParseTransaction(boolean canSkipParseTransaction) {
+        this.canSkipParseTransaction = canSkipParseTransaction;
+    }
+
+    @Override
+    public boolean canSkipParseTransaction() {
+        return canSkipParseTransaction;
     }
 
     @Override
