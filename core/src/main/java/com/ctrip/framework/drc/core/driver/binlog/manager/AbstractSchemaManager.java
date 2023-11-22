@@ -91,7 +91,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
      */
     protected Map<String, Map<String, String>> doSnapshot(Endpoint endpoint) {
         DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
-        Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTaskV2(endpoint, dataSource)).call();
+        Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTaskV2(endpoint, dataSource, registryKey)).call();
         if (snapshot == null) {
             snapshot = Maps.newHashMap();
         }
@@ -132,11 +132,17 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     @Override
     public synchronized void refresh(List<TableId> tableIds) {
         for (TableId key : tableIds) {
-            // 1. refresh schema cache
+            // 1. refresh table map
+            tableInfoMap.remove(key);
+
+            // 2. refresh schema cache
             String schema = key.getDbName();
             String table = key.getTableName();
             Triple<String, String, String> result = new RetryTask<>(new SchemaSnapshotTaskV2.CreateTableQueryTask(inMemoryDataSource, schema, table)).call();
-
+            if (result == null) {
+                // query fail, do nothing
+                continue;
+            }
             String createTableSQL = result.getLast();
             Map<String, String> tableMap = schemaCache.computeIfAbsent(schema, k -> new HashMap<>());
             if (StringUtils.isBlank(createTableSQL)) {
@@ -144,8 +150,6 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             } else {
                 tableMap.put(table, createTableSQL);
             }
-            // 2. refresh table map
-            tableInfoMap.remove(key);
         }
     }
 

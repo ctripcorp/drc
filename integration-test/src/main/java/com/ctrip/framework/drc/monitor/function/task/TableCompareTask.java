@@ -534,7 +534,7 @@ public class TableCompareTask {
         public Map<String, Map<String, String>> snapshotNew(String mha) throws Exception {
             return DefaultTransactionMonitorHolder.getInstance().logTransaction("tbl.compare.localsnapshot.v2." + version.getMajorVersion(), mha, () -> {
                 try {
-                    return new SchemaSnapshotTaskV2(inMemoryEndpoint, inMemoryDataSource).call();
+                    return new SchemaSnapshotTaskV2(inMemoryEndpoint, inMemoryDataSource, registerKey).call();
                 } catch (Throwable e) {
                     throw new Exception("snapshot fail: " + e.getMessage());
                 }

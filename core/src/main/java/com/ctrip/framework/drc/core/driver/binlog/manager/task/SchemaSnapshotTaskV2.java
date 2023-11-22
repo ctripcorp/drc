@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -33,9 +34,11 @@ public class SchemaSnapshotTaskV2 extends AbstractSchemaTask<Map<String, Map<Str
     public static final String SHOW_CREATE_TABLE_QUERY = "show create table `%s`.`%s`;";
 
     public static final String SHOW_TABLES_QUERY = "show full tables from `%s` where Table_type = 'BASE TABLE';";
+    private final String registryKey;
 
-    public SchemaSnapshotTaskV2(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
+    public SchemaSnapshotTaskV2(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource, String registryKey) {
         super(inMemoryEndpoint, inMemoryDataSource);
+        this.registryKey = registryKey;
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
@@ -90,7 +93,12 @@ public class SchemaSnapshotTaskV2 extends AbstractSchemaTask<Map<String, Map<Str
             throw e;
         }
     }
-
+    @Override
+    public void afterException(Throwable t) {
+        super.afterException(t);
+        DDL_LOGGER.error("snapshot fail for {}  {}", registryKey, t);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.snapshot.failed", String.format("%s\nEXCEPTION:%s", String.join(".", registryKey), t.getCause()));
+    }
     public static class CreateTableQueryTask implements NamedCallable<Triple<String, String, String>> {
 
         private String schema;
@@ -123,6 +131,11 @@ public class SchemaSnapshotTaskV2 extends AbstractSchemaTask<Map<String, Map<Str
                 }
                 throw e;
             }
+        }
+        @Override
+        public void afterException(Throwable t) {
+            DDL_LOGGER.error("show create table fail for {} {} {}", schema, table, t);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.table.show.failed", String.format("%s\nEXCEPTION:%s", String.join(".", schema, table), t.getCause()));
         }
     }
 
