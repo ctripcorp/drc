@@ -193,7 +193,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         return results.stream()
                 .flatMap(e -> Stream.of(
                         new TableId(e.getSchemaName(), e.getTableName()),
-                        new TableId(e.getOriSchemaName(), e.getOriTableName()))
+                        new TableId(e.getOriSchemaName() != null ? e.getOriSchemaName() : e.getSchemaName(), e.getOriTableName()))
                 )
                 .filter(e -> !StringUtils.isEmpty(e.getDbName()) && !StringUtils.isEmpty(e.getTableName()))
                 .distinct()
