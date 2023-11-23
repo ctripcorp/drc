@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.console.dto.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 
+import java.util.List;
+
 public class MhaDto {
     private Long id;
     private String name;
@@ -12,7 +14,7 @@ public class MhaDto {
 
     private String dcName;
     private String regionName;
-
+    private List<MachineDto> machineDtos;
 
     public static MhaDto from(MhaTblV2 mhaTblV2) {
         MhaDto mhaDto = new MhaDto();
@@ -96,6 +98,14 @@ public class MhaDto {
 
     public void setDcName(String dcName) {
         this.dcName = dcName;
+    }
+
+    public List<MachineDto> getMachineDtos() {
+        return machineDtos;
+    }
+
+    public void setMachineDtos(List<MachineDto> machineDtos) {
+        this.machineDtos = machineDtos;
     }
 
     @Override
