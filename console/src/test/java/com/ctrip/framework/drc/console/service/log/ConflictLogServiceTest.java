@@ -264,8 +264,6 @@ public class ConflictLogServiceTest {
         ConflictAutoHandleParam param = new ConflictAutoHandleParam();
         param.setWriteSide(0);
         param.setRowLogIds(Lists.newArrayList(1L));
-        param.setSrcRecords((List<Map<String, Object>>) getSrcResMap().get("record"));
-        param.setDstRecords((List<Map<String, Object>>) getSrcResMap().get("record"));
 
         List<ConflictAutoHandleView> result = conflictLogService.createHandleSql(param);
         Assert.assertEquals(result.size(), 1);

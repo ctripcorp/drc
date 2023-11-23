@@ -979,8 +979,6 @@ public class MySqlUtils {
                 Object val = rs.getObject(columnName);
                 if (val instanceof Date) {
                     rowData.put(columnName, String.valueOf(val));
-                } else if (val instanceof Long) {
-                    rowData.put(columnName, String.valueOf(val));
                 } else {
                     rowData.put(columnName, val);
                 }
