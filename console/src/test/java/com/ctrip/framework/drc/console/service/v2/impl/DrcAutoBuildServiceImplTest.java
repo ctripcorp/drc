@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.param.v2.ColumnsFilterCreateParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
@@ -34,6 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
@@ -66,6 +68,7 @@ public class DrcAutoBuildServiceImplTest {
     DrcAutoBuildServiceImpl drcAutoBuildServiceImpl;
 
     public static final String TEST_DB_NAME = "testDb";
+    public static final String TEST_DB_NAME2 = "testDb_2";
     public static final String DAL_CLUSTER_NAME = "test_dalcluster";
 
     @Before
@@ -74,6 +77,7 @@ public class DrcAutoBuildServiceImplTest {
         String json1 = "[{\"clusterName\":\"mha1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"10.11.11.10\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"10.11.11.11\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sinrds.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}]";
         List<ClusterInfoDto> dbClusterInfoDtos1 = JsonUtils.fromJsonToList(json1, ClusterInfoDto.class);
         when(dbaApiService.getDatabaseClusterInfo(TEST_DB_NAME)).thenReturn(dbClusterInfoDtos1);
+        when(dbaApiService.getDatabaseClusterInfo(TEST_DB_NAME2)).thenReturn(dbClusterInfoDtos1);
 
         String json2 = "[{\"clusterList\":[{\"clusterName\":\"mha1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.1\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.2\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"testshard01db\"},{\"clusterList\":[{\"clusterName\":\"mha2\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.3\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.4\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"testshard02db\"}]";
         List<DbClusterInfoDto> list = JsonUtils.fromJsonToList(json2, DbClusterInfoDto.class);
@@ -150,11 +154,25 @@ public class DrcAutoBuildServiceImplTest {
         List<DrcAutoBuildParam> drcBuildParam = drcAutoBuildServiceImpl.getDrcBuildParam(req);
         Assert.assertEquals(2, drcBuildParam.size());
         Assert.assertFalse(StringUtils.isBlank(drcBuildParam.get(0).getSrcMhaName()));
+        List<MachineDto> srcMachines = drcBuildParam.get(0).getSrcMachines();
+        Assert.assertFalse(CollectionUtils.isEmpty(srcMachines));
+        MachineDto machineDto = srcMachines.get(0);
+        Assert.assertTrue(machineDto.getIp().contains("11.11.11"));
+        Assert.assertEquals(55111, (int) machineDto.getPort());
+        Assert.assertFalse(CollectionUtils.isEmpty(drcBuildParam.get(0).getDstMachines()));
 
 
         req = getDrcAutoBuildReqForSingleDb();
         drcBuildParam = drcAutoBuildServiceImpl.getDrcBuildParam(req);
         Assert.assertEquals(1, drcBuildParam.size());
+        Assert.assertFalse(StringUtils.isBlank(drcBuildParam.get(0).getSrcMhaName()));
+
+
+
+        req = getDrcAutoBuildReqForMultiDb();
+        drcBuildParam = drcAutoBuildServiceImpl.getDrcBuildParam(req);
+        Assert.assertEquals(1, drcBuildParam.size());
+        Assert.assertEquals(2, drcBuildParam.get(0).getDbName().size());
         Assert.assertFalse(StringUtils.isBlank(drcBuildParam.get(0).getSrcMhaName()));
     }
 
@@ -299,7 +317,7 @@ public class DrcAutoBuildServiceImplTest {
 
         drcAutoBuildServiceImpl.autoBuildDrc(req);
         verify(drcBuildService, times(1)).buildMha(any());
-        verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any());
+        verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(2)).autoConfigReplicatorsWithRealTimeGtid(any());
         verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), anyBoolean());
@@ -323,6 +341,20 @@ public class DrcAutoBuildServiceImplTest {
         DrcAutoBuildReq req = new DrcAutoBuildReq();
         req.setMode(DrcAutoBuildReq.BuildMode.SINGLE_DB_NAME.getValue());
         req.setDbName(TEST_DB_NAME);
+        req.setSrcRegionName("ntgxh");
+        req.setDstRegionName("sin");
+        TblsFilterDetail tblsFilterDetail = new TblsFilterDetail();
+        tblsFilterDetail.setTableNames("testTable1");
+        req.setTblsFilterDetail(tblsFilterDetail);
+
+        return req;
+    }
+
+
+    private static DrcAutoBuildReq getDrcAutoBuildReqForMultiDb() {
+        DrcAutoBuildReq req = new DrcAutoBuildReq();
+        req.setMode(DrcAutoBuildReq.BuildMode.MULTI_DB_NAME.getValue());
+        req.setDbName(String.join(",",TEST_DB_NAME,TEST_DB_NAME2));
         req.setSrcRegionName("ntgxh");
         req.setDstRegionName("sin");
         TblsFilterDetail tblsFilterDetail = new TblsFilterDetail();

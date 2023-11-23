@@ -66,6 +66,7 @@ public class DrcAutoBuildReq {
     public enum BuildMode {
         SINGLE_DB_NAME(0),
         DAL_CLUSTER_NAME(1),
+        MULTI_DB_NAME(2)
         ;
 
         BuildMode(int value) {
