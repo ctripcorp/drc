@@ -334,17 +334,20 @@ public class DdlFilterTest extends MockTest {
         List<DdlResult> ddlResults = Lists.newArrayList(
                 new DdlResult("db1","table1","db2","table2"),
                 new DdlResult("db3","table3",null,null),
-                new DdlResult("db4","table41",null,"table42")
+                new DdlResult("db4","table41",null,"table42"),
+                new DdlResult("DB5","Table5")
         );
 
         List<TableId> relatedTables = ddlFilter.getRelatedTables(ddlResults);
-        Assert.assertEquals(5, relatedTables.size());
         Assert.assertTrue(relatedTables.contains(new TableId("db1","table1")));
         Assert.assertTrue(relatedTables.contains(new TableId("db2","table2")));
         Assert.assertTrue(relatedTables.contains(new TableId("db3","table3")));
         Assert.assertTrue(relatedTables.contains(new TableId("db4","table41")));
         Assert.assertTrue(relatedTables.contains(new TableId("db4","table42")));
         Assert.assertFalse(relatedTables.contains(new TableId("db2","table1")));
+        // should to lower case
+        Assert.assertTrue(relatedTables.contains(new TableId("db5","table5")));
+        Assert.assertFalse(relatedTables.contains(new TableId("DB5","Table5")));
     }
 
 }

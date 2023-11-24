@@ -18,5 +18,8 @@ public class DynamicConfigTest {
 
         switchRes = dynamicConfig.getIndependentEmbeddedMySQLSwitch("registryKey-mock");
         Assert.assertFalse(switchRes);
+
+        switchRes = dynamicConfig.getDisableSnapshotCacheSwitch();
+        Assert.assertTrue(switchRes);
     }
 }

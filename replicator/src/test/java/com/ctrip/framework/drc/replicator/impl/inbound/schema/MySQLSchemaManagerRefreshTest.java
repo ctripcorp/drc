@@ -130,6 +130,8 @@ public class MySQLSchemaManagerRefreshTest extends MockTest {
         mySQLSchemaManager.find(db1, table1);
         Assert.assertFalse(tableIdTableInfoMap.get(tableId) == null || CollectionUtils.isEmpty(tableIdTableInfoMap.get(tableId).getColumnList()));
 
+        Map<String, Map<String, String>> snapshot = mySQLSchemaManager.snapshot();
+
     }
 
     private Map<TableId, TableInfo> getTableIdTableInfoMap() throws NoSuchFieldException, IllegalAccessException {
