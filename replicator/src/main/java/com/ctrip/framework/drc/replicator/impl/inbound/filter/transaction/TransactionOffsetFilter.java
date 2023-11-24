@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 
 import java.util.List;
@@ -37,7 +34,10 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
         for (int i = 2; i < logEvents.size(); i++) {
             LogEvent logEvent = logEvents.get(i);
             if (table_map_log_event == logEvent.getLogEventType()) {
-                lastTrxSchema = ((TableMapLogEvent) logEvent).getSchemaName();
+                TableMapLogEvent tableMapLogEvent = logEvent instanceof TableMapLogEvent
+                        ? (TableMapLogEvent) logEvent
+                        : ((TransactionTableMarkedTableMapLogEvent) logEvent).getDelegate();
+                lastTrxSchema = tableMapLogEvent.getSchemaName();
             }
             nextTransactionStartPosition += logEvent.getLogEventHeader().getEventSize();
         }
