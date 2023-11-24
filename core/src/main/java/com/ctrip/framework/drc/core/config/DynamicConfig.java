@@ -28,6 +28,8 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String PURGED_GTID_SET_CHECK_SWITCH = "purged.gtid.set.check.switch";
 
     private static final String RECEIVE_CHECK_SWITCH = "receive.check.switch";
+    private static final String SCHEMA_MANAGER_CACHE_DISABLE_SWITCH = "schema.manager.snapshot.cache.disable.switch";
+
 
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
 
@@ -75,6 +77,10 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public boolean getReceiveCheckSwitch() {
         return getBooleanProperty(RECEIVE_CHECK_SWITCH, false);
+    }
+
+    public boolean getDisableSnapshotCacheSwitch() {
+        return getBooleanProperty(SCHEMA_MANAGER_CACHE_DISABLE_SWITCH, false);
     }
 
     public boolean getEmbeddedMySQLUpgradeTo8Switch(String key) {

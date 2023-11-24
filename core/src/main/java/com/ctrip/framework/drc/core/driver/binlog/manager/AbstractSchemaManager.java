@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
@@ -78,8 +79,9 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public synchronized Map<String, Map<String, String>> snapshot() {
-        if (CollectionUtils.isEmpty(schemaCache)) {
+        if (CollectionUtils.isEmpty(schemaCache) || DynamicConfig.getInstance().getDisableSnapshotCacheSwitch()) {
             schemaCache = doSnapshot(inMemoryEndpoint);
+            tableInfoMap.clear();
         }
         return Collections.unmodifiableMap(schemaCache);
     }
