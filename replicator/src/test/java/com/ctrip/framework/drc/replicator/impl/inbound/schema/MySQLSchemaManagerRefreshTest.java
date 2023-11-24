@@ -128,8 +128,9 @@ public class MySQLSchemaManagerRefreshTest extends MockTest {
         Assert.assertTrue(tableIdTableInfoMap.get(tableId) == null || CollectionUtils.isEmpty(tableIdTableInfoMap.get(tableId).getColumnList()));
 
         mySQLSchemaManager.find(db1, table1);
-        Map<String, Map<String, String>> snapshot = mySQLSchemaManager.snapshot();
         Assert.assertFalse(tableIdTableInfoMap.get(tableId) == null || CollectionUtils.isEmpty(tableIdTableInfoMap.get(tableId).getColumnList()));
+
+        Map<String, Map<String, String>> snapshot = mySQLSchemaManager.snapshot();
 
     }
 

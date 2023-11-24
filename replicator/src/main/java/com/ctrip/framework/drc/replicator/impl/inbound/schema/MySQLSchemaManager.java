@@ -42,6 +42,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -168,7 +169,19 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
         return tableMeta;
     }
-
+    @Override
+    public synchronized Map<String, Map<String, String>> snapshot() {
+        if (DynamicConfig.getInstance().getDisableSnapshotCacheSwitch() || CollectionUtils.isEmpty(schemaCache)) {
+            Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
+            if (!CollectionUtils.isEmpty(schemaCache)) {
+                boolean same = schemaCache.equals(snapshot);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.snapshot.cache.compare." + same, registryKey);
+            }
+            schemaCache = snapshot;
+            tableInfoMap.clear();
+        }
+        return Collections.unmodifiableMap(schemaCache);
+    }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override

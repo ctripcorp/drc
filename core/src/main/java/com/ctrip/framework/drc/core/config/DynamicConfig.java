@@ -80,7 +80,7 @@ public class DynamicConfig extends AbstractConfigBean {
     }
 
     public boolean getDisableSnapshotCacheSwitch() {
-        return getBooleanProperty(SCHEMA_MANAGER_CACHE_DISABLE_SWITCH, false);
+        return getBooleanProperty(SCHEMA_MANAGER_CACHE_DISABLE_SWITCH, true);
     }
 
     public boolean getEmbeddedMySQLUpgradeTo8Switch(String key) {
