@@ -188,19 +188,6 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         return false;
     }
 
-    @VisibleForTesting
-    protected List<TableId> getRelatedTables(List<DdlResult> results) {
-        return results.stream()
-                .flatMap(e -> Stream.of(
-                        new TableId(e.getSchemaName(), e.getTableName()),
-                        new TableId(e.getOriSchemaName() != null ? e.getOriSchemaName() : e.getSchemaName(), e.getOriTableName()))
-                )
-                .filter(e -> !StringUtils.isEmpty(e.getDbName()) && !StringUtils.isEmpty(e.getTableName()))
-                .map(e -> new TableId(e.getDbName().toLowerCase(), e.getTableName().toLowerCase()))
-                .distinct()
-                .collect(Collectors.toList());
-    }
-
     public boolean parseQueryEvent(QueryLogEvent event, String gtid) {
         String queryString = event.getQuery();
         if (StringUtils.startsWithIgnoreCase(queryString, BEGIN)      ||
@@ -240,4 +227,16 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         }
     }
 
+    @VisibleForTesting
+    protected List<TableId> getRelatedTables(List<DdlResult> results) {
+        return results.stream()
+                .flatMap(e -> Stream.of(
+                        new TableId(e.getSchemaName(), e.getTableName()),
+                        new TableId(e.getOriSchemaName() != null ? e.getOriSchemaName() : e.getSchemaName(), e.getOriTableName()))
+                )
+                .filter(e -> !StringUtils.isEmpty(e.getDbName()) && !StringUtils.isEmpty(e.getTableName()))
+                .map(e -> new TableId(e.getDbName().toLowerCase(), e.getTableName().toLowerCase()))
+                .distinct()
+                .collect(Collectors.toList());
+    }
 }
