@@ -73,4 +73,10 @@ public class SchemaManagerFactoryTest {
         Assert.assertNotEquals(mySQLSchemaManager, mySQLSchemaManager4);
     }
 
+    @Test
+    public void testToLowerCase(){
+        Assert.assertNull(MySQLSchemaManager.toLowerCaseIfNotNull(null));
+        Assert.assertEquals("test", MySQLSchemaManager.toLowerCaseIfNotNull("test"));
+        Assert.assertEquals("test", MySQLSchemaManager.toLowerCaseIfNotNull("Test"));
+    }
 }
