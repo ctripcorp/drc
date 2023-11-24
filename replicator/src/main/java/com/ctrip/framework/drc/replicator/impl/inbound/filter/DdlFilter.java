@@ -196,6 +196,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                         new TableId(e.getOriSchemaName() != null ? e.getOriSchemaName() : e.getSchemaName(), e.getOriTableName()))
                 )
                 .filter(e -> !StringUtils.isEmpty(e.getDbName()) && !StringUtils.isEmpty(e.getTableName()))
+                .map(e -> new TableId(e.getDbName().toLowerCase(), e.getTableName().toLowerCase()))
                 .distinct()
                 .collect(Collectors.toList());
     }
