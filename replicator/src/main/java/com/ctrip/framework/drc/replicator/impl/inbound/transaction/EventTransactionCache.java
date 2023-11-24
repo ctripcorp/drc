@@ -128,7 +128,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
         if (start <= end) {
             TransactionEvent transaction = getTransactionEvent();
-            transaction.addLogEvent(new FilterLogEvent());
+            transaction.addFilterLogEvent();
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
             }

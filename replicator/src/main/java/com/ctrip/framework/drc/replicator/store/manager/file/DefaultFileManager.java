@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.unknown_log_event;
 import static com.ctrip.framework.drc.core.driver.util.ByteHelper.getFormatDescriptionLogEvent;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
@@ -320,6 +321,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             }
             boolean shouldRecoverFromDdl = false;
             final long endPos = fileChannel.size();
+            LogEventType lastEventType = null;
+            long lastEventSize = 0;
             while (endPos > fileChannel.position()) {
                 Pair<ByteBuf, Integer> headerContent = readFile(fileChannel, headBuffer);
                 ByteBuf headerByteBuf = headerContent.getKey();
@@ -328,9 +331,10 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     logger.error("Header read size is {} for {}", headerSize, registryKey);
                     if (truncatePosition == TRUNCATE_FLAG) {
                         truncatePosition = fileChannel.position() - headerSize;
-                        logger.info("[TruncatePosition] set to {} for {} due to corrupted gtid header", truncatePosition, file.getName(), truncatePosition);
+                        truncatePosition = truncateLastFilterLogEvent(file, lastEventType, lastEventSize, truncatePosition);
+                        logger.info("[TruncatePosition][{}] set to {} for {} due to corrupted gtid header", registryKey, truncatePosition, file.getName());
                     } else {
-                        logger.info("[TruncatePosition] set to {} for {} due to corrupted header", truncatePosition, file.getName(), truncatePosition);
+                        logger.info("[TruncatePosition][{}] set to {} for {} due to corrupted header", registryKey, truncatePosition, file.getName());
                     }
                     break;
                 }
@@ -340,9 +344,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                 if (unknown_log_event == eventType) {
                     if (truncatePosition == TRUNCATE_FLAG) {
                         truncatePosition = fileChannel.position() - eventHeaderLengthVersionGt1;
-                        logger.error("[Truncate] position set to {}", truncatePosition);
+                        logger.error("[Truncate][{}] position set to {}", registryKey, truncatePosition);
                     } else {
-                        logger.error("[Truncate] position remind to {}", truncatePosition);
+                        logger.error("[Truncate][{}] position remind to {}", registryKey, truncatePosition);
                     }
                     break;
                 }
@@ -363,6 +367,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             readSize = 0;
                         }
                         truncatePosition = endPos - readSize - eventHeaderLengthVersionGt1;
+                        truncatePosition = truncateLastFilterLogEvent(file, lastEventType, lastEventSize, truncatePosition);
                         break;  //read to tail
                     }
                     compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
@@ -373,21 +378,23 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             GtidLogEvent gtidLogEvent = new GtidLogEvent();
                             gtidLogEvent.read(compositeByteBuf);
                             long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
-                            if (fileChannel.position() + nextTransactionOffset <= endPos) {  //one transaction or just drc_gtid_log_event
-                                if (nextTransactionOffset > 0 || LogEventUtils.isDrcGtidLogEvent(eventType)) {
+                            if (fileChannel.position() + nextTransactionOffset <= endPos) {
+                                if (nextTransactionOffset > 0) { //one complete transaction
                                     fileChannel.position(fileChannel.position() + nextTransactionOffset);
                                     gtidEventConsumer.offer(gtidLogEvent);
                                     if (logger.isDebugEnabled()) {
-                                        logger.debug("[Position] skip {} for gtid {}, cluster {}", nextTransactionOffset, gtidLogEvent.getGtid(), registryKey);
+                                        logger.debug("[Position][{}] skip {} for gtid {}, cluster {}", registryKey, nextTransactionOffset, gtidLogEvent.getGtid(), registryKey);
                                     }
                                     truncatePosition = TRUNCATE_FLAG; //no need truncate
                                 } else {
                                     gtid = gtidLogEvent.getGtid();
                                     truncatePosition = fileChannel.position() - eventSize;
+                                    truncatePosition = truncateLastFilterLogEvent(file, lastEventType, lastEventSize, truncatePosition);
                                 }
                             } else {
                                 gtid = gtidLogEvent.getGtid();
                                 truncatePosition = fileChannel.position() - eventSize;
+                                truncatePosition = truncateLastFilterLogEvent(file, lastEventType, lastEventSize, truncatePosition);
                             }
                         } else {
                             PreviousGtidsLogEvent previousGtidsLogEvent = new PreviousGtidsLogEvent();
@@ -423,7 +430,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
                             ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlResults.get(0).getTableName(), ddlLogEvent.getDdl(), ddlResults.get(0).getType(), gtid);
                             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
-                                DDL_LOGGER.info("[Recover] skip DDL {} for table partition in {}", ddlLogEvent.getDdl(), getClass().getSimpleName());
+                                DDL_LOGGER.info("[Recover][{}] skip DDL {} for table partition in {}", registryKey, ddlLogEvent.getDdl(), getClass().getSimpleName());
                             }
                         }
                         ddlLogEvent.release();
@@ -444,7 +451,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             long position = localIndices.get(previousGtidSize - 1);
                             if (position > localIndices.get(0)) {  // equal when has ddl
                                 fileChannel.position(position);
-                                logger.info("[Position] skip to {} for {}", position, registryKey);
+                                logger.info("[Position][{}] skip to {}", registryKey, position);
                             }
                         }
                         indexLogEvent.release();
@@ -452,17 +459,26 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                 } else {
                     fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 }
+                lastEventType = eventType;
+                lastEventSize = eventSize;
+            }
+
+            if (executed && truncatePosition == TRUNCATE_FLAG && drc_filter_log_event == lastEventType) {
+                truncatePosition = fileChannel.position() - lastEventSize;
+                logger.info("[TruncatePosition][{}] set to {} for {} due to last drc_filter_log_event", registryKey, truncatePosition, file.getName());
             }
 
             if (executed && truncatePosition != TRUNCATE_FLAG) {
                 fileChannel.truncate(truncatePosition);
-                logger.info("[Truncate] file {} at position {} due to no xid event", file.getName(), truncatePosition);
+                logger.info("[Truncate][{}] file {} at position {} due to no xid event", registryKey, file.getName(), truncatePosition);
             } else if (endPos != fileChannel.position()) {
                 if (endPos > eventHeaderLengthVersionGt1) {
-                    fileChannel.truncate(endPos - eventHeaderLengthVersionGt1);
-                    logger.info("[Truncate] file {} at position {} due to only header", file.getName(), endPos - eventHeaderLengthVersionGt1);
+                    if (executed) {
+                        fileChannel.truncate(endPos - eventHeaderLengthVersionGt1);
+                        logger.info("[Truncate][{}] file {} at position {} due to only header", registryKey, file.getName(), endPos - eventHeaderLengthVersionGt1);
+                    }
                 } else {
-                    logger.info("[Truncate] {} failed: endPos {} < {}", file.getName(), endPos ,eventHeaderLengthVersionGt1);
+                    logger.info("[Truncate][{}] {} failed: endPos {} < {}", registryKey, file.getName(), endPos ,eventHeaderLengthVersionGt1);
                     throw new IllegalStateException("file enPos error");
                 }
             }
@@ -479,6 +495,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         }
 
         return gtidEventConsumer.getGtidEventSet();
+    }
+
+    private long truncateLastFilterLogEvent(File file, LogEventType lastEventType, long lastEventSize, long truncatePosition) {
+        if (drc_filter_log_event == lastEventType) {
+            truncatePosition -= lastEventSize;
+            logger.info("[TruncatePosition][{}] set to {} for {} due to last drc_filter_log_event", registryKey, truncatePosition, file.getName());
+        }
+        return truncatePosition;
     }
 
     private void createFileIfNecessary() throws IOException {
