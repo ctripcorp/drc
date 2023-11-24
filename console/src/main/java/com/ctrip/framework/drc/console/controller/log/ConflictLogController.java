@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/drc/v2/log/conflict/")
 public class ConflictLogController {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ConflictLogService conflictLogService;
@@ -41,6 +45,7 @@ public class ConflictLogController {
         try {
             return ApiResult.getSuccessInstance(conflictLogService.getTrxLogCount(param));
         } catch (Exception e) {
+            logger.error("getTrxCount fail: {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -61,6 +66,7 @@ public class ConflictLogController {
         try {
             return ApiResult.getSuccessInstance(conflictLogService.getRowsLogCount(param));
         } catch (Exception e) {
+            logger.error("getRowsCount fail: {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

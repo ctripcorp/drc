@@ -211,7 +211,6 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         conflictApprovalTblDao.update(approvalTbl);
     }
 
-    //ql_deng TODO 2023/11/20:审批通过只有第二级才会回调
     @Override
     public void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception {
         logger.info("approvalCallBack request: {}", request);

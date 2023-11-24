@@ -1103,10 +1103,13 @@ public class MySqlUtils {
         if (val == null) {
             return null;
         }
-        if (val instanceof Number) {
-            return val;
+        if (val instanceof byte[]) {
+            return CommonUtils.byteToHexString((byte[]) val);
         }
-        return toStringVal(val);
+        if (val instanceof String) {
+            return toStringVal(val);
+        }
+        return val;
     }
 
     public static final class TableSchemaName {

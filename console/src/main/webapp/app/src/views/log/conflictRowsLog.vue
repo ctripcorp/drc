@@ -521,8 +521,8 @@ export default {
         })
     },
     getTotalData () {
-      this.getCount()
       this.getData()
+      this.getCount()
     },
     getCount () {
       const beginTime = this.queryParam.beginHandleTime

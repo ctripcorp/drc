@@ -23,10 +23,7 @@ import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
-import com.ctrip.framework.drc.console.utils.CommonUtils;
-import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.DateUtils;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
@@ -93,9 +90,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
+    private static final ListeningExecutorService queryExecutor = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "queryConflict"));
+
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
     private static final int TWELVE = 12;
+    private static final int INTERVAL_SIZE = 20;
+    private static final int Time_OUT = 90;
     private static final String ROW_LOG_ID = "drc_row_log_id";
     private static final String UPDATE_SQL = "UPDATE %s SET %s WHERE %s";
     private static final String INSERT_SQL = "INSERT INTO %s (%s) VALUES (%s)";
@@ -135,13 +136,89 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Override
     public int getRowsLogCount(ConflictRowsLogQueryParam param) throws Exception {
         resetParam(param);
-        return conflictRowsLogTblDao.getCount(param);
+
+        long diffTime = param.getEndHandleTime() - param.getBeginHandleTime();
+
+        long interval = Constants.FIVE_MINUTE;
+        if (diffTime <= Constants.FIVE_MINUTE) {
+            return conflictRowsLogTblDao.getCount(param);
+        } else if (diffTime >= Constants.TWO_HOUR) {
+            interval = diffTime / INTERVAL_SIZE;
+        }
+
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
+
+        long beginTime = param.getBeginHandleTime();
+        long endTime = beginTime + interval;
+        while (beginTime < endTime) {
+            ConflictRowsLogQueryParam copy = new ConflictRowsLogQueryParam();
+            BeanUtils.copyProperties(param, copy);
+            copy.setBeginHandleTime(beginTime);
+            copy.setEndHandleTime(endTime);
+            ListenableFuture<Integer> future = queryExecutor.submit(() -> conflictRowsLogTblDao.getCount(copy));
+            futures.add(future);
+
+            beginTime += interval;
+            endTime = Long.min(endTime + interval, param.getEndHandleTime());
+        }
+
+        int totalCount = 0;
+        for (ListenableFuture<Integer> future : futures) {
+            try {
+                long statTime = System.currentTimeMillis();
+                int count = future.get(Time_OUT, TimeUnit.SECONDS);
+                totalCount += count;
+                logger.info("queryTime: {}, totalCount: {}", System.currentTimeMillis() - statTime, totalCount);
+            } catch (Exception e) {
+                logger.error("query count fail, {}", e);
+                throw ConsoleExceptionUtils.message("query count timeout");
+            }
+        }
+        return totalCount;
+
     }
 
     @Override
     public int getTrxLogCount(ConflictTrxLogQueryParam param) throws Exception {
         resetParam(param);
-        return conflictTrxLogTblDao.getCount(param);
+        long diffTime = param.getEndHandleTime() - param.getBeginHandleTime();
+
+        long interval = Constants.FIVE_MINUTE;
+        if (diffTime <= Constants.FIVE_MINUTE) {
+            return conflictTrxLogTblDao.getCount(param);
+        } else if (diffTime >= Constants.TWO_HOUR) {
+            interval = diffTime / INTERVAL_SIZE;
+        }
+
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
+
+        long beginTime = param.getBeginHandleTime();
+        long endTime = beginTime + interval;
+        while (beginTime < endTime) {
+            ConflictTrxLogQueryParam copy = new ConflictTrxLogQueryParam();
+            BeanUtils.copyProperties(param, copy);
+            copy.setBeginHandleTime(beginTime);
+            copy.setEndHandleTime(endTime);
+            ListenableFuture<Integer> future = queryExecutor.submit(() -> conflictTrxLogTblDao.getCount(copy));
+            futures.add(future);
+
+            beginTime += interval;
+            endTime = Long.min(endTime + interval, param.getEndHandleTime());
+        }
+
+        int totalCount = 0;
+        for (ListenableFuture<Integer> future : futures) {
+            try {
+                long statTime = System.currentTimeMillis();
+                int count = future.get(Time_OUT, TimeUnit.SECONDS);
+                totalCount += count;
+                logger.info("queryTime: {}, totalCount: {}", System.currentTimeMillis() - statTime, totalCount);
+            } catch (Exception e) {
+                logger.error("query count fail, {}", e);
+                throw ConsoleExceptionUtils.message("query count timeout");
+            }
+        }
+        return totalCount;
     }
 
     @Override
@@ -345,6 +422,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private void resetParam(ConflictRowsLogQueryParam param) throws Exception {
         if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
             throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
+        }
+        if (param.getEndHandleTime() <= param.getBeginHandleTime()) {
+            throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
         Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
         param.setAdmin(adminAndDbs.getLeft());
@@ -640,8 +720,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     private String createUpdateSql(Map<String, Object> sourceRecord, Map<String, Object> targetRecord, List<String> filterColumns, String tableName, String onUpdateColumn, String uniqueIndex) {
         List<String> setFields = new ArrayList<>();
+        Map<String, String> unEqualColumnMap = (Map<String, String>) sourceRecord.get(CELL_CLASS_NAME);
+        Set<String> unEqualColumns = unEqualColumnMap.keySet();
+        if (CollectionUtils.isEmpty(unEqualColumns)) {
+            return StringUtils.EMPTY;
+        }
         sourceRecord.forEach((column, value) -> {
-            if (!ROW_LOG_ID.equals(column) && !filterColumns.contains(column)) {
+            if (unEqualColumns.contains(column) && !filterColumns.contains(column)) {
                 String setField = MySqlUtils.toSqlField(column) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(value);
                 setFields.add(setField);
             }
