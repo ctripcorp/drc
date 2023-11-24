@@ -150,7 +150,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     public TableInfo find(String schema, String table) {
-        TableId keys = new TableId(schema, table);
+        TableId keys = new TableId(toLowerCaseIfNotNull(schema), toLowerCaseIfNotNull(table));
         TableInfo tableMeta = tableInfoMap.get(keys);
         if (tableMeta == null) {
             synchronized (this) {
@@ -349,6 +349,14 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.replicator.schema.remote.dump", registryKey, () -> MySQLSchemaManager.this.clone(endpoint));
         }
         return true;
+    }
+
+    @VisibleForTesting
+    protected static String toLowerCaseIfNotNull(String s) {
+        if (s == null) {
+            return null;
+        }
+        return s.toLowerCase();
     }
 
     public void setEventStore(EventStore eventStore) {
