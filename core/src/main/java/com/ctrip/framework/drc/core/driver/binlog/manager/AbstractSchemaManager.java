@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -79,8 +80,13 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public synchronized Map<String, Map<String, String>> snapshot() {
-        if (CollectionUtils.isEmpty(schemaCache) || DynamicConfig.getInstance().getDisableSnapshotCacheSwitch()) {
-            schemaCache = doSnapshot(inMemoryEndpoint);
+        if (DynamicConfig.getInstance().getDisableSnapshotCacheSwitch() || CollectionUtils.isEmpty(schemaCache)) {
+            Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
+            if (!CollectionUtils.isEmpty(schemaCache)) {
+                boolean same = schemaCache.equals(snapshot);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.snapshot.cache.compare." + same, registryKey);
+            }
+            schemaCache = snapshot;
             tableInfoMap.clear();
         }
         return Collections.unmodifiableMap(schemaCache);
