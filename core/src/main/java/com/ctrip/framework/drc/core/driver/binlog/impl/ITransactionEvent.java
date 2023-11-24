@@ -20,5 +20,7 @@ public interface ITransactionEvent {
 
     boolean canSkipParseTransaction();
 
+    void addFilterLogEvent();
+
     boolean passFilter();
 }

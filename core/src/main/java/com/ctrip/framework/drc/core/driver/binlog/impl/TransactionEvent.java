@@ -39,6 +39,11 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
     }
 
     @Override
+    public void addFilterLogEvent() {
+        logEvents.add(new FilterLogEvent());
+    }
+
+    @Override
     public void write(IoCache ioCache) {
         for (LogEvent logEvent : logEvents) {
             LogEventHeader logEventHeader = logEvent.getLogEventHeader();

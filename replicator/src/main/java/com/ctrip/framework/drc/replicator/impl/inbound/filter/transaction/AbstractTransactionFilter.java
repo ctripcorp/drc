@@ -2,15 +2,13 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
-import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_ddl_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 
 /**
  * @Author limingdong
@@ -26,6 +24,7 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
         }
     }
 
+    //for nextTransactionStartPosition of GtidLogEvent and DdlIndex
     protected boolean canSkipParseTransaction(ITransactionEvent transactionEvent) {
         List<LogEvent> logEvents = transactionEvent.getEvents();
 
@@ -33,7 +32,11 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
             return false;
         }
 
-        LogEvent head = logEvents.get(1);
+        LogEvent head = logEvents.get(0);
+        if (drc_filter_log_event == head.getLogEventType()) {
+            head = logEvents.get(1);
+        }
+
         if (!(head instanceof GtidLogEvent)) {  // with two type
             return false;
         }
@@ -44,8 +47,8 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
             return false;
         }
 
-        if (eventSize > 3) {
-            for (int i = 2; i < eventSize - 1; ++i) {
+        if (eventSize > 2) {
+            for (int i = 1; i < eventSize - 1; ++i) {
                 LogEvent logEvent = logEvents.get(i);
                 LogEventType logEventType = logEvent.getLogEventType();
                 if (logEventType == drc_ddl_log_event) {
