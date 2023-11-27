@@ -186,6 +186,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.createHandleSql(param));
             return apiResult;
         } catch (Exception e) {
+            logger.error("createHandleSql error: {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

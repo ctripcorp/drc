@@ -404,7 +404,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         trxLogs.stream().forEach(trxLog -> {
             Long conflictTrxLogId = trxLogMap.get(trxLog.getGtid());
             final Integer isBrief = StringUtils.isEmpty(trxLog.getCflLogs().get(0).getRawSql()) ? 1 : 0;
-            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap,isBrief);
+            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap, isBrief);
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
@@ -413,6 +413,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private void resetParam(ConflictTrxLogQueryParam param) {
         if (param.getBeginHandleTime() == null || param.getEndHandleTime() == null) {
             throw ConsoleExceptionUtils.message("beginTime or endTime requires not null");
+        }
+        if (param.getEndHandleTime() <= param.getBeginHandleTime()) {
+            throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
         Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
         param.setAdmin(permissionAndDbsCanQuery.getLeft());
@@ -484,7 +487,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return resultMap;
     }
 
-    private Pair<Boolean,List<String>> getPermissionAndDbsCanQuery() {
+    private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
         if (!iamService.canQueryAllCflLog().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
@@ -605,7 +608,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setAutoHandleSql(handleSql);
             return target;
         }).collect(Collectors.toList());
-        return views;
+        return views.stream().filter(view -> StringUtils.isNotBlank(view.getAutoHandleSql())).collect(Collectors.toList());
     }
 
     @Override
@@ -721,12 +724,14 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private String createUpdateSql(Map<String, Object> sourceRecord, Map<String, Object> targetRecord, List<String> filterColumns, String tableName, String onUpdateColumn, String uniqueIndex) {
         List<String> setFields = new ArrayList<>();
         Map<String, String> unEqualColumnMap = (Map<String, String>) sourceRecord.get(CELL_CLASS_NAME);
-        Set<String> unEqualColumns = unEqualColumnMap.keySet();
-        if (CollectionUtils.isEmpty(unEqualColumns)) {
+        if (CollectionUtils.isEmpty(unEqualColumnMap)) {
             return StringUtils.EMPTY;
         }
+        Set<String> unEqualColumns = unEqualColumnMap.keySet();
+        Set<String> targetColumns = targetRecord.keySet();
+
         sourceRecord.forEach((column, value) -> {
-            if (unEqualColumns.contains(column) && !filterColumns.contains(column)) {
+            if (unEqualColumns.contains(column) && !filterColumns.contains(column) && targetColumns.contains(column)) {
                 String setField = MySqlUtils.toSqlField(column) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(value);
                 setFields.add(setField);
             }
@@ -839,6 +844,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 extractResult.put(key, String.valueOf(value));
             } else if (value instanceof byte[]) {
                 extractResult.put(key, CommonUtils.byteToHexString((byte[]) value));
+            } else if (value instanceof BigDecimal) {
+                extractResult.put(key, String.valueOf(value));
             } else {
                 extractResult.put(key, value);
             }
@@ -972,7 +979,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return conflictTrxLogTbl;
     }
 
-    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap,Integer isBrief) {
+    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap, Integer isBrief) {
         long srcDcId = mhaMap.getOrDefault(trxLog.getSrcMha(), 0L);
         long dstDcId = mhaMap.getOrDefault(trxLog.getDstMha(), 0L);
         String srcRegion = dcMap.getOrDefault(srcDcId, "");

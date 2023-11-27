@@ -640,8 +640,8 @@ export default {
         dbName: null,
         tableName: null,
         gtId: null,
-        beginHandleTime: this.beginHandleTime,
-        endHandleTime: this.endHandleTime,
+        beginHandleTime: new Date(new Date().setSeconds(0, 0) - 10 * 60 * 1000),
+        endHandleTime: new Date(new Date().setSeconds(0, 0) + 60 * 1000),
         rowResult: null,
         srcRegion: null,
         dstRegion: null

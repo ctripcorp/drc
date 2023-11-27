@@ -181,6 +181,15 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     @Override
     public void createConflictApproval(ConflictApprovalCreateParam param) throws Exception {
         List<ConflictHandleSqlDto> handleSqlDtos = param.getHandleSqlDtos();
+        if (CollectionUtils.isEmpty(handleSqlDtos)) {
+            throw ConsoleExceptionUtils.message("handle sql is empty");
+        }
+
+        List<ConflictHandleSqlDto> emptySqlDtos = handleSqlDtos.stream().filter(e -> StringUtils.isBlank(e.getHandleSql())).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(emptySqlDtos)) {
+            throw ConsoleExceptionUtils.message("handle sql is empty");
+        }
+
         Pair<Long, String> resultPair = insertBatchTbl(handleSqlDtos, param.getWriteSide());
         Long batchId = resultPair.getLeft();
         String dbName = resultPair.getRight();
@@ -248,7 +257,10 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
 
         //ql_deng TODO 2023/11/16:drc filter sql
         StringBuilder sqlBuilder = new StringBuilder(Constants.BEGIN);
-        List<String> sqlList = conflictAutoHandleTbls.stream().map(e -> Constants.CONFLICT_SQL_PREFIX + e.getAutoHandleSql()).collect(Collectors.toList());
+        List<String> sqlList = conflictAutoHandleTbls.stream()
+                .filter(e -> StringUtils.isNotBlank(e.getAutoHandleSql()))
+                .map(e -> Constants.CONFLICT_SQL_PREFIX + e.getAutoHandleSql())
+                .collect(Collectors.toList());
         String sql = Joiner.on(";\n").join(sqlList);
         sqlBuilder.append("\n").append(sql).append(";\n").append(Constants.COMMIT);
 

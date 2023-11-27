@@ -38,10 +38,8 @@ export default {
     return {
       tabValue: 'rowsLog',
       gtid: null,
-      // beginHandleTime: '2023-11-15 10:00:00',
-      beginHandleTime: new Date(new Date().setMinutes(0, 0, 0) - 60 * 60 * 1000),
-      // beginHandleTime: new Date(new Date().setHours(0, 0, 0, 0)),
-      endHandleTime: new Date(new Date().setHours(0, 0, 0, 0) + 24 * 60 * 60 * 1000),
+      beginHandleTime: new Date(new Date().setSeconds(0, 0) - 10 * 60 * 1000),
+      endHandleTime: new Date(new Date().setSeconds(0, 0) + 60 * 1000),
       refresh: true,
       searchMode: false
     }
