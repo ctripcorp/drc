@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.service.ops;
 
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
@@ -53,4 +54,11 @@ public class BlankOPSApiServiceImpl implements OPSApiService {
             throws IOException {
         return null;
     }
+
+    @Override
+    public List<HickWallConflictCount> getConflictCount(String apiUrl, String accessToken, boolean isTrx,
+            boolean isCommit, int minutes) throws IOException {
+        return null;
+    }
+    
 }

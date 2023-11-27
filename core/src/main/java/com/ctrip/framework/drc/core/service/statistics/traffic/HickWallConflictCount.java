@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.service.statistics.traffic;
 
 import java.util.List;
-import org.apache.commons.lang3.tuple.Triple;
 
 /**
  * @ClassName HickWallConflictRowsCount
@@ -9,7 +8,7 @@ import org.apache.commons.lang3.tuple.Triple;
  * @Date 2023/11/22 14:35
  * @Version: $
  */
-public class HickWallConflictRowCount {
+public class HickWallConflictCount {
     Metric metric;
 
     List<List<Object>> values;
@@ -21,7 +20,7 @@ public class HickWallConflictRowCount {
         String table;
     }
     
-    public Long getRowCount() {
+    public Long getCount() {
         // get latest value
         String count = (String) values.get(values.size() - 1).get(1);
         return Long.parseLong(count);
@@ -43,7 +42,4 @@ public class HickWallConflictRowCount {
         return metric.table;
     }
     
-    public Triple<String,String,Long> getDbTableCflCount() {
-        return Triple.of(metric.db, metric.table, getRowCount());
-    }
 }

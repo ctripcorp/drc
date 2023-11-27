@@ -50,7 +50,7 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
 
     @Override
     public void initialize() {
-        setInitialDelay(5);
+        setInitialDelay(30);
         setPeriod(60);
         setTimeUnit(TimeUnit.SECONDS);
     }
