@@ -31,7 +31,7 @@
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
-                          :confirm= "false" :clearable="false" placeholder="结束日期"></DatePicker>
+                          :confirm="false" :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
               <Select filterable clearable v-model="queryParam.brief" placeholder="日志情况">
@@ -66,7 +66,7 @@
       </Col>
       <Col span="4">
         <Row :gutter=10 align="middle">
-          <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getData">查询</Button>
+          <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getTotalData">查询</Button>
           <i-switch v-model="queryParam.likeSearch" size="large" style="margin-left: 10px">模糊匹配
             <template #open>
               <span>模糊匹配</span>
@@ -78,7 +78,7 @@
         </Row>
         <Row :gutter=10 align="middle" style="margin-top: 20px">
           <Button icon="md-refresh" @click="resetParam">重置</Button>
-          <i-switch v-model="searchMode" size="large" style="margin-left: 10px">进阶
+          <i-switch v-model="searchMode" size="large" @on-change="searchModeChange" style="margin-left: 10px">进阶
             <template #open>
               <span>进阶</span>
             </template>
@@ -90,15 +90,15 @@
       </Col>
     </Row>
     <br>
-    <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
-      <Col span="2" style="display: flex;float: left;margin: 5px" >
+    <Row style="background: #fdfdff; border: 1px solid #e8eaec;">
+      <Col span="2" style="display: flex;float: left;margin: 5px">
         <Dropdown placement="bottom-start">
           <Button type="default" icon="ios-hammer">
             批量操作
             <Icon type="ios-arrow-down"></Icon>
           </Button>
           <template #list>
-            <DropdownMenu >
+            <DropdownMenu>
               <DropdownItem @click.native="compareRecords">数据比对</DropdownItem>
               <DropdownItem @click.native="getLogDetails">冲突行详情</DropdownItem>
             </DropdownMenu>
@@ -119,6 +119,7 @@
     </Table>
     <div style="text-align: center;margin: 16px 0">
       <Page
+        v-if="!countLoading"
         :transfer="true"
         :total="total"
         :current.sync="current"
@@ -129,6 +130,9 @@
         show-elevator
         @on-change="getData"
         @on-page-size-change="handleChangeSize"></Page>
+      <div v-else>
+        Total Loading...
+      </div>
     </div>
     <Modal
       v-model="detailModal"
@@ -137,20 +141,26 @@
       <div :style="{padding: '1px 1px',height: '100%'}">
         <Card>
           <div class="ivu-list-item-meta-title">冲突行提交结果：
-            <Button :loading="modalLoading" size="small" :type="logDetail.result==0?'success':'error'">{{logDetail.resultStr}}</Button>
+            <Button :loading="modalLoading" size="small" :type="logDetail.result==0?'success':'error'">
+              {{logDetail.resultStr}}
+            </Button>
           </div>
           <div class="ivu-list-item-meta-title">冲突行数据一致性比较结果：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
-              <Button :loading="modalLoading" size="small" :type="logDetail.recordEqual==true?'success':'error'">{{logDetail.diffStr}}</Button>
-            </Tooltip >
+              <Button :loading="modalLoading" size="small" :type="logDetail.recordEqual==true?'success':'error'">
+                {{logDetail.diffStr}}
+              </Button>
+            </Tooltip>
           </div>
           <Divider/>
           <div class="ivu-list-item-meta-title">源机房({{logDetail.srcRegion}})</div>
           <Card v-for="(item, index) in logDetail.srcRecords" :key="index">
             <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
               <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
-                <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
-              </Tooltip >
+                <Button size="small" :type="item.doubleSync==true?'success':'primary'">
+                  {{item.doubleSync == true ? '双向同步' : '单向同步'}}
+                </Button>
+              </Tooltip>
             </div>
             <Table :loading="modalLoading" size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
@@ -159,8 +169,10 @@
           <Card v-for="(item, index) in logDetail.dstRecords" :key="index">
             <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
               <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
-                <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
-              </Tooltip >
+                <Button size="small" :type="item.doubleSync==true?'success':'primary'">
+                  {{item.doubleSync == true ? '双向同步' : '单向同步'}}
+                </Button>
+              </Tooltip>
             </div>
             <Table :loading="modalLoading" size="small" :columns="item.columns" :data="item.records" border></Table>
           </Card>
@@ -178,9 +190,10 @@
       <div v-if="this.rowLogIds.length>0" class="ivu-list-item-meta-title">存在数据比对不一致的冲突行，点击查询
         <Tooltip content="冲突行仅限当前页面">
           <Button size="middle" type="success" @click="getUnEqualRecords">冲突行</Button>
-        </Tooltip >
+        </Tooltip>
       </div>
-      <Table stripe border :loading="compareLoading" :columns="compareData.columns" :data="compareData.compareRowRecords">
+      <Table stripe border :loading="compareLoading" :columns="compareData.columns"
+             :data="compareData.compareRowRecords">
       </Table>
     </Modal>
   </div>
@@ -190,6 +203,7 @@
 import { codemirror } from 'vue-codemirror'
 import 'codemirror/theme/ambiance.css'
 import 'codemirror/mode/sql/sql.js'
+
 export default {
   name: 'conflictRowsLog',
   props: {
@@ -248,6 +262,7 @@ export default {
       // searchMode: this.searchMode1,
       editable: false,
       dataLoading: false,
+      countLoading: false,
       queryParam: {
         srcRegion: null,
         dstRegion: null,
@@ -368,6 +383,9 @@ export default {
     }
   },
   methods: {
+    searchModeChange () {
+      this.queryParam.gtid = null
+    },
     compareRecords () {
       const multiData = this.multiData
       if (multiData === undefined || multiData === null || multiData.length === 0) {
@@ -435,6 +453,9 @@ export default {
       this.logDetail.resultStr = row.rowResult === 0 ? 'commit' : 'rollBack'
       this.logDetail.srcRegion = row.srcRegion
       this.logDetail.dstRegion = row.dstRegion
+      this.logDetail.srcRecords = []
+      this.logDetail.dstRecords = []
+      this.rowData = ''
       this.axios.get('/api/drc/v2/log/conflict/row/record?conflictRowLogId=' + row.conflictRowsLogId + '&columnSize=12')
         .then(response => {
           if (response.data.status === 1) {
@@ -499,6 +520,49 @@ export default {
           this.dataLoading = false
         })
     },
+    getTotalData () {
+      this.getData()
+      this.getCount()
+    },
+    getCount () {
+      const beginTime = this.queryParam.beginHandleTime
+      const endTime = this.queryParam.endHandleTime
+      const beginHandleTime = new Date(beginTime).getTime()
+      const endHandleTime = new Date(endTime).getTime()
+      if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
+        return
+      }
+      console.log('beginTime: ' + beginTime)
+      console.log('endTime: ' + endTime)
+      const params = {
+        gtid: this.queryParam.gtid,
+        dbName: this.queryParam.dbName,
+        tableName: this.queryParam.tableName,
+        rowResult: this.queryParam.rowResult,
+        srcRegion: this.queryParam.srcRegion,
+        dstRegion: this.queryParam.dstRegion,
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
+        likeSearch: this.queryParam.likeSearch,
+        brief: this.queryParam.brief,
+        pageReq: {
+          pageSize: this.size,
+          pageIndex: this.current
+        }
+      }
+      this.countLoading = true
+      const reqParam = this.flattenObj(params)
+      this.axios.get('/api/drc/v2/log/conflict/rows/count', { params: reqParam })
+        .then(response => {
+          const data = response.data
+          if (data.status === 0) {
+            this.total = data.data
+          }
+        })
+        .finally(() => {
+          this.countLoading = false
+        })
+    },
     getData () {
       this.multiData = []
       this.compareData.compareRowRecords = []
@@ -541,13 +605,13 @@ export default {
           const pageResult = data.pageReq
           if (data.status === 1) {
             this.$Message.error(data.message)
-          } else if (data.data.length === 0 || pageResult.totalCount === 0) {
-            this.total = 0
+          } else if (data.data.length === 0) {
+            // this.total = 0
             this.current = 1
             this.tableData = data.data
             this.$Message.warning('查询结果为空')
           } else {
-            this.total = pageResult.totalCount
+            // this.total = pageResult.totalCount
             this.current = pageResult.pageIndex
             this.tableData = data.data
             this.$Message.success('查询成功')
@@ -576,12 +640,13 @@ export default {
         dbName: null,
         tableName: null,
         gtId: null,
-        beginHandleTime: this.beginHandleTime,
-        endHandleTime: this.endHandleTime,
+        beginHandleTime: new Date(new Date().setSeconds(0, 0) - 10 * 60 * 1000),
+        endHandleTime: new Date(new Date().setSeconds(0, 0) + 60 * 1000),
         rowResult: null,
         srcRegion: null,
         dstRegion: null
       }
+      // this.countLoading = false
       this.rowLogIds = []
     },
     handleChangeSize (val) {
@@ -592,7 +657,7 @@ export default {
     }
   },
   created () {
-    this.getData()
+    this.getTotalData()
     this.getRegions()
   }
 }

@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.service.user.IAMService;
@@ -34,6 +35,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -81,11 +84,11 @@ public class ConflictLogServiceTest {
     public void testGetConflictTrxLogView() throws Exception {
         ConflictTrxLogQueryParam param = new ConflictTrxLogQueryParam();
         param.setBeginHandleTime(1L);
-        param.setEndHandleTime(1L);
+        param.setEndHandleTime(Constants.TWO_HOUR);
         Mockito.when(conflictTrxLogTblDao.queryByParam(param)).thenReturn(buildConflictTrxLogTbls());
 
         // case 1: can not query all db , dbsCanQuery is empty
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false,null));
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false, null));
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(null);
         List<ConflictTrxLogView> result = null;
         try {
@@ -101,10 +104,45 @@ public class ConflictLogServiceTest {
         Assert.assertEquals(1, result.size());
 
         // case 3: can query all db
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true,null));
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
         result = conflictLogService.getConflictTrxLogView(param);
         Assert.assertEquals(1, result.size());
 
+    }
+
+    @Test
+    public void testGetTrxLogCount() throws Exception {
+        ConflictTrxLogQueryParam param = new ConflictTrxLogQueryParam();
+        param.setBeginHandleTime(1L);
+        param.setEndHandleTime(Constants.TWO_HOUR);
+
+        Mockito.when(conflictTrxLogTblDao.getCount(Mockito.any())).thenReturn(1);
+
+        // case 1: can not query all db , dbsCanQuery is empty
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false, null));
+        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db"));
+
+        int result = conflictLogService.getTrxLogCount(param);
+        Assert.assertEquals(result, 24);
+    }
+
+    @Test
+    public void testGetRowsLogCount() throws Exception {
+        ConflictRowsLogQueryParam param = new ConflictRowsLogQueryParam();
+        param.setGtid("gtid");
+        param.setBeginHandleTime(1L);
+        param.setEndHandleTime(Constants.TWO_HOUR);
+
+        Mockito.when(conflictRowsLogTblDao.getCount(Mockito.any())).thenReturn(1);
+        Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString())).thenReturn(buildConflictTrxLogTbls().get(0));
+        Mockito.when(conflictRowsLogTblDao.queryByParam(param)).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList())).thenReturn(getMhaTbls());
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
+
+        int result = conflictLogService.getRowsLogCount(param);
+        Assert.assertEquals(result, 24);
     }
 
     @Test
@@ -112,7 +150,7 @@ public class ConflictLogServiceTest {
         ConflictRowsLogQueryParam param = new ConflictRowsLogQueryParam();
         param.setGtid("gtid");
         param.setBeginHandleTime(1L);
-        param.setEndHandleTime(1L);
+        param.setEndHandleTime(2L);
 
         Mockito.when(conflictTrxLogTblDao.queryByGtid(Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
 
@@ -121,12 +159,12 @@ public class ConflictLogServiceTest {
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList())).thenReturn(getMhaTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true,null));
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
 
         List<ConflictRowsLogView> result = conflictLogService.getConflictRowsLogView(param);
         Assert.assertEquals(1, result.size());
-
     }
+
 
     @Test
     public void testGetConflictRowRecordView() throws Exception {
@@ -258,14 +296,14 @@ public class ConflictLogServiceTest {
     public void testCreateHandleSql() throws Exception {
         Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
+        Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
         Mockito.when(mysqlService.getFirstUniqueIndex(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn("id");
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
         Mockito.when(mysqlService.getAllOnUpdateColumns(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("datachange_lasttime"));
 
         ConflictAutoHandleParam param = new ConflictAutoHandleParam();
         param.setWriteSide(0);
         param.setRowLogIds(Lists.newArrayList(1L));
-        param.setSrcRecords((List<Map<String, Object>>) getSrcResMap().get("record"));
-        param.setDstRecords((List<Map<String, Object>>) getSrcResMap().get("record"));
 
         List<ConflictAutoHandleView> result = conflictLogService.createHandleSql(param);
         Assert.assertEquals(result.size(), 1);
@@ -280,9 +318,17 @@ public class ConflictLogServiceTest {
         records.put("column", "a");
         records.put("datachange_lasttime", "time");
         records.put("drc_row_log_id", 1L);
-        byte[] a = new byte[1];
-        records.put("a", a);
+        String a = "test";
+        BigDecimal bigDecimal = new BigDecimal("1.010");
+        records.put("a", a.getBytes(StandardCharsets.UTF_8));
         records.put("b", null);
+        records.put("bigDecimal", bigDecimal);
+
+        Map<String, String> cellClassMap = new HashMap<>();
+        cellClassMap.put("b", "cell-class-type");
+        cellClassMap.put("a", "cell-class-type");
+        records.put("cellClassName", cellClassMap);
+
         res.put("record", Lists.newArrayList(records));
 
         Map<String, Object> metaColumn = new HashMap<>();
@@ -302,9 +348,18 @@ public class ConflictLogServiceTest {
         records.put("column", "b");
         records.put("datachange_lasttime", "time");
         records.put("drc_row_log_id", 1L);
-        byte[] a = new byte[1];
-        records.put("a", a);
+
+        String a = "test";
+        BigDecimal bigDecimal = new BigDecimal("1.020");
+        records.put("a", a.getBytes(StandardCharsets.UTF_8));
         records.put("b", "b");
+        records.put("bigDecimal", bigDecimal);
+
+        Map<String, String> cellClassMap = new HashMap<>();
+        cellClassMap.put("b", "cell-class-type");
+        cellClassMap.put("a", "cell-class-type");
+        records.put("cellClassName", cellClassMap);
+
         res.put("record", Lists.newArrayList(records));
 
         Map<String, Object> metaColumn = new HashMap<>();

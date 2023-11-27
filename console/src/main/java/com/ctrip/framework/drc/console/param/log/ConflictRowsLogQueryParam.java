@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.param.log;
 
 import com.ctrip.framework.drc.core.http.PageReq;
+import org.springframework.beans.BeanUtils;
+
 import java.util.List;
 
 /**
@@ -133,5 +135,25 @@ public class ConflictRowsLogQueryParam {
 
     public void setBrief(Integer brief) {
         this.brief = brief;
+    }
+
+    @Override
+    public String toString() {
+        return "ConflictRowsLogQueryParam{" +
+                "conflictTrxLogId=" + conflictTrxLogId +
+                ", gtid='" + gtid + '\'' +
+                ", dbsWithPermission=" + dbsWithPermission +
+                ", admin=" + admin +
+                ", dbName='" + dbName + '\'' +
+                ", tableName='" + tableName + '\'' +
+                ", beginHandleTime=" + beginHandleTime +
+                ", endHandleTime=" + endHandleTime +
+                ", srcRegion='" + srcRegion + '\'' +
+                ", dstRegion='" + dstRegion + '\'' +
+                ", rowResult=" + rowResult +
+                ", brief=" + brief +
+                ", likeSearch=" + likeSearch +
+                ", pageReq=" + pageReq +
+                '}';
     }
 }
