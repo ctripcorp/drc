@@ -736,6 +736,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 setFields.add(setField);
             }
         });
+
+        if (CollectionUtils.isEmpty(setFields)) {
+            return StringUtils.EMPTY;
+        }
         String setFiledSql = Joiner.on(",").join(setFields);
 
         StringBuilder whereCondition = new StringBuilder();
