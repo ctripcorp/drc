@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.log;
 
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
@@ -15,6 +16,7 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import javax.validation.groups.Default;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -41,7 +43,8 @@ public class ConflictAlarmTest {
     private OPSApiService opsApiService;
     @Mock
     private EmailService emailService;
-    
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     @Before
     public void setUp() throws Exception {

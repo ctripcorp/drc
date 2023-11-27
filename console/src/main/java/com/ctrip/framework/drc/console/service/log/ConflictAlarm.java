@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
@@ -40,6 +41,8 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
     private MhaServiceV2 mhaServiceV2;
     @Autowired
     private DomainConfig domainConfig;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
     
     private OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
     private EmailService emailService = ApiContainer.getEmailServiceImpl();
@@ -58,7 +61,7 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
     @Override
     public void scheduledTask() {
         try {
-            if (isRegionLeader) {
+            if (isRegionLeader && consoleConfig.isCenterRegion()) {
                 logger.info("[[task=ConflictAlarm]] is leader");
                 DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "checkConflict", this::checkConflict);
             } else {

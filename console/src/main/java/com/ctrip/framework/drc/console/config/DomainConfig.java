@@ -236,7 +236,7 @@ public class DomainConfig extends AbstractConfigBean {
         String qmqUrl = getQmqUrlByRegion(region);
         return qmqUrl + PRODUCER_SUFFIX;
     }
-
+    
     public String getQmqUrlByRegion(String region) {
         Map<String, String> qmqUrls = JsonCodec.INSTANCE.decode(getProperty(QMQ_APPLICATION_URL, "{}"),
                 new GenericTypeReference<Map<String, String>>() {
@@ -273,7 +273,8 @@ public class DomainConfig extends AbstractConfigBean {
         }
         return Arrays.stream(targetSubEnvStr.split(",")).collect(Collectors.toList());
     }
-
+    
+    
     // QConfig Region to IDCs  Mapping
     public Map<String, Set<String>> getRegion2IDCsMapping() {
         String regionsInfo = getProperty(QCONFIG_REGION_IDCS_MAP, "{}");
