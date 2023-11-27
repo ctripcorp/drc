@@ -14,6 +14,8 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 /**
@@ -28,6 +30,8 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     private int filterCount;
 
     private boolean needFilter;
+
+    private long lastTrxId = 0;
 
     @InstanceResource
     public TransactionTable transactionTable;
@@ -47,7 +51,9 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     @Override
     protected void handleApplierGtidEvent(FetcherEvent event) {
-        String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
+        ApplierGtidEvent applierGtidEvent = (ApplierGtidEvent) event;
+        String currentUuid = applierGtidEvent.getServerUUID().toString();
+        long trxId = applierGtidEvent.getId();
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
             loggerTT.info("[{}]uuid has changed, old uuid is: {}, new uuid is: {}", registryKey, lastUuid, currentUuid);
             GtidSet gtidSet = transactionTable.mergeRecord(currentUuid, true);
@@ -55,7 +61,11 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
             lastUuid = currentUuid;
             filterCount = 0;
             needFilter = true;
+            compensateExecutedGtidSetGap(currentUuid, trxId);
+        } else if (trxId > lastTrxId + 1) {
+            compensateGtidSetGap(currentUuid, lastTrxId, trxId);
         }
+        lastTrxId = trxId;
 
         if (needFilter) {
             String gtid =  ((ApplierGtidEvent) event).getGtid();
@@ -105,5 +115,30 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     @VisibleForTesting
     public boolean isNeedFilter() {
         return needFilter;
+    }
+
+
+    private void compensateExecutedGtidSetGap(String currentUuid, long receivedTrxId) {
+        GtidSet.UUIDSet executedUuidSet = context.fetchGtidSet().getUUIDSet(currentUuid);
+        if (executedUuidSet == null) {
+            return;
+        }
+
+        List<GtidSet.Interval> executedIntervals = executedUuidSet.getIntervals();
+        if (executedIntervals.isEmpty()) {
+            return;
+        }
+
+        long maxExecutedTrxId = executedIntervals.get(executedIntervals.size() - 1).getEnd();
+        if (receivedTrxId + 1 > maxExecutedTrxId) {
+            compensateGtidSetGap(currentUuid, maxExecutedTrxId, receivedTrxId);
+        }
+    }
+
+    private void compensateGtidSetGap(String uuid, long start, long end) {
+        for (long i = start + 1; i < end; i++) {
+            String gtid = uuid + ":" + i;
+            transactionTable.recordToMemory(gtid);
+        }
     }
 }
