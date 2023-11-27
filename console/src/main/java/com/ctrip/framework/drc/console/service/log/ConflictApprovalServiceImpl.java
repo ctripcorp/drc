@@ -261,6 +261,9 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
                 .filter(e -> StringUtils.isNotBlank(e.getAutoHandleSql()))
                 .map(e -> Constants.CONFLICT_SQL_PREFIX + e.getAutoHandleSql())
                 .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(sqlList)) {
+            throw ConsoleExceptionUtils.message("handler sql is empty");
+        }
         String sql = Joiner.on(";\n").join(sqlList);
         sqlBuilder.append("\n").append(sql).append(";\n").append(Constants.COMMIT);
 

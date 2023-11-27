@@ -295,21 +295,11 @@ export default {
         return
       }
       const rowLogIds = []
-      const srcRecords = []
-      const dstRecords = []
       multiData.forEach(data => rowLogIds.push(data.rowLogId))
-      this.srcRecords.forEach(srcRecord => {
-        srcRecord.records.forEach(record => srcRecords.push(record))
-      })
-      this.dstRecords.forEach(dstRecord => {
-        dstRecord.records.forEach(record => dstRecords.push(record))
-      })
       this.sqlLoading = true
       this.handleSql = ''
       this.axios.post('/api/drc/v2/log/conflict/rows/handleSql', {
         writeSide: this.writeSide,
-        srcRecords: srcRecords,
-        dstRecords: dstRecords,
         rowLogIds: rowLogIds
       }).then(res => {
         const data = res.data
