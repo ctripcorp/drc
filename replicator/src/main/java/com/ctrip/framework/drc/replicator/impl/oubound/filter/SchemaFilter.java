@@ -24,6 +24,7 @@ public class SchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext
         registerKey = context.getRegisterKey();
         String nameFilter = context.getNameFilter();
         initSchemas(nameFilter);
+        logger.info("[Filter][Schema] init send schemas: {} for {}", schemas, registerKey);
     }
 
     @Override
@@ -36,7 +37,7 @@ public class SchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext
                 long nextTransactionOffset = filterLogEvent.getNextTransactionOffset();
                 if (nextTransactionOffset > 0) {
                     value.skipPosition(nextTransactionOffset);
-                    GTID_LOGGER.info("[S] filter schema, {}", schema);
+                    GTID_LOGGER.debug("[S][{}] filter schema, {}", registerKey, schema);
                 }
             }
             value.setSkipEvent(true);
