@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.After;
@@ -46,7 +47,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
 import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
-import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.*;
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_FILE_FORMAT;
 
 /**
  * Created by mingdongli
@@ -217,9 +219,10 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
             beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
         }
 
-        logger.info("after size is {} {}", afterSize,fileManager.getCurrentLogFile().getName());
+        logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
 
-        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
+        int filterLogEventSize = 28;
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + filterLogEventSize));
         Assert.assertEquals(gtidSet.add(GTID), false);
         Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
     }
@@ -231,7 +234,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
             writeTransactionThroughTransactionCache();
         }
 
-        fileManager.getExecutedGtids();  //会truncate
+        fileManager.getExecutedGtids();  //not truncate
         int beforeSize = getTotalSize();
 
         File before = fileManager.getCurrentLogFile();
@@ -256,9 +259,10 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
             beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
         }
 
-        logger.info("after size is {} {}", afterSize,fileManager.getCurrentLogFile().getName());
+        logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
 
-        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
+        int filterLogEventSize = 28;
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + filterLogEventSize));
         Assert.assertEquals(gtidSet.add(GTID), false);
         Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
     }
@@ -295,11 +299,151 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
             beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
         }
 
-        logger.info("after size is {} {}", afterSize,fileManager.getCurrentLogFile().getName());
+        logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
 
-        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
+        int filterLogEventSize = 28;
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + filterLogEventSize));
         Assert.assertEquals(gtidSet.add(GTID), false);
         Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
+    }
+
+    @Test
+    public void testTruncatePartialFilterLogEvent() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //not truncate
+
+        writeTransactionThroughTransactionCache();
+        int correctSize = getTotalSize();
+
+        int partialSize = writePartialFilterLogEventBodyThroughFileManager();
+        int errorSize = getTotalSize();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        Assert.assertEquals(correctSize, afterSize);
+        Assert.assertEquals(partialSize, errorSize - correctSize);
+        Assert.assertFalse(gtidSet.add(GTID));
+    }
+
+    @Test
+    public void testTruncateFilterLogEventBeforePartialGtid() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //not truncate
+
+        writeTransactionThroughTransactionCache();
+        int correctSize = getTotalSize();
+
+        int filterLogEventSize = writeFilterLogEventThroughFileManager();
+        int partialSize = writePartialGtidHeaderThroughFileManager();
+        int errorSize = getTotalSize();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        Assert.assertEquals(correctSize, afterSize);
+        Assert.assertEquals(filterLogEventSize + partialSize, errorSize - correctSize);
+        Assert.assertFalse(gtidSet.add(GTID));
+    }
+
+    @Test
+    public void testTruncateLastFilterLogEvent() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //not truncate
+
+        writeTransactionThroughTransactionCache();
+        int correctSize = getTotalSize();
+
+        int partialSize = writeFilterLogEventThroughFileManager();
+        int errorSize = getTotalSize();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        Assert.assertEquals(correctSize, afterSize);
+        Assert.assertEquals(partialSize, errorSize - correctSize);
+        Assert.assertFalse(gtidSet.add(GTID));
+    }
+
+    @Test
+    public void testTruncateLastFilterLogEventHeader() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //not truncate
+
+        writeTransactionThroughTransactionCache();
+        int correctSize = getTotalSize();
+
+        int headerSize = writeFilterLogEventHeaderThroughFileManager();
+        int errorSize = getTotalSize();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        Assert.assertEquals(correctSize, afterSize);
+        Assert.assertEquals(headerSize, errorSize - correctSize);
+    }
+
+    @Test
+    public void testTruncateOnlyLastFilterLogEventHeader() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //not truncate
+
+        writeTransactionThroughTransactionCache();
+        int correctSize = getTotalSize();
+
+        int headerSize = writeFilterLogEventHeaderThroughFileManager();
+        int errorSize = getTotalSize();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        Assert.assertEquals(correctSize, afterSize);
+        Assert.assertEquals(headerSize, errorSize - correctSize);
+    }
+
+    @Test
+    public void testTruncatePartialLastFilterLogEventHeader() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        int beforeSize = getTotalSize();
+
+        fileManager.getExecutedGtids();  //not truncate
+        int correctSize = getTotalSize();
+        Assert.assertEquals(beforeSize, correctSize);
+
+        int headerSize = writePartialFilterLogEventHeaderThroughFileManager();
+        int errorSize = getTotalSize();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        Assert.assertEquals(correctSize, afterSize);
+        Assert.assertEquals(headerSize, errorSize - correctSize);
     }
 
     @Test
@@ -307,7 +451,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         ByteBuf byteBuf = getGtidEventHearder();
         fileManager.append(byteBuf);
         File file = fileManager.getCurrentLogFile();
-        RandomAccessFile  raf = new RandomAccessFile(file, "rw");
+        RandomAccessFile raf = new RandomAccessFile(file, "rw");
         FileChannel fileChannel = raf.getChannel();
         long size = fileChannel.size();
         fileChannel.position(size - byteBuf.capacity());
@@ -489,14 +633,14 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         List<ByteBuf> events = new ArrayList<>();
         events.add(compositeByteBuf);
         fileManager.append(events, new TransactionContext(false, bigTransaction.size() / 2));
-        Assert.assertTrue(((DefaultFileManager)fileManager).isInBigTransaction());
+        Assert.assertTrue(((DefaultFileManager) fileManager).isInBigTransaction());
 
         List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
         int total = 0;
         for (File file : files) {
             total += file.length();
         }
-        Assert.assertEquals(total,  (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE) * files.size() + size);
+        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE) * files.size() + size);
 
     }
 
@@ -529,10 +673,12 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         transactionCache.flush();
     }
 
-    private void writePartialGtidHeaderThroughFileManager() throws Exception {
+    private int writePartialGtidHeaderThroughFileManager() throws Exception {
         ByteBuf byteBuf = getPartialGtidEventHearder();
+        int size = byteBuf.writerIndex();
         fileManager.append(byteBuf);
         byteBuf.release();
+        return size;
     }
 
     private void writePartialNotGtidHeaderThroughFileManager() throws Exception {
@@ -547,5 +693,77 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         byteBuf = getPartialMinimalRowsEventByteBuf();
         fileManager.append(byteBuf);
         byteBuf.release();
+    }
+
+
+    private int writeFilterLogEventThroughFileManager() throws Exception {
+        ByteBuf byteBuf = getFilterLogEvent();
+        int size = byteBuf.writerIndex();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+        return size;
+    }
+
+    protected ByteBuf getFilterLogEvent() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(16);
+        byte[] bytes = new byte[]{
+                (byte) 0x3d, (byte) 0x24, (byte) 0x5f, (byte) 0x65, (byte) 0x6d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x24, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xa0, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x0c, (byte) 0x64, (byte) 0x72, (byte) 0x63, (byte) 0x6d, (byte) 0x6f, (byte) 0x6e, (byte) 0x69, (byte) 0x74, (byte) 0x6f, (byte) 0x72, (byte) 0x64, (byte) 0x62, (byte) 0xa0, (byte) 0x01, (byte) 0x00,
+                (byte) 0x00
+        };
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
+    }
+
+    private int writePartialFilterLogEventBodyThroughFileManager() throws Exception {
+        ByteBuf byteBuf = getPartialFilterLogEventBody();
+        int size = byteBuf.writerIndex();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+        return size;
+    }
+
+    protected ByteBuf getPartialFilterLogEventBody() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(16);
+        byte[] bytes = new byte[]{
+                (byte) 0x3d, (byte) 0x24, (byte) 0x5f, (byte) 0x65, (byte) 0x6d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x24, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xa0, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x0c, (byte) 0x64, (byte) 0x72, (byte) 0x63, (byte) 0x6d, (byte) 0x6f, (byte) 0x6e, (byte) 0x69, (byte) 0x74, (byte) 0x6f, (byte) 0x72, (byte) 0x64, (byte) 0x62, (byte) 0xa0, (byte) 0x01, (byte) 0x00
+        };
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
+    }
+
+    private int writeFilterLogEventHeaderThroughFileManager() throws Exception {
+        ByteBuf byteBuf = getFilterLogEventHeader();
+        int size = byteBuf.writerIndex();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+        return size;
+    }
+
+    protected ByteBuf getFilterLogEventHeader() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(16);
+        byte[] bytes = new byte[]{
+                (byte) 0x3d, (byte) 0x24, (byte) 0x5f, (byte) 0x65, (byte) 0x6d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x24, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xa0, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
+        };
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
+    }
+
+    private int writePartialFilterLogEventHeaderThroughFileManager() throws Exception {
+        ByteBuf byteBuf = getPartialFilterLogEventHeader();
+        int size = byteBuf.writerIndex();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+        return size;
+    }
+
+    protected ByteBuf getPartialFilterLogEventHeader() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(16);
+        byte[] bytes = new byte[]{
+                (byte) 0x3d, (byte) 0x24, (byte) 0x5f, (byte) 0x65, (byte) 0x6d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x24, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xa0, (byte) 0x01, (byte) 0x00, (byte) 0x00
+        };
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
     }
 }

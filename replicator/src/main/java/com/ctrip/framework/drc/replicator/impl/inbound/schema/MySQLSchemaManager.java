@@ -42,6 +42,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,7 +80,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private static final int SOCKET_TIMEOUT = 60000;
 
-    private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
     private MySQLInstance embeddedDb;
     protected Version embeddedDbVersion;
@@ -150,7 +150,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     public TableInfo find(String schema, String table) {
-        TableId keys = new TableId(schema, table);
+        TableId keys = new TableId(toLowerCaseIfNotNull(schema), toLowerCaseIfNotNull(table));
         TableInfo tableMeta = tableInfoMap.get(keys);
         if (tableMeta == null) {
             synchronized (this) {
@@ -169,7 +169,19 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
         return tableMeta;
     }
-
+    @Override
+    public synchronized Map<String, Map<String, String>> snapshot() {
+        if (DynamicConfig.getInstance().getDisableSnapshotCacheSwitch() || CollectionUtils.isEmpty(schemaCache)) {
+            Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
+            if (!CollectionUtils.isEmpty(schemaCache)) {
+                boolean same = schemaCache.equals(snapshot);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.snapshot.cache.compare." + same, registryKey);
+            }
+            schemaCache = snapshot;
+            tableInfoMap.clear();
+        }
+        return Collections.unmodifiableMap(schemaCache);
+    }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
@@ -185,21 +197,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             DDL_LOGGER.error("queryDb for {} error", registryKey, e);
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public Map<String, Map<String, String>> snapshot() {
-        Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
-        if (!CollectionUtils.isEmpty(snapshot)) {
-            schemaCache.set(snapshot);
-        } else {
-            DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.snapshot", "Blank");
-            if (schemaCache.get() != null) {
-                return schemaCache.get();
-            }
-            return snapshot;
-        }
-        return snapshot;
     }
 
     /**
@@ -328,6 +325,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     @Override
     protected void doDispose() {
         tableInfoMap.clear();
+        schemaCache.clear();
         inMemoryDataSource.close(true);
         embeddedDb.destroy();
         ddlMonitorExecutorService.shutdown();
@@ -351,6 +349,14 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.replicator.schema.remote.dump", registryKey, () -> MySQLSchemaManager.this.clone(endpoint));
         }
         return true;
+    }
+
+    @VisibleForTesting
+    protected static String toLowerCaseIfNotNull(String s) {
+        if (s == null) {
+            return null;
+        }
+        return s.toLowerCase();
     }
 
     public void setEventStore(EventStore eventStore) {

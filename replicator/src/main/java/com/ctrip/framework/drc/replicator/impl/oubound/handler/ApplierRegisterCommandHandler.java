@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
@@ -175,6 +174,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierName;
 
+        private String nameFilter = null;
+
         private AviatorRegexFilter aviatorFilter = null;
 
         private String applierRegion;
@@ -223,6 +224,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             String filter = dumpCommandPacket.getNameFilter();
             logger.info("[Filter] before init name filter, applier name is: {}, filter is: {}", applierName, filter);
             if (StringUtils.isNotBlank(filter)) {
+                this.nameFilter = filter;
                 this.aviatorFilter = new AviatorRegexFilter(filter);
                 logger.info("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
             }
@@ -236,6 +238,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                             outboundMonitorReport,
                             dumpCommandPacket.getGtidSet(),
                             skipDrcGtidLogEvent,
+                            nameFilter,
                             aviatorFilter,
                             channelAttributeKey,
                             replicatorRegion,

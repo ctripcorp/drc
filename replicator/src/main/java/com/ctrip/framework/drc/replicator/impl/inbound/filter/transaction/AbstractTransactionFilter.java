@@ -8,8 +8,7 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_ddl_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 
 /**
  * @Author limingdong
@@ -25,6 +24,7 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
         }
     }
 
+    //for nextTransactionStartPosition of GtidLogEvent and DdlIndex
     protected boolean canSkipParseTransaction(ITransactionEvent transactionEvent) {
         List<LogEvent> logEvents = transactionEvent.getEvents();
 
@@ -33,13 +33,17 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
         }
 
         LogEvent head = logEvents.get(0);
+        if (drc_filter_log_event == head.getLogEventType()) {
+            head = logEvents.get(1);
+        }
+
         if (!(head instanceof GtidLogEvent)) {  // with two type
             return false;
         }
 
         int eventSize = logEvents.size();
         LogEvent tail = logEvents.get(eventSize - 1);
-        if (xid_log_event != tail.getLogEventType()) { // with two event
+        if (xid_log_event != tail.getLogEventType()) {
             return false;
         }
 

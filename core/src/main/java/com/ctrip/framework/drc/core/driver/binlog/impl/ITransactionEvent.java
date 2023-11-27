@@ -16,5 +16,11 @@ public interface ITransactionEvent {
 
     void setEvents(List<LogEvent> logEvents);
 
+    void setCanSkipParseTransaction(boolean canSkipParseTransaction);
+
+    boolean canSkipParseTransaction();
+
+    void addFilterLogEvent();
+
     boolean passFilter();
 }

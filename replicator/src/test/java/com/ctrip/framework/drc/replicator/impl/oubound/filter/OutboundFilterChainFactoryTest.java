@@ -49,7 +49,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         super.setUp();
         when(channel.writeAndFlush(any(ByteBuf.class))).thenReturn(channelFuture);
         String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.Custom.getName());
-        filterChainContext= new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null, channelAttributeKey, "src", "dst");
+        filterChainContext = getFilterChainContext(properties);
         filterChainFactory = new OutboundFilterChainFactory();
     }
 
@@ -74,6 +74,8 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertTrue(filter instanceof SkipFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TypeFilter);
+        filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof SchemaFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TableNameFilter);
         filter = filter.getSuccessor();
@@ -115,7 +117,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
     }
 
     public void testExtract(String properties, int verify1, int verify2) throws Exception {
-        filterChainContext= new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null, channelAttributeKey, "src", "dst");
+        filterChainContext = getFilterChainContext(properties);
         Filter<OutboundLogEventContext> filterChain = filterChainFactory.createFilterChain(filterChainContext);
 
         // drc_table_map_log_event
@@ -235,6 +237,15 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
             }
             successor = successor.getSuccessor();
         }
+    }
+
+
+    private OutboundFilterChainContext getFilterChainContext(String properties) throws Exception {
+        OutboundFilterChainContext filterChainContext = new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier,
+                DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null,
+                false, "drc1\\..*,drc2\\..*,drc3\\..*,drc4\\..*", null,
+                channelAttributeKey, "src", "dst");
+        return filterChainContext;
     }
 
     private String COLUMNS_FILTER_PROPERTIES_EXCLUDE = "{" +

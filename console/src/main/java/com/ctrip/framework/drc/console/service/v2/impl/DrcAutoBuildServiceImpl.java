@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -124,23 +125,38 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     @VisibleForTesting
     protected List<DbClusterInfoDto> getDbClusterInfoDtos(DrcAutoBuildReq req) {
         DrcAutoBuildReq.BuildMode modeEnum = req.getModeEnum();
-        List<DbClusterInfoDto> list = Lists.newArrayList();
+        List<DbClusterInfoDto> list;
         if (modeEnum == DrcAutoBuildReq.BuildMode.SINGLE_DB_NAME) {
             String dbName = req.getDbName();
-            if (StringUtils.isBlank(dbName)) {
-                throw new IllegalArgumentException("db name is required!");
-            }
-            List<ClusterInfoDto> clusterInfoDtoList = dbaApiService.getDatabaseClusterInfo(dbName);
+            List<ClusterInfoDto> clusterInfoDtoList = getClusterInfoDtosByDbName(dbName);
             list = Collections.singletonList(new DbClusterInfoDto(dbName, clusterInfoDtoList));
         } else if (modeEnum == DrcAutoBuildReq.BuildMode.DAL_CLUSTER_NAME) {
             if (StringUtils.isBlank(req.getDalClusterName())) {
                 throw new IllegalArgumentException("dal cluster name is required!");
             }
             list = dbaApiService.getDatabaseClusterInfoList(req.getDalClusterName());
+        } else if (modeEnum == DrcAutoBuildReq.BuildMode.MULTI_DB_NAME) {
+            String dbNames = req.getDbName();
+            if (StringUtils.isBlank(dbNames)) {
+                throw new IllegalArgumentException("db names is required!");
+            }
+            String[] split = dbNames.split(",");
+            list = Arrays.stream(split)
+                    .map(String::trim).distinct()
+                    .map(dbName -> new DbClusterInfoDto(dbName, getClusterInfoDtosByDbName(dbName)))
+                    .collect(Collectors.toList());
         } else {
             throw new IllegalArgumentException("illegal build mode: " + req.getMode());
         }
         return list;
+    }
+
+    private List<ClusterInfoDto> getClusterInfoDtosByDbName(String dbName) {
+        if (StringUtils.isBlank(dbName)) {
+            throw new IllegalArgumentException("db name is required!");
+        }
+        List<ClusterInfoDto> clusterInfoDtoList = dbaApiService.getDatabaseClusterInfo(dbName);
+        return clusterInfoDtoList;
     }
 
     private List<String> getRegionNameOptions(List<DbClusterInfoDto> databaseClusterInfoList) {
@@ -222,8 +238,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     @Override
     public List<DrcAutoBuildParam> getDrcBuildParam(DrcAutoBuildReq req) {
         DrcAutoBuildReq.BuildMode modeEnum = req.getModeEnum();
-        if (modeEnum != DrcAutoBuildReq.BuildMode.DAL_CLUSTER_NAME && modeEnum != DrcAutoBuildReq.BuildMode.SINGLE_DB_NAME) {
-            throw new IllegalArgumentException("illegal build mode: " + modeEnum);
+        if (modeEnum == null) {
+            throw new IllegalArgumentException("illegal build mode: " + req.getMode());
         }
         this.validReqRegions(req);
         List<DrcAutoBuildParam> drcAutoBuildParams = this.buildParam(req);
@@ -290,6 +306,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             param.setSrcDcName(srcMha.getDcName());
             param.setDstDcName(dstMha.getDcName());
             param.setDbName(dbNames);
+            param.setSrcMachines(srcMha.getMachineDtos());
+            param.setDstMachines(dstMha.getMachineDtos());
             list.add(param);
         }
 
@@ -372,8 +390,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         List<DbReplicationView> existDbReplication = drcBuildService.getDbReplicationView(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName());
 
         // 2. sync mha db info
-        drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl);
-        drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(dstMhaTbl);
+        drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
+        drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(dstMhaTbl, param.getDstMachines());
 
         // 3. config dbReplications
         // 3.1 base
@@ -408,6 +426,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         mhaDto.setDcId(dcDo.getDcId());
         mhaDto.setDcName(dcDo.getDcName());
         mhaDto.setRegionName(dcDo.getRegionName());
+        mhaDto.setMachineDtos(clusterInfoDto.getNodes().stream().map(MachineDto::from).collect(Collectors.toList()));
         return mhaDto;
     }
 }

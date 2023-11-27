@@ -5,6 +5,9 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractEventTest;
 import io.netty.buffer.ByteBuf;
@@ -25,8 +28,8 @@ public class EventTransactionCacheTest extends AbstractEventTest {
     @Mock
     private IoCache ioCache;
 
-    @Mock
-    private Filter<ITransactionEvent> filterChain;
+    private Filter<ITransactionEvent> filterChain = new TransactionFilterChainFactory().createFilterChain(
+            new InboundFilterChainContext.Builder().applyMode(ApplyMode.transaction_table.getType()).build());;
 
     private static final int bufferSize = 64;
 

@@ -12,6 +12,7 @@
               <Select clearable v-model="formItem.buildMode" placeholder="模式">
                 <Option :value=0>单库</Option>
                 <Option :value=1>分库</Option>
+                <Option :value=2>自定义多库</Option>
               </Select>
             </FormItem>
             <div v-if="formItem.buildMode === 0">
@@ -32,6 +33,11 @@
             <div v-if="formItem.buildMode === 1">
               <FormItem label="dalcluster" :required=true>
                 <Input @on-keydown.space.prevent v-model="formItem.dalClusterModeOption.dalClusterName" placeholder="请输入 dalCluster 名称" @on-blur="afterEnterDalCluster"/>
+              </FormItem>
+            </div>
+            <div v-if="formItem.buildMode === 2">
+              <FormItem label="数据库列表" :required=true>
+                <Input @on-keydown.space.prevent v-model="formItem.dbName" placeholder="请输入数据库列表，英文逗号分隔" @on-blur="afterEnterDalCluster"/>
               </FormItem>
             </div>
             <FormItem label="同步方向" :required=true>
@@ -594,6 +600,8 @@ export default {
         param.dbName = this.formItem.dbName
       } else if (this.formItem.buildMode === 1) {
         param.dalClusterName = this.formItem.dalClusterModeOption.dalClusterName
+      } else if (this.formItem.buildMode === 2) {
+        param.dbName = this.formItem.dbName
       }
       if (this.formItem.switch.rowsFilter) {
         if (this.formItem.rowsFilterDetail.mode === 1) {
