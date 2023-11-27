@@ -48,6 +48,7 @@ import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.log.ConflictAlarmTest;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalServiceTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogServiceTest;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
@@ -247,6 +248,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DelayMonitorPooledConnectorTest.class,
 
         ListenReplicatorTaskTest.class,
+        ConflictAlarmTest.class,
 
         //entity
         MhaInstanceGroupDtoTest.class,

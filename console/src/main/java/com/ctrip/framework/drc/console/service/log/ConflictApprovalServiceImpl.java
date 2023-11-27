@@ -18,10 +18,8 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DateUtils;
-import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiRequest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
@@ -30,9 +28,6 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -44,12 +39,8 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -271,7 +262,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         request.setSourceUrl(sourceUrl);
         request.setApprover1(dbOwner);
         request.setApprover2(domainConfig.getDbaApprovers());
-        request.setCcEmail(domainConfig.getConflictCcEmail());
+        request.setCcEmail(domainConfig.getConflictApproveCcEmail());
         request.setCallBackUrl(domainConfig.getApprovalCallbackUrl());
         request.setUsername(username);
 

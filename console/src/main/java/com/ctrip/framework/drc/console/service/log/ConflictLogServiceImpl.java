@@ -37,6 +37,8 @@ import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -86,6 +88,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Autowired
     private DbaApiService dbaApiService;
+
+    private final Supplier<List<AviatorRegexFilter>> blackList = Suppliers.memoizeWithExpiration(this::queryBlackList, 30, TimeUnit.SECONDS);
 
     private IAMService iamService = ServicesUtil.getIAMService();
 
@@ -516,6 +520,18 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
         conflictDbBlackListTblDao.delete(tbls);
+    }
+
+    @Override
+    public boolean isInBlackListWithCache(String db, String table)  {
+        String fullname = db + "." + table;
+        List<AviatorRegexFilter> filters = blackList.get();
+        for (AviatorRegexFilter filter : filters) {
+            if (filter.filter(fullname)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String createConflictHandleSql(ConflictRowsLogTbl rowLog,
@@ -1013,5 +1029,19 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             columnsFieldMap.put(dbReplicationId, columnsFields);
         }
         return Pair.of(dbReplicationViews, columnsFieldMap);
+    }
+    
+    private List<AviatorRegexFilter> queryBlackList() {
+        try {
+            List<AviatorRegexFilter> blackList = new ArrayList<>();
+            List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAll();
+            for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
+                blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
+            }
+            return blackList;
+        } catch (Exception e) {
+            logger.error("queryBlackList error", e);
+            return Collections.emptyList();
+        }
     }
 }

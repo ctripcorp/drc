@@ -47,4 +47,6 @@ public interface ConflictLogService {
     void addDbBlacklist(String dbFilter) throws Exception;
 
     void deleteBlacklist(String dbFilter) throws Exception;
+    
+    boolean isInBlackListWithCache(String db,String table);
 }

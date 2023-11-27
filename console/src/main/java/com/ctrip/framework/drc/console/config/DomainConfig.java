@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DomainConfig extends AbstractConfigBean {
-
+    
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
@@ -94,7 +94,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_APPROVAL_DETAIL_URL = "http://rc.ops.ctripcorp.com/#/approvalcenter/approve-detail?ticketId=";
     private static final String OPS_APPROVAL_URL = "ops.approval.url";
     private static final String OPS_APPROVAL_TOKEN = "aps.approval.token";
-    private static final String CONFLICT_CC_EMAIL = "conflict_cc_email";
+    private static final String CONFLICT_APPROVE_CC_EMAIL = "conflict_cc_email";
     private static final String CONFLICT_DBA_APPROVERS = "conflict.dba.approvers";
     private static final String APPROVAL_CALLBACK_URL = "approval.callback.url";
     private static final String APPROVAL_DETAIL_URL = "approval.detail.url";
@@ -104,7 +104,17 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DOT_TOKEN = "dot.token";
     private static final String DOT_QUERY_API_URL = "dot.query.api.url";
 
-
+    private static final String CONFLICT_ALARM_SENDER_EMAIL = "conflict.alarm.sender.email";
+    private static final String CONFLICT_ALARM_CC_EMAILS = "conflict.alarm.cc.emails";
+    private static final String DRC_CONFLICT_HANDLE_URL = "drc.conflict.handle.url";
+    private static final String DRC_HICKWALL_MONITOR_URL = "drc.hickwall.monitor.url";
+    private static final String CONFLICT_COMMIT_ROW_THRESHOLD= "conflict.commit.row.threshold";
+    private static final String CONFLICT_ROLLBACK_ROW_THRESHOLD = "conflict.rollback.row.threshold";
+    private static final String CONFLICT_COMMIT_TRX_THRESHOLD = "conflict.commit.trx.threshold";
+    private static final String CONFLICT_ROLLBACK_TRX_THRESHOLD = "conflict.rollback.trx.threshold";
+    private static final String SEND_CONFLICT_ALARM_EMAIL_SWITCH = "send.conflict.alarm.email.switch";
+    private static final String SEND_DBOWNER_CONFLICT_EMAIL_SWITCH = "send.dbowner.conflict.email.switch";
+    
 
     public String getDbaApprovers() {
         return getProperty(DBA_APPROVERS);
@@ -126,8 +136,8 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(OPS_APPROVAL_TOKEN, "");
     }
 
-    public String getConflictCcEmail() {
-        return getProperty(CONFLICT_CC_EMAIL);
+    public String getConflictApproveCcEmail() {
+        return getProperty(CONFLICT_APPROVE_CC_EMAIL);
     }
 
     public String getConflictDbaApprovers() {
@@ -297,4 +307,50 @@ public class DomainConfig extends AbstractConfigBean {
     public String getDotQueryApiUrl() {
         return getProperty(DOT_QUERY_API_URL, "");
     }
+    
+    public String getConflictAlarmSenderEmail() {
+        return getProperty(CONFLICT_ALARM_SENDER_EMAIL, "");
+    }
+    
+    public List<String> getConflictAlarmCCEmails() {
+        String ccEmails = getProperty(CONFLICT_ALARM_CC_EMAILS, "");
+        if (StringUtils.isBlank(ccEmails)) {
+            return new ArrayList<>();
+        } else {
+            return Arrays.stream(ccEmails.split(",")).collect(Collectors.toList());
+        }
+    }
+    
+    public String getDrcConflictHandleUrl() {
+        return getProperty(DRC_CONFLICT_HANDLE_URL, "");
+    }
+    
+    public String getDrcHickwallMonitorUrl() {
+        return getProperty(DRC_HICKWALL_MONITOR_URL, "");
+    }
+    
+    public long getConflictCommitRowThreshold() {
+        return getLongProperty(CONFLICT_COMMIT_ROW_THRESHOLD,60*1000L);
+    }
+    
+    public long getConflictRollbackRowThreshold() {
+        return getLongProperty(CONFLICT_ROLLBACK_ROW_THRESHOLD,100L);
+    }
+    
+    public long getConflictCommitTrxThreshold() {
+        return getLongProperty(CONFLICT_COMMIT_TRX_THRESHOLD,60*100L);
+    }
+
+    public long getConflictRollbackTrxThreshold() {
+        return getLongProperty(CONFLICT_ROLLBACK_TRX_THRESHOLD,10L);
+    }
+
+    public boolean getSendConflictAlarmEmailSwitch() {
+        return getBooleanProperty(SEND_CONFLICT_ALARM_EMAIL_SWITCH, false);
+    }
+    
+    public boolean getSendDbOwnerConflictEmailToSwitch() {
+    return getBooleanProperty(SEND_DBOWNER_CONFLICT_EMAIL_SWITCH, false);
+    }
+    
 }
