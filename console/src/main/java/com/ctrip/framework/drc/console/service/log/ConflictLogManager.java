@@ -4,6 +4,8 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
@@ -31,7 +33,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Order(3)
-public class ConflictAlarm extends AbstractLeaderAwareMonitor {
+public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     
     @Autowired
     private ConflictLogService conflictLogService; 
@@ -43,13 +45,11 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
     private DomainConfig domainConfig;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private ConflictDbBlackListTblDao cflLogBlackListTblDao;
     
     private OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
     private EmailService emailService = ApiContainer.getEmailServiceImpl();
-    private static final String EMAIL_STANDARD_FIRST_LINE= "DRC数据同步冲突预警。1分钟冲突统计：%s";
-    private static final String EMAIL_STANDARD_SECOND_LINE= "库表名：%s,同步链路：%s";
-    private static final String EMAIL_STANDARD_THIRD_LINE = "监控：%s";
-    private static final String EMAIL_STANDARD_FOURTH_LINE = "DRC自助处理：%s";
 
     @Override
     public void initialize() {
@@ -64,11 +64,32 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
             if (isRegionLeader && consoleConfig.isCenterRegion()) {
                 logger.info("[[task=ConflictAlarm]] is leader");
                 DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "checkConflict", this::checkConflict);
+                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "clearBlackList", this::clearBlackListAddedAutomatically);
             } else {
                 logger.info("[[task=ConflictAlarm]]not a leader do nothing");
             }
         } catch (Throwable t) {
             logger.error("[[task=ConflictAlarm]]error", t);
+        }
+    }
+    
+    protected void clearBlackListAddedAutomatically() throws SQLException {
+        if (consoleConfig.getCflBlackListAutoAddSwitch()) {
+            List<ConflictDbBlackListTbl> conflictDbBlackListTbls = cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode());
+            long current = System.currentTimeMillis();
+            List<ConflictDbBlackListTbl> toDelete = Lists.newArrayList();
+            for (ConflictDbBlackListTbl blackListTbl : conflictDbBlackListTbls) {
+                if (current - blackListTbl.getDatachangeLasttime().getTime() >= TimeUnit.HOURS.toMillis(domainConfig.getCflBlackListExpirationHour())) {
+                    toDelete.add(blackListTbl);
+                    if (toDelete.size() >= 100) {
+                        cflLogBlackListTblDao.batchDelete(toDelete);
+                        toDelete.clear();
+                    }
+                }
+            }
+            if (!toDelete.isEmpty()) {
+                cflLogBlackListTblDao.batchDelete(toDelete);
+            }
         }
     }
     
@@ -113,7 +134,7 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
                 if (emailResponse.isSuccess()) {
                     logger.info("[[task=ConflictAlarm]]send email success, db:{}, table:{}, count:{}", db, table, count);
                 } else {
-                    logger.error("[[task=ConflictAlarm]]send email failed, db:{}, table:{}, count:{}", db, table, count);
+                    logger.error("[[task=ConflictAlarm]]send email failed, message:{},db:{}, table:{}, count:{}", emailResponse.getMessage(),db, table, count);
                 }
             }
         }
@@ -127,7 +148,7 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
             return null;
         }
         Email email = new Email();
-        email.setSubject("DRC Conflict Alarm");
+        email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
         if (domainConfig.getSendDbOwnerConflictEmailToSwitch()) {
             email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
@@ -135,11 +156,12 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
         } else {
             domainConfig.getConflictAlarmCCEmails().forEach(email::addRecipient);
         }
-        String line1 = String.format(EMAIL_STANDARD_FIRST_LINE, type + ":" + count);
-        String line2 = String.format(EMAIL_STANDARD_SECOND_LINE, db + "." + table, srcMha + "(" + srcRegion + ")" + "=>" + dstMha + "(" + dstRegion + ")");
-        String line3 = String.format(EMAIL_STANDARD_THIRD_LINE, domainConfig.getDrcHickwallMonitorUrl() + "&var-mha=" + srcMha);
-        String line4 = String.format(EMAIL_STANDARD_FOURTH_LINE, domainConfig.getDrcConflictHandleUrl());
-        email.setBodyContent(line1 + "\n" + line2 + "\n" + line3 + "\n" + line4);
+        email.addContentKeyValue("冲突表", db + "." + table);
+        email.addContentKeyValue("同步链路", srcMha + "(" + srcRegion + ")" + "=>" + dstMha + "(" + dstRegion + ")");
+        email.addContentKeyValue("冲突类型", type.name());
+        email.addContentKeyValue("1min冲突统计", count.toString());
+        email.addContentKeyValue("监控", domainConfig.getDrcHickwallMonitorUrl() + "&var-mha=" + srcMha);
+        email.addContentKeyValue("自助处理", domainConfig.getDrcConflictHandleUrl());
         return email;
     }
   
@@ -151,7 +173,7 @@ public class ConflictAlarm extends AbstractLeaderAwareMonitor {
             case CONFLICT_ROLLBACK_TRX:
                 return count >= domainConfig.getConflictRollbackTrxThreshold();
             case CONFLICT_COMMIT_ROW:
-                return count >= domainConfig.getConflictCommitRowThreshold();
+                return count >= domainConfig.getConflictCommitRowThreshold(); 
             case CONFLICT_ROLLBACK_ROW:
                 return count >= domainConfig.getConflictRollbackRowThreshold();
             default:

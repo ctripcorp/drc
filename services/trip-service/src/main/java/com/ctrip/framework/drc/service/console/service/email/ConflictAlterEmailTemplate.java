@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.service.console.service.email;
 
 import com.ctrip.framework.drc.core.service.email.Email;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * @ClassName CflAlterEmailTemplate
@@ -38,10 +41,18 @@ public class ConflictAlterEmailTemplate implements TripEmailTemplate {
     @Override
     public void formatBodyContent(Email email) {
         if (email == null) return;
-        String content = email.getBodyContent();
-        content = content.replaceAll("\n", "<br/>");
-        content = String.format(XML_FORMATTER, content);
-        email.setBodyContent(content);
+        Map<String, String> contentKeyValues = email.getContentKeyValues();
+        if (contentKeyValues == null || contentKeyValues.isEmpty()) return;
+        Iterator<Entry<String, String>> iterator = contentKeyValues.entrySet().iterator();
+        StringBuilder content = new StringBuilder();
+        while (iterator.hasNext()) {
+            Entry<String, String> next = iterator.next();
+            String key = next.getKey();
+            String value = next.getValue();
+            content.append(key).append(": ").append(value).append(iterator.hasNext() ? "</br>" : "");
+        }
+        String bodyContent = String.format(XML_FORMATTER, content);
+        email.setBodyContent(bodyContent);
     }
     
     

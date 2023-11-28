@@ -500,7 +500,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter) throws Exception {
+    public void addDbBlacklist(String dbFilter, LogBlackListType type) throws Exception {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryByDbFilter(dbFilter);
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
@@ -509,6 +509,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
         tbl.setDbFilter(dbFilter);
+        tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
     }
 
@@ -1034,7 +1035,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private List<AviatorRegexFilter> queryBlackList() {
         try {
             List<AviatorRegexFilter> blackList = new ArrayList<>();
-            List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAll();
+            List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
             for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
                 blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
             }

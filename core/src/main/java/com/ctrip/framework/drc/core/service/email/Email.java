@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.core.service.email;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName Email
@@ -16,11 +18,14 @@ public class Email {
     private String sender;
     private String subject;
     private String bodyContent;
+    
+    private Map<String,String> contentKeyValues;
 
     public Email() {
         recipients = new LinkedList<>();
         cc = new LinkedList<>();
         bcc = new LinkedList<>();
+        contentKeyValues = new LinkedHashMap<>();
     }
     
     
@@ -82,6 +87,14 @@ public class Email {
 
     public void setBodyContent(String bodyContent) {
         this.bodyContent = bodyContent;
+    }
+    
+    public void addContentKeyValue(String key,String value) {
+        contentKeyValues.put(key,value);
+    }
+    
+    public Map<String,String> getContentKeyValues() {
+        return contentKeyValues;
     }
 
     @Override

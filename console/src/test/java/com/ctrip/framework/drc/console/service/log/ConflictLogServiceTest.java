@@ -274,7 +274,7 @@ public class ConflictLogServiceTest {
     
     @Test
     public void testIsInBlackListWithCache() throws Exception {
-        Mockito.when(conflictDbBlackListTblDao.queryAll()).thenReturn(getConflictDbBlackListTbls());
+        Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(getConflictDbBlackListTbls());
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
         Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));

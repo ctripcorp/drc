@@ -114,6 +114,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CONFLICT_ROLLBACK_TRX_THRESHOLD = "conflict.rollback.trx.threshold";
     private static final String SEND_CONFLICT_ALARM_EMAIL_SWITCH = "send.conflict.alarm.email.switch";
     private static final String SEND_DBOWNER_CONFLICT_EMAIL_SWITCH = "send.dbowner.conflict.email.switch";
+    private static final String CFL_BLACK_LIST_EXPIRATION_HOUR = "cfl.black.list.expiration.hour";
     
 
     public String getDbaApprovers() {
@@ -353,5 +354,8 @@ public class DomainConfig extends AbstractConfigBean {
     public boolean getSendDbOwnerConflictEmailToSwitch() {
     return getBooleanProperty(SEND_DBOWNER_CONFLICT_EMAIL_SWITCH, false);
     }
-    
+
+    public int getCflBlackListExpirationHour() {
+        return getIntProperty(CFL_BLACK_LIST_EXPIRATION_HOUR, 24);
+    }
 }
