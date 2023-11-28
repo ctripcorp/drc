@@ -292,7 +292,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         String nameFilter = param.getDbName() + "\\." + param.getTableName();
         if (consoleConfig.getCflBlackListAutoAddSwitch()) {
-            addConflictBlackList(nameFilter); 
+            addConflictBlackList(nameFilter); // async , fail not block configureDbReplications
         }
         
         Pair<List<String>, List<String>> dbTablePair = mhaDbMappingService.initMhaDbMappings(srcMha, dstMha, nameFilter);
@@ -301,12 +301,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationIds;
     }
     
-    private void addConflictBlackList(String nameFilter) { // fail not block configureDbReplications
-        try {
-            conflictLogService.addDbBlacklist(nameFilter, LogBlackListType.AUTO);
-        } catch (Exception e) {
-            logger.error("addDbBlacklist error", e);
-        }
+    private void addConflictBlackList(String nameFilter) {
+        executorService.submit( () -> {
+            try {
+                conflictLogService.addDbBlacklist(nameFilter, LogBlackListType.AUTO);
+            } catch (Exception e) {
+                logger.error("addDbBlacklist error", e);
+            }
+        });
     }
 
     public List<Long> updateDbReplications(DbReplicationBuildParam param) throws Exception {
