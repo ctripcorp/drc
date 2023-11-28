@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.v2.ConflictRecordVo;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 
 import java.util.List;
@@ -49,6 +50,8 @@ public interface MysqlServiceV2 {
     Long getCurrentTime(String mha);
 
     Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception;
+
+    ConflictRecordVo queryTableRecords1(QueryRecordsRequest requestBody) throws Exception;
 
     List<String> getAllOnUpdateColumns(String mha, String db, String table);
 

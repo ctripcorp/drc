@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.console.vo.v2.ConflictRecordVo;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -1034,8 +1035,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, Object> srcResultMap;
         Map<String, Object> dstResultMap;
         try {
-            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
-            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+            ConflictRecordVo srcRecordVo = mysqlService.queryTableRecords1(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
+            ConflictRecordVo dstRecordVo = mysqlService.queryTableRecords1(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+            srcResultMap = srcRecordVo.getRecords();
+            dstResultMap = dstRecordVo.getRecords();
+//            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
+//            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
         } catch (Exception e) {
             throw ConsoleExceptionUtils.message(e.getMessage());
         }

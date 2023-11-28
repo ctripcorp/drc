@@ -23,10 +23,7 @@ public @interface PossibleRemote {
     
     String[] excludeArguments() default {};
 
-    //ql_deng TODO 2023/11/28:
-//    Class<? extends ApiResult>  responseType() default ApiResult.class;
-
-    Class<?>  responseType() default ApiResult.class;
+    Class<? extends ApiResult>  responseType() default ApiResult.class;
 
     Class requestClass() default Object.class;
 }
