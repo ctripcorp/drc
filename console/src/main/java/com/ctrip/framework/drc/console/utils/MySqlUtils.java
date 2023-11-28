@@ -948,7 +948,6 @@ public class MySqlUtils {
 
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();
-        List<Map<String, Object>> list = new ArrayList<>();
         ResultSetMetaData md = rs.getMetaData();
         int columnCount = md.getColumnCount();
         List<String> columnList = new ArrayList<>();
@@ -975,17 +974,23 @@ public class MySqlUtils {
         ret.put("columns", columnList);
         ret.put("metaColumn", metaColumn);
 
+        List<Map<String, Object>> list = new ArrayList<>();
         Map<String, String> columnType = new LinkedHashMap<>();
         while (rs.next()) {
             Map<String, Object> rowData = new LinkedHashMap<>();
             for (String columnName : columnList) {
                 Object val = rs.getObject(columnName);
-                columnType.put(columnName, val.getClass().getName());
-                val.getClass().getName();
-                if (val instanceof Date) {
-                    rowData.put(columnName, String.valueOf(val));
+
+                if (val != null) {
+                    columnType.put(columnName, val.getClass().getName());
+                }
+
+                if (val == null) {
+                    rowData.put(columnName, null);
+                } else if (val instanceof byte[]) {
+                    rowData.put(columnName, CommonUtils.byteToHexString((byte[]) val));
                 } else {
-                    rowData.put(columnName, val);
+                    rowData.put(columnName, String.valueOf(val));
                 }
             }
             list.add(rowData);
@@ -1113,6 +1118,16 @@ public class MySqlUtils {
             return CommonUtils.byteToHexString((byte[]) val);
         }
         if (val instanceof String) {
+            return toStringVal(val);
+        }
+        return val;
+    }
+
+    public static Object toSqlValue(Object val, String columnType) {
+        if (val == null || columnType == null) {
+            return null;
+        }
+        if (String.class.getName().equals(columnType)) {
             return toStringVal(val);
         }
         return val;

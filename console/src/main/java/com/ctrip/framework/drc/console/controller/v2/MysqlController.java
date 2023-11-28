@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
-import com.ctrip.framework.drc.console.vo.v2.ConflictRecordVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.google.common.collect.Lists;
@@ -185,14 +184,14 @@ public class MysqlController {
     }
 
     @PostMapping("queryTableRecords")
-    public Map<String, Object> queryTableRecords(@RequestBody QueryRecordsRequest requestBody) {
+    public ApiResult<Map<String, Object>> queryTableRecords(@RequestBody QueryRecordsRequest requestBody) {
         try {
             logger.info("queryTableRecords: {}", requestBody);
             Map<String, Object> result = mysqlServiceV2.queryTableRecords(requestBody);
-            return result;
+            return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
             logger.error("queryTableRecords error", requestBody, e);
-            return null;
+            return ApiResult.getFailInstance(null);
         }
     }
 
