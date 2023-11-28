@@ -249,10 +249,29 @@ export default {
           }
         },
         {
-          title: '同步延迟',
+          title: '延迟',
           key: 'status',
           width: 100,
           align: 'center',
+          renderHeader: (h, params) => {
+            return h('span', [
+              h('span', '延迟'),
+              h('Button', {
+                on: {
+                  click: async () => {
+                    await this.getDelay()
+                  }
+                },
+                props: {
+                  loading: this.delayDataLoading,
+                  size: 'small',
+                  shape: 'circle',
+                  type: 'default',
+                  icon: 'md-refresh'
+                }
+              })
+            ])
+          },
           render: (h, params) => {
             const row = params.row
             let color, text
@@ -417,6 +436,7 @@ export default {
       },
       drcStatus: null,
       preciseSearchMode: false,
+      timerId: null,
       // get from backend
       replications: [],
       bus: [],
@@ -439,7 +459,8 @@ export default {
         lineWrap: false,
         row: {}
       },
-      dataLoading: true
+      dataLoading: true,
+      delayDataLoading: true
     }
   },
   computed: {},
@@ -535,9 +556,11 @@ export default {
           item.replicationId
         ).join(',')
       }
-      if (param.replicationIds.size === 0) {
+      if (param.replicationIds.length === 0) {
+        console.log('skip delay search')
         return
       }
+      this.delayDataLoading = true
       this.axios.get('/api/drc/v2/replication/delay', { params: param })
         .then(response => {
           const delays = response.data.data
@@ -553,6 +576,9 @@ export default {
         .catch(message => {
           console.log(message)
           this.$Message.error('查询延迟异常: ' + message)
+        })
+        .finally(() => {
+          this.delayDataLoading = false
         })
     },
     handleChangeSize (val) {
@@ -776,6 +802,14 @@ export default {
     this.getReplications(1)
     this.getRegions()
     this.getBus()
+    this.timerId = setInterval(() => this.getDelay(), 5000)
+    setTimeout(() => { clearInterval(this.timerId) }, 30 * 60 * 1000)
+  },
+  beforeDestroy () {
+    if (this.timerId) {
+      clearInterval(this.timerId)
+      this.timerId = null
+    }
   }
 }
 </script>

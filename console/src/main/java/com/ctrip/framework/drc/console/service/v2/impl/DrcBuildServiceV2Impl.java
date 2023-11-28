@@ -294,13 +294,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (consoleConfig.getCflBlackListAutoAddSwitch()) {
             addConflictBlackList(nameFilter); // async , fail not block configureDbReplications
         }
-        
+
         Pair<List<String>, List<String>> dbTablePair = mhaDbMappingService.initMhaDbMappings(srcMha, dstMha, nameFilter);
         List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(srcMha, dstMha.getId(), dbTablePair, nameFilter);
         List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
         return dbReplicationIds;
     }
-    
+
     private void addConflictBlackList(String nameFilter) {
         executorService.submit( () -> {
             try {
@@ -644,11 +644,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     public void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(mhaTbl.getMhaName());
+        autoConfigReplicatorsWithGtid(mhaTbl, mhaExecutedGtid);
+    }
+    @Override
+    public void autoConfigReplicatorsWithGtid(MhaTblV2 mhaTbl, String gtidInit) throws SQLException {
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTbl.getId());
         Long rGroupId = replicatorGroupTbl.getId();
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(rGroupId), BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(replicatorTbls)) {
-            
             logger.warn("[[mha={}]] replicator exist,do nothing", mhaTbl.getMhaName());
         } else {
             ResourceSelectParam selectParam = new ResourceSelectParam();
@@ -660,11 +664,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 throw new ConsoleException("autoConfigReplicators failed!");
             } else {
                 List<ReplicatorTbl> insertReplicators = Lists.newArrayList();
-                String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(mhaTbl.getMhaName());
                 for (ResourceView resourceView : resourceViews) {
                     ReplicatorTbl replicatorTbl = new ReplicatorTbl();
                     replicatorTbl.setRelicatorGroupId(rGroupId);
-                    replicatorTbl.setGtidInit(mhaExecutedGtid);
+                    replicatorTbl.setGtidInit(gtidInit);
                     replicatorTbl.setResourceId(resourceView.getResourceId());
                     replicatorTbl.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
                     replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(resourceView.getIp()));
@@ -681,7 +684,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
 
     @Override
-    public void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
+    public void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String gtid) throws SQLException {
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), destMhaTbl.getId(), BooleanEnum.FALSE.getCode());
         if (mhaReplicationTbl == null) {
             throw ConsoleExceptionUtils.message(String.format("configure appliers fail, mha replication not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
@@ -690,24 +693,24 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if(applierGroupTblV2 == null) {
             throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
         }
-        autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, updateGtidToRealTime);
+        autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, gtid);
     }
 
     @Override
     public void autoConfigAppliersWithRealTimeGtid(
             MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
             MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
-        autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, true);
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
+            throw new ConsoleException("getMhaExecutedGtid failed!");
+        }
+        autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, mhaExecutedGtid);
     }
 
-    private void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
-        // applier group
-        if (updateGtidToRealTime) {
-            String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
-            if (StringUtils.isBlank(mhaExecutedGtid)) {
-                logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
-                throw new ConsoleException("getMhaExecutedGtid failed!");
-            }
+    private void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException {
+        // applier group gtid
+        if (!StringUtils.isBlank(mhaExecutedGtid)) {
             applierGroup.setGtidInit(mhaExecutedGtid);
             applierGroupTblDao.update(applierGroup);
             logger.info("[[mha={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
