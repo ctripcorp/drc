@@ -269,15 +269,15 @@ export default {
     return {
       formItem: {
         buildMode: 0,
-        srcRegionName: 'ntgxh',
-        dstRegionName: 'sin',
-        dbName: 'arccoreinfoshard01db',
+        srcRegionName: null,
+        dstRegionName: null,
+        dbName: null,
         dalClusterModeOption: {
           dalClusterName: null
         },
         buName: null,
         tag: 'COMMON',
-        tableName: 'coreinfo_9',
+        tableName: null,
         rowsFilterDetail: {
           mode: 1,
           drcStrategyId: 0,
