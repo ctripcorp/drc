@@ -1035,12 +1035,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, Object> srcResultMap;
         Map<String, Object> dstResultMap;
         try {
-            ConflictRecordVo srcRecordVo = mysqlService.queryTableRecords1(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
-            ConflictRecordVo dstRecordVo = mysqlService.queryTableRecords1(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
-            srcResultMap = srcRecordVo.getRecords();
-            dstResultMap = dstRecordVo.getRecords();
-//            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
-//            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
+            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
         } catch (Exception e) {
             throw ConsoleExceptionUtils.message(e.getMessage());
         }

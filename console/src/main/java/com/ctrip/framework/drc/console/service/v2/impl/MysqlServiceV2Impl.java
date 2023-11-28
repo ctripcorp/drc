@@ -208,7 +208,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class)
+    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class, postResponseType = Map.class)
     public Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
         if (endpoint == null) {
@@ -217,24 +217,6 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         try {
             return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns(), requestBody.getColumnSize());
-        } catch (Exception e) {
-            throw ConsoleExceptionUtils.message(e.getMessage());
-        }
-    }
-
-    @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords1", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class, responseType = ConflictRecordVo.class)
-    public ConflictRecordVo queryTableRecords1(QueryRecordsRequest requestBody) throws Exception {
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
-        ConflictRecordVo conflictRecordVo = new ConflictRecordVo();
-        if (endpoint == null) {
-            logger.error("queryTableRecords from mha: {}, db not exist", requestBody.getMha());
-            return conflictRecordVo;
-        }
-        try {
-            Map<String, Object> records = MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns(), requestBody.getColumnSize());
-            conflictRecordVo.setRecords(records);
-            return conflictRecordVo;
         } catch (Exception e) {
             throw ConsoleExceptionUtils.message(e.getMessage());
         }

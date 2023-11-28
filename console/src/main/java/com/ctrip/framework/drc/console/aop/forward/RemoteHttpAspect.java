@@ -107,7 +107,7 @@ public class RemoteHttpAspect {
         }
 
         regionUrl.append(possibleRemote.path());
-        Object apiResult;
+        ApiResult apiResult;
         HttpRequestEnum httpRequestType = possibleRemote.httpType();
         switch (httpRequestType) {
             case GET:
@@ -120,10 +120,7 @@ public class RemoteHttpAspect {
             case POST:
                 String paramValue = JsonUtils.toJson(args.get("requestBody"));
                 Object requestBody = JsonUtils.fromJson(paramValue, possibleRemote.requestClass());
-                Object result = HttpUtils.post(regionUrl.toString(), requestBody, possibleRemote.responseType());
-                return result;
-//                apiResult = HttpUtils.post(regionUrl.toString(), requestBody);
-//                break;
+                return HttpUtils.post(regionUrl.toString(), requestBody, possibleRemote.postResponseType());
             case DELETE:
                 apiResult = HttpUtils.delete(regionUrl.toString(), possibleRemote.responseType());
                 break;
@@ -132,7 +129,7 @@ public class RemoteHttpAspect {
                 return null;
         }
         logger.info("[[tag=remoteHttpAop]] remote invoke console via Http url:{}", regionUrl);
-        return apiResult;
+        return apiResult.getData();
     }
 
     private void spliceUrl(StringBuilder regionUrl, Map<String, Object> args) {
