@@ -953,11 +953,13 @@ public class MySqlUtils {
         int columnCount = md.getColumnCount();
         List<String> columnList = new ArrayList<>();
         List<Map<String, Object>> metaColumn = new ArrayList<>();
+
         boolean fixed = columnCount >= columnSize;
         for (int j = 1; j <= columnCount; j++) {
             Map<String, Object> columnData = new LinkedHashMap<>();
-            columnData.put("title", md.getColumnName(j));
-            columnData.put("key", md.getColumnName(j));
+            String columnName = md.getColumnName(j);
+            columnData.put("title", columnName);
+            columnData.put("key", columnName);
             if (fixed) {
                 columnData.put("width", 200);
                 if (j == 1) {
@@ -973,10 +975,13 @@ public class MySqlUtils {
         ret.put("columns", columnList);
         ret.put("metaColumn", metaColumn);
 
+        Map<String, String> columnType = new LinkedHashMap<>();
         while (rs.next()) {
             Map<String, Object> rowData = new LinkedHashMap<>();
             for (String columnName : columnList) {
                 Object val = rs.getObject(columnName);
+                columnType.put(columnName, val.getClass().getName());
+                val.getClass().getName();
                 if (val instanceof Date) {
                     rowData.put(columnName, String.valueOf(val));
                 } else {
@@ -985,6 +990,7 @@ public class MySqlUtils {
             }
             list.add(rowData);
         }
+        ret.put("columnType", columnType);
         ret.put("record", list);
         return ret;
     }

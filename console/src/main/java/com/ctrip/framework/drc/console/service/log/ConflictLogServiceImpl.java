@@ -51,6 +51,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -1093,7 +1094,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         Map<String, Object> srcRecord = srcRecords.get(0);
         Map<String, Object> dstRecord = dstRecords.get(0);
-        return recordIsEqual(columns, srcRecord, dstRecord);
+
+        Map<String, String> columnTypeMap = (Map<String, String>) srcResultMap.get("columnType");
+        return recordIsEqual(columns, columnTypeMap, srcRecord, dstRecord);
     }
 
     private void setFilterColumnTip(List<Map<String, Object>> metaColumns, List<String> filterColumns) {
@@ -1105,18 +1108,18 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
     }
 
-    private boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
+    private boolean recordIsEqual(List<String> columns, Map<String, String> columnTypeMap, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
         List<String> unEqualColumns = new ArrayList<>();
         for (String column : columns) {
             Object srcValue = srcRecord.get(column);
             Object dstValue = dstRecord.get(column);
+            String columnType = columnTypeMap.get(column);
             if (srcValue == null && dstValue == null) {
                 continue;
             }
             if (srcValue == null || dstValue == null) {
                 unEqualColumns.add(column);
-            }
-            if (!equal(srcValue, dstValue)) {
+            } else if (!equal(srcValue, dstValue, columnType)) {
                 unEqualColumns.add(column);
                 logger.info("value not equal, column: {}, srcValue: {}, dstValue: {}", column, srcValue, dstValue);
             }
@@ -1134,13 +1137,20 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return true;
     }
 
-    private boolean equal(Object srcValue, Object dstValue) {
-        if (srcValue instanceof byte[]) {
+    private boolean equal(Object srcValue, Object dstValue, String columnType) {
+        if (byte[].class.getName().equals(columnType)) {
             return Arrays.equals((byte[]) srcValue, (byte[]) dstValue);
-        } else if (srcValue instanceof BigDecimal) {
-            return ((BigDecimal) srcValue).compareTo((BigDecimal) dstValue) == 0;
+        } else if (BigDecimal.class.getName().equals(columnType)) {
+            return new BigDecimal(String.valueOf(srcValue)).compareTo(new BigDecimal(String.valueOf(dstValue))) == 0;
         }
         return String.valueOf(srcValue).equals(String.valueOf(dstValue));
+
+//        if (srcValue instanceof byte[]) {
+//            return Arrays.equals((byte[]) srcValue, (byte[]) dstValue);
+//        } else if (srcValue instanceof BigDecimal) {
+//            return ((BigDecimal) srcValue).compareTo((BigDecimal) dstValue) == 0;
+//        }
+//        return String.valueOf(srcValue).equals(String.valueOf(dstValue));
     }
 
     private Long getDbReplicationIdByTableName(String tableName, List<DbReplicationView> dbReplicationViews) {
