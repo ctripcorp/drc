@@ -71,23 +71,4 @@ public class ApplierGroupTblV2Dao extends AbstractDao<ApplierGroupTblV2> {
         }
     }
 
-    public Long upsert(Long mhaReplicationId, String gtidInit) throws SQLException {
-        if (mhaReplicationId == null) {
-            throw new IllegalArgumentException("insertOrReCover ApplierGroupTblV2, mhaReplicationId is null");
-        }
-        ApplierGroupTblV2 aGroup = queryByMhaReplicationId(mhaReplicationId);
-        if (aGroup == null) {
-            ApplierGroupTblV2 newGroup = new ApplierGroupTblV2();
-            newGroup.setMhaReplicationId(mhaReplicationId);
-            newGroup.setGtidInit(StringUtils.isBlank(gtidInit) ? null : gtidInit);
-            return insertWithReturnId(newGroup);
-        } else {
-            aGroup.setDeleted(0);
-            aGroup.setGtidInit(StringUtils.isBlank(gtidInit) ? aGroup.getGtidInit() : gtidInit);
-            update(aGroup);
-            return aGroup.getId();
-        }
-    }
-    
-    
 }

@@ -412,7 +412,12 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         dbReplicationBuildParam.setColumnsFilterCreateParam(param.getColumnsFilterCreateParam());
         drcBuildService.buildDbReplicationConfig(dbReplicationBuildParam);
 
-        boolean newDrc = CollectionUtils.isEmpty(existDbReplication) && !BooleanEnum.TRUE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
+        boolean drcOff = !BooleanEnum.TRUE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
+        boolean drcConfigEmpty = CollectionUtils.isEmpty(existDbReplication);
+        if(drcOff && !drcConfigEmpty){
+            throw ConsoleExceptionUtils.message("drc has db replication but is stopped. could not auto build.");
+        }
+        boolean newDrc = drcOff;
         String gtidInit = param.getGtidInit();
         if (!newDrc && !StringUtils.isBlank(gtidInit)) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.GTID_NOT_CONFIGURABLE_FOR_EXIST_REPLICATION);
@@ -433,7 +438,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
         // 5. auto config appliers
         String applierGtid = newDrc ? gtidInit : null;
-        applierGroupTblDao.upsert(srcToDstMhaReplication.getId(), null);
+        applierGroupTblDao.insertOrReCover(srcToDstMhaReplication.getId(), null);
         drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, applierGtid);
 
         // 6. end
