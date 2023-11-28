@@ -25,8 +25,6 @@ public @interface PossibleRemote {
 
     Class<? extends ApiResult>  responseType() default ApiResult.class;
 
-    Class<?>  postResponseType() default ApiResult.class;
-
 
     Class requestClass() default Object.class;
 }

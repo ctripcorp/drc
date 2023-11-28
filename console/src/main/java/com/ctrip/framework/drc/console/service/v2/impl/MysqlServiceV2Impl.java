@@ -208,7 +208,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class, postResponseType = Map.class)
+    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class)
     public Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
         if (endpoint == null) {
