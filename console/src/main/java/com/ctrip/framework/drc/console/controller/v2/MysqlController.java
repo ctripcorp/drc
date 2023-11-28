@@ -184,14 +184,14 @@ public class MysqlController {
     }
 
     @PostMapping("queryTableRecords")
-    public ApiResult<Map<String, Object>> queryTableRecords(@RequestBody QueryRecordsRequest requestBody) {
+    public Map<String, Object> queryTableRecords(@RequestBody QueryRecordsRequest requestBody) {
         try {
             logger.info("queryTableRecords: {}", requestBody);
             Map<String, Object> result = mysqlServiceV2.queryTableRecords(requestBody);
-            return ApiResult.getSuccessInstance(result);
+            return result;
         } catch (Exception e) {
             logger.error("queryTableRecords error", requestBody, e);
-            return ApiResult.getFailInstance(null);
+            return null;
         }
     }
 

@@ -36,6 +36,7 @@ public class ConflictLogController {
             apiResult.setPageReq(param.getPageReq());
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictTrxLogView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -57,6 +58,7 @@ public class ConflictLogController {
             apiResult.setPageReq(param.getPageReq());
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictRowsLogView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -77,6 +79,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowsLogView(rowLogIds));
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictRowsLogView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -87,6 +90,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogDetailView(conflictTrxLogId));
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictTrxLogDetailView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -97,6 +101,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictCurrentRecordView(conflictTrxLogId, columnSize));
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictCurrentRecordView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -107,6 +112,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogId, columnSize));
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictRowRecordView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -117,6 +123,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.compareRowRecords(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
+            logger.error("compareRowRecords error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -127,6 +134,7 @@ public class ConflictLogController {
             conflictLogService.createConflictLog(trxLogs);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
+            logger.error("createConflictLog error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -137,6 +145,7 @@ public class ConflictLogController {
             long result = conflictLogService.deleteTrxLogs(beginTime, endTime);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
+            logger.error("deleteTrxLogs error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -146,6 +155,7 @@ public class ConflictLogController {
         try {
             return ApiResult.getSuccessInstance(conflictLogService.deleteTrxLogsByTime(beginTime, endTime));
         } catch (Exception e) {
+            logger.error("deleteRowLogs error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -156,6 +166,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.checkSameMhaReplication(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
+            logger.error("checkSameMhaReplication error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -166,6 +177,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getRowLogDetailView(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictRowLogDetailView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -176,6 +188,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
+            logger.error("getConflictRowRecordView error, {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -197,6 +210,7 @@ public class ConflictLogController {
             conflictLogService.addDbBlacklist(dbFilter);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
+            logger.error("addDbBlacklist error, {}", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
@@ -207,6 +221,7 @@ public class ConflictLogController {
             conflictLogService.deleteBlacklist(dbFilter);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
+            logger.error("deleteBlacklist error, {}", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

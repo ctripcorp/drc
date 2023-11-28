@@ -22,8 +22,11 @@ public @interface PossibleRemote {
     HttpRequestEnum httpType() default HttpRequestEnum.GET;
     
     String[] excludeArguments() default {};
-    
-    Class<? extends ApiResult>  responseType() default ApiResult.class;
+
+    //ql_deng TODO 2023/11/28:
+//    Class<? extends ApiResult>  responseType() default ApiResult.class;
+
+    Class<?>  responseType() default ApiResult.class;
 
     Class requestClass() default Object.class;
 }

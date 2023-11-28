@@ -77,7 +77,6 @@ public class HttpUtils {
     public static ApiResult post(String url, Object body) {
         return post(url, body, ApiResult.class);
     }
-
     public static <T> T get(String url, Class<T> responseType, Object... urlVariables) {
         init();
         HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(headers);
