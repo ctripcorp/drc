@@ -14,6 +14,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.service.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
@@ -121,6 +123,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private DbMetaCorrectService dbMetaCorrectService;
+    @Autowired
+    private ConflictLogService conflictLogService;
 
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
@@ -287,11 +291,24 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message("srcMha or dstMha not exist");
         }
         String nameFilter = param.getDbName() + "\\." + param.getTableName();
+        if (consoleConfig.getCflBlackListAutoAddSwitch()) {
+            addConflictBlackList(nameFilter); // async , fail not block configureDbReplications
+        }
+        
         Pair<List<String>, List<String>> dbTablePair = mhaDbMappingService.initMhaDbMappings(srcMha, dstMha, nameFilter);
-
         List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(srcMha, dstMha.getId(), dbTablePair, nameFilter);
         List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
         return dbReplicationIds;
+    }
+    
+    private void addConflictBlackList(String nameFilter) {
+        executorService.submit( () -> {
+            try {
+                conflictLogService.addDbBlacklist(nameFilter, LogBlackListType.AUTO);
+            } catch (Exception e) {
+                logger.error("addDbBlacklist error", e);
+            }
+        });
     }
 
     public List<Long> updateDbReplications(DbReplicationBuildParam param) throws Exception {

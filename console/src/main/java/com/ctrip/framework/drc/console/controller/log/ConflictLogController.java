@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.service.log.LogBlackListType;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -194,7 +195,7 @@ public class ConflictLogController {
     @PostMapping("/db/blacklist")
     public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
         try {
-            conflictLogService.addDbBlacklist(dbFilter);
+            conflictLogService.addDbBlacklist(dbFilter, LogBlackListType.USER);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());

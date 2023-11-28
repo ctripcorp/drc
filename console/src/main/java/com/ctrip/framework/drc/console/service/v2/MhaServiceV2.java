@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,8 @@ public interface MhaServiceV2 {
     void updateMhaTag(String mhaName, String tag) throws Exception;
 
     String getMhaDc(String mhaName) throws Exception;
+    
+    String getRegion(String mhaName) throws SQLException;
     
     // key:mhaName , value: replicator slave delay
     Map<String,Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception;

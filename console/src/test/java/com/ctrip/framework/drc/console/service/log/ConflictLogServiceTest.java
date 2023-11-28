@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
@@ -307,6 +308,22 @@ public class ConflictLogServiceTest {
 
         List<ConflictAutoHandleView> result = conflictLogService.createHandleSql(param);
         Assert.assertEquals(result.size(), 1);
+    }
+    
+    @Test
+    public void testIsInBlackListWithCache() throws Exception {
+        Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(getConflictDbBlackListTbls());
+        Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
+        Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
+        Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));
+    }
+
+    private List<ConflictDbBlackListTbl> getConflictDbBlackListTbls() {
+        ConflictDbBlackListTbl black1 = new ConflictDbBlackListTbl();
+        black1.setDbFilter("db1\\..*");
+        ConflictDbBlackListTbl black2 = new ConflictDbBlackListTbl();
+        black2.setDbFilter("db2\\..*");
+        return Lists.newArrayList(black1, black2);
     }
 
     private Map<String, Object> getSrcResMap() {

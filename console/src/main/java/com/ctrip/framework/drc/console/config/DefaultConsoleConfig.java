@@ -104,6 +104,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
     private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
     private static String META_REALTIME_SWITCH = "meta.realtime";
+    
+    private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
@@ -484,5 +486,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getConfgiCheckSwitch() {
         return getBooleanProperty("config.check.switch", true);
+    }
+
+    public boolean getCflBlackListAutoAddSwitch() {
+        return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
     }
 }

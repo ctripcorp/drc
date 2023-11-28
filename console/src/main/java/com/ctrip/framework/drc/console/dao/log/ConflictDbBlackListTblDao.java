@@ -17,6 +17,7 @@ import java.util.List;
 public class ConflictDbBlackListTblDao extends AbstractDao<ConflictDbBlackListTbl> {
 
     private static final String DB_FILTER = "db_filter";
+    private static final String TYPE = "type";
 
     public ConflictDbBlackListTblDao() throws SQLException {
         super(ConflictDbBlackListTbl.class);
@@ -25,6 +26,12 @@ public class ConflictDbBlackListTblDao extends AbstractDao<ConflictDbBlackListTb
     public List<ConflictDbBlackListTbl> queryByDbFilter(String dbFilter) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(DB_FILTER, dbFilter, Types.VARCHAR);
+        return queryList(sqlBuilder);
+    }
+
+    public List<ConflictDbBlackListTbl> queryByType(Integer type) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(TYPE, type, Types.TINYINT);
         return queryList(sqlBuilder);
     }
 }

@@ -13,6 +13,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.service.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
@@ -101,6 +103,8 @@ public class DrcBuildServiceV2Test {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private MessengerTblDao messengerTblDao;
+    @Mock
+    private ConflictLogService conflictLogService;
 
 
     @Before
@@ -192,7 +196,9 @@ public class DrcBuildServiceV2Test {
         Mockito.when(dbReplicationTblDao.queryByMappingIds(Mockito.anyList(), Mockito.anyList(), Mockito.anyInt())).thenReturn(getDbReplicationTbls());
         Mockito.when(mysqlServiceV2.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("test.table"));
         Mockito.doNothing().when(dbReplicationTblDao).batchInsertWithReturnId(Mockito.anyList());
-
+        Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
+        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(LogBlackListType.AUTO));
+        
         List<Long> results = drcBuildServiceV2.configureDbReplications(param);
         Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchInsertWithReturnId(Mockito.any());
 
@@ -222,6 +228,8 @@ public class DrcBuildServiceV2Test {
         Mockito.when(rowsFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getRowsFilterTbl());
         Mockito.when(columnFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getColumnsFilterTbl());
         Mockito.when(mysqlServiceV2.getCommonColumnIn(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(Sets.newHashSet("udl", "uid", "column"));
+        Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(false);
+
 
         drcBuildServiceV2.buildDbReplicationConfig(param);
         param.setColumnsFilterCreateParam(columnsFilterCreateParam);
@@ -399,7 +407,7 @@ public class DrcBuildServiceV2Test {
         Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
         Mockito.when(applierGroupTblDao.update(Mockito.any(ApplierGroupTblV2.class))).thenReturn(1);
         Mockito.when(mhaReplicationTblDao.update(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
-        Mockito.when(resourceService.autoConfigureResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
+        Mockito.when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
         Mockito.when(applierTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         MhaTblV2 mha1 = MockEntityBuilder.buildMhaTblV2(1L, "mha1", 1L);
