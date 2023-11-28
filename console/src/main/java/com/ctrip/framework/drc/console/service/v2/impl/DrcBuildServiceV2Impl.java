@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -621,7 +622,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws SQLException {
+    public void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha, List<MachineDto> machineDtos) throws Exception {
         Long mhaId = existMha.getId();
         String mhaName = existMha.getMhaName();
         List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
@@ -631,12 +632,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             return;
         }
 
-        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
-        List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
-        List<MachineTbl> machineFromDba = memberlist.stream()
-                .map(memberInfo -> extractFrom(memberInfo, mhaId))
-                .collect(Collectors.toList());
-
+        List<MachineTbl> machineFromDba = new ArrayList<>();
+        for (MachineDto memberInfo : machineDtos) {
+            MachineTbl machineTbl = extractFrom(memberInfo, mhaId);
+            machineFromDba.add(machineTbl);
+        }
         dbMetaCorrectService.mhaInstancesChange(machineFromDba, existMha);
     }
 
@@ -925,6 +925,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return addRemoveReplicatorIpsPair;
     }
 
+    private MachineTbl extractFrom(MachineDto machineDto, Long mhaId) throws Exception {
+        boolean isMaster = Boolean.TRUE.equals(machineDto.getMaster());
+        String uuid = MySqlUtils.getUuid(machineDto.getIp(), machineDto.getPort(),
+                monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(),
+                isMaster);
+        MachineTbl machineTbl = new MachineTbl();
+        machineTbl.setMhaId(mhaId);
+        machineTbl.setMaster(isMaster ? BooleanEnum.TRUE.getCode() : BooleanEnum.FALSE.getCode());
+        machineTbl.setIp(machineDto.getIp());
+        machineTbl.setPort(machineDto.getPort());
+        machineTbl.setUuid(uuid);
+        return machineTbl;
+    }
     private MachineTbl extractFrom(MemberInfo memberInfo,Long mhaId) {
         String serviceIp = memberInfo.getService_ip();
         int dnsPort = memberInfo.getDns_port();

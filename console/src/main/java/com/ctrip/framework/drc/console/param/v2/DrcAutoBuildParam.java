@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+
+import java.util.List;
 import java.util.Set;
 
 public class DrcAutoBuildParam {
@@ -7,6 +10,8 @@ public class DrcAutoBuildParam {
     private String dstMhaName;
     private String srcDcName;
     private String dstDcName;
+    private List<MachineDto> srcMachines;
+    private List<MachineDto> dstMachines;
 
     private String buName;
     private String tag;
@@ -18,6 +23,22 @@ public class DrcAutoBuildParam {
 
 
     private ViewOnlyInfo viewOnlyInfo;
+
+    public List<MachineDto> getSrcMachines() {
+        return srcMachines;
+    }
+
+    public void setSrcMachines(List<MachineDto> srcMachines) {
+        this.srcMachines = srcMachines;
+    }
+
+    public List<MachineDto> getDstMachines() {
+        return dstMachines;
+    }
+
+    public void setDstMachines(List<MachineDto> dstMachines) {
+        this.dstMachines = dstMachines;
+    }
 
     public ViewOnlyInfo getViewOnlyInfo() {
         return viewOnlyInfo;
@@ -121,12 +142,15 @@ public class DrcAutoBuildParam {
                 ", dstMhaName='" + dstMhaName + '\'' +
                 ", srcDcName='" + srcDcName + '\'' +
                 ", dstDcName='" + dstDcName + '\'' +
+                ", srcMachines=" + srcMachines +
+                ", dstMachines=" + dstMachines +
                 ", buName='" + buName + '\'' +
                 ", tag='" + tag + '\'' +
                 ", dbName=" + dbName +
                 ", tableFilter='" + tableFilter + '\'' +
                 ", rowsFilterCreateParam=" + rowsFilterCreateParam +
                 ", columnsFilterCreateParam=" + columnsFilterCreateParam +
+                ", viewOnlyInfo=" + viewOnlyInfo +
                 '}';
     }
 

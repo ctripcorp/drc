@@ -6,20 +6,16 @@
           <template #title>查询条件</template>
           <Row :gutter=10>
             <Col span="6">
-              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"></Input>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.db" placeholder="库名"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.db" placeholder="库名"></Input>
             </Col>
             <Col span="3">
-              <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"></Input>
             </Col>
             <Col span="3">
-              <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"></Input>
             </Col>
             <Col span="3">
               <DatePicker type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
@@ -38,7 +34,7 @@
         </Card>
       </Col>
       <Col span="1">
-        <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getTrxData">查询</Button>
+        <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getTotalData">查询</Button>
         <Button icon="md-refresh"  @click="resetParam" style="margin-top: 20px">重置
         </Button>
       </Col>
@@ -56,6 +52,7 @@
     </Table>
     <div style="text-align: center;margin: 16px 0">
       <Page
+        v-if="!countLoading"
         :transfer="true"
         :total="total"
         :current.sync="current"
@@ -66,6 +63,9 @@
         show-elevator
         @on-change="getTrxData"
         @on-page-size-change="handleChangeSize"></Page>
+      <div v-else>
+        Total Loading...
+      </div>
     </div>
   </div>
 </template>
@@ -84,6 +84,7 @@ export default {
       editable: false,
       clearable: false,
       dataLoading: false,
+      countLoading: false,
       queryParam: {
         srcMhaName: null,
         dstMhaName: null,
@@ -173,6 +174,45 @@ export default {
     }
   },
   methods: {
+    getTotalData () {
+      this.getCount()
+      this.getTrxData()
+    },
+    getCount () {
+      const beginTime = this.queryParam.beginHandleTime
+      const endTime = this.queryParam.endHandleTime
+      const beginHandleTime = new Date(beginTime).getTime()
+      const endHandleTime = new Date(endTime).getTime()
+      console.log('beginTime: ' + beginTime)
+      console.log('endTime: ' + endTime)
+      if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
+        return
+      }
+      const params = {
+        gtId: this.queryParam.gtid,
+        db: this.queryParam.db,
+        srcMhaName: this.queryParam.srcMhaName,
+        dstMhaName: this.queryParam.dstMhaName,
+        trxResult: this.queryParam.trxResult,
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
+        pageReq: {
+          pageSize: this.size,
+          pageIndex: this.current
+        }
+      }
+      const reqParam = this.flattenObj(params)
+      this.countLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/trx/count', { params: reqParam })
+        .then(response => {
+          if (response.data.status === 0) {
+            this.total = response.data.data
+          }
+        })
+        .finally(() => {
+          this.countLoading = false
+        })
+    },
     getTrxData () {
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
@@ -205,13 +245,11 @@ export default {
           const pageResult = data.pageReq
           if (data.status === 1) {
             this.$Message.error('查询失败')
-          } else if (data.data.length === 0 || pageResult.totalCount === 0) {
-            this.total = 0
+          } else if (data.data.length === 0) {
             this.current = 1
             this.tableData = data.data
             this.$Message.warning('查询结果为空')
           } else {
-            this.total = pageResult.totalCount
             this.current = pageResult.pageIndex
             this.tableData = data.data
             this.$Message.success('查询成功')
@@ -240,8 +278,8 @@ export default {
         srcMhaName: null,
         dstMhaName: null,
         gtid: null,
-        beginHandleTime: this.beginHandleTime,
-        endHandleTime: this.endHandleTime,
+        beginHandleTime: new Date(new Date().setSeconds(0, 0) - 10 * 60 * 1000),
+        endHandleTime: new Date(new Date().setSeconds(0, 0) + 60 * 1000),
         trxResult: null
       }
     },
@@ -271,7 +309,7 @@ export default {
     }
   },
   created () {
-    this.getTrxData()
+    this.getTotalData()
   }
 }
 </script>

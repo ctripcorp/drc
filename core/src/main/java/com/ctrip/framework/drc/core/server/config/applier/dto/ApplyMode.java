@@ -12,7 +12,10 @@ public enum ApplyMode {
 
     set_gtid(0, "set_gtid", Applier),
     transaction_table(1, "transaction_table", Applier),
-    mq(2, "mq", Messenger);
+    mq(2, "mq", Messenger),
+    db_transaction_table(3, "db_transaction_table", Applier),
+    db_mq(4, "db_mq", Messenger),
+    ;
 
     public static ApplyMode getApplyMode(final int type) {
         for(ApplyMode applyMode : values()) {

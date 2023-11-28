@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.google.common.collect.Maps;
 import io.netty.buffer.CompositeByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -19,6 +21,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
  * @create 2022/4/22
  */
 public class OutboundLogEventContext {
+
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private FileChannel fileChannel;
 
@@ -245,6 +249,16 @@ public class OutboundLogEventContext {
         return (GtidLogEvent) logEvent;
     }
 
+    public FilterLogEvent readFilterEvent() {
+        if (logEvent == null) {
+            FilterLogEvent filterLogEvent = new FilterLogEvent();
+            EventReader.readEvent(fileChannel, eventSize, filterLogEvent, compositeByteBuf);
+            logEvent = filterLogEvent;
+        }
+
+        return (FilterLogEvent) logEvent;
+    }
+
     public TableMapLogEvent readTableMapEvent() {
         if (logEvent == null) {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
@@ -277,5 +291,15 @@ public class OutboundLogEventContext {
         }
 
         return (AbstractRowsEvent) logEvent;
+    }
+
+    public void skipPosition(Long skipSize) {
+        try {
+            fileChannel.position(fileChannel.position() + skipSize);
+        } catch (IOException e) {
+            logger.error("skip position error:", e);
+            setCause(e);
+            setSkipEvent(true);
+        }
     }
 }

@@ -1,8 +1,8 @@
 <template>
   <base-component :isFather="isFather" :subMenuName="['1']" :fatherMenu="fatherMenu">
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
-      <BreadcrumbItem to="/home">首页</BreadcrumbItem>
       <BreadcrumbItem to="/conflictLog">冲突行</BreadcrumbItem>
+      <BreadcrumbItem to="/conflictApproval">冲突审批</BreadcrumbItem>
       <BreadcrumbItem>冲突详情</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
@@ -295,21 +295,11 @@ export default {
         return
       }
       const rowLogIds = []
-      const srcRecords = []
-      const dstRecords = []
       multiData.forEach(data => rowLogIds.push(data.rowLogId))
-      this.srcRecords.forEach(srcRecord => {
-        srcRecord.records.forEach(record => srcRecords.push(record))
-      })
-      this.dstRecords.forEach(dstRecord => {
-        dstRecord.records.forEach(record => dstRecords.push(record))
-      })
       this.sqlLoading = true
       this.handleSql = ''
       this.axios.post('/api/drc/v2/log/conflict/rows/handleSql', {
         writeSide: this.writeSide,
-        srcRecords: srcRecords,
-        dstRecords: dstRecords,
         rowLogIds: rowLogIds
       }).then(res => {
         const data = res.data

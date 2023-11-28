@@ -132,6 +132,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(dumpCommandPacket.getProperties()).thenReturn(String.format(ROW_FILTER_PROPERTIES, RowsFilterType.None.getName()));
         when(dumpCommandPacket.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
+        when(dumpCommandPacket.getNameFilter()).thenReturn("drc1\\..*,drc2\\..*,drc3\\..*,drc4\\..*");
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
         when(attribute.get()).thenReturn(channelAttributeKey);
         when(channelAttributeKey.getGate()).thenReturn(gate);

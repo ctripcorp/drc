@@ -20,6 +20,10 @@ public interface ConflictLogService {
 
     List<ConflictRowsLogView> getConflictRowsLogView(ConflictRowsLogQueryParam param) throws Exception;
 
+    int getRowsLogCount(ConflictRowsLogQueryParam param) throws Exception;
+
+    int getTrxLogCount(ConflictTrxLogQueryParam param) throws Exception;
+
     List<ConflictRowsLogView> getConflictRowsLogView(List<Long> conflictRowLogIds) throws Exception;
 
     ConflictTrxLogDetailView getConflictTrxLogDetailView(Long conflictTrxLogId) throws Exception;

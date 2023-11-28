@@ -3,8 +3,11 @@ package com.ctrip.framework.drc.core.monitor.column;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.framework.drc.core.server.utils.RowsEventUtils;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -14,6 +17,8 @@ import java.util.List;
  * date: 2020-04-20
  */
 public class DelayMonitorColumn {
+    private static final Logger logger = LoggerFactory.getLogger(DelayMonitorColumn.class);
+
     private static List<TableMapLogEvent.Column> columns = Lists.newArrayList();
 
     static  {
@@ -28,7 +33,7 @@ public class DelayMonitorColumn {
     }
 
     public static List<List<Object>> getAfterPresentRowsValues(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
-        delayMonitorLogEvent.getUpdateRowsEvent().getPayloadBuf().readerIndex(0);
+        RowsEventUtils.reset(delayMonitorLogEvent.getUpdateRowsEvent());
         delayMonitorLogEvent.load(columns);
         UpdateRowsEvent updateRowsEvent = delayMonitorLogEvent.getUpdateRowsEvent();
         return updateRowsEvent.getAfterPresentRowsValues();
@@ -49,4 +54,19 @@ public class DelayMonitorColumn {
         }
     }
 
+    public static boolean match(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
+        UpdateRowsEvent updateRowsEvent = delayMonitorLogEvent.getUpdateRowsEvent();
+        RowsEventUtils.reset(updateRowsEvent);
+        try {
+            delayMonitorLogEvent.load(columns);
+            List<List<Object>> afterPresentRowsValues = updateRowsEvent.getAfterPresentRowsValues();
+            return afterPresentRowsValues != null && afterPresentRowsValues.get(0).size() == columns.size();
+        } catch (Throwable e) {
+            logger.debug("parse match error: " + e.getMessage(), e);
+            return false;
+        } finally {
+            // clean
+            RowsEventUtils.reset(updateRowsEvent);
+        }
+    }
 }

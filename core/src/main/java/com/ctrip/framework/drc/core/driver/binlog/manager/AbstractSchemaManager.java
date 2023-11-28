@@ -10,8 +10,14 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.springframework.util.CollectionUtils;
+import org.unidal.tuple.Triple;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -27,6 +33,7 @@ import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadNam
 public abstract class AbstractSchemaManager extends AbstractLifecycle implements SchemaManager {
 
     protected Map<TableId, TableInfo> tableInfoMap = Maps.newConcurrentMap();
+    protected Map<String, Map<String, String>> schemaCache = Maps.newConcurrentMap();
 
     public static final int PORT_STEP = 10000;
 
@@ -69,6 +76,14 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         return res == null ? false : res.booleanValue();
     }
 
+    @Override
+    public synchronized Map<String, Map<String, String>> snapshot() {
+        if (CollectionUtils.isEmpty(schemaCache)) {
+            schemaCache = doSnapshot(inMemoryEndpoint);
+        }
+        return Collections.unmodifiableMap(schemaCache);
+    }
+
     /**
      * key : dbName
      * value: List<create table>
@@ -76,7 +91,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
      */
     protected Map<String, Map<String, String>> doSnapshot(Endpoint endpoint) {
         DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
-        Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTask(endpoint, dataSource)).call();
+        Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTaskV2(endpoint, dataSource, registryKey)).call();
         if (snapshot == null) {
             snapshot = Maps.newHashMap();
         }
@@ -96,7 +111,6 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
                 ddl = transformRes.getValue();
             }
         }
-        tableInfoMap.clear();
         synchronized (this) {
             SchemeApplyContext schemeApplyContext = new SchemeApplyContext.Builder()
                     .schema(schema)
@@ -111,6 +125,31 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
                     ddlMonitorExecutorService, baseEndpointEntity)).call();
             return res == null ? ApplyResult.from(ApplyResult.Status.FAIL, ddl)
                                : ApplyResult.from(ApplyResult.Status.SUCCESS, ddl);
+        }
+    }
+
+
+    @Override
+    public synchronized void refresh(List<TableId> tableIds) {
+        for (TableId key : tableIds) {
+            // 1. refresh table map
+            tableInfoMap.remove(key);
+
+            // 2. refresh schema cache
+            String schema = key.getDbName();
+            String table = key.getTableName();
+            Triple<String, String, String> result = new RetryTask<>(new SchemaSnapshotTaskV2.CreateTableQueryTask(inMemoryDataSource, schema, table)).call();
+            if (result == null) {
+                // query fail, do nothing
+                continue;
+            }
+            String createTableSQL = result.getLast();
+            Map<String, String> tableMap = schemaCache.computeIfAbsent(schema, k -> new HashMap<>());
+            if (StringUtils.isBlank(createTableSQL)) {
+                tableMap.remove(table);
+            } else {
+                tableMap.put(table, createTableSQL);
+            }
         }
     }
 

@@ -9,6 +9,8 @@ import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +24,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/drc/v2/log/conflict/")
 public class ConflictLogController {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ConflictLogService conflictLogService;
@@ -37,6 +41,16 @@ public class ConflictLogController {
         }
     }
 
+    @GetMapping("trx/count")
+    public ApiResult<Integer> getTrxCount(ConflictTrxLogQueryParam param) {
+        try {
+            return ApiResult.getSuccessInstance(conflictLogService.getTrxLogCount(param));
+        } catch (Exception e) {
+            logger.error("getTrxCount fail: {}", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("rows")
     public ApiResult<List<ConflictRowsLogView>> getConflictRowsLogView(ConflictRowsLogQueryParam param) {
         try {
@@ -44,6 +58,16 @@ public class ConflictLogController {
             apiResult.setPageReq(param.getPageReq());
             return apiResult;
         } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("rows/count")
+    public ApiResult<Integer> getRowsCount(ConflictRowsLogQueryParam param) {
+        try {
+            return ApiResult.getSuccessInstance(conflictLogService.getRowsLogCount(param));
+        } catch (Exception e) {
+            logger.error("getRowsCount fail: {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -163,6 +187,7 @@ public class ConflictLogController {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.createHandleSql(param));
             return apiResult;
         } catch (Exception e) {
+            logger.error("createHandleSql error: {}", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

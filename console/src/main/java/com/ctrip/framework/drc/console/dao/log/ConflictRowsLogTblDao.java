@@ -37,13 +37,14 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
 
     public List<ConflictRowsLogTbl> queryByParam(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);
-        sqlBuilder.selectCount();
-        int count = client.count(sqlBuilder, new DalHints()).intValue();
-        param.getPageReq().setTotalCount(count);
-
-        sqlBuilder = buildSqlBuilder(param);
         sqlBuilder.selectAll().atPage(param.getPageReq().getPageIndex(), param.getPageReq().getPageSize()).orderBy(HANDLE_TIME, false);
         return queryList(sqlBuilder);
+    }
+
+    public int getCount(ConflictRowsLogQueryParam param) throws SQLException {
+        SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);
+        sqlBuilder.selectCount();
+        return client.count(sqlBuilder, new DalHints()).intValue();
     }
 
     public List<ConflictRowsLogTbl> queryByTrxLogId(long trxLogId) throws SQLException {
@@ -87,7 +88,7 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         }
 
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
-            sqlBuilder.and().greaterThan(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
+            sqlBuilder.and().greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
         }
         if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
             sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);

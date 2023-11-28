@@ -35,6 +35,8 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
 import com.ctrip.framework.drc.core.meta.MessengerPropertiesTest;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayDtoTest;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
@@ -190,6 +192,8 @@ import org.junit.runners.Suite;
         QueryTypeTest.class,
 
         DelayMonitorColumnTest.class,
+        DbDelayMonitorColumnTest.class,
+        DbDelayDtoTest.class,
 
         // table regex filter
         AviatorRegexFilterTest.class,

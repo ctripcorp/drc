@@ -12,4 +12,8 @@ public class BackupTransactionEvent extends TransactionEvent {
     public boolean passFilter() {
         return false;
     }
+
+    @Override
+    public void addFilterLogEvent() {
+    }
 }
