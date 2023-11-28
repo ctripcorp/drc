@@ -177,8 +177,8 @@
                 <Option v-for="item in meta.tags" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </FormItem>
-            <FormItem label="初始同步位点" prop="gtidInit" v-if="previewDataList !== null && previewDataList.length === 1 && formItem.buildMode === 0 && previewDataList[0].drcStatus === 0">
-              <Input v-model="formItem.gtidInit" style="width: 80%" :border="false" placeholder="请输入binlog拉取位点"/>
+            <FormItem label="初始同步位点" prop="gtidInit" v-if="previewDataList !== null && previewDataList.length === 1 && formItem.buildMode === 0 && previewDataList[0].drcStatus !== 1">
+              <Input v-model="formItem.gtidInit" style="width: 80%;margin-right: 10px" :border="false" placeholder="请输入binlog拉取位点"/>
               <Button type="success" @click="querySrcMhaGtidCheckRes">位点校验</Button>
             </FormItem>
             <FormItem>

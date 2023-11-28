@@ -412,7 +412,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         dbReplicationBuildParam.setColumnsFilterCreateParam(param.getColumnsFilterCreateParam());
         drcBuildService.buildDbReplicationConfig(dbReplicationBuildParam);
 
-        boolean newDrc = CollectionUtils.isEmpty(existDbReplication) && BooleanEnum.FALSE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
+        boolean newDrc = CollectionUtils.isEmpty(existDbReplication) && !BooleanEnum.TRUE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
         String gtidInit = param.getGtidInit();
         if (!newDrc && !StringUtils.isBlank(gtidInit)) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.GTID_NOT_CONFIGURABLE_FOR_EXIST_REPLICATION);
