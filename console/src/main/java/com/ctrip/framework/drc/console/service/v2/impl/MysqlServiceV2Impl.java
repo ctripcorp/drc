@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
-import com.ctrip.framework.drc.console.vo.v2.ConflictRecordVo;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;

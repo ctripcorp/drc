@@ -25,7 +25,6 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.log.*;
-import com.ctrip.framework.drc.console.vo.v2.ConflictRecordVo;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -51,7 +50,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
