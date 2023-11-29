@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.extract.ExtractFilter;
 import io.netty.buffer.ByteBuf;
@@ -237,6 +238,134 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         }
     }
 
+    @Test
+    public void testUdlRowsFilter() throws Exception {
+        filterChainContext = new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", ROW_FILTER_UDL_PROPERTIES), outboundMonitorReport, null, false, null, channelAttributeKey, "src", "dst");
+        Filter<OutboundLogEventContext> filterChain = filterChainFactory.createFilterChain(filterChainContext);
+
+        // drc_table_map_log_event
+        TableMapLogEvent tableMapLogEvent = drcTableMapEvent();
+        String tableName = tableMapLogEvent.getSchemaNameDotTableName();
+        ByteBuf byteBuf = tableMapLogEvent.getLogEventHeader().getHeaderBuf();
+        int endIndex = byteBuf.writerIndex();
+        ByteBuffer byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        byteBuf = tableMapLogEvent.getPayloadBuf();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+        long previousPosition = 0;
+        long currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition);
+
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition);
+        boolean skipEvent = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(skipEvent);
+
+        // gtid_log_event
+        byteBuf = getGtidEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+        previousPosition = currentPosition;
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition);
+
+        outboundLogEventContext.reset(previousPosition);
+        skipEvent = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(skipEvent);
+
+        // table_map_log_event
+        byteBuf = tableMapEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+        previousPosition = currentPosition;
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition);
+
+        outboundLogEventContext.reset(previousPosition);
+        skipEvent = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(skipEvent);
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+        previousPosition = currentPosition;
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition);
+
+        outboundLogEventContext.reset(previousPosition);
+        skipEvent = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(skipEvent);
+        Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+        previousPosition = currentPosition;
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition);
+
+        outboundLogEventContext.reset(previousPosition);
+        skipEvent = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(skipEvent);
+        Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
+
+        Filter filter = filterChain.getSuccessor();
+        while (filter != null) {
+            if (filter instanceof ExtractFilter) {
+                RowsFilterContext rowsFilterContext = ((ExtractFilter)filter).getExtractContext().getRowsFilterContext();
+                Assert.assertTrue(rowsFilterContext.size() > 0);
+                break;
+            }
+            filter = filter.getSuccessor();
+        }
+
+        // xid_log_event
+        byteBuf = getXidEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+        previousPosition = currentPosition;
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition);
+
+        outboundLogEventContext.reset(previousPosition);
+        skipEvent = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(skipEvent);
+        Assert.assertNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
+
+        Filter filter1 = filterChain.getSuccessor();
+        while (filter1 != null) {
+            if (filter1 instanceof ExtractFilter) {
+                RowsFilterContext rowsFilterContext = ((ExtractFilter)filter1).getExtractContext().getRowsFilterContext();
+                Assert.assertEquals(0, rowsFilterContext.size());
+                break;
+            }
+            filter1 = filter1.getSuccessor();
+        }
+
+        // test release
+        Filter successor = filterChain.getSuccessor();
+        while (successor != null) {
+
+            if (successor instanceof ReadFilter) {
+                int refCnt = outboundLogEventContext.getCompositeByteBuf().refCnt();
+                Assert.assertTrue(refCnt > 0);
+                filterChain.release();
+                refCnt = outboundLogEventContext.getCompositeByteBuf().refCnt();
+                Assert.assertEquals(0, refCnt);
+            }
+            successor = successor.getSuccessor();
+        }
+    }
+
     private String COLUMNS_FILTER_PROPERTIES_EXCLUDE = "{" +
             "  \"columnsFilters\": [" +
             "    {" +
@@ -286,5 +415,28 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
             "        ]" +
             "    }" +
             "  ]" +
+            "}";
+
+    private String ROW_FILTER_UDL_PROPERTIES = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"trip_udl\",\n" +
+            "      \"tables\": \"drc1.insert1\",\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"one\"\n" +
+            "            ],\n" +
+            "            \"illegalArgument\": true,\n" +
+            "            \"fetchMode\": 0,\n" +
+            "            \"userFilterMode\": \"udl\",\n" +
+            "            \"drcStrategyId\": 1,\n" +
+            "            \"context\": \"SHA\"\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
             "}";
 }

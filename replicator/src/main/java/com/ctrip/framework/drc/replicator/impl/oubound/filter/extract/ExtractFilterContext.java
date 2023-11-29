@@ -31,7 +31,7 @@ public class ExtractFilterContext {
 
     private List<Integer> extractedColumnsIndex;
 
-    private RowsFilterContext rowsFilterContext;
+    private RowsFilterContext rowsFilterContext = new RowsFilterContext();
 
     private AbstractRowsEvent rowsEvent;
 
