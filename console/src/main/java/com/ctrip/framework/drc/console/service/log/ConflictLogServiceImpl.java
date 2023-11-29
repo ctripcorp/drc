@@ -1089,8 +1089,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         boolean sameRecord = recordIsEqual(srcResultMap, dstResultMap, columnsFieldMap, dbReplicationViews);
 
-        List<Map<String, String>> srcRecords = (List<Map<String, String>>) srcResultMap.get("record");
-        List<Map<String, String>> dstRecords = (List<Map<String, String>>) dstResultMap.get("record");
+        List<Map<String, Object>> srcRecords = (List<Map<String, Object>>) srcResultMap.get("record");
+        List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) dstResultMap.get("record");
         if (!CollectionUtils.isEmpty(srcRecords)) {
             srcRecords.get(0).put(ROW_LOG_ID, String.valueOf(rowLog.getId()));
         }
