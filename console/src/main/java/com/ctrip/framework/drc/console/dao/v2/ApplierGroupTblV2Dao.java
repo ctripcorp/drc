@@ -70,6 +70,5 @@ public class ApplierGroupTblV2Dao extends AbstractDao<ApplierGroupTblV2> {
             return insertWithReturnId(newGroup);
         }
     }
-    
-    
+
 }

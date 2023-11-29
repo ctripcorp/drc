@@ -7,6 +7,10 @@
         <version>0.0.1</version>
     </parent>
     <artifactId>trip-service</artifactId>
+    
+    <properties>
+        <emailservice.version>1.3.3</emailservice.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -178,6 +182,11 @@
         <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-dal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.platform.basesystem.emailservice.v1</groupId>
+            <artifactId>emailservice</artifactId>
+            <version>${emailservice.version}</version>
         </dependency>
         <dependency>
             <groupId>com.ctrip.framework</groupId>

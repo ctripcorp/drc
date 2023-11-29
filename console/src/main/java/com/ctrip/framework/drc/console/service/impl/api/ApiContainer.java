@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.impl.api;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
+import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.mysql.MySQLToolsApiService;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -74,6 +75,14 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
     }
     public static ApprovalApiService getApprovalApiServiceImpl() {
         return ApprovalApiServiceHolder.INSTANCE;
+    }
+    
+    // EmailServiceHolder
+    private static class EmailServiceHolder {
+        public static final EmailService INSTANCE = load(EmailService.class);
+    }
+    public static EmailService getEmailServiceImpl() {
+        return EmailServiceHolder.INSTANCE;
     }
     
 }

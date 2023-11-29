@@ -55,6 +55,7 @@ import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -269,7 +270,10 @@ import org.junit.runners.Suite;
         //zookeeper
         AbstractResourceManagerTest.class,
 
-        DrcKeyedOneThreadTaskExecutorTest.class
+        DrcKeyedOneThreadTaskExecutorTest.class,
+        
+        //entity json parse
+        HickWallConflictCountTest.class
 })
 public class AllTests {
     /**

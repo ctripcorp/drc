@@ -29,6 +29,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -212,6 +213,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             }
             list.add(mhaReplicationPreviewDto);
         }
+        this.fillDrcStatus(list);
         return list;
     }
 
@@ -308,39 +310,43 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             param.setDbName(dbNames);
             param.setSrcMachines(srcMha.getMachineDtos());
             param.setDstMachines(dstMha.getMachineDtos());
+            DrcAutoBuildParam.ViewOnlyInfo viewOnlyInfo = new DrcAutoBuildParam.ViewOnlyInfo();
+            viewOnlyInfo.setDrcStatus(replicationPreviewDtoList.get(0).getDrcStatus());
+            param.setViewOnlyInfo(viewOnlyInfo);
             list.add(param);
         }
-
-        this.fillExtraInfo(list);
-
+        if (!StringUtils.isBlank(req.getGtidInit())) {
+            if (list.size() == 1) {
+                list.get(0).setGtidInit(req.getGtidInit());
+            } else {
+                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.GTID_ONLY_FOR_SINGLE_MHA_REPLICATION);
+            }
+        }
         return list;
     }
 
-    private void fillExtraInfo(List<DrcAutoBuildParam> list) {
+    private void fillDrcStatus(List<MhaReplicationPreviewDto> list) {
         Set<String> mhaNames = new HashSet<>();
         list.forEach(e -> {
-            mhaNames.add(e.getSrcMhaName());
-            mhaNames.add(e.getDstMhaName());
+            mhaNames.add(e.getSrcMha().getName());
+            mhaNames.add(e.getDstMha().getName());
         });
         try {
             List<MhaTblV2> mhaTblV2List = mhaTblDao.queryByMhaNames(Lists.newArrayList(mhaNames), BooleanEnum.FALSE.getCode());
             Map<String, MhaTblV2> mhaMap = mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, e -> e, (e1, e2) -> e1));
-            for (DrcAutoBuildParam param : list) {
-                MhaTblV2 srcMha = mhaMap.get(param.getSrcMhaName());
-                MhaTblV2 dstMha = mhaMap.get(param.getDstMhaName());
-                DrcAutoBuildParam.ViewOnlyInfo viewOnlyInfo = new DrcAutoBuildParam.ViewOnlyInfo();
-                param.setViewOnlyInfo(viewOnlyInfo);
-
+            for (MhaReplicationPreviewDto param : list) {
+                MhaTblV2 srcMha = mhaMap.get(param.getSrcMha().getName());
+                MhaTblV2 dstMha = mhaMap.get(param.getDstMha().getName());
                 if (srcMha == null || dstMha == null) {
-                    viewOnlyInfo.setDrcStatus(-1);
+                    param.setDrcStatus(-1);
                     continue;
                 }
                 MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId(), BooleanEnum.FALSE.getCode());
                 if (mhaReplicationTbl == null) {
-                    viewOnlyInfo.setDrcStatus(-1);
+                    param.setDrcStatus(-1);
                     continue;
                 }
-                viewOnlyInfo.setDrcStatus(mhaReplicationTbl.getDrcStatus());
+                param.setDrcStatus(mhaReplicationTbl.getDrcStatus());
             }
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -406,18 +412,46 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         dbReplicationBuildParam.setColumnsFilterCreateParam(param.getColumnsFilterCreateParam());
         drcBuildService.buildDbReplicationConfig(dbReplicationBuildParam);
 
+        boolean drcOff = !BooleanEnum.TRUE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
+        boolean drcConfigEmpty = CollectionUtils.isEmpty(existDbReplication);
+        if(drcOff && !drcConfigEmpty){
+            throw ConsoleExceptionUtils.message("drc has db replication but is stopped. could not auto build.");
+        }
+        boolean newDrc = drcOff;
+        String gtidInit = param.getGtidInit();
+        if (!newDrc && !StringUtils.isBlank(gtidInit)) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.GTID_NOT_CONFIGURABLE_FOR_EXIST_REPLICATION);
+        }
+        if (StringUtils.isBlank(gtidInit)) {
+            gtidInit = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+            if (StringUtils.isBlank(gtidInit)) {
+                throw ConsoleExceptionUtils.message("fail to query realtime gtid for mha: " + srcMhaTbl.getMhaName());
+            }
+        }
         // 4. auto config replicators
+        String replicatorGtid = gtidInit;
+        this.checkGtidLegal(srcMhaTbl, replicatorGtid);
         replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
-        drcBuildService.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
+        drcBuildService.autoConfigReplicatorsWithGtid(srcMhaTbl, replicatorGtid);
         replicatorGroupTblDao.upsertIfNotExist(dstMhaTbl.getId());
         drcBuildService.autoConfigReplicatorsWithRealTimeGtid(dstMhaTbl);
 
         // 5. auto config appliers
+        String applierGtid = newDrc ? gtidInit : null;
         applierGroupTblDao.insertOrReCover(srcToDstMhaReplication.getId(), null);
-        boolean updateApplierGtid = CollectionUtils.isEmpty(existDbReplication);
-        drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, updateApplierGtid);
+        drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, applierGtid);
+
         // 6. end
         logger.info("build success: {}", param);
+    }
+
+    private void checkGtidLegal(MhaTblV2 srcMhaTbl, String gtidInit) {
+        GtidSet purgedGtid = new GtidSet(mysqlServiceV2.getMhaPurgedGtid(srcMhaTbl.getMhaName()));
+        GtidSet configGtid = new GtidSet(gtidInit);
+        boolean legal = purgedGtid.isContainedWithin(configGtid);
+        if (!legal) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.GTID_PURGED, "given:" + gtidInit + "\npurged:" + purgedGtid);
+        }
     }
 
     private static MhaDto buildMhaDto(ClusterInfoDto clusterInfoDto, DcDo dcDo) {

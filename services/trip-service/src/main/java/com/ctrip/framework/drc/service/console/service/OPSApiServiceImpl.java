@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.console.service;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.ops.AppClusterResult;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
@@ -16,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +51,7 @@ public class OPSApiServiceImpl implements OPSApiService {
 
     private static final String DAL_SERVICE_SUFFIX = "?operator=drcAdmin";
 
+    private static final String CONFLICT_COUNT_QUERY= "sum(sum_over_time(fx.drc.applier.%s.conflict.%s_rcount[%sm])) by (db,table,srcMha,destMha)";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -178,7 +182,41 @@ public class OPSApiServiceImpl implements OPSApiService {
         return JsonUtils.fromJsonToList(result, HickWallMhaReplicationDelayEntity.class);
     }
 
-
+    @Override
+    public List<HickWallConflictCount> getConflictCount(String apiUrl, String accessToken, boolean isTrx, boolean isCommit, int minutes) throws IOException {
+        String querySql = String.format(CONFLICT_COUNT_QUERY,isTrx ? "trx" : "rows" , isCommit ? "commit" : "rollback", minutes);
+        String encodeQuerySql = URLEncoder.encode(querySql, StandardCharsets.UTF_8.toString());
+        String queryParam =  "?query=" + encodeQuerySql +  "&step=60&db=APM-FX";
+        String result = getMetricsFromHickWall(apiUrl, accessToken, queryParam);
+        return JsonUtils.fromJsonToList(result, HickWallConflictCount.class);
+    }
+    
+    
+    private String getMetricsFromHickWall(String url, String accessToken, String queryParam) throws IOException {
+        Map<String, Object> requestBody = Maps.newLinkedHashMap();
+        requestBody.put("access_token", accessToken);
+        requestBody.put("request_body", null);
+        String formatUrl = url + queryParam;
+        
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, JsonUtils.toJson(requestBody));
+        Request request = new Request.Builder()
+                .url(formatUrl)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String responseStr;
+        try (Response response = client.newCall(request).execute()) {
+            responseStr = response.body().string();
+        }
+        JsonObject jsonObject = JsonUtils.fromJson(responseStr, JsonObject.class);
+        JsonObject data = jsonObject.get("data").getAsJsonObject();
+        String result = JsonUtils.toJson(data.get("result"));
+        return result;
+    }
+    
+    
     @Override
     public int getOrder() {
         return 0;

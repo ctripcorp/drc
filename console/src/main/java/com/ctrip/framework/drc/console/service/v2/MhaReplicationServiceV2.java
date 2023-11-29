@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
 
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 
 public interface MhaReplicationServiceV2 {
     PageResult<MhaReplicationTbl> queryByPage(MhaReplicationQuery query);

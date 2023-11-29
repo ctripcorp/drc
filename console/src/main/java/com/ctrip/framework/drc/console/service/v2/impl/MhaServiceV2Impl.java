@@ -20,7 +20,6 @@ import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
-import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
@@ -336,6 +335,17 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
         return dcTbl.getDcName();
     }
+
+    @Override
+    public String getRegion(String mhaName) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            return null;
+        }
+        DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
+        return dcTbl.getRegionName();
+    }
+
 
     @Override
     public Map<String, Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception {

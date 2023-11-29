@@ -32,6 +32,21 @@ public class ConflictDbBlackListTbl {
     private String dbFilter;
 
     /**
+     * 黑名单类型，0-用户添加,1-DRC系统自动田间
+     * default: 0
+     */
+    @Column(name = "type")
+    @Type(value = Types.TINYINT)
+    private Integer type;
+
+    /**
+     * 更新时间
+     */
+    @Column(name = "datachange_lasttime", insertable = false, updatable = false)
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp datachangeLasttime;
+
+    /**
      * 是否删除, 0-否; 1-是
      */
     @Column(name = "deleted")
@@ -59,6 +74,22 @@ public class ConflictDbBlackListTbl {
 
     public void setDbFilter(String dbFilter) {
         this.dbFilter = dbFilter;
+    }
+
+    public Integer getType() {
+        return type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
+    }
+
+    public Timestamp getDatachangeLasttime() {
+        return datachangeLasttime;
+    }
+
+    public void setDatachangeLasttime(Timestamp datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
     }
 
     public Integer getDeleted() {
