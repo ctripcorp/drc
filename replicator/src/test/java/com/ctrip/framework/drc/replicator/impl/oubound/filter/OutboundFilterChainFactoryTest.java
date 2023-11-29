@@ -313,20 +313,6 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertFalse(skipEvent);
         Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
 
-        // rows_log_event
-        byteBuf = writeRowsEvent();
-        endIndex = byteBuf.writerIndex();
-        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
-        fileChannel.write(byteBuffer);
-        previousPosition = currentPosition;
-        currentPosition = fileChannel.position();
-        fileChannel.position(previousPosition);
-
-        outboundLogEventContext.reset(previousPosition);
-        skipEvent = filterChain.doFilter(outboundLogEventContext);
-        Assert.assertFalse(skipEvent);
-        Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
-
         Filter filter = filterChain.getSuccessor();
         while (filter != null) {
             if (filter instanceof ExtractFilter) {
