@@ -11,6 +11,7 @@ public class MhaReplicationPreviewDto {
     private String dstRegionName;
     private List<MhaDto> srcOptionalMha;
     private List<MhaDto> dstOptionalMha;
+    private Integer drcStatus;
 
     // only when
     public Boolean normalCase() {
@@ -77,6 +78,14 @@ public class MhaReplicationPreviewDto {
         this.dbName = dbName;
     }
 
+    public Integer getDrcStatus() {
+        return drcStatus;
+    }
+
+    public void setDrcStatus(Integer drcStatus) {
+        this.drcStatus = drcStatus;
+    }
+
     @Override
     public String toString() {
         return "MhaReplicationPreviewDto{" +
@@ -85,6 +94,7 @@ public class MhaReplicationPreviewDto {
                 ", dstRegionName='" + dstRegionName + '\'' +
                 ", srcOptionalMha=" + srcOptionalMha +
                 ", dstOptionalMha=" + dstOptionalMha +
+                ", drcStatus=" + drcStatus +
                 '}';
     }
 }

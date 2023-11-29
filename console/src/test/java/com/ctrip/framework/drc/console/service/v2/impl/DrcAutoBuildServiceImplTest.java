@@ -314,13 +314,15 @@ public class DrcAutoBuildServiceImplTest {
             Integer deleted = i.getArgument(2, Integer.class);
             return mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId) && Objects.equals(e.getDeleted(), deleted)).findFirst().orElse(null);
         });
+        when(mysqlServiceV2.getMhaExecutedGtid(any())).thenReturn("26ddaa00-4d3f-11ee-bd11-06cc389a9314:1-11286566");
 
         drcAutoBuildServiceImpl.autoBuildDrc(req);
         verify(drcBuildService, times(1)).buildMha(any());
         verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
-        verify(drcBuildService, times(2)).autoConfigReplicatorsWithRealTimeGtid(any());
-        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), anyBoolean());
+        verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
+        verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(),any());
+        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any());
     }
 
 

@@ -14,6 +14,7 @@ public class DrcAutoBuildReq {
     private String dstRegionName;
     private String buName;
     private String tag;
+    private String gtidInit;
     private TblsFilterDetail tblsFilterDetail;
     private Boolean openRowsFilterConfig;
     private RowsFilterCreateParam rowsFilterDetail;
@@ -210,6 +211,7 @@ public class DrcAutoBuildReq {
                 ", dstRegionName='" + dstRegionName + '\'' +
                 ", buName='" + buName + '\'' +
                 ", tag='" + tag + '\'' +
+                ", gtidInit='" + gtidInit + '\'' +
                 ", tblsFilterDetail=" + tblsFilterDetail +
                 ", openRowsFilterConfig=" + openRowsFilterConfig +
                 ", rowsFilterDetail=" + rowsFilterDetail +
@@ -217,4 +219,13 @@ public class DrcAutoBuildReq {
                 ", colsFilterDetail=" + colsFilterDetail +
                 '}';
     }
+
+    public String getGtidInit() {
+        return gtidInit;
+    }
+
+    public void setGtidInit(String gtidInit) {
+        this.gtidInit = gtidInit;
+    }
+
 }

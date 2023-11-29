@@ -21,8 +21,17 @@ public class DrcAutoBuildParam {
     private RowsFilterCreateParam rowsFilterCreateParam;
     private ColumnsFilterCreateParam columnsFilterCreateParam;
 
+    private String gtidInit;
 
     private ViewOnlyInfo viewOnlyInfo;
+
+    public String getGtidInit() {
+        return gtidInit;
+    }
+
+    public void setGtidInit(String gtidInit) {
+        this.gtidInit = gtidInit;
+    }
 
     public List<MachineDto> getSrcMachines() {
         return srcMachines;

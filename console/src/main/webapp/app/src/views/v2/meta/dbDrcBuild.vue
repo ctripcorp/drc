@@ -177,6 +177,10 @@
                 <Option v-for="item in meta.tags" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </FormItem>
+            <FormItem label="初始同步位点" prop="gtidInit" v-if="previewDataList !== null && previewDataList.length === 1 && formItem.buildMode === 0 && previewDataList[0].drcStatus !== 1">
+              <Input v-model="formItem.gtidInit" style="width: 80%;margin-right: 10px" :border="false" placeholder="请输入binlog拉取位点"/>
+              <Button type="success" @click="querySrcMhaGtidCheckRes">位点校验</Button>
+            </FormItem>
             <FormItem>
               <Button type="primary" :loading="dataLoading" :disabled="previewDataList.length === 0 || !formItem.tableName" @click="beforeSubmit">提交</Button>
             </FormItem>
@@ -215,6 +219,25 @@
           </div>
         </Col>
       </Row>
+      <Modal
+        v-model="gtidCheck.modal"
+        title="gitd位点校验结果"
+        width="900px">
+        <Form style="width: 80%">
+          <FormItem label="校验结果">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.legal" readonly/>
+          </FormItem>
+          <FormItem label="当前Mha">
+            <Input :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
+          </FormItem>
+          <FormItem label="配置位点">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.configGtid" readonly/>
+          </FormItem>
+          <FormItem label="purgedGtid">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.purgedGtid" readonly/>
+          </FormItem>
+        </Form>
+      </Modal>
       <Drawer
         title="请确认同步信息"
         v-model="drawer.show"
@@ -269,6 +292,7 @@ export default {
           mode: null,
           columns: []
         },
+        gtidInit: '',
         textarea: '',
         switch: {
           rowsFilter: false,
@@ -341,6 +365,15 @@ export default {
             ]
           },
           columnsForChose: []
+        }
+      },
+      gtidCheck: {
+        modal: false,
+        resVo: {
+          mha: '',
+          legal: '',
+          configGtid: '',
+          purgedGtid: ''
         }
       },
       meta: {
@@ -587,6 +620,7 @@ export default {
     },
     getParams: function () {
       const param = {}
+      param.gtidInit = this.formItem.gtidInit
       param.buName = this.formItem.buName
       param.tag = this.formItem.tag
       param.mode = this.formItem.buildMode
@@ -912,6 +946,30 @@ export default {
       }).finally(() => {
         this.commonColumnLoading = false
       })
+    },
+    querySrcMhaGtidCheckRes () {
+      const gtidInit = this.formItem.gtidInit
+      const mhaName = this.previewDataList[0].srcMha.name
+      if (gtidInit == null || gtidInit === '') {
+        alert('位点为空！')
+        return
+      }
+      console.log(mhaName)
+      this.axios.get('/api/drc/v2/mha/gtid/checkResult?mha=' + mhaName +
+        '&configGtid=' + gtidInit)
+        .then(response => {
+          if (response.data.status === 0) {
+            this.gtidCheck.resVo = {
+              mha: mhaName,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: gtidInit,
+              purgedGtid: response.data.data.purgedGtid
+            }
+            this.gtidCheck.modal = true
+          } else {
+            alert('位点校验失败!')
+          }
+        })
     },
     handleCreateColumn (val) {
       if (this.contains(this.formItem.constants.columnsForChose, val)) {
