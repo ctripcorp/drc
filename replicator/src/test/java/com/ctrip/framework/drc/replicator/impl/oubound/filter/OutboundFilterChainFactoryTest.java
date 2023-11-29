@@ -240,7 +240,6 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         }
     }
 
-
     private OutboundFilterChainContext getFilterChainContext(String properties) throws Exception {
         OutboundFilterChainContext filterChainContext = new OutboundFilterChainContext("test_key", channel, ConsumeType.Applier,
                 DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null,
