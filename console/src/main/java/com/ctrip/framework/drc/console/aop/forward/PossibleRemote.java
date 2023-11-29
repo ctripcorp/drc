@@ -22,8 +22,9 @@ public @interface PossibleRemote {
     HttpRequestEnum httpType() default HttpRequestEnum.GET;
     
     String[] excludeArguments() default {};
-    
+
     Class<? extends ApiResult>  responseType() default ApiResult.class;
+
 
     Class requestClass() default Object.class;
 }

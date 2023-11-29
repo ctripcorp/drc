@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
@@ -78,6 +79,7 @@ public class ConflictLogServiceTest {
 
     @Before
     public void setUp() {
+        System.setProperty("iam.config.enable", "off");
         MockitoAnnotations.openMocks(this);
     }
 
@@ -191,8 +193,6 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCompareRowRecords() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "sql", new ArrayList<>(), 12);
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "sql", new ArrayList<>(), 12);
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
@@ -200,8 +200,8 @@ public class ConflictLogServiceTest {
         Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
         Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
-        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
-        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getDstResMap());
 
         ConflictRowsRecordCompareView result = conflictLogService.compareRowRecords(Lists.newArrayList(1L));
         Assert.assertEquals(result.getRecordDetailList().size(), 1);
@@ -295,11 +295,15 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateHandleSql() throws Exception {
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), 12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", Lists.newArrayList("datachange_lasttime"), 12);
+
         Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
         Mockito.when(mysqlService.getFirstUniqueIndex(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn("id");
-        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
         Mockito.when(mysqlService.getAllOnUpdateColumns(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("datachange_lasttime"));
 
         ConflictAutoHandleParam param = new ConflictAutoHandleParam();
@@ -308,6 +312,21 @@ public class ConflictLogServiceTest {
 
         List<ConflictAutoHandleView> result = conflictLogService.createHandleSql(param);
         Assert.assertEquals(result.size(), 1);
+
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getEmptyRecord());
+        result = conflictLogService.createHandleSql(param);
+        Assert.assertEquals(result.size(), 1);
+
+        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getEmptyRecord());
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getSrcResMap());
+        result = conflictLogService.createHandleSql(param);
+        Assert.assertEquals(result.size(), 1);
+    }
+
+    private Map<String, Object> getEmptyRecord() {
+        Map<String, Object> record = getSrcResMap();
+        record.put("record", new ArrayList<>() );
+        return record;
     }
     
     @Test
@@ -337,7 +356,7 @@ public class ConflictLogServiceTest {
         records.put("drc_row_log_id", 1L);
         String a = "test";
         BigDecimal bigDecimal = new BigDecimal("1.010");
-        records.put("a", a.getBytes(StandardCharsets.UTF_8));
+        records.put("a", CommonUtils.byteToHexString(a.getBytes(StandardCharsets.UTF_8)));
         records.put("b", null);
         records.put("bigDecimal", bigDecimal);
 
@@ -352,7 +371,15 @@ public class ConflictLogServiceTest {
         metaColumn.put("key", "column");
         res.put("metaColumn", Lists.newArrayList(metaColumn));
 
+        Map<String, String> columnType = new HashMap<>();
+        records.forEach((column, val) -> {
+            if (val != null) {
+                columnType.put(column, val.getClass().getName());
+            }
+        });
+
         res.put("columns", Lists.newArrayList(records.keySet()));
+        res.put("columnType", columnType);
         return res;
     }
 
@@ -368,7 +395,7 @@ public class ConflictLogServiceTest {
 
         String a = "test";
         BigDecimal bigDecimal = new BigDecimal("1.020");
-        records.put("a", a.getBytes(StandardCharsets.UTF_8));
+        records.put("a", CommonUtils.byteToHexString(a.getBytes(StandardCharsets.UTF_8)));
         records.put("b", "b");
         records.put("bigDecimal", bigDecimal);
 
@@ -383,6 +410,13 @@ public class ConflictLogServiceTest {
         metaColumn.put("key", "column");
         res.put("metaColumn", Lists.newArrayList(metaColumn));
 
+        Map<String, String> columnType = new HashMap<>();
+        records.forEach((column, val) -> {
+            if (val != null) {
+                columnType.put(column, val.getClass().getName());
+            }
+        });
+        res.put("columnType", columnType);
         res.put("columns", Lists.newArrayList());
         return res;
     }

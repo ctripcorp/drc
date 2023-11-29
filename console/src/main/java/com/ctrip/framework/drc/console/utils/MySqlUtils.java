@@ -32,10 +32,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import java.sql.*;
+import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -948,16 +948,17 @@ public class MySqlUtils {
 
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();
-        List<Map<String, Object>> list = new ArrayList<>();
         ResultSetMetaData md = rs.getMetaData();
         int columnCount = md.getColumnCount();
         List<String> columnList = new ArrayList<>();
         List<Map<String, Object>> metaColumn = new ArrayList<>();
+
         boolean fixed = columnCount >= columnSize;
         for (int j = 1; j <= columnCount; j++) {
             Map<String, Object> columnData = new LinkedHashMap<>();
-            columnData.put("title", md.getColumnName(j));
-            columnData.put("key", md.getColumnName(j));
+            String columnName = md.getColumnName(j);
+            columnData.put("title", columnName);
+            columnData.put("key", columnName);
             if (fixed) {
                 columnData.put("width", 200);
                 if (j == 1) {
@@ -973,18 +974,28 @@ public class MySqlUtils {
         ret.put("columns", columnList);
         ret.put("metaColumn", metaColumn);
 
+        List<Map<String, Object>> list = new ArrayList<>();
+        Map<String, String> columnType = new LinkedHashMap<>();
         while (rs.next()) {
             Map<String, Object> rowData = new LinkedHashMap<>();
             for (String columnName : columnList) {
                 Object val = rs.getObject(columnName);
-                if (val instanceof Date) {
-                    rowData.put(columnName, String.valueOf(val));
+
+                if (val != null) {
+                    columnType.put(columnName, val.getClass().getName());
+                }
+
+                if (val == null) {
+                    rowData.put(columnName, null);
+                } else if (val instanceof byte[]) {
+                    rowData.put(columnName, CommonUtils.byteToHexString((byte[]) val));
                 } else {
-                    rowData.put(columnName, val);
+                    rowData.put(columnName, String.valueOf(val));
                 }
             }
             list.add(rowData);
         }
+        ret.put("columnType", columnType);
         ret.put("record", list);
         return ret;
     }
@@ -1110,6 +1121,23 @@ public class MySqlUtils {
             return toStringVal(val);
         }
         return val;
+    }
+
+    public static Object toSqlValue(Object val, String columnType) {
+        if (val == null || columnType == null) {
+            return null;
+        }
+        if (stringColumnType(columnType)) {
+            return toStringVal(val);
+        }
+        return val;
+    }
+
+    private static boolean stringColumnType(String columnType) {
+        return String.class.getName().equals(columnType)
+                || Date.class.getName().equals(columnType)
+                || Time.class.getName().equals(columnType)
+                || Timestamp.class.getName().equals(columnType);
     }
 
     public static final class TableSchemaName {
