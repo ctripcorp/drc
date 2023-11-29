@@ -32,10 +32,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import java.sql.*;
+import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1127,10 +1127,17 @@ public class MySqlUtils {
         if (val == null || columnType == null) {
             return null;
         }
-        if (String.class.getName().equals(columnType)) {
+        if (stringColumnType(columnType)) {
             return toStringVal(val);
         }
         return val;
+    }
+
+    private static boolean stringColumnType(String columnType) {
+        return String.class.getName().equals(columnType)
+                || Date.class.getName().equals(columnType)
+                || Time.class.getName().equals(columnType)
+                || Timestamp.class.getName().equals(columnType);
     }
 
     public static final class TableSchemaName {

@@ -66,7 +66,7 @@ public class QueryRecordsRequest {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         QueryRecordsRequest that = (QueryRecordsRequest) o;
-        return columnSize == that.columnSize && Objects.equals(mha, that.mha) && Objects.equals(sql, that.sql) && Objects.equals(onUpdateColumns, that.onUpdateColumns);
+        return Objects.equals(mha, that.mha) && Objects.equals(sql, that.sql);
     }
 
     @Override

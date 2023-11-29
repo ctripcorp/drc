@@ -535,10 +535,21 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         //query current records
         ConflictCurrentRecordView conflictRowRecordView = getConflictCurrentRecordView(conflictRowsLogTbls, srcMhaName, dstMhaName, TWELVE);
-        List<Map<String, Object>> srcRecords = (List<Map<String, Object>>) conflictRowRecordView.getSrcRecords().get(0).get("records");
-        List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) conflictRowRecordView.getDstRecords().get(0).get("records");
-        Map<String, String> srcColumnTypeMap = (Map<String, String>) conflictRowRecordView.getSrcRecords().get(0).get("columnType");
-        Map<String, String> dstColumnTypeMap = (Map<String, String>) conflictRowRecordView.getDstRecords().get(0).get("columnType");
+
+        Map<String, Object> srcResult = conflictRowRecordView.getSrcRecords().get(0);
+        Map<String, Object> dstResult = conflictRowRecordView.getDstRecords().get(0);
+        List<Map<String, Object>> srcRecords = (List<Map<String, Object>>) srcResult.get("records");
+        List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) dstResult.get("records");
+        Map<String, String> srcColumnTypeMap = (Map<String, String>) srcResult.get("columnType");
+        Map<String, String> dstColumnTypeMap = (Map<String, String>) dstResult.get("columnType");
+
+        List<Map<String, Object>> srcColumnList = (List<Map<String, Object>>) srcResult.get("columns");
+        List<Map<String, Object>> dstColumnList = (List<Map<String, Object>>) dstResult.get("columns");
+        List<String> srcColumns = srcColumnList.stream().map(e -> String.valueOf(e.get("key"))).collect(Collectors.toList());
+        List<String> dstColumns = dstColumnList.stream().map(e -> String.valueOf(e.get("key"))).collect(Collectors.toList());
+        //get same columns
+        srcColumns.retainAll(dstColumns);
+
 
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
         Map<String, String> uniqueIndexMap = getUniqueIndex(conflictRowsLogTbls, srcMhaName);
@@ -576,7 +587,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                     filerColumns = columnFieldMap.get(dbReplicationId);
                 }
             }
-            String handleSql = createConflictHandleSql(source, onUpdateColumnMap, uniqueIndexMap, filerColumns, writeToDstMha,
+            String handleSql = createConflictHandleSql(source, writeToDstMha, onUpdateColumnMap, uniqueIndexMap, Pair.of(filerColumns, srcColumns),
                     Pair.of(srcColumnTypeMap, dstColumnTypeMap), Pair.of(srcRecordMap, dstRecordMap));
             target.setAutoHandleSql(handleSql);
             return target;
@@ -629,10 +640,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private String createConflictHandleSql(ConflictRowsLogTbl rowLog,
+                                           boolean writeToDstMha,
                                            Map<String, List<String>> onUpdateColumnMap,
                                            Map<String, String> uniqueIndexMap,
-                                           List<String> filterColumns,
-                                           boolean writeToDstMha,
+                                           Pair<List<String>, List<String>> columnPair,
                                            Pair<Map<String, String>, Map<String, String>> columnTypePair,
                                            Pair<Map<Long, Map<String, Object>>, Map<Long, Map<String, Object>>> recordPair) {
         String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
@@ -644,7 +655,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         String uniqueIndex = uniqueIndexMap.get(tableName);
 
         Map<Long, Map<String, Object>> srcRecordMap = recordPair.getLeft();
-        Map<Long, Map<String, Object>> dstRecordMap = recordPair.getLeft();
+        Map<Long, Map<String, Object>> dstRecordMap = recordPair.getRight();
 
         Map<String, Object> srcRecord = srcRecordMap.get(rowLog.getId());
         Map<String, Object> dstRecord = dstRecordMap.get(rowLog.getId());
@@ -656,27 +667,29 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, String> sourceColumnType = writeToDstMha ? srcColumnType : dstColumnType;
         Map<String, String> targetColumnType = writeToDstMha ? dstColumnType : srcColumnType;
 
-        return createConflictHandleSql(rowLog.getDbName(), rowLog.getTableName(), filterColumns, onUpdateColumn,
-                uniqueIndex, Pair.of(sourceRecord, targetRecord), Pair.of(sourceColumnType, targetColumnType));
+        return createConflictHandleSql(rowLog.getDbName(), rowLog.getTableName(), onUpdateColumn, uniqueIndex, columnPair,
+                Pair.of(sourceRecord, targetRecord), Pair.of(sourceColumnType, targetColumnType));
     }
 
     private String createConflictHandleSql(String dbName,
                                            String tableName,
-                                           List<String> filterColumns,
                                            String onUpdateColumn,
                                            String uniqueIndex,
+                                           Pair<List<String>, List<String>> columnPair,
                                            Pair<Map<String, Object>, Map<String, Object>> recordPair,
                                            Pair<Map<String, String>, Map<String, String>> columnTypePair) {
         Map<String, Object> sourceRecord = recordPair.getLeft();
         Map<String, Object> targetRecord = recordPair.getRight();
         Map<String, String> sourceColumnType = columnTypePair.getLeft();
         Map<String, String> targetColumnType = columnTypePair.getRight();
+        List<String> filterColumns = columnPair.getLeft();
+        List<String> commonColumns = columnPair.getRight();
 
         String fullTableName = MySqlUtils.toSqlField(dbName) + "." + MySqlUtils.toSqlField(tableName);
         if (sourceRecord != null && targetRecord != null) {  //update
             return createUpdateSql(filterColumns, fullTableName, onUpdateColumn, uniqueIndex, recordPair, columnTypePair);
         } else if (sourceRecord != null) {  //insert
-            return createInsertSql(fullTableName, filterColumns, sourceRecord, sourceColumnType);
+            return createInsertSql(fullTableName, filterColumns, commonColumns, sourceColumnType, sourceRecord);
         } else if (targetRecord != null) {  //delete
             return createDeleteSql(fullTableName, onUpdateColumn, uniqueIndex, targetRecord, targetColumnType);
         } else {
@@ -696,16 +709,19 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return String.format(DELETE_SQL, tableName, whereCondition);
     }
 
-    private String createInsertSql(String tableName,  List<String> filterColumns, Map<String, Object> sourceRecord, Map<String, String> sourceColumnType) {
+    private String createInsertSql(String tableName,  List<String> filterColumns, List<String> commonColumns, Map<String, String> sourceColumnType, Map<String, Object> sourceRecord) {
         List<String> columns = new ArrayList<>();
         List<Object> values = new ArrayList<>();
         sourceRecord.forEach((column, value) -> {
-            if (!ROW_LOG_ID.equals(column) && !filterColumns.contains(column)) {
+            if (!ROW_LOG_ID.equals(column) && !filterColumns.contains(column) && commonColumns.contains(column)) {
                 columns.add(MySqlUtils.toSqlField(column));
                 values.add(MySqlUtils.toSqlValue(value, sourceColumnType.get(column)));
             }
         });
 
+        if (CollectionUtils.isEmpty(columns)) {
+            return StringUtils.EMPTY;
+        }
         String columnSql = Joiner.on(",").join(columns);
         String valueSql = Joiner.on(",").join(values);
         return String.format(INSERT_SQL, tableName, columnSql, valueSql);
