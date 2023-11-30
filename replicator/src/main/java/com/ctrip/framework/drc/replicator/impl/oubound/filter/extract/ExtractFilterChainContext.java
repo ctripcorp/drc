@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.extract;
 
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
 
 /**
@@ -13,9 +14,13 @@ public class ExtractFilterChainContext {
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    public ExtractFilterChainContext(DataMediaConfig dataMediaConfig, OutboundMonitorReport outboundMonitorReport) {
+    private RowsFilterContext rowsFilterContext;
+
+    public ExtractFilterChainContext(DataMediaConfig dataMediaConfig, OutboundMonitorReport outboundMonitorReport,
+                                     RowsFilterContext rowsFilterContext) {
         this.dataMediaConfig = dataMediaConfig;
         this.outboundMonitorReport = outboundMonitorReport;
+        this.rowsFilterContext = rowsFilterContext;
     }
 
     public DataMediaConfig getDataMediaConfig() {
@@ -48,8 +53,16 @@ public class ExtractFilterChainContext {
         return dataMediaConfig.shouldFilterColumns();
     }
 
-    public static ExtractFilterChainContext from(OutboundFilterChainContext outboundFilterChainContext) {
+    public RowsFilterContext getRowsFilterContext() {
+        return rowsFilterContext;
+    }
+
+    public void setRowsFilterContext(RowsFilterContext rowsFilterContext) {
+        this.rowsFilterContext = rowsFilterContext;
+    }
+
+    public static ExtractFilterChainContext from(OutboundFilterChainContext outboundFilterChainContext, RowsFilterContext rowsFilterContext) {
         return new ExtractFilterChainContext(outboundFilterChainContext.getDataMediaConfig(),
-                outboundFilterChainContext.getOutboundMonitorReport());
+                outboundFilterChainContext.getOutboundMonitorReport(), rowsFilterContext);
     }
 }

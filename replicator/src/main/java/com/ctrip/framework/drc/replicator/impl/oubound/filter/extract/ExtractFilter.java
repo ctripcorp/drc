@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -40,14 +41,15 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
 
     private Filter<ExtractFilterContext> filterChain;
 
-    private ExtractFilterContext extractContext = new ExtractFilterContext();
+    private ExtractFilterContext extractContext;
 
     public ExtractFilter(OutboundFilterChainContext context) {
         this.registryKey = context.getDataMediaConfig().getRegistryKey();
         this.hasRowsFilterConfig = context.shouldFilterRows();
         this.hasColumnsFilterConfig = context.shouldFilterColumns();
         this.dataMediaManager = new DataMediaManager(context.getDataMediaConfig());
-        this.filterChain = new ExtractFilterChainFactory().createFilterChain(ExtractFilterChainContext.from(context));
+        this.extractContext = new ExtractFilterContext();
+        this.filterChain = new ExtractFilterChainFactory().createFilterChain(ExtractFilterChainContext.from(context, extractContext.getRowsFilterContext()));
     }
 
     @Override
@@ -232,5 +234,10 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
 
     private boolean needExtractColumns(String tableName) {
         return hasColumnsFilterConfig && dataMediaManager.hasColumnsFilter(tableName);
+    }
+
+    @VisibleForTesting
+    public ExtractFilterContext getExtractContext() {
+        return extractContext;
     }
 }

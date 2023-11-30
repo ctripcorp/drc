@@ -25,12 +25,13 @@ public class RowsFilter extends AbstractLogEventFilter<ExtractFilterContext> {
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    private RowsFilterContext rowsFilterContext = new RowsFilterContext();
+    private RowsFilterContext rowsFilterContext;
 
     public RowsFilter(ExtractFilterChainContext context) {
         this.registryKey = context.getDataMediaConfig().getRegistryKey();
         this.dataMediaManager = new DataMediaManager(context.getDataMediaConfig());
         this.outboundMonitorReport = context.getOutboundMonitorReport();
+        this.rowsFilterContext = context.getRowsFilterContext();
     }
 
     @Override
