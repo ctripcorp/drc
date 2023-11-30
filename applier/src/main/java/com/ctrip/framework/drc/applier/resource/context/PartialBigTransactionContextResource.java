@@ -89,7 +89,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
                     return TransactionData.ApplyResult.SUCCESS;
                 case BATCH_ERROR:
                     loggerBatch.info("[executeBatch] BATCH_ERROR for {}", fetchGtid());
-                    return conflictHandling(savepointIdentifier);
+                    return conflictHandling(savepointIdentifier); 
             }
         } catch (Throwable t) {
             logger.error("executeBatch error for {}", fetchGtid(), t);
@@ -104,6 +104,8 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
 
     private TransactionData.ApplyResult conflictHandling(String savepointIdentifier) throws SQLException {
         savepointExecutor.rollbackToSavepoint(savepointIdentifier);
+        long batchExecuteSize = preparedStatementExecutor.getBatchExecuteSize();
+        trxRecorder.setTrxRowNum(trxRecorder.getTrxRowNum() - batchExecuteSize);
         loggerBatch.info("[Savepoint] rollback for {}", savepointIdentifier);
         writeEventWrappers.forEach(Runnable::run);
         boolean handleResult = everWrong();

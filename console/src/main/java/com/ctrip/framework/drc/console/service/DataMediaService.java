@@ -15,12 +15,12 @@ public interface DataMediaService {
     List<DataMediaVo> getAllDataMediaVos(Long applierGroupId) throws SQLException;
     Long processAddDataMedia(DataMediaDto dataMediaDto) throws SQLException;
     Long processUpdateDataMedia(DataMediaDto dataMediaDto) throws SQLException;
-    Long processDeleteDataMedia(Long dataMediaId) throws SQLException;
+    Long processDeleteDataMedia(Long dataMediaId) throws Exception;
 
 
     ColumnsFilterVo getColumnsFilterConfig(Long dataMediaId) throws SQLException;
-    String processAddColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws SQLException;
-    String processUpdateColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws SQLException;
+    String processAddColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws Exception;
+    String processUpdateColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws Exception;
     String processDeleteColumnsFilterConfig(Long columnsFilterId) throws SQLException;
     
 }

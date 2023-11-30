@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dto.ColumnsFilterConfigDto;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import java.sql.SQLException;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.sql.SQLException;
 
 
 public class ColumnsFilterServiceImplTest {
@@ -66,6 +67,7 @@ public class ColumnsFilterServiceImplTest {
     @Test
     public void testDeleteColumnsFilterConfig() throws SQLException{
         Mockito.when(columnsFilterTblDao.update(Mockito.any(ColumnsFilterTbl.class))).thenReturn(1);
+        Mockito.when(columnsFilterTblDao.queryByDataMediaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(new ColumnsFilterTbl());
         columnsFilterService.deleteColumnsFilter(1L);
     }
     

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.enums;
 
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+
 /**
  * Created by dengquanliang
  * 2023/5/26 17:12
@@ -7,6 +9,7 @@ package com.ctrip.framework.drc.console.enums;
 public enum ColumnsFilterModeEnum {
     EXCLUDE(0, "exclude"),
     INCLUDE(1, "include"),
+    REGEX(2, "regex"),
     ;
 
     private Integer code;
@@ -23,7 +26,7 @@ public enum ColumnsFilterModeEnum {
                 return value.name;
             }
         }
-        throw new IllegalArgumentException(String.format("Unexpected ColumnsFilterMode: %s", code));
+        throw ConsoleExceptionUtils.message(String.format("Unexpected ColumnsFilterMode: %s", code));
     }
 
     public static int getCodeByName (String name) {
@@ -32,7 +35,16 @@ public enum ColumnsFilterModeEnum {
                 return value.code;
             }
         }
-        throw new IllegalArgumentException(String.format("Unexpected ColumnsFilterMode: %s", name));
+        throw ConsoleExceptionUtils.message(String.format("Unexpected ColumnsFilterMode: %s", name));
+    }
+
+    public static boolean checkMode(int code) {
+        for (ColumnsFilterModeEnum value : ColumnsFilterModeEnum.values()) {
+            if (value.code == code) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Integer getCode() {

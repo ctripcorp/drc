@@ -17,13 +17,11 @@ import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorTableMapL
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlIndexFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TypeConvertFilterTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManagerRefreshTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
@@ -31,10 +29,11 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionT
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKeyTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactoryTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.TableFilterTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.SchemaFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
+import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheckTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultIndexFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.IndicesEventManagerTest;
@@ -62,7 +61,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         DefaultReplicatorServerTest.class,
-        TableFilterTest.class,
         TypeFilterTest.class,
         OutboundFilterChainFactoryTest.class,
 
@@ -79,6 +77,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         ApplierRegisterCommandHandlerTest.class,
         DefaultIndexFileManagerTest.class,
         DefaultFileManagerTest.class,
+        DefaultFileCheckTest.class,
         IndicesEventManagerTest.class,
         EventTransactionCacheTest.class,
         BackupTransactionEventTest.class,
@@ -107,11 +106,13 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         DdlIndexFilterTest.class,
         TypeConvertFilterTest.class,
         TransactionTableFilterTest.class,
+        SchemaFilterTest.class,
 
         // ddl
         DdlParserTest.class,
         RetryTaskTest.class,
         DbCreateTaskTest.class,
+        DbDisposeTaskTest.class,
         DbRestoreTaskTest.class,
         SchemeApplyTaskTest.class,
 
@@ -123,6 +124,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         ChannelAttributeKeyTest.class,
         CommandHandlerManagerTest.class,
         TransactionFlagsTest.class,
+        MySQLSchemaManagerRefreshTest.class,
 
         //controller
         ReplicatorContainerControllerTest.class

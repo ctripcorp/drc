@@ -12,8 +12,10 @@ public class ExtractFilterChainFactory implements FilterChainFactory<ExtractFilt
     public Filter<ExtractFilterContext> createFilterChain(ExtractFilterChainContext context) {
         RowsFilter rowsFilter = new RowsFilter(context);
 
-        ColumnsFilter columnsFilter = new ColumnsFilter(context);
-        rowsFilter.setSuccessor(columnsFilter);
+        if (context.shouldFilterColumns()) {
+            ColumnsFilter columnsFilter = new ColumnsFilter(context);
+            rowsFilter.setSuccessor(columnsFilter);
+        }
 
         return rowsFilter;
     }

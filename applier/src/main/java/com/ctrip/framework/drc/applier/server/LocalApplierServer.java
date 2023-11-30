@@ -65,6 +65,7 @@ public class LocalApplierServer extends ApplierServer {
         }
 
         config.setApplyMode(dstConfig.getApplyMode().getType());
+        config.setNameFilter(dstConfig.getNameFilter());
 
         InstanceInfo replicator = new InstanceInfo();
         replicator.setIdc("src");

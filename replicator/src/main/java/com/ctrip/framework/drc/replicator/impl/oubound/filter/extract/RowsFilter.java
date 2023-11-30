@@ -25,31 +25,28 @@ public class RowsFilter extends AbstractLogEventFilter<ExtractFilterContext> {
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    private boolean shouldFilterRows;
-
-    private RowsFilterContext rowsFilterContext = new RowsFilterContext();
+    private RowsFilterContext rowsFilterContext;
 
     public RowsFilter(ExtractFilterChainContext context) {
         this.registryKey = context.getDataMediaConfig().getRegistryKey();
         this.dataMediaManager = new DataMediaManager(context.getDataMediaConfig());
         this.outboundMonitorReport = context.getOutboundMonitorReport();
-        this.shouldFilterRows = context.shouldFilterRows();
+        this.rowsFilterContext = context.getRowsFilterContext();
     }
 
     @Override
     public boolean doFilter(ExtractFilterContext context) {
-        if (shouldFilterRows) {
+        if (context.needExtractRows()) {
             try {
-                context.setRowsFilterContext(rowsFilterContext);
                 AbstractRowsEvent beforeRowsEvent = context.getRowsEvent();
                 boolean noRowFiltered = handRowsEvent(beforeRowsEvent, context);
-                context.setRowsExtracted(!noRowFiltered);
+                context.setRewrite(!noRowFiltered);
             } catch (Exception e) {
                 logger.error("[RowsFilter] error", e);
             }
         }
 
-        return doNext(context, false);
+        return doNext(context, context.getRowsEvent().getRows().isEmpty());
     }
 
     private boolean handRowsEvent(AbstractRowsEvent rowsEvent, ExtractFilterContext context) throws Exception {

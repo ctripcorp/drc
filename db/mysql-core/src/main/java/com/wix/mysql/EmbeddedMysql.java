@@ -38,15 +38,21 @@ public class EmbeddedMysql {
         localRepository.lock();
         try {
             this.executable = mysqldStarter.prepare(mysqldConfig);
+        } catch (Throwable e) {
+            logger.info("Prepare EmbeddedMysql error: " + e.getMessage(), e);
+            throw e;
         } finally {
             localRepository.unlock();
         }
 
+        logger.info("Starting EmbeddedMysql version '{}'...", mysqldConfig.getVersion());
         try {
-            executable.start();
+            this.executable.start();
         } catch (IOException e) {
+            logger.info("Start EmbeddedMysql error: " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
+        logger.info("Succeed EmbeddedMysql version '{}'...", mysqldConfig.getVersion());
     }
 
     public MysqldConfig getConfig() {

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.gtid.function;
 
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -60,8 +61,7 @@ public class CheckGtid extends AbstractConfigBean {
      */
     private Map<String, List<GapInterval>> uuidGapIntervalsMapper = new ConcurrentHashMap<>();
 
-    @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
+    @Autowired private DataCenterService dataCenterService;
 
     /**
      * check GtidSet from mha's master db in local dc,
@@ -70,7 +70,7 @@ public class CheckGtid extends AbstractConfigBean {
      */
     public void checkGtidGap(Map<String, Set<String>> uuidMapper, Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap) {
 
-        String localDcName = dbClusterSourceProvider.getLocalDcName();
+        String localDcName = dataCenterService.getDc();
         // traverse the local master db to check GTID gaps
         for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
             String mhaName = entry.getKey().getMhaName();

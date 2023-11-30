@@ -29,10 +29,14 @@ import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
+import com.ctrip.framework.drc.core.http.PageReqTest;
+import com.ctrip.framework.drc.core.http.PageResultTest;
 import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
 import com.ctrip.framework.drc.core.meta.MessengerPropertiesTest;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayDtoTest;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
@@ -51,6 +55,7 @@ import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -177,6 +182,8 @@ import org.junit.runners.Suite;
 
         //Http response test
         AppNodeTest.class,
+        PageReqTest.class,
+        PageResultTest.class,
 
         DrcLeaderElectorTest.class,
 
@@ -185,6 +192,8 @@ import org.junit.runners.Suite;
         QueryTypeTest.class,
 
         DelayMonitorColumnTest.class,
+        DbDelayMonitorColumnTest.class,
+        DbDelayDtoTest.class,
 
         // table regex filter
         AviatorRegexFilterTest.class,
@@ -261,7 +270,10 @@ import org.junit.runners.Suite;
         //zookeeper
         AbstractResourceManagerTest.class,
 
-        DrcKeyedOneThreadTaskExecutorTest.class
+        DrcKeyedOneThreadTaskExecutorTest.class,
+        
+        //entity json parse
+        HickWallConflictCountTest.class
 })
 public class AllTests {
     /**

@@ -34,7 +34,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Created by @author zhuYongMing on 2019/9/11.
  * see https://dev.mysql.com/doc/internals/en/table-map-event.html
  */
-public class TableMapLogEvent extends AbstractLogEvent {
+public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger {
 
     private long tableId;
 
@@ -51,6 +51,8 @@ public class TableMapLogEvent extends AbstractLogEvent {
     private Long checksum;
 
     private List<List<String>> identifiers;
+
+    private List<ByteBuf> mergedByteBufs;
 
     public TableMapLogEvent() {}
 
@@ -254,6 +256,23 @@ public class TableMapLogEvent extends AbstractLogEvent {
     @Override
     public void write(IoCache ioCache) {
         super.write(ioCache);
+    }
+
+    @Override
+    protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
+        mergedByteBufs = mergeByteBuf(headByteBuf, payloadBuf);
+        return mergedByteBufs;
+    }
+
+    public void releaseMergedByteBufs() {
+        if (mergedByteBufs == null) {
+            return;
+        }
+        for (ByteBuf byteBuf : mergedByteBufs) {
+            if (byteBuf != null && byteBuf.refCnt() > 0) {
+                byteBuf.release(byteBuf.refCnt());
+            }
+        }
     }
 
     private byte[] payloadToBytes(final LogEventType logEventType) throws IOException {

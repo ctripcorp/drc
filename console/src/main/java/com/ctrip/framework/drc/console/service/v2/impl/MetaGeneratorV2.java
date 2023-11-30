@@ -9,13 +9,13 @@ import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
+import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.monitor.Task;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -287,7 +287,8 @@ public class MetaGeneratorV2 {
                         .setPort(replicatorTbl.getPort())
                         .setApplierPort(replicatorTbl.getApplierPort())
                         .setExcludedTables(replicatorGroupTbl.getExcludedTables())
-                        .setGtidSkip(replicatorTbl.getGtidInit());
+                        .setGtidSkip(replicatorTbl.getGtidInit())
+                        .setMaster(replicator.getMaster());
                 dbCluster.addReplicator(replicator);
             }
         }
@@ -346,8 +347,8 @@ public class MetaGeneratorV2 {
                     .setTargetIdc(srcDcTbl.getDcName())
                     .setTargetMhaName(srcMhatbl.getMhaName())
                     .setGtidExecuted(applierGroupTbl.getGtidInit())
-                    .setNameFilter(buildNameFilter(srcDbTblMap, srcMhaDbMappingMap, dbReplicationTblList))
-                    .setNameMapping(buildNameMapping(srcDbTblMap, srcMhaDbMappingMap, dstDbTblMap, dstMhaDbMappingMap, dbReplicationTblList))
+                    .setNameFilter(TableNameBuilder.buildNameFilter(srcDbTblMap, srcMhaDbMappingMap, dbReplicationTblList))
+                    .setNameMapping(TableNameBuilder.buildNameMapping(srcDbTblMap, srcMhaDbMappingMap, dstDbTblMap, dstMhaDbMappingMap, dbReplicationTblList))
                     .setTargetName(srcMhatbl.getClusterName())
                     .setApplyMode(dstMhaTbl.getApplyMode())
                     .setProperties(getProperties(dbReplicationTblList));
@@ -370,40 +371,6 @@ public class MetaGeneratorV2 {
         String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
                 CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonUtils.toJson(properties);
         return propertiesJson;
-    }
-
-    private String buildNameFilter(Map<Long, String> srcDbTblMap, Map<Long, Long> srcMhaDbMappingMap, List<DbReplicationTbl> dbReplicationTblList) {
-        List<String> nameFilterList = new ArrayList<>();
-        for (DbReplicationTbl dbReplicationTbl : dbReplicationTblList) {
-            long dbId = srcMhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
-            if (srcDbTblMap.containsKey(dbId)) {
-                nameFilterList.add(srcDbTblMap.getOrDefault(dbId, "") + "\\." + dbReplicationTbl.getSrcLogicTableName());
-            }
-        }
-        String nameFilter = Joiner.on(",").join(nameFilterList);
-        return nameFilter;
-    }
-
-    private String buildNameMapping(Map<Long, String> srcDbTblMap,
-                                    Map<Long, Long> srcMhaDbMappingMap,
-                                    Map<Long, String> dstDbTblMap,
-                                    Map<Long, Long> dstMhaDbMappingMap,
-                                    List<DbReplicationTbl> dbReplicationTblList) {
-        List<String> nameMappingList = new ArrayList<>();
-        for (DbReplicationTbl dbReplicationTbl : dbReplicationTblList) {
-            if (StringUtils.isBlank(dbReplicationTbl.getDstLogicTableName())) {
-                continue;
-            }
-            long srcDbId = srcMhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
-            long dstDbId = dstMhaDbMappingMap.getOrDefault(dbReplicationTbl.getDstMhaDbMappingId(), 0L);
-            String srcDbName = srcDbTblMap.getOrDefault(srcDbId, "");
-            String dstDbName = dstDbTblMap.getOrDefault(dstDbId, "");
-            nameMappingList.add(srcDbName + "." + dbReplicationTbl.getSrcLogicTableName() + "," + dstDbName + "." + dbReplicationTbl.getDstLogicTableName());
-        }
-        if (CollectionUtils.isEmpty(nameMappingList)) {
-            return null;
-        }
-        return Joiner.on(";").join(nameMappingList);
     }
 
     private String generateRouteInfo(String srcProxyIds, String relayProxyIds, String dstProxyIds) {

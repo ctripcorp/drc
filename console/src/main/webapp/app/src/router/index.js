@@ -13,44 +13,12 @@ const routes = [
     component: () => import('../views/monitor.vue')
   },
   {
-    path: '/apply',
-    component: () => import('../views/apply.vue')
-  },
-  {
-    path: '/clusters',
-    component: () => import('../views/clusters.vue')
-  },
-  {
-    path: '/drcclusters',
-    component: () => import('../views/drcclusters.vue')
-  },
-  {
-    path: '/messengers',
-    component: () => import('../views/messengers.vue')
-  },
-  {
-    path: '/deletedDrcClusters',
-    component: () => import('../views/deletedDrcClusters.vue')
-  },
-  {
-    path: '/access',
-    component: () => import('../views/access.vue')
-  },
-  {
-    path: '/accessV2',
-    component: () => import('../views/accessV2.vue')
-  },
-  {
-    path: '/buildMhaMessenger',
-    component: () => import('../views/buildMessenger.vue')
-  },
-  {
     path: '/proxyRouteCluster',
-    component: () => import('../views/proxyRouteCluster.vue')
+    component: () => import('../views/v2/resource/proxyRouteCluster.vue')
   },
   {
     path: '/proxyRouteManagement',
-    component: () => import('../views/proxyRouteManagement.vue')
+    component: () => import('../views/v2/resource/proxyRouteManagement.vue')
   },
   {
     path: '/manage',
@@ -64,7 +32,7 @@ const routes = [
   {
     path: '/proxyResource',
     name: 'proxyResource',
-    component: () => import('../views/resource/proxyResource.vue')
+    component: () => import('../views/v2/resource/proxyResource.vue')
   },
   {
     path: '/conflict',
@@ -132,16 +100,6 @@ const routes = [
     component: () => import('../views/drcConfig/rowsFilterConfigs.vue')
   },
   {
-    path: '/tables',
-    name: 'tables',
-    component: () => import('../components/configs/tables.vue')
-  },
-  {
-    path: '/tables/configFlow',
-    name: 'configFlow',
-    component: () => import('../components/configs/configFlow.vue')
-  },
-  {
     path: '/buildMetaMessage',
     name: 'buildMetaMessage',
     component: () => import('../views/filter/buildMetaMessage.vue')
@@ -165,6 +123,92 @@ const routes = [
     path: '/mqConfigs',
     name: 'mqConfigs',
     component: () => import('../views/drcConfig/mqConfigs.vue')
+  },
+  // v2 new model
+  {
+    path: '/v2/mhaReplications',
+    component: () => import('../views/v2/meta/mhaReplications.vue')
+  },
+  {
+    path: '/v2/mhaReplicationDetails',
+    component: () => import('../views/v2/meta/mhaReplicationDetails.vue')
+  },
+  {
+    path: '/v2/messengersV2',
+    component: () => import('../views/v2/meta/messengersV2.vue')
+  },
+  {
+    path: '/v2/buildMessengerV2',
+    component: () => import('../views/v2/meta/buildMessengerV2.vue')
+  },
+  {
+    path: '/v2/mhaBuild',
+    name: 'mhaBuild',
+    component: () => import('../views/v2/meta/buildStep/mhaBuild.vue')
+  },
+  {
+    path: '/v2/migration',
+    component: () => import('../views/v2/ops/migration.vue')
+  },
+  {
+    path: '/drcV2',
+    name: 'drcV2',
+    component: () => import('../views/v2/meta/drcV2.vue')
+  },
+  {
+    path: '/dbTables',
+    name: 'dbTables',
+    component: () => import('../views/v2/meta/buildStep/dbTables.vue')
+  },
+  {
+    path: '/dbReplicationConfigV2',
+    name: 'dbReplicationConfigV2',
+    component: () => import('../views/v2/meta/buildStep/dbReplicationConfigV2.vue')
+  },
+  {
+    path: '/v2/mqConfigs',
+    name: 'v2/mqConfigs',
+    component: () => import('../views/v2/drcConfig/mqConfigs.vue')
+  },
+  {
+    path: '/v2/resourceV2',
+    name: 'v2/resourceV2',
+    component: () => import('../views/v2/resource/resourceV2.vue')
+  },
+  {
+    path: '/v2/dbDrcBuild',
+    name: 'v2/dbDrcBuild',
+    component: () => import('../views/v2/meta/dbDrcBuild.vue')
+  },
+  {
+    path: '/conflictLog',
+    name: 'conflictLog',
+    component: () => import('../views/log/conflictLog.vue')
+  },
+  {
+    path: '/conflictRowsLog',
+    name: 'conflictRowsLog',
+    component: () => import('../views/log/conflictRowsLog.vue')
+  },
+  {
+    path: '/conflictLogDetail',
+    name: 'conflictLogDetail',
+    component: () => import('../views/log/conflictLogDetail.vue')
+  },
+  {
+    path: '/conflictApproval',
+    name: 'conflictApproval',
+    component: () => import('../views/log/conflictApproval.vue')
+  },
+  {
+    path: '/conflictRowsLogDetail',
+    name: 'conflictRowsLogDetail',
+    component: () => import('../views/log/conflictRowsLogDetail.vue')
+  },
+  {
+    path: '/nopermission',
+    name: 'nopermission',
+    component: () => import('../views/nopermission.vue')
   },
   {
     path: '/',

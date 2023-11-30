@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.server.common;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -57,6 +56,22 @@ public class EventReader {
         return compositeByteBuf;
     }
 
+    public static void readEvent(FileChannel fileChannel, long eventSize, LogEvent logEvent, CompositeByteBuf compositeByteBuf) {
+        removeOldBodyByteBuf(compositeByteBuf);
+        ByteBuf newBodyByteBuf = EventReader.readBody(fileChannel, eventSize);
+        compositeByteBuf.addComponent(true, newBodyByteBuf);
+        logEvent.read(compositeByteBuf);
+        compositeByteBuf.release(compositeByteBuf.refCnt() - 1);
+    }
+
+    private static void removeOldBodyByteBuf(CompositeByteBuf compositeByteBuf) {
+        if (compositeByteBuf.numComponents() == 2) {
+            compositeByteBuf.removeComponent(1);
+        }
+        compositeByteBuf.clear();
+        compositeByteBuf.writerIndex(eventHeaderLengthVersionGt1);
+    }
+
     public static ByteBuf readBody(FileChannel fileChannel, long eventSize) {
         int bodySize = (int) eventSize - eventHeaderLengthVersionGt1;
         return doRead(fileChannel, bodySize);
@@ -65,6 +80,17 @@ public class EventReader {
 
     public static ByteBuf readHeader(FileChannel fileChannel) {
         return doRead(fileChannel, eventHeaderLengthVersionGt1);
+    }
+
+    public static void readHeader(FileChannel fileChannel, ByteBuffer headBuffer, ByteBuf headByteBuf) {
+        try {
+            headBuffer.clear();
+            headByteBuf.readerIndex(0);
+            readFixSize(fileChannel, headBuffer, eventHeaderLengthVersionGt1);
+        } catch (Throwable t) {
+            logger.error("doRead error and readSize for header {}", eventHeaderLengthVersionGt1, t);
+            throw t;
+        }
     }
 
     private static ByteBuf doRead(FileChannel fileChannel, int readSize) {
@@ -89,9 +115,7 @@ public class EventReader {
                 size = fileChannel.read(byteBuffer);
                 if (remindSize == size) {
                     if (readTime > 0) {
-                        long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
-                        LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
-                        logger.warn("Event type is {} and size is {}", eventType, eventSize);
+                        logger.warn("read time is {} and size is {}", readTime, expectedSize);
                     }
                     return true;
                 }
@@ -109,9 +133,37 @@ public class EventReader {
         return false;
     }
 
-    public static void releaseCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
-        if (compositeByteBuf != null && compositeByteBuf.refCnt() > 0) {
-            compositeByteBuf.release(compositeByteBuf.refCnt());
+    private static boolean readFixSize(FileChannel fileChannel, ByteBuffer byteBuffer, int expectedSize) {
+        int MAX_TIMES = 10;
+        int readTime = 0;
+        int remindSize = expectedSize;
+        int size = 0;
+        try {
+            do {
+                size = fileChannel.read(byteBuffer);
+                if (remindSize == size) {
+                    if (readTime > 0) {
+                        logger.warn("read time is {} and size is {}", readTime, expectedSize);
+                    }
+                    return true;
+                }
+                logger.warn("Event size {} less than {}", size, remindSize);
+                if (size > 0) {
+                    remindSize -= size;
+                }
+                readTime++;
+                Thread.sleep(1 << readTime);
+            } while (readTime < MAX_TIMES);
+            logger.error("Remind event size {} to be read", remindSize);
+        } catch (Exception e) {
+            logger.error("readFixSize error with size {}, remind size {}", size, remindSize, e);
+        }
+        return false;
+    }
+
+    public static void releaseByteBuf(ByteBuf byteBuf) {
+        if (byteBuf != null && byteBuf.refCnt() > 0) {
+            byteBuf.release(byteBuf.refCnt());
         }
     }
 }

@@ -13,14 +13,14 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.PriorityOrdered;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
-import org.springframework.util.CollectionUtils;
+import java.util.Map.Entry;
 
 /**
  * @author shenhaibo
@@ -61,9 +61,10 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     public void initialize() {
         super.initialize();
         setInitialDelay(0);
+        setPeriod(60);
     }
 
-    @Override
+    @Override // refresh when new config submit
     public synchronized void scheduledTask() {
         compositeConfig.updateConfig();
         String newDrcString = compositeConfig.getConfig();
@@ -268,7 +269,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         return res;
     }
     
-    
+    @Deprecated
     public Map<String, List<ReplicatorWrapper>> getAllReplicatorsInLocalRegion() {
         Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
@@ -309,7 +310,8 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
      *  key: clusterId where the replicator bounds to, aka registryKey
      *  value: ReplicatorWrapper
      */
-    public Map<String, ReplicatorWrapper> getReplicatorsNeeded(List<String> mhaNamesToBeMonitored) {
+    @Deprecated
+    public Map<String, ReplicatorWrapper> getMasterReplicatorsToBeMonitored(List<String> mhaNamesToBeMonitored) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {

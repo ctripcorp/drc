@@ -1,0 +1,9 @@
+<DAL>
+    <Cluster name="bbzfxdrclogdb_dalcluster" dbCategory="mysql" version="1">
+        <DatabaseShards>
+            <DatabaseShard index="0">
+                <Database ip="127.0.0.1" port="12345" dbName="bbzfxdrclogdb_w" uid="root" pwd=""/>
+            </DatabaseShard>
+        </DatabaseShards>
+    </Cluster>
+</DAL>

@@ -8,11 +8,10 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.ColumnsFilterService;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import java.sql.SQLException;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
+
+import java.sql.SQLException;
 
 /**
  * @ClassName ColumnsFilterServiceImpl
@@ -70,8 +69,7 @@ public class ColumnsFilterServiceImpl implements ColumnsFilterService {
 
     @Override
     public void deleteColumnsFilter(Long dataMediaId) throws SQLException {
-        ColumnsFilterTbl columnsFilterTbl = new ColumnsFilterTbl();
-        columnsFilterTbl.setDataMediaId(dataMediaId);
+        ColumnsFilterTbl columnsFilterTbl = columnsFilterTblDao.queryByDataMediaId(dataMediaId, BooleanEnum.FALSE.getCode());
         columnsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
         columnsFilterTblDao.update(columnsFilterTbl);
     }

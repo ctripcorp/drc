@@ -1,11 +1,9 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.rest.ForwardInfo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -92,22 +90,20 @@ public class DefaultClusterManager extends DefaultCurrentClusterServer implement
     }
 
     @Override
-    public void clusterAdded(String dcId, DbCluster clusterMeta, ForwardInfo forwardInfo) {
-        logger.info("[clusterAdded]{}", clusterMeta);
-        regionMetaCache.clusterAdded(dcId, clusterMeta);
+    public void clusterAdded(String dcId, String clusterId, ForwardInfo forwardInfo, String operator) {
+        logger.info("[clusterAdded]{} by: {}", clusterId, operator);
+        regionMetaCache.clusterAdded(dcId, clusterId);
     }
 
     @Override
-    public void clusterModified(DbCluster clusterMeta, ForwardInfo forwardInfo) {
-        logger.info("[clusterModified]{}", clusterMeta);
-        regionMetaCache.clusterModified(clusterMeta);
-
+    public void clusterModified(String clusterId, ForwardInfo forwardInfo, String operator) {
+        logger.info("[clusterModified]{} by: {}", clusterId, operator);
+        regionMetaCache.clusterModified(clusterId);
     }
 
     @Override
-    public void clusterDeleted(String clusterId, ForwardInfo forwardInfo) {
-
-        logger.info("[clusterDeleted]{}", clusterId);
+    public void clusterDeleted(String clusterId, ForwardInfo forwardInfo, String operator) {
+        logger.info("[clusterDeleted]{} by: {}", clusterId, operator);
         regionMetaCache.clusterDeleted(clusterId);
     }
 

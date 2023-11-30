@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.dao;
 
-import com.ctrip.framework.drc.console.dao.entity.ApplierTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -21,7 +20,7 @@ import java.util.List;
 public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 
 	private static final Logger logger = LoggerFactory.getLogger(ReplicatorGroupTblDao.class);
-	
+
 	public ReplicatorGroupTblDao() throws SQLException {
 		super(ReplicatorGroupTbl.class);
 	}
@@ -37,10 +36,23 @@ public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 		return client.query(builder, new DalHints());
 	}
 
+	public ReplicatorGroupTbl queryByMhaId(Long mhaId) throws SQLException {
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT);
+		return queryOne(builder);
+	}
+
+	public ReplicatorGroupTbl queryByMhaId(Long mhaId, Integer deleted) throws SQLException {
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT)
+		.and().equal("deleted", deleted, Types.TINYINT, false);
+		return queryOne(builder);
+	}
+
 	//mhaId which replicator fetch binlog
-	public Long upsertIfNotExist (Long mhaId) throws SQLException {
+	public Long upsertIfNotExist(Long mhaId) throws SQLException {
 		if (mhaId == null) {
-			throw new IllegalArgumentException("build sql:  upsertIfNotExist ByMhaIds, but mhaId is null.");
+			throw new IllegalArgumentException("insertOrReCover ReplicatorGroupTbl, mhaId is null");
 		}
 		SelectSqlBuilder builder = new SelectSqlBuilder();
 		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT, false);

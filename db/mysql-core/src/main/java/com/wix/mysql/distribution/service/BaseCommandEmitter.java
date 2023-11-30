@@ -36,7 +36,7 @@ public class BaseCommandEmitter implements CommandEmitter {
                 "--console",
                 format("--character-set-server=%s", config.getCharset().getCharset()),
                 format("--collation-server=%s", config.getCharset().getCollate()),
-                format("--default-time-zone=%s", Utils.asHHmmOffset(config.getTimeZone())));
+                format("--default-time-zone=%s", "+08:00"));
     }
 
     /**

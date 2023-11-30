@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "dbName": "db1",
+    "dbOwner": "test_48e092105ced",
+    "buCode": "test_7fa0f7891f9e",
+    "buName": "test_501c4a102bca",
+    "trafficSendLastTime": 85,
+    "isDrc": 1
+  },
+  {
+    "id": 2,
+    "dbName": "db2",
+    "dbOwner": "test_48e092105ced",
+    "buCode": "test_7fa0f7891f9e",
+    "buName": "test_501c4a102bca",
+    "trafficSendLastTime": 85,
+    "isDrc": 1
+  },
+  {
+    "id": 3,
+    "dbName": "db3",
+    "dbOwner": "test_48e092105ced",
+    "buCode": "test_7fa0f7891f9e",
+    "buName": "test_501c4a102bca",
+    "trafficSendLastTime": 85,
+    "isDrc": 1
+  }
+]

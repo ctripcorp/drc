@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.AsyncNettyClientWithEnd
 import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPool;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ProxyEnabled;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -39,11 +40,24 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     protected String threadNamePostfix;
 
+    protected FileCheck fileCheck;
+
+    private volatile Channel channel;
+
     private SimpleObjectPool<NettyClient> objectPool;
 
     private ListeningExecutorService executorService;
 
     public AbstractMySQLConnector(Endpoint endpoint) {
+        this.endpoint = endpoint;
+        this.threadNamePostfix = endpoint.getSocketAddress().toString().replaceAll("/", "");
+        NettyClientFactory nettyClientFactory = getNettyClientFactory(getThreadName(getModuleName(), threadNamePostfix), autoRead());
+        nettyClientFactory.setHandlerFactory(getChannelHandlerFactory());
+        this.objectPool = new DrcNettyClientPool(endpoint, nettyClientFactory);
+    }
+
+    public AbstractMySQLConnector(Endpoint endpoint, FileCheck fileCheck) {
+        this.fileCheck = fileCheck;
         this.endpoint = endpoint;
         this.threadNamePostfix = endpoint.getSocketAddress().toString().replaceAll("/", "");
         NettyClientFactory nettyClientFactory = getNettyClientFactory(getThreadName(getModuleName(), threadNamePostfix), autoRead());
@@ -98,23 +112,19 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
     }
 
     protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool) throws Exception {
-        if (endpoint instanceof ProxyEnabled) {
-            NettyClient nettyClient = simpleObjectPool.borrowObject();
-            if (nettyClient instanceof AsyncNettyClientWithEndpoint) {
-                AsyncNettyClientWithEndpoint asyncNettyClientWithEndpoint = (AsyncNettyClientWithEndpoint) nettyClient;
-                ChannelFuture channelFuture = asyncNettyClientWithEndpoint.getFuture();
-                channelFuture.addListener(connFuture -> {
-                    try {
-                        if (connFuture.isSuccess()) {
-                            Channel channel = nettyClient.channel();
-                            ProxyEnabled proxyEnabled = (ProxyEnabled) endpoint;
-                            channel.writeAndFlush(proxyEnabled.getProxyProtocol().output());
-                        }
-                    }  finally {
-                        simpleObjectPool.returnObject(nettyClient);
+        NettyClient nettyClient = simpleObjectPool.borrowObject();
+        if (nettyClient instanceof AsyncNettyClientWithEndpoint) {
+            AsyncNettyClientWithEndpoint asyncNettyClientWithEndpoint = (AsyncNettyClientWithEndpoint) nettyClient;
+            ChannelFuture channelFuture = asyncNettyClientWithEndpoint.getFuture();
+            channelFuture.addListener(connFuture -> {
+                try {
+                    if (connFuture.isSuccess()) {
+                        channel = nettyClient.channel();
                     }
-                });
-            }
+                }  finally {
+                    simpleObjectPool.returnObject(nettyClient);
+                }
+            });
         }
     }
 
@@ -133,5 +143,12 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
     @Override
     public boolean autoRead() {
         return true;
+    }
+
+    @Override
+    public void close() {
+        if (channel != null) {
+            channel.close();
+        }
     }
 }

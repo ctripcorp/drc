@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.extract;
 
+import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
@@ -11,38 +13,84 @@ import java.util.List;
  */
 public class ExtractFilterContext {
 
-    private boolean rowsExtracted = false;
+    private boolean needExtractRows;
 
-    private boolean columnsExtracted = false;
+    private boolean needExtractColumns;
+
+    private boolean rewrite;
+
+    private LogEventType eventType;
+
+    private LogEvent logEvent;
+
+    private String tableName;
+
+    private TableMapLogEvent tableMapLogEvent;
 
     private TableMapLogEvent drcTableMapLogEvent;
 
     private List<Integer> extractedColumnsIndex;
 
-    private RowsFilterContext rowsFilterContext;
+    private RowsFilterContext rowsFilterContext = new RowsFilterContext();
 
     private AbstractRowsEvent rowsEvent;
 
     private String gtid;
 
-    public boolean getRowsExtracted() {
-        return rowsExtracted;
+    public boolean needExtractRows() {
+        return needExtractRows;
     }
 
-    public void setRowsExtracted(boolean rowsExtracted) {
-        this.rowsExtracted = rowsExtracted;
+    public void setNeedExtractRows(boolean needExtractRows) {
+        this.needExtractRows = needExtractRows;
     }
 
-    public boolean getColumnsExtracted() {
-        return columnsExtracted;
+    public boolean needExtractColumns() {
+        return needExtractColumns;
     }
 
-    public void setColumnsExtracted(boolean columnsExtracted) {
-        this.columnsExtracted = columnsExtracted;
+    public void setNeedExtractColumns(boolean needExtractColumns) {
+        this.needExtractColumns = needExtractColumns;
     }
 
-    public boolean extracted() {
-        return rowsExtracted || columnsExtracted;
+    public boolean isRewrite() {
+        return rewrite;
+    }
+
+    public void setRewrite(boolean rewrite) {
+        this.rewrite = rewrite;
+    }
+
+    public LogEventType getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(LogEventType eventType) {
+        this.eventType = eventType;
+    }
+
+    public LogEvent getLogEvent() {
+        return logEvent;
+    }
+
+    public void setLogEvent(LogEvent logEvent) {
+        this.logEvent = logEvent;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
+
+    public TableMapLogEvent getTableMapLogEvent() {
+        return tableMapLogEvent;
+    }
+
+    public void setTableMapLogEvent(TableMapLogEvent tableMapLogEvent) {
+        this.tableMapLogEvent = tableMapLogEvent;
     }
 
     public TableMapLogEvent getDrcTableMapLogEvent() {
@@ -89,5 +137,15 @@ public class ExtractFilterContext {
         if (rowsFilterContext != null) {
             rowsFilterContext.clear();
         }
+    }
+
+    public void reset(boolean needExtractRows, boolean needExtractColumns, TableMapLogEvent drcTableMapLogEvent,
+                      AbstractRowsEvent rowsEvent, String gtid, List<Integer> extractedColumnsIndex) {
+        this.needExtractRows = needExtractRows;
+        this.needExtractColumns = needExtractColumns;
+        this.drcTableMapLogEvent = drcTableMapLogEvent;
+        this.rowsEvent = rowsEvent;
+        this.gtid = gtid;
+        this.extractedColumnsIndex = extractedColumnsIndex;
     }
 }

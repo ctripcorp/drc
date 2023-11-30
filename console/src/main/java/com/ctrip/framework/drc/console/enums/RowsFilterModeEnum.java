@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.enums;
 
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+
 /**
  * Created by dengquanliang
  * 2023/6/25 16:36
@@ -9,6 +11,7 @@ public enum RowsFilterModeEnum {
     TRIP_UDL(1, "trip_udl"),
     TRIP_UID(2, "trip_uid"),
     AVIATOR_REGEX(3, "aviator_regex"),
+    CUSTOM(4, "custom"),
     ;
 
     private Integer code;
@@ -25,7 +28,7 @@ public enum RowsFilterModeEnum {
                 return value.name;
             }
         }
-        throw new IllegalArgumentException(String.format("Unexpected RowsFilterMode: %s", code));
+        throw ConsoleExceptionUtils.message(String.format("Unexpected RowsFilterMode: %s", code));
     }
 
     public static int getCodeByName (String name) {
@@ -34,7 +37,16 @@ public enum RowsFilterModeEnum {
                 return value.code;
             }
         }
-        throw new IllegalArgumentException(String.format("Unexpected RowsFilterMode: %s", name));
+        throw ConsoleExceptionUtils.message(String.format("Unexpected RowsFilterMode: %s", name));
+    }
+
+    public static boolean checkMode(int code) {
+        for (RowsFilterModeEnum value : RowsFilterModeEnum.values()) {
+            if (value.code == code) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Integer getCode() {

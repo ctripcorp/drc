@@ -59,6 +59,11 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>>, Col
         return columnsFilterRule.getExtractColumnsIndex(tableMapLogEvent);
     }
 
+    public boolean hasRowsFilter(String tableName) {
+        Optional<RowsFilterRule> optional = dataMediaConfig.getRowsFilterRule(tableName);
+        return optional.isPresent();
+    }
+
     public boolean hasColumnsFilter(String tableName) {
         Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableName);
         return optional.isPresent();

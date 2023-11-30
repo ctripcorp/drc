@@ -1,16 +1,16 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.FilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.extract.ExtractFilter;
 
 /**
- *
- *  preFilter
- *  ConsumeTypeFilter -> TableFilter -> RowsFilter
- *
- *  postFilter
- *  SendFilter
+ * preFilter
+ * ReadFilter -> IndexFilter -> SkipFilter -> TypeFilter -> SchemaFilter -> TableNameFilter -> ExtractFilter
+ * <p>
+ * postFilter
+ * MonitorFilter -> SendFilter
  *
  * @Author limingdong
  * @create 2022/4/22
@@ -19,17 +19,36 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
     @Override
     public Filter<OutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
-        SendFilter sendFilter = new SendFilter(context.getChannel());
+        MonitorFilter monitorFilter = new MonitorFilter(context);
 
-        TypeFilter consumeTypeFilter = new TypeFilter(context.getConsumeType(), context.shouldExtract());
-        sendFilter.setSuccessor(consumeTypeFilter);
+        SendFilter sendFilter = new SendFilter(context);
+        monitorFilter.setSuccessor(sendFilter);
 
-        TableFilter tableFilter = new TableFilter(context.getDataMediaConfig());
-        consumeTypeFilter.setSuccessor(tableFilter);
+        ReadFilter readFilter = new ReadFilter(context.getRegisterKey());
+        sendFilter.setSuccessor(readFilter);
 
-        ExtractFilter extractFilter = new ExtractFilter(context);
-        tableFilter.setSuccessor(extractFilter);
+        IndexFilter indexFilter = new IndexFilter(context.getExcludedSet());
+        readFilter.setSuccessor(indexFilter);
 
-        return sendFilter;
+        SkipFilter skipFilter = new SkipFilter(context);
+        indexFilter.setSuccessor(skipFilter);
+
+        TypeFilter consumeTypeFilter = new TypeFilter(context.getConsumeType());
+        skipFilter.setSuccessor(consumeTypeFilter);
+
+        if (ConsumeType.Replicator != context.getConsumeType()) {
+            SchemaFilter schemaFilter = new SchemaFilter(context);
+            consumeTypeFilter.setSuccessor(schemaFilter);
+
+            TableNameFilter tableNameFilter = new TableNameFilter(context.getAviatorFilter());
+            schemaFilter.setSuccessor(tableNameFilter);
+
+            if (context.shouldExtract()) {
+                ExtractFilter extractFilter = new ExtractFilter(context);
+                tableNameFilter.setSuccessor(extractFilter);
+            }
+        }
+
+        return monitorFilter;
     }
 }

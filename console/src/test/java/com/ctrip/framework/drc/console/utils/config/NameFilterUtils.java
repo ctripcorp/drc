@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.utils.config;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -30,6 +31,7 @@ public class NameFilterUtils {
         
         
         List<String> tables = removeBlankAndSplit(tableNames);
+        Collections.sort(tables);
         distinctAndCount(tables);
 
 //        String nameFilter = combine(dbName, tables);

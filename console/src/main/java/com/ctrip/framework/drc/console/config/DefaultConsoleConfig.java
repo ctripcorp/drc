@@ -94,10 +94,21 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
+    private static String VPC_MHA = "vpc.mha";
 
     private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
     private static int DEFAULT_META_COMPARE_PARALLEL = 10;
     private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
+    private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
+    private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
+    private static String META_COMPARE_SWITCH = "meta.compare.switch";
+    private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
+    private static String META_REALTIME_SWITCH = "meta.realtime";
+    
+    private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
+
+    private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
+    private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -141,6 +152,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         String region = getRegion();
         Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         return  regionsInfo.get(region);
+    }
+    
+    public boolean isCenterRegion() {
+        return getCenterRegion().equals(getRegion());
     }
     
     public String getCenterRegionUrl() {
@@ -411,6 +426,20 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     }
 
+    public Map<String, String> getDbaDc2DrcDcMap() {
+        String dbaDc2DrcDcMapString = getProperty(DBA_DC_2_DRC_DC_MAP, DEFAULT_DBA_DC_2_DRC_DC_MAP);
+        logger.info("dbaDc2DrcDcMapString: {}", dbaDc2DrcDcMapString);
+        return JsonCodec.INSTANCE.decode(dbaDc2DrcDcMapString, new GenericTypeReference<Map<String, String>>() {});
+    }
+
+    public List<String> getVpcMhaNames() {
+        String vpcMhaStr = getProperty(VPC_MHA);
+        if (StringUtils.isBlank(vpcMhaStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(vpcMhaStr.split(","));
+    }
+
     public String getSwitchCmRegionUrl() {
         return getProperty(SWITCH_CM_REGION_URL,DEFAULT_SWITCH_CM_REGION_URL);
     }
@@ -435,4 +464,31 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
     }
 
+    public String getDrcDoubleWriteSwitch() {
+        return getProperty(DRC_DOUBLE_WRITE_SWITCH, SWITCH_OFF);
+    }
+
+    public String getNewDrcConfigSwitch() {
+        return getProperty(NEW_DRC_CONFIG_SWITCH, SWITCH_OFF);
+    }
+
+    public String getMetaCompareSwitch() {
+        return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
+    }
+
+    public String getMetaGeneratorV3Switch() {
+        return getProperty(META_GENERATOR_V3_SWITCH, SWITCH_OFF);
+    }
+
+    public String getMetaRealtimeSwitch() {
+        return getProperty(META_REALTIME_SWITCH, SWITCH_OFF);
+    }
+
+    public boolean getConfgiCheckSwitch() {
+        return getBooleanProperty("config.check.switch", true);
+    }
+
+    public boolean getCflBlackListAutoAddSwitch() {
+        return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
+    }
 }

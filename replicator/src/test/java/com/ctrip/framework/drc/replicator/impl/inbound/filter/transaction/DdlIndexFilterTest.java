@@ -35,6 +35,7 @@ public class DdlIndexFilterTest extends AbstractTransactionTest {
         DrcDdlLogEvent drcDdlLogEvent = getDrcDdlLogEvent();
         TableMapLogEvent tableMapLogEvent = getDrcTableMapLogEvent();
 
+        eventList.add(new FilterLogEvent());
         eventList.add(gtidLogEvent);
         eventList.add(drcDdlLogEvent);
         eventList.add(tableMapLogEvent);

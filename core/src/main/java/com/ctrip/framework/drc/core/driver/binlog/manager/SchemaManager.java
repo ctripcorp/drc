@@ -7,6 +7,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,7 +26,24 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
      */
     Map<String/* schema */, Map<String/* table */, String>> snapshot();
 
-    boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent);
+    /**
+     * should call it after update schema
+     * @param tableIds related tables
+     */
+    void refresh(List<TableId> tableIds);
+    /**
+     * recover embedded db from snapshot
+     *
+     * @param snapshotLogEvent event
+     * @return
+     */
+    boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent, boolean fromLatestLocalBinlog);
+    /**
+     * will recover from event or not
+     * @param fromLatestLocalBinlog true if event from local binlog instead of other replicators
+     */
+    boolean shouldRecover(boolean fromLatestLocalBinlog);
+
 
     boolean clone(Endpoint endpoint);
 

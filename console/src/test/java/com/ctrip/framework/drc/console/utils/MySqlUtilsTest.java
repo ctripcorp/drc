@@ -547,6 +547,13 @@ public class MySqlUtilsTest {
         }
     }
 
+    @Test
+    public void testGetDelayTime(){
+        doWrite(CREATE_TABLE_WITHOUT_UPDATE);
+        doWrite("insert into drcmonitordb.delaymonitor(id, src_ip, dest_ip, datachange_lasttime) values (1,'sharb','{\"d\":\"ntgxh\",\"r\":\"ntgxh\",\"m\":\"xh-drc2test\"},'2023-09-08 10:23:37.349'");
+        Long updateTime = MySqlUtils.getDelayUpdateTime(endpointCi3306, "mha1");
+    }
+
     @After
     public void tearDown() {
         DataSourceManager.getInstance().clearDataSource(endpointCi3306);

@@ -14,6 +14,8 @@ public class ApiResult<T> {
 
     private T data;
 
+    private PageReq pageReq;
+
     public static <T> ApiResult getInstance( T data, Integer status, String message) {
         ApiResult<T> result = new ApiResult<T>();
         result.setData(data);
@@ -36,6 +38,10 @@ public class ApiResult<T> {
 
     public static <T> ApiResult getFailInstance( T data,String message) {
         return getInstance(data, ResultCode.HANDLE_FAIL.getCode(), message);
+    }
+    
+    public static <T> ApiResult getNoPermissionResult( T data) {
+        return getInstance(data, ResultCode.NO_PERMISSION.getCode(), ResultCode.NO_PERMISSION.getMessage());
     }
 
     public Integer getStatus() {
@@ -62,4 +68,11 @@ public class ApiResult<T> {
         this.data = data;
     }
 
+    public void setPageReq(PageReq pageReq) {
+        this.pageReq = pageReq;
+    }
+
+    public PageReq getPageReq() {
+        return pageReq;
+    }
 }

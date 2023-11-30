@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +37,7 @@ import static com.ctrip.framework.drc.console.config.ConsoleConfig.SHOULD_AFFECT
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 
 @Service
+@Deprecated
 public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     
@@ -412,11 +412,13 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
     private void beforeInsert(List<MachineTbl> insertMachines,MhaTbl mhaTbl) throws Exception{
         String mhaName = mhaTbl.getMhaName();
         MhaGroupTbl mhaGroupTbl = metaInfoService.getMhaGroupForMha(mhaTbl.getMhaName());
+        String user = (mhaGroupTbl == null ? monitorTableSourceProvider.getMonitorUserVal() : mhaGroupTbl.getMonitorUser());
+        String psw = (mhaGroupTbl == null ? monitorTableSourceProvider.getMonitorPasswordVal() : mhaGroupTbl.getMonitorPassword());
         for(MachineTbl machine : insertMachines) {
             String ip = machine.getIp();
             Integer port = machine.getPort();
             Integer master = machine.getMaster();
-            String uuid = MySqlUtils.getUuid(ip, port, mhaGroupTbl.getMonitorUser(), mhaGroupTbl.getMonitorPassword(), BooleanEnum.TRUE.getCode().equals(master));
+            String uuid = MySqlUtils.getUuid(ip, port, user, psw, BooleanEnum.TRUE.getCode().equals(master));
             if (null == uuid) {
                 logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.insert.fail." + mhaName, ip);

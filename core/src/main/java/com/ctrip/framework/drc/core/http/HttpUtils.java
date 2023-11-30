@@ -67,10 +67,16 @@ public class HttpUtils {
         return put(url, body, ApiResult.class);
     }
 
+    public static <T> T put(String url, Object body, Class<T> clazz, Map<String, ?> urlVariables) {
+        init();
+        HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.PUT, entity, clazz,urlVariables);
+        return response.getBody();
+    }
+
     public static ApiResult post(String url, Object body) {
         return post(url, body, ApiResult.class);
     }
-
     public static <T> T get(String url, Class<T> responseType, Object... urlVariables) {
         init();
         HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(headers);
@@ -103,7 +109,6 @@ public class HttpUtils {
         ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz,urlVariables);
         return response.getBody();
     }
-
 
     public static <T> T delete(String url, Class<T> clazz) {
         init();

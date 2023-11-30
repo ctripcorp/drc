@@ -28,6 +28,8 @@ public interface FileManager extends GtidReader, GtidObservable, Flushable, Dest
 
     File getCurrentLogFile();
 
+    long getCurrentLogSize();
+
     File getFirstLogFile();
 
     File getNextLogFile(File current);

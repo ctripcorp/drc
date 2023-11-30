@@ -6,9 +6,11 @@ import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,6 +29,57 @@ public class AbstractDao<T> {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal("deleted", BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return sqlBuilder;
+    }
+
+    public List<T> queryByPk(List<Long> ids) throws SQLException {
+        if (CollectionUtils.isEmpty(ids)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.and().in("id", ids, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
+    public List<T> queryByIds(List<Long> ids) throws SQLException {
+        if (CollectionUtils.isEmpty(ids)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().in("id", ids, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
+    /**
+     * Insert T with return ID
+     */
+    public Long insertWithReturnId(T daoPojo) throws SQLException {
+        KeyHolder keyHolder = new KeyHolder();
+        insert(new DalHints(), keyHolder, daoPojo);
+        return (Long) keyHolder.getKey();
+    }
+
+    /**
+     * Query by ID
+     * Deleted default false
+     */
+    public T queryById(Long id) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal("id", id, Types.BIGINT);
+        return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    /**
+     * Query one
+     */
+    public T queryOne(SelectSqlBuilder sqlBuilder) throws SQLException {
+        return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    /**
+     * Query list
+     */
+    public List<T> queryList(SelectSqlBuilder sqlBuilder) throws SQLException {
+        return client.query(sqlBuilder, new DalHints());
     }
 
     /**
@@ -137,6 +190,12 @@ public class AbstractDao<T> {
         SelectSqlBuilder builder = new SelectSqlBuilder().selectAll().orderBy("id", ASC);
 
         return client.query(builder, hints);
+    }
+
+
+    public List<T> queryAllExist() throws SQLException {
+        SelectSqlBuilder builder = initSqlBuilder();
+        return client.query(builder, new DalHints());
     }
 
     /**

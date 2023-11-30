@@ -68,9 +68,9 @@ public class ReplicatorContainerApplication {
 
         final ComponentRegistry registry = new DefaultRegistry(new CreatedComponentRedistry(),
                 new SpringComponentRegistry(context));
+        ComponentRegistryHolder.initializeRegistry(registry);
         registry.initialize();
         registry.start();
-        ComponentRegistryHolder.initializeRegistry(registry);
         return registry;
     }
 }

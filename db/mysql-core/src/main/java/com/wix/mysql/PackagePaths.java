@@ -9,6 +9,7 @@ import de.flapdoodle.embed.process.distribution.Distribution;
 
 import static de.flapdoodle.embed.process.distribution.ArchiveType.TXZ;
 import static de.flapdoodle.embed.process.distribution.BitSize.B32;
+import static de.flapdoodle.embed.process.distribution.BitSize.B64;
 import static java.lang.String.format;
 
 public class PackagePaths implements IPackageResolver {
@@ -33,6 +34,14 @@ public class PackagePaths implements IPackageResolver {
         BitSize bs = distribution.getBitsize();
         switch (distribution.getPlatform()) {
             case OS_X:
+                // for mac m2 local deploy; change url if your mac version doesn't match
+                if (distribution.getVersion().equals(Version.v8_0_32)) {
+                    // https://dev.mysql.com/get/Downloads//MySQL-8.0/mysql-8.0.32-macos13-arm64.tar.gz
+                    return format("%s-arm64.tar.gz", downloadPath);
+                }
+                if (System.getProperty("os.arch").equals("aarch64")) {
+                    bs = B64;
+                }
                 return format("%s-x86%s.tar.gz", downloadPath, bs == B32 ? "" : "_64");
             case Linux:
                 String gzOrXz = version.archiveType() == TXZ ? "xz" : "gz";

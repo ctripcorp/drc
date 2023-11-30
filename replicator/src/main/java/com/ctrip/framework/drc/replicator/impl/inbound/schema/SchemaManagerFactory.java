@@ -56,16 +56,7 @@ public class SchemaManagerFactory {
 
     public static synchronized void clear() {
         for (Map.Entry<String, MySQLSchemaManager> entry : schemaManagerMap.entrySet()) {
-            try {
-                if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(entry.getKey())) {
-                    LifecycleHelper.stopIfPossible(entry.getValue());
-                    LifecycleHelper.disposeIfPossible(entry.getValue());
-                    DDL_LOGGER.info("[Destroy] mysqld for {}", entry.getKey());
-                } else {
-                    DDL_LOGGER.info("[Destroy] mysqld skipped for {}", entry.getKey());
-                }
-            } catch (Exception e) {
-            }
+            DDL_LOGGER.info("[Destroy] mysqld skipped for {}", entry.getKey());
         }
         schemaManagerMap.clear();
     }

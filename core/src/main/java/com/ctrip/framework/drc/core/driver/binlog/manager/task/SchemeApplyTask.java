@@ -75,15 +75,13 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "create user")
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "alter user")
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "drop user")) {
-            if (DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-                Pair<Boolean, TableComment> contained = shouldExecute();
-                if (contained.getKey()) {
-                    return true;
-                }
-                Pair<Boolean, String> commentedDdl = transformTableComment(ddl, queryType, JsonCodec.INSTANCE.encode(contained.getValue()));
-                DDL_LOGGER.info("[Apply] {} transformed from {}", commentedDdl.getValue(), ddl);
-                ddl = commentedDdl.getValue();
+            Pair<Boolean, TableComment> contained = shouldExecute();
+            if (contained.getKey()) {
+                return true;
             }
+            Pair<Boolean, String> commentedDdl = transformTableComment(ddl, queryType, JsonCodec.INSTANCE.encode(contained.getValue()));
+            DDL_LOGGER.info("[Apply] {} transformed from {}", commentedDdl.getValue(), ddl);
+            ddl = commentedDdl.getValue();
 
             if (StringUtils.isNotEmpty(schema)) {
                 doExecute(String.format(DDL_SQL, schema));

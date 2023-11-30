@@ -1,0 +1,14 @@
+[
+  {
+    "dcId": 1,
+    "dcName": "dc1",
+    "regionId": 1,
+    "regionName": "region1"
+  },
+  {
+    "dcId": 2,
+    "dcName": "dc2",
+    "regionId": 2,
+    "regionName": "region2"
+  }
+]

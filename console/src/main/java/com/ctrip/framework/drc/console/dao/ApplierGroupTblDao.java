@@ -2,12 +2,10 @@ package com.ctrip.framework.drc.console.dao;
 
 
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
@@ -45,6 +43,13 @@ public class ApplierGroupTblDao extends AbstractDao<ApplierGroupTbl>{
 		return applierGroupTbl.isEmpty() ? null : applierGroupTbl.get(0);
 	}
 
+	public ApplierGroupTbl queryByMhaIdAndReplicatorGroupId(Long mhaId, Long replicatorGroupId) throws SQLException {
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT,false)
+				.and().equal("replicator_group_id", replicatorGroupId, Types.BIGINT,false);
+		return queryOne(builder);
+	}
+
     public Long upsertIfNotExist(Long srcReplicatorGroupId, Long destMhaId) throws SQLException {
 		ApplierGroupTbl aGroupTbl = 
 				queryByMhaIdAndReplicatorGroupId(destMhaId, srcReplicatorGroupId, BooleanEnum.FALSE.getCode());
@@ -67,6 +72,5 @@ public class ApplierGroupTblDao extends AbstractDao<ApplierGroupTbl>{
 			}
 		}
 	}
-	
 	
 }

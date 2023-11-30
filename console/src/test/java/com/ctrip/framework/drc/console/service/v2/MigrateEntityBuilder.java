@@ -2,8 +2,13 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
+import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -91,6 +96,28 @@ public class MigrateEntityBuilder {
         return replicatorGroupTbls;
     }
 
+    public static List<ReplicatorTbl> getReplicatorTbls() {
+        List<ReplicatorTbl> tbls = new ArrayList<>();
+        for (int i = 200; i < 202; i++) {
+            ReplicatorTbl replicatorTbl = new ReplicatorTbl();
+            replicatorTbl.setId(Long.valueOf(i));
+            replicatorTbl.setDeleted(0);
+            replicatorTbl.setRelicatorGroupId(200L);
+            replicatorTbl.setResourceId(200L);
+            replicatorTbl.setApplierPort(1010);
+            replicatorTbl.setGtidInit("gtId");
+            replicatorTbl.setPort(3030);
+            replicatorTbl.setMaster(1);
+            tbls.add(replicatorTbl);
+        }
+
+        return tbls;
+    }
+
+    public static ReplicatorGroupTbl getReplicatorGroupTbl() {
+        return getReplicatorGroupTbls().stream().filter(e -> e.getId() == 200L).findFirst().get();
+    }
+
     public static List<ApplierGroupTbl> getApplierGroupTbls() {
         List<ApplierGroupTbl> applierGroupTbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {
@@ -109,6 +136,10 @@ public class MigrateEntityBuilder {
         return applierGroupTbls;
     }
 
+    public static ApplierGroupTbl getApplierGroupTbl() {
+        return getApplierGroupTbls().stream().filter(e -> e.getId() == 200L).findFirst().get();
+    }
+
     public static List<ApplierTbl> getApplierTbls() {
         List<ApplierTbl> applierTbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {
@@ -118,6 +149,22 @@ public class MigrateEntityBuilder {
             applierTbl.setId(Long.valueOf(i));
             applierTbl.setMaster(1);
             applierTbl.setGtidInit("gtid");
+            applierTbls.add(applierTbl);
+            applierTbl.setMaster(1);
+            applierTbl.setPort(80);
+            applierTbl.setResourceId(200L);
+        }
+        return applierTbls;
+    }
+
+    public static List<ApplierTblV2> getApplierTblV2s() {
+        List<ApplierTblV2> applierTbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            ApplierTblV2 applierTbl = new ApplierTblV2();
+            applierTbl.setApplierGroupId(200L);
+            applierTbl.setDeleted(0);
+            applierTbl.setId(Long.valueOf(i));
+            applierTbl.setMaster(1);
             applierTbls.add(applierTbl);
             applierTbl.setMaster(1);
             applierTbl.setPort(80);
@@ -194,6 +241,15 @@ public class MigrateEntityBuilder {
         return tbl;
     }
 
+    public static ColumnsFilterTblV2 getColumnsFilterTbl() {
+        ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();
+        tbl.setDeleted(0);
+        tbl.setId(200L);
+        tbl.setMode(0);
+        tbl.setColumns(JsonUtils.toJson(Lists.newArrayList("column")));
+        return tbl;
+    }
+
     public static List<RowsFilterTbl> getRowsFilterTbls() {
         List<RowsFilterTbl> tbls = new ArrayList<>();
         for (int i = 200; i < 202; i++) {
@@ -217,6 +273,28 @@ public class MigrateEntityBuilder {
         return tbl;
     }
 
+    public static RowsFilterTblV2 getRowsFilterTbl() {
+        RowsFilterCreateParam rowsFilterCreateParam = getRowsFilterCreateParam();
+        RowsFilterTblV2 rowsFilterTblV2 = rowsFilterCreateParam.extractRowsFilterTbl();
+        rowsFilterTblV2.setId(200L);
+        return rowsFilterTblV2;
+    }
+
+    public static RowsFilterCreateParam getRowsFilterCreateParam() {
+        RowsFilterCreateParam param = new RowsFilterCreateParam();
+        param.setDbReplicationIds(Lists.newArrayList(200L, 201L));
+        param.setMode(RowsFilterModeEnum.TRIP_UDL.getCode());
+        param.setColumns(Lists.newArrayList("uid"));
+        param.setUdlColumns(Lists.newArrayList("udl"));
+        param.setDrcStrategyId(1);
+        param.setRouteStrategyId(0);
+        param.setContext("context");
+        param.setIllegalArgument(false);
+        param.setFetchMode(0);
+
+        return param;
+    }
+
     public static MhaReplicationTbl getMhaReplicationTbl() {
         MhaReplicationTbl tbl = new MhaReplicationTbl();
         tbl.setDeleted(0);
@@ -234,6 +312,45 @@ public class MigrateEntityBuilder {
             tbl.setMhaId(Long.valueOf(i));
             tbl.setDbId(200L);
             tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls1() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(Long.valueOf(i));
+            tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls2() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 202; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(200L);
+            tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls3() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 202; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(200L);
+            tbl.setId(Long.valueOf(i + 10));
             tbls.add(tbl);
         }
         return tbls;
@@ -270,6 +387,19 @@ public class MigrateEntityBuilder {
         return messengerTbl;
     }
 
+    public static List<MessengerTbl> getMessengers() {
+        List<MessengerTbl> tbls = new ArrayList<>();
+        for (int i = 200; i < 202; i++) {
+            MessengerTbl tbl = new MessengerTbl();
+            tbl.setMessengerGroupId(200L);
+            tbl.setId(Long.valueOf(i));
+            tbl.setResourceId(200L);
+            tbl.setDeleted(0);
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
     public static DataMediaPairTbl getDataMediaPairTbl() {
         DataMediaPairTbl tbl = new DataMediaPairTbl();
         tbl.setDeleted(0);
@@ -293,6 +423,8 @@ public class MigrateEntityBuilder {
         tbl1.setDstLogicTableName("table2");
         tbl1.setDstMhaDbMappingId(201L);
         tbl1.setId(200L);
+        tbl1.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        tbl1.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
 
         DbReplicationTbl tbl2 = new DbReplicationTbl();
         tbl2.setDeleted(0);
@@ -303,6 +435,8 @@ public class MigrateEntityBuilder {
         tbl2.setDstMhaDbMappingId(-1L);
         tbl2.setId(201L);
 
+        tbl2.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        tbl2.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
         return Lists.newArrayList(tbl1, tbl2);
     }
 
@@ -339,7 +473,78 @@ public class MigrateEntityBuilder {
         tbl.setDeleted(0);
         tbl.setAppId(1L);
         tbl.setApplyMode(0);
+        tbl.setTag("tag");
 
         return tbl;
+    }
+
+    public static List<MhaTblV2> getMhaTblV2s() {
+        List<MhaTblV2> tbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            MhaTblV2 tbl = new MhaTblV2();
+            tbl.setId(Long.valueOf(i));
+            tbl.setMhaName("mha" + i);
+            tbl.setDcId(200L);
+            tbl.setBuId(200L);
+            tbl.setClusterName("cluster");
+            tbl.setReadUser("");
+            tbl.setReadPassword("");
+            tbl.setWriteUser("");
+            tbl.setWritePassword("");
+            tbl.setMonitorPassword("");
+            tbl.setMonitorUser("");
+            tbl.setDeleted(0);
+            tbl.setAppId(1L);
+            tbl.setApplyMode(0);
+
+            tbls.add(tbl);
+        }
+
+        return tbls;
+    }
+
+    public static List<DcTbl> getDcTbls() {
+        List<DcTbl> dcTbls = new ArrayList<>();
+        DcTbl tbl1 = new DcTbl();
+        tbl1.setId(200L);
+        tbl1.setDcName("shaxy");
+        tbl1.setRegionName("sha");
+
+        DcTbl tb2 = new DcTbl();
+        tb2.setId(201L);
+        tb2.setDcName("sinaws");
+        tb2.setRegionName("sin");
+
+        dcTbls.add(tbl1);
+        dcTbls.add(tb2);
+        return dcTbls;
+    }
+
+    public static BuTbl getBuTbl() {
+        BuTbl buTbl = new BuTbl();
+        buTbl.setBuName("BBZ");
+        buTbl.setId(200L);
+        return buTbl;
+    }
+
+    public static List<ResourceTbl> getResourceTbls() {
+        ResourceTbl resourceTbl = new ResourceTbl();
+        resourceTbl.setId(200L);
+        resourceTbl.setType(0);
+        resourceTbl.setAz("AZ");
+        resourceTbl.setIp("ip");
+        resourceTbl.setTag("tag");
+        return Lists.newArrayList(resourceTbl);
+    }
+
+    public static List<DbReplicationFilterMappingTbl> getFilterMappings() {
+        DbReplicationFilterMappingTbl tbl = new DbReplicationFilterMappingTbl();
+        tbl.setId(200L);
+        tbl.setDbReplicationId(200L);
+        tbl.setColumnsFilterId(200L);
+        tbl.setRowsFilterId(200L);
+        tbl.setMessengerFilterId(200L);
+
+        return Lists.newArrayList(tbl);
     }
 }

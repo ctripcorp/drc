@@ -8,10 +8,13 @@ import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
-import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
+import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
+import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
+import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
-import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
+import com.ctrip.framework.drc.console.dto.RowsFilterRegisterConfigDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -37,6 +40,7 @@ import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTa
 import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest2;
 import com.ctrip.framework.drc.console.monitor.table.task.CheckTableConsistencyTaskTest;
 import com.ctrip.framework.drc.console.monitor.unit.UnitVerificationManagerTest;
+import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
@@ -44,10 +48,21 @@ import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.log.ConflictLogManagerTest;
+import com.ctrip.framework.drc.console.service.log.ConflictApprovalServiceTest;
+import com.ctrip.framework.drc.console.service.log.ConflictLogServiceTest;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.MigrationTaskManagerTest;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
+import com.ctrip.framework.drc.console.service.v2.impl.*;
+import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.integration.DrcDoubleWriteServiceIntegrationTest;
+import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
+import com.ctrip.framework.drc.console.service.v2.integration.MigrateServiceIntegrationTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
@@ -140,28 +155,44 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DataMediaServiceV2Test.class,
         MessengerServiceV2Test.class,
         MetaGeneratorV2Test.class,
+        MetaGeneratorV3Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
         MigrateServiceTest.class,
         MetaGrayServiceImplTest.class,
-        
+        MetaCompareServiceImplTest.class,
+        DrcDoubleWriteServiceTest.class,
+        CacheMetaServiceImplTest.class,
+        DbMetaCorrectServiceImplTest.class,
+        MetaInfoServiceV2ImplTest.class,
+        MhaServiceV2ImplTest.class,
+        MhaReplicationServiceV2ImplTest.class,
+        MhaDbMappingServiceTest.class,
+        DrcBuildServiceV2Test.class,
+        MessengerServiceV2ImplTest.class,
+        MetaInfoServiceV2ImplTest2.class,
+        ResourceMigrateServiceTest.class,
+        ResourceServiceTest.class,
+        DbMigrationServiceImplTest.class,
+        DbMigrationServiceTest.class,
+        DbaApiServiceTest.class,
+        DrcAutoBuildServiceImplTest.class,
+        MachineServiceImplTest.class,
+        MigrationTaskManagerTest.class,
+        ConflictLogServiceTest.class,
+        ConflictApprovalServiceTest.class,
+//
         // controller
+        MetaControllerV2Test.class,
+        MhaReplicationControllerTest.class,
+        MessengerControllerV2Test.class,
         AccessControllerTest.class,
-        BuildControllerTest.class,
-        LocalControllerTest.class,
-        MhaControllerTest.class,
         SwitchControllerTest.class,
-        ClusterControllerTest.class,
         ConfigControllerTest.class,
-        LogControllerTest.class,
 //        UserControllerTest.class,
         MetaControllerTest.class,
-        HealthControllerTest.class,
-        MonitorControllerTest.class,
         OpenApiControllerTest.class,
         RowsFilterServiceImplTest.class,
-        MessengerControllerTest.class,
-        DataMediaControllerTest.class,
         RowsFilterMetaControllerTest.class,
 
         //task
@@ -217,16 +248,19 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DelayMonitorPooledConnectorTest.class,
 
         ListenReplicatorTaskTest.class,
+        ConflictLogManagerTest.class,
 
         //entity
         MhaInstanceGroupDtoTest.class,
-        RowsFilterConfigDtoTest.class,
+        RowsFilterRegisterConfigDtoTest.class,
         RowsFilterMappingVoTest.class,
         SimplexDrcBuildVoTest.class,
+        MhaReplicationQueryTest.class,
 
         //integrationTest
-        MigrateServiceIntegrationTest.class
-        
+        MigrateServiceIntegrationTest.class,
+        DrcDoubleWriteServiceIntegrationTest.class,
+        MhaReplicationTblDaoTest.class
 })
 public class AllTests {
 

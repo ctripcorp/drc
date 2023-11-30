@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.exception.dump.BinlogDumpGtidException;
 import com.ctrip.framework.drc.core.exception.dump.EventConvertException;
 import com.ctrip.framework.drc.core.monitor.log.Accumulation;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
@@ -38,7 +39,7 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     protected final Logger loggerER = LoggerFactory.getLogger("EVT RECV");
     protected final Accumulation accumulationGW = new Accumulation("GAQ WAIT", "ms");
 
-    protected FetcherSlaveConfig config;
+    protected volatile FetcherSlaveConfig config;
     protected FetcherSlaveServer server;
     protected NetworkContextResource context;
 
@@ -86,7 +87,7 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @Override
     public void doStart() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
-            ProxyRegistry.registerProxy(replicatorIp, replicatorPort, routeInfo);
+            ProxyRegistry.registerProxy(registryKey, replicatorIp, replicatorPort, routeInfo);
         }
         Endpoint endpoint = new DefaultEndPoint(replicatorIp, replicatorPort);
         config = new FetcherSlaveConfig();
@@ -114,10 +115,16 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
         server.start();
     }
 
+    public void changeProperties(ApplierConfigDto config) throws Exception {
+        this.config.setNameFilter(config.getNameFilter());
+        this.config.setProperties(config.getProperties());
+        server.closeChannel();
+    }
+
     @Override
     public void doStop() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
-            ProxyRegistry.unregisterProxy(replicatorIp, replicatorPort);
+            ProxyRegistry.unregisterProxy(registryKey, replicatorIp, replicatorPort);
         }
         server.stop();
         server.dispose();

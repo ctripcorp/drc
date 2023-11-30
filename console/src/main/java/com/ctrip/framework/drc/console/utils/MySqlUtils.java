@@ -1,5 +1,16 @@
 package com.ctrip.framework.drc.console.utils;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
+import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.OperateTypeEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -9,8 +20,9 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
+import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -19,8 +31,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,15 +51,18 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.DRC_MONITOR_S
 public class MySqlUtils {
 
     protected static Logger logger = LoggerFactory.getLogger("tableConsistencyMonitorLogger");
+    private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
+    private static Map<Endpoint, WriteSqlOperatorWrapper> writeSqlOperatorMapper = new HashMap<>();
+
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
-    public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%';";
+    public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
     public static final String GET_APPROVED_TRUNCATE_TABLES = "select db_name, table_name from configdb.approved_truncatelist;";
-    
+
     public static final String DRC_MONITOR_DB = "drcmonitordb";
 
     private static final String GET_CREATE_TABLE_STMT = "SHOW CREATE TABLE %s";
@@ -60,7 +77,7 @@ public class MySqlUtils {
 
 
     /**
-     * CHECK MySql Config 
+     * CHECK MySql Config
      * log_bin = ON/1
      * binlog_format = ROW
      * BINLOG_TRANSACTION_DEPENDENCY_TRACKING = WRITESET
@@ -91,16 +108,54 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
+    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
+    public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = '%s' AND `table_name` = '%s' and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
+    private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
-    private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
+    private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
-    private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like 'on update%';";
-    private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like 'on update%';";
+    private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
+    private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like '%on update%';";
+    private static final String GET_ON_UPDATE_COLUMN_CONDITION = " and EXTRA like '%on update%';";
+    private static final String SELECT_SQL = "SELECT * FROM %s WHERE %s";
     private static final int COLUMN_INDEX = 1;
-    
-    
+    private static final int DATACHANGE_LASTTIME_INDEX = 1;
+    private static final String EQUAL = "=";
+    private static final String SINGLE_QUOTE = "'";
+    private static final String MARKS = "`";
+    public static final String PRIMARY = "PRIMARY";
+
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
+    }
+
+    public static List<String> getDefaultDbs(Endpoint endpoint) {
+        return getDbs(endpoint, GET_DEFAULT_DBS, false);
+    }
+
+    public static List<String> getDbs(Endpoint endpoint, String sql, Boolean removeSqlOperator) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        List<String> dbs = Lists.newArrayList();
+        ReadResource readResource = null;
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while (rs.next()) {
+                dbs.add(rs.getString(1));
+            }
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+            if (removeSqlOperator) {
+                removeSqlOperator(endpoint);
+            }
+        }
+        return dbs;
     }
 
     public static List<TableSchemaName> getTables(Endpoint endpoint, String sql, Boolean removeSqlOperator) {
@@ -111,17 +166,17 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            while(rs.next()) {
+            while (rs.next()) {
                 tables.add(new TableSchemaName(rs.getString(1), rs.getString(2)));
             }
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
-            if(removeSqlOperator) {
+            if (removeSqlOperator) {
                 removeSqlOperator(endpoint);
             }
         }
@@ -136,15 +191,30 @@ public class MySqlUtils {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
         return getCreateTblStmts(endpoint,
                 tables.stream().
-                        filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
+                        filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
                         map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
+
     public static List<TableSchemaName> getTablesAfterRegexFilter(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
         return tables.stream().
-                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName()) 
+                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())
                         && !tableSchemaName.getSchema().equals(DRC_MONITOR_DB)).
                 collect(Collectors.toList());
+    }
+
+    public static List<TableSchemaName> getTablesMatchAnyRegexFilter(Endpoint endpoint, List<AviatorRegexFilter> aviatorRegexFilters) {
+        List<TableSchemaName> tables = getDefaultTables(endpoint);
+        return tables.stream()
+                .filter(tableSchemaName -> !DRC_MONITOR_DB.equals(tableSchemaName.getSchema()))
+                .filter(tableSchemaName -> {
+                    for (AviatorRegexFilter aviatorRegexFilter : aviatorRegexFilters) {
+                        if (aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }).collect(Collectors.toList());
     }
 
     /**
@@ -158,7 +228,7 @@ public class MySqlUtils {
 
     public static Map<String, DelayMonitorConfig> getDelayMonitorConfigs(Endpoint endpoint, List<TableSchemaName> tableSchemaNames, Boolean removeSqlOperator) {
         Map<String, DelayMonitorConfig> delayMonitorConfigs = Maps.newHashMap();
-        for(TableSchemaName tableSchemaName : tableSchemaNames) {
+        for (TableSchemaName tableSchemaName : tableSchemaNames) {
             String tableSchema = tableSchemaName.toString();
             if (DRC_MONITOR_SCHEMA_TABLE.equalsIgnoreCase(tableSchema)) {
                 continue;
@@ -172,6 +242,44 @@ public class MySqlUtils {
         }
         return delayMonitorConfigs;
     }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public static Long getDelayUpdateTime(Endpoint endpoint, String mha) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL)) {
+                statement.setString(1, mha);
+                ResultSet rs = statement.executeQuery();
+                if (rs.next()) {
+                    String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
+                    return dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime();
+                }
+            }
+        } catch (SQLException | ParseException e) {
+            logger.error("[[endpoint={}:{}]] getDelay({}) error: {}", endpoint.getHost(), endpoint.getPort(), mha, e);
+            removeSqlOperator(endpoint);
+        }
+        return null;
+    }
+
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public static Long getCurrentTime(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        GeneralSingleExecution execution = new GeneralSingleExecution(SELECT_CURRENT_TIMESTAMP);
+        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+            ResultSet rs = readResource.getResultSet();
+            if (rs.next()) {
+                String nowTime = rs.getString(1);
+                return dateFormatThreadLocal.get().parse(nowTime).getTime();
+            }
+        } catch (Throwable e) {
+            logger.error("[[endpoint={}:{}]] getCurrentTime({}) error: ", endpoint.getHost(), endpoint.getPort(), SELECT_CURRENT_TIMESTAMP, e);
+            removeSqlOperator(endpoint);
+        }
+        return null;
+    }
+
 
     private static String getColumn(Endpoint endpoint, String getColumnSuffix, TableSchemaName tableSchemaName, Boolean removeSqlOperator) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
@@ -200,20 +308,20 @@ public class MySqlUtils {
 
     /**
      * @param endpoint
-     * @param tables tale without ``
+     * @param tables   tale without ``
      * @return key: database.table, value: createTblStmts
      */
     public static Map<String, String> getCreateTblStmts(Endpoint endpoint, List<String> tables, Boolean removeSqlOperator) {
         Map<String, String> stmts = Maps.newHashMap();
-        for(String table : tables) {
+        for (String table : tables) {
             String createTblStmt = getCreateTblStmt(endpoint, TableSchemaName.getTableSchemaName(table), removeSqlOperator);
             String stmt = filterStmt(createTblStmt, endpoint, table);
             stmts.put(table, stmt);
         }
         return stmts;
     }
-    
-    public static String getCreateTblStmt(Endpoint endpoint,TableSchemaName table,Boolean removeSqlOperator) {
+
+    public static String getCreateTblStmt(Endpoint endpoint, TableSchemaName table, Boolean removeSqlOperator) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
@@ -243,22 +351,17 @@ public class MySqlUtils {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
         ReadResource readResource = null;
-        for(TableSchemaName table : tables) {
+        for (TableSchemaName table : tables) {
             try {
-                String sql = String.format(GET_ALL_COLUMN_PREFIX, table.getSchema(),table.getName());
+                String sql = String.format(GET_ALL_COLUMN_SQL, table.getSchema(), table.getName());
                 GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                 readResource = sqlOperatorWrapper.select(execution);
                 ResultSet rs = readResource.getResultSet();
-                int index = 1;
                 HashSet<String> columns = Sets.newHashSet();
-                if (rs.next()) {
-                    final String[] columnNames = rs.getString(1).split(",");
-                    for (String columnName : columnNames) {
-                        // column case insensitive
-                        columns.add(columnName.toLowerCase());
-                    }
+                while (rs.next()) {
+                    columns.add(rs.getString(1).toLowerCase());
                 }
-                table2ColumnsMap.put(table.getDirectSchemaTableName(),columns);
+                table2ColumnsMap.put(table.getDirectSchemaTableName(), columns);
             } catch (Throwable t) {
                 logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
                 removeSqlOperator(endpoint);
@@ -274,8 +377,8 @@ public class MySqlUtils {
         return table2ColumnsMap;
     }
 
-    public static Set<String> getAllCommonColumns(Endpoint endpoint,AviatorRegexFilter aviatorRegexFilter) {
-        List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint,aviatorRegexFilter);
+    public static Set<String> getAllCommonColumns(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
+        List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint, aviatorRegexFilter);
         Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, false);
         HashSet<String> commonColumns = Sets.newHashSet();
         for (Set<String> columns : allColumnsByTable.values()) {
@@ -311,14 +414,14 @@ public class MySqlUtils {
     }
 
     protected static String filterStmtByRegex(String stmt, Map<String, String> regexReplacementMap, Endpoint endpoint, String table) {
-        for(Map.Entry<String, String> regexReplacement : regexReplacementMap.entrySet()) {
+        for (Map.Entry<String, String> regexReplacement : regexReplacementMap.entrySet()) {
             String regex = regexReplacement.getKey();
             String replacement = regexReplacement.getValue();
             Pattern patten = Pattern.compile(regex);
             boolean matchFlag = true;
-            while(matchFlag) {
+            while (matchFlag) {
                 Matcher matcher = patten.matcher(stmt);
-                if(matcher.find()) {
+                if (matcher.find()) {
                     String filterString = matcher.group();
                     logger.info("[[monitor=tableConsistency,endpoint={}:{}]] filter String({}) for table {}", endpoint.getHost(), endpoint.getPort(), filterString, table);
                     stmt = stmt.replace(filterString, replacement);
@@ -337,22 +440,22 @@ public class MySqlUtils {
     public static List<String> checkOnUpdate(Endpoint endpoint, List<String> dbNames) {
         List<String> tablesWithoutOnUpdate = Lists.newArrayList();
         Map<String, String> createTblStmts = getAllCreateStmts(endpoint, dbNames);
-        for(Map.Entry<String, String> entry : createTblStmts.entrySet()) {
+        for (Map.Entry<String, String> entry : createTblStmts.entrySet()) {
             logger.info("check on update {}", entry.getKey());
-            if(!entry.getValue().toLowerCase().contains(ON_UPDATE)) {
+            if (!entry.getValue().toLowerCase().contains(ON_UPDATE)) {
                 tablesWithoutOnUpdate.add(entry.getKey());
             }
         }
         return tablesWithoutOnUpdate;
     }
-    
+
     @Deprecated
     public static List<String> checkOnUpdateKey(Endpoint endpoint) {
         List<TableSchemaName> tableSchemaNames = getDefaultTables(endpoint);
         List<String> tablesWithoutOnUpdateKey = Lists.newArrayList();
-        for(TableSchemaName tableSchemaName : tableSchemaNames) {
+        for (TableSchemaName tableSchemaName : tableSchemaNames) {
             String onUpdateColumn = getColumn(endpoint, GET_ON_UPDATE_COLUMN, tableSchemaName, false);
-            if(!isKey(endpoint, tableSchemaName, onUpdateColumn, false)) {
+            if (!isKey(endpoint, tableSchemaName, onUpdateColumn, false)) {
                 tablesWithoutOnUpdateKey.add(tableSchemaName.toString());
             }
         }
@@ -367,20 +470,20 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            while(rs.next()) {
+            while (rs.next()) {
                 String curColumnName = rs.getString("Column_name");
-                if(column.equals(curColumnName)) {
+                if (column.equals(curColumnName)) {
                     return true;
                 }
             }
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             logger.error("[[endpoint={}:{},table={},column={}]] isKey error: ", endpoint.getHost(), endpoint.getPort(), tableSchemaName.toString(), column, t);
             removeSqlOperator(endpoint);
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
-            if(removeSqlOperator) {
+            if (removeSqlOperator) {
                 removeSqlOperator(endpoint);
             }
         }
@@ -394,10 +497,10 @@ public class MySqlUtils {
     public static List<String> checkUniqOrPrimary(Endpoint endpoint, List<String> dbNames) {
         List<String> tablesWithoutPkAndUk = Lists.newArrayList();
         Map<String, String> createTblStmts = getAllCreateStmts(endpoint, dbNames);
-        for(Map.Entry<String, String> entry : createTblStmts.entrySet()) {
+        for (Map.Entry<String, String> entry : createTblStmts.entrySet()) {
             logger.info("check pk uk {}", entry.getKey());
             logger.info("create pk uk table stmt: {}", entry.getValue());
-            if(!entry.getValue().toLowerCase().contains(PRIMARY_KEY) && !entry.getValue().toLowerCase().contains(UNIQUE_KEY)) {
+            if (!entry.getValue().toLowerCase().contains(PRIMARY_KEY) && !entry.getValue().toLowerCase().contains(UNIQUE_KEY)) {
                 tablesWithoutPkAndUk.add(entry.getKey());
             }
         }
@@ -412,27 +515,27 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            if(rs.next()) {
+            if (rs.next()) {
                 return rs.getString(1);
             }
         } catch (Throwable t) {
             logger.error("[[endpoint={}:{}]]checkGtidMode error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
         }
         return null;
     }
-    
-    
-    public static List<String> checkApprovedTruncateTableList(Endpoint endpoint,boolean removeSqlOperator) {
+
+
+    public static List<String> checkApprovedTruncateTableList(Endpoint endpoint, boolean removeSqlOperator) {
         List<TableSchemaName> tables = getTables(endpoint, GET_APPROVED_TRUNCATE_TABLES, removeSqlOperator);
         return tables.stream().map(TableSchemaName::toString).collect(Collectors.toList());
     }
 
-    
+
     public static String getUuid(String ip, int port, String user, String password, boolean master) throws Exception {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
@@ -442,11 +545,11 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(UUID_COMMAND);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            if(rs.next()) {
+            if (rs.next()) {
                 uuid = rs.getString(UUID_INDEX);
             }
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
         }
@@ -462,17 +565,17 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(GTID_EXECUTED_COMMAND);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            if(rs.next()) {
+            if (rs.next()) {
                 gtidExecuted = rs.getString(GTID_EXECUTED_INDEX);
             }
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
         }
         return new GtidSet(gtidExecuted).toString();
     }
-    
+
     public static String getUnionExecutedGtid(Endpoint endpoint) {
         return new ExecutedGtidQueryTask(endpoint).call();
     }
@@ -490,7 +593,7 @@ public class MySqlUtils {
     }
 
     private static WriteSqlOperatorWrapper getSqlOperatorWrapper(Endpoint endpoint) {
-        if(sqlOperatorMapper.containsKey(endpoint)) {
+        if (sqlOperatorMapper.containsKey(endpoint)) {
             return sqlOperatorMapper.get(endpoint);
         } else {
             WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
@@ -505,11 +608,39 @@ public class MySqlUtils {
         }
     }
 
+    public static void removeWriteSqlOperator(Endpoint endpoint) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+        if (writeSqlOperatorWrapper != null) {
+            try {
+                writeSqlOperatorWrapper.stop();
+                writeSqlOperatorWrapper.dispose();
+            } catch (Exception e) {
+                logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+        }
+    }
+
+    private static WriteSqlOperatorWrapper getWriteSqlOperatorWrapper(Endpoint endpoint) {
+        if (writeSqlOperatorMapper.containsKey(endpoint)) {
+            return writeSqlOperatorMapper.get(endpoint);
+        } else {
+            WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+            try {
+                sqlOperatorWrapper.initialize();
+                sqlOperatorWrapper.start();
+            } catch (Exception e) {
+                logger.error("[[db={}:{}]]ColumnUtils.writeSqlOperatorMapper initialize error: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+            writeSqlOperatorMapper.put(endpoint, sqlOperatorWrapper);
+            return sqlOperatorWrapper;
+        }
+    }
+
     protected static String convertListToString(List<String> list) {
         StringBuilder sb = new StringBuilder();
-        if(null != list && list.size() > 0) {
-            for(int i = 0; i < list.size(); ++i) {
-                if(i == 0) {
+        if (null != list && list.size() > 0) {
+            for (int i = 0; i < list.size(); ++i) {
+                if (i == 0) {
                     sb.append("'").append(list.get(i)).append("'");
                 } else {
                     sb.append(",").append("'").append(list.get(i)).append("'");
@@ -521,7 +652,7 @@ public class MySqlUtils {
 
     private static Map<String, String> getAllCreateStmts(Endpoint endpoint, List<String> dbNames) {
         String sql;
-        if(null == dbNames || dbNames.size() == 0) {
+        if (null == dbNames || dbNames.size() == 0) {
             sql = GET_DEFAULT_TABLES;
         } else {
             sql = String.format(GET_DB_TABLES_PREFIX, convertListToString(dbNames)) + GET_DB_TABLES_SUFFIX;
@@ -530,110 +661,114 @@ public class MySqlUtils {
         List<TableSchemaName> tables = getTables(endpoint, sql, false);
         return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
-    
+
     public static String getExecutedGtid(Endpoint endpoint) {
-        return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new ShowMasterGtidReader())).call();
+        return new ExecutedGtidQueryTask(endpoint, Lists.newArrayList(new ShowMasterGtidReader())).call();
     }
 
     public static String getPurgedGtid(Endpoint endpoint) {
-        return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new PurgedGtidReader())).call();
+        return new ExecutedGtidQueryTask(endpoint, Lists.newArrayList(new PurgedGtidReader())).call();
     }
-    
-    public static String getSqlResultString(Endpoint endpoint, String sql,int index) {
+
+    public static String getSqlResultString(Endpoint endpoint, String sql, int index) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            if(rs.next()) {
+            if (rs.next()) {
                 return rs.getString(index);
             }
         } catch (Throwable t) {
-            logger.error("[[endpoint={}:{}]] sql:{} error: ", endpoint.getHost(), endpoint.getPort(),sql, t);
+            logger.error("[[endpoint={}:{}]] sql:{} error: ", endpoint.getHost(), endpoint.getPort(), sql, t);
             removeSqlOperator(endpoint);
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
         }
         return null;
     }
 
-    public static Integer getSqlResultInteger(Endpoint endpoint, String sql,int index) {
+    public static Integer getSqlResultInteger(Endpoint endpoint, String sql, int index) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            if(rs.next()) {
+            if (rs.next()) {
                 return rs.getInt(index);
             }
         } catch (Throwable t) {
-            logger.error("[[endpoint={}:{}]] sql:{} error: ", endpoint.getHost(), endpoint.getPort(),sql, t);
+            logger.error("[[endpoint={}:{}]] sql:{} error: ", endpoint.getHost(), endpoint.getPort(), sql, t);
             removeSqlOperator(endpoint);
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
         }
         return null;
     }
-    
+
     public static String checkBinlogMode(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkBinlogMode", endpoint.getSocketAddress());
-        return getSqlResultString(endpoint,CHECK_BINLOG,SHOW_CERTAIN_VARIABLES_INDEX);
+        return getSqlResultString(endpoint, CHECK_BINLOG, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static String checkBinlogFormat(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkBinlogFormat", endpoint.getSocketAddress());
-        return getSqlResultString(endpoint,CHECK_BINLOG_FORMAT,SHOW_CERTAIN_VARIABLES_INDEX);
+        return getSqlResultString(endpoint, CHECK_BINLOG_FORMAT, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static String checkBinlogVersion(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkBinlogVersion", endpoint.getSocketAddress());
-        return getSqlResultString(endpoint,CHECK_BINLOG_VERSION1,SHOW_CERTAIN_VARIABLES_INDEX);
+        return getSqlResultString(endpoint, CHECK_BINLOG_VERSION1, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static String checkBinlogRowImage(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkBinlogRowImage ", endpoint.getSocketAddress());
-        return getSqlResultString(endpoint, CHECK_BINLOG_ROW_IMAGE,SHOW_CERTAIN_VARIABLES_INDEX);
+        return getSqlResultString(endpoint, CHECK_BINLOG_ROW_IMAGE, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static Integer checkAutoIncrementStep(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementStep", endpoint.getSocketAddress());
-        return getSqlResultInteger(endpoint, CHECK_INCREMENT_STEP,SHOW_CERTAIN_VARIABLES_INDEX);
+        return getSqlResultInteger(endpoint, CHECK_INCREMENT_STEP, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static Integer checkAutoIncrementOffset(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementOffset ", endpoint.getSocketAddress());
-        return getSqlResultInteger(endpoint, CHECK_INCREMENT_OFFSET,SHOW_CERTAIN_VARIABLES_INDEX);
+        return getSqlResultInteger(endpoint, CHECK_INCREMENT_OFFSET, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static Integer checkDrcTables(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkDrcTables ", endpoint.getSocketAddress());
-        return getSqlResultInteger(endpoint, CHECK_DRC_TABLES,1);
+        return getSqlResultInteger(endpoint, CHECK_DRC_TABLES, 1);
     }
 
     public static String checkGtidMode(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] check gtid mode", endpoint.getSocketAddress());
-        return getSqlResultString(endpoint, CHECK_GTID_MODE,1);
+        return getSqlResultString(endpoint, CHECK_GTID_MODE, 1);
     }
 
     public static String checkBinlogTransactionDependency(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] check writeset", endpoint.getSocketAddress());
-        return getSqlResultString(endpoint, CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING,1);
-    }
-    
-    public static Integer checkBtdhs(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] check btdhs", endpoint.getSocketAddress());
-        return getSqlResultInteger(endpoint,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
+        return getSqlResultString(endpoint, CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING, 1);
     }
 
+    public static Integer checkBtdhs(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] check btdhs", endpoint.getSocketAddress());
+        return getSqlResultInteger(endpoint, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
+    }
+
+    /**
+     * nameFilter only Contains db
+     */
     public static List<String> queryDbsWithFilter(Endpoint endpoint, String nameFilter) {
-        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
-        List<String> dbNames = tables.stream().map(TableSchemaName::getSchema).distinct().collect(Collectors.toList());
+        List<String> dbs = getDefaultDbs(endpoint);
+        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(nameFilter);
+        List<String> dbNames = dbs.stream().filter(db -> aviatorRegexFilter.filter(db) && !db.equals(DRC_MONITOR_DB)).collect(Collectors.toList());
         return dbNames;
     }
 
@@ -643,14 +778,14 @@ public class MySqlUtils {
         return allTables;
     }
 
-    public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
+    public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint, String nameFilter) {
         List<TableCheckVo> checkTableVos = Lists.newLinkedList();
-        
-        if(StringUtils.isEmpty(nameFilter)) {
+
+        if (StringUtils.isEmpty(nameFilter)) {
             nameFilter = MATCH_ALL_FILTER;
         }
         List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
-        HashSet<String> tablesApprovedTruncate = Sets.newHashSet(checkApprovedTruncateTableList(endpoint,false));
+        HashSet<String> tablesApprovedTruncate = Sets.newHashSet(checkApprovedTruncateTableList(endpoint, false));
         for (TableSchemaName table : tables) {
             TableCheckVo tableVo = new TableCheckVo(table);
             String standardOnUpdateColumn = getColumn(endpoint, GET_STANDARD_UPDATE_COLUMN, table, false);
@@ -666,9 +801,9 @@ public class MySqlUtils {
             } else {
                 tableVo.setNoOnUpdateKey(!isKey(endpoint, table, standardOnUpdateColumn, false));
             }
-            
+
             String createTblStmt = getCreateTblStmt(endpoint, table, false);
-            if (StringUtils.isEmpty(createTblStmt) || 
+            if (StringUtils.isEmpty(createTblStmt) ||
                     (!createTblStmt.toLowerCase().contains(PRIMARY_KEY) && !createTblStmt.toLowerCase().contains(UNIQUE_KEY))) {
                 tableVo.setNoPkUk(true);
             }
@@ -678,9 +813,9 @@ public class MySqlUtils {
             if (tablesApprovedTruncate.contains(tableVo.getFullName())) {
                 tableVo.setApproveTruncate(true);
             }
-            
+
             if (tableVo.hasProblem()) {
-                checkTableVos.add(0,tableVo);
+                checkTableVos.add(0, tableVo);
             } else {
                 checkTableVos.add(tableVo);
             }
@@ -695,7 +830,7 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(CHECK_ACCOUNT_AVAILABLE);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            if(rs.next()) {
+            if (rs.next()) {
                 return true;
             }
             return false;
@@ -704,13 +839,13 @@ public class MySqlUtils {
             removeSqlOperator(endpoint);
             return false;
         } finally {
-            if(readResource != null) {
+            if (readResource != null) {
                 readResource.close();
             }
-            
+
         }
     }
-    
+
     public static String checkAccounts(List<Endpoint> endpoints) {
         for (Endpoint endpoint : endpoints) {
             if (!testAccount(endpoint)) {
@@ -720,6 +855,290 @@ public class MySqlUtils {
         return "three accounts ready";
     }
 
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, int columnSize) throws Exception {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            Map<String, String> parseResultMap = parseSql(rawSql, onUpdateColumns);
+
+            String tableName = parseResultMap.get("tableName");
+            String sql = String.format(SELECT_SQL, tableName, parseResultMap.get("conditionStr"));
+            logger.info("[[tag=conflictLog]] sql:{}", sql);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            Map<String, Object> result = resultSetConvertMap(rs, columnSize);
+            result.put("tableName", tableName);
+            return result;
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+//            return new HashMap<>();
+            throw ConsoleExceptionUtils.message(t.getMessage());
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+    }
+
+    public static List<String> getAllOnUpdateColumns(Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        List<String> dbs = Lists.newArrayList();
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(GET_COLUMN_PREFIX, db, table) + GET_ON_UPDATE_COLUMN_CONDITION;
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while (rs.next()) {
+                dbs.add(rs.getString(1));
+            }
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return new ArrayList<>();
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+        return dbs;
+    }
+
+    public static String getFirstUniqueIndex(Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(INDEX_QUERY, db, table);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+
+            List<List<String>> identifies = extractIndex(rs);
+            int size = identifies.size();
+            for (int i = 0; i < size; i++) {
+                if (identifies.get(i).size() == 1) {
+                    return identifies.get(i).get(0);
+                }
+            }
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return null;
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+        return null;
+    }
+
+    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return writeSqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperator(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        }
+    }
+
+    public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
+        Map<String, Object> ret = new HashMap<>();
+        ResultSetMetaData md = rs.getMetaData();
+        int columnCount = md.getColumnCount();
+        List<String> columnList = new ArrayList<>();
+        List<Map<String, Object>> metaColumn = new ArrayList<>();
+
+        boolean fixed = columnCount >= columnSize;
+        for (int j = 1; j <= columnCount; j++) {
+            Map<String, Object> columnData = new LinkedHashMap<>();
+            String columnName = md.getColumnName(j);
+            columnData.put("title", columnName);
+            columnData.put("key", columnName);
+            if (fixed) {
+                columnData.put("width", 200);
+                if (j == 1) {
+                    columnData.put("fixed", "left");
+                } else if (j == columnCount) {
+                    columnData.put("fixed", "right");
+                }
+            }
+            columnData.put("tooltip", true);
+            metaColumn.add(columnData);
+            columnList.add(md.getColumnName(j));
+        }
+        ret.put("columns", columnList);
+        ret.put("metaColumn", metaColumn);
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        Map<String, String> columnType = new LinkedHashMap<>();
+        while (rs.next()) {
+            Map<String, Object> rowData = new LinkedHashMap<>();
+            for (String columnName : columnList) {
+                Object val = rs.getObject(columnName);
+
+                if (val != null) {
+                    columnType.put(columnName, val.getClass().getName());
+                }
+
+                if (val == null) {
+                    rowData.put(columnName, null);
+                } else if (val instanceof byte[]) {
+                    rowData.put(columnName, CommonUtils.byteToHexString((byte[]) val));
+                } else {
+                    rowData.put(columnName, String.valueOf(val));
+                }
+            }
+            list.add(rowData);
+        }
+        ret.put("columnType", columnType);
+        ret.put("record", list);
+        return ret;
+    }
+
+    public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns) {
+        Map<String, String> parseResult = new HashMap<>();
+
+        String dbType = JdbcConstants.MYSQL;
+        String formatSql = SQLUtils.format(sql, dbType);
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
+        SQLStatement stmt = stmtList.get(0);
+
+        if (formatSql.startsWith("UPDATE") || formatSql.startsWith("DELETE")) {
+            MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
+            stmt.accept(visitor);
+            String tableName = visitor.getCurrentTable();
+            parseResult.put("tableName", tableName);
+            Map<TableStat.Name, TableStat> manipulationMap = visitor.getTables();
+            String tableNameFormat = tableName.replace("`", "");
+            TableStat.Name name = new TableStat.Name(tableNameFormat);
+            TableStat stat = manipulationMap.get(name);
+            parseResult.put("operateType", stat.toString());
+            List<TableStat.Condition> conditions = visitor.getConditions();
+            conditions = conditions.stream().filter(e -> !onUpdateColumns.contains(e.getColumn().getName())).collect(Collectors.toList());
+
+            boolean firstCondition = true;
+            StringBuilder whereCondition = new StringBuilder();
+            for (TableStat.Condition condition : conditions) {
+                if (!EQUAL.equals(condition.getOperator())) {
+                    continue;
+                }
+                if (!firstCondition) {
+                    whereCondition.append(" AND ");
+                }
+                String column = condition.getColumn().getName();
+                String value = condition.getValues().get(0).toString();
+                whereCondition.append(column + "=" + toStringVal(value));
+                firstCondition = false;
+            }
+
+            parseResult.put("conditionStr", whereCondition.toString());
+        } else if (formatSql.startsWith("INSERT")) {
+            MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
+            insertStatement.getTableSource().toString();
+            String tableName = insertStatement.getTableSource().toString();
+            parseResult.put("tableName", tableName);
+
+            List<SQLExpr> columns = insertStatement.getColumns();
+            List<SQLExpr> values = insertStatement.getValues().getValues();
+            boolean firstCondition = true;
+            StringBuilder condition = new StringBuilder();
+            for (int i = 0; i < columns.size(); i++) {
+                String columnName = columns.get(i).toString();
+                if (onUpdateColumns.contains(columnName)) {
+                    continue;
+                }
+                SQLExpr valueExpr = values.get(i);
+                if (!firstCondition) {
+                    condition.append(" AND ");
+                }
+                if (valueExpr instanceof SQLNullExpr) {
+                    condition.append(columnName + " is " + valueExpr);
+                } else {
+                    condition.append(columnName + " = " + valueExpr);
+                }
+
+                firstCondition = false;
+            }
+
+            parseResult.put("conditionStr", condition.toString());
+            parseResult.put("operateType", "Insert");
+        }
+
+        return parseResult;
+    }
+
+    public static List<List<String>> extractIndex(ResultSet resultSet) {
+
+        List<List<String>> identifies = Lists.newArrayList();
+
+        try {
+            Map<String, List<String>> uniqueIndexes = Maps.newHashMap();
+            while (resultSet.next()) {
+                String indexName = resultSet.getString(1);
+                List<String> columnNames = uniqueIndexes.get(indexName);
+                if (columnNames == null) {
+                    columnNames = Lists.newArrayList();
+                    uniqueIndexes.put(indexName, columnNames);
+                }
+                columnNames.add(resultSet.getString(2));
+            }
+
+            for (Map.Entry<String, List<String>> entry : uniqueIndexes.entrySet()) {
+                if (PRIMARY.equalsIgnoreCase(entry.getKey())) {
+                    identifies.add(0, entry.getValue());
+                } else {
+                    identifies.add(entry.getValue());
+                }
+            }
+        } catch (Throwable t) {
+            logger.error("IndexExtractor error", t);
+        }
+
+        return identifies;
+    }
+
+    public static String toStringVal(Object val) {
+        return SINGLE_QUOTE + val + SINGLE_QUOTE;
+    }
+
+    public static String toSqlField(String s) {
+        return MARKS + s + MARKS;
+    }
+
+    public static Object toSqlValue(Object val) {
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof byte[]) {
+            return CommonUtils.byteToHexString((byte[]) val);
+        }
+        if (val instanceof String) {
+            return toStringVal(val);
+        }
+        return val;
+    }
+
+    public static Object toSqlValue(Object val, String columnType) {
+        if (val == null || columnType == null) {
+            return null;
+        }
+        if (stringColumnType(columnType)) {
+            return toStringVal(val);
+        }
+        return val;
+    }
+
+    private static boolean stringColumnType(String columnType) {
+        return String.class.getName().equals(columnType)
+                || Date.class.getName().equals(columnType)
+                || Time.class.getName().equals(columnType)
+                || Timestamp.class.getName().equals(columnType);
+    }
 
     public static final class TableSchemaName {
         private String schema;
@@ -732,18 +1151,23 @@ public class MySqlUtils {
             this.schema = schema;
             this.name = name;
         }
-       
+
         public static TableSchemaName getTableSchemaName(String schemaName) {
             if (StringUtils.isEmpty(schemaName) || !schemaName.contains(".")) {
                 return null;
             }
             String[] split = schemaName.split("\\.");
-            return new TableSchemaName(split[0],split[1]);
+            return new TableSchemaName(split[0], split[1]);
         }
-        
-        public String getSchema() { return schema; }
-        public String getName() { return name; }
-        
+
+        public String getSchema() {
+            return schema;
+        }
+
+        public String getName() {
+            return name;
+        }
+
         @Override
         public String toString() {
             return String.format("`%s`.`%s`", schema, name);
@@ -753,5 +1177,17 @@ public class MySqlUtils {
             return String.format("%s.%s", schema, name);
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof TableSchemaName)) return false;
+            TableSchemaName that = (TableSchemaName) o;
+            return Objects.equals(schema, that.schema) && Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(schema, name);
+        }
     }
 }
