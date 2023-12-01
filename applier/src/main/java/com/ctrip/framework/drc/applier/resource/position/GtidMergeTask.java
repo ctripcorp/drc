@@ -23,11 +23,14 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     private static final String COMMIT = "commit";
 
-    private static final String SELECT_GTID_SET_SQL = "select `gtidset` from `drcmonitordb`.`gtid_executed` where `id` = -1 and `server_uuid` = ? for update;";
+    private static final String SELECT_GTID_SET = "select `gtidset` from `drcmonitordb`.`%s` where `id` = -1 and `server_uuid` = ? for update;";
+    private String SELECT_GTID_SET_SQL;
 
-    private static final String UPDATE_GTID_SET_SQL = "update `drcmonitordb`.`gtid_executed` set `gtidset` = ? where `id` = -1 and `server_uuid` = ?;";
+    private static final String UPDATE_GTID_SET = "update `drcmonitordb`.`%s` set `gtidset` = ? where `id` = -1 and `server_uuid` = ?;";
+    private String UPDATE_GTID_SET_SQL;
 
-    private static final String INSERT_GTID_SET_SQL = "insert into `drcmonitordb`.`gtid_executed`(`id`, `server_uuid`, `gno`, `gtidset`) values(-1, ?, -1, ?);";
+    private static final String INSERT_GTID_SET = "insert into `drcmonitordb`.`%s`(`id`, `server_uuid`, `gno`, `gtidset`) values(-1, ?, -1, ?);";
+    private String INSERT_GTID_SET_SQL;
 
     private GtidSet gtidSet;
 
@@ -35,10 +38,26 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     private String registryKey;
 
+    private String tableName = "gtid_executed";
+
     public GtidMergeTask(GtidSet gtidSet, DataSource dataSource, String registryKey) {
         this.gtidSet = gtidSet;
         this.dataSource = dataSource;
         this.registryKey = registryKey;
+        SELECT_GTID_SET_SQL = String.format(SELECT_GTID_SET, tableName);
+        UPDATE_GTID_SET_SQL = String.format(UPDATE_GTID_SET, tableName);
+        INSERT_GTID_SET_SQL = String.format(INSERT_GTID_SET, tableName);
+    }
+
+
+    public GtidMergeTask(GtidSet gtidSet, DataSource dataSource, String registryKey, String tableName) {
+        this.gtidSet = gtidSet;
+        this.dataSource = dataSource;
+        this.registryKey = registryKey;
+        this.tableName = tableName;
+        SELECT_GTID_SET_SQL = String.format(SELECT_GTID_SET, tableName);
+        UPDATE_GTID_SET_SQL = String.format(UPDATE_GTID_SET, tableName);
+        INSERT_GTID_SET_SQL = String.format(INSERT_GTID_SET, tableName);
     }
 
     @Override
