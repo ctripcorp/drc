@@ -5,7 +5,9 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
@@ -39,9 +41,11 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private static final int TRANSACTION_TABLE_MERGE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.TRANSACTION_TABLE_MERGE_SIZE, SystemConfig.DEFAULT_TRANSACTION_TABLE_MERGE_SIZE));
 
-    private static final String UPDATE_TRANSACTION_TABLE = "update `drcmonitordb`.`gtid_executed` set `gno` = ? where `id`= ? and `server_uuid`= ?;";
+    private static final String UPDATE_TRANSACTION_SQL = "update `drcmonitordb`.`%s` set `gno` = ? where `id`= ? and `server_uuid`= ?;";
+    private String UPDATE_TRANSACTION_TABLE;
 
-    private static final String INSERT_TRANSACTION_TABLE = "insert into `drcmonitordb`.`gtid_executed`(`id`, `server_uuid`, `gno`) values(?, ?, ?);";
+    private static final String INSERT_TRANSACTION_SQL = "insert into `drcmonitordb`.`%s`(`id`, `server_uuid`, `gno`) values(?, ?, ?);";
+    private String INSERT_TRANSACTION_TABLE;
 
     private static final int RETRY_TIME = 10;
 
@@ -96,8 +100,17 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
+    @InstanceConfig(path = "nameFilter")
+    public String nameFilter;
+
+    @InstanceConfig(path = "applyMode")
+    public int applyMode;
+
     @Override
     protected void doInitialize() throws Exception {
+        UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, getTableName());
+        INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, getTableName());
+
         endpoint = new DefaultEndPoint(ip, port, username, password);
         PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
@@ -111,6 +124,15 @@ public class TransactionTableResource extends AbstractResource implements Transa
             flags[i] = new Object();
         }
         startGtidMergeSchedule();
+    }
+
+    private String getTableName() {
+        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
+            String dbName = NameUtils.toSchema(nameFilter);
+            return "tx_" + dbName;
+        } else {
+            return "gtid_executed";
+        }
     }
 
     @Override

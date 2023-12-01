@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
@@ -90,8 +91,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerApplier(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String targetMhaName = applier.getTargetMhaName();
-        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
         STATE_LOGGER.info("[registerApplier] for {},{}", newClusterId, body);
         applierNotifier.notifyRegister(newClusterId, body);
         return body;
@@ -122,8 +122,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster addApplier(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String targetMhaName = applier.getTargetMhaName();
-        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
         STATE_LOGGER.info("[addApplier] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
@@ -132,7 +131,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         applierNotifier.notifyAdd(newClusterId, body);
 
-        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()));
+        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier));
         for (Applier a : appliers) {
             if (!a.equalsWithIpPort(applier) && a.getTargetMhaName().equalsIgnoreCase(applier.getTargetMhaName())) {
                 removeApplier(clusterId, a, false);
@@ -192,8 +191,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             return;
         }
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
-        String targetMhaName = applier.getTargetMhaName();
-        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
         STATE_LOGGER.info("[removeApplier] for {},{}", newClusterId, applier);
         applierNotifier.notifyRemove(newClusterId, applier, delete);
     }
