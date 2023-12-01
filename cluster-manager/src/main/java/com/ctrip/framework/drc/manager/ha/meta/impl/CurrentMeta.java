@@ -152,6 +152,12 @@ public class CurrentMeta implements Releasable {
             int lastIndex = clusterId.lastIndexOf(".");  //TODO should optimise ?
             String subClusterId = clusterId.substring(0, lastIndex);
             clusterMeta = currentMetas.get(subClusterId);
+
+            if (clusterMeta == null) {
+                int last2Index = subClusterId.lastIndexOf(".");
+                String subSubClusterId = subClusterId.substring(0, last2Index);
+                clusterMeta = currentMetas.get(subSubClusterId);
+            }
         }
         return clusterMeta;
     }

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -93,7 +94,8 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
     public void applierActiveElected(String clusterId, Applier applier) {
         STATE_LOGGER.info("[applierActiveElected]{},{}", clusterId, applier);
 
-        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()));
+        String backupClusterId = NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier);
+        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupClusterId);
         if (appliers == null || appliers.size() == 0) {
             STATE_LOGGER.info("[applierActiveElected][none applier survive, do nothing]");
             return;
