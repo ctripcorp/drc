@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
@@ -309,6 +310,7 @@ public class CurrentMeta implements Releasable {
                     throw new IllegalArgumentException("active not in all survivors " + activeApplier + ", all:" + this.surviveAppliers);
                 }
                 String backupClusterId = RegistryKey.from(activeApplier.getTargetName(), activeApplier.getTargetMhaName());
+                backupClusterId = NameUtils.dotSchemaIfNeed(backupClusterId, activeApplier);
                 List<Applier> appliers = (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
                 this.surviveAppliers.put(backupClusterId, appliers);
                 logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupClusterId, surviveAppliers, activeApplier);

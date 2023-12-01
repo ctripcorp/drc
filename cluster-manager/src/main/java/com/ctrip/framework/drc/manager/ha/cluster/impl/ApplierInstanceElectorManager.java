@@ -4,7 +4,9 @@ import com.ctrip.framework.drc.core.Constants;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -61,7 +63,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
 
     private void doObserveLeader(String clusterId, Collection<Applier> appliers) {
         for (Applier applier : appliers) {
-            String registryKey = clusterId + "." + applier.getTargetMhaName();
+            String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
             observerClusterLeader(registryKey);
         }
     }
