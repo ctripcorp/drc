@@ -106,10 +106,13 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "applyMode")
     public int applyMode;
 
+    private String tableName = "gtid_executed";
+
     @Override
     protected void doInitialize() throws Exception {
-        UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, getTableName());
-        INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, getTableName());
+        tableName = getTableName();
+        UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, tableName);
+        INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, tableName);
 
         logger.info("[transaction] update: {}, insert: {}", UPDATE_TRANSACTION_TABLE, INSERT_TRANSACTION_TABLE);
 
@@ -191,7 +194,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey, tableName), RETRY_TIME).call();
             if (res == null) {
                 loggerTT.error("[TT][{}] merge gtid set error, shutdown server", registryKey);
                 logger.info("transaction table status is stopped for {}", registryKey);
