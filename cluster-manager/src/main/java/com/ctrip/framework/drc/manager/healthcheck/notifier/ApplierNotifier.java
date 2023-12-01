@@ -96,7 +96,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                 config.port = applier.getPort();
                 config.setGtidExecuted(applier.getGtidExecuted());
                 config.setIncludedDbs(applier.getIncludedDbs());
-                config.setApplyMode(dbCluster.getApplyMode());
+                config.setApplyMode(applier.getApplyMode());
 
                 String nameFilter = applier.getNameFilter();
                 if (StringUtils.isBlank(nameFilter)) {
