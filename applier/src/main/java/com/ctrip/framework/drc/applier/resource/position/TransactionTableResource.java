@@ -111,6 +111,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
         UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, getTableName());
         INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, getTableName());
 
+        logger.info("[transaction] update: {}, insert: {}", UPDATE_TRANSACTION_TABLE, INSERT_TRANSACTION_TABLE);
+
         endpoint = new DefaultEndPoint(ip, port, username, password);
         PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);

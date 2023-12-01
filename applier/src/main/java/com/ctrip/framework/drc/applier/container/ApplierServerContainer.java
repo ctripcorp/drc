@@ -101,6 +101,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         logger.info("start to add applier servers for {}, apply mode is: {}", config.getRegistryKey(), applyMode.getName());
         switch (applyMode) {
             case transaction_table:
+            case db_transaction_table:
                 return new TransactionTableApplierServerInCluster(config);
             case mq:
                 return new MqServerInCluster(config);
