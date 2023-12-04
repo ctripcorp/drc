@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.server.config.applier.dto;
 
 import com.ctrip.framework.drc.core.meta.ApplierMeta;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
@@ -132,7 +133,9 @@ public class ApplierConfigDto extends ApplierMeta {
 
     @JsonIgnore
     public String getRegistryKey() {
-        return ApplierRegistryKey.from(target.mhaName, super.getCluster(), replicator.mhaName);
+        String registerKey = ApplierRegistryKey.from(target.mhaName, super.getCluster(), replicator.mhaName);
+        registerKey = NameUtils.dotSchemaIfNeed(registerKey, applyMode, nameFilter);
+        return registerKey;
     }
 
     @Override

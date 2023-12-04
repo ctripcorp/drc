@@ -18,7 +18,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.d
  */
 public class FilterLogEvent extends AbstractLogEvent {
 
-    public static String UNKNOWN = "unknown";
+    public static final String UNKNOWN = "unknown";
 
     private String schemaName = UNKNOWN;
 

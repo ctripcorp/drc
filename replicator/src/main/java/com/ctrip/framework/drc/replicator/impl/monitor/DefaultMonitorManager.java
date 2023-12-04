@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.replicator.impl.monitor;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
-import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObservable;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObserver;
@@ -10,8 +13,7 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DELAY_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_TABLE_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
 /**
  * Created by mingdongli
@@ -31,11 +33,13 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
 
     @Override
     public void onTableMapLogEvent(TableMapLogEvent tableMapLogEvent) {
-        if (tableMapLogEvent.getTableName() == null) {
-            nextMonitorRowsEvent = false;
-        } else {
+        String schemaName = tableMapLogEvent.getTableName();
+        if (DRC_MONITOR_SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
             String tableName = tableMapLogEvent.getTableName().toLowerCase();
-            nextMonitorRowsEvent = tableName.startsWith(DRC_DELAY_MONITOR_TABLE_NAME);
+            nextMonitorRowsEvent = DRC_DELAY_MONITOR_TABLE_NAME.equalsIgnoreCase(tableName) ||
+                    tableName.startsWith(DRC_DELAY_MONITOR_TABLE_PREFIX);
+        } else {
+            nextMonitorRowsEvent = false;
         }
     }
 
