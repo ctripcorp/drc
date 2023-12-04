@@ -8,8 +8,7 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionTableMarkedTableMapLogEvent;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_WRITE_FILTER_TABLE_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.TRANSACTION_TABLE_F;
 
 /**
@@ -27,10 +26,13 @@ public class TransactionTableFilter extends AbstractLogEventFilter<InboundLogEve
             value.reset();
         } else if (table_map_log_event == logEventType) {
             TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
+            String schemaName = tableMapLogEvent.getSchemaName();
             String tableName = tableMapLogEvent.getTableName();
-            if (DRC_TRANSACTION_TABLE_NAME.equalsIgnoreCase(tableName) || DRC_WRITE_FILTER_TABLE_NAME.equalsIgnoreCase(tableName)) { 
-                value.setLogEvent(new TransactionTableMarkedTableMapLogEvent(tableMapLogEvent));
-                value.mark(TRANSACTION_TABLE_F); 
+            if (DRC_MONITOR_SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
+                if (DRC_TRANSACTION_TABLE_NAME.equalsIgnoreCase(tableName) || tableName.toLowerCase().startsWith(DRC_TRANSACTION_TABLE_PREFIX) || DRC_WRITE_FILTER_TABLE_NAME.equalsIgnoreCase(tableName)) {
+                    value.setLogEvent(new TransactionTableMarkedTableMapLogEvent(tableMapLogEvent));
+                    value.mark(TRANSACTION_TABLE_F);
+                }
             }
         }
         return doNext(value, value.isInExcludeGroup());
