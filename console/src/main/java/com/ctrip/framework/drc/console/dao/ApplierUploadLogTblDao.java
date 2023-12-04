@@ -6,12 +6,14 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
 import com.ctrip.framework.drc.console.dao.entity.ApplierUploadLogTbl;
+import org.springframework.stereotype.Repository;
 
 
 /**
  * @author wjx王继欣
  * @date 2020-01-20
  */
+@Repository
 public class ApplierUploadLogTblDao extends AbstractDao<ApplierUploadLogTbl> {
 
     public ApplierUploadLogTblDao() throws SQLException {

@@ -1,15 +1,11 @@
 package com.ctrip.framework.drc.console.service.impl;
 
-import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
-
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
-import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.utils.FileUtils;
@@ -17,23 +13,25 @@ import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 import java.sql.SQLException;
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
+
 
 public class OpenApiServiceImplTest {
-    
-    @Mock private MetaGenerator metaGenerator;
-    
-    @Mock private MetaInfoServiceImpl metaInfoService;
 
-    @Mock private MetaProviderV2 metaProviderV2;
-    
-    @InjectMocks private OpenApiServiceImpl openApiService;
+    @Mock
+    private MetaProviderV2 metaProviderV2;
 
-    
+    @InjectMocks
+    private OpenApiServiceImpl openApiService;
+
 
     @Before
     public void setUp() throws SQLException {
@@ -54,46 +52,45 @@ public class OpenApiServiceImplTest {
         MachineTbl machine2 = new MachineTbl();
         DcTbl dcTbl1 = new DcTbl();
         DcTbl dcTbl2 = new DcTbl();
-        
+
         mhaGroupTbl1.setId(1L);
         mhaGroupTbl1.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
-        
+
         groupMappingTbl1_1.setId(1L);
         groupMappingTbl1_1.setMhaGroupId(1L);
         groupMappingTbl1_1.setMhaId(1L);
-        
+
         groupMappingTbl1_2.setId(2L);
         groupMappingTbl1_2.setMhaGroupId(1L);
         groupMappingTbl1_2.setMhaId(2L);
-        
+
         mhaTbl1.setId(1L);
         mhaTbl1.setMhaName("mha1");
         mhaTbl1.setDcId(1L);
-        
+
         mhaTbl2.setId(2L);
         mhaTbl2.setMhaName("mha2");
         mhaTbl2.setDcId(2L);
-        
+
         machine1.setId(1L);
         machine1.setMhaId(1L);
         machine1.setIp("ip");
         machine1.setIp("port");
         machine1.setMaster(BooleanEnum.TRUE.getCode());
-        
+
         machine2.setId(2L);
         machine2.setMhaId(2L);
         machine2.setIp("ip");
         machine2.setIp("port");
         machine2.setMaster(BooleanEnum.TRUE.getCode());
-        
+
         dcTbl1.setId(1L);
         dcTbl1.setDcName("dc1");
 
         dcTbl2.setId(2L);
         dcTbl2.setDcName("dc2");
-        
-        
-        
+
+
         MhaGroupTbl mhaGroupTbl2 = new MhaGroupTbl();
         GroupMappingTbl groupMappingTbl2_3 = new GroupMappingTbl();
         GroupMappingTbl groupMappingTbl2_4 = new GroupMappingTbl();
@@ -133,7 +130,7 @@ public class OpenApiServiceImplTest {
         machine4.setIp("ip");
         machine4.setIp("port");
         machine4.setMaster(BooleanEnum.TRUE.getCode());
-        
+
         mhaGroupTbls.add(mhaGroupTbl1);
         mhaGroupTbls.add(mhaGroupTbl2);
         groupMappingTbls.add(groupMappingTbl1_1);
@@ -150,31 +147,6 @@ public class OpenApiServiceImplTest {
         machineTbls.add(machine4);
         dcTbls.add(dcTbl1);
         dcTbls.add(dcTbl2);
-
-        Mockito.doReturn(mhaGroupTbls).when(metaGenerator).getMhaGroupTbls();
-        Mockito.doReturn(groupMappingTbls).when(metaGenerator).getGroupMappingTbls();
-        Mockito.doReturn(mhaTbls).when(metaGenerator).getMhaTbls();
-        Mockito.doReturn(machineTbls).when(metaGenerator).getMachineTbls();
-        Mockito.doReturn(dcTbls).when(metaGenerator).getDcTbls();
-        
-        Mockito.doReturn(0).when(metaInfoService).getApplyMode("mha1","mha2");
-        Mockito.doReturn("db1").when(metaInfoService).getIncludedDbs("mha1","mha2");
-        Mockito.doReturn(0).when(metaInfoService).getApplyMode("mha2","mha1");
-        Mockito.doReturn(null).when(metaInfoService).getIncludedDbs("mha2","mha1");
-        Mockito.doReturn(1).when(metaInfoService).getApplyMode("mha3","mha4");
-        Mockito.doReturn(null).when(metaInfoService).getNameFilter("mha3","mha4");
-        Mockito.doReturn(1).when(metaInfoService).getApplyMode("mha4","mha3");
-        Mockito.doReturn("db1\\.table1").when(metaInfoService).getNameFilter("mha4","mha3");
-        
-      
-        
-    }
-    
-    @Test
-    public void testGetAllDrcMhaDbFilters() throws SQLException {
-        List<MhaGroupFilterVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
-        Assert.assertEquals(2,allDrcMhaDbFilters.size());
-        
     }
 
 
@@ -194,16 +166,16 @@ public class OpenApiServiceImplTest {
         Mockito.doReturn(drc).when(metaProviderV2).getDrc();
 
         List<MessengerInfo> allMessengersInfo = openApiService.getAllMessengersInfo();
-        Assert.assertEquals(1,allMessengersInfo.size());
+        Assert.assertEquals(1, allMessengersInfo.size());
     }
-    
-    @Test 
+
+    @Test
     public void testSplit() {
         String nameFilter = "drc\\d\\..*";  ///    drc\d\..*
         String[] split = nameFilter.split("\\\\.");  //       \\.
         String[] split1 = nameFilter.split(ESCAPE_CHARACTER_DOT_REGEX);  //     \\\.
-        Assert.assertEquals(3,split.length);
-        Assert.assertEquals(2,split1.length);
+        Assert.assertEquals(3, split.length);
+        Assert.assertEquals(2, split1.length);
     }
-    
+
 }

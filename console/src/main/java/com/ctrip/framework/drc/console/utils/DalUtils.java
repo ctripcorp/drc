@@ -18,11 +18,9 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Map;
 
 import static com.ctrip.framework.drc.console.common.bean.DalConfig.DRC_TITAN_KEY;
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.ZERO_ROWS_AFFECT;
-import static com.ctrip.framework.drc.console.service.impl.AccessServiceImpl.*;
 
 /**
  * @author shenhaibo
@@ -235,25 +233,6 @@ public class DalUtils {
         return mhaGroupTblDao.update(mhaGroupTbl);
     }
 
-    public Long updateOrCreateMhaGroup(String mhaName, BooleanEnum drcStatus, EstablishStatusEnum establishStatusEnum, Map<String, String> usersAndPasswords) throws SQLException {
-        MhaTbl mhaTbl = mhaTblDao.queryAll().stream().filter(p -> p.getMhaName().equalsIgnoreCase(mhaName)).findFirst().orElse(null);
-        if(null == mhaTbl || null == mhaTbl.getMhaGroupId()) {
-            return insertMhaGroup(drcStatus, establishStatusEnum, usersAndPasswords.get(READ_USER_KEY), usersAndPasswords.get(READ_PASSWORD_KEY), usersAndPasswords.get(WRITE_USER_KEY), usersAndPasswords.get(WRITE_PASSWORD_KEY), usersAndPasswords.get(MONITOR_USER_KEY), usersAndPasswords.get(MONITOR_PASSWORD_KEY));
-        } else {
-            MhaGroupTbl mhaGroupTbl = mhaGroupTblDao.queryByPk(mhaTbl.getMhaGroupId());
-            mhaGroupTbl.setDrcStatus(drcStatus.getCode());
-            mhaGroupTbl.setDrcEstablishStatus(establishStatusEnum.getCode());
-            mhaGroupTbl.setReadUser(usersAndPasswords.get(READ_USER_KEY));
-            mhaGroupTbl.setReadPassword(usersAndPasswords.get(READ_PASSWORD_KEY));
-            mhaGroupTbl.setWriteUser(usersAndPasswords.get(WRITE_USER_KEY));
-            mhaGroupTbl.setWritePassword(usersAndPasswords.get(WRITE_PASSWORD_KEY));
-            mhaGroupTbl.setMonitorUser(usersAndPasswords.get(MONITOR_USER_KEY));
-            mhaGroupTbl.setMonitorPassword(usersAndPasswords.get(MONITOR_PASSWORD_KEY));
-            mhaGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
-            mhaGroupTblDao.update(mhaGroupTbl);
-        }
-        return mhaTbl.getMhaGroupId();
-    }
 
     public Long insertMha(String mhaName, Long mhaGroupId, Long dcId) throws SQLException {
         MhaTbl pojo = createMhaPojo(mhaName, mhaGroupId, dcId);

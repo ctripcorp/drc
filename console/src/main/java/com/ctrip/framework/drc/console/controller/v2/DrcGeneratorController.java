@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 
-import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
 import com.ctrip.framework.drc.console.service.v2.MetaCompareService;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
@@ -27,8 +26,6 @@ public class DrcGeneratorController {
     private static final Logger logger = LoggerFactory.getLogger(DrcGeneratorController.class);
 
     @Autowired
-    private MetaGenerator metaGenerator;
-    @Autowired
     private MetaGeneratorV2 metaGeneratorV2;
     @Autowired
     private MetaGeneratorV3 metaGeneratorV3;
@@ -45,14 +42,6 @@ public class DrcGeneratorController {
             logger.info("start v3");
             stopWatch.start(metaGeneratorV3.getClass().getSimpleName());
             Drc drcV3 = metaGeneratorV3.getDrc();
-            stopWatch.stop();
-            list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
-
-
-            // v1
-            logger.info("start v1");
-            stopWatch.start(metaGenerator.getClass().getSimpleName());
-            metaGenerator.getDrc();
             stopWatch.stop();
             list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 

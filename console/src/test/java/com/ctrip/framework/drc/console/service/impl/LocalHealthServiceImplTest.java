@@ -23,8 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTask.DEFAULT_MYSQL_ALL_DOWN_SYSTEM_NAME;
-
 /**
  * @author shenhaibo
  * @version 1.0
@@ -55,6 +53,8 @@ public class LocalHealthServiceImplTest {
     private static final String LOCAL_DC = "sharb";
 
     private static final String DAL_CLUSTER_NAME = "dalClusterName";
+
+    private static final String DEFAULT_MYSQL_ALL_DOWN_SYSTEM_NAME = "drc";
 
     @Before
     public void setUp() {

@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.utils.XmlUtil;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -28,7 +28,7 @@ public class DaoConfigTest extends AbstractConfigTest {
     private DefaultConsoleConfig consoleConfig;
 
     @Mock
-    private MetaGenerator metaGenerator = new MetaGenerator();
+    private MetaGeneratorV3 metaGenerator = new MetaGeneratorV3();
 
     private static final String IDC = "shaxx";
 

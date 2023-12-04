@@ -2,9 +2,6 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.FailoverDto;
-import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
-import com.ctrip.framework.drc.core.service.beacon.RegisterDto;
-import com.ctrip.framework.drc.core.service.beacon.BeaconResult;
 import com.ctrip.framework.drc.console.monitor.delay.DelayMap;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -13,6 +10,9 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
+import com.ctrip.framework.drc.core.service.beacon.BeaconResult;
+import com.ctrip.framework.drc.core.service.beacon.RegisterDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,13 +25,12 @@ import org.mockito.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.sql.SQLException;
 import java.util.*;
 
+import static com.ctrip.framework.drc.console.service.impl.HealthServiceImpl.HEALTH_IS_UPATING;
+import static com.ctrip.framework.drc.console.service.impl.HealthServiceImpl.SILENT_CAPACITY;
 import static com.ctrip.framework.drc.core.service.beacon.BeaconResult.BEACON_FAIL_WITHOUT_RETRY;
-import static com.ctrip.framework.drc.console.service.impl.HealthServiceImpl.*;
-import static com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTask.DEFAULT_MYSQL_ALL_DOWN_SYSTEM_NAME;
 
 /**
  * @author shenhaibo
@@ -97,6 +96,8 @@ public class HealthServiceImplTest {
     private static final String DAL_SUCCESS_RESPONSE = "{\"status\":200,\"message\":\"Transform to drc cluster success.\",\"result\":null}";
 
     private static final String DAL_FAIL_RESPONSE = "{\"status\":500,\"message\":\"Unknown Exception, caused by: cluster does not exists.\",\"result\":null}";
+
+    private static final String DEFAULT_MYSQL_ALL_DOWN_SYSTEM_NAME = "drc";
 
     @Before
     public void setUp() throws Exception {

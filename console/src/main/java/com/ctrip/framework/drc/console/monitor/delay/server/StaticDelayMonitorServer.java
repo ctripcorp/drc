@@ -1,12 +1,8 @@
 package com.ctrip.framework.drc.console.monitor.delay.server;
 
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
-
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
-import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
@@ -29,6 +25,10 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Iterator;
@@ -37,9 +37,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
 /**
  * @author shenhaibo

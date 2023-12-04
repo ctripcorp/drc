@@ -33,7 +33,6 @@ public class OpenApiControllerTest {
     public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         mvc = MockMvcBuilders.standaloneSetup(openApiController).build();
-        Mockito.doReturn(Lists.newArrayList()).when(openApiService).getAllDrcMhaDbFilters();
         Mockito.doReturn(Lists.newArrayList()).when(openApiService).getDrcDbInfos(null);
     }
 

@@ -25,28 +25,13 @@ public class DalConfig {
     public static final String DRC_TITAN_KEY = "fxdrcmetadb_w";
 
     @Bean
-    public ApplierUploadLogTblDao applierUploadLogTblDao() throws SQLException {
-        return new ApplierUploadLogTblDao();
-    }
-
-    @Bean
     public ConflictLogDao conflictLogDao() throws SQLException {
         return new ConflictLogDao();
     }
 
     @Bean
-    public BuTblDao buTblDao() throws SQLException {
-        return new BuTblDao();
-    }
-
-    @Bean
     public ClusterMhaMapTblDao clusterMhaMapTblDao() throws SQLException {
         return new ClusterMhaMapTblDao();
-    }
-
-    @Bean
-    public DcTblDao dcTblDao() throws SQLException {
-        return new DcTblDao();
     }
 
     @Bean
@@ -65,21 +50,6 @@ public class DalConfig {
     }
 
     @Bean
-    public DbTblDao dbTblDao() throws SQLException {
-        return new DbTblDao();
-    }
-
-    @Bean
-    public ResourceTblDao resourceTblDao() throws SQLException {
-        return new ResourceTblDao();
-    }
-
-    @Bean
-    public MachineTblDao machineTblDao() throws SQLException {
-        return new MachineTblDao();
-    }
-
-    @Bean
     public ReplicatorGroupTblDao replicatorGroupTblDao() throws SQLException {
         return new ReplicatorGroupTblDao();
     }
@@ -90,16 +60,6 @@ public class DalConfig {
     }
 
     @Bean
-    public ClusterManagerTblDao clusterManagerTblDao() throws SQLException {
-        return new ClusterManagerTblDao();
-    }
-
-    @Bean
-    public ZookeeperTblDao zookeeperTblDao() throws SQLException {
-        return new ZookeeperTblDao();
-    }
-
-    @Bean
     public ReplicatorTblDao replicatorTblDao() throws SQLException {
         return new ReplicatorTblDao();
     }
@@ -107,16 +67,6 @@ public class DalConfig {
     @Bean
     public ApplierTblDao applierTblDao() throws SQLException {
         return new ApplierTblDao();
-    }
-
-    @Bean
-    public DdlHistoryTblDao ddlHistoryTblDao() throws SQLException {
-        return new DdlHistoryTblDao();
-    }
-
-    @Bean
-    public DataConsistencyMonitorTblDao dataConsistencyMonitorTblDao() throws SQLException {
-        return new DataConsistencyMonitorTblDao();
     }
 
     @Bean

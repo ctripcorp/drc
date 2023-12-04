@@ -1,16 +1,12 @@
 package com.ctrip.framework.drc.console.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-
 import com.ctrip.framework.drc.console.controller.v1.MetaController;
 import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaInfoServiceV2Impl;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.util.Arrays;
 import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Before;
@@ -25,6 +21,11 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.Arrays;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+
 /**
  * @author shenhaibo
  * @version 1.0
@@ -37,7 +38,7 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     
     @Mock
-    private MetaInfoServiceImpl metaInfoService;
+    private MetaInfoServiceV2Impl metaInfoServiceV2;
 
     @Mock
     private DrcMaintenanceServiceImpl drcMaintenanceService;
@@ -61,7 +62,7 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetProxyRoutes() throws Exception {
-        Mockito.doReturn(Lists.newArrayList()).when(metaInfoService).getRoutes(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),Mockito.anyString(),Mockito.any());
+        Mockito.doReturn(Lists.newArrayList()).when(metaInfoServiceV2).getRoutes(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),Mockito.anyString(),Mockito.any());
         MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/routes?routeOrgName=testBu&srcDcName=testSrc&dstDcName=testDst&tag=meta&deleted=0");
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_SUCCESS);
     }

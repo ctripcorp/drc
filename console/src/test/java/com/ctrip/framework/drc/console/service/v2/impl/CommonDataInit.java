@@ -514,7 +514,7 @@ public class CommonDataInit {
     }
 
 
-    private <T> List<T> getData(String fileName, Class<T> clazz) throws IOException {
+    <T> List<T> getData(String fileName, Class<T> clazz) throws IOException {
         String prefix = "/testData/messengerServiceV2/";
         String json = IOUtils.toString(Objects.requireNonNull(this.getClass().getResourceAsStream(prefix + fileName)), StandardCharsets.UTF_8);
         return JSON.parseArray(json, clazz);

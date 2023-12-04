@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.task;
 
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -51,7 +50,6 @@ public class SyncMhaTaskTest {
         // leader and success
         Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = Maps.newHashMap();
         Mockito.when(dalServicedalService.getMhaList(Mockito.any(Env.class))).thenReturn(mhaInstanceGroupMap);
-        Mockito.doNothing().when(drcMaintenanceService).mhaInstancesChange(Mockito.any(MhaInstanceGroupDto.class),Mockito.any(MhaTbl.class));
         syncMhaTask.scheduledTask();
         
         

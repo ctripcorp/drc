@@ -4,21 +4,15 @@ import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.service.impl.DrcBuildServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @author shenhaibo
@@ -30,13 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class MetaController {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    
+
     @Autowired
     private DrcBuildServiceImpl drcBuildService;
 
-
     @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
     @Autowired
     private DrcMaintenanceServiceImpl drcMaintenanceService;
@@ -44,8 +37,7 @@ public class MetaController {
     @Autowired
     private MetaInfoServiceTwoImpl metaInfoServiceTwo;
 
-    
-    
+
     @DeleteMapping(value = "routes/proxy")
     public ApiResult deleteProxyRoute(@RequestParam(value = "routeOrgName") String routeOrgName,
                                       @RequestParam(value = "srcDcName") String srcDcName,
@@ -60,9 +52,9 @@ public class MetaController {
                                     @RequestParam(value = "srcDcName", required = false) String srcDcName,
                                     @RequestParam(value = "dstDcName", required = false) String dstDcName,
                                     @RequestParam(value = "tag", required = false) String tag,
-                                    @RequestParam(value = "deleted",required = true) Integer deleted){
-        logger.info("[meta] get proxy routes for {}-{},{}->{},{}", routeOrgName, tag, srcDcName, dstDcName,deleted);
-        List<RouteDto> routeDtoList = metaInfoService.getRoutes(routeOrgName, srcDcName, dstDcName, tag,deleted);
+                                    @RequestParam(value = "deleted", required = true) Integer deleted) {
+        logger.info("[meta] get proxy routes for {}-{},{}->{},{}", routeOrgName, tag, srcDcName, dstDcName, deleted);
+        List<RouteDto> routeDtoList = metaInfoServiceV2.getRoutes(routeOrgName, srcDcName, dstDcName, tag, deleted);
         return ApiResult.getSuccessInstance(routeDtoList);
     }
 
@@ -115,7 +107,6 @@ public class MetaController {
             return ApiResult.getFailInstance(t);
         }
     }
-    
 
-    
+
 }

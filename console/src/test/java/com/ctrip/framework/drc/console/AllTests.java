@@ -19,7 +19,10 @@ import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.enums.TableEnumTest;
-import com.ctrip.framework.drc.console.monitor.*;
+import com.ctrip.framework.drc.console.monitor.AbstractMonitorTest;
+import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManagerTest;
+import com.ctrip.framework.drc.console.monitor.MysqlConfigsMonitorTest;
+import com.ctrip.framework.drc.console.monitor.UuidMonitorTest;
 import com.ctrip.framework.drc.console.monitor.cases.function.DatachangeLastTimeMonitorCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.container.ConsistencyCheckContainerTest;
@@ -38,8 +41,6 @@ import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest;
 import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest2;
-import com.ctrip.framework.drc.console.monitor.table.task.CheckTableConsistencyTaskTest;
-import com.ctrip.framework.drc.console.monitor.unit.UnitVerificationManagerTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
@@ -48,10 +49,9 @@ import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
-import com.ctrip.framework.drc.console.service.log.ConflictLogManagerTest;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalServiceTest;
+import com.ctrip.framework.drc.console.service.log.ConflictLogManagerTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogServiceTest;
-import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.MigrationTaskManagerTest;
@@ -60,12 +60,8 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
-import com.ctrip.framework.drc.console.service.v2.integration.DrcDoubleWriteServiceIntegrationTest;
 import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
-import com.ctrip.framework.drc.console.service.v2.integration.MigrateServiceIntegrationTest;
-import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
-import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVoTest;
 import com.ctrip.framework.drc.console.vo.SimplexDrcBuildVoTest;
@@ -102,7 +98,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MonitorTableSourceProviderTest.class,
         MysqlConfigsMonitorTest.class,
         DalServiceImplTest.class,
-        SyncTableConfigTaskTest.class,
         DbClusterRetrieverTest.class,
 
         TableConfigsTest.class,
@@ -113,27 +108,17 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         // jdbc
         SqlOperatorTest.class,
 
-        // Service
-        AccessServiceImplTest.class,
-        TransferServiceImplTest.class,
-        MetaGeneratorTest.class,
         DrcBuildServiceImplTest.class,
         LocalServiceImplTest.class,
         DrcMaintenanceServiceImplTest.class,
-        MetaInfoServiceImplTest.class,
-        MetaInfoServiceTwoImplTest.class,
         TableEnumTest.class,
-        CheckTableConsistencyTaskTest.class,
         CheckIncrementIdTaskTest.class,
         CheckIncrementIdTaskTest2.class,
         MhaServiceImplTest.class,
-        LogServiceImplTest.class,
         ConfigServiceImplTest.class,
         ClusterTblServiceImplTest.class,
         SwitchServiceImplTest.class,
         HealthServiceImplTest.class,
-        ConsistencyConsistencyMonitorServiceImplTest.class,
-        MonitorServiceImplTest.class,
         MySqlServiceImplTest.class,
         MessengerServiceImplTest.class,
         DataMediaPairServiceImplTest.class,
@@ -158,10 +143,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGeneratorV3Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
-        MigrateServiceTest.class,
         MetaGrayServiceImplTest.class,
         MetaCompareServiceImplTest.class,
-        DrcDoubleWriteServiceTest.class,
         CacheMetaServiceImplTest.class,
         DbMetaCorrectServiceImplTest.class,
         MetaInfoServiceV2ImplTest.class,
@@ -198,17 +181,12 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //task
         ExecutedGtidQueryTaskTest.class,
         // monitor
-        ConsistentMonitorContainerTest.class,
-//        StaticDelayMonitorServerTest.class,
         SyncMhaTaskTest.class,
         MySqlUtilsTest.class,
         JsonUtilsTest.class,
         CheckGtidTest.class,
-        PeriodicalRegisterBeaconTaskTest.class,
         PeriodicalUpdateDbTaskTest.class,
         AbstractMonitorTest.class,
-        DdlMonitorTest.class,
-        UnitVerificationManagerTest.class,
         UuidMonitorTest.class,
         MqDelayMonitorServerTest.class,
 
@@ -258,8 +236,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaReplicationQueryTest.class,
 
         //integrationTest
-        MigrateServiceIntegrationTest.class,
-        DrcDoubleWriteServiceIntegrationTest.class,
         MhaReplicationTblDaoTest.class
 })
 public class AllTests {

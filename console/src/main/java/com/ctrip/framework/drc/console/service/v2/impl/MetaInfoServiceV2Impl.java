@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -80,11 +81,17 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     @Autowired
     private DbTblDao dbTblDao;
     @Autowired
+    private RouteTblDao routeTblDao;
+    @Autowired
+    private ProxyTblDao proxyTblDao;
+    @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
     @Autowired
-    MessengerServiceV2 messengerService;
+    private MessengerServiceV2 messengerService;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+
+    private static final String NULL_STRING = "null";
 
     @Override
     public Drc getDrcReplicationConfig(Long replicationId) {
@@ -140,6 +147,77 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
         return drc;
+    }
+
+    @Override
+    public List<RouteDto> getRoutes(String routeOrgName, String srcDcName, String dstDcName, String tag, Integer deleted) {
+        List<RouteDto> routes = Lists.newArrayList();
+        try {
+            Long buId = null, srcDcId = null, dstDcId = null;
+            if (null != routeOrgName) {
+                // ternary operator should make sure type consistent
+                buId = routeOrgName.equals(NULL_STRING) ? Long.valueOf(0L) : buTblDao.queryByBuName(routeOrgName).getId();
+            }
+            if (null != srcDcName) {
+                srcDcId = dcTblDao.queryByDcName(srcDcName).getId();
+            }
+            if (null != dstDcName) {
+                dstDcId = dcTblDao.queryByDcName(dstDcName).getId();
+            }
+            final Long finalBuId = buId, finalSrcDcId = srcDcId, finalDstDcId = dstDcId;
+            List<RouteTbl> routeTbls = routeTblDao.queryAllExist().stream().filter(p -> (null == routeOrgName || p.getRouteOrgId().equals(finalBuId))
+                    && (null == srcDcName || p.getSrcDcId().equals(finalSrcDcId))
+                    && (null == dstDcName || p.getDstDcId().equals(finalDstDcId))
+                    && (null == tag || p.getTag().equalsIgnoreCase(tag)))
+                    .collect(Collectors.toList());
+            for (RouteTbl routeTbl : routeTbls) {
+                routes.add(getRouteDto(routeTbl));
+            }
+        } catch (SQLException e) {
+            logger.error("[metaInfo] fail get Proxy routes, ", e);
+        }
+        return routes;
+    }
+
+    private RouteDto getRouteDto(RouteTbl routeTbl) throws SQLException {
+        RouteDto routeDto = new RouteDto();
+        routeDto.setId(routeTbl.getId());
+        routeDto.setRouteOrgName(routeTbl.getRouteOrgId() == 0L ? null : buTblDao.queryByPk(routeTbl.getRouteOrgId()).getBuName());
+
+        String srcName = dcTblDao.queryByPk(routeTbl.getSrcDcId()).getDcName();
+        String dstName = dcTblDao.queryByPk(routeTbl.getDstDcId()).getDcName();
+        routeDto.setSrcDcName(srcName);
+        routeDto.setSrcRegionName(consoleConfig.getDc2regionMap().get(srcName));
+        routeDto.setDstDcName(dstName);
+        routeDto.setDstRegionName(consoleConfig.getDc2regionMap().get(dstName));
+
+        List<ProxyTbl> proxyTbls = proxyTblDao.queryAllExist().stream().collect(Collectors.toList());
+
+        String srcProxyIds = routeTbl.getSrcProxyIds();
+        String optionalProxyIds = routeTbl.getOptionalProxyIds();
+        String dstProxyIds = routeTbl.getDstProxyIds();
+        List<String> srcProxyUris = getProxyUris(srcProxyIds, proxyTbls);
+        List<String> relayProxyUris = getProxyUris(optionalProxyIds, proxyTbls);
+        List<String> dstProxyUris = getProxyUris(dstProxyIds, proxyTbls);
+
+        routeDto.setSrcProxyUris(srcProxyUris);
+        routeDto.setRelayProxyUris(relayProxyUris);
+        routeDto.setDstProxyUris(dstProxyUris);
+        routeDto.setTag(routeTbl.getTag());
+        routeDto.setDeleted(routeTbl.getDeleted());
+        return routeDto;
+    }
+
+    private List<String> getProxyUris(String proxyIds, List<ProxyTbl> proxyTbls) {
+        List<String> proxyIps = Lists.newArrayList();
+        if (StringUtils.isNotBlank(proxyIds)) {
+            String[] proxyIdArr = proxyIds.split(",");
+            for (String idStr : proxyIdArr) {
+                Long proxyId = Long.parseLong(idStr);
+                proxyTbls.stream().filter(p -> p.getId().equals(proxyId)).findFirst().ifPresent(proxyTbl -> proxyIps.add(proxyTbl.getUri()));
+            }
+        }
+        return proxyIps;
     }
 
     private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
