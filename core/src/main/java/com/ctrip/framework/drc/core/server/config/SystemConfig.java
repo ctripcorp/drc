@@ -87,6 +87,8 @@ public class SystemConfig {
 
     public static final String DRC_DELAY_MONITOR_NAME_REGEX = DRC_MONITOR_SCHEMA_NAME + "\\." + DRC_DELAY_MONITOR_TABLE_NAME;
 
+    public static final String DRC_DELAY_MONITOR_NAME_REGEX_V2 = DRC_MONITOR_SCHEMA_NAME + "\\." + "(delaymonitor|dly.*)";
+
     public static final String MESSENGER_DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
 
     public static final String DRC_MQ = "_drc_mq";
