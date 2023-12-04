@@ -83,7 +83,7 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
     }
 
     @Override // refresh when new config submit
-    public synchronized void scheduledTask() {
+    public void scheduledTask() {
         compositeConfig.updateConfig();
         String newDrcString = compositeConfig.getConfig();
         if (StringUtils.isNotBlank(newDrcString) && !newDrcString.equalsIgnoreCase(drcString)) {

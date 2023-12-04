@@ -25,7 +25,7 @@ public class DbDelayMonitorColumn {
     private static List<TableMapLogEvent.Column> columns = Lists.newArrayList();
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
-    public static final String CREATE_DELAY_TABLE_SQL = "CREATE TABLE IF NOT EXISTS `drcmonitordb`.`delaymonitor_%s` (\n" +
+    public static final String CREATE_DELAY_TABLE_SQL = "CREATE TABLE IF NOT EXISTS `drcmonitordb`.`%s` (\n" +
             "  `id` bigint NOT NULL,\n" +
             "  `delay_info` varchar(256) NOT NULL,\n" +
             "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n" +

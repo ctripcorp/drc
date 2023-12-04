@@ -127,7 +127,7 @@ public class MetaGeneratorV3 {
     private Map<Long, List<MessengerTbl>> messengerTblByGroupIdMap;
     private Map<Long, List<DbReplicationFilterMappingTbl>> dbReplicationFilterMappingTblsByDbRplicationIdMap;
 
-    public Drc getDrc() throws Exception {
+    public synchronized Drc getDrc() throws Exception {
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         if (publicCloudRegion.contains(consoleConfig.getRegion())) {
             return null;
