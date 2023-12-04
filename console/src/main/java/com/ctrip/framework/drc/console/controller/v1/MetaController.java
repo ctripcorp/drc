@@ -2,9 +2,9 @@ package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
-import com.ctrip.framework.drc.console.service.impl.DrcBuildServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -24,9 +24,8 @@ import java.util.List;
 public class MetaController {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-
     @Autowired
-    private DrcBuildServiceImpl drcBuildService;
+    private DrcBuildServiceV2 drcBuildServiceV2;
 
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
@@ -61,7 +60,7 @@ public class MetaController {
     @PostMapping(value = "routes")
     public ApiResult submitProxyRouteConfig(@RequestBody RouteDto routeDto) {
         logger.info("[meta] submit proxy route config for {}", routeDto);
-        return ApiResult.getSuccessInstance(drcBuildService.submitProxyRouteConfig(routeDto));
+        return ApiResult.getSuccessInstance(drcBuildServiceV2.submitProxyRouteConfig(routeDto));
     }
 
     @PostMapping("dcs/{dc}")

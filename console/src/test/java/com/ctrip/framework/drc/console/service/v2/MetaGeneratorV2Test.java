@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
-import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Messenger;
@@ -35,7 +34,7 @@ import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.*;
  * 2023/5/31 10:17
  */
 public class MetaGeneratorV2Test {
-    private static Logger logger = LoggerFactory.getLogger(MetaGeneratorV2IntegrationTest.class);
+    private static Logger logger = LoggerFactory.getLogger(MetaGeneratorV2Test.class);
 
     @InjectMocks
     private MetaGeneratorV2 metaGenerator;

@@ -23,7 +23,6 @@ import com.ctrip.framework.drc.console.monitor.AbstractMonitorTest;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManagerTest;
 import com.ctrip.framework.drc.console.monitor.MysqlConfigsMonitorTest;
 import com.ctrip.framework.drc.console.monitor.UuidMonitorTest;
-import com.ctrip.framework.drc.console.monitor.cases.function.DatachangeLastTimeMonitorCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.container.ConsistencyCheckContainerTest;
 import com.ctrip.framework.drc.console.monitor.consistency.instance.DefaultConsistencyCheckTest;
@@ -39,8 +38,6 @@ import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTe
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
-import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest;
-import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest2;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
@@ -59,7 +56,6 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationSe
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
-import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
@@ -108,22 +104,10 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         // jdbc
         SqlOperatorTest.class,
 
-        DrcBuildServiceImplTest.class,
-        LocalServiceImplTest.class,
         DrcMaintenanceServiceImplTest.class,
         TableEnumTest.class,
-        CheckIncrementIdTaskTest.class,
-        CheckIncrementIdTaskTest2.class,
-        MhaServiceImplTest.class,
         ConfigServiceImplTest.class,
-        ClusterTblServiceImplTest.class,
         SwitchServiceImplTest.class,
-        HealthServiceImplTest.class,
-        MySqlServiceImplTest.class,
-        MessengerServiceImplTest.class,
-        DataMediaPairServiceImplTest.class,
-        DataMediaServiceImplTest.class,
-        ColumnsFilterServiceImplTest.class,
 
         DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,
@@ -143,7 +127,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGeneratorV3Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
-        MetaGrayServiceImplTest.class,
         MetaCompareServiceImplTest.class,
         CacheMetaServiceImplTest.class,
         DbMetaCorrectServiceImplTest.class,
@@ -154,7 +137,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DrcBuildServiceV2Test.class,
         MessengerServiceV2ImplTest.class,
         MetaInfoServiceV2ImplTest2.class,
-        ResourceMigrateServiceTest.class,
         ResourceServiceTest.class,
         DbMigrationServiceImplTest.class,
         DbMigrationServiceTest.class,
@@ -175,7 +157,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 //        UserControllerTest.class,
         MetaControllerTest.class,
         OpenApiControllerTest.class,
-        RowsFilterServiceImplTest.class,
         RowsFilterMetaControllerTest.class,
 
         //task
@@ -209,7 +190,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         SSOServiceImplTest.class,
 
         EstablishStatusEnumTest.class,
-        DatachangeLastTimeMonitorCaseTest.class,
         DelayMapTest.class,
 
         // dal dao

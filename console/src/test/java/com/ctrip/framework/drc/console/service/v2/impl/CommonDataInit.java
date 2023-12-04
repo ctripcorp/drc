@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
@@ -66,8 +65,6 @@ public class CommonDataInit {
     DefaultConsoleConfig consoleConfig;
     @Mock
     MetaInfoServiceV2 metaInfoServiceV2;
-    @Mock
-    DrcBuildService drcBuildService;
     @Mock
     AbstractDao abstractDao;
     @Mock

@@ -24,7 +24,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.service.impl.DrcBuildServiceImplTest.*;
 import static org.mockito.Mockito.doNothing;
 
 public class DrcMaintenanceServiceImplTest extends AbstractTest {
@@ -42,6 +41,26 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     
     @Mock
     private MachineTblDao machineTblDao;
+
+    public static String PROXYTLS = "PROXYTLS";
+    public static String PROXY = "PROXY";
+    public static String IP_DC1_1 = "100.100.100.1";
+    public static String IP_DC1_2 = "100.100.100.2";
+    public static String IP_DC2_1 = "100.100.100.3";
+    public static String IP_DC2_2 = "100.100.100.4";
+    public static String IP_DC_RELAY = "100.100.100.5";
+    public static String PORT_TLS = "443";
+    public static String PORT_IN = "80";
+
+    public static String PROXYTLS_DC1_1 = String.format("%s://%s:%s", PROXYTLS, IP_DC1_1, PORT_TLS);
+    public static String PROXY_DC1_1 = String.format("%s://%s:%s", PROXY, IP_DC1_1, PORT_IN);
+    public static String PROXYTLS_DC1_2 = String.format("%s://%s:%s", PROXYTLS, IP_DC1_2, PORT_TLS);
+    public static String PROXY_DC1_2 = String.format("%s://%s:%s", PROXY, IP_DC1_2, PORT_IN);
+    public static String PROXYTLS_DC2_1 = String.format("%s://%s:%s", PROXYTLS, IP_DC2_1, PORT_TLS);
+    public static String PROXY_DC2_1 = String.format("%s://%s:%s", PROXY, IP_DC2_1, PORT_IN);
+    public static String PROXYTLS_DC2_2 = String.format("%s://%s:%s", PROXYTLS, IP_DC2_2, PORT_TLS);
+    public static String PROXY_DC2_2 = String.format("%s://%s:%s", PROXY, IP_DC2_2, PORT_IN);
+    public static String PROXY_DC_RELAY = String.format("%s://%s:%s", PROXYTLS, IP_DC_RELAY, PORT_TLS);
             
     @Before
     public void setUp() throws Exception {

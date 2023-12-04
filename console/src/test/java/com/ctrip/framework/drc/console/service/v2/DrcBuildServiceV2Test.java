@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
@@ -36,9 +37,11 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getProxyTbls;
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
 
 /**
@@ -84,6 +87,10 @@ public class DrcBuildServiceV2Test {
     private BuTblDao buTblDao;
     @Mock
     private DcTblDao dcTblDao;
+    @Mock
+    private RouteTblDao routeTblDao;
+    @Mock
+    private ProxyTblDao proxyTblDao;
     @Mock
     private CacheMetaService cacheMetaService;
     @Mock
@@ -426,6 +433,28 @@ public class DrcBuildServiceV2Test {
                 ModuleEnum.APPLIER.getCode()));
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
+    }
+
+    @Test
+    public void testSubmitProxyRouteConfig() throws Exception {
+        RouteDto routeDto = new RouteDto();
+        routeDto.setId(0L);
+        routeDto.setRouteOrgName("BBZ");
+        routeDto.setSrcDcName("shaoy");
+        routeDto.setDstDcName("sharb");
+        routeDto.setSrcProxyUris(Arrays.asList("URI"));
+        routeDto.setRelayProxyUris(Arrays.asList("URI"));
+        routeDto.setDstProxyUris(Arrays.asList("URI"));
+        routeDto.setTag("meta");
+
+        Mockito.when(buTblDao.queryByBuName(Mockito.anyString())).thenReturn(getBuTbl());
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(proxyTblDao.queryByUri(Mockito.anyString())).thenReturn(getProxyTbls().get(0));
+        Mockito.doNothing().when(routeTblDao).upsert(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt());
+
+        String result = drcBuildServiceV2.submitProxyRouteConfig(routeDto);
+        Assert.assertEquals(result, "update proxy route succeeded");
     }
 
 
