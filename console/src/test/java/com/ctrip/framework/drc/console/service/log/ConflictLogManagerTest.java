@@ -87,17 +87,24 @@ public class ConflictLogManagerTest {
     @Test
     public void testClearBlackListAddedAutomatically() throws SQLException {
         Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
-        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode())).thenReturn(getCflLogBlackListTbls());
+        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode())).thenReturn(getCflLogBlackListTbls(LogBlackListType.AUTO));
         Mockito.when(domainConfig.getCflBlackListExpirationHour()).thenReturn(5);
         Mockito.when(cflLogBlackListTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[]{1});
-        conflictLogManager.clearBlackListAddedAutomatically();
+        conflictLogManager.clearBlackListAddedAutomatically(LogBlackListType.AUTO);
         Mockito.verify(cflLogBlackListTblDao, Mockito.times(1)).batchDelete(Mockito.anyList());
+
+        Mockito.when(consoleConfig.getDBACflBlackListClearSwitch()).thenReturn(true);
+        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.DBA.getCode())).thenReturn(getCflLogBlackListTbls(LogBlackListType.DBA));
+        Mockito.when(domainConfig.getDBACflBlackListExpirationHour()).thenReturn(5);
+        Mockito.when(cflLogBlackListTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[]{1});
+        conflictLogManager.clearBlackListAddedAutomatically(LogBlackListType.DBA);
+        Mockito.verify(cflLogBlackListTblDao, Mockito.times(2)).batchDelete(Mockito.anyList());
         
     }
 
-    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls() {
+    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls(LogBlackListType type) {
         ConflictDbBlackListTbl blackListTbl = new ConflictDbBlackListTbl();
-        blackListTbl.setType(LogBlackListType.AUTO.getCode());
+        blackListTbl.setType(type.getCode());
         blackListTbl.setDbFilter("db1\\..*");
         blackListTbl.setDatachangeLasttime(new Timestamp(System.currentTimeMillis() - 1000 * 60 * 60 * 5));
         return Lists.newArrayList(blackListTbl);

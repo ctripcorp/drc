@@ -1,11 +1,21 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
@@ -23,24 +33,28 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
-
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Created by dengquanliang
@@ -65,6 +79,16 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
+    @Autowired
+    private ApplierTblV2Dao applierTblV2Dao;
+    @Autowired
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Autowired
+    private ReplicatorTblDao replicatorTblDao;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
 
 
     @Override
@@ -268,4 +292,61 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
         }
     }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException {
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryById(mhaReplicationId);
+        if (mhaReplicationTbl == null) return false;
+        MhaTblV2 srcMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getSrcMhaId());
+        MhaTblV2 dstMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getDstMhaId());
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByMappingIds(
+                srcMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),
+                dstMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),
+                ReplicationTypeEnum.DB_TO_DB.getType());
+        if (!CollectionUtils.isEmpty(dbReplicationTbls)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "DbReplications not empty!" );
+        }
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationId, BooleanEnum.FALSE.getCode());
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(),BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(applierTblV2s)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, 
+                    srcMha.getMhaName() + "==>" + dstMha.getMhaName() + ":Applier not empty!" );
+        }
+        
+        List<MhaTblV2> mhasToBeDelete = Lists.newArrayList();
+        markMhaOfflineIfNeed(srcMha, mhasToBeDelete);
+        markMhaOfflineIfNeed(dstMha, mhasToBeDelete);
+
+        logger.info("Going to delete mha replication, srcMha:{}, dstMha:{}", srcMha.getMhaName(), dstMha.getMhaName());
+        mhaReplicationTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        mhaReplicationTblDao.update(mhaReplicationTbl);
+        if (!mhasToBeDelete.isEmpty()) {
+            mhaTblV2Dao.update(mhasToBeDelete);
+        }
+        return true;
+    }
+
+    private void markMhaOfflineIfNeed(MhaTblV2 mha, List<MhaTblV2> mhasToBeDelete) throws SQLException {
+        MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaId(mha.getId(), BooleanEnum.FALSE.getCode());
+        if (messengerGroup != null) { // mha has messenger
+            return;
+        }
+        ReplicatorGroupTbl mhaRGroup = replicatorGroupTblDao.queryByMhaId(mha.getId());
+        List<ReplicatorTbl> mhaReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(mhaRGroup.getId()), BooleanEnum.FALSE.getCode());
+        List<MhaReplicationTbl> mhaReplications = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mha.getId()));
+        if (mhaReplications.size() == 1) { // going to mark mha as offline
+            if (!CollectionUtils.isEmpty(mhaReplicators)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
+                        mha.getMhaName() + "will offline,but Replicator not empty!");
+            } else {
+                logger.info("Going to mark mha {} as offline", mha.getMhaName());
+                mha.setDeleted(BooleanEnum.TRUE.getCode());
+                mhasToBeDelete.add(mha);
+            }
+        }
+    }
+
 }

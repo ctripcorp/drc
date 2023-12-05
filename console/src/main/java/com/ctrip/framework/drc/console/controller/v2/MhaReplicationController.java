@@ -28,7 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -241,6 +243,15 @@ public class MhaReplicationController {
         }
     }
 
+    @DeleteMapping("offline")
+    public ApiResult<Boolean> offlineMhaReplication(@RequestParam Long mhaReplicationId) {
+        try {
+            return ApiResult.getSuccessInstance(mhaReplicationServiceV2.deleteMhaReplication(mhaReplicationId));
+        } catch (Exception e) {
+            logger.error("deleteMhaReplication error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 
     private List<MhaReplicationVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
         // prepare meta data

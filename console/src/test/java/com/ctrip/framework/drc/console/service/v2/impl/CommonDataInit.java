@@ -13,7 +13,9 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
+import java.util.Collections;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -186,6 +188,8 @@ public class CommonDataInit {
             Long id = i.getArgument(0, Long.class);
             return mhaReplicationTbls.stream().filter(e -> id.equals(e.getId())).findFirst().orElse(null);
         });
+
+
         when(mhaReplicationTblDao.queryByMhaId(anyLong(), anyLong(), anyInt())).thenAnswer(i -> {
             Long srcMhaId = i.getArgument(0, Long.class);
             Long dstMhaId = i.getArgument(1, Long.class);
@@ -218,6 +222,7 @@ public class CommonDataInit {
                 return CollectionUtils.isEmpty(query.getDstMhaIdList()) || query.getDstMhaIdList().contains(e.getSrcMhaId());
             }).count();
         });
+
 
 
         when(mhaReplicationTblDao.queryByRelatedMhaId(anyList())).thenAnswer(i -> {
@@ -278,7 +283,10 @@ public class CommonDataInit {
             return mhaTblV2List.stream().filter(e -> mhaNames.contains(e.getMhaName()) && deleted.equals(e.getDeleted()))
                     .collect(Collectors.toList());
         });
-
+        when(mhaTblV2Dao.queryById(anyLong())).thenAnswer(i -> {
+            Long pk = i.getArgument(0, Long.class);
+            return mhaTblV2List.stream().filter(e -> pk.equals(e.getId())).findFirst().orElse(null);
+        });
 
         // MhaDbMappingTbl
         List<MhaDbMappingTbl> mhaDbMappingTbls = this.getData("MhaDbMappingTbl.json", MhaDbMappingTbl.class);
@@ -511,10 +519,29 @@ public class CommonDataInit {
     }
 
 
-    <T> List<T> getData(String fileName, Class<T> clazz) throws IOException {
+    private <T> List<T> getData(String fileName, Class<T> clazz) {
         String prefix = "/testData/messengerServiceV2/";
-        String json = IOUtils.toString(Objects.requireNonNull(this.getClass().getResourceAsStream(prefix + fileName)), StandardCharsets.UTF_8);
-        return JSON.parseArray(json, clazz);
+        String pathPrefix = System.getProperty("mock.data.path.prefix");
+        if (StringUtils.isNotBlank(pathPrefix) ) {
+            prefix = pathPrefix;
+        }
+        try {
+            String json = IOUtils.toString(Objects.requireNonNull(this.getClass().getResourceAsStream(prefix + fileName)), StandardCharsets.UTF_8);
+            return JSON.parseArray(json, clazz);
+        } catch (Exception e) {
+            System.out.println("empty file" + prefix + fileName);
+            return Collections.emptyList();
+        }
+    }
+
+    public void reMock(String fileName) throws SQLException, IOException {
+        System.setProperty("mock.data.path.prefix", fileName);
+        setUp();
+    }
+
+
+    public void releaseMockConfig()  {
+        System.setProperty("mock.data.path.prefix", "");
     }
 
     @Test

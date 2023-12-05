@@ -4,6 +4,7 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.aop.RemoteHttpAspectTest;
+import com.ctrip.framework.drc.console.aop.permission.AccessTokenAspectTest;
 import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
@@ -105,6 +106,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         OpenApiServiceImplTest.class,
         RemoteHttpAspectTest.class,
+        AccessTokenAspectTest.class,
         QConfigServiceImplTest.class,
 
         RowsFilterMetaServiceTest.class,
