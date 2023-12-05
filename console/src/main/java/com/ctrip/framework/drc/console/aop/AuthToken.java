@@ -10,6 +10,7 @@ import java.lang.annotation.Target;
 /**
  * Created by dengquanliang
  * 2023/5/5 11:41
+ * ! only for rowsMetaFilter, api token: AccessToken
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

@@ -102,13 +102,16 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
-    private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
+    private static String META_GENERATOR_V4_SWITCH = "meta.generator.v4.switch";
     private static String META_REALTIME_SWITCH = "meta.realtime";
     
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
+    private static String DBA_CFL_BLACK_LIST_CLEAR_SWITCH = "dba.cfl.black.list.clear.switch";
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
+    
+    private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -476,8 +479,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
     }
 
-    public String getMetaGeneratorV3Switch() {
-        return getProperty(META_GENERATOR_V3_SWITCH, SWITCH_OFF);
+    public boolean getMetaGeneratorV4Switch() {
+        return getBooleanProperty(META_GENERATOR_V4_SWITCH, false);
     }
 
     public String getMetaRealtimeSwitch() {
@@ -491,4 +494,14 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getCflBlackListAutoAddSwitch() {
         return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
     }
+
+    public boolean getDBACflBlackListClearSwitch() {
+        return getBooleanProperty(DBA_CFL_BLACK_LIST_CLEAR_SWITCH, false);
+    }
+
+    public String getDrcAccessTokenKey() {
+        return getProperty(DRC_ACCESS_TOKEN_KEY, "");
+    }
+
+    
 }

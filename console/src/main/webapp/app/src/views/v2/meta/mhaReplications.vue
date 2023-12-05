@@ -141,11 +141,14 @@
         </Row>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
-            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId)">
+            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId,false)">
               查看
             </Button>
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
               修改
+            </Button>
+            <Button type="error" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId,true)">
+              删除
             </Button>
           </template>
         </Table>
@@ -189,6 +192,10 @@
                   gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
             }">
             </codemirror>
+            <Divider />
+            <Button v-if="replicationDetail.deleteMode" type="error"  style="float:right;margin-right:20px" @click="deleteConfig(replicationDetail.replicationId)">
+              删除
+            </Button>
           </div>
         </Drawer>
       </div>
@@ -454,6 +461,8 @@ export default {
       // for detail show
       replicationDetail: {
         show: false,
+        replicationId: null,
+        deleteMode: false,
         data: null,
         darkMode: true,
         lineWrap: false,
@@ -620,7 +629,22 @@ export default {
         this.getReplications(1)
       })
     },
-    checkConfig (replicationId) {
+    deleteConfig (replictionId) {
+      this.dataLoading = true
+      this.axios.delete('/api/drc/v2/replication/offline?mhaReplicationId=' + replictionId).then(response => {
+        if (response.data.status === 0) {
+          this.$Message.success('删除成功')
+        } else {
+          this.$Message.warning('删除失败: ' + response.data.message)
+        }
+        this.getReplications(1)
+      }).catch(message => {
+        this.$Message.error('删除异常: ' + message)
+      }).finally(() => {
+        this.dataLoading = false
+      })
+    },
+    checkConfig (replicationId, isDeleteMode) {
       this.dataLoading = true
       this.replicationDetail.data = null
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
@@ -633,6 +657,8 @@ export default {
           return
         }
         this.replicationDetail.data = response.data.data
+        this.replicationDetail.replicationId = replicationId
+        this.replicationDetail.deleteMode = isDeleteMode
         this.replicationDetail.show = true
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)

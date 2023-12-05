@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "mhaName": "mha1",
+    "clusterName": "test_dalcluster",
+    "dcId": 1,
+    "buId": 1,
+    "monitorSwitch": 0,
+    "applyMode": 0,
+    "deleted": 0
+  },
+  {
+    "id": 2,
+    "mhaName": "mha2",
+    "clusterName": "test_dalcluster",
+    "dcId": 2,
+    "buId": 1,
+    "monitorSwitch": 0,
+    "applyMode": 0,
+    "deleted": 0
+  },
+  {
+    "id": 3,
+    "mhaName": "mha3",
+    "clusterName": "test_dalcluster",
+    "dcId": 3,
+    "buId": 1,
+    "monitorSwitch": 0,
+    "applyMode": 0,
+    "deleted": 0
+  },
+  {
+    "id": 4,
+    "mhaName": "mha4",
+    "clusterName": "test_dalcluster",
+    "dcId": 4,
+    "buId": 1,
+    "monitorSwitch": 0,
+    "applyMode": 0,
+    "deleted": 0
+  },
+  {
+    "id": 5,
+    "mhaName": "mha5",
+    "clusterName": "test_dalcluster",
+    "dcId": 3,
+    "buId": 1,
+    "monitorSwitch": 0,
+    "applyMode": 0,
+    "deleted": 0
+  },
+  {
+    "id": 6,
+    "mhaName": "mha6",
+    "clusterName": "test_dalcluster",
+    "dcId": 4,
+    "buId": 1,
+    "monitorSwitch": 0,
+    "applyMode": 0,
+    "deleted": 0
+  }
+]

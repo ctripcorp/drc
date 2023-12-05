@@ -4,6 +4,7 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.aop.RemoteHttpAspectTest;
+import com.ctrip.framework.drc.console.aop.permission.AccessTokenAspectTest;
 import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
@@ -67,6 +68,7 @@ import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
+import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVoTest;
 import com.ctrip.framework.drc.console.vo.SimplexDrcBuildVoTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
@@ -145,6 +147,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         OpenApiServiceImplTest.class,
         RemoteHttpAspectTest.class,
+        AccessTokenAspectTest.class,
         QConfigServiceImplTest.class,
 
         RowsFilterMetaServiceTest.class,
@@ -156,6 +159,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MessengerServiceV2Test.class,
         MetaGeneratorV2Test.class,
         MetaGeneratorV3Test.class,
+        MetaGeneratorV4Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
         MigrateServiceTest.class,
@@ -221,6 +225,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         JacksonUtilsTest.class,
         XmlUtilsTest.class,
         EnvEnumTest.class,
+        TableNameBuilderTest.class,
 
         DefaultTableProviderTest.class,
         RangeQueryCheckPairCaseTest.class,

@@ -115,6 +115,8 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String SEND_CONFLICT_ALARM_EMAIL_SWITCH = "send.conflict.alarm.email.switch";
     private static final String SEND_DBOWNER_CONFLICT_EMAIL_SWITCH = "send.dbowner.conflict.email.switch";
     private static final String CFL_BLACK_LIST_EXPIRATION_HOUR = "cfl.black.list.expiration.hour";
+    private static final String DBA_CFL_BLACK_LIST_EXPIRATION_HOUR = "dba.cfl.black.list.expiration.hour";
+    private static final String CONFLICT_ALARM_TIMES_PER_HOUR = "conflict.alarm.times.per.hour";
     
 
     public String getDbaApprovers() {
@@ -357,5 +359,13 @@ public class DomainConfig extends AbstractConfigBean {
 
     public int getCflBlackListExpirationHour() {
         return getIntProperty(CFL_BLACK_LIST_EXPIRATION_HOUR, 24);
+    }
+
+    public int getDBACflBlackListExpirationHour() {
+        return getIntProperty(DBA_CFL_BLACK_LIST_EXPIRATION_HOUR, 24*7);
+    }
+
+    public int getConflictAlarmTimesPerHour() {
+        return getIntProperty(CONFLICT_ALARM_TIMES_PER_HOUR, 2);
     }
 }
