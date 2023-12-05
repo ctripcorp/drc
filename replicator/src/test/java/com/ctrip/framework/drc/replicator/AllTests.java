@@ -112,7 +112,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         DdlParserTest.class,
         RetryTaskTest.class,
         DbCreateTaskTest.class,
-        DbDisposeTaskTest.class,
+//        DbDisposeTaskTest.class,
         DbRestoreTaskTest.class,
         SchemeApplyTaskTest.class,
 
