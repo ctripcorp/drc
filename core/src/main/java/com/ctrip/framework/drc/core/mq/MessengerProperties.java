@@ -24,6 +24,7 @@ public class MessengerProperties {
 
     private String nameFilter;
 
+    @JsonIgnore
     private DataMediaConfig dataMediaConfig;
 
     private List<MqConfig> mqConfigs;

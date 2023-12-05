@@ -38,12 +38,12 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
         return drc;
     }
 
-    public synchronized Drc getRealtimeDrc() {
+    public Drc getRealtimeDrc() {
         scheduledTask();
         return drc;
     }
 
-    public synchronized Drc getDrc(String dcId) {
+    public Drc getDrc(String dcId) {
         if (drc == null) {
             scheduledTask();
         }
@@ -53,7 +53,7 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
         return drcWithOneDc;
     }
 
-    public synchronized Drc getRealtimeDrc(String dcId) {
+    public Drc getRealtimeDrc(String dcId) {
         scheduledTask();
         Dc dc = drc.findDc(dcId);
         Drc drcWithOneDc = new Drc();
@@ -83,15 +83,17 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
     }
 
     @Override // refresh when new config submit
-    public synchronized void scheduledTask() {
+    public void scheduledTask() {
         compositeConfig.updateConfig();
-        String newDrcString = compositeConfig.getConfig();
-        if (StringUtils.isNotBlank(newDrcString) && !newDrcString.equalsIgnoreCase(drcString)) {
-            drcString = newDrcString;
-            try {
-                drc = DefaultSaxParser.parse(drcString);
-            } catch (Throwable t) {
-                logger.error("[Parser] config {} error", drcString);
+        synchronized (this) {
+            String newDrcString = compositeConfig.getConfig();
+            if (StringUtils.isNotBlank(newDrcString) && !newDrcString.equalsIgnoreCase(drcString)) {
+                drcString = newDrcString;
+                try {
+                    drc = DefaultSaxParser.parse(drcString);
+                } catch (Throwable t) {
+                    logger.error("[Parser] config {} error", drcString);
+                }
             }
         }
     }
