@@ -9,6 +9,7 @@ import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.OperateTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
@@ -608,8 +609,14 @@ public class MySqlUtils {
         }
     }
 
-    public static void removeWriteSqlOperator(Endpoint endpoint) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+    public static void removeWriteSqlOperator(Endpoint endpoint, int accountType) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
+        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+        } else {
+            writeSqlOperatorWrapper = sqlOperatorMapper.remove(endpoint);
+        }
+
         if (writeSqlOperatorWrapper != null) {
             try {
                 writeSqlOperatorWrapper.stop();
@@ -934,14 +941,20 @@ public class MySqlUtils {
         return null;
     }
 
-    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+    public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
+        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        } else {
+            writeSqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        }
+
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             return writeSqlOperatorWrapper.writeWithResult(execution);
         } catch (Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
-            removeWriteSqlOperator(endpoint);
+            removeWriteSqlOperator(endpoint, accountType);
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
         }
     }
@@ -1108,19 +1121,6 @@ public class MySqlUtils {
 
     public static String toSqlField(String s) {
         return MARKS + s + MARKS;
-    }
-
-    public static Object toSqlValue(Object val) {
-        if (val == null) {
-            return null;
-        }
-        if (val instanceof byte[]) {
-            return CommonUtils.byteToHexString((byte[]) val);
-        }
-        if (val instanceof String) {
-            return toStringVal(val);
-        }
-        return val;
     }
 
     public static Object toSqlValue(Object val, String columnType) {

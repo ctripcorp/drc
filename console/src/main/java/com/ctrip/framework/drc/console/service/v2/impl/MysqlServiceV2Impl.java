@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
+import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
@@ -246,11 +247,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/write", httpType = HttpRequestEnum.POST, requestClass = MysqlWriteEntity.class)
     public StatementExecutorResult write(MysqlWriteEntity requestBody) {
-        Endpoint endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
+        Endpoint endpoint;
+        if (requestBody.getAccountType() == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
+        } else {
+            endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
+        }
+
         if (endpoint == null) {
             logger.error("write to mha: {}, db not exist", requestBody.getMha());
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), Constants.ENDPOINT_NOT_EXIST);
         }
-        return MySqlUtils.write(endpoint, requestBody.getSql());
+        return MySqlUtils.write(endpoint, requestBody.getSql(), requestBody.getAccountType());
     }
 }
