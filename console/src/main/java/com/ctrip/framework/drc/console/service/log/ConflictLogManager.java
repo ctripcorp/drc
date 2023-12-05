@@ -17,9 +17,13 @@ import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -50,7 +54,10 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     
     private OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
     private EmailService emailService = ApiContainer.getEmailServiceImpl();
+    private Map<String,Integer> tableAlarmCountHourlyMap = Maps.newHashMap();
+    private long periodCount = 0L;
 
+    
     @Override
     public void initialize() {
         setInitialDelay(30);
@@ -61,10 +68,19 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     @Override
     public void scheduledTask() {
         try {
-            if (isRegionLeader && consoleConfig.isCenterRegion()) {
-                logger.info("[[task=ConflictAlarm]] is leader");
+            periodCount++;
+            boolean isClearBlackListPeriod = periodCount % 60 == 0;
+            if (isClearBlackListPeriod) periodCount = 0L;
+            if (isRegionLeader && consoleConfig.isCenterRegion()) {  
+                logger.info("[[task=ConflictAlarm]] leader,scheduledTask");
                 DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "checkConflict", this::checkConflict);
-                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "clearBlackList", this::clearBlackListAddedAutomatically);
+                if (isClearBlackListPeriod) {
+                    DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "clearDRCBlackList",
+                            () -> clearBlackListAddedAutomatically(LogBlackListType.AUTO));
+                    DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.conflict", "clearDBABlackList",
+                            () -> clearBlackListAddedAutomatically(LogBlackListType.DBA));
+                    tableAlarmCountHourlyMap.clear();
+                }
             } else {
                 logger.info("[[task=ConflictAlarm]]not a leader do nothing");
             }
@@ -73,13 +89,28 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         }
     }
     
-    protected void clearBlackListAddedAutomatically() throws SQLException {
-        if (consoleConfig.getCflBlackListAutoAddSwitch()) {
-            List<ConflictDbBlackListTbl> conflictDbBlackListTbls = cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode());
+
+    protected void clearBlackListAddedAutomatically(LogBlackListType type) throws SQLException {
+        boolean clearSwitch;
+        int expirationHour;
+        switch (type) {
+            case AUTO:
+                clearSwitch = consoleConfig.getCflBlackListAutoAddSwitch();
+                expirationHour = domainConfig.getCflBlackListExpirationHour();
+                break;
+            case DBA:
+                clearSwitch = consoleConfig.getDBACflBlackListClearSwitch();
+                expirationHour = domainConfig.getDBACflBlackListExpirationHour();
+                break;
+            default:
+                throw new IllegalArgumentException("unSupport type " + type);
+        }
+        if (clearSwitch) {
+            List<ConflictDbBlackListTbl> conflictDbBlackListTbls = cflLogBlackListTblDao.queryByType(type.getCode());
             long current = System.currentTimeMillis();
             List<ConflictDbBlackListTbl> toDelete = Lists.newArrayList();
             for (ConflictDbBlackListTbl blackListTbl : conflictDbBlackListTbls) {
-                if (current - blackListTbl.getDatachangeLasttime().getTime() >= TimeUnit.HOURS.toMillis(domainConfig.getCflBlackListExpirationHour())) {
+                if (current - blackListTbl.getDatachangeLasttime().getTime() >= TimeUnit.HOURS.toMillis(expirationHour)) {
                     toDelete.add(blackListTbl);
                     if (toDelete.size() >= 100) {
                         cflLogBlackListTblDao.batchDelete(toDelete);
@@ -104,14 +135,14 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         List<HickWallConflictCount> rollbackTrxCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, true, false, 1);
         List<HickWallConflictCount> commitRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, true, 1);
         List<HickWallConflictCount> rollbackRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, false, 1);
-        checkConflictCount(commitTrxCounts,ConflictCountType.CONFLICT_COMMIT_TRX);
-        checkConflictCount(rollbackTrxCounts,ConflictCountType.CONFLICT_ROLLBACK_TRX);
-        checkConflictCount(commitRowsCounts,ConflictCountType.CONFLICT_COMMIT_ROW);
-        checkConflictCount(rollbackRowsCounts,ConflictCountType.CONFLICT_ROLLBACK_ROW);
+        checkConflictCountAndAlarm(commitTrxCounts,ConflictCountType.CONFLICT_COMMIT_TRX);
+        checkConflictCountAndAlarm(rollbackTrxCounts,ConflictCountType.CONFLICT_ROLLBACK_TRX);
+        checkConflictCountAndAlarm(commitRowsCounts,ConflictCountType.CONFLICT_COMMIT_ROW);
+        checkConflictCountAndAlarm(rollbackRowsCounts,ConflictCountType.CONFLICT_ROLLBACK_ROW);
     }
     
     
-    private void checkConflictCount(List<HickWallConflictCount> cflRowCounts,ConflictCountType type) throws SQLException{
+    private void checkConflictCountAndAlarm(List<HickWallConflictCount> cflRowCounts,ConflictCountType type) throws SQLException{
         for (HickWallConflictCount cflTableRowCount : cflRowCounts) {
             Long count = cflTableRowCount.getCount();
             if (isTriggerAlarm(count,type)) {
@@ -126,7 +157,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 String dstRegion = mhaServiceV2.getRegion(dstMha);
 
                 logger.warn("[[task=ConflictAlarm]]type:{}, db:{}, table:{}, count:{}",type.name(),db, table, count);
-                if (!domainConfig.getSendConflictAlarmEmailSwitch()) {
+                if (!domainConfig.getSendConflictAlarmEmailSwitch() && isTriggerAlarmTooManyTimes(db,table,type) ) {
                     continue;
                 }
                 Email email = generateEmail(db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
@@ -138,6 +169,15 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 }
             }
         }
+    }
+    
+    private boolean isTriggerAlarmTooManyTimes(String db, String table,ConflictCountType type)  { // todo hdpan test 
+        Integer count = tableAlarmCountHourlyMap.getOrDefault(db + "." +  table + "-" + type.name(),0);
+        if (count >= domainConfig.getConflictAlarmTimesPerHour()) {
+            return true;
+        }
+        tableAlarmCountHourlyMap.put(db + table,count + 1);
+        return false;
     }
     
    

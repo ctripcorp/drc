@@ -6,7 +6,8 @@ package com.ctrip.framework.drc.console.service.log;/**
  */
 public enum LogBlackListType {
     USER(0, "user add blacklist"),
-    AUTO(1, "new config drc,auto add blacklist");
+    AUTO(1, "new config drc,auto add blacklist"),
+    DBA(2, "dba touch job,add to blacklist");
     private int code;
     private String desc;
 

@@ -644,6 +644,7 @@ public class TransactionContextResource extends AbstractContext
             return;
         }
         initState(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
+        // todo hdpan check onUpdate change to distinguish DBA touch job
         try {
             STATEMENT:
             for (int i = 0; i < this.beforeRows.size(); i++) {
