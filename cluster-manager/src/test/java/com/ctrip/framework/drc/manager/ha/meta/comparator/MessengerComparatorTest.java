@@ -53,7 +53,7 @@ public class MessengerComparatorTest extends AbstractDbClusterTest {
         Assert.assertEquals(metaComparators.size(), 1);
 
         for (MetaComparator metaComparator : metaComparators) {
-            InstanceComparator instanceComparator = (InstanceComparator) metaComparator;
+            MessengerPropertyComparator instanceComparator = (MessengerPropertyComparator) metaComparator;
             Messenger messenger1 = (Messenger) instanceComparator.getCurrent();
             Messenger messenger2 = (Messenger) instanceComparator.getFuture();
             Assert.assertEquals(messenger1.getIp(), messenger2.getIp());
