@@ -85,13 +85,15 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
     @Override // refresh when new config submit
     public void scheduledTask() {
         compositeConfig.updateConfig();
-        String newDrcString = compositeConfig.getConfig();
-        if (StringUtils.isNotBlank(newDrcString) && !newDrcString.equalsIgnoreCase(drcString)) {
-            drcString = newDrcString;
-            try {
-                drc = DefaultSaxParser.parse(drcString);
-            } catch (Throwable t) {
-                logger.error("[Parser] config {} error", drcString);
+        synchronized (this) {
+            String newDrcString = compositeConfig.getConfig();
+            if (StringUtils.isNotBlank(newDrcString) && !newDrcString.equalsIgnoreCase(drcString)) {
+                drcString = newDrcString;
+                try {
+                    drc = DefaultSaxParser.parse(drcString);
+                } catch (Throwable t) {
+                    logger.error("[Parser] config {} error", drcString);
+                }
             }
         }
     }
