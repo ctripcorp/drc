@@ -104,11 +104,12 @@ public class MetaGeneratorV4 {
     private static final ExecutorService executorService = ThreadUtils.newFixedThreadPool(50, "queryAllExist");
 
     public Drc getDrc() throws Exception {
-        SingleTask task = new SingleTask(rowsFilterServiceV2, columnsFilterServiceV2);
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         if (publicCloudRegion.contains(consoleConfig.getRegion())) {
             return null;
         }
+        // thread safe
+        SingleTask task = new SingleTask(rowsFilterServiceV2, columnsFilterServiceV2);
         this.refreshMetaData(task);
         return task.getDrc();
     }
@@ -351,7 +352,6 @@ public class MetaGeneratorV4 {
         private void generateAppliers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
             List<MhaReplicationTbl> mhaReplicationTblList = mhaReplicationGroupByDstMhaIdMap.getOrDefault(mhaTbl.getId(), Collections.emptyList());
 
-            // note: if already config db replication applier, skip mha applier
             for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTblList) {
                 ApplierGroupTblV2 applierGroupTbl = applierGroupByMhaReplicationIdMap.get(mhaReplicationTbl.getId());
                 if (applierGroupTbl == null) {

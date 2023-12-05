@@ -31,19 +31,19 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
 
     protected volatile Drc drc;
 
-    public synchronized Drc getDrc() {
+    public Drc getDrc() {
         if (drc == null) {
             scheduledTask();
         }
         return drc;
     }
 
-    public synchronized Drc getRealtimeDrc() {
+    public Drc getRealtimeDrc() {
         scheduledTask();
         return drc;
     }
 
-    public synchronized Drc getDrc(String dcId) {
+    public Drc getDrc(String dcId) {
         if (drc == null) {
             scheduledTask();
         }
@@ -53,7 +53,7 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
         return drcWithOneDc;
     }
 
-    public synchronized Drc getRealtimeDrc(String dcId) {
+    public Drc getRealtimeDrc(String dcId) {
         scheduledTask();
         Dc dc = drc.findDc(dcId);
         Drc drcWithOneDc = new Drc();
