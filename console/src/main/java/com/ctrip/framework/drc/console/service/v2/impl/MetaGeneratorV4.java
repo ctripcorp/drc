@@ -117,32 +117,29 @@ public class MetaGeneratorV4 {
     public static class SingleTask {
         private final Logger logger = LoggerFactory.getLogger(getClass());
 
-        private List<BuTbl> buTbls;
-        private List<RouteTbl> routeTbls;
-        private List<ProxyTbl> proxyTbls;
-        private List<DcTbl> dcTbls;
-
-        private List<MhaTblV2> mhaTbls;
-        private List<ResourceTbl> resourceTbls;
-        private List<MachineTbl> machineTbls;
-        private List<ReplicatorGroupTbl> replicatorGroupTbls;
-        private List<ApplierGroupTblV2> applierGroupTbls;
-        private List<ClusterManagerTbl> clusterManagerTbls;
-        private List<ZookeeperTbl> zookeeperTbls;
-        private List<ReplicatorTbl> replicatorTbls;
-        private List<ApplierTblV2> applierTbls;
-
-        private List<MhaReplicationTbl> mhaReplicationTbls;
-        private List<MhaDbMappingTbl> mhaDbMappingTbls;
-
-        private List<DbReplicationTbl> dbReplicationTbls;
-        private List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls;
-        private List<ColumnsFilterTblV2> columnsFilterTbls;
-        private List<RowsFilterTblV2> rowsFilterTbls;
-        private List<DbTbl> dbTbls;
-        private List<MessengerFilterTbl> messengerFilterTbls;
-        private List<MessengerGroupTbl> messengerGroupTbls;
-        private List<MessengerTbl> messengerTbls;
+        private volatile List<BuTbl> buTbls;
+        private volatile List<RouteTbl> routeTbls;
+        private volatile List<ProxyTbl> proxyTbls;
+        private volatile List<DcTbl> dcTbls;
+        private volatile List<MhaTblV2> mhaTbls;
+        private volatile List<ResourceTbl> resourceTbls;
+        private volatile List<MachineTbl> machineTbls;
+        private volatile List<ReplicatorGroupTbl> replicatorGroupTbls;
+        private volatile List<ApplierGroupTblV2> applierGroupTbls;
+        private volatile List<ClusterManagerTbl> clusterManagerTbls;
+        private volatile List<ZookeeperTbl> zookeeperTbls;
+        private volatile List<ReplicatorTbl> replicatorTbls;
+        private volatile List<ApplierTblV2> applierTbls;
+        private volatile List<MhaReplicationTbl> mhaReplicationTbls;
+        private volatile List<MhaDbMappingTbl> mhaDbMappingTbls;
+        private volatile List<DbReplicationTbl> dbReplicationTbls;
+        private volatile List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls;
+        private volatile List<ColumnsFilterTblV2> columnsFilterTbls;
+        private volatile List<RowsFilterTblV2> rowsFilterTbls;
+        private volatile List<DbTbl> dbTbls;
+        private volatile List<MessengerFilterTbl> messengerFilterTbls;
+        private volatile List<MessengerGroupTbl> messengerGroupTbls;
+        private volatile List<MessengerTbl> messengerTbls;
 
 
         // index
@@ -588,7 +585,7 @@ public class MetaGeneratorV4 {
 
         // wait
         for (Future<?> future : list) {
-            future.get(10, TimeUnit.SECONDS);
+            future.get(5, TimeUnit.SECONDS);
         }
 
         // index objects

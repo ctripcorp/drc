@@ -31,7 +31,7 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
 
     protected volatile Drc drc;
 
-    public Drc getDrc() {
+    public synchronized Drc getDrc() {
         if (drc == null) {
             scheduledTask();
         }
