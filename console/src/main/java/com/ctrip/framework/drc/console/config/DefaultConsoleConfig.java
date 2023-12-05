@@ -102,7 +102,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
-    private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
+    private static String META_GENERATOR_V4_SWITCH = "meta.generator.v4.switch";
     private static String META_REALTIME_SWITCH = "meta.realtime";
     
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
@@ -479,8 +479,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
     }
 
-    public String getMetaGeneratorV3Switch() {
-        return getProperty(META_GENERATOR_V3_SWITCH, SWITCH_OFF);
+    public boolean getMetaGeneratorV4Switch() {
+        return getBooleanProperty(META_GENERATOR_V4_SWITCH, false);
     }
 
     public String getMetaRealtimeSwitch() {
