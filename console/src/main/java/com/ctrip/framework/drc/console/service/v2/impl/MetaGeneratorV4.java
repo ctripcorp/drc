@@ -43,11 +43,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
+
 /**
  * V3 + thread safe & faster
  */
 @Service
 public class MetaGeneratorV4 {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
@@ -559,6 +562,7 @@ public class MetaGeneratorV4 {
 
     private void refreshMetaData(SingleTask task) throws Exception {
         List<Future<?>> list = Lists.newArrayList();
+        long start = System.currentTimeMillis();
         list.add(executorService.submit(() -> task.dbReplicationTbls = dbReplicationTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.buTbls = buTblDao.queryAllExist()));
@@ -587,6 +591,9 @@ public class MetaGeneratorV4 {
         for (Future<?> future : list) {
             future.get(5, TimeUnit.SECONDS);
         }
+
+        long end = System.currentTimeMillis();
+        META_LOGGER.info("[meta refresh] v4 cost: {} ms", end - start);
 
         // index objects
         // map by id

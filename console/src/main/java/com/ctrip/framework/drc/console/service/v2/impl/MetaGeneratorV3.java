@@ -36,6 +36,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
+
 /**
  * V2 fast version
  */
@@ -157,6 +159,7 @@ public class MetaGeneratorV3 {
     }
 
     private void refreshMetaData() throws SQLException {
+        long start = System.currentTimeMillis();
         buTbls = buTblDao.queryAllExist();
         routeTbls = routeTblDao.queryAllExist();
         proxyTbls = proxyTblDao.queryAllExist();
@@ -181,6 +184,9 @@ public class MetaGeneratorV3 {
         columnsFilterTbls = columnsFilterTblV2Dao.queryAllExist();
         messengerFilterTbls = messengerFilterTblDao.queryAllExist();
         rowsFilterTbls = rowsFilterTblV2Dao.queryAllExist();
+
+        long end = System.currentTimeMillis();
+        META_LOGGER.info("[meta refresh] v3 cost: {} ms", end - start);
 
         resourceTblIdMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity(), (e1, e2) -> e1));
         mhaDbMappingTblsByMhaIdMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
