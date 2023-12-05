@@ -53,9 +53,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
-    private MhaTblDao mhaTblDao;
-
-    @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
@@ -315,15 +312,9 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     @Override
     public void updateMhaTag(String mhaName, String tag) throws Exception {
-        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
         mhaTblV2.setTag(tag);
         mhaTblV2Dao.update(mhaTblV2);
-
-        if (mhaTbl != null) {
-            mhaTbl.setTag(tag);
-            mhaTblDao.update(mhaTbl);
-        }
     }
 
     @Override

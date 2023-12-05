@@ -1,22 +1,22 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.util.CollectionUtils;
-
 /**
  * @author shb沈海波
  * @date 2020-08-28
  */
+@Repository
 public class ReplicatorTblDao extends AbstractDao<ReplicatorTbl> {
 
     private static final String RESOURCE_ID = "resource_id";

@@ -8,12 +8,12 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.ForwardService;
-import com.ctrip.framework.drc.console.vo.response.MhaListApiResult;
-import java.sql.SQLException;
-import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * @ClassName ForwardServiceImpl

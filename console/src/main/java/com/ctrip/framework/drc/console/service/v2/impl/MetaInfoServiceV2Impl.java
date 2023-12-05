@@ -179,6 +179,20 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         return routes;
     }
 
+    public List<String> getProxyUris(String dc) throws Exception {
+        Set<String> dcsInSameRegion = consoleConfig.getDcsInSameRegion(dc);
+        List<String> proxyUris = Lists.newArrayList();
+        for (String InSameRegion : dcsInSameRegion) {
+            Long dcId = dcTblDao.queryByDcName(InSameRegion).getId();
+            proxyTblDao.queryByDcId(dcId,BooleanEnum.FALSE.getCode()).forEach(proxyTbl -> proxyUris.add(proxyTbl.getUri()));
+        }
+        return proxyUris;
+    }
+
+    public List<String> getAllProxyUris() throws Exception {
+        return proxyTblDao.queryAllExist().stream().map(ProxyTbl::getUri).collect(Collectors.toList());
+    }
+
     private RouteDto getRouteDto(RouteTbl routeTbl) throws SQLException {
         RouteDto routeDto = new RouteDto();
         routeDto.setId(routeTbl.getId());

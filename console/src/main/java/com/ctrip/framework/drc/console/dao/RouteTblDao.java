@@ -34,20 +34,7 @@ public class RouteTblDao extends AbstractDao<RouteTbl> {
     }
 
     public void insertRoute(Long routeOrgId, Long srcDcId, Long dstDcId, String srcProxyIds, String relayProxyIds, String dstProxyIds, String tag) throws SQLException {
-        RouteTbl routeTbl = createRoutePojo(routeOrgId, srcDcId, dstDcId, srcProxyIds, relayProxyIds, dstProxyIds, tag);
+        RouteTbl routeTbl = RouteTbl.createRoutePojo(routeOrgId, srcDcId, dstDcId, srcProxyIds, relayProxyIds, dstProxyIds, tag);
         insert(routeTbl);
     }
-
-    public RouteTbl createRoutePojo(Long routeOrgId, Long srcDcId, Long dstDcId, String srcProxyIds, String relayProxyIds, String dstProxyIds, String tag) {
-        RouteTbl routeTbl = new RouteTbl();
-        routeTbl.setRouteOrgId(routeOrgId);
-        routeTbl.setSrcDcId(srcDcId);
-        routeTbl.setDstDcId(dstDcId);
-        routeTbl.setSrcProxyIds(srcProxyIds);
-        routeTbl.setOptionalProxyIds(relayProxyIds);
-        routeTbl.setDstProxyIds(dstProxyIds);
-        routeTbl.setTag(tag);
-        return routeTbl;
-    }
-
 }

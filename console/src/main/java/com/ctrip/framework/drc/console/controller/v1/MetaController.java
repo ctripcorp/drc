@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.controller.v1;
 import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -32,10 +31,6 @@ public class MetaController {
 
     @Autowired
     private DrcMaintenanceServiceImpl drcMaintenanceService;
-
-    @Autowired
-    private MetaInfoServiceTwoImpl metaInfoServiceTwo;
-
 
     @DeleteMapping(value = "routes/proxy")
     public ApiResult deleteProxyRoute(@RequestParam(value = "routeOrgName") String routeOrgName,
@@ -91,7 +86,7 @@ public class MetaController {
     public ApiResult getProxyUris(@PathVariable String dc) {
         logger.info("[meta] get proxy uris for {}", dc);
         try {
-            return ApiResult.getSuccessInstance(metaInfoServiceTwo.getProxyUris(dc));
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.getProxyUris(dc));
         } catch (Throwable t) {
             return ApiResult.getFailInstance(t);
         }
@@ -101,7 +96,7 @@ public class MetaController {
     public ApiResult getAllProxyUris() {
         logger.info("[meta] get all proxy uris");
         try {
-            return ApiResult.getSuccessInstance(metaInfoServiceTwo.getAllProxyUris());
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.getAllProxyUris());
         } catch (Throwable t) {
             return ApiResult.getFailInstance(t);
         }

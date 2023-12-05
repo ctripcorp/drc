@@ -1,25 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.dao.entity.ColumnsFilterTbl;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MessengerFilterTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
-import com.ctrip.framework.drc.console.monitor.consistency.cases.Row;
+import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.google.common.collect.Lists;
+
 import java.util.List;
 
 /**
@@ -226,24 +211,6 @@ public class MockEntityBuilder {
         dbReplicationTbl.setReplicationType(type);
         dbReplicationTbl.setDeleted(0);
         return dbReplicationTbl;
-    }
-
-    public static RowsFilterTbl buildRowsFilterTbl(long pk, String mode, String configs) {
-        RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
-        rowsFilterTbl.setId(pk);
-        rowsFilterTbl.setMode(mode);
-        rowsFilterTbl.setConfigs(configs);
-        rowsFilterTbl.setDeleted(0);
-        return rowsFilterTbl;
-    }
-
-    public static ColumnsFilterTbl buildColumnsFilterTbl(long pk, String mode,String columns) {
-        ColumnsFilterTbl columnsFilterTbl = new ColumnsFilterTbl();
-        columnsFilterTbl.setId(pk);
-        columnsFilterTbl.setColumns(columns);
-        columnsFilterTbl.setMode(mode);
-        columnsFilterTbl.setDeleted(0);
-        return columnsFilterTbl;
     }
 
     public static MessengerFilterTbl buildMessengerFilterTbl(long pk, String properties) {

@@ -2,9 +2,14 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DdlHistoryTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
@@ -16,6 +21,8 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -25,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +45,10 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Autowired
     private CacheMetaService cacheMetaService;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private DdlHistoryTblDao ddlHistoryTblDao;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -252,5 +264,19 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), Constants.ENDPOINT_NOT_EXIST);
         }
         return MySqlUtils.write(endpoint, requestBody.getSql());
+    }
+
+    @Override
+    @PossibleRemote(path="/api/drc/v2/mysql/ddlHistory", httpType = HttpRequestEnum.POST, requestClass = DdlHistoryEntity.class)
+    public Integer insertDdlHistory(DdlHistoryEntity requestBody) throws SQLException {
+        logger.info("insertDdlHistory requestBody: {}", requestBody);
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(requestBody.getMha());
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message(String.format("mha: %s not exist", requestBody.getMha()));
+        }
+        DdlHistoryTbl pojo = DdlHistoryTbl.createDdlHistoryPojo
+                (mhaTblV2.getId(), requestBody.getDdl(), requestBody.getQueryType(), requestBody.getSchemaName(), requestBody.getTableName());
+        KeyHolder keyHolder = new KeyHolder();
+        return ddlHistoryTblDao.insert(new DalHints(), keyHolder, pojo);
     }
 }

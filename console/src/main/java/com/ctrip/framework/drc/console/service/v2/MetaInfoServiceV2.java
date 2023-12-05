@@ -35,4 +35,8 @@ public interface MetaInfoServiceV2 {
     Drc getDrcMessengerConfig(String mhaName);
 
     List<RouteDto> getRoutes(String routeOrgName, String srcDcName, String dstDcName, String tag, Integer deleted);
+
+    List<String> getProxyUris(String dc) throws Exception;
+
+    List<String> getAllProxyUris() throws Exception;
 }

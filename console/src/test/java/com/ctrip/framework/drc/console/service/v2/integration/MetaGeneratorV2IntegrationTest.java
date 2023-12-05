@@ -78,8 +78,6 @@ public class MetaGeneratorV2IntegrationTest {
     @Autowired
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
-    private RowsFilterTblDao rowsFilterTblDao;
-    @Autowired
     private ColumnsFilterTblV2Dao columnFilterTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
@@ -137,7 +135,6 @@ public class MetaGeneratorV2IntegrationTest {
        messengerGroupTblDao.batchInsert(new DalHints().enableIdentityInsert(), getMessengerGroupTbls());
        messengerTblDao.batchInsert(new DalHints().enableIdentityInsert(), getMessengerTbls());
        dbReplicationFilterMappingTblDao.batchInsert(new DalHints().enableIdentityInsert(), getFilterMappingTbls());
-       rowsFilterTblDao.batchInsert(new DalHints().enableIdentityInsert(), getRowsFilterTbls());
        columnFilterTblDao.batchInsert(new DalHints().enableIdentityInsert(), getColumnsFilterTbls());
        messengerFilterTblDao.batchInsert(new DalHints().enableIdentityInsert(), getMessengerFilterTbls());
    }
