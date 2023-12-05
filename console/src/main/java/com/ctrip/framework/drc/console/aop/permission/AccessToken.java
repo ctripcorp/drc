@@ -11,5 +11,5 @@ import java.lang.annotation.Target;
 public @interface AccessToken {
     TokenType type();
     
-    boolean evnSensitive() default false;
+    boolean envSensitive() default false;
 }

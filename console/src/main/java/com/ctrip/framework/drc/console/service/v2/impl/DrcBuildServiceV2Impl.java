@@ -199,10 +199,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         MhaReplicationTbl srcMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId(), BooleanEnum.FALSE.getCode());
         MhaReplicationTbl dstMhaReplication = mhaReplicationTblDao.queryByMhaId(dstMha.getId(), srcMha.getId(), BooleanEnum.FALSE.getCode());
-        if (srcMhaReplication == null || dstMhaReplication == null) {
-            throw ConsoleExceptionUtils.message(String.format("mhaReplication between %s and %s not exist", srcMhaName, dstMhaName));
+        if (srcMhaReplication == null) {
+            insertMhaReplication(srcMha.getId(), dstMha.getId());
+            srcMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId(), BooleanEnum.FALSE.getCode());
         }
-
+        if (dstMhaReplication == null) {
+            insertMhaReplication(dstMha.getId(), srcMha.getId());
+            dstMhaReplication = mhaReplicationTblDao.queryByMhaId(dstMha.getId(), srcMha.getId(), BooleanEnum.FALSE.getCode());
+        }
+        
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         configureReplicatorGroup(srcMha, srcBuildParam.getReplicatorInitGtid(), srcBuildParam.getReplicatorIps(), resourceTbls);
         configureReplicatorGroup(dstMha, dstBuildParam.getReplicatorInitGtid(), dstBuildParam.getReplicatorIps(), resourceTbls);

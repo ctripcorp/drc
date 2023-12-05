@@ -60,7 +60,7 @@ public class AccessTokenAspect {
         }
         String tokenKey = consoleConfig.getDrcAccessTokenKey();
         StringBuilder unEncodedToken  = new StringBuilder(tokenKey);
-        if (accessToken.evnSensitive()) {
+        if (accessToken.envSensitive()) {
             unEncodedToken.append("_").append(EnvUtils.getEnvStr());
         }
         unEncodedToken.append("_").append(type.getCode());
