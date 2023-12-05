@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.aop.permission.AccessToken;
+import com.ctrip.framework.drc.console.enums.TokenType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -7,6 +9,7 @@ import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.log.LogBlackListType;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -223,6 +226,30 @@ public class ConflictLogController {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("deleteBlacklist error, {}", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
+    @PostMapping("blacklist/dba/touchjob")
+    public ApiResult<Boolean>  addBlackListForTouchJob(@RequestParam String db,@RequestParam String table) {
+        try {
+            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("addBlackListForTouchJob error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
+    @DeleteMapping("blacklist/dba/touchjob")
+    public ApiResult<Boolean>  deleteBlackListForTouchJob(@RequestParam String db,@RequestParam String table) {
+        try {
+            conflictLogService.deleteBlacklist(db + "\\." + table);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("deleteBlackListForTouchJob error", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

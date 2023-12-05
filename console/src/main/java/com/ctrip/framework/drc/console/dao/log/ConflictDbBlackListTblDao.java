@@ -23,6 +23,13 @@ public class ConflictDbBlackListTblDao extends AbstractDao<ConflictDbBlackListTb
         super(ConflictDbBlackListTbl.class);
     }
 
+    public List<ConflictDbBlackListTbl> queryBy(String dbFilter,Integer type) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(DB_FILTER, dbFilter, Types.VARCHAR);
+        sqlBuilder.and().equal(TYPE, type, Types.TINYINT);
+        return queryList(sqlBuilder);
+    }
+
     public List<ConflictDbBlackListTbl> queryByDbFilter(String dbFilter) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(DB_FILTER, dbFilter, Types.VARCHAR);
