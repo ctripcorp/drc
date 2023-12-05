@@ -52,6 +52,7 @@ import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServic
 import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
+import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.AfterClass;
@@ -115,6 +116,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MessengerServiceV2Test.class,
         MetaGeneratorV2Test.class,
         MetaGeneratorV3Test.class,
+        MetaGeneratorV4Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
         MetaCompareServiceImplTest.class,
@@ -170,6 +172,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         JacksonUtilsTest.class,
         XmlUtilsTest.class,
         EnvEnumTest.class,
+        TableNameBuilderTest.class,
 
         DefaultTableProviderTest.class,
         RangeQueryCheckPairCaseTest.class,

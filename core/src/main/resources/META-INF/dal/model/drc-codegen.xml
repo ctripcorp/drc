@@ -94,6 +94,8 @@
     <attribute name="port" value-type="int" />
     <attribute name="gtidExecuted" value-type="String" />
     <attribute name="master" value-type="boolean" primitive="true" />
+    <attribute name="applyMode" value-type="int" />
+    <attribute name="includedDbs" value-type="String" />
     <attribute name="nameFilter" value-type="String" />
     <attribute name="properties" value-type="String" />
   </entity>

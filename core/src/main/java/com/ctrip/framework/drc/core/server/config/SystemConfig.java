@@ -72,7 +72,11 @@ public class SystemConfig {
     public static final String DRC_DELAY_MONITOR_TABLE_NAME = "delaymonitor";
 
     public static final String DRC_TRANSACTION_TABLE_NAME = "gtid_executed";
-    
+
+    public static final String DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX = "dly_";
+
+    public static final String DRC_DB_TRANSACTION_TABLE_NAME_PREFIX = "tx_";
+
     public static final String DRC_WRITE_FILTER_TABLE_NAME = "drc_write_filter";
 
     public static final String DRC_DELAY_MONITOR_NAME = DRC_MONITOR_SCHEMA_NAME + "." + DRC_DELAY_MONITOR_TABLE_NAME;
