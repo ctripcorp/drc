@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
-import java.util.Collections;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -25,6 +24,7 @@ import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -519,7 +519,7 @@ public class CommonDataInit {
     }
 
 
-    private <T> List<T> getData(String fileName, Class<T> clazz) {
+    public  <T> List<T> getData(String fileName, Class<T> clazz) {
         String prefix = "/testData/messengerServiceV2/";
         String pathPrefix = System.getProperty("mock.data.path.prefix");
         if (StringUtils.isNotBlank(pathPrefix) ) {

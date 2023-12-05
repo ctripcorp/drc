@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.service.ColumnsFilterService;
-import com.ctrip.framework.drc.console.service.impl.ColumnsFilterServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -22,9 +20,6 @@ public class MetaGeneratorV4Test extends CommonDataInit {
 
     @Spy
     RowsFilterServiceV2 rowsFilterServiceV2 = new RowsFilterServiceV2Impl();
-
-    @Spy
-    ColumnsFilterService columnsFilterService = new ColumnsFilterServiceImpl();
 
     @Before
     public void setUp() throws SQLException, IOException {
