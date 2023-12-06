@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +27,8 @@ public class TransactionTableApplierDumpEventActivityTest {
     private TransactionTableApplierDumpEventActivity dumpEventActivity;
 
     private TransactionTable transactionTable = Mockito.mock(TransactionTableResource.class);
+
+    private String uuid = "45c8023b-888d-11ec-9f82-b8cef68a4636";
 
     @Before
     public void setUp() {
@@ -110,5 +113,37 @@ public class TransactionTableApplierDumpEventActivityTest {
         ApplierGtidEvent gtidEvent4 = new ApplierGtidEvent("55c8023b-888d-11ec-9f82-b8cef68a4638:1");
         Mockito.when(transactionTable.mergeRecord("55c8023b-888d-11ec-9f82-b8cef68a4638", true)).thenReturn(new GtidSet(""));
         dumpEventActivity.handleApplierGtidEvent(gtidEvent4);
+    }
+
+    @Test
+    public void testGetStartAndEnd() {
+        String uuid2 = "54c8023b-888d-11ec-9f82-b8cef68a4636";
+        GtidSet gtidSet = new GtidSet("45c8023b-888d-11ec-9f82-b8cef68a4636:100");
+        GtidSet.Interval interval = dumpEventActivity.getStartAndEnd(gtidSet, uuid);
+        Assert.assertEquals(100, interval.getStart());
+        Assert.assertEquals(100, interval.getEnd());
+
+        GtidSet.Interval interval2 = dumpEventActivity.getStartAndEnd(gtidSet, uuid2);
+        Assert.assertNull(interval2);
+
+        GtidSet gtidSet3 = new GtidSet("45c8023b-888d-11ec-9f82-b8cef68a4636:1-100:105-110:120-150");
+        GtidSet.Interval interval3 = dumpEventActivity.getStartAndEnd(gtidSet3, uuid);
+        Assert.assertEquals(1, interval3.getStart());
+        Assert.assertEquals(150, interval3.getEnd());
+    }
+
+    @Test
+    public void testUnionExecutedGtidSetGap() {
+        dumpEventActivity.unionExecutedGtidSetGap(uuid, 1, 1);
+        GtidSet gtidSet1 = dumpEventActivity.getExecutedGtidSetGap();
+        Assert.assertEquals("45c8023b-888d-11ec-9f82-b8cef68a4636:1", gtidSet1.toString());
+
+        dumpEventActivity.unionExecutedGtidSetGap(uuid, 3, 100);
+        GtidSet gtidSet2 = dumpEventActivity.getExecutedGtidSetGap();
+        Assert.assertEquals("45c8023b-888d-11ec-9f82-b8cef68a4636:1:3-100", gtidSet2.toString());
+
+        dumpEventActivity.clearExecutedGtidSetGap();
+        GtidSet gtidSet3 = dumpEventActivity.getExecutedGtidSetGap();
+        Assert.assertEquals(StringUtils.EMPTY, gtidSet3.toString());
     }
 }

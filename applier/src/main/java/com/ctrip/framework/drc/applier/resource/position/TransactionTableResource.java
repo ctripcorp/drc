@@ -344,6 +344,14 @@ public class TransactionTableResource extends AbstractResource implements Transa
         }
     }
 
+    @Override
+    public void merge(GtidSet gtidSet) {
+        synchronized (gtidSavedInMemoryLock) {
+            gtidSavedInMemory.union(gtidSet);
+            mergeGtid(true);
+        }
+    }
+
     public void asyncMergeGtid(boolean needRetry) {
         mergeGtidService.submit(new Runnable() {
             @Override

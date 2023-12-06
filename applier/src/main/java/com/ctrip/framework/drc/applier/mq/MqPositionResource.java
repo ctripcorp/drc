@@ -61,20 +61,27 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
         String filePositionPath = APPLIER_PATH + registryKey;
         positionFile = new File(filePositionPath);
         zkPositionPath = APPLIER_POSITIONS_PATH + "/" + registryKey;
-        executedGtidSet = new GtidSet(getPosition()).union(new GtidSet(initialGtidExecuted));
+        executedGtidSet = new GtidSet(get()).union(new GtidSet(initialGtidExecuted));
         updatePositionInFile();
         startUpdatePositionSchedule();
     }
 
     @Override
-    public void updatePosition(String gtid) {
+    public void add(String gtid) {
         gtidService.submit(() -> {
             executedGtidSet.add(gtid);
         });
     }
 
     @Override
-    public String getPosition() {
+    public void union(GtidSet gtidSet) {
+        gtidService.submit(() -> {
+            executedGtidSet = executedGtidSet.union(gtidSet);
+        });
+    }
+
+    @Override
+    public String get() {
         if (isIntegrityTest()) {
             return StringUtils.EMPTY;
         }
