@@ -32,7 +32,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -244,7 +243,7 @@ public class MhaServiceV2ImplTest {
         Mockito.when(opsApiServiceImpl.getMhaReplicationDelay(Mockito.anyString(), Mockito.anyString())).thenReturn(getDelayInfo());
         Map<String, Long> mhaServiceV2MhaReplicatorSlaveDelay = mhaServiceV2.getMhaReplicatorSlaveDelay(
                 Lists.newArrayList("mha1"));
-        Assert.assertFalse(CollectionUtils.isEmpty(mhaServiceV2MhaReplicatorSlaveDelay));
+        Assert.assertEquals(1, mhaServiceV2MhaReplicatorSlaveDelay.size());
     }
 
     private static void assertResult(List<MhaTblV2> expectResult, Map<Long, MhaTblV2> result) {

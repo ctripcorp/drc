@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
+import com.ctrip.framework.drc.console.controller.v2.MysqlControllerTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
@@ -137,6 +138,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MigrationTaskManagerTest.class,
         ConflictLogServiceTest.class,
         ConflictApprovalServiceTest.class,
+        MysqlServiceV2Test.class,
 //
         // controller
         MetaControllerV2Test.class,
@@ -149,6 +151,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaControllerTest.class,
         OpenApiControllerTest.class,
         RowsFilterMetaControllerTest.class,
+        MysqlControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,

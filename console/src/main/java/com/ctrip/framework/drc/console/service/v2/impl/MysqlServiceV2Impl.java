@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DdlHistoryTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
@@ -267,7 +268,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path="/api/drc/v2/mysql/ddlHistory", httpType = HttpRequestEnum.POST, requestClass = DdlHistoryEntity.class)
+    @PossibleRemote(path="/api/drc/v2/mysql/ddlHistory", httpType = HttpRequestEnum.POST, requestClass = DdlHistoryEntity.class, forwardType = ForwardTypeEnum.TO_META_DB)
     public Integer insertDdlHistory(DdlHistoryEntity requestBody) throws SQLException {
         logger.info("insertDdlHistory requestBody: {}", requestBody);
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(requestBody.getMha());
