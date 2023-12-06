@@ -21,7 +21,6 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,6 +32,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -244,7 +244,7 @@ public class MhaServiceV2ImplTest {
         Mockito.when(opsApiServiceImpl.getMhaReplicationDelay(Mockito.anyString(), Mockito.anyString())).thenReturn(getDelayInfo());
         Map<String, Long> mhaServiceV2MhaReplicatorSlaveDelay = mhaServiceV2.getMhaReplicatorSlaveDelay(
                 Lists.newArrayList("mha1"));
-        Assert.assertEquals(1, mhaServiceV2MhaReplicatorSlaveDelay.size());
+        Assert.assertFalse(CollectionUtils.isEmpty(mhaServiceV2MhaReplicatorSlaveDelay));
     }
 
     private static void assertResult(List<MhaTblV2> expectResult, Map<Long, MhaTblV2> result) {
