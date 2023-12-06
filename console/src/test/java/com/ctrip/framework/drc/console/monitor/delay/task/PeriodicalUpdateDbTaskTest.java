@@ -10,7 +10,7 @@ import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
-import com.ctrip.framework.drc.console.service.v2.ForwardService;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -61,7 +61,7 @@ public class PeriodicalUpdateDbTaskTest {
 
     @Mock private DefaultConsoleConfig consoleConfig;
 
-    @Mock private ForwardService forwardService;
+    @Mock private CentralService centralService;
     
 
 
@@ -150,8 +150,8 @@ public class PeriodicalUpdateDbTaskTest {
         mhaTbl2.setId(2L);
         mhaTbl2.setMhaName(MHA1DC2);
 
-        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(forwardService).getMhaTblV2s(Mockito.eq(DC1));
-        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(forwardService).getMhaTblV2s(Mockito.eq(DC2));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(centralService).getMhaTblV2s(Mockito.eq(DC1));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(centralService).getMhaTblV2s(Mockito.eq(DC2));
         task.isleader();
     }
 

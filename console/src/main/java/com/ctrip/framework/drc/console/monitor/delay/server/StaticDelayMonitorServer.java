@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveCon
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
@@ -58,7 +58,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private ScheduledExecutorService checkScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("DelayMonitor");
 
     @Autowired
-    private MysqlServiceV2 mysqlServiceV2;
+    private CentralService centralService;
 
     private MySQLConnector mySQLConnector;
 
@@ -190,7 +190,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.truncate", catName);
 
                         DdlHistoryEntity entity = new DdlHistoryEntity(config.getMha(), ddl, queryType.ordinal(), schema, table);
-                        mysqlServiceV2.insertDdlHistory(entity);
+                        centralService.insertDdlHistory(entity);
                     } catch (Throwable t) {
                         String data = String.format("Fail insert truncate history for %s.%s", schema, table);
                         log(data, ERROR, t);

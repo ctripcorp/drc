@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.foundation.Env;
 import com.google.common.collect.Maps;
 import org.junit.Before;
@@ -22,9 +21,6 @@ public class SyncMhaTaskTest {
 
     @Mock
     private DalServiceImpl dalServicedalService;
-
-    @Mock
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
 
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;

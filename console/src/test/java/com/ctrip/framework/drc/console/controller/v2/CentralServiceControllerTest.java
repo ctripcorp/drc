@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
@@ -18,12 +18,12 @@ import java.sql.SQLException;
  * Created by dengquanliang
  * 2023/12/6 17:21
  */
-public class MysqlControllerTest {
+public class CentralServiceControllerTest {
 
     @InjectMocks
-    private MysqlController mysqlController;
+    private CentralServiceController centralServiceController;
     @Mock
-    private MysqlServiceV2 mysqlServiceV2;
+    private CentralService centralService;
 
     @Before
     public void setUp() {
@@ -32,12 +32,12 @@ public class MysqlControllerTest {
 
     @Test
     public void testInsertDdlHistory() throws SQLException {
-        Mockito.when(mysqlServiceV2.insertDdlHistory(Mockito.any())).thenReturn(1);
-        ApiResult<Integer> result = mysqlController.insertDdlHistory(new DdlHistoryEntity());
+        Mockito.when(centralService.insertDdlHistory(Mockito.any())).thenReturn(1);
+        ApiResult<Integer> result = centralServiceController.insertDdlHistory(new DdlHistoryEntity());
         Assert.assertTrue(result.getData() == 1);
 
-        Mockito.when(mysqlServiceV2.insertDdlHistory(Mockito.any())).thenThrow(ConsoleExceptionUtils.message("error"));
-        result = mysqlController.insertDdlHistory(new DdlHistoryEntity());
+        Mockito.when(centralService.insertDdlHistory(Mockito.any())).thenThrow(ConsoleExceptionUtils.message("error"));
+        result = centralServiceController.insertDdlHistory(new DdlHistoryEntity());
         Assert.assertNull(result.getData());
     }
 }

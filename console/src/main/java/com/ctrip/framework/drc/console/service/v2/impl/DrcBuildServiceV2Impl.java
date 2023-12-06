@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
-import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -807,33 +806,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
         }
 
-    }
-
-    @Override
-    public String submitProxyRouteConfig(RouteDto routeDto) {
-        try {
-            Long routeOrgId = StringUtils.isBlank(routeDto.getRouteOrgName()) ? 0L : buTblDao.queryByBuName(routeDto.getRouteOrgName()).getId();
-            Long srcDcId = dcTblDao.queryByDcName(routeDto.getSrcDcName()).getId();
-            Long dstDcId = dcTblDao.queryByDcName(routeDto.getDstDcName()).getId();
-            List<Long> srcProxyIds = Lists.newArrayList();
-            List<Long> relayProxyIds = Lists.newArrayList();
-            List<Long> dstProxyIds = Lists.newArrayList();
-            for (String proxyUri : routeDto.getSrcProxyUris()) {
-                srcProxyIds.add(proxyTblDao.queryByUri(proxyUri).getId());
-            }
-            for (String proxyUri : routeDto.getRelayProxyUris()) {
-                relayProxyIds.add(proxyTblDao.queryByUri(proxyUri).getId());
-            }
-            for (String proxyUri : routeDto.getDstProxyUris()) {
-                dstProxyIds.add(proxyTblDao.queryByUri(proxyUri).getId());
-            }
-            routeTblDao.upsert(routeOrgId, srcDcId, dstDcId, StringUtils.join(srcProxyIds, ","),
-                    StringUtils.join(relayProxyIds, ","), StringUtils.join(dstProxyIds, ","), routeDto.getTag(), routeDto.getDeleted());
-            return "update proxy route succeeded";
-        } catch (SQLException e) {
-            logger.error("update proxy route failed, ", e);
-            return "update proxy route failed";
-        }
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")

@@ -2,9 +2,8 @@ package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
-import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.resource.ProxyService;
+import com.ctrip.framework.drc.console.service.v2.resource.RouteService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +23,10 @@ public class MetaController {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private DrcBuildServiceV2 drcBuildServiceV2;
+    private RouteService routeService;
 
     @Autowired
-    private MetaInfoServiceV2 metaInfoServiceV2;
-
-    @Autowired
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
+    private ProxyService proxyService;
 
     @DeleteMapping(value = "routes/proxy")
     public ApiResult deleteProxyRoute(@RequestParam(value = "routeOrgName") String routeOrgName,
@@ -38,7 +34,7 @@ public class MetaController {
                                       @RequestParam(value = "dstDcName") String dstDcName,
                                       @RequestParam(value = "tag") String tag) {
         logger.info("[meta] delete proxy route for {}-{},{}->{}", routeOrgName, tag, srcDcName, dstDcName);
-        return drcMaintenanceService.deleteRoute(routeOrgName, srcDcName, dstDcName, tag);
+        return routeService.deleteRoute(routeOrgName, srcDcName, dstDcName, tag);
     }
 
     @GetMapping(value = "routes")
@@ -48,45 +44,45 @@ public class MetaController {
                                     @RequestParam(value = "tag", required = false) String tag,
                                     @RequestParam(value = "deleted", required = true) Integer deleted) {
         logger.info("[meta] get proxy routes for {}-{},{}->{},{}", routeOrgName, tag, srcDcName, dstDcName, deleted);
-        List<RouteDto> routeDtoList = metaInfoServiceV2.getRoutes(routeOrgName, srcDcName, dstDcName, tag, deleted);
+        List<RouteDto> routeDtoList = routeService.getRoutes(routeOrgName, srcDcName, dstDcName, tag, deleted);
         return ApiResult.getSuccessInstance(routeDtoList);
     }
 
     @PostMapping(value = "routes")
     public ApiResult submitProxyRouteConfig(@RequestBody RouteDto routeDto) {
         logger.info("[meta] submit proxy route config for {}", routeDto);
-        return ApiResult.getSuccessInstance(drcBuildServiceV2.submitProxyRouteConfig(routeDto));
+        return ApiResult.getSuccessInstance(routeService.submitProxyRouteConfig(routeDto));
     }
 
     @PostMapping("dcs/{dc}")
     public ApiResult inputDc(@PathVariable String dc) {
         logger.info("[meta] input dc {}", dc);
-        return drcMaintenanceService.inputDc(dc);
+        return proxyService.inputDc(dc);
     }
 
     @PostMapping("orgs/{org}")
     public ApiResult inputBu(@PathVariable String org) {
         logger.info("[meta] input bu {}", org);
-        return drcMaintenanceService.inputBu(org);
+        return proxyService.inputBu(org);
     }
 
     @PostMapping("proxy")
     public ApiResult inputProxy(@RequestBody ProxyDto proxyDto) {
         logger.info("[meta] load proxy: {}", proxyDto);
-        return drcMaintenanceService.inputProxy(proxyDto);
+        return proxyService.inputProxy(proxyDto);
     }
 
     @DeleteMapping("proxy")
     public ApiResult deleteProxy(@RequestBody ProxyDto proxyDto) {
         logger.info("[meta] delete proxy: {}", proxyDto);
-        return drcMaintenanceService.deleteProxy(proxyDto);
+        return proxyService.deleteProxy(proxyDto);
     }
 
     @GetMapping("proxy/uris/dcs/{dc}")
     public ApiResult getProxyUris(@PathVariable String dc) {
         logger.info("[meta] get proxy uris for {}", dc);
         try {
-            return ApiResult.getSuccessInstance(metaInfoServiceV2.getProxyUris(dc));
+            return ApiResult.getSuccessInstance(proxyService.getProxyUris(dc));
         } catch (Throwable t) {
             return ApiResult.getFailInstance(t);
         }
@@ -96,7 +92,7 @@ public class MetaController {
     public ApiResult getAllProxyUris() {
         logger.info("[meta] get all proxy uris");
         try {
-            return ApiResult.getSuccessInstance(metaInfoServiceV2.getAllProxyUris());
+            return ApiResult.getSuccessInstance(proxyService.getAllProxyUris());
         } catch (Throwable t) {
             return ApiResult.getFailInstance(t);
         }

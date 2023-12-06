@@ -1,13 +1,11 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +55,4 @@ public interface MysqlServiceV2 {
     String getFirstUniqueIndex(String mha, String db, String table);
 
     StatementExecutorResult write(MysqlWriteEntity requestBody);
-
-    Integer insertDdlHistory(DdlHistoryEntity requestBody) throws SQLException;
 }

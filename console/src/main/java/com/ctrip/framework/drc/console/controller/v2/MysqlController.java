@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
-import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -226,17 +225,6 @@ public class MysqlController {
         } catch (Exception e) {
             logger.info("write to mha entity fail: {}", requestBody, e);
             return ApiResult.getFailInstance(new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), e.getMessage()));
-        }
-    }
-
-    @PostMapping("ddlHistory")
-    public ApiResult<Integer> insertDdlHistory(@RequestBody DdlHistoryEntity requestBody) {
-        try {
-            logger.info("insertDdlHistory requestBody: {}", requestBody);
-            return ApiResult.getSuccessInstance(mysqlServiceV2.insertDdlHistory(requestBody));
-        } catch (Exception e) {
-            logger.info("insertDdlHistory fail, requestBody: {}", requestBody, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

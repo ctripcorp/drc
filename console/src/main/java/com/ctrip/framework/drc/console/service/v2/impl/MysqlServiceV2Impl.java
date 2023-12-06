@@ -267,17 +267,4 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         return MySqlUtils.write(endpoint, requestBody.getSql());
     }
 
-    @Override
-    @PossibleRemote(path="/api/drc/v2/mysql/ddlHistory", httpType = HttpRequestEnum.POST, requestClass = DdlHistoryEntity.class, forwardType = ForwardTypeEnum.TO_META_DB)
-    public Integer insertDdlHistory(DdlHistoryEntity requestBody) throws SQLException {
-        logger.info("insertDdlHistory requestBody: {}", requestBody);
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(requestBody.getMha());
-        if (mhaTblV2 == null) {
-            throw ConsoleExceptionUtils.message(String.format("mha: %s not exist", requestBody.getMha()));
-        }
-        DdlHistoryTbl pojo = DdlHistoryTbl.createDdlHistoryPojo
-                (mhaTblV2.getId(), requestBody.getDdl(), requestBody.getQueryType(), requestBody.getSchemaName(), requestBody.getTableName());
-        KeyHolder keyHolder = new KeyHolder();
-        return ddlHistoryTblDao.insert(new DalHints(), keyHolder, pojo);
-    }
 }
