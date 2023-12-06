@@ -220,6 +220,7 @@ public class ConflictApprovalServiceTest {
         tbl.setDbName("db");
         tbl.setTableName("table");
         tbl.setStatus(0);
+        tbl.setId(1L);
 
         return Lists.newArrayList(tbl);
     }

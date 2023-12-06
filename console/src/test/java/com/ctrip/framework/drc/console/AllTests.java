@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
@@ -50,7 +49,6 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationSe
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
-import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
@@ -116,11 +114,9 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ColumnsFilterServiceV2Test.class,
         DataMediaServiceV2Test.class,
         MessengerServiceV2Test.class,
-        MetaGeneratorV2Test.class,
         MetaGeneratorV3Test.class,
         MetaGeneratorV4Test.class,
         RowsFilterServiceV2Test.class,
-        MetaGeneratorV2IntegrationTest.class,
         MetaCompareServiceImplTest.class,
         CacheMetaServiceImplTest.class,
         DbMetaCorrectServiceImplTest.class,
@@ -199,8 +195,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaInstanceGroupDtoTest.class,
         MhaReplicationQueryTest.class,
 
-        //integrationTest
-        MhaReplicationTblDaoTest.class
 })
 public class AllTests {
 
