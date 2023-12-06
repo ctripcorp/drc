@@ -11,6 +11,8 @@ import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
@@ -18,6 +20,8 @@ import static com.ctrip.framework.drc.applier.resource.position.TransactionTable
  * Created by jixinwang on 2021/8/20
  */
 public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventActivity {
+
+    protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     private String lastUuid;
 
@@ -38,7 +42,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         String gtid = ((ApplierDrcGtidEvent) event).getGtid();
         loggerER.info("{} {} - RECEIVED - {}", registryKey, gtid, event.getClass().getSimpleName());
         transactionTable.recordToMemory(gtid);
-        updateGtidSet(gtid);
+        updateContextGtidSet(gtid);
     }
 
     @Override
@@ -47,7 +51,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
             loggerTT.info("[{}]uuid has changed, old uuid is: {}, new uuid is: {}", registryKey, lastUuid, currentUuid);
             GtidSet gtidSet = transactionTable.mergeRecord(currentUuid, true);
-            updateGtidSet(gtidSet);
+            updateContextGtidSet(gtidSet);
             lastUuid = currentUuid;
             filterCount = 0;
             needFilter = true;
@@ -92,13 +96,6 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
             return true;
         }
         return skipEvent;
-    }
-
-    @VisibleForTesting
-    protected void updateGtidSet(String gtid) {
-        GtidSet set = context.fetchGtidSet();
-        set.add(gtid);
-        context.updateGtidSet(set);
     }
 
     @VisibleForTesting

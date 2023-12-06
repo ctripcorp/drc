@@ -3,24 +3,21 @@ package com.ctrip.framework.drc.applier.activity.event;
 import com.ctrip.framework.drc.applier.activity.replicator.converter.ApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.event.ApplierDrcTableMapEvent;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.util.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -31,8 +28,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_
  * @create 2021/3/4
  */
 public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
-
-    protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     @InstanceResource
     public Progress progress;
@@ -99,7 +94,8 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         applierGtidEvent.involve(context);
     }
 
-    private void checkPositionGap(ApplierGtidEvent applierGtidEvent) {
+    @VisibleForTesting
+    protected void checkPositionGap(ApplierGtidEvent applierGtidEvent) {
         String currentUuid = applierGtidEvent.getServerUUID().toString();
         long trxId = applierGtidEvent.getId();
 
@@ -111,10 +107,10 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                 unionExecutedGtidSetGap(currentUuid, startAndEndTrxId.getStart(), trxId - 1);
             }
         } else {
-            initGapIfNeed(currentUuid, trxId);
-            if (trxId > lastTrxId + 1) {
+            if (gapInited && trxId > lastTrxId + 1) {
                 compensateGtidSetGap(currentUuid, lastTrxId, trxId);
             }
+            initGapIfNeed(currentUuid, trxId);
         }
         lastTrxId = trxId;
     }
@@ -149,12 +145,12 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         }
 
         if (startAndEndTrxId == null) {
+            gapInited = true;
             return;
         }
 
-        if (trxId < startAndEndTrxId.getEnd()) {
-            unionExecutedGtidSetGap(uuid, lastTrxId + 1, trxId - 1);
-        } else {
+        unionExecutedGtidSetGap(uuid, lastTrxId + 1, trxId - 1);
+        if (trxId >= startAndEndTrxId.getEnd()) {
             initGap();
             gapInited = true;
             clearExecutedGtidSetGap();
@@ -162,7 +158,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     }
 
     protected void initGap() {
-        updateGtidSet(toCompensateGtidSet);
+        updateContextGtidSet(toCompensateGtidSet);
     }
 
     protected void addPosition(String gtid) {
@@ -172,27 +168,24 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     private void compensateGtidSetGap(String uuid, long start, long end) {
         for (long i = start + 1; i < end; i++) {
             String gtid = uuid + ":" + i;
+            updateContextGtidSet(gtid);
             addPosition(gtid);
         }
     }
 
-    protected void unionExecutedGtidSetGap(String uuid, long start, long end) {
-        if (end > start) {
+    private void unionExecutedGtidSetGap(String uuid, long start, long end) {
+        if (end < start) {
             return;
         }
         String toCompensateGtidSetString = uuid + ":" + start + "-" + end;
         toCompensateGtidSet = toCompensateGtidSet.union(new GtidSet(toCompensateGtidSetString));
     }
 
-    protected GtidSet getExecutedGtidSetGap() {
-        return toCompensateGtidSet;
+    private void clearExecutedGtidSetGap() {
+        toCompensateGtidSet = new GtidSet(StringUtils.EMPTY);
     }
 
-    protected void clearExecutedGtidSetGap() {
-        toCompensateGtidSet = new GtidSet(Strings.EMPTY);
-    }
-
-    protected GtidSet.Interval getStartAndEnd(GtidSet gtidSet, String uuid) {
+    private GtidSet.Interval getStartAndEnd(GtidSet gtidSet, String uuid) {
         GtidSet.UUIDSet executedUuidSet = gtidSet.getUUIDSet(uuid);
         if (executedUuidSet == null) {
             return null;
@@ -208,11 +201,14 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         return new GtidSet.Interval(start, end);
     }
 
-    @VisibleForTesting
-    protected void updateGtidSet(GtidSet gtidset) {
+    protected void updateContextGtidSet(GtidSet gtidset) {
         GtidSet set = context.fetchGtidSet();
-        loggerTT.info("[Skip] update gtidset in db before, context gtidset: {}, merged gtidset in db: {}", set.toString(), gtidset.toString());
         context.updateGtidSet(set.union(gtidset));
-        loggerTT.info("[Skip] update gtidset in db after, union result: {}", context.fetchGtidSet().toString());
+        logger.info("[Skip][{}] update context gtidset, context gtidset: {}, to merge gtidset: {}, unioned gtidset: {}", registryKey, set.toString(), gtidset.toString(), context.fetchGtidSet().toString());
+    }
+
+    protected void updateContextGtidSet(String gtid) {
+        GtidSet set = context.fetchGtidSet();
+        set.add(gtid);
     }
 }
