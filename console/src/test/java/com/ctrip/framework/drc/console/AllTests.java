@@ -33,6 +33,7 @@ import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
+import com.ctrip.framework.drc.console.pojo.CreatePojoTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
@@ -194,6 +195,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //entity
         MhaInstanceGroupDtoTest.class,
         MhaReplicationQueryTest.class,
+        CreatePojoTest.class
 
 })
 public class AllTests {
