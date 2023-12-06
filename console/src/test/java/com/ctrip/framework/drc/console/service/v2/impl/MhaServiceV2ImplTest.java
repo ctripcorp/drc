@@ -238,6 +238,8 @@ public class MhaServiceV2ImplTest {
 
     @Test
     public void testGetMhaReplicatorSlaveDelay() throws Exception {
+        Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://localhost:8080");
+        Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("token1");
         Mockito.when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://localhost:8080");
         Mockito.when(domainConfig.getOpsAccessTokenFat()).thenReturn("token1");
         Mockito.when(opsApiServiceImpl.getMhaReplicationDelay(Mockito.anyString(), Mockito.anyString())).thenReturn(getDelayInfo());
