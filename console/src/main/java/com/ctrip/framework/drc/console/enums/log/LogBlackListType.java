@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.service.log;/**
+package com.ctrip.framework.drc.console.enums.log;/**
  *@ClassName LogBlackTableType
  *@Author haodongPan
  *@Date 2023/11/27 19:10 

@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.service.log;
+package com.ctrip.framework.drc.console.enums.log;
 
 public enum ConflictCountType {
     CONFLICT_COMMIT_TRX(false,0),
