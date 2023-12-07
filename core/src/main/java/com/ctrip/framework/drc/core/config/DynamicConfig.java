@@ -33,6 +33,8 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
 
+    private static final String CM_NOTIFY_THREAD = "cm.notify.thread";
+
     private DynamicConfig() {}
 
     private static class ConfigHolder {
@@ -97,5 +99,9 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public boolean getTrafficCountChangeSwitch() {
         return getBooleanProperty(TRAFFIC_COUNT_CHANGE, false);
+    }
+
+    public int getCmNotifyThread() {
+        return getIntProperty(CM_NOTIFY_THREAD, 50);
     }
 }
