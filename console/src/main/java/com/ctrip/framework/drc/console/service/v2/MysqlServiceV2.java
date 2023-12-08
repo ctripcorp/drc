@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -55,4 +56,6 @@ public interface MysqlServiceV2 {
     String getFirstUniqueIndex(String mha, String db, String table);
 
     StatementExecutorResult write(MysqlWriteEntity requestBody);
+
+    Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody);
 }

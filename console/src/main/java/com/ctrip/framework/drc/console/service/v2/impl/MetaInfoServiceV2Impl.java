@@ -4,8 +4,14 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
@@ -14,11 +20,14 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
@@ -85,6 +94,12 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     MessengerServiceV2 messengerService;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private ApplierTblV3Dao applierTblV3Dao;
+    @Autowired
+    private ApplierGroupTblV3Dao applierGroupTblV3Dao;
+    @Autowired
+    private MhaDbReplicationService mhaDbReplicationService;
 
     @Override
     public Drc getDrcReplicationConfig(Long replicationId) {
@@ -177,16 +192,88 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         if (applierGroupTbl == null) {
             return;
         }
-        generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);
-    }
-
-    private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
-        List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
-        for (Messenger messenger : messengers) {
-            dbCluster.addMessenger(messenger);
+        if (consoleConfig.getMetaGeneratorV5Switch()) {
+            generateDbApplierInstances(dbCluster, srcMhaTbl, mhaTbl);
+        }
+        if (CollectionUtils.isEmpty(dbCluster.getAppliers())) {
+            generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);
         }
     }
 
+    private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
+        if (consoleConfig.getMetaGeneratorV5Switch()) {
+            List<Messenger> messengers = messengerService.generateDbMessengers(mhaTbl.getId());
+            messengers.forEach(dbCluster::addMessenger);
+        }
+        if (CollectionUtils.isEmpty(dbCluster.getAppliers())) {
+            List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
+            messengers.forEach(dbCluster::addMessenger);
+        }
+    }
+
+    private void generateDbApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl) throws SQLException {
+        // mha db replications
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), null);
+
+        // db replications
+        List<DbReplicationTbl> samples = replicationDtos.stream().map(e -> {
+            DbReplicationTbl tbl = new DbReplicationTbl();
+            tbl.setSrcMhaDbMappingId(e.getSrc().getMhaDbMappingId());
+            tbl.setDstMhaDbMappingId(e.getDst().getMhaDbMappingId());
+            tbl.setReplicationType(e.getReplicationType());
+            return tbl;
+        }).collect(Collectors.toList());
+        List<DbReplicationTbl> allDbReplicationTblList = dbReplicationTblDao.queryBySamples(samples);
+        Map<Pair<Long, Long>, List<DbReplicationTbl>> dbReplicationTblGroupingBy = allDbReplicationTblList.stream().collect(Collectors.groupingBy(e -> Pair.from(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId())));
+        // appliers
+        List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryByMhaDbReplicationIds(replicationDtos.stream().map(MhaDbReplicationDto::getId).collect(Collectors.toList()));
+        Map<Long, ApplierGroupTblV3> groupMap = applierGroupTblV3s.stream().collect(Collectors.toMap(ApplierGroupTblV3::getMhaDbReplicationId, e -> e));
+        List<ApplierTblV3> mhaAppliers = applierTblV3Dao.queryByApplierGroupIds(applierGroupTblV3s.stream().map(ApplierGroupTblV3::getId).collect(Collectors.toList()), 0);
+        Map<Long, List<ApplierTblV3>> applierMapByGroupId = mhaAppliers.stream().collect(Collectors.groupingBy(e -> e.getApplierGroupId()));
+
+        // prepare data
+        // dc
+        DcDo srcDcTbl = this.queryAllDcWithCache().stream()
+                .filter(e -> e.getDcId().equals(srcMhaTbl.getDcId())).findFirst()
+                .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, "dc not exist: " + srcMhaTbl.getDcId()));
+
+        // resource ip
+        List<Long> applierResourceIds = mhaAppliers.stream().map(ApplierTblV3::getResourceId).distinct().collect(Collectors.toList());
+        Map<Long, ResourceTbl> resourceTblMap = resourceTblDao.queryByIds(applierResourceIds).stream().collect(Collectors.toMap(ResourceTbl::getId, e -> e));
+
+        // mappingId -> dbName
+        // build
+        Map<Long, String> mhaDbMappingMap = replicationDtos.stream().flatMap(e -> Stream.of(e.getSrc(), e.getDst())).collect(Collectors.toMap(MhaDbDto::getMhaDbMappingId, MhaDbDto::getDbName));
+
+        for (MhaDbReplicationDto replicationDto : replicationDtos) {
+            ApplierGroupTblV3 groupTblV3 = groupMap.get(replicationDto.getId());
+            if (groupTblV3 == null) {
+                continue;
+            }
+            List<ApplierTblV3> dbAppliers = applierMapByGroupId.get(groupTblV3.getId());
+            if(CollectionUtils.isEmpty(dbAppliers)){
+                continue;
+            }
+            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblGroupingBy.get(Pair.from(replicationDto.getSrc().getMhaDbMappingId(), replicationDto.getDst().getMhaDbMappingId()));
+            for (ApplierTblV3 applierTbl : dbAppliers) {
+                String resourceIp = Optional.ofNullable(resourceTblMap.get(applierTbl.getResourceId())).map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
+                Applier applier = new Applier();
+                applier.setIp(resourceIp)
+                        .setPort(applierTbl.getPort())
+                        .setTargetIdc(srcDcTbl.getDcName())
+                        .setTargetRegion(srcDcTbl.getRegionName())
+                        .setTargetMhaName(srcMhaTbl.getMhaName())
+                        .setGtidExecuted(groupTblV3.getGtidInit())
+                        .setIncludedDbs(replicationDto.getSrc().getDbName())
+                        .setNameFilter(TableNameBuilder.buildNameFilter(mhaDbMappingMap, dbReplicationTbls))
+                        .setNameMapping(TableNameBuilder.buildNameMapping(mhaDbMappingMap, dbReplicationTbls))
+                        .setTargetName(srcMhaTbl.getClusterName())
+                        .setApplyMode(ApplyMode.db_transaction_table.getType())
+                        .setProperties(getProperties(dbReplicationTbls, groupTblV3.getConcurrency()));
+                dbCluster.addApplier(applier);
+            }
+        }
+    }
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
         // db mappings
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
@@ -233,7 +320,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
                     .setNameMapping(TableNameBuilder.buildNameMapping(srcDbTblMap, srcMhaDbMappingMap, dstDbTblMap, dstMhaDbMappingMap, dbReplicationTblList))
                     .setTargetName(srcMhaTbl.getClusterName())
                     .setApplyMode(dstMhaTbl.getApplyMode())
-                    .setProperties(getProperties(dbReplicationTblList));
+                    .setProperties(getProperties(dbReplicationTblList, null));
             dbCluster.addApplier(applier);
         }
     }
@@ -307,7 +394,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         return dc;
     }
 
-    private String getProperties(List<DbReplicationTbl> dbReplicationTblList) throws SQLException {
+    private String getProperties(List<DbReplicationTbl> dbReplicationTblList, Integer concurrency) throws SQLException {
         List<DbReplicationDto> dbReplicationDto = dbReplicationTblList.stream().map(source -> {
             DbReplicationDto target = new DbReplicationDto();
             target.setDbReplicationId(source.getId());
@@ -317,8 +404,11 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         }).collect(Collectors.toList());
 
         DataMediaConfig properties = dataMediaService.generateConfigFast(dbReplicationDto);
-        boolean emptyProperties = CollectionUtils.isEmpty(properties.getRowsFilters()) && CollectionUtils.isEmpty(properties.getColumnsFilters());
-        return emptyProperties ? null : JsonUtils.toJson(properties);
+        properties.setConcurrency(concurrency);
+        boolean emptyProperties = CollectionUtils.isEmpty(properties.getRowsFilters())
+                && CollectionUtils.isEmpty(properties.getColumnsFilters())
+                && properties.getConcurrency() == null;
+        return emptyProperties ? null : JsonCodec.INSTANCE.encode(properties);
     }
 
     @Override

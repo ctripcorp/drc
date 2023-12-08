@@ -6,13 +6,18 @@ import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.utils.MultiKey;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import java.util.Collections;
 import org.apache.commons.io.IOUtils;
@@ -31,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.utils.StreamUtils.getKey;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -65,8 +71,6 @@ public class CommonDataInit {
     @Mock
     QConfigService qConfigService;
     @Mock
-    DefaultConsoleConfig consoleConfig;
-    @Mock
     MetaInfoServiceV2 metaInfoServiceV2;
     @Mock
     DrcBuildService drcBuildService;
@@ -100,6 +104,10 @@ public class CommonDataInit {
     MessengerServiceV2Impl messengerServiceV2Impl;
     @InjectMocks
     MhaReplicationServiceV2Impl mhaReplicationServiceV2;
+    @InjectMocks
+    MhaDbReplicationServiceImpl mhaDbReplicationService;
+    @InjectMocks
+    DbDrcBuildServiceImpl dbDrcBuildService;
 
     @Mock
     ColumnsFilterServiceV2 columnsFilterServiceV2;
@@ -116,10 +124,95 @@ public class CommonDataInit {
     RowsFilterTblV2Dao rowsFilterTblV2Dao;
     @Mock
     ColumnsFilterTblV2Dao columnsFilterTblV2Dao;
+    @Mock
+    ApplierTblV3Dao applierTblV3Dao;
+    @Mock
+    MessengerTblV3Dao messengerTblV3Dao;
+    @Mock
+    MessengerGroupTblV3Dao messengerGroupTblV3Dao;
+    @Mock
+    ApplierGroupTblV3Dao applierGroupTblV3Dao;
+    @Mock
+    MhaDbReplicationTblDao mhaDbReplicationTblDao;
 
 
     @Before
     public void setUp() throws SQLException, IOException {
+        // MessengerGroupTblV3
+        List<MessengerGroupTblV3> messengerGroupTblV3s = this.getData("MessengerGroupTblV3.json", MessengerGroupTblV3.class);
+        when(messengerGroupTblV3Dao.queryByMhaDbReplicationIds(anyList())).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+            return messengerGroupTblV3s.stream().filter(e -> BooleanEnum.FALSE.getCode().equals(e.getDeleted()) && ids.contains(e.getMhaDbReplicationId())).collect(Collectors.toList());
+        });
+
+
+        // MessengerTblV3
+        List<MessengerTblV3> messengerTblV3s = this.getData("MessengerTblV3.json", MessengerTblV3.class);
+        when(messengerTblV3Dao.queryByGroupIds(anyList())).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+            return messengerTblV3s.stream().filter(e -> ids.contains(e.getMessengerGroupId())).collect(Collectors.toList());
+        });
+
+        // MhaDbReplicationTbl
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.getData("MhaDbReplicationTbl.json", MhaDbReplicationTbl.class);
+        when(mhaDbReplicationTblDao.queryAll()).thenReturn(mhaDbReplicationTbls);
+        when(mhaDbReplicationTblDao.queryBySamples(anyList())).thenAnswer(i -> {
+            List<MhaDbReplicationTbl> samples = i.getArgument(0, List.class);
+            List<MultiKey> keys = samples.stream().map(StreamUtils::getKey).collect(Collectors.toList());
+            return mhaDbReplicationTbls.stream().filter(e -> {
+                return keys.contains(getKey(e));
+            }).collect(Collectors.toList());
+        });
+
+        when(mhaDbReplicationTblDao.query(any(MhaDbReplicationQuery.class))).thenAnswer(i -> {
+            MhaDbReplicationQuery query = i.getArgument(0, MhaDbReplicationQuery.class);
+            List<Long> srcMappingIdList = query.getSrcMappingIdList();
+            List<Long> dstMappingIdList = query.getDstMappingIdList();
+            List<Long> relatedMappingList = query.getRelatedMappingList();
+            Integer type = query.getType();
+            return mhaDbReplicationTbls.stream().filter(e -> {
+                        if (!CollectionUtils.isEmpty(srcMappingIdList) && !srcMappingIdList.contains(e.getSrcMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(dstMappingIdList) && !dstMappingIdList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(relatedMappingList) && !relatedMappingList.contains(e.getSrcMhaDbMappingId())
+                                && !relatedMappingList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (type != null && !type.equals(e.getReplicationType())) {
+                            return false;
+                        }
+                        if(Objects.equals(e.getDeleted(), BooleanEnum.TRUE.getCode())){
+                            return false;
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toList());
+        });
+
+
+        // ApplierGroupTblV3
+        List<ApplierGroupTblV3> applierGroupTblV3s = this.getData("ApplierGroupTblV3.json", ApplierGroupTblV3.class);
+        when(applierGroupTblV3Dao.queryAll()).thenReturn(applierGroupTblV3s);
+        when(applierGroupTblV3Dao.queryByMhaDbReplicationIds(anyList())).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+
+            return applierGroupTblV3s.stream()
+                    .filter(e -> ids.contains(e.getMhaDbReplicationId()))
+                    .collect(Collectors.toList());
+        });
+
+
+        // ApplierTblV3
+        List<ApplierTblV3> applierTblV3s = this.getData("ApplierTblV3.json", ApplierTblV3.class);
+        when(applierTblV3Dao.queryAll()).thenReturn(applierTblV3s);
+        when(applierTblV3Dao.queryByApplierGroupIds(anyList(), eq(0))).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+            return applierTblV3s.stream().filter(e -> ids.contains(e.getApplierGroupId())).collect(Collectors.toList());
+        });
+
         // ApplierTblV2
         List<ApplierTblV2> applierTblV2s = this.getData("ApplierTblV2.json", ApplierTblV2.class);
         when(applierTblV2Dao.queryByApplierGroupId(anyLong(), anyInt())).thenAnswer(i -> {
@@ -184,6 +277,11 @@ public class CommonDataInit {
         // DcTbl
         List<DcTbl> dcTbls = this.getData("DcTbl.json", DcTbl.class);
         when(dcTblDao.queryAll()).thenReturn(dcTbls);
+        when(dcTblDao.queryByDcName(anyString())).thenAnswer(i -> {
+            String dcName = i.getArgument(0, String.class);
+            return dcTbls.stream().filter(e -> dcName.contains(e.getDcName()))
+                    .findFirst().get();
+        });
 
         // MhaReplicationTbl
         List<MhaReplicationTbl> mhaReplicationTbls = this.getData("MhaReplicationTbl.json", MhaReplicationTbl.class);
@@ -191,8 +289,8 @@ public class CommonDataInit {
             Long id = i.getArgument(0, Long.class);
             return mhaReplicationTbls.stream().filter(e -> id.equals(e.getId())).findFirst().orElse(null);
         });
-        
-        
+
+
         when(mhaReplicationTblDao.queryByMhaId(anyLong(), anyLong(), anyInt())).thenAnswer(i -> {
             Long srcMhaId = i.getArgument(0, Long.class);
             Long dstMhaId = i.getArgument(1, Long.class);
@@ -225,7 +323,7 @@ public class CommonDataInit {
                 return CollectionUtils.isEmpty(query.getDstMhaIdList()) || query.getDstMhaIdList().contains(e.getSrcMhaId());
             }).count();
         });
-        
+
 
 
         when(mhaReplicationTblDao.queryByRelatedMhaId(anyList())).thenAnswer(i -> {
@@ -290,6 +388,13 @@ public class CommonDataInit {
             Long pk = i.getArgument(0, Long.class);
             return mhaTblV2List.stream().filter(e -> pk.equals(e.getId())).findFirst().orElse(null);
         });
+        when(mhaTblV2Dao.queryByDcId(anyLong(), anyInt())).thenAnswer(i -> {
+            Long dcId = i.getArgument(0, Long.class);
+            Integer deleted = i.getArgument(1, Integer.class);
+            return mhaTblV2List.stream().filter(e -> dcId.equals(e.getDcId()) && deleted.equals(e.getDeleted()))
+                    .collect(Collectors.toList());
+        });
+
 
         // MhaDbMappingTbl
         List<MhaDbMappingTbl> mhaDbMappingTbls = this.getData("MhaDbMappingTbl.json", MhaDbMappingTbl.class);
@@ -519,6 +624,12 @@ public class CommonDataInit {
         when(rowsFilterTblV2Dao.queryAllExist()).thenReturn(rowsFilterTblV2List.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
         when(columnsFilterTblV2Dao.queryAllExist()).thenReturn(columnsFilterTblV2List.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
 
+        when(applierTblV3Dao.queryAllExist()).thenReturn(applierTblV3s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(applierGroupTblV3Dao.queryAllExist()).thenReturn(applierGroupTblV3s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(mhaDbReplicationTblDao.queryAllExist()).thenReturn(mhaDbReplicationTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(messengerTblV3Dao.queryAllExist()).thenReturn(messengerTblV3s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(messengerGroupTblV3Dao.queryAllExist()).thenReturn(messengerGroupTblV3s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+
     }
 
 
@@ -536,17 +647,17 @@ public class CommonDataInit {
             return Collections.emptyList();
         }
     }
-    
+
     public void reMock(String fileName) throws SQLException, IOException {
         System.setProperty("mock.data.path.prefix", fileName);
         setUp();
     }
-    
-    
+
+
     public void releaseMockConfig()  {
         System.setProperty("mock.data.path.prefix", "");
     }
-    
+
     @Test
     public void testGetData() throws IOException {
         List<MessengerGroupTbl> messengerGroupTbls = getData("MessengerGroupTbl.json", MessengerGroupTbl.class);

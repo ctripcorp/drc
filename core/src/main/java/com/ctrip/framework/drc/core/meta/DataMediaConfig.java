@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
@@ -21,6 +22,8 @@ import java.util.Optional;
  * @create 2022/4/27
  */
 public class DataMediaConfig {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer concurrency;
 
     private List<RowsFilterConfig> rowsFilters;
 
@@ -171,6 +174,14 @@ public class DataMediaConfig {
         }
 
         return optional;
+    }
+
+    public Integer getConcurrency() {
+        return concurrency;
+    }
+
+    public void setConcurrency(Integer concurrency) {
+        this.concurrency = concurrency;
     }
 
     private <E> boolean valid(Collection<E> filters) {

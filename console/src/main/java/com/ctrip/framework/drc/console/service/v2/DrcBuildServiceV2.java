@@ -53,7 +53,7 @@ public interface DrcBuildServiceV2 {
     String getApplierGtid(String srcMhaName, String dstMhaName) throws Exception;
 
     String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
-    
+
     MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
 
     void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha, List<MachineDto> machineDtos) throws Exception;

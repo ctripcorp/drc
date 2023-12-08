@@ -7,7 +7,14 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
         <Row :gutter=10 align="middle">
-          <Col span="20">
+          <Col span="2">
+            <Card :padding=5>
+              <template #title>DB 相关</template>
+              <Input prefix="ios-search" v-model="dbNames" placeholder="DB 名↵" @on-enter="getReplications(1)">
+              </Input>
+            </Card>
+          </Col>
+          <Col span="16">
             <Row :gutter=10 align="middle" v-show="preciseSearchMode">
               <Col span="12">
                 <Card :padding=5>
@@ -69,7 +76,7 @@
                 <Card :padding=5>
                   <template #title>相关 MHA</template>
                   <Row :gutter=10>
-                    <Col span="9">
+                    <Col span="14">
                       <Input prefix="ios-search" v-model="relatedMha.name" placeholder="集群名↵"
                              @on-enter="getReplications(1)">
                       </Input>
@@ -90,20 +97,23 @@
                         </Option>
                       </Select>
                     </Col>
-                    <Col span="5">
-                      <Select filterable prefix="ios-pin" clearable v-model="drcStatus"
-                              placeholder="状态"
-                              @on-change="getReplications(1)">
-                        <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
-                            item.status
-                          }}
-                        </Option>
-                      </Select>
-                    </Col>
                   </Row>
                 </Card>
               </Col>
             </Row>
+          </Col>
+          <Col span="2">
+            <Card :padding=5>
+              <template #title>同步状态</template>
+              <Select filterable prefix="ios-pin" clearable v-model="drcStatus"
+                      placeholder="状态"
+                      @on-change="getReplications(1)">
+                <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
+                    item.status
+                  }}
+                </Option>
+              </Select>
+            </Card>
           </Col>
           <Col span="4">
             <Row :gutter=10 align="middle">
@@ -441,8 +451,9 @@ export default {
         buId: null,
         regionId: null
       },
-      drcStatus: null,
-      preciseSearchMode: false,
+      dbNames: null,
+      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : null,
+      preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend
       replications: [],
@@ -531,8 +542,9 @@ export default {
         params.dstMha = this.dstMha
       } else {
         params.relatedMha = this.relatedMha
-        params.drcStatus = this.drcStatus
       }
+      params.drcStatus = this.drcStatus
+      params.dbNames = this.dbNames
       const reqParam = this.flattenObj(params)
       that.dataLoading = true
       await that.axios.get('/api/drc/v2/replication/query', { params: reqParam })
@@ -805,6 +817,7 @@ export default {
           query: {
             srcMhaName: this.srcMha.name,
             dstMhaName: this.dstMha.name,
+            drcStatus: this.drcStatus,
             preciseSearchMode: true
           }
           // eslint-disable-next-line handle-callback-err
@@ -813,6 +826,7 @@ export default {
         this.$router.replace({
           query: {
             mhaName: this.relatedMha.name,
+            drcStatus: this.drcStatus,
             preciseSearchMode: false
           }
           // eslint-disable-next-line handle-callback-err
@@ -822,9 +836,6 @@ export default {
     }
   },
   created () {
-    this.srcMha.name = this.$route.query.srcMhaName
-    this.dstMha.name = this.$route.query.dstMhaName
-    this.preciseSearchMode = this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true'
     this.getReplications(1)
     this.getRegions()
     this.getBus()

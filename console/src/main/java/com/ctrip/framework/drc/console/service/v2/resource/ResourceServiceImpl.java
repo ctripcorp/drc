@@ -6,15 +6,23 @@ import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
 import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
+import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
@@ -50,11 +58,15 @@ public class ResourceServiceImpl implements ResourceService {
     @Autowired
     private ApplierTblV2Dao applierTblDao;
     @Autowired
+    private ApplierTblV3Dao dbApplierTblDao;
+    @Autowired
     private DcTblDao dcTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
     private MessengerTblDao messengerTblDao;
+    @Autowired
+    private MessengerTblV3Dao dbMessengerTblDao;
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
@@ -63,6 +75,8 @@ public class ResourceServiceImpl implements ResourceService {
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private DbDrcBuildService dbDrcBuildService;
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -204,6 +218,45 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException {
+        if (type != ModuleEnum.APPLIER.getCode()) {
+            logger.info("resource type: {} can only be replicator or applier", type);
+            return new ArrayList<>();
+        }
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTbl == null) {
+            logger.info("mha: {} not exist", mhaName);
+            return new ArrayList<>();
+        }
+
+
+        DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
+        List<Long> dcIds = dcTblDao.queryByRegionName(dcTbl.getRegionName()).stream().map(DcTbl::getId).collect(Collectors.toList());
+        return getResourceViewsForDb(dcIds, type, mhaTbl.getTag());
+    }
+
+    @Override
+    public List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception {
+        List<ResourceView> resourceViews = getMhaDbAvailableResource(dstMhaName, type);
+
+        List<ResourceView> resourceViewsInUse = new ArrayList<>();
+        if (type == ModuleEnum.APPLIER.getCode()) {
+            resourceViewsInUse.addAll(getDbAppliersInUse(srcMhaName, dstMhaName));
+            resourceViewsInUse.addAll(getDbMessengersInUse(srcMhaName));
+        }
+
+        if (!CollectionUtils.isEmpty(resourceViewsInUse)) {
+            List<Long> resourceIds = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+            resourceViewsInUse.forEach(e -> {
+                if (!resourceIds.contains(e.getResourceId())) {
+                    resourceViews.add(e);
+                }
+            });
+        }
+        return resourceViews;
+    }
+
+    @Override
     public List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception {
         List<ResourceView> resourceViews = getMhaAvailableResource(mhaName, type);
 
@@ -280,6 +333,28 @@ public class ResourceServiceImpl implements ResourceService {
         return buildResourceViews(resourceTbls);
     }
 
+    private List<ResourceView> getDbAppliersInUse(String srcMha, String dstMha) throws Exception {
+        List<DbApplierDto> dbAppliers = dbDrcBuildService.getMhaDbAppliers(srcMha, dstMha);
+        return getResourceViews(dbAppliers);
+    }
+
+    private List<ResourceView> getDbMessengersInUse(String mha) throws Exception {
+        List<DbApplierDto> mhaDbMessengers = dbDrcBuildService.getMhaDbMessengers(mha);
+        return getResourceViews(mhaDbMessengers);
+    }
+    private List<ResourceView> getResourceViews(List<DbApplierDto> dbAppliers) throws SQLException {
+        List<String> ips = dbAppliers.stream()
+                .map(DbApplierDto::getIps)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(StringUtils::isNotEmpty)
+                .collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(ips);
+        return buildResourceViews(resourceTbls);
+    }
+
+
+
     private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls) {
         List<ResourceView> resourceViews = resourceTbls.stream().map(source -> {
             ResourceView target = new ResourceView();
@@ -309,6 +384,26 @@ public class ResourceServiceImpl implements ResourceService {
             if (firstResource != null) {
                 resultViews.add(firstResource);
             }
+        } else if (!CollectionUtils.isEmpty(selectedIps)) {
+            resourceViews = resourceViews.stream().filter(e -> selectedIps.contains(e.getIp())).collect(Collectors.toList());
+        }
+
+        setResourceView(resultViews, resourceViews);
+        return resultViews;
+    }
+
+    @Override
+    public List<ResourceView> autoConfigureMhaDbResource(DbResourceSelectParam param) throws SQLException {
+        List<ResourceView> resultViews = new ArrayList<>();
+        // only applier/messenger, select by dst mha
+        List<ResourceView> resourceViews = getMhaDbAvailableResource(param.getDstMhaName(), param.getType());
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            return resultViews;
+        }
+
+        List<String> selectedIps = param.getSelectedIps();
+        if (!CollectionUtils.isEmpty(selectedIps) && selectedIps.size() == 1) {
+            resourceViews.stream().filter(e -> e.getIp().equals(selectedIps.get(0))).findFirst().ifPresent(resultViews::add);
         } else if (!CollectionUtils.isEmpty(selectedIps)) {
             resourceViews = resourceViews.stream().filter(e -> selectedIps.contains(e.getIp())).collect(Collectors.toList());
         }
@@ -396,6 +491,30 @@ public class ResourceServiceImpl implements ResourceService {
         if (secondResource != null) {
             resultViews.add(secondResource);
         }
+    }
+
+    private List<ResourceView> getResourceViewsForDb(List<Long> dcIds, int type, String tag) throws SQLException {
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
+        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
+
+        Map<Long, Long> replicatorMap = new HashMap<>();
+        Map<Long, Long> applierMap;
+        Map<Long, Long> messengerMap;
+        if (type == ModuleEnum.APPLIER.getCode()) {
+            List<ApplierTblV3> applierTbls = dbApplierTblDao.queryByResourceIds(resourceIds);
+            List<MessengerTblV3> messengerTbls = dbMessengerTblDao.queryByResourceIds(resourceIds);
+            applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getResourceId, Collectors.counting()));
+            messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTblV3::getResourceId, Collectors.counting()));
+        } else {
+            throw new ConsoleException("not supported type: " + type);
+        }
+
+        List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap, messengerMap);
+        if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
+            return getResourceViews(dcIds, type, ResourceTagEnum.COMMON.getName());
+        }
+        Collections.sort(resourceViews);
+        return resourceViews;
     }
 
     private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws SQLException {

@@ -160,6 +160,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGeneratorV2Test.class,
         MetaGeneratorV3Test.class,
         MetaGeneratorV4Test.class,
+        MetaGeneratorV5Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
         MigrateServiceTest.class,
@@ -185,6 +186,9 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MigrationTaskManagerTest.class,
         ConflictLogServiceTest.class,
         ConflictApprovalServiceTest.class,
+        DbApplierBuildServiceV2Test.class,
+        MhaDbReplicationServiceImplTest.class,
+        MysqlServiceV2ImplTest.class,
 //
         // controller
         MetaControllerV2Test.class,
@@ -226,6 +230,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         XmlUtilsTest.class,
         EnvEnumTest.class,
         TableNameBuilderTest.class,
+        StreamUtilsTest.class,
 
         DefaultTableProviderTest.class,
         RangeQueryCheckPairCaseTest.class,

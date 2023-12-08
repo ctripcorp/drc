@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
+import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
@@ -25,6 +27,8 @@ public class DrcBuildControllerV2 {
 
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private DbDrcBuildService dbDrcBuildService;
 
     @PostMapping("mha")
     public ApiResult<Boolean> buildMha(@RequestBody DrcMhaBuildParam param) {
@@ -57,10 +61,55 @@ public class DrcBuildControllerV2 {
         }
     }
 
+    @PostMapping("db/applier")
+    public ApiResult<String> buildDrcDbAppliers(@RequestBody DrcBuildParam param) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbApplier(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e);
+        }
+    }
+
+    @PostMapping("db/messenger")
+    public ApiResult<String> buildDrcDbMessenger(@RequestBody DrcBuildBaseParam param) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbMessenger(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e);
+        }
+    }
+
     @GetMapping("mha/applier")
     public ApiResult<List<String>> getMhaAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
         try {
             return ApiResult.getSuccessInstance(drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier")
+    public ApiResult<List<DbApplierDto>> getMhaDbAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbAppliers(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbMessenger")
+    public ApiResult<List<DbApplierDto>> getMhaDbMessengers(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbMessengers(mhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/switch")
+    public ApiResult<Boolean> getMhaDbAppliers(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.isDbApplierConfigurable(mhaName));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
