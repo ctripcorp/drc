@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -52,6 +53,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -407,7 +409,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
         param.setAdmin(adminAndDbs.getLeft());
         param.setDbsWithPermission(adminAndDbs.getRight());
-
         if (StringUtils.isNotBlank(param.getGtid())) {
             ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid(), param.getBeginHandleTime(), param.getEndHandleTime());
             if (conflictTrxLogTbl != null) {
@@ -602,7 +603,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public void addDbBlacklist(String dbFilter, LogBlackListType type) throws Exception {
-        List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter,type.getCode());
+        List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
             return;
@@ -646,7 +647,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public boolean isInBlackListWithCache(String db, String table)  {
+    public boolean isInBlackListWithCache(String db, String table) {
         String fullname = db + "." + table;
         List<AviatorRegexFilter> filters = blackList.get();
         for (AviatorRegexFilter filter : filters) {
@@ -656,6 +657,90 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         return false;
     }
+
+    @Override
+    public List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception {
+        if (CollectionUtils.isEmpty(conflictRowLogIds)) {
+            throw ConsoleExceptionUtils.message("conflictRowLogIds are empty");
+        }
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(conflictRowLogIds);
+        Map<Long, List<ConflictRowsLogTbl>> rowsLogTblMap = conflictRowsLogTbls.stream().collect(Collectors.groupingBy(ConflictRowsLogTbl::getConflictTrxLogId));
+        List<ConflictTrxLogTbl> trxLogTbls = conflictTrxLogTblDao.queryByIds(Lists.newArrayList(rowsLogTblMap.keySet()));
+        Map<Long, ConflictTrxLogTbl> trxLogTblMap = trxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
+
+        List<ListenableFuture<Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>>>> futures = new ArrayList<>();
+        rowsLogTblMap.forEach((trxLogId, rowsLogTbls) -> {
+            ConflictTrxLogTbl trxLogTbl = trxLogTblMap.get(trxLogId);
+            ListenableFuture<Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>>> future =
+                    compareExecutorService.submit(() -> getColumnsFilterAndOnUpdateColumn(trxLogTbl, rowsLogTbls));
+            futures.add(future);
+        });
+
+        Map<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>> columnFilterMap = new HashMap<>();
+        Map<String, List<String>> onUpdateColumnMap = new HashMap<>();
+        for (ListenableFuture<Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>>> future : futures) {
+            try {
+                Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>> result = future.get(10, TimeUnit.SECONDS);
+                columnFilterMap.put(result.getLeft(), result.getMiddle());
+                onUpdateColumnMap.putAll(result.getRight());
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message("compare row logs timeout");
+            }
+        }
+
+        List<ListenableFuture<ConflictRowRecordCompareEqualView>> recordFutures = new ArrayList<>();
+        for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
+            String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
+            List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
+            Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = columnFilterMap.get(rowLog.getConflictTrxLogId());
+            ConflictTrxLogTbl trxLogTbl = trxLogTblMap.get(rowLog.getConflictTrxLogId());
+            String srcMhaName = trxLogTbl.getSrcMhaName();
+            String dstMhaName = trxLogTbl.getDstMhaName();
+
+            ListenableFuture<ConflictRowRecordCompareEqualView> future = executorService.submit(() ->
+                    getRowRecordCompareView(rowLog, srcMhaName, dstMhaName, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
+            recordFutures.add(future);
+        }
+
+        List<ConflictRowRecordCompareEqualView> views = new ArrayList<>();
+        for (ListenableFuture<ConflictRowRecordCompareEqualView> future : recordFutures) {
+            try {
+                ConflictRowRecordCompareEqualView view = future.get(10, TimeUnit.SECONDS);
+                views.add(view);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message("compare row logs timeout");
+            }
+        }
+
+        return views;
+    }
+
+    private ConflictRowRecordCompareEqualView getRowRecordCompareView(ConflictRowsLogTbl rowLog,
+                                                                      String srcMhaName,
+                                                                      String dstMhaName,
+                                                                      List<String> onUpdateColumns,
+                                                                      List<DbReplicationView> dbReplicationViews,
+                                                                      Map<Long, List<String>> columnsFieldMap) {
+        ConflictRowRecordCompareEqualView view = new ConflictRowRecordCompareEqualView();
+        view.setRowLogId(rowLog.getId());
+        Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> record =
+                queryRecords(rowLog, srcMhaName, dstMhaName, TWELVE, onUpdateColumns, dbReplicationViews, columnsFieldMap);
+        view.setRecordIsEqual(record.getLeft());
+        return view;
+    }
+
+
+
+    private Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>> getColumnsFilterAndOnUpdateColumn(
+            ConflictTrxLogTbl trxLogTbl, List<ConflictRowsLogTbl> rowsLogTbls) throws Exception {
+        String srcMhaName = trxLogTbl.getSrcMhaName();
+        String dstMhaName = trxLogTbl.getDstMhaName();
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
+        Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(rowsLogTbls, srcMhaName);
+
+        return Triple.of(trxLogTbl.getId(), columnsFilerPair, onUpdateColumnMap);
+    }
+
 
     private String createConflictHandleSql(ConflictRowsLogTbl rowLog,
                                            boolean writeToDstMha,
@@ -727,7 +812,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return String.format(DELETE_SQL, tableName, whereCondition);
     }
 
-    private String createInsertSql(String tableName,  List<String> filterColumns, List<String> commonColumns, Map<String, String> sourceColumnType, Map<String, Object> sourceRecord) {
+    private String createInsertSql(String tableName, List<String> filterColumns, List<String> commonColumns, Map<String, String> sourceColumnType, Map<String, Object> sourceRecord) {
         List<String> columns = new ArrayList<>();
         List<Object> values = new ArrayList<>();
         sourceRecord.forEach((column, value) -> {
@@ -745,12 +830,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return String.format(INSERT_SQL, tableName, columnSql, valueSql);
     }
 
-    private String createUpdateSql( List<String> filterColumns,
-                                    String tableName,
-                                    String onUpdateColumn,
-                                    String uniqueIndex,
-                                    Pair<Map<String, Object>, Map<String, Object>> recordPair,
-                                    Pair<Map<String, String>, Map<String, String>> columnTypePair) {
+    private String createUpdateSql(List<String> filterColumns,
+                                   String tableName,
+                                   String onUpdateColumn,
+                                   String uniqueIndex,
+                                   Pair<Map<String, Object>, Map<String, Object>> recordPair,
+                                   Pair<Map<String, String>, Map<String, String>> columnTypePair) {
         Map<String, Object> sourceRecord = recordPair.getLeft();
         Map<String, Object> targetRecord = recordPair.getRight();
         Map<String, String> sourceColumnType = columnTypePair.getLeft();
@@ -1239,7 +1324,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         return Pair.of(dbReplicationViews, columnsFieldMap);
     }
-    
+
     private List<AviatorRegexFilter> queryBlackList() {
         try {
             List<AviatorRegexFilter> blackList = new ArrayList<>();

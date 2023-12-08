@@ -54,4 +54,6 @@ public interface ConflictLogService {
     void deleteBlacklist(String dbFilter) throws Exception;
     
     boolean isInBlackListWithCache(String db,String table);
+
+    List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception;
 }

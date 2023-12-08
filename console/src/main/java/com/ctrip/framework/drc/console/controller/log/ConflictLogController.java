@@ -131,6 +131,17 @@ public class ConflictLogController {
         }
     }
 
+    @GetMapping("/compare")
+    public ApiResult<List<ConflictRowRecordCompareEqualView>> compareRowRecordsEqual(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.compareRowRecordsEqual(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            logger.error("compareRowRecordsEqual error, {}", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @PostMapping("")
     public ApiResult<Boolean> createConflictLog(@RequestBody List<ConflictTransactionLog> trxLogs) {
         try {

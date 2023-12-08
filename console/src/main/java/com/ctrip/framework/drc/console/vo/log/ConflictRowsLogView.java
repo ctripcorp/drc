@@ -20,7 +20,15 @@ public class ConflictRowsLogView {
     private String dstRowRecord;
     private Long conflictTrxLogId;
     private Integer brief;
+    private Boolean recordIsEqual;
 
+    public Boolean getRecordIsEqual() {
+        return recordIsEqual;
+    }
+
+    public void setRecordIsEqual(Boolean recordIsEqual) {
+        this.recordIsEqual = recordIsEqual;
+    }
 
     public String getRawSqlResult() {
         return rawSqlResult;

@@ -28,8 +28,10 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String HANDLE_TIME = "handle_time";
     private static final String SRC_REGION = "src_region";
     private static final String DST_REGION = "dst_region";
+    private static final String CREATE_TIME = "create_time";
     private static final String ID = "id";
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
+
 
     public ConflictRowsLogTblDao() throws SQLException {
         super(ConflictRowsLogTbl.class);
@@ -71,7 +73,7 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
                 .and().equalNullable(ROW_RESULT, param.getRowResult(), Types.TINYINT)
                 .and().equalNullable(BRIEF, param.getBrief(), Types.TINYINT);
 
-        if (param.getLikeSearch()) {
+        if (param.isLikeSearch()) {
             if (StringUtils.isNotBlank(param.getDbName())) {
                 sqlBuilder.and().like(DB_NAME, param.getDbName(), MatchPattern.BEGIN_WITH, Types.VARCHAR);
             }
