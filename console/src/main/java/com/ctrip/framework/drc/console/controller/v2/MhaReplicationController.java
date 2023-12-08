@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -150,7 +149,22 @@ public class MhaReplicationController {
                 }
                 query.setRelatedMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
             }
-
+            if (!StringUtils.isBlank(queryDto.getDbNames())) {
+                List<String> dbNames = Arrays.stream(queryDto.getDbNames().split(","))
+                        .map(String::trim)
+                        .filter(e->!StringUtils.isEmpty(e))
+                        .collect(Collectors.toList());
+                List<MhaTblV2> relatedMhas = mhaServiceV2.queryRelatedMhaByDbName(dbNames);
+                if (CollectionUtils.isEmpty(relatedMhas)) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
+                }
+                List<Long> mhaIds = relatedMhas.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+                query.addOrIntersectSrcMhaIds(mhaIds);
+                query.addOrIntersectDstMhaIds(mhaIds);
+                if (CollectionUtils.isEmpty(query.getSrcMhaIdList()) || CollectionUtils.isEmpty(query.getDstMhaIdList())) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
+                }
+            }
             query.setDrcStatus(queryDto.getDrcStatus());
             // query replication
             PageResult<MhaReplicationTbl> tblPageResult = mhaReplicationServiceV2.queryByPage(query);
@@ -206,7 +220,7 @@ public class MhaReplicationController {
             }
 
             List<MhaReplicationDto> mhaReplicationDtos = mhaReplicationServiceV2.queryReplicationByIds(replicationIds);
-            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(mhaReplicationDtos);
+            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelaysV2(mhaReplicationDtos);
             List<DelayInfoVo> res = mhaReplicationDelays.stream().map(DelayInfoVo::from).collect(Collectors.toList());
             return ApiResult.getSuccessInstance(res);
         } catch (Throwable e) {

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
@@ -45,7 +46,9 @@ public abstract class AbstractNotifier implements Notifier {
     private static final String NOTIFY_URL = "http://%s/%s";
 
     protected AbstractNotifier() {
-        ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "CM-Notifier-Service");
+        int threadNum = DynamicConfig.getInstance().getCmNotifyThread();
+        logger.info("{} notify thread num is: {}", getClass().getSimpleName(), threadNum);
+        ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(threadNum, "CM-Notifier-Service");
         notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);
     }
 

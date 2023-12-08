@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+
 import java.util.List;
 
 /**
@@ -10,6 +12,7 @@ public class DrcBuildBaseParam {
     private String mhaName;
     private List<String> replicatorIps;
     private List<String> applierIps;
+    private List<DbApplierDto> dbApplierDtos;
     private String replicatorInitGtid;
     private String applierInitGtid;
 
@@ -22,6 +25,14 @@ public class DrcBuildBaseParam {
     }
 
     public DrcBuildBaseParam() {
+    }
+
+    public List<DbApplierDto> getDbApplierDtos() {
+        return dbApplierDtos;
+    }
+
+    public void setDbApplierDtos(List<DbApplierDto> dbApplierDtos) {
+        this.dbApplierDtos = dbApplierDtos;
     }
 
     public String getMhaName() {

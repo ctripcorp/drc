@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -46,6 +47,18 @@ public class CentralServiceController {
         } catch (Exception e) {
             logger.info("insertDdlHistory fail, requestBody: {}", requestBody, e);
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mhaDbReplicationDtos")
+    public ApiResult getMhaDbReplications(@RequestParam String dcName) {
+        try {
+            logger.info("[[tag=centralService]] getMhaDbReplications");
+            List<MhaDbReplicationDto> mhaDbReplications = centralService.getMhaDbReplications(dcName);
+            return ApiResult.getSuccessInstance(mhaDbReplications);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getMhaDbReplications fail");
+            return ApiResult.getFailInstance(null, "getMhaDbReplications fail");
         }
     }
 

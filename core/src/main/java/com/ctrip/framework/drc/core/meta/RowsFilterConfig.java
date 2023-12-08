@@ -22,6 +22,7 @@ public class RowsFilterConfig {
     private String tables;
 
     @Deprecated
+    @JsonIgnore
     private Parameters parameters;
 
     private Configs configs;
@@ -53,6 +54,7 @@ public class RowsFilterConfig {
         return RowsFilterType.None != getRowsFilterType();
     }
 
+    @JsonIgnore
     public RowsFilterType getRowsFilterType() {
         return RowsFilterType.getType(mode);
     }

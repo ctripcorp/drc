@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "mhaDbReplicationId": 1,
+    "gtidInit": "applierGtidInit1",
+    "deleted": 0,
+    "createTime": "2016-05-03 17:58:43",
+    "datachangeLasttime": "2032-11-05 02:50:48"
+  },
+  {
+    "id": 2,
+    "mhaDbReplicationId": 2,
+    "gtidInit": "applierGtidInit2",
+    "deleted": 0,
+    "createTime": "2016-05-03 17:58:43",
+    "datachangeLasttime": "2032-11-05 02:50:48"
+  }
+]

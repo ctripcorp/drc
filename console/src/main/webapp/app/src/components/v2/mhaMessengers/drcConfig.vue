@@ -13,16 +13,13 @@
           &nbsp;
           <Button type="success" @click="autoConfigReplicator">自动录入</Button>
         </FormItem>
-        <FormItem label="选择Messenger" prop="messenger">
+        <FormItem  v-if="showMhaApplierConfig()" label="选择Messenger" prop="messenger">
           <Select v-model="drc.messengers" multiple style="width: 250px" placeholder="选择集群Messenger">
             <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
             </Option>
           </Select>
           &nbsp;
           <Button type="success" @click="autoConfigMessenger">自动录入</Button>
-        </FormItem>
-        <FormItem label="mq配置" style="width: 600px">
-          <Button type="primary" ghost @click="goToMqConfigs">mq配置</Button>
         </FormItem>
         <FormItem label="初始拉取位点R" style="width: 600px">
           <Input v-model="drc.rGtidExecuted" placeholder="变更replicator机器时，请输入binlog拉取位点"/>
@@ -40,7 +37,13 @@
             </Col>
           </Row>
         </FormItem>
-        <FormItem label="初始同步位点A" style="width: 600px">
+        <FormItem label="mq配置" style="width: 600px">
+          <Button type="primary" ghost @click="goToMqConfigs">mq配置</Button>
+        </FormItem>
+        <FormItem v-if="showDbMhaApplierConfig()" label="DB Applier 配置"  style="width: 600px">
+          <Button type="primary" ghost @click="getMhaDbMessenger">Db Applier 管理</Button>
+        </FormItem>
+        <FormItem v-if="showMhaApplierConfig()"  label="初始同步位点A" style="width: 600px">
           <Input v-model="drc.aGtidExecuted" placeholder="请输入DRC同步起始位点"/>
         </FormItem>
         <!--      <FormItem label="行过滤" style="width: 600px">-->
@@ -168,7 +171,9 @@ export default {
         replicators: {},
         messengers: {},
         replicatorList: {},
-        messengerList: {}
+        messengerList: {},
+        dbMessengerSwitch: false,
+        dbMessengerList: []
       }
     }
   },
@@ -199,6 +204,14 @@ export default {
         .then(response => {
           this.drc.messengerList = response.data.data
         })
+      this.axios.get('/api/drc/v2/config/mha/dbMessenger?mhaName=' + this.drc.mhaName + '&type=1')
+        .then(response => {
+          this.drc.dbMessengerList = response.data.data
+        })
+      this.axios.get('/api/drc/v2/config/mha/dbApplier/switch?mhaName=' + this.drc.mhaName + '&type=1')
+        .then(response => {
+          this.drc.dbMessengerSwitch = response.data.data
+        })
     },
     getResourcesInUse () {
       this.axios.get('/api/drc/v2/mha/replicator', { params: { mhaName: this.drc.mhaName } })
@@ -222,6 +235,14 @@ export default {
     goToMqConfigs () {
       console.log('go to change mq config for ' + this.drc.mhaName)
       this.$router.push({ path: '/v2/mqConfigs', query: { mhaName: this.drc.mhaName } })
+    },
+    getMhaDbMessenger () {
+      this.$router.push({
+        path: '/dbMessengers',
+        query: {
+          mhaName: this.drc.mhaName
+        }
+      })
     },
     handleReset (name) {
       this.$refs[name].resetFields()
@@ -299,6 +320,20 @@ export default {
         .catch(message => {
           this.$Message.error('校验位点异常: ' + message)
         })
+    },
+    showDbMhaApplierConfig () {
+      return this.drc.dbMessengerSwitch || this.hasAppliers(this.drc.dbMessengerList)
+    },
+    showMhaApplierConfig () {
+      return !this.hasAppliers(this.drc.dbMessengerList)
+    },
+    hasAppliers (dbApplierDtos) {
+      for (const x of dbApplierDtos) {
+        if (x.ips) {
+          return true
+        }
+      }
+      return false
     },
     submitConfig () {
       const that = this

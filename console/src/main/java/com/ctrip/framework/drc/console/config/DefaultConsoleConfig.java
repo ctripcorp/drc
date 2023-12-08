@@ -52,6 +52,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public static String MHA_DAL_CLUSTER_INFOS = "mha.dalcluster.info";
 
     public static String DELAY_EXCEPTION_TIME = "delay.exception";
+    public static String DELAY_UPDATE_TIMEOUT_TIME = "delay.update.task.timeout.milliseconds";
 
     public static String DEFAULT_DELAY_EXCEPTION_TIME = "864500000";
 
@@ -102,7 +103,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
-    private static String META_GENERATOR_V4_SWITCH = "meta.generator.v4.switch";
+    private static String META_GENERATOR_V5_SWITCH = "meta.generator.v5.switch";
+    private static String META_DB_APPLIER_CONFIG_SWITCH = "meta.db.applier.config.switch";
+    private static String META_DB_APPLIER_CONFIG_SWITCH_KEY = META_DB_APPLIER_CONFIG_SWITCH + ".%s";
     private static String META_REALTIME_SWITCH = "meta.realtime";
     
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
@@ -186,6 +189,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public long getDelayExceptionTime() {
         String timeStr = getProperty(DELAY_EXCEPTION_TIME, DEFAULT_DELAY_EXCEPTION_TIME);
+        return Long.parseLong(timeStr);
+    }
+
+    public long getDelayExceptionTimeInMilliseconds() {
+        String timeStr = getProperty(DELAY_UPDATE_TIMEOUT_TIME, "5000");
         return Long.parseLong(timeStr);
     }
 
@@ -479,8 +487,16 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
     }
 
-    public boolean getMetaGeneratorV4Switch() {
-        return getBooleanProperty(META_GENERATOR_V4_SWITCH, false);
+    public boolean getMetaGeneratorV5Switch() {
+        return getBooleanProperty(META_GENERATOR_V5_SWITCH, false);
+    }
+
+    public boolean getDbApplierConfigureSwitch(String mha) {
+        String value = getProperty(String.format(META_DB_APPLIER_CONFIG_SWITCH_KEY, mha));
+        if (StringUtils.isBlank(value)) {
+            return getBooleanProperty(META_DB_APPLIER_CONFIG_SWITCH, false);
+        }
+        return Boolean.parseBoolean(value);
     }
 
     public String getMetaRealtimeSwitch() {
