@@ -3,16 +3,21 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -73,6 +78,13 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private MessengerTblDao messengerTblDao;
     @Autowired
     private DomainConfig domainConfig;
+    @Autowired
+    private DbaApiService dbaApiService;
+    @Autowired
+    private DbTblDao dbTblDao;
+    @Autowired
+    private MhaDbMappingTblDao mhaDbMappingTblDao;
+
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -117,6 +129,54 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
+
+    @Override
+    public List<MhaTblV2> queryRelatedMhaByDbName(List<String> dbNames) throws SQLException {
+        if (CollectionUtils.isEmpty(dbNames)) {
+            return Collections.emptyList();
+        }
+        if (dbNames.size() >= 100) {
+            throw ConsoleExceptionUtils.message("query illegal: db num exceed 100: " + dbNames.size());
+        }
+        List<MhaTblV2> mhaTblV2s = new ArrayList<>();
+        List<String> queriedMhaNames = new ArrayList<>();
+
+        // from local
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
+        if (!CollectionUtils.isEmpty(dbTbls)) {
+            List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIds(dbIds);
+            List<Long> mhaIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getMhaId).collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(mhaIds)) {
+                mhaTblV2s.addAll(mhaTblV2Dao.queryByIds(mhaIds));
+                queriedMhaNames.addAll(mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList()));
+            }
+        }
+
+        // from dba api
+        List<String> mhaNames = dbNames.stream()
+                .flatMap(dbName -> this.queryMhaFromDbaApi(dbName).stream())
+                .filter(e -> !queriedMhaNames.contains(e))
+                .distinct()
+                .collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(mhaNames)) {
+            mhaTblV2s.addAll(mhaTblV2Dao.queryByMhaNames(mhaNames));
+        }
+        return mhaTblV2s;
+    }
+
+    public List<String> queryMhaFromDbaApi(String dbName) {
+        try {
+            List<ClusterInfoDto> clusterInfoDtoList = dbaApiService.getDatabaseClusterInfo(dbName);
+            return clusterInfoDtoList.stream().map(ClusterInfoDto::getClusterName).collect(Collectors.toList());
+        } catch (ConsoleException e) {
+            if (e.getMessage().contains("empty result")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
+    }
+
 
     @Override
     public List<String> getMhaReplicators(String mhaName) throws Exception {
@@ -361,5 +421,5 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                 .collect(Collectors.toMap(
                         HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay,(e1, e2) -> e1));
     }
-    
+
 }

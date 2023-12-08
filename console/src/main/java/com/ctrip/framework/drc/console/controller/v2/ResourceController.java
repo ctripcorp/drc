@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
@@ -51,6 +52,23 @@ public class ResourceController {
     public ApiResult<List<ResourceView>> autoConfigureResource(ResourceSelectParam param) {
         try {
             return ApiResult.getSuccessInstance(resourceService.autoConfigureResource(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("db/all")
+    public ApiResult<List<ResourceView>> getMhaDbAvailableResource(DbResourceSelectParam param) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.getMhaDbAvailableResourceWithUse(param.getSrcMhaName(), param.getDstMhaName(), param.getType()));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    @GetMapping("db/auto")
+    public ApiResult<List<ResourceView>> autoConfigureMhaDbResource(DbResourceSelectParam param) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.autoConfigureMhaDbResource(param));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

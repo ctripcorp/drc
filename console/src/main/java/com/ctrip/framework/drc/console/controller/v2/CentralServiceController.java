@@ -1,10 +1,9 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.service.v2.ForwardService;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * @ClassName CentralServiceController
@@ -36,6 +37,18 @@ public class CentralServiceController {
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getMhaTblV2s fail");
             return ApiResult.getFailInstance(null,"getMhaTblV2s fail");
+        }
+    }
+
+    @GetMapping("mhaDbReplicationDtos")
+    public ApiResult getMhaDbReplications(@RequestParam String dcName) {
+        try {
+            logger.info("[[tag=centralService]] getMhaDbReplications");
+            List<MhaDbReplicationDto> mhaDbReplications = forwardService.getMhaDbReplications(dcName);
+            return ApiResult.getSuccessInstance(mhaDbReplications);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getMhaDbReplications fail");
+            return ApiResult.getFailInstance(null, "getMhaDbReplications fail");
         }
     }
 

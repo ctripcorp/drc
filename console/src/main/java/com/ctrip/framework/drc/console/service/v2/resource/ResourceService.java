@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.resource;
 
+import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
@@ -29,9 +30,15 @@ public interface ResourceService {
 
     List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
 
+    List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws Exception;
+
+
+    List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception;
+
     List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception;
     
     List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
+    List<ResourceView> autoConfigureMhaDbResource(DbResourceSelectParam param) throws SQLException;
 
     List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException;
 

@@ -125,6 +125,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private DbMetaCorrectService dbMetaCorrectService;
     @Autowired
     private ConflictLogService conflictLogService;
+    @Autowired
+    private MhaDbReplicationService mhaDbReplicationService;
 
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
@@ -1123,6 +1125,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         checkExistDbReplication(tableList, new ArrayList<>(), srcMhaDbMappings, dstMhaDbMappings);
 
         dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
+        mhaDbReplicationService.maintainMhaDbReplication(dbReplicationTbls);
         logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
         return dbReplicationTbls;
     }

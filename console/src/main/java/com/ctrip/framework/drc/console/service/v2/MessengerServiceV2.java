@@ -27,6 +27,8 @@ public interface MessengerServiceV2 {
 
     List<Messenger> generateMessengers(Long mhaId) throws SQLException;
 
+    List<Messenger> generateDbMessengers(Long mhaId) throws SQLException;
+
     void removeMessengerGroup(String mhaName) throws Exception;
 
     List<MqConfigVo> queryMhaMessengerConfigs(String mhaName);

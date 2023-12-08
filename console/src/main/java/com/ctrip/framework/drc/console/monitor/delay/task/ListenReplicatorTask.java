@@ -87,6 +87,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Autowired private DbMetaCorrectService dbMetaCorrectService;
     @Autowired private DefaultConsoleConfig consoleConfig;
     @Autowired private PeriodicalUpdateDbTask periodicalUpdateDbTask;
+    @Autowired private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
     @Autowired private MonitorServiceV2 monitorServiceV2;
 
     private static void log(DelayMonitorSlaveConfig config, String msg, String types, Exception e) {
@@ -220,6 +221,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 config,
                 new DelayMonitorPooledConnector(config.getEndpoint()),
                 periodicalUpdateDbTask,
+                periodicalUpdateDbTaskV2,
                 consoleConfig.getDelayExceptionTime()
         );
     }

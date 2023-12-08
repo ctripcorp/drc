@@ -10,6 +10,15 @@ public class MhaReplicationQueryDto extends PageReq implements Serializable {
     private MhaQueryDto dstMha;
     private MhaQueryDto relatedMha;
     private Integer drcStatus;
+    // split with ","
+    private String dbNames;
+    public String getDbNames() {
+        return dbNames;
+    }
+
+    public void setDbNames(String dbNames) {
+        this.dbNames = dbNames;
+    }
 
     public Integer getDrcStatus() {
         return drcStatus;

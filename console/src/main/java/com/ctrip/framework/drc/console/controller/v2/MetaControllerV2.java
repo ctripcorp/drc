@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
@@ -37,6 +38,9 @@ public class MetaControllerV2 {
 
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
+
+    @Autowired
+    private MhaDbReplicationService mhaDbReplicationService;
 
     @GetMapping
     public String getAllMetaData(@RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
@@ -104,6 +108,16 @@ public class MetaControllerV2 {
         } catch (Throwable e) {
             logger.error("[[tag=metaCompare]] compareOldNewMeta error,dbclusterId:{}", dbclusterId, e);
             return ApiResult.getFailInstance("compareOldNewMeta error");
+        }
+    }
+    @PostMapping("mhaDbReplication/refreshData")
+    public ApiResult<Void> refreshMhaDbReplication() {
+        try {
+            mhaDbReplicationService.refreshMhaReplication();
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("dbApplier/refreshData error", e);
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
