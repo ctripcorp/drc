@@ -157,8 +157,13 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         }
     }
 
-    protected void initGap() {
+    private void initGap() {
         updateContextGtidSet(toCompensateGtidSet);
+        persistPosition(toCompensateGtidSet);
+    }
+
+    protected void persistPosition(GtidSet gtidSet) {
+
     }
 
     protected void addPosition(String gtid) {
@@ -183,6 +188,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
     private void clearExecutedGtidSetGap() {
         toCompensateGtidSet = new GtidSet(StringUtils.EMPTY);
+        logger.info("[Merge][{}] clear toCompensateGtidSet", registryKey);
     }
 
     private GtidSet.Interval getStartAndEnd(GtidSet gtidSet, String uuid) {
@@ -204,7 +210,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     protected void updateContextGtidSet(GtidSet gtidset) {
         GtidSet set = context.fetchGtidSet();
         context.updateGtidSet(set.union(gtidset));
-        logger.info("[Skip][{}] update context gtidset, context gtidset: {}, to merge gtidset: {}, unioned gtidset: {}", registryKey, set.toString(), gtidset.toString(), context.fetchGtidSet().toString());
+        logger.info("[Merge][{}] update context gtidset, context gtidset: {}, to merge gtidset: {}, unioned gtidset: {}", registryKey, set.toString(), gtidset.toString(), context.fetchGtidSet().toString());
     }
 
     protected void updateContextGtidSet(String gtid) {
