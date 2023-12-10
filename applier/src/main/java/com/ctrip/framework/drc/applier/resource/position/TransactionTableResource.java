@@ -71,7 +71,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private Map<Integer, String> indexAndGtid = new ConcurrentHashMap<Integer, String>();
 
-    private GtidSet gtidSavedInMemory = new GtidSet("");
+    private volatile GtidSet gtidSavedInMemory = new GtidSet("");
 
     private final Object gtidSavedInMemoryLock = new Object();
 
@@ -347,7 +347,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @Override
     public void merge(GtidSet gtidSet) {
         synchronized (gtidSavedInMemoryLock) {
-            gtidSavedInMemory.union(gtidSet);
+            gtidSavedInMemory = gtidSavedInMemory.union(gtidSet);
             mergeGtid(true);
         }
     }

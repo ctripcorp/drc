@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.activity.replicator.converter.MqAbstractByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -20,9 +21,9 @@ public class MqApplierDumpEventActivity extends ApplierDumpEventActivity {
     }
 
     @Override
-    protected void initGap() {
-        super.initGap();
+    protected void persistPosition(GtidSet gtidSet) {
         mqPosition.union(toCompensateGtidSet);
+        logger.info("[Merge][{}] messenger init merge: {}", registryKey, toCompensateGtidSet.toString());
     }
 
     @Override

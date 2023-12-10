@@ -76,9 +76,9 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     }
 
     @Override
-    protected void initGap() {
-        super.initGap();
+    protected void persistPosition(GtidSet gtidSet) {
         transactionTable.merge(toCompensateGtidSet);
+        logger.info("[Merge][{}] transaction table init merge: {}", registryKey, toCompensateGtidSet.toString());
     }
 
     @Override
