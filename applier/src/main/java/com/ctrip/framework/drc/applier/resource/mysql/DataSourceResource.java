@@ -49,7 +49,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     public Executor executor;
 
     @InstanceConfig(path = "target.poolSize")
-    public int poolSize = 50;
+    public int poolSize = 30;
 
     public int validationInterval = 30000;
 

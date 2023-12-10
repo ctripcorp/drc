@@ -43,7 +43,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
-                .link(TransactionTableApplyActivity.class, 50)
+                .link(TransactionTableApplyActivity.class, 30)
                 .link(CommitActivity.class);
         check();
     }
