@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.config.applier.dto;
 
 import com.ctrip.framework.drc.core.meta.ApplierMeta;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -31,6 +32,8 @@ public class ApplierConfigDto extends ApplierMeta {
     private String skipEvent;
     private int applyMode;
     private String properties;
+
+    private DataMediaConfig dataMediaConfig;
 
     public String getManagerIp() {
         return managerIp;
@@ -65,6 +68,11 @@ public class ApplierConfigDto extends ApplierMeta {
     }
 
     public int getWorkerCount() {
+        Integer concurrency = getDataMediaConfig().getConcurrency();
+        if (concurrency != null && concurrency > 0) {
+            workerCount = concurrency;
+        }
+
         if (workerCount > 0) {
             return workerCount;
         } else {
@@ -149,6 +157,21 @@ public class ApplierConfigDto extends ApplierMeta {
 
     public void setProperties(String properties) {
         this.properties = properties;
+    }
+
+    public DataMediaConfig getDataMediaConfig() {
+        if (dataMediaConfig == null) {
+            try {
+                dataMediaConfig = DataMediaConfig.from(getRegistryKey(), properties);
+            } catch (Exception e) {
+                throw new RuntimeException("parse dataMediaConfig error: ", e);
+            }
+        }
+        return dataMediaConfig;
+    }
+
+    public void setDataMediaConfig(DataMediaConfig dataMediaConfig) {
+        this.dataMediaConfig = dataMediaConfig;
     }
 
     @JsonIgnore
