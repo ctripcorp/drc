@@ -37,7 +37,7 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
         if (DRC_MONITOR_SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
             String tableName = tableMapLogEvent.getTableName().toLowerCase();
             nextMonitorRowsEvent = DRC_DELAY_MONITOR_TABLE_NAME.equalsIgnoreCase(tableName) ||
-                    tableName.startsWith(DRC_DELAY_MONITOR_TABLE_PREFIX);
+                    tableName.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX);
         } else {
             nextMonitorRowsEvent = false;
         }

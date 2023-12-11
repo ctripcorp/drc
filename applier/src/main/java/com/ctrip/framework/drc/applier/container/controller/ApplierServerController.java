@@ -52,7 +52,7 @@ public class ApplierServerController {
         try {
             logger.info("[http] register applier: " + config);
             String registryKey = config.getRegistryKey();
-            registryKey = NameUtils.dotSchemaIfNeed(registryKey, config.getApplyMode(), config.getNameFilter());
+            registryKey = NameUtils.dotSchemaIfNeed(registryKey, config.getApplyMode(), config.getIncludedDbs());
             serverContainer.registerServer(registryKey);
             return ApiResult.getSuccessInstance(true);
         } catch (Throwable t) {

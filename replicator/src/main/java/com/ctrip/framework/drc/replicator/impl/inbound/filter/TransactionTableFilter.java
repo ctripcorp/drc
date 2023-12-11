@@ -29,7 +29,7 @@ public class TransactionTableFilter extends AbstractLogEventFilter<InboundLogEve
             String schemaName = tableMapLogEvent.getSchemaName();
             String tableName = tableMapLogEvent.getTableName();
             if (DRC_MONITOR_SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
-                if (DRC_TRANSACTION_TABLE_NAME.equalsIgnoreCase(tableName) || tableName.toLowerCase().startsWith(DRC_TRANSACTION_TABLE_PREFIX) || DRC_WRITE_FILTER_TABLE_NAME.equalsIgnoreCase(tableName)) {
+                if (DRC_TRANSACTION_TABLE_NAME.equalsIgnoreCase(tableName) || tableName.toLowerCase().startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX) || DRC_WRITE_FILTER_TABLE_NAME.equalsIgnoreCase(tableName)) {
                     value.setLogEvent(new TransactionTableMarkedTableMapLogEvent(tableMapLogEvent));
                     value.mark(TRANSACTION_TABLE_F);
                 }

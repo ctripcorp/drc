@@ -13,6 +13,11 @@ import java.util.Objects;
  * Nov 07, 2019
  */
 public class ApplierConfigDto extends ApplierMeta {
+
+    private static final int DEFAULT_APPLY_COUNT = 10;
+    private static final int TRANSACTION_TABLE_APPLY_COUNT = 100;
+    private static final int DB_TRANSACTION_TABLE_APPLY_COUNT = 20;
+
     private int gaqSize;
     private int workerCount;
     private int workerSize;
@@ -60,7 +65,22 @@ public class ApplierConfigDto extends ApplierMeta {
     }
 
     public int getWorkerCount() {
-        return workerCount;
+        if (workerCount > 0) {
+            return workerCount;
+        } else {
+            int applyParallel;
+            switch (ApplyMode.getApplyMode(applyMode)) {
+                case transaction_table:
+                    applyParallel = TRANSACTION_TABLE_APPLY_COUNT;
+                    break;
+                case db_transaction_table:
+                    applyParallel = DB_TRANSACTION_TABLE_APPLY_COUNT;
+                    break;
+                default:
+                    applyParallel = DEFAULT_APPLY_COUNT;
+            }
+            return applyParallel;
+        }
     }
 
     public void setWorkerCount(int workerCount) {
@@ -134,7 +154,7 @@ public class ApplierConfigDto extends ApplierMeta {
     @JsonIgnore
     public String getRegistryKey() {
         String registerKey = ApplierRegistryKey.from(target.mhaName, super.getCluster(), replicator.mhaName);
-        registerKey = NameUtils.dotSchemaIfNeed(registerKey, applyMode, nameFilter);
+        registerKey = NameUtils.dotSchemaIfNeed(registerKey, applyMode, includedDbs);
         return registerKey;
     }
 

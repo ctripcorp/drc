@@ -48,7 +48,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
 
     public boolean addServer(ApplierConfigDto config) throws Exception {
         String clusterKey = config.getRegistryKey();
-        clusterKey = NameUtils.dotSchemaIfNeed(clusterKey, config.getApplyMode(), config.getNameFilter());
+        clusterKey = NameUtils.dotSchemaIfNeed(clusterKey, config.getApplyMode(), config.getIncludedDbs());
         if (servers.containsKey(clusterKey)) {
             logger.info("applier servers contains {}", clusterKey);
             ApplierServerInCluster activeServer = servers.get(clusterKey);
@@ -84,7 +84,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
 
     protected void doAddServer(ApplierConfigDto config) throws Exception {
         String clusterKey = config.getRegistryKey();
-        clusterKey = NameUtils.dotSchemaIfNeed(clusterKey, config.getApplyMode(), config.getNameFilter());
+        clusterKey = NameUtils.dotSchemaIfNeed(clusterKey, config.getApplyMode(), config.getIncludedDbs());
         ApplierServerInCluster newServer = getApplierServer(config);
         newServer.initialize();
         newServer.start();

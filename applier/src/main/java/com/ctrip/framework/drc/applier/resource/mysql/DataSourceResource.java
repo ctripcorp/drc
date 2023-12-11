@@ -51,6 +51,11 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     @InstanceConfig(path = "target.poolSize")
     public int poolSize = 100;
 
+    @InstanceConfig(path = "workerCount")
+    public int workerCount;
+
+    private int initialPoolSize = 5;
+
     public int validationInterval = 30000;
 
     @InstanceConfig(path = "registryKey")
@@ -76,10 +81,10 @@ public class DataSourceResource extends AbstractResource implements DataSource {
         properties.setValidationInterval(validationInterval);
         setCommonProperty(properties);
 
-        properties.setMaxActive(poolSize);
-        properties.setMaxIdle(poolSize);
-        properties.setInitialSize(30);
-        properties.setMinIdle(poolSize);
+        properties.setMaxActive(workerCount);
+        properties.setMaxIdle(workerCount);
+        properties.setInitialSize(initialPoolSize);
+        properties.setMinIdle(workerCount);
         properties.setValidator(new DrcDataSourceValidator(properties));
 
         inner = new DrcTomcatDataSource(properties);

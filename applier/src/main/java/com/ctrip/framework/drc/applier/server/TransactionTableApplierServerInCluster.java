@@ -27,6 +27,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
 
     @Override
     public void define() throws Exception {
+        logger.info("apply count is: {} for: {}", config.getWorkerCount(), config.getRegistryKey());
         source(TransactionTableApplierDumpEventActivity.class)
                 .with(ExecutorResource.class)
                 .with(LinkContextResource.class)
@@ -43,7 +44,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
-                .link(TransactionTableApplyActivity.class, 100)
+                .link(TransactionTableApplyActivity.class, config.getWorkerCount())
                 .link(CommitActivity.class);
         check();
     }

@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
@@ -28,7 +27,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
 /**
  * Created by jixinwang on 2021/8/23
@@ -106,13 +105,16 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "applyMode")
     public int applyMode;
 
-    private String tableName = "gtid_executed";
+    @InstanceConfig(path = "includedDbs")
+    public String includedDbs;
+
+    private String trxTableName;
 
     @Override
     protected void doInitialize() throws Exception {
-        tableName = getTableName();
-        UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, tableName);
-        INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, tableName);
+        trxTableName = getTrxTableName();
+        UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, trxTableName);
+        INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, trxTableName);
 
         logger.info("[transaction] update: {}, insert: {}", UPDATE_TRANSACTION_TABLE, INSERT_TRANSACTION_TABLE);
 
@@ -131,12 +133,11 @@ public class TransactionTableResource extends AbstractResource implements Transa
         startGtidMergeSchedule();
     }
 
-    private String getTableName() {
+    private String getTrxTableName() {
         if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
-            String dbName = NameUtils.toSchema(nameFilter);
-            return "tx_" + dbName;
+            return DRC_DB_TRANSACTION_TABLE_NAME_PREFIX + includedDbs;
         } else {
-            return "gtid_executed";
+            return DRC_TRANSACTION_TABLE_NAME;
         }
     }
 
@@ -194,7 +195,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey, tableName), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey, trxTableName), RETRY_TIME).call();
             if (res == null) {
                 loggerTT.error("[TT][{}] merge gtid set error, shutdown server", registryKey);
                 logger.info("transaction table status is stopped for {}", registryKey);
