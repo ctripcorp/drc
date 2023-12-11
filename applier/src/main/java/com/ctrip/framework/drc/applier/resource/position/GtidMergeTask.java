@@ -12,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
+
 /**
  * Created by jixinwang on 2022/2/25
  */
@@ -38,26 +40,26 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     private String registryKey;
 
-    private String tableName = "gtid_executed";
+    private String trxTableName = DRC_TRANSACTION_TABLE_NAME;
 
     public GtidMergeTask(GtidSet gtidSet, DataSource dataSource, String registryKey) {
         this.gtidSet = gtidSet;
         this.dataSource = dataSource;
         this.registryKey = registryKey;
-        SELECT_GTID_SET_SQL = String.format(SELECT_GTID_SET, tableName);
-        UPDATE_GTID_SET_SQL = String.format(UPDATE_GTID_SET, tableName);
-        INSERT_GTID_SET_SQL = String.format(INSERT_GTID_SET, tableName);
+        SELECT_GTID_SET_SQL = String.format(SELECT_GTID_SET, trxTableName);
+        UPDATE_GTID_SET_SQL = String.format(UPDATE_GTID_SET, trxTableName);
+        INSERT_GTID_SET_SQL = String.format(INSERT_GTID_SET, trxTableName);
     }
 
 
-    public GtidMergeTask(GtidSet gtidSet, DataSource dataSource, String registryKey, String tableName) {
+    public GtidMergeTask(GtidSet gtidSet, DataSource dataSource, String registryKey, String trxTableName) {
         this.gtidSet = gtidSet;
         this.dataSource = dataSource;
         this.registryKey = registryKey;
-        this.tableName = tableName;
-        SELECT_GTID_SET_SQL = String.format(SELECT_GTID_SET, tableName);
-        UPDATE_GTID_SET_SQL = String.format(UPDATE_GTID_SET, tableName);
-        INSERT_GTID_SET_SQL = String.format(INSERT_GTID_SET, tableName);
+        this.trxTableName = trxTableName;
+        SELECT_GTID_SET_SQL = String.format(SELECT_GTID_SET, trxTableName);
+        UPDATE_GTID_SET_SQL = String.format(UPDATE_GTID_SET, trxTableName);
+        INSERT_GTID_SET_SQL = String.format(INSERT_GTID_SET, trxTableName);
     }
 
     @Override

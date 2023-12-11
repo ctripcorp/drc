@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.entity.Instance;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.command.AbstractCommand;
@@ -112,6 +113,15 @@ public abstract class AbstractNotifier implements Notifier {
             NOTIFY_LOGGER.error("{}", errMsg, e);
             throw new DrcServerException(errMsg, e);
         }
+    }
+
+    protected String getDelayMonitorRegex(int applyMode, String includeDbs) {
+        String delayMonitorRegex = DRC_MONITOR_SCHEMA_NAME + "\\." + "(delaymonitor";
+        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
+            delayMonitorRegex = delayMonitorRegex + "|" + DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + includeDbs;
+        }
+        delayMonitorRegex = delayMonitorRegex + ")";
+        return delayMonitorRegex;
     }
 
     private boolean checkStatus(int status) {

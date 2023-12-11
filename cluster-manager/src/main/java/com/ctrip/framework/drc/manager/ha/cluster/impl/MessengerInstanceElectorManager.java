@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
@@ -47,8 +48,10 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         try {
             List<Messenger> messengers = dbCluster.getMessengers();
             if (!messengers.isEmpty()) {
-                String registryKey = RegistryKey.from(clusterId, DRC_MQ);
-                observerClusterLeader(registryKey);
+                for (Messenger messenger : messengers) {
+                    String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+                    observerClusterLeader(registryKey);
+                }
             }
         } catch (Exception e) {
             logger.error("[handleClusterAdd]" + clusterId, e);

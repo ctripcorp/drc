@@ -14,6 +14,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -107,8 +108,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerMessenger(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        STATE_LOGGER.info("[registerMessenger] for {},{}", clusterId, body);
-        messengerNotifier.notifyRegister(clusterId, body);
+        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+        STATE_LOGGER.info("[registerMessenger] for {},{}", newClusterId, body);
+        messengerNotifier.notifyRegister(newClusterId, body);
         return body;
     }
 
@@ -126,14 +128,15 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         STATE_LOGGER.info("[addApplier] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
-            STATE_LOGGER.warn("[Empty][addApplier] replicators and do nothing for {}", clusterId);
+            STATE_LOGGER.warn("[Empty][addApplier] replicators and do nothing for {}", newClusterId);
             return body;
         }
         applierNotifier.notifyAdd(newClusterId, body);
 
         List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier));
         for (Applier a : appliers) {
-            if (!a.equalsWithIpPort(applier) && a.getTargetMhaName().equalsIgnoreCase(applier.getTargetMhaName())) {
+            if (!a.equalsWithIpPort(applier) && a.getTargetMhaName().equalsIgnoreCase(applier.getTargetMhaName())
+                    && ObjectUtils.equals(a.getIncludedDbs(), applier.getIncludedDbs())) {
                 removeApplier(clusterId, a, false);
             }
         }
@@ -144,17 +147,18 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster addMessenger(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        STATE_LOGGER.info("[addMessenger] for {},{}", clusterId, body);
+        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+        STATE_LOGGER.info("[addMessenger] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
-            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
+            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", newClusterId);
             return body;
         }
-        messengerNotifier.notifyAdd(clusterId, body);
+        messengerNotifier.notifyAdd(newClusterId, body);
 
         List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId);
         for (Messenger m : messengers) {
-            if (!m.equalsWithIpPort(messenger)) {
+            if (!m.equalsWithIpPort(messenger) && ObjectUtils.equals(m.getIncludedDbs(), messenger.getIncludedDbs())) {
                 removeMessenger(clusterId, m, false);
             }
         }
@@ -179,7 +183,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             return;
         }
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
-        String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
+        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
         STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", newClusterId, messenger, delete);
         messengerNotifier.notifyRemove(newClusterId, messenger, delete);
     }

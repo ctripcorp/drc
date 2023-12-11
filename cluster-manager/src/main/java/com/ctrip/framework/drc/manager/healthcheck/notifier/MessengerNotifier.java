@@ -80,7 +80,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
                 if (StringUtils.isNotBlank(nameFilter)) {
                     String formatNameFilter = nameFilter.trim().toLowerCase();
                     if (!formatNameFilter.contains(DRC_DELAY_MONITOR_NAME) && !formatNameFilter.contains(DRC_DELAY_MONITOR_NAME_REGEX)) {
-                        nameFilter = DRC_DELAY_MONITOR_NAME_REGEX + "," + nameFilter;
+                        nameFilter = getDelayMonitorRegex(messenger.getApplyMode(), messenger.getIncludedDbs()) + "," + nameFilter;
                     }
                 }
                 config.setNameFilter(nameFilter);
