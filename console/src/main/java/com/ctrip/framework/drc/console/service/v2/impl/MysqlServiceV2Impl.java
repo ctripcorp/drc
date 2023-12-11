@@ -2,10 +2,13 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
@@ -15,9 +18,13 @@ import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
+import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -29,6 +36,10 @@ import org.springframework.util.CollectionUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.utils.MySqlUtils.CREATE_GTID_TABLE_SQL;
+import static com.ctrip.framework.drc.core.monitor.column.DbDelayMonitorColumn.CREATE_DELAY_TABLE_SQL;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
+
 /**
  * Created by dengquanliang
  * 2023/8/11 15:50
@@ -38,6 +49,10 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Autowired
     private CacheMetaService cacheMetaService;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private DdlHistoryTblDao ddlHistoryTblDao;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -234,6 +249,33 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         return MySqlUtils.getAllOnUpdateColumns(endpoint, db, table);
     }
 
+    protected Map<String, Map<String, String>> getDDLSchemas(Set<String> dbList) {
+        Map<String, Map<String, String>> dbMap = new HashMap<>();
+        Map<String, String> tableMap = new HashMap<>();
+        dbMap.put(DRC_MONITOR_SCHEMA_NAME, tableMap);
+        for (String db : dbList) {
+            String delayTableName = DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + db;
+            tableMap.put(delayTableName, String.format(CREATE_DELAY_TABLE_SQL, delayTableName));
+            String gtidTableName = DRC_DB_TRANSACTION_TABLE_NAME_PREFIX + db;
+            tableMap.put(gtidTableName, String.format(CREATE_GTID_TABLE_SQL, gtidTableName));
+        }
+        return dbMap;
+    }
+
+    @VisibleForTesting
+    protected static Set<String> getExistDrcMonitorTables(List<String> tablesFromDb) {
+        if(CollectionUtils.isEmpty(tablesFromDb)){
+            return Collections.emptySet();
+        }
+        Set<String> db1 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX))
+                .map(e -> e.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
+        Set<String> db2 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX))
+                .map(e -> e.substring(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
+        // intersection
+        db1.retainAll(db2);
+        return db1;
+    }
+
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/firstUniqueIndex")
     public String getFirstUniqueIndex(String mha, String db, String table) {
@@ -275,4 +317,30 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         return MySqlUtils.write(endpoint, requestBody.getSql(), requestBody.getAccountType());
     }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/createDrcMonitorDbTable", httpType = HttpRequestEnum.POST, requestClass = DrcDbMonitorTableCreateReq.class)
+    public Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody) {
+        String mha = requestBody.getMha();
+        List<String> dbs = requestBody.getDbs();
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("createDrcMonitorDbTable from {} {}, endpoint not exist", mha, dbs);
+            return Boolean.FALSE;
+        }
+
+        Set<String> dbList = dbs.stream().map(String::toLowerCase).collect(Collectors.toSet());
+        List<String> existTablesInDrcMonitorDb = MySqlUtils.getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
+        Set<String> existDbs = getExistDrcMonitorTables(existTablesInDrcMonitorDb);
+        dbList.removeAll(existDbs);
+        if (CollectionUtils.isEmpty(dbList)) {
+            logger.info("no need to create table for {} {}", mha, dbs);
+            return true;
+        }
+        logger.info("start create table for {} {}", mha, dbList);
+        Map<String, Map<String, String>> ddlSchemas = getDDLSchemas(dbList);
+        Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
+        return Boolean.TRUE.equals(res);
+    }
+
 }

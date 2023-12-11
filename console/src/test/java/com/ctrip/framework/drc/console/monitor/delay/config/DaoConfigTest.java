@@ -1,7 +1,8 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV4;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV5;
 import com.ctrip.framework.drc.console.utils.XmlUtil;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -28,7 +29,10 @@ public class DaoConfigTest extends AbstractConfigTest {
     private DefaultConsoleConfig consoleConfig;
 
     @Mock
-    private MetaGenerator metaGenerator = new MetaGenerator();
+    private MetaGeneratorV4 metaGenerator;
+
+    @Mock
+    private MetaGeneratorV5 metaGeneratorV5;
 
     private static final String IDC = "shaxx";
 
@@ -47,6 +51,7 @@ public class DaoConfigTest extends AbstractConfigTest {
         Assert.assertNull(daoConfig.xml);
 
         Mockito.doReturn(DefaultSaxParser.parse(DRC_XML2)).when(metaGenerator).getDrc();
+        Mockito.doReturn(DefaultSaxParser.parse(DRC_XML2)).when(metaGeneratorV5).getDrc();
         daoConfig.updateConfig();
         Drc expectedDrc = DefaultSaxParser.parse(DRC_XML2);
         Drc actualDrc = DefaultSaxParser.parse(daoConfig.xml);

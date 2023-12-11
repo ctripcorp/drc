@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2;
 
 import com.ctrip.framework.drc.core.http.PageReq;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +26,22 @@ public class MhaReplicationQuery extends PageReq {
 
     public void setRelatedMhaIdList(List<Long> relatedMhaIdList) {
         this.relatedMhaIdList = relatedMhaIdList;
+    }
+
+    public void addOrIntersectSrcMhaIds(List<Long> ids) {
+        if (this.srcMhaIdList == null) {
+            this.srcMhaIdList = Lists.newArrayList(ids);
+        } else {
+            this.srcMhaIdList.retainAll(ids);
+        }
+    }
+
+    public void addOrIntersectDstMhaIds(List<Long> ids) {
+        if (this.dstMhaIdList == null) {
+            this.dstMhaIdList = Lists.newArrayList(ids);
+        } else {
+            this.dstMhaIdList.retainAll(ids);
+        }
     }
 
     public List<Long> getDstMhaIdList() {

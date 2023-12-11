@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -203,6 +203,19 @@ public class MysqlController {
             return ApiResult.getSuccessInstance(onUpdateColumns);
         } catch (Exception e) {
             logger.error("getAllOnUpdateColumns, mha: {}, db:{}, table: {}", mha, db, table, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @PostMapping("createDrcMonitorDbTable")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDrcMonitorDbTable(@RequestBody DrcDbMonitorTableCreateReq requestBody) {
+        try {
+            logger.info("createDrcMonitorDbTable, req: {}", requestBody);
+            Boolean createResult = mysqlServiceV2.createDrcMonitorDbTable(requestBody);
+            return ApiResult.getSuccessInstance(createResult);
+        } catch (Exception e) {
+            logger.error("createDrcMonitorDbTable, mha: " + requestBody, e);
             return ApiResult.getFailInstance(null);
         }
     }

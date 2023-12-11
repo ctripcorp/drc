@@ -17,6 +17,7 @@ public interface MhaServiceV2 {
      */
     Map<Long, MhaTblV2> query(String containMhaName, Long buId, Long regionId);
     Map<Long, MhaTblV2> queryMhaByIds(List<Long> mhaIds);
+    List<MhaTblV2> queryRelatedMhaByDbName(List<String> dbNames) throws SQLException;
     List<String> getMhaReplicators(String mhaName) throws Exception;
     List<String> getMhaMessengers(String mhaName);
 

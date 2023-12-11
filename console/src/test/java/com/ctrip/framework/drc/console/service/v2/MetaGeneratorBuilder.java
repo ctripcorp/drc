@@ -262,16 +262,6 @@ public class MetaGeneratorBuilder {
         return Lists.newArrayList(tbl);
     }
 
-    public static List<RowsFilterTbl> getRowsFilterTbls() {
-        RowsFilterTbl tbl = new RowsFilterTbl();
-        tbl.setDeleted(0);
-        tbl.setId(100L);
-        tbl.setMode("mode");
-        tbl.setConfigs("{\"parameterList\":[{\"columns\":[\"AgentUID\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}");
-        tbl.setParameters("");
-
-        return Lists.newArrayList(tbl);
-    }
 
     public static List<ColumnsFilterTblV2> getColumnsFilterTbls() {
         ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();

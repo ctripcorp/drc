@@ -18,5 +18,15 @@
     "deleted": 0,
     "createTime": "2021-06-13 20:41:12",
     "datachangeLasttime": "2024-03-31 11:34:34"
+  },
+  {
+    "id": 3,
+    "applierGroupId": 3,
+    "port": 0,
+    "resourceId": 4,
+    "master": 0,
+    "deleted": 0,
+    "createTime": "2021-06-13 20:41:12",
+    "datachangeLasttime": "2024-03-31 11:34:34"
   }
 ]

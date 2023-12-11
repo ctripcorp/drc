@@ -2,20 +2,18 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.controller.v1.AccessController;
 import com.ctrip.framework.drc.console.service.SSOService;
-import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author maojiawei

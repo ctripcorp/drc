@@ -1,21 +1,11 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
-import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
-
-import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.OpenApiService;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
-import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dc;
-import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
@@ -24,20 +14,20 @@ import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.springframework.util.CollectionUtils;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
 
 /**
  * @ClassName OpenApiServiceImpl
@@ -47,66 +37,11 @@ import org.springframework.util.CollectionUtils;
  */
 @Service
 public class OpenApiServiceImpl implements OpenApiService {
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    
-    @Autowired private MetaGenerator metaGenerator;
-    
-    @Autowired private MetaInfoServiceImpl metaInfoService;
-    
-    @Autowired private MetaProviderV2 metaProviderV2;
-    
-    
-    
-    
-    @Override
-    public List<MhaGroupFilterVo> getAllDrcMhaDbFilters() throws SQLException {
-        ArrayList<MhaGroupFilterVo> allDrcMhaDbFilters = Lists.newArrayList();
-        List<MhaGroupTbl> mhaGroupTbls = metaGenerator.getMhaGroupTbls().stream().filter(p -> p.getDrcEstablishStatus().equals(EstablishStatusEnum.ESTABLISHED.getCode())).collect(Collectors.toList());
-        List<GroupMappingTbl> groupMappingTbls = metaGenerator.getGroupMappingTbls();
-        List<MhaTbl> mhaTbls = metaGenerator.getMhaTbls();
-        List<MachineTbl> machineTbls = metaGenerator.getMachineTbls();
-        List<DcTbl> dcTbls = metaGenerator.getDcTbls();
-
-        for (MhaGroupTbl mhaGroupTbl : mhaGroupTbls) {
-            MhaGroupFilterVo mhaGroupFilterVo = new MhaGroupFilterVo();
-
-            Long mhaGroupTblId = mhaGroupTbl.getId();
-            List<MhaTbl> twoMha = Lists.newArrayList();
-            groupMappingTbls.stream().filter(p -> p.getMhaGroupId().equals(mhaGroupTblId)).forEach(groupMappingTbl -> {
-                MhaTbl mhaTbl = mhaTbls.stream().filter(p -> p.getId().equals(groupMappingTbl.getMhaId())).findFirst().get();
-                twoMha.add(mhaTbl);
-            });
-            if (twoMha.size() != 2) {
-                logger.warn("get twoMhaListSize error group is {}",mhaGroupTbl.getId() );
-            }
-
-            int i = 0;
-            for (MhaTbl mhaTbl : twoMha) {
-                String anotherMhaName = twoMha.stream().filter(p -> !p.getId().equals(mhaTbl.getId())).findFirst().get().getMhaName();
-                String mhaName = mhaTbl.getMhaName();
-                Long mhaTblId = mhaTbl.getId();
-                String dcName = dcTbls.stream().filter(p -> p.getId().equals(mhaTbl.getDcId())).findFirst().get().getDcName();
-                MachineTbl machineTbl = machineTbls.stream().filter(p -> p.getMhaId().equals(mhaTblId) && p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().get();
-                String unionApplierFilter = metaInfoService.getUnionApplierFilter(mhaName, anotherMhaName);
-                if (i++ == 0) {
-                    mhaGroupFilterVo.setSrcMhaName(mhaName);
-                    mhaGroupFilterVo.setSrcDc(dcName);
-                    mhaGroupFilterVo.setSrcIpPort(machineTbl.getIp()+":"+machineTbl.getPort());
-                    mhaGroupFilterVo.setSrcApplierFilter(unionApplierFilter);
-                } else {
-                    mhaGroupFilterVo.setDestMhaName(mhaName);
-                    mhaGroupFilterVo.setDestDc(dcName);
-                    mhaGroupFilterVo.setDestIpPort(machineTbl.getIp()+":"+machineTbl.getPort());
-                    mhaGroupFilterVo.setDestApplierFilter(unionApplierFilter);
-                }
-            }
-            allDrcMhaDbFilters.add(mhaGroupFilterVo);
-        }
-
-        return allDrcMhaDbFilters;
-    }
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
 
     @Override
     public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
@@ -130,8 +65,7 @@ public class OpenApiServiceImpl implements OpenApiService {
         return res;
     }
 
-    
-    
+
     @Override
     public List<DrcDbInfo> getDrcDbInfos(String dbName) {
         List<DrcDbInfo> res = Lists.newArrayList();
@@ -139,7 +73,7 @@ public class OpenApiServiceImpl implements OpenApiService {
         for (Entry<String, Dc> dcInfo : drc.getDcs().entrySet()) {
             Dc dcMeta = dcInfo.getValue();
             String destRegion = dcMeta.getRegion();
-            
+
             for (Entry<String, DbCluster> dbClusterInfo : dcMeta.getDbClusters().entrySet()) {
                 DbCluster dbClusterMeta = dbClusterInfo.getValue();
                 String destMha = dbClusterMeta.getMhaName();
@@ -155,7 +89,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                         } else {
                             srcMhaNames.add(srcMha);
                         }
-                        
+
                         String nameFilter = applier.getNameFilter();
                         if (StringUtils.isNotBlank(nameFilter)) {
                             // generate by drcDbInfo by db
@@ -174,34 +108,34 @@ public class OpenApiServiceImpl implements OpenApiService {
                                     DrcDbInfo drcDbInfo = dbInfoMap.get(dbRegex);
                                     drcDbInfo.addRegexTable(tableRegex);
                                 } else {
-                                    DrcDbInfo drcDbInfo = new DrcDbInfo(dbRegex,tableRegex,srcMha,destMha,srcRegion,destRegion);
-                                    dbInfoMap.put(dbRegex,drcDbInfo);
+                                    DrcDbInfo drcDbInfo = new DrcDbInfo(dbRegex, tableRegex, srcMha, destMha, srcRegion, destRegion);
+                                    dbInfoMap.put(dbRegex, drcDbInfo);
                                     res.add(drcDbInfo);
                                 }
                             }
-                            
-                            processProperties(applier,dbInfoMap,destMha);
+
+                            processProperties(applier, dbInfoMap, destMha);
                         } else {
                             // all db
                             DrcDbInfo drcDbInfo = new DrcDbInfo(".*", ".*", srcMha, destMha, srcRegion, destRegion);
                             res.add(drcDbInfo);
-                            
-                            processProperties(applier,drcDbInfo);
+
+                            processProperties(applier, drcDbInfo);
                         }
                     } catch (Exception e) {
-                        logger.warn("getDrcDbInfos fail in applier which destMha is :{}",destMha,e);
+                        logger.warn("getDrcDbInfos fail in applier which destMha is :{}", destMha, e);
                     }
                 }
             }
         }
         return res;
     }
-    
+
     private void processProperties(Applier applier, Map<String, DrcDbInfo> dbInfoMap, String destMha) {
         if (StringUtils.isNotBlank(applier.getProperties())) {
             String properties = applier.getProperties();
             DataMediaConfig dataMediaConfig = JsonCodec.INSTANCE.decode(properties, DataMediaConfig.class);
-            
+
             List<RowsFilterConfig> rowsFilters = dataMediaConfig.getRowsFilters();
             if (!CollectionUtils.isEmpty(rowsFilters)) {
                 for (RowsFilterConfig rowsFilter : rowsFilters) {
@@ -212,11 +146,11 @@ public class OpenApiServiceImpl implements OpenApiService {
                         DrcDbInfo drcDbInfo = dbInfoMap.get(db);
                         drcDbInfo.addRowsFilterConfig(rowsFilter);
                     } else {
-                        logger.warn("no db found in nameFilter,destMha:{},rowsFilter:{}",destMha,rowsFilter);
+                        logger.warn("no db found in nameFilter,destMha:{},rowsFilter:{}", destMha, rowsFilter);
                     }
                 }
             }
-            
+
             List<ColumnsFilterConfig> columnsFilters = dataMediaConfig.getColumnsFilters();
             if (!CollectionUtils.isEmpty(columnsFilters)) {
                 for (ColumnsFilterConfig columnsFilter : columnsFilters) {
@@ -227,16 +161,16 @@ public class OpenApiServiceImpl implements OpenApiService {
                         DrcDbInfo drcDbInfo = dbInfoMap.get(db);
                         drcDbInfo.addColumnFilterConfig(columnsFilter);
                     } else {
-                        logger.warn("no db found in nameFilter,destMha:{},columnsFilter:{}",destMha,columnsFilter);
+                        logger.warn("no db found in nameFilter,destMha:{},columnsFilter:{}", destMha, columnsFilter);
                     }
                 }
             }
         }
-        
+
     }
 
     private void processProperties(Applier applier, DrcDbInfo drcDbInfo) {
-        if (StringUtils.isNotBlank(applier.getProperties())) { 
+        if (StringUtils.isNotBlank(applier.getProperties())) {
             String properties = applier.getProperties();
             DataMediaConfig dataMediaConfig = JsonCodec.INSTANCE.decode(properties, DataMediaConfig.class);
 
@@ -256,7 +190,6 @@ public class OpenApiServiceImpl implements OpenApiService {
         }
 
     }
-    
-   
+
 
 }

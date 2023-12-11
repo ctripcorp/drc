@@ -6,9 +6,11 @@ import com.ctrip.framework.drc.console.dao.log.*;
 import com.ctrip.framework.drc.console.dao.log.entity.*;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.ApprovalTypeEnum;
+import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
+import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
@@ -135,6 +137,7 @@ public class ConflictApprovalServiceTest {
         response.setData(Lists.newArrayList(data));
         Mockito.when(approvalApiService.createApproval(Mockito.any())).thenReturn(response);
         Mockito.when(conflictApprovalTblDao.update(Mockito.any(ConflictApprovalTbl.class))).thenReturn(1);
+        Mockito.when(mysqlServiceV2.write(Mockito.any(MysqlWriteEntity.class))).thenReturn(new StatementExecutorResult(SqlResultEnum.SUCCESS.getCode(), ""));
 
         conflictApprovalService.createConflictApproval(param);
         Mockito.verify(conflictApprovalTblDao, Mockito.times(1)).insertWithReturnId(Mockito.any());
@@ -220,6 +223,7 @@ public class ConflictApprovalServiceTest {
         tbl.setDbName("db");
         tbl.setTableName("table");
         tbl.setStatus(0);
+        tbl.setId(1L);
 
         return Lists.newArrayList(tbl);
     }

@@ -87,7 +87,7 @@ public class MachineServiceImplTest {
         // case 2: get from tbl
         when(machineTblDao.queryByMhaId(anyLong(), anyInt())).thenReturn(List.of(new MachineTbl("ip2", 3306, 1)));
         Endpoint result2 = machineServiceImpl.getMasterEndpoint("mha1");
-        Assert.assertEquals(new MySqlEndpoint("ip2", 3306, "mockUser", "mockPassword", true), result);
+        Assert.assertEquals(new MySqlEndpoint("ip2", 3306, "mockUser", "mockPassword", true), result2);
 
     }
 

@@ -8,9 +8,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
-import com.ctrip.framework.drc.console.enums.OperateTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -32,8 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.sql.*;
 import java.sql.Date;
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -125,6 +123,15 @@ public class MySqlUtils {
     private static final String SINGLE_QUOTE = "'";
     private static final String MARKS = "`";
     public static final String PRIMARY = "PRIMARY";
+
+    public static final String CREATE_GTID_TABLE_SQL = "CREATE TABLE IF NOT EXISTS `drcmonitordb`.`%s` (\n" +
+            "  `id` int NOT NULL,\n" +
+            "  `server_uuid` char(36) NOT NULL,\n" +
+            "  `gno` bigint NOT NULL,\n" +
+            "  `gtidset` longtext,\n" +
+            "  PRIMARY KEY (`id`,`server_uuid`)\n" +
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb3";
+
 
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
@@ -911,6 +918,32 @@ public class MySqlUtils {
             }
         }
         return dbs;
+    }
+
+    public static List<String> getTablesFromDb(Endpoint endpoint, String dbName) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+
+            String sql = String.format("show tables from %s", dbName);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet resultSet = readResource.getResultSet();
+            List<String> tables = Lists.newArrayList();
+
+            while (resultSet.next()) {
+                tables.add(resultSet.getString(1));
+            }
+            return tables;
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            throw ConsoleExceptionUtils.message(t.getMessage());
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
     }
 
     public static String getFirstUniqueIndex(Endpoint endpoint, String db, String table) {

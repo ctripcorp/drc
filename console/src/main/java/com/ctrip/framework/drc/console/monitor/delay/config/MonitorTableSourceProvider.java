@@ -31,6 +31,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DB_CLUSTER_MONITOR = "consistency.monitor.%s";
 
     private static final String DELAY_MONITOR_UPDATEDB_SWITCH = "delay.monitor.updatedb.switch";
+    private static final String DELAY_MONITOR_UPDATEDB_V2_SWITCH = "delay.monitor.updatedb.v2.switch";
 
     private static final String BTDHS_MONITOR_SWITCH = "btdhs.monitor.switch";
     private static final String MYSQL_CONFIGS_MONITOR_SWITCH = "mysql.configs.monitor.switch";
@@ -264,6 +265,10 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getDelayMonitorUpdatedbSwitch() {
         return getProperty(DELAY_MONITOR_UPDATEDB_SWITCH, SWITCH_STATUS_ON);
+    }
+
+    public boolean getDelayMonitorUpdateDbV2Switch() {
+        return SWITCH_STATUS_ON.equals(getProperty(DELAY_MONITOR_UPDATEDB_V2_SWITCH, SWITCH_STATUS_OFF));
     }
 
     public String getBtdhsMonitorSwitch() {

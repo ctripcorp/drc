@@ -421,7 +421,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return trxLogs;
         }
 
-        String dbFilter = Joiner.on("|").join(conflictDbBlacklist);
+        String dbFilter = Joiner.on(",").join(conflictDbBlacklist);
         AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
         trxLogs.stream().forEach(trxLog -> {
             List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream().filter(cflLog -> {
