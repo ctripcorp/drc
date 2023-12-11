@@ -75,6 +75,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
                 config.ip = messenger.getIp();
                 config.port = messenger.getPort();
                 config.setGtidExecuted(messenger.getGtidExecuted());
+                config.setApplyMode(messenger.getApplyMode());
                 String nameFilter = messenger.getNameFilter();
 
                 if (StringUtils.isNotBlank(nameFilter)) {
