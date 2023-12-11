@@ -104,14 +104,15 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
                 inExcludeGroup = false;
             }
-        } else {
-            // TODO: can remove in next version
-            if (checkPartialTransaction(value, value.isEverSeeGtid())) {
-                value.setSkipEvent(true);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
-                logger.warn("check event partial false, event type: {}", eventType);
-            }
         }
+//        else {
+//            // TODO: can remove in next version
+//            if (checkPartialTransaction(value, value.isEverSeeGtid())) {
+//                value.setSkipEvent(true);
+//                DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
+//                logger.warn("check event partial false, event type: {}", eventType);
+//            }
+//        }
     }
 
     private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid) {

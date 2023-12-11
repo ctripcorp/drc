@@ -49,7 +49,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     public Executor executor;
 
     @InstanceConfig(path = "target.poolSize")
-    public int poolSize = 30;
+    public int poolSize = 100;
 
     public int validationInterval = 30000;
 
@@ -78,7 +78,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
 
         properties.setMaxActive(poolSize);
         properties.setMaxIdle(poolSize);
-        properties.setInitialSize(10);
+        properties.setInitialSize(30);
         properties.setMinIdle(poolSize);
         properties.setValidator(new DrcDataSourceValidator(properties));
 

@@ -2,11 +2,11 @@ package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.activity.replicator.converter.TransactionTableApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
-import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -46,8 +46,8 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     }
 
     @Override
-    protected void handleApplierGtidEvent(FetcherEvent event) {
-        String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
+    protected void handleApplierGtidEvent(ApplierGtidEvent event) {
+        String currentUuid = event.getServerUUID().toString();
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
             loggerTT.info("[{}]uuid has changed, old uuid is: {}, new uuid is: {}", registryKey, lastUuid, currentUuid);
             GtidSet gtidSet = transactionTable.mergeRecord(currentUuid, true);
@@ -58,7 +58,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         }
 
         if (needFilter) {
-            String gtid =  ((ApplierGtidEvent) event).getGtid();
+            String gtid = event.getGtid();
             GtidSet gtidSet = context.fetchGtidSet();
 
             if (skipEvent = new GtidSet(gtid).isContainedWithin(gtidSet)) {
@@ -77,8 +77,8 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     @Override
     protected void persistPosition(GtidSet gtidSet) {
-        transactionTable.merge(toCompensateGtidSet);
-        logger.info("[Merge][{}] transaction table init merge: {}", registryKey, toCompensateGtidSet.toString());
+        transactionTable.merge(gtidSet);
+        logger.info("[Merge][{}] transaction table init merge: {}", registryKey, gtidSet.toString());
     }
 
     @Override

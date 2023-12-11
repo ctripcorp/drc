@@ -22,8 +22,8 @@ public class MqApplierDumpEventActivity extends ApplierDumpEventActivity {
 
     @Override
     protected void persistPosition(GtidSet gtidSet) {
-        mqPosition.union(toCompensateGtidSet);
-        logger.info("[Merge][{}] messenger init merge: {}", registryKey, toCompensateGtidSet.toString());
+        mqPosition.union(gtidSet);
+        logger.info("[Merge][{}] messenger init merge: {}", registryKey, gtidSet.toString());
     }
 
     @Override
