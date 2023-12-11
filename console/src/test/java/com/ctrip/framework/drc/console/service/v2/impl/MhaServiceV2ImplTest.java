@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
@@ -21,7 +22,6 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -239,8 +239,14 @@ public class MhaServiceV2ImplTest {
 
     @Test
     public void testGetMhaReplicatorSlaveDelay() throws Exception {
-        Mockito.when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://localhost:8080");
-        Mockito.when(domainConfig.getOpsAccessTokenFat()).thenReturn("token1");
+        if (EnvUtils.fat()) {
+            Mockito.when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://localhost:8080");
+            Mockito.when(domainConfig.getOpsAccessTokenFat()).thenReturn("token1");
+        } else {
+            Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://localhost:8080");
+            Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("token1");
+        }
+
         Mockito.when(opsApiServiceImpl.getMhaReplicationDelay(Mockito.anyString(), Mockito.anyString())).thenReturn(getDelayInfo());
         Map<String, Long> mhaServiceV2MhaReplicatorSlaveDelay = mhaServiceV2.getMhaReplicatorSlaveDelay(
                 Lists.newArrayList("mha1"));

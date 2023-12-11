@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
-import com.ctrip.framework.drc.console.service.v2.ForwardService;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
@@ -59,7 +59,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
-    private ForwardService forwardService;
+    private CentralService centralService;
     @Autowired
     private DefaultConsoleConfig defaultConsoleConfig;
 
@@ -116,7 +116,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
     }
 
     private Map<String, List<MhaDbReplicationDto>> getMhaDbReplicationByDc(String dcName) throws Exception {
-        List<MhaDbReplicationDto> mhaDbMappingTblV2s = forwardService.getMhaDbReplications(dcName);
+        List<MhaDbReplicationDto> mhaDbMappingTblV2s = centralService.getMhaDbReplications(dcName);
         if (CollectionUtils.isEmpty(mhaDbMappingTblV2s)) {
             return Maps.newHashMap();
         }

@@ -31,7 +31,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Component
 @Order(1)
-@DependsOn({"dalServiceImpl", "drcMaintenanceServiceImpl"})
+@DependsOn({"dalServiceImpl"})
 public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
     public static final int INITIAL_DELAY = 1;

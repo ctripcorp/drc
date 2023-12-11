@@ -2,15 +2,13 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
-import com.ctrip.framework.drc.console.service.v2.ForwardService;
+import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,20 +21,32 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/drc/v2/centralService/")
 public class CentralServiceController {
-    
-    @Autowired private ForwardService forwardService;
-    
+
+    @Autowired
+    private CentralService centralService;
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     @GetMapping("mhaTblV2s")
     public ApiResult getMhaTblV2s(@RequestParam String dcName) {
         try {
             logger.info("[[tag=centralService]] getMhaTblV2s");
-            List<MhaTblV2> mhaTblV2s = forwardService.getMhaTblV2s(dcName);
+            List<MhaTblV2> mhaTblV2s = centralService.getMhaTblV2s(dcName);
             return ApiResult.getSuccessInstance(mhaTblV2s);
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getMhaTblV2s fail");
-            return ApiResult.getFailInstance(null,"getMhaTblV2s fail");
+            return ApiResult.getFailInstance(null, "getMhaTblV2s fail");
+        }
+    }
+
+    @PostMapping("ddlHistory")
+    public ApiResult<Integer> insertDdlHistory(@RequestBody DdlHistoryEntity requestBody) {
+        try {
+            logger.info("insertDdlHistory requestBody: {}", requestBody);
+            return ApiResult.getSuccessInstance(centralService.insertDdlHistory(requestBody));
+        } catch (Exception e) {
+            logger.info("insertDdlHistory fail, requestBody: {}", requestBody, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
@@ -44,7 +54,7 @@ public class CentralServiceController {
     public ApiResult getMhaDbReplications(@RequestParam String dcName) {
         try {
             logger.info("[[tag=centralService]] getMhaDbReplications");
-            List<MhaDbReplicationDto> mhaDbReplications = forwardService.getMhaDbReplications(dcName);
+            List<MhaDbReplicationDto> mhaDbReplications = centralService.getMhaDbReplications(dcName);
             return ApiResult.getSuccessInstance(mhaDbReplications);
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getMhaDbReplications fail");

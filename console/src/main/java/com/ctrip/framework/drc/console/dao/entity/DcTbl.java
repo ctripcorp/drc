@@ -61,6 +61,11 @@ public class DcTbl implements DalPojo {
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp datachangeLasttime;
 
+	public static DcTbl createDcPojo(String dcName) {
+		DcTbl daoPojo = new DcTbl();
+		daoPojo.setDcName(dcName);
+		return daoPojo;
+	}
 	public Long getId() {
 		return id;
 	}

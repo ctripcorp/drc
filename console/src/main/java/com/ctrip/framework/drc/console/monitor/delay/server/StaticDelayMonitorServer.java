@@ -4,7 +4,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveCon
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2;
-import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
@@ -32,6 +33,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -62,7 +64,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private ScheduledExecutorService checkScheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(2,"DelayMonitor");
 
-    private DalUtils dalUtils = DalUtils.getInstance();
+    @Autowired
+    private CentralService centralService;
 
     private MySQLConnector mySQLConnector;
 
@@ -201,17 +204,14 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         log(data, INFO, null);
                         String catName = String.format("%s.%s.%s.%s", config.getCluster(), config.getDestMha(), schema, table);
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.truncate", catName);
-                        dalUtils.insertDdlHistory(config.getDestMha(), ddl, queryType.ordinal(), schema, table);
+
+                        DdlHistoryEntity entity = new DdlHistoryEntity(config.getMha(), ddl, queryType.ordinal(), schema, table);
+                        centralService.insertDdlHistory(entity);
                     } catch (Throwable t) {
                         String data = String.format("Fail insert truncate history for %s.%s", schema, table);
                         log(data, ERROR, t);
                     }
                 }
-//                if (QueryType.CREATE.equals(queryType) && isReplicatorMaster) {
-//                    // add in qconfig
-//                    messengerService.addDalClusterMqConfigByDDL(config.getDestDc(), config.getDestMha(), schema, table);
-//                    log("[DDL] addDalClusterMqConfig table,res" + schema + "." + table,INFO,null);
-//                }
             } catch (Exception e) {
                 log("[parse] ParsedDdlLogEvent: ", ERROR, e);
             } finally {

@@ -18,7 +18,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
@@ -77,7 +76,7 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARAC
  */
 @Service
 public class MessengerServiceV2Impl implements MessengerServiceV2 {
-    private static final Logger logger = LoggerFactory.getLogger(MessengerServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessengerServiceV2Impl.class);
     private final TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance();
     private DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "mhaReplicationService");

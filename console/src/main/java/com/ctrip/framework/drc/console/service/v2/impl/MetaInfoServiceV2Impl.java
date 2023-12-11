@@ -91,7 +91,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
     @Autowired
-    MessengerServiceV2 messengerService;
+    private MessengerServiceV2 messengerService;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
@@ -100,6 +100,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+
 
     @Override
     public Drc getDrcReplicationConfig(Long replicationId) {

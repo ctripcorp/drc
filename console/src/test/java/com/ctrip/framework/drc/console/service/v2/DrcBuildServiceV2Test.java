@@ -85,6 +85,10 @@ public class DrcBuildServiceV2Test {
     @Mock
     private DcTblDao dcTblDao;
     @Mock
+    private RouteTblDao routeTblDao;
+    @Mock
+    private ProxyTblDao proxyTblDao;
+    @Mock
     private CacheMetaService cacheMetaService;
     @Mock
     private MetaProviderV2 metaProviderV2;
@@ -429,6 +433,5 @@ public class DrcBuildServiceV2Test {
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
     }
-
 
 }

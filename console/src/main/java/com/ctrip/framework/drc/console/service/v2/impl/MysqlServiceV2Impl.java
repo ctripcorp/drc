@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
@@ -46,6 +48,10 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Autowired
     private CacheMetaService cacheMetaService;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private DdlHistoryTblDao ddlHistoryTblDao;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -314,4 +320,5 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
         return Boolean.TRUE.equals(res);
     }
+
 }

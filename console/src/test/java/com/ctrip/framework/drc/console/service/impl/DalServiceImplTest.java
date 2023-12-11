@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.config.DbClusterRetriever;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.pojo.Mha;
-import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.core.service.dal.DalClusterTypeEnum;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.foundation.Env;
@@ -166,7 +165,7 @@ public class DalServiceImplTest {
     @Test
     public void testGetDbNames() throws Exception {
         List<String> mhaNames = Lists.newArrayList();
-        mhaNames.add(SyncTableConfigTaskTest.MHA_NAME);
+        mhaNames.add("testMhaName");
 
         String uri = "URI_getInstanceGroupsInfo";
         String INSTANCE_GROUP_RESULT = "{\n" +
