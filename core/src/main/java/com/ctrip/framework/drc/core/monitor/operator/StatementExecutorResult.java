@@ -6,7 +6,7 @@ package com.ctrip.framework.drc.core.monitor.operator;
  */
 public class StatementExecutorResult {
     /**
-     * 0-success 1-fail
+     * 1-success 2-fail
      */
     private int result;
     private String message;

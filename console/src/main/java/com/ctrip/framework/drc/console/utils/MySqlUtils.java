@@ -862,11 +862,11 @@ public class MySqlUtils {
         return "three accounts ready";
     }
 
-    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, int columnSize) throws Exception {
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, List<String> uniqueIndexColumns, int columnSize) throws Exception {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
-            Map<String, String> parseResultMap = parseSql(rawSql, onUpdateColumns);
+            Map<String, String> parseResultMap = parseSql(rawSql, onUpdateColumns, uniqueIndexColumns);
 
             String tableName = parseResultMap.get("tableName");
             String sql = String.format(SELECT_SQL, tableName, parseResultMap.get("conditionStr"));
@@ -930,7 +930,7 @@ public class MySqlUtils {
                 }
             }
         } catch (Throwable t) {
-            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            logger.error("[[monitor=table,endpoint={}:{}]] getFirstUniqueIndex error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
             return null;
         } finally {
@@ -939,6 +939,28 @@ public class MySqlUtils {
             }
         }
         return null;
+    }
+
+    public static List<String> getUniqueIndex(Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(INDEX_QUERY, db, table);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+
+            List<List<String>> identifies = extractIndex(rs);
+            return identifies.stream().flatMap(Collection::stream).distinct().collect(Collectors.toList());
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getUniqueIndex error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return new ArrayList<>();
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
     }
 
     public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
@@ -1013,7 +1035,7 @@ public class MySqlUtils {
         return ret;
     }
 
-    public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns) {
+    public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns, List<String> uniqueIndexColumns) {
         Map<String, String> parseResult = new HashMap<>();
 
         String dbType = JdbcConstants.MYSQL;
@@ -1062,6 +1084,9 @@ public class MySqlUtils {
             StringBuilder condition = new StringBuilder();
             for (int i = 0; i < columns.size(); i++) {
                 String columnName = columns.get(i).toString();
+                if (!uniqueIndexColumns.contains(columnName)) {
+                    continue;
+                }
                 if (onUpdateColumns.contains(columnName)) {
                     continue;
                 }

@@ -44,7 +44,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -53,7 +52,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -558,7 +556,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
 
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
-        Map<String, String> uniqueIndexMap = getUniqueIndex(conflictRowsLogTbls, srcMhaName);
+        Map<String, List<String>> uniqueIndexMap = getUniqueIndex(conflictRowsLogTbls, srcMhaName);
 
         Map<Long, Map<String, Object>> srcRecordMap = new HashMap<>();
         Map<Long, Map<String, Object>> dstRecordMap = new HashMap<>();
@@ -668,21 +666,28 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictTrxLogTbl> trxLogTbls = conflictTrxLogTblDao.queryByIds(Lists.newArrayList(rowsLogTblMap.keySet()));
         Map<Long, ConflictTrxLogTbl> trxLogTblMap = trxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
 
-        List<ListenableFuture<Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>>>> futures = new ArrayList<>();
-        rowsLogTblMap.forEach((trxLogId, rowsLogTbls) -> {
+        List<ListenableFuture<ColumnsFilterAndIndexColumn>> futures = new ArrayList<>();
+
+        for (Map.Entry<Long, List<ConflictRowsLogTbl>> entry : rowsLogTblMap.entrySet()) {
+            long trxLogId = entry.getKey();
+            List<ConflictRowsLogTbl> rowsLogTbls = entry.getValue();
             ConflictTrxLogTbl trxLogTbl = trxLogTblMap.get(trxLogId);
-            ListenableFuture<Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>>> future =
-                    compareExecutorService.submit(() -> getColumnsFilterAndOnUpdateColumn(trxLogTbl, rowsLogTbls));
+
+            ListenableFuture<ColumnsFilterAndIndexColumn> future =
+                    compareExecutorService.submit(() -> getColumnsFilterAndIndexColumn(trxLogTbl, rowsLogTbls));
             futures.add(future);
-        });
+        }
+
 
         Map<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>> columnFilterMap = new HashMap<>();
         Map<String, List<String>> onUpdateColumnMap = new HashMap<>();
-        for (ListenableFuture<Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>>> future : futures) {
+        Map<String, List<String>> uniqueIndexMap = new HashMap<>();
+        for (ListenableFuture<ColumnsFilterAndIndexColumn> future : futures) {
             try {
-                Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>> result = future.get(10, TimeUnit.SECONDS);
-                columnFilterMap.put(result.getLeft(), result.getMiddle());
-                onUpdateColumnMap.putAll(result.getRight());
+                ColumnsFilterAndIndexColumn result = future.get(10, TimeUnit.SECONDS);
+                columnFilterMap.put(result.getTrxLogId(), result.getColumnsFilerPair());
+                onUpdateColumnMap.putAll(result.getOnUpdateColumnMap());
+                uniqueIndexMap.putAll(result.getUniqueIndexColumnMap());
             } catch (Exception e) {
                 throw ConsoleExceptionUtils.message("compare row logs timeout");
             }
@@ -692,13 +697,14 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
             String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
             List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
+            List<String> uniqueIndexColumns = uniqueIndexMap.getOrDefault(tableName, new ArrayList<>());
             Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = columnFilterMap.get(rowLog.getConflictTrxLogId());
             ConflictTrxLogTbl trxLogTbl = trxLogTblMap.get(rowLog.getConflictTrxLogId());
             String srcMhaName = trxLogTbl.getSrcMhaName();
             String dstMhaName = trxLogTbl.getDstMhaName();
 
             ListenableFuture<ConflictRowRecordCompareEqualView> future = executorService.submit(() ->
-                    getRowRecordCompareView(rowLog, srcMhaName, dstMhaName, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
+                    getRowRecordCompareView(rowLog, srcMhaName, dstMhaName, Pair.of(onUpdateColumns, uniqueIndexColumns), columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
             recordFutures.add(future);
         }
 
@@ -718,34 +724,32 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private ConflictRowRecordCompareEqualView getRowRecordCompareView(ConflictRowsLogTbl rowLog,
                                                                       String srcMhaName,
                                                                       String dstMhaName,
-                                                                      List<String> onUpdateColumns,
+                                                                      Pair<List<String>, List<String>> indexColumnPair,
                                                                       List<DbReplicationView> dbReplicationViews,
                                                                       Map<Long, List<String>> columnsFieldMap) {
         ConflictRowRecordCompareEqualView view = new ConflictRowRecordCompareEqualView();
         view.setRowLogId(rowLog.getId());
         Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> record =
-                queryRecords(rowLog, srcMhaName, dstMhaName, TWELVE, onUpdateColumns, dbReplicationViews, columnsFieldMap);
+                queryRecords(rowLog, srcMhaName, dstMhaName, TWELVE, indexColumnPair, dbReplicationViews, columnsFieldMap);
         view.setRecordIsEqual(record.getLeft());
         return view;
     }
 
-
-
-    private Triple<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>, Map<String, List<String>>> getColumnsFilterAndOnUpdateColumn(
-            ConflictTrxLogTbl trxLogTbl, List<ConflictRowsLogTbl> rowsLogTbls) throws Exception {
+    private ColumnsFilterAndIndexColumn getColumnsFilterAndIndexColumn(ConflictTrxLogTbl trxLogTbl, List<ConflictRowsLogTbl> rowsLogTbls) throws Exception {
         String srcMhaName = trxLogTbl.getSrcMhaName();
         String dstMhaName = trxLogTbl.getDstMhaName();
         Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(rowsLogTbls, srcMhaName);
+        Map<String, List<String>> uniqueIndexColumnMap = getUniqueIndex(rowsLogTbls, srcMhaName);
 
-        return Triple.of(trxLogTbl.getId(), columnsFilerPair, onUpdateColumnMap);
+        return new ColumnsFilterAndIndexColumn(trxLogTbl.getId(), columnsFilerPair, onUpdateColumnMap, uniqueIndexColumnMap);
     }
 
 
     private String createConflictHandleSql(ConflictRowsLogTbl rowLog,
                                            boolean writeToDstMha,
                                            Map<String, List<String>> onUpdateColumnMap,
-                                           Map<String, String> uniqueIndexMap,
+                                           Map<String, List<String>> uniqueIndexMap,
                                            Pair<List<String>, List<String>> columnPair,
                                            Pair<Map<String, String>, Map<String, String>> columnTypePair,
                                            Pair<Map<Long, Map<String, Object>>, Map<Long, Map<String, Object>>> recordPair) {
@@ -755,7 +759,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (!CollectionUtils.isEmpty(onUpdateColumns)) {
             onUpdateColumn = onUpdateColumns.get(0);
         }
-        String uniqueIndex = uniqueIndexMap.get(tableName);
+        List<String> uniqueIndexColumns = uniqueIndexMap.get(tableName);
 
         Map<Long, Map<String, Object>> srcRecordMap = recordPair.getLeft();
         Map<Long, Map<String, Object>> dstRecordMap = recordPair.getRight();
@@ -770,14 +774,14 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, String> sourceColumnType = writeToDstMha ? srcColumnType : dstColumnType;
         Map<String, String> targetColumnType = writeToDstMha ? dstColumnType : srcColumnType;
 
-        return createConflictHandleSql(rowLog.getDbName(), rowLog.getTableName(), onUpdateColumn, uniqueIndex, columnPair,
+        return createConflictHandleSql(rowLog.getDbName(), rowLog.getTableName(), onUpdateColumn, uniqueIndexColumns, columnPair,
                 Pair.of(sourceRecord, targetRecord), Pair.of(sourceColumnType, targetColumnType));
     }
 
     private String createConflictHandleSql(String dbName,
                                            String tableName,
                                            String onUpdateColumn,
-                                           String uniqueIndex,
+                                           List<String> uniqueIndexColumns,
                                            Pair<List<String>, List<String>> columnPair,
                                            Pair<Map<String, Object>, Map<String, Object>> recordPair,
                                            Pair<Map<String, String>, Map<String, String>> columnTypePair) {
@@ -790,20 +794,20 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         String fullTableName = MySqlUtils.toSqlField(dbName) + "." + MySqlUtils.toSqlField(tableName);
         if (sourceRecord != null && targetRecord != null) {  //update
-            return createUpdateSql(filterColumns, fullTableName, onUpdateColumn, uniqueIndex, recordPair, columnTypePair);
+            return createUpdateSql(filterColumns, fullTableName, onUpdateColumn, uniqueIndexColumns, recordPair, columnTypePair);
         } else if (sourceRecord != null) {  //insert
             return createInsertSql(fullTableName, filterColumns, commonColumns, sourceColumnType, sourceRecord);
         } else if (targetRecord != null) {  //delete
-            return createDeleteSql(fullTableName, onUpdateColumn, uniqueIndex, targetRecord, targetColumnType);
+            return createDeleteSql(fullTableName, onUpdateColumn, uniqueIndexColumns, targetRecord, targetColumnType);
         } else {
             return EMPTY_SQL;
         }
     }
 
     //onUpdateColumn - `datachange_lasttime`, uniqueIndex - id
-    private String createDeleteSql(String tableName, String onUpdateColumn, String uniqueIndex, Map<String, Object> targetRecord, Map<String, String> targetColumnType) {
+    private String createDeleteSql(String tableName, String onUpdateColumn, List<String> uniqueIndexColumns, Map<String, Object> targetRecord, Map<String, String> targetColumnType) {
         StringBuilder whereCondition = new StringBuilder();
-        String uniqueIndexCondition = MySqlUtils.toSqlField(uniqueIndex) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(uniqueIndex), targetColumnType.get(uniqueIndex));
+        String uniqueIndexCondition = Joiner.on(" AND ").join(uniqueIndexColumns.stream().map(uniqueIndex -> buildUniqueIndexCondition(uniqueIndex, targetRecord, targetColumnType)).collect(Collectors.toList()));
 
         String onUpdateColumnName = onUpdateColumn.replace(MARKS, "");
         String onUpdateCondition = onUpdateColumn + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(onUpdateColumnName), targetColumnType.get(onUpdateColumnName));
@@ -833,7 +837,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private String createUpdateSql(List<String> filterColumns,
                                    String tableName,
                                    String onUpdateColumn,
-                                   String uniqueIndex,
+                                   List<String> uniqueIndexColumns,
                                    Pair<Map<String, Object>, Map<String, Object>> recordPair,
                                    Pair<Map<String, String>, Map<String, String>> columnTypePair) {
         Map<String, Object> sourceRecord = recordPair.getLeft();
@@ -863,13 +867,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         String setFiledSql = Joiner.on(",").join(setFields);
 
         StringBuilder whereCondition = new StringBuilder();
-        String uniqueIndexCondition = MySqlUtils.toSqlField(uniqueIndex) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(sourceRecord.get(uniqueIndex), sourceColumnType.get(uniqueIndex));
+        String uniqueIndexCondition = Joiner.on(" AND ").join(uniqueIndexColumns.stream().map(uniqueIndex -> buildUniqueIndexCondition(uniqueIndex, sourceRecord, sourceColumnType)).collect(Collectors.toList()));
 
         String onUpdateColumnName = onUpdateColumn.replace(MARKS, "");
         String onUpdateCondition = onUpdateColumn + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(onUpdateColumnName), targetColumnType.get(onUpdateColumnName));
         whereCondition.append(uniqueIndexCondition).append(" AND ").append(onUpdateCondition);
 
         return String.format(UPDATE_SQL, tableName, setFiledSql, whereCondition);
+    }
+
+    private String buildUniqueIndexCondition(String uniqueIndex, Map<String, Object> record, Map<String, String> columnType) {
+        return MySqlUtils.toSqlField(uniqueIndex) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(record.get(uniqueIndex), columnType.get(uniqueIndex));
     }
 
     private Pair<String, String> getMhaPair(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {
@@ -897,12 +905,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
+        Map<String, List<String>> uniqueIndexMap = getUniqueIndex(conflictRowsLogTbls, srcMhaName);
+
         List<ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>>> futures = new ArrayList<>();
         for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
             String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
             List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
+            List<String> uniqueIndexColumns = uniqueIndexMap.getOrDefault(tableName, new ArrayList<>());
             ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future = executorService.submit(() ->
-                    queryRecords(rowLog, srcMhaName, dstMhaName, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
+                    queryRecords(rowLog, srcMhaName, dstMhaName, columnSize, Pair.of(onUpdateColumns, uniqueIndexColumns), columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
             futures.add(future);
         }
 
@@ -1066,18 +1077,18 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return columnMap;
     }
 
-    private Map<String, String> getUniqueIndex(List<ConflictRowsLogTbl> conflictRowsLogTbls, String mhaName) {
+    private Map<String, List<String>> getUniqueIndex(List<ConflictRowsLogTbl> conflictRowsLogTbls, String mhaName) {
         List<String> tableNames = conflictRowsLogTbls.stream().map(rowLog -> rowLog.getDbName() + "." + rowLog.getTableName()).distinct().collect(Collectors.toList());
-        List<ListenableFuture<Pair<String, String>>> futures = new ArrayList<>();
+        List<ListenableFuture<Pair<String, List<String>>>> futures = new ArrayList<>();
         for (String tableName : tableNames) {
-            ListenableFuture<Pair<String, String>> future = executorService.submit(() -> queryUniqueIndex(mhaName, tableName));
+            ListenableFuture<Pair<String, List<String>>> future = executorService.submit(() -> queryUniqueIndex(mhaName, tableName));
             futures.add(future);
         }
 
-        Map<String, String> uniqueIndexMap = new HashMap<>();
-        for (ListenableFuture<Pair<String, String>> future : futures) {
+        Map<String, List<String>> uniqueIndexMap = new HashMap<>();
+        for (ListenableFuture<Pair<String, List<String>>> future : futures) {
             try {
-                Pair<String, String> resultPair = future.get(5, TimeUnit.SECONDS);
+                Pair<String, List<String>> resultPair = future.get(5, TimeUnit.SECONDS);
                 uniqueIndexMap.put(resultPair.getLeft(), resultPair.getRight());
             } catch (Exception e) {
                 logger.error("getUniqueIndex error mha: {}", mhaName, e);
@@ -1094,10 +1105,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return Pair.of(tableName, onUpdateColumns);
     }
 
-    private Pair<String, String> queryUniqueIndex(String mha, String tableName) {
+    private Pair<String, List<String>> queryUniqueIndex(String mha, String tableName) {
         String[] tables = tableName.split("\\.");
-        String indexColumn = mysqlService.getFirstUniqueIndex(mha, tables[0], tables[1]);
-        return Pair.of(tableName, indexColumn);
+        List<String> indexColumns = mysqlService.getUniqueIndex(mha, tables[0], tables[1]);
+        return Pair.of(tableName, indexColumns);
     }
 
     private ConflictTrxLogTbl buildConflictTrxLog(ConflictTransactionLog trxLog) {
@@ -1161,15 +1172,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                                                                                        String srcMhaName,
                                                                                        String dstMhaName,
                                                                                        int columnSize,
-                                                                                       List<String> onUpdateColumns,
+                                                                                       Pair<List<String>, List<String>> indexColumnPair,
                                                                                        List<DbReplicationView> dbReplicationViews,
                                                                                        Map<Long, List<String>> columnsFieldMap) {
         String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
         Map<String, Object> srcResultMap;
         Map<String, Object> dstResultMap;
+        List<String> onUpdateColumns = indexColumnPair.getLeft();
+        List<String> uniqueIndexColumn = indexColumnPair.getRight().stream().map(MySqlUtils::toSqlField).collect(Collectors.toList());
         try {
-            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
-            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, uniqueIndexColumn, columnSize));
+            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, uniqueIndexColumn, columnSize));
         } catch (Exception e) {
             throw ConsoleExceptionUtils.message(e.getMessage());
         }
@@ -1336,6 +1349,56 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         } catch (Exception e) {
             logger.error("queryBlackList error", e);
             return Collections.emptyList();
+        }
+    }
+
+    private class ColumnsFilterAndIndexColumn{
+        private long trxLogId;
+        private Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair;
+        private Map<String, List<String>> onUpdateColumnMap;
+        Map<String, List<String>> uniqueIndexColumnMap;
+
+
+        public ColumnsFilterAndIndexColumn() {
+        }
+
+        public ColumnsFilterAndIndexColumn(long trxLogId, Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair, Map<String, List<String>> onUpdateColumnMap, Map<String, List<String>> uniqueIndexColumnMap) {
+            this.trxLogId = trxLogId;
+            this.columnsFilerPair = columnsFilerPair;
+            this.onUpdateColumnMap = onUpdateColumnMap;
+            this.uniqueIndexColumnMap = uniqueIndexColumnMap;
+        }
+
+        public long getTrxLogId() {
+            return trxLogId;
+        }
+
+        public void setTrxLogId(long trxLogId) {
+            this.trxLogId = trxLogId;
+        }
+
+        public Pair<List<DbReplicationView>, Map<Long, List<String>>> getColumnsFilerPair() {
+            return columnsFilerPair;
+        }
+
+        public void setColumnsFilerPair(Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair) {
+            this.columnsFilerPair = columnsFilerPair;
+        }
+
+        public Map<String, List<String>> getOnUpdateColumnMap() {
+            return onUpdateColumnMap;
+        }
+
+        public void setOnUpdateColumnMap(Map<String, List<String>> onUpdateColumnMap) {
+            this.onUpdateColumnMap = onUpdateColumnMap;
+        }
+
+        public Map<String, List<String>> getUniqueIndexColumnMap() {
+            return uniqueIndexColumnMap;
+        }
+
+        public void setUniqueIndexColumnMap(Map<String, List<String>> uniqueIndexColumnMap) {
+            this.uniqueIndexColumnMap = uniqueIndexColumnMap;
         }
     }
 }

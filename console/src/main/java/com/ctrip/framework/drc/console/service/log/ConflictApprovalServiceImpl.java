@@ -184,6 +184,12 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         String dbName = resultPair.getRight();
         String targetMhaName = BooleanEnum.FALSE.getCode().equals(param.getWriteSide()) ? batchTbl.getDstMhaName() : batchTbl.getSrcMhaName();
 
+        MysqlWriteEntity entity = new MysqlWriteEntity(targetMhaName, Constants.CREATE_DRC_WRITE_FILTER, MysqlAccountTypeEnum.DRC_CONSOLE.getCode());
+        StatementExecutorResult result = mysqlServiceV2.write(entity);
+        if (result == null || result.getResult() != SqlResultEnum.SUCCESS.getCode()) {
+            throw ConsoleExceptionUtils.message("createConflictApproval fail, " + result.getMessage());
+        }
+
         List<ConflictAutoHandleTbl> autoHandleTbls = handleSqlDtos.stream().map(source -> {
             ConflictAutoHandleTbl target = new ConflictAutoHandleTbl();
             target.setBatchId(batchId);

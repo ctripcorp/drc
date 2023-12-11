@@ -54,5 +54,7 @@ public interface MysqlServiceV2 {
 
     String getFirstUniqueIndex(String mha, String db, String table);
 
+    List<String> getUniqueIndex(String mha, String db, String table);
+
     StatementExecutorResult write(MysqlWriteEntity requestBody);
 }
