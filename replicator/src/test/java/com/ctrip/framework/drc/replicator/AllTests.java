@@ -133,31 +133,37 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
 })
 public class AllTests {
 
-    public static final String ROW_FILTER_PROPERTIES = "{" +
-            "  \"rowsFilters\": [" +
-            "    {" +
-            "      \"mode\": \"%s\"," +
-            "      \"tables\": \"drc1.insert1\"," +
-            "      \"parameters\": {" +
-            "        \"columns\": [" +
-            "          \"id\"," +
-            "          \"one\"" +
-            "        ]," +
-            "        \"context\": \"regre2\"" +
-            "      }" +
-            "    }" +
-            "  ]," +
-            "  \"talbePairs\": [" +
-            "    {" +
-            "      \"source\": \"sourceTableName1\"," +
-            "      \"target\": \"targetTableName1\"" +
-            "    }," +
-            "    {" +
-            "      \"source\": \"sourceTableName2\"," +
-            "      \"target\": \"targetTableName2\"" +
-            "    }" +
-            "  ]" +
-            "}";
+    public static final String ROW_FILTER_PROPERTIES = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"%s\",\n" +
+            "      \"tables\": \"drc1.insert1\",\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"id\",\n" +
+            "              \"one\"\n" +
+            "            ],\n" +
+            "            \"context\": \"regre2\"\n" +
+            "          }\n" +
+            "        ],\n" +
+            "        \"drcStrategyId\": 2000000002,\n" +
+            "        \"routeStrategyId\": 0\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"talbePairs\": [\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName1\",\n" +
+            "      \"target\": \"targetTableName1\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName2\",\n" +
+            "      \"target\": \"targetTableName2\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}\n";
 
     public static final int SRC_PORT = 13309;
 
