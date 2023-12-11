@@ -109,6 +109,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                 targetIdc = applier.getTargetIdc();
                 targetName = applier.getTargetName();
                 replicatorMhaName = applier.getTargetMhaName();
+                break;
             }
         }
         if (targetIdc == null) {
