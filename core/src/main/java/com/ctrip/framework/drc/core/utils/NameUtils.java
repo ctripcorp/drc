@@ -49,8 +49,12 @@ public class NameUtils {
 
     public static String dotSchemaIfNeed(String name, int applyMode, String includedDbs) {
         String finalName = name;
-        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
-            finalName = name + "." + includedDbs;
+        switch (ApplyMode.getApplyMode(applyMode)) {
+            case db_transaction_table:
+            case db_mq:
+                finalName = name + "." + includedDbs;
+                break;
+            default:
         }
         return finalName;
     }
