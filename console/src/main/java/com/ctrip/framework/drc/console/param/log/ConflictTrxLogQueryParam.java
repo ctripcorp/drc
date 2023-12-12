@@ -17,8 +17,26 @@ public class ConflictTrxLogQueryParam {
     private String gtId;
     private Long beginHandleTime;
     private Long endHandleTime;
+    private String createBeginTime;
+    private String createEndTime;
     private Integer trxResult;
     private PageReq pageReq;
+
+    public String getCreateBeginTime() {
+        return createBeginTime;
+    }
+
+    public void setCreateBeginTime(String createBeginTime) {
+        this.createBeginTime = createBeginTime;
+    }
+
+    public String getCreateEndTime() {
+        return createEndTime;
+    }
+
+    public void setCreateEndTime(String createEndTime) {
+        this.createEndTime = createEndTime;
+    }
 
     public String getSrcMhaName() {
         return srcMhaName;

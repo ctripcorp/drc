@@ -392,6 +392,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (param.getEndHandleTime() <= param.getBeginHandleTime()) {
             throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
+        param.setCreateBeginTime(DateUtils.getStartDateOfDay(param.getBeginHandleTime()));
+        param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime()));
         Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
         param.setAdmin(permissionAndDbsCanQuery.getLeft());
         param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
@@ -404,6 +406,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (param.getEndHandleTime() <= param.getBeginHandleTime()) {
             throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
+        param.setCreateBeginTime(DateUtils.getStartDateOfDay(param.getBeginHandleTime()));
+        param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime()));
+
         Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
         param.setAdmin(adminAndDbs.getLeft());
         param.setDbsWithPermission(adminAndDbs.getRight());

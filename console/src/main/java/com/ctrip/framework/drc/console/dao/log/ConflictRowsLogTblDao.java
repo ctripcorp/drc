@@ -95,6 +95,13 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
             sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
         }
+
+        if (StringUtils.isNotBlank(param.getCreateBeginTime())) {
+            sqlBuilder.and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP);
+        }
+        if (StringUtils.isNotBlank(param.getCreateEndTime())) {
+            sqlBuilder.and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
+        }
         return sqlBuilder;
     }
 
