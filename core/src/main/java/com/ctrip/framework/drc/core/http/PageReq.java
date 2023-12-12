@@ -44,6 +44,15 @@ public class PageReq implements Serializable {
     }
 
     @Override
+    public String toString() {
+        return "PageReq{" +
+                "pageIndex=" + pageIndex +
+                ", pageSize=" + pageSize +
+                ", totalCount=" + totalCount +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof PageReq)) return false;
