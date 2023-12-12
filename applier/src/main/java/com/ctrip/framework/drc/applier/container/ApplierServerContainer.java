@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.google.common.io.Files;
@@ -48,7 +47,6 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
 
     public boolean addServer(ApplierConfigDto config) throws Exception {
         String clusterKey = config.getRegistryKey();
-        clusterKey = NameUtils.dotSchemaIfNeed(clusterKey, config.getApplyMode(), config.getIncludedDbs());
         if (servers.containsKey(clusterKey)) {
             logger.info("applier servers contains {}", clusterKey);
             ApplierServerInCluster activeServer = servers.get(clusterKey);
@@ -84,7 +82,6 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
 
     protected void doAddServer(ApplierConfigDto config) throws Exception {
         String clusterKey = config.getRegistryKey();
-        clusterKey = NameUtils.dotSchemaIfNeed(clusterKey, config.getApplyMode(), config.getIncludedDbs());
         ApplierServerInCluster newServer = getApplierServer(config);
         newServer.initialize();
         newServer.start();
@@ -104,6 +101,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
             case db_transaction_table:
                 return new TransactionTableApplierServerInCluster(config);
             case mq:
+            case db_mq:
                 return new MqServerInCluster(config);
             default:
                 return new ApplierServerInCluster(config);
