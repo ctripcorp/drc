@@ -13,7 +13,9 @@ import org.springframework.util.CollectionUtils;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -117,7 +119,7 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         insertWithKeyHolder(keyHolder, dbReplicationTbls);
         List<Number> idList = keyHolder.getIdList();
         int size = dbReplicationTbls.size();
-        for (int i = 0; i <size; i++) {
+        for (int i = 0; i < size; i++) {
             dbReplicationTbls.get(i).setId((Long) idList.get(i));
         }
     }
@@ -135,4 +137,16 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         return client.query(sqlBuilder, new DalHints());
     }
 
+    public List<DbReplicationTbl> queryBySamples(List<DbReplicationTbl> samples) throws SQLException {
+        if (CollectionUtils.isEmpty(samples)) {
+            return Collections.emptyList();
+        }
+        return queryBySQL(buildSQL(samples));
+    }
+
+    private String buildSQL(List<DbReplicationTbl> samples) {
+        // e.g: (src_mha_db_mapping_id, dst_mha_db_mapping_id, replication_type) IN ((13119, 13126, 0), (13161, 13189, 0));
+        List<String> list = samples.stream().map(e -> String.format("(%d,%d,%d)", e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId(), e.getReplicationType())).collect(Collectors.toList());
+        return String.format("(%s, %s, %s) in (%s) and deleted = 0", SRC_MHA_DB_MAPPING_ID, DST_MHA_DB_MAPPING_ID, REPLICATION_TYPE, String.join(",", list));
+    }
 }

@@ -85,6 +85,10 @@ public class DrcBuildServiceV2Test {
     @Mock
     private DcTblDao dcTblDao;
     @Mock
+    private RouteTblDao routeTblDao;
+    @Mock
+    private ProxyTblDao proxyTblDao;
+    @Mock
     private CacheMetaService cacheMetaService;
     @Mock
     private MetaProviderV2 metaProviderV2;
@@ -106,6 +110,8 @@ public class DrcBuildServiceV2Test {
     @Mock
     private ConflictLogService conflictLogService;
 
+    @Mock
+    private MhaDbReplicationService mhaDbReplicationService;
 
     @Before
     public void setUp() {
@@ -198,7 +204,7 @@ public class DrcBuildServiceV2Test {
         Mockito.doNothing().when(dbReplicationTblDao).batchInsertWithReturnId(Mockito.anyList());
         Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
         Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(LogBlackListType.AUTO));
-        
+        Mockito.doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
         List<Long> results = drcBuildServiceV2.configureDbReplications(param);
         Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchInsertWithReturnId(Mockito.any());
 
@@ -427,6 +433,5 @@ public class DrcBuildServiceV2Test {
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
     }
-
 
 }

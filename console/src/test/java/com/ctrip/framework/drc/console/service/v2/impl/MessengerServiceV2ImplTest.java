@@ -25,14 +25,12 @@ import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,11 +44,14 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     DbClusterApiService dbClusterService;
     @Mock
     OPSApiService opsApiServiceImpl;
+    @Mock
+    MhaDbReplicationServiceImpl mhaDbReplicationService;
 
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
         when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
+        doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
         super.setUp();
     }
 
@@ -457,7 +458,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         List<MhaMessengerDto> relatedMhaMessenger = messengerServiceV2Impl.getRelatedMhaMessenger(mhas, dbs);
 
         Assert.assertEquals(2, relatedMhaMessenger.size());
-        Assert.assertEquals(2,relatedMhaMessenger.get(0).getDbs().size());
+        Assert.assertEquals(2, relatedMhaMessenger.get(0).getDbs().size());
         System.out.println(relatedMhaMessenger);
     }
 

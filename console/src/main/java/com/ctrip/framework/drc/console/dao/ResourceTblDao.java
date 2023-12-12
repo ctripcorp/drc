@@ -8,6 +8,7 @@ import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
@@ -21,6 +22,7 @@ import java.util.List;
  * @author shb沈海波
  * @date 2020-08-11
  */
+@Repository
 public class ResourceTblDao extends AbstractDao<ResourceTbl> {
 
     private static final String TYPE = "type";

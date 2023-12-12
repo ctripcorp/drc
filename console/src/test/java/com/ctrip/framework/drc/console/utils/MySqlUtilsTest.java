@@ -4,8 +4,8 @@ import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.junit.After;
@@ -22,8 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl.ALLMATCH;
 
 /**
  * @author shenhaibo
@@ -127,6 +125,8 @@ public class MySqlUtilsTest {
             "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n" +
             "  PRIMARY KEY (`id`)\n" +
             ") ENGINE=InnoDB DEFAULT CHARSET=latin1";
+
+    private static final String ALLMATCH = ".*";
 
     @Before
     public void setUp() throws InterruptedException {

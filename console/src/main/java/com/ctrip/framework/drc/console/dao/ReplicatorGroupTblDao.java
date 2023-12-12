@@ -7,6 +7,7 @@ import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
@@ -17,6 +18,7 @@ import java.util.List;
  * @author shb沈海波
  * @date 2020-08-28
  */
+@Repository
 public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 
 	private static final Logger logger = LoggerFactory.getLogger(ReplicatorGroupTblDao.class);

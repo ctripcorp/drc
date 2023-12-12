@@ -65,7 +65,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
     public static final int MAX_LOOP_COUNT = 20;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(10, "mhaReplicationService");
+    private final ExecutorService executorService = ThreadUtils.newCachedThreadPool("mhaReplicationService");
 
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
@@ -294,6 +294,27 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     }
 
     @Override
+    public List<MhaDelayInfoDto> getMhaReplicationDelaysV2(List<MhaReplicationDto> mhaReplicationDtoList) {
+        List<Callable<MhaDelayInfoDto>> list = Lists.newArrayList();
+        for (MhaReplicationDto dto : mhaReplicationDtoList) {
+            list.add(() -> this.getMhaReplicationDelay(dto.getSrcMha().getName(), dto.getDstMha().getName()));
+        }
+
+        try {
+            List<MhaDelayInfoDto> res = Lists.newArrayList();
+            List<Future<MhaDelayInfoDto>> futures = executorService.invokeAll(list, 5, TimeUnit.SECONDS);
+            for (Future<MhaDelayInfoDto> future : futures) {
+                if (!future.isCancelled()) {
+                    res.add(future.get());
+                }
+            }
+            return res;
+        } catch (InterruptedException | ExecutionException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
+        }
+    }
+
+    @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException {
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryById(mhaReplicationId);
@@ -312,10 +333,10 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationId, BooleanEnum.FALSE.getCode());
         List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(),BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(applierTblV2s)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, 
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
                     srcMha.getMhaName() + "==>" + dstMha.getMhaName() + ":Applier not empty!" );
         }
-        
+
         List<MhaTblV2> mhasToBeDelete = Lists.newArrayList();
         markMhaOfflineIfNeed(srcMha, mhasToBeDelete);
         markMhaOfflineIfNeed(dstMha, mhasToBeDelete);

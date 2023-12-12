@@ -30,10 +30,6 @@ public class OpenService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public MhaListApiResult getMhas(String uri, Map<String, String> params) {
-        return HttpUtils.get(uri, MhaListApiResult.class, params);
-    }
-
     public MhaNamesResponseVo getMhaNamesToBeMonitored(String uri) {
         return HttpUtils.get(uri, MhaNamesResponseVo.class);
     }

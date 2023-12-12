@@ -165,6 +165,16 @@ const routes = [
     component: () => import('../views/v2/meta/buildStep/dbTables.vue')
   },
   {
+    path: '/dbAppliers',
+    name: 'dbAppliers',
+    component: () => import('../views/v2/meta/buildStep/dbAppliers.vue')
+  },
+  {
+    path: '/dbMessengers',
+    name: 'dbMessengers',
+    component: () => import('../components/v2/mhaMessengers/dbMessengers.vue')
+  },
+  {
     path: '/dbReplicationConfigV2',
     name: 'dbReplicationConfigV2',
     component: () => import('../views/v2/meta/buildStep/dbReplicationConfigV2.vue')

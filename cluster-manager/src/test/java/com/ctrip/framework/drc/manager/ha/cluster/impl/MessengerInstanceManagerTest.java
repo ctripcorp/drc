@@ -49,19 +49,17 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        super.setUp();
+        when(zkClient.get()).thenReturn(curatorFramework);
+        when(currentMetaManager.watchMessengerIfNotWatched(anyString())).thenReturn(true);
+        when(instanceActiveElectAlgorithmManager.get(anyString())).thenReturn(new DefaultInstanceActiveElectAlgorithm());
+        when(regionCache.getCluster(anyString())).thenReturn(dbCluster);
 
-//        super.setUp();
-//        when(zkClient.get()).thenReturn(curatorFramework);
-//        when(currentMetaManager.watchMessengerIfNotWatched(anyString())).thenReturn(true);
-//        when(instanceActiveElectAlgorithmManager.get(anyString())).thenReturn(new DefaultInstanceActiveElectAlgorithm());
-//        when(regionCache.getCluster(anyString())).thenReturn(dbCluster);
-//
-//        Messenger messenger = dbCluster.getMessengers().get(0);
-//        zookeeperValue.setPort(messenger.getPort());
-//        zookeeperValue.setIp(messenger.getIp());
-//        messengerInstanceManager.initialize();
-//        messengerInstanceManager.start();
+        Messenger messenger = dbCluster.getMessengers().get(0);
+        zookeeperValue.setPort(messenger.getPort());
+        zookeeperValue.setIp(messenger.getIp());
+        messengerInstanceManager.initialize();
+        messengerInstanceManager.start();
     }
 
     @After

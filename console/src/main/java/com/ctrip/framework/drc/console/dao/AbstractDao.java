@@ -4,6 +4,8 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
+import com.ctrip.platform.dal.dao.base.DalTableOperations;
+import com.ctrip.platform.dal.dao.client.DalOperationsFactory;
 import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.util.CollectionUtils;
@@ -20,9 +22,12 @@ public class AbstractDao<T> {
 
     private static final boolean ASC = true;
     protected final DalTableDao<T> client;
+    protected final DalTableOperations<T> dalTableOperations;
+
 
     public AbstractDao(Class<T> clazz) throws SQLException {
         this.client = new DalTableDao<>(new DalDefaultJpaParser<>(clazz));
+        this.dalTableOperations = DalOperationsFactory.getDalTableOperations(clazz);
     }
 
     public SelectSqlBuilder initSqlBuilder() throws SQLException {
@@ -196,6 +201,10 @@ public class AbstractDao<T> {
     public List<T> queryAllExist() throws SQLException {
         SelectSqlBuilder builder = initSqlBuilder();
         return client.query(builder, new DalHints());
+    }
+
+    public List<T> queryBySQL(String sql) throws SQLException {
+        return dalTableOperations.query(sql, new DalHints());
     }
 
     /**

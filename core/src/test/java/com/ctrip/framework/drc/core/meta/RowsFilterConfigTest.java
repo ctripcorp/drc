@@ -105,12 +105,9 @@ public class RowsFilterConfigTest {
 
     @Test
     public void getRowsFilterTypeForOld() {
-        List<String> columns = rowsFilterConfigOld.getParameters().getColumns();
-        Assert.assertEquals(2, columns.size());
+        Assert.assertNull(rowsFilterConfigOld.getParameters());
         RowsFilterType type = rowsFilterConfigOld.getRowsFilterType();
         Assert.assertEquals(RowsFilterType.JavaRegex, type);
-        String expression = rowsFilterConfigOld.getParameters().getContext();
-        Assert.assertEquals("regre2", expression);
         String tables = rowsFilterConfigOld.getTables();
         Assert.assertEquals("drc1.insert1", tables);
     }

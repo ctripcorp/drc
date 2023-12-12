@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class MhaReplicationControllerTest {
     private MetaInfoServiceV2 metaInfoServiceV2;
 
     @Before
-    public void setUp() {
+    public void setUp() throws SQLException {
         this.mvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         // mock data
@@ -79,9 +80,11 @@ public class MhaReplicationControllerTest {
         Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(3L))).thenReturn(Collections.emptyList());
 
         MhaReplicationQuery query = new MhaReplicationQuery();
-        Mockito.when(mhaReplicationServiceV2.queryByPage(query)).thenReturn(PageResult.newInstance(mhaReplicationTbls, 1, 10, 2));
+        Mockito.when(mhaReplicationServiceV2.queryByPage(Mockito.any())).thenReturn(PageResult.newInstance(mhaReplicationTbls, 1, 10, 2));
 
         Mockito.when(mhaServiceV2.query("mha3", null, null)).thenReturn(Collections.emptyMap());
+        Mockito.when(mhaServiceV2.queryRelatedMhaByDbName(Lists.newArrayList("db1"))).thenReturn(Lists.newArrayList());
+        Mockito.when(mhaServiceV2.queryRelatedMhaByDbName(Lists.newArrayList("db2"))).thenReturn(list);
 
     }
 
@@ -169,6 +172,38 @@ public class MhaReplicationControllerTest {
         PageResult pageResult = ((JSONObject) apiResult.getData()).toJavaObject(PageResult.class);
 
         Assert.assertEquals(0, pageResult.getData().size());
+        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
+    }
+
+    @Test
+    public void testQueryPageNormalInput3() throws Exception {
+        MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/query")
+                        .param("pageIndex", "1")
+                        .param("pageSize", "20")
+                        .param("dbNames", "db1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+        ApiResult apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
+        PageResult pageResult = ((JSONObject) apiResult.getData()).toJavaObject(PageResult.class);
+
+        Assert.assertEquals(0, pageResult.getData().size());
+        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
+    }
+
+    @Test
+    public void testQueryPageNormalInput4() throws Exception {
+        MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/query")
+                        .param("pageIndex", "1")
+                        .param("pageSize", "20")
+                        .param("dbNames", "db2")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+        ApiResult apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
+        PageResult pageResult = ((JSONObject) apiResult.getData()).toJavaObject(PageResult.class);
+
+        Assert.assertNotEquals(0, pageResult.getData().size());
         Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
     }
 

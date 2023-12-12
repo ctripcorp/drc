@@ -121,6 +121,38 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         Assert.assertEquals(list.size(), delay.size());
         System.out.println(delay);
     }
+    @Test
+    public void testGetMhaReplicationDelaysV2() {
+        String mha1 = "mha1";
+        String mha2 = "mha2";
+        String mha3 = "mha3";
+        long srcNowTime = 205L;
+        long mha1To2UpdateTIme = 50L;
+        long mha1To3UpdateTIme = 100L;
+        List<MhaReplicationDto> list = new ArrayList<>();
+
+
+        when(mysqlServiceV2.getCurrentTime(mha1)).thenReturn(srcNowTime);
+        list.add(MhaReplicationDto.from("mha1", "mha2"));
+        when(mysqlServiceV2.getDelayUpdateTime(mha1, mha2)).thenReturn(mha1To2UpdateTIme);
+        list.add(MhaReplicationDto.from("mha1", "mha3"));
+        when(mysqlServiceV2.getDelayUpdateTime(mha1, mha3)).thenReturn(mha1To3UpdateTIme);
+
+        List<MhaDelayInfoDto> delay = mhaReplicationServiceV2.getMhaReplicationDelaysV2(list);
+
+        for (MhaDelayInfoDto infoDTO : delay) {
+            Long expectDelay = null;
+            if (infoDTO.getSrcMha().equals(mha1) && infoDTO.getDstMha().equals(mha2)) {
+                expectDelay = srcNowTime - mha1To2UpdateTIme;
+            } else if (infoDTO.getSrcMha().equals(mha1) && infoDTO.getDstMha().equals(mha3)) {
+                expectDelay = srcNowTime - mha1To3UpdateTIme;
+            }
+            Assert.assertEquals(expectDelay, infoDTO.getDelay());
+        }
+        Assert.assertNotNull(delay);
+        Assert.assertEquals(list.size(), delay.size());
+        System.out.println(delay);
+    }
 
     @Test
     public void testDeleteMhaReplication() throws SQLException, IOException {

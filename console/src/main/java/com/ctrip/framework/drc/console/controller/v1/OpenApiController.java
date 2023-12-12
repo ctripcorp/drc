@@ -1,9 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.service.OpenApiService;
-import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,18 +25,6 @@ public class OpenApiController {
     @Autowired
     private OpenApiService openApiService;
     
-    
-    @GetMapping("info/mhas")
-    public ApiResult getDrcAllMhaDbFiltersInfo() {
-        try {
-            List<MhaGroupFilterVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
-            return ApiResult.getSuccessInstance(allDrcMhaDbFilters);
-        } catch (Exception e) {
-            logger.error("error in getDrcAllMhaDb",e);
-            return ApiResult.getFailInstance(e);
-        }
-    }
-
 
     @GetMapping("info/messengers")
     public ApiResult getAllMessengersInfo() {

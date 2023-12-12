@@ -20,6 +20,12 @@ import static org.mockito.Mockito.when;
 
 public class MetaInfoServiceV2ImplTest2 extends CommonDataInit {
 
+    public static String PROXY = "PROXY";
+    public static String IP_DC1_1 = "10.25.222.15";
+    public static String PORT_IN = "80";
+
+    public static String PROXY_DC1_1 = String.format("%s://%s:%s", PROXY, IP_DC1_1, PORT_IN);
+
     @Mock
     DataMediaServiceV2 dataMediaService;
 
@@ -57,7 +63,6 @@ public class MetaInfoServiceV2ImplTest2 extends CommonDataInit {
 
     @Test
     public void testGetDrcReplicationConfigByName() throws Exception {
-
         Drc drc = metaInfoServiceV2Impl.getDrcReplicationConfig("mha1", "mha2");
         String xml = XmlUtils.formatXML(drc.toString());
         System.out.println(xml);

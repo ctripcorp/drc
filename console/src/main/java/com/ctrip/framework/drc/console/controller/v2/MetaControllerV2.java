@@ -5,9 +5,8 @@ import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -33,10 +32,10 @@ public class MetaControllerV2 {
     private MetaProviderV2 metaProviderV2;
 
     @Autowired
-    private MetaGrayService metaServiceV2;
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
     @Autowired
-    private MetaInfoServiceV2 metaInfoServiceV2;
+    private MhaDbReplicationService mhaDbReplicationService;
 
     @GetMapping
     public String getAllMetaData(@RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
@@ -74,36 +73,14 @@ public class MetaControllerV2 {
         }
     }
 
-    @GetMapping("compareRes")
-    public ApiResult<String> compareOldNewMeta() {
+    @PostMapping("mhaDbReplication/refreshData")
+    public ApiResult<Void> refreshMhaDbReplication() {
         try {
-            logger.info("[[tag=metaCompare]] start compareOldNewMeta");
-            String compareRecorder = metaServiceV2.compareDrcMeta();
-            if (compareRecorder.contains("not equal") || compareRecorder.contains("empty") || compareRecorder.contains("fail")) {
-                return ApiResult.getSuccessInstance(compareRecorder, "not equal");
-            } else {
-                return ApiResult.getSuccessInstance(compareRecorder, "equal");
-            }
+            mhaDbReplicationService.refreshMhaReplication();
+            return ApiResult.getSuccessInstance(null);
         } catch (Throwable e) {
-            logger.error("[[tag=metaCompare]] compareOldNewMeta error");
-            return ApiResult.getFailInstance(e, "compareOldNewMeta error");
-        }
-    }
-
-    @GetMapping("compareRes/dbcluster")
-    public ApiResult<DbClusterCompareRes> compareOldNewMeta(@RequestParam String dbclusterId) {
-        try {
-            logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}", dbclusterId);
-            DbClusterCompareRes res = metaServiceV2.compareDbCluster(dbclusterId);
-            String compareRes = res.getCompareRes();
-            if (compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail")) {
-                return ApiResult.getSuccessInstance(res, "not equal");
-            } else {
-                return ApiResult.getSuccessInstance(res, "equal");
-            }
-        } catch (Throwable e) {
-            logger.error("[[tag=metaCompare]] compareOldNewMeta error,dbclusterId:{}", dbclusterId, e);
-            return ApiResult.getFailInstance("compareOldNewMeta error");
+            logger.error("dbApplier/refreshData error", e);
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 

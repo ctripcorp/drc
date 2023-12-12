@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "mhaDbReplicationId": 1,
+    "deleted": 0,
+    "gtidExecuted": "gtid1",
+    "datachangeLasttime": "2023-08-13 00:00:00"
+  },
+  {
+    "id": 2,
+    "mhaDbReplicationId": 2,
+    "deleted": 0,
+    "gtidExecuted": "gtid2",
+    "datachangeLasttime": "2023-08-14 00:00:01"
+  },
+  {
+    "id": 3,
+    "mhaDbReplicationId": 5,
+    "deleted": 0,
+    "gtidExecuted": "gtid2",
+    "datachangeLasttime": "2023-08-14 00:00:01"
+  }
+]

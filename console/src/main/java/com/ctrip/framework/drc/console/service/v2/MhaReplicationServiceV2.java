@@ -47,4 +47,9 @@ public interface MhaReplicationServiceV2 {
      * @param mhaReplicationId
      */
     boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException;
+
+    /**
+     * 批量获取延迟（允许部分成功）
+     */
+    List<MhaDelayInfoDto> getMhaReplicationDelaysV2(List<MhaReplicationDto> mhaReplicationDtoList);
 }
