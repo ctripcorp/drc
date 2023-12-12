@@ -1215,7 +1215,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             boolean needUpdate = !targetStatus.equals(currStatus);
             if (needUpdate) {
                 migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,
-                        "GetAndUpdateTaskStatus,res: " + targetStatus, migrationTaskTbl.getOperator(), LocalDateTime.now()));
+                        "GetAndUpdateTaskStatus res: " + targetStatus, migrationTaskTbl.getOperator(), LocalDateTime.now()));
                 migrationTaskTbl.setStatus(targetStatus);
                 migrationTaskTblDao.update(migrationTaskTbl);
             }

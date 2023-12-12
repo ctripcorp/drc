@@ -421,11 +421,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return trxLogs;
         }
 
-        String dbFilter = Joiner.on("|").join(conflictDbBlacklist);
+        String dbFilter = Joiner.on(",").join(conflictDbBlacklist);
         AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
         trxLogs.stream().forEach(trxLog -> {
             List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream().filter(cflLog -> {
-                String tableName = cflLog.getDb() + "." + cflLog.getTable();
+                String tableName = cflLog.getDb() + "\\." + cflLog.getTable();
                 return !regexFilter.filter(tableName);
             }).collect(Collectors.toList());
             trxLog.setCflLogs(cflLogs);

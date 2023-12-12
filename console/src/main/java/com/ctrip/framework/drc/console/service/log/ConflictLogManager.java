@@ -20,10 +20,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -157,7 +155,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 String dstRegion = mhaServiceV2.getRegion(dstMha);
 
                 logger.warn("[[task=ConflictAlarm]]type:{}, db:{}, table:{}, count:{}",type.name(),db, table, count);
-                if (!domainConfig.getSendConflictAlarmEmailSwitch() && isTriggerAlarmTooManyTimes(db,table,type) ) {
+                if (!domainConfig.getSendConflictAlarmEmailSwitch() || isTriggerAlarmTooManyTimes(db,table,type) ) {
                     continue;
                 }
                 Email email = generateEmail(db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);

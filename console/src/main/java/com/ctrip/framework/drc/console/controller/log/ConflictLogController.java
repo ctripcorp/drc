@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.aop.permission.AccessToken;
 import com.ctrip.framework.drc.console.enums.TokenType;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -9,7 +12,6 @@ import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.log.LogBlackListType;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -34,13 +36,15 @@ public class ConflictLogController {
     private ConflictLogService conflictLogService;
 
     @GetMapping("trx")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY, 
+            success = "getConflictTrxLogView with ConflictTrxLogQueryParam: {#param.db}")
     public ApiResult<List<ConflictTrxLogView>> getConflictTrxLogView(ConflictTrxLogQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogView(param));
             apiResult.setPageReq(param.getPageReq());
             return apiResult;
         } catch (Exception e) {
-            logger.error("getConflictTrxLogView error, {}", e);
+            logger.error("getConflictTrxLogView error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -56,6 +60,8 @@ public class ConflictLogController {
     }
 
     @GetMapping("rows")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY,
+            success = "getConflictRowsLogView with ConflictRowsLogQueryParam: {#param.toString()}")
     public ApiResult<List<ConflictRowsLogView>> getConflictRowsLogView(ConflictRowsLogQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowsLogView(param));
@@ -89,6 +95,8 @@ public class ConflictLogController {
     }
 
     @GetMapping("detail")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY,
+            success = "getConflictTrxLogDetailView with conflictTrxLogId: {#conflictTrxLogId}")
     public ApiResult<ConflictTrxLogDetailView> getConflictTrxLogDetailView(@RequestParam long conflictTrxLogId) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogDetailView(conflictTrxLogId));
@@ -144,6 +152,8 @@ public class ConflictLogController {
     }
 
     @DeleteMapping("/v2")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE,
+            success = "deleteTrxLogs from {#beginTime} to {#endTime}")
     public ApiResult<Long> deleteTrxLogs(@RequestParam long beginTime, @RequestParam long endTime) {
         try {
             long result = conflictLogService.deleteTrxLogs(beginTime, endTime);
@@ -155,6 +165,8 @@ public class ConflictLogController {
     }
 
     @DeleteMapping("")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE,
+            success = "deleteRowLogs from {#beginTime} to {#endTime}")
     public ApiResult<Map<String, Integer>> deleteRowLogs(@RequestParam long beginTime, @RequestParam long endTime) {
         try {
             return ApiResult.getSuccessInstance(conflictLogService.deleteTrxLogsByTime(beginTime, endTime));
@@ -198,6 +210,8 @@ public class ConflictLogController {
     }
 
     @PostMapping("/rows/handleSql")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
+            success = "createHandleSql with ConflictAutoHandleParam : {#param.toString()}")
     public ApiResult<ConflictAutoHandleView> createHandleSql(@RequestBody ConflictAutoHandleParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.createHandleSql(param));
