@@ -670,27 +670,32 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<Long, List<ConflictRowsLogTbl>> rowsLogTblMap = conflictRowsLogTbls.stream().collect(Collectors.groupingBy(ConflictRowsLogTbl::getConflictTrxLogId));
         List<ConflictTrxLogTbl> trxLogTbls = conflictTrxLogTblDao.queryByIds(Lists.newArrayList(rowsLogTblMap.keySet()));
         Map<Long, ConflictTrxLogTbl> trxLogTblMap = trxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
+        Map<MultiKey, List<ConflictTrxLogTbl>> multiTrxLogTblMap = trxLogTbls.stream().collect(Collectors.groupingBy(e -> new MultiKey(e.getSrcMhaName(), e.getDstMhaName())));
+
 
         List<ListenableFuture<ColumnsFilterAndIndexColumn>> futures = new ArrayList<>();
 
-        for (Map.Entry<Long, List<ConflictRowsLogTbl>> entry : rowsLogTblMap.entrySet()) {
-            long trxLogId = entry.getKey();
-            List<ConflictRowsLogTbl> rowsLogTbls = entry.getValue();
-            ConflictTrxLogTbl trxLogTbl = trxLogTblMap.get(trxLogId);
+        for (Map.Entry<MultiKey, List<ConflictTrxLogTbl>> entry : multiTrxLogTblMap.entrySet()) {
+            MultiKey multiKey = entry.getKey();
+            List<ConflictTrxLogTbl> trxLogs = entry.getValue();
+
+            List<ConflictRowsLogTbl> rowsLogTbls = new ArrayList<>();
+            trxLogs.forEach(trxLog -> {
+                rowsLogTbls.addAll(rowsLogTblMap.get(trxLog.getId()));
+            });
 
             ListenableFuture<ColumnsFilterAndIndexColumn> future =
-                    compareExecutorService.submit(() -> getColumnsFilterAndIndexColumn(trxLogTbl, rowsLogTbls));
+                    compareExecutorService.submit(() -> getColumnsFilterAndIndexColumn(multiKey, rowsLogTbls));
             futures.add(future);
         }
 
-
-        Map<Long, Pair<List<DbReplicationView>, Map<Long, List<String>>>> columnFilterMap = new HashMap<>();
+        Map<MultiKey, Pair<List<DbReplicationView>, Map<Long, List<String>>>> columnFilterMap = new HashMap<>();
         Map<String, List<String>> onUpdateColumnMap = new HashMap<>();
         Map<String, List<String>> uniqueIndexMap = new HashMap<>();
         for (ListenableFuture<ColumnsFilterAndIndexColumn> future : futures) {
             try {
                 ColumnsFilterAndIndexColumn result = future.get(10, TimeUnit.SECONDS);
-                columnFilterMap.put(result.getTrxLogId(), result.getColumnsFilerPair());
+                columnFilterMap.put(result.getMultiKey(), result.getColumnsFilerPair());
                 onUpdateColumnMap.putAll(result.getOnUpdateColumnMap());
                 uniqueIndexMap.putAll(result.getUniqueIndexColumnMap());
             } catch (Exception e) {
@@ -703,10 +708,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
             List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
             List<String> uniqueIndexColumns = uniqueIndexMap.getOrDefault(tableName, new ArrayList<>());
-            Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = columnFilterMap.get(rowLog.getConflictTrxLogId());
+
             ConflictTrxLogTbl trxLogTbl = trxLogTblMap.get(rowLog.getConflictTrxLogId());
             String srcMhaName = trxLogTbl.getSrcMhaName();
             String dstMhaName = trxLogTbl.getDstMhaName();
+            Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = columnFilterMap.get(new MultiKey(srcMhaName, dstMhaName));
+
 
             ListenableFuture<ConflictRowRecordCompareEqualView> future = executorService.submit(() ->
                     getRowRecordCompareView(rowLog, srcMhaName, dstMhaName, Pair.of(onUpdateColumns, uniqueIndexColumns), columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
@@ -741,14 +748,14 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return view;
     }
 
-    private ColumnsFilterAndIndexColumn getColumnsFilterAndIndexColumn(ConflictTrxLogTbl trxLogTbl, List<ConflictRowsLogTbl> rowsLogTbls) throws Exception {
-        String srcMhaName = trxLogTbl.getSrcMhaName();
-        String dstMhaName = trxLogTbl.getDstMhaName();
+    private ColumnsFilterAndIndexColumn getColumnsFilterAndIndexColumn(MultiKey multiKey, List<ConflictRowsLogTbl> rowsLogTbls) throws Exception {
+        String srcMhaName = (String) multiKey.getKey(0);
+        String dstMhaName = (String) multiKey.getKey(1);
         Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(rowsLogTbls, srcMhaName);
         Map<String, List<String>> uniqueIndexColumnMap = getUniqueIndex(rowsLogTbls, srcMhaName);
 
-        return new ColumnsFilterAndIndexColumn(trxLogTbl.getId(), columnsFilerPair, onUpdateColumnMap, uniqueIndexColumnMap);
+        return new ColumnsFilterAndIndexColumn(multiKey, columnsFilerPair, onUpdateColumnMap, uniqueIndexColumnMap);
     }
 
 
@@ -1359,7 +1366,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private class ColumnsFilterAndIndexColumn{
-        private long trxLogId;
+        private MultiKey multiKey;
         private Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair;
         private Map<String, List<String>> onUpdateColumnMap;
         Map<String, List<String>> uniqueIndexColumnMap;
@@ -1368,19 +1375,19 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         public ColumnsFilterAndIndexColumn() {
         }
 
-        public ColumnsFilterAndIndexColumn(long trxLogId, Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair, Map<String, List<String>> onUpdateColumnMap, Map<String, List<String>> uniqueIndexColumnMap) {
-            this.trxLogId = trxLogId;
+        public ColumnsFilterAndIndexColumn(MultiKey multiKey, Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair, Map<String, List<String>> onUpdateColumnMap, Map<String, List<String>> uniqueIndexColumnMap) {
+            this.multiKey = multiKey;
             this.columnsFilerPair = columnsFilerPair;
             this.onUpdateColumnMap = onUpdateColumnMap;
             this.uniqueIndexColumnMap = uniqueIndexColumnMap;
         }
 
-        public long getTrxLogId() {
-            return trxLogId;
+        public MultiKey getMultiKey() {
+            return multiKey;
         }
 
-        public void setTrxLogId(long trxLogId) {
-            this.trxLogId = trxLogId;
+        public void setMultiKey(MultiKey multiKey) {
+            this.multiKey = multiKey;
         }
 
         public Pair<List<DbReplicationView>, Map<Long, List<String>>> getColumnsFilerPair() {

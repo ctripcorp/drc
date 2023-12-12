@@ -53,15 +53,4 @@ public class DateUtils {
     public static long getEndTimeOfDay(long time) {
        return getStartTimeOfDay(time) + ONE_DAY_MILLIS - 1;
     }
-
-    public static void main(String[] args) {
-        long time = System.currentTimeMillis();
-        long startTime = getStartTimeOfDay(time);
-        String date = getStartDateOfDay(time);
-        String date1 = getEndDateOfDay(time);
-        System.out.println(time);
-        System.out.println(startTime);
-        System.out.println(date);
-        System.out.println(date1);
-    }
 }
