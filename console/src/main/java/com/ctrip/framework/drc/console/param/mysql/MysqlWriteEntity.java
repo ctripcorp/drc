@@ -7,13 +7,24 @@ package com.ctrip.framework.drc.console.param.mysql;
 public class MysqlWriteEntity {
     private String mha;
     private String sql;
+    //0-drc_console 1-drc_write 2-drc_read
+    private int accountType;
 
     public MysqlWriteEntity() {
     }
 
-    public MysqlWriteEntity(String mha, String sql) {
+    public MysqlWriteEntity(String mha, String sql, int accountType) {
         this.mha = mha;
         this.sql = sql;
+        this.accountType = accountType;
+    }
+
+    public int getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(int accountType) {
+        this.accountType = accountType;
     }
 
     public String getMha() {

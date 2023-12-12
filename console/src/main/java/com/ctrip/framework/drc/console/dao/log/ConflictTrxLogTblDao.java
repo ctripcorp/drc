@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
-import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
@@ -27,6 +26,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
     private static final String GTID = "gtid";
     private static final String HANDLE_TIME = "handle_time";
     private static final String TRX_RESULT = "trx_result";
+    private static final String CREATE_TIME = "create_time";
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
 
     public ConflictTrxLogTblDao() throws SQLException {
@@ -84,6 +84,13 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         }
         if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
             sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
+        }
+
+        if (StringUtils.isNotBlank(param.getCreateBeginTime())) {
+            sqlBuilder.and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP);
+        }
+        if (StringUtils.isNotBlank(param.getCreateEndTime())) {
+            sqlBuilder.and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
         }
 
         return sqlBuilder;

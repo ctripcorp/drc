@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalService;
@@ -96,6 +99,8 @@ public class ConflictApprovalController {
     }
 
     @PostMapping("/execute")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.UPDATE,
+            success = "executeApproval with approvalId : {#approvalId}")
     public ApiResult<Boolean> executeApproval(@RequestParam Long approvalId) {
         logger.info("executeApproval approvalId: {}", approvalId);
         try {

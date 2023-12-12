@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
@@ -79,6 +80,8 @@ public class ConflictLogManagerTest {
         Mockito.when(opsApiService.getConflictCount(Mockito.anyString(), Mockito.anyString(), 
                 Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.anyInt()))
                 .thenReturn(getConflictCounts());
+        Mockito.when(domainConfig.getSendConflictAlarmEmailSwitch()).thenReturn(true);
+        Mockito.when(domainConfig.getConflictAlarmTimesPerHour()).thenReturn(2);
         
         conflictLogManager.checkConflict();
         Mockito.verify(emailService, Mockito.times(4)).sendEmail(Mockito.any(Email.class));

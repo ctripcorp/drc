@@ -19,7 +19,7 @@
           <div class="ivu-list-item-meta-title">所有机房当前冲突行记录：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
               <Button :loading="recordLoading" size="small" @click="getRecords"
-                      :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
+                      :type="trxLog.recordEqual==true?'success':'warning'">{{trxLog.diffStr}}</Button>
             </Tooltip>
           </div>
           <Divider/>

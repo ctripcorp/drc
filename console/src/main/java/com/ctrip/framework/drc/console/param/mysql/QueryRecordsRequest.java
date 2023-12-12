@@ -10,23 +10,29 @@ import java.util.Objects;
 public class QueryRecordsRequest {
     private String mha;
     private String sql;
+    //`column_name`
     private List<String> onUpdateColumns;
+    //`column_name`
+    private List<String> uniqueIndexColumns;
     private int columnSize;
 
     public QueryRecordsRequest() {
     }
 
-    public QueryRecordsRequest(String mha, String sql, List<String> onUpdateColumns) {
+    public QueryRecordsRequest(String mha, String sql, List<String> onUpdateColumns, List<String> uniqueIndexColumns, int columnSize) {
         this.mha = mha;
         this.sql = sql;
         this.onUpdateColumns = onUpdateColumns;
+        this.uniqueIndexColumns = uniqueIndexColumns;
+        this.columnSize = columnSize;
     }
 
-    public QueryRecordsRequest(String mha, String sql, List<String> onUpdateColumns, int columnSize) {
-        this.mha = mha;
-        this.sql = sql;
-        this.onUpdateColumns = onUpdateColumns;
-        this.columnSize = columnSize;
+    public List<String> getUniqueIndexColumns() {
+        return uniqueIndexColumns;
+    }
+
+    public void setUniqueIndexColumns(List<String> uniqueIndexColumns) {
+        this.uniqueIndexColumns = uniqueIndexColumns;
     }
 
     public int getColumnSize() {
@@ -71,6 +77,6 @@ public class QueryRecordsRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mha, sql, onUpdateColumns, columnSize);
+        return Objects.hash(mha, sql, onUpdateColumns, uniqueIndexColumns, columnSize);
     }
 }

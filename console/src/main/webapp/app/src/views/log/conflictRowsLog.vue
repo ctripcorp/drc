@@ -147,7 +147,7 @@
           </div>
           <div class="ivu-list-item-meta-title">冲突行数据一致性比较结果：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
-              <Button :loading="modalLoading" size="small" :type="logDetail.recordEqual==true?'success':'error'">
+              <Button :loading="modalLoading" size="small" :type="logDetail.recordEqual==true?'success':'warning'">
                 {{logDetail.diffStr}}
               </Button>
             </Tooltip>
@@ -220,6 +220,7 @@ export default {
       compareModal: false,
       multiData: [],
       detailModal: false,
+      compareEqualLoading: false,
       modalLoading: false,
       compareLoading: false,
       rowLogIds: [],
@@ -235,7 +236,7 @@ export default {
             key: 'recordIsEqual',
             render: (h, params) => {
               const row = params.row
-              const color = row.recordIsEqual ? 'blue' : 'volcano'
+              const color = row.recordIsEqual ? 'blue' : 'warning'
               const text = row.recordIsEqual ? '数据一致' : '数据不一致'
               return h('Tag', {
                 props: {
@@ -319,7 +320,7 @@ export default {
           tooltip: true
         },
         {
-          title: '事务提交时间',
+          title: '提交时间',
           key: 'handleTime',
           width: 180,
           sortable: true
@@ -333,6 +334,47 @@ export default {
             const row = params.row
             const color = row.rowResult === 0 ? 'blue' : 'volcano'
             const text = row.rowResult === 0 ? 'commit' : 'rollBack'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
+          title: '数据是否一致',
+          key: 'recordIsEqual',
+          width: 150,
+          align: 'center',
+          renderHeader: (h, params) => {
+            return h('span', [
+              h('span', '数据比对'),
+              h('Button', {
+                on: {
+                  click: async () => {
+                    await this.compareRecordEqual()
+                  }
+                },
+                props: {
+                  loading: this.compareEqualLoading,
+                  size: 'small',
+                  shape: 'circle',
+                  type: 'default',
+                  icon: 'md-refresh'
+                }
+              })
+            ])
+          },
+          render: (h, params) => {
+            const row = params.row
+            let color, text
+            if (row.recordIsEqual === true) {
+              color = 'success'
+              text = '一致'
+            } else if (row.recordIsEqual === false) {
+              color = 'warning'
+              text = '不一致'
+            }
             return h('Tag', {
               props: {
                 color: color
@@ -385,6 +427,32 @@ export default {
   methods: {
     searchModeChange () {
       this.queryParam.gtid = null
+    },
+    compareRecordEqual () {
+      const rowLogIds = []
+      if (this.tableData.length === 0) {
+        return
+      }
+      this.tableData.forEach(data => rowLogIds.push(data.conflictRowsLogId))
+      this.compareEqualLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/compare?conflictRowLogIds=' + rowLogIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error({
+              content: '数据比对失败! ' + response.data.message,
+              duration: 5
+            })
+          } else {
+            const data = response.data.data
+            const dataMap = new Map(data.map(e => [e.rowLogId, e.recordIsEqual]))
+            this.tableData.forEach(line => {
+              line.recordIsEqual = dataMap.get(line.conflictRowsLogId)
+            })
+          }
+        })
+        .finally(() => {
+          this.compareEqualLoading = false
+        })
     },
     compareRecords () {
       const multiData = this.multiData
@@ -512,6 +580,7 @@ export default {
             if (this.total === 0) {
               this.$Message.warning('查询结果为空')
             } else {
+              this.compareRecordEqual()
               this.$Message.success('以下冲突行数据对比不一致')
             }
           }
@@ -615,6 +684,7 @@ export default {
             this.current = pageResult.pageIndex
             this.tableData = data.data
             this.$Message.success('查询成功')
+            this.compareRecordEqual()
           }
         })
         .finally(() => {

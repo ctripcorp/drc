@@ -34,9 +34,9 @@ public class DrcInfoAnalysisUtils {
         // get json from api :/api/drc/v1/openapi/info/dbs
         URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
         List<DrcDbInfo> dbInfos = readFromFile(resource.getPath());
-        countRegion(dbInfos,"sha","sin");
-        countRegion(dbInfos,"sha","fra");
-        countVpc(dbInfos);
+//        countRegion(dbInfos,"sha","sin");
+//        countRegion(dbInfos,"sha","fra");
+//        countVpc(dbInfos);
         countAll(dbInfos);
     }
 
@@ -102,11 +102,11 @@ public class DrcInfoAnalysisUtils {
         all.addAll(sin);
         all.addAll(fra);
         all.addAll(sinibuaws);
-        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(all);
-        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(all);
+//        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(all);
+//        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(all);
         String res = "sha:\n" + getAllDistinctDbs(all);
-        res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
-        res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
+//        res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
+//        res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
 
 
         URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
@@ -187,6 +187,7 @@ public class DrcInfoAnalysisUtils {
                 dbNames.add(db);
             }
         }
+        System.out.println("disctinct dbs: " + dbs.size());
         
         // sort & move shardDbs to head
         dbs.sort(String::compareToIgnoreCase);
@@ -204,6 +205,7 @@ public class DrcInfoAnalysisUtils {
                 dbsSorted.add(db);
             }
         }
+        
         
         // put the same ShardDbs in one line
         String currentPrefix = null;
@@ -230,6 +232,8 @@ public class DrcInfoAnalysisUtils {
                 res.append("\n").append(db);
             }
         }
+
+        System.out.println("dalCluster size:" + res.toString().split("\n").length);
         
         return res.length() > 1 ? res.substring(1, res.length()) : res.toString();
         

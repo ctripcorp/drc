@@ -4,11 +4,13 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.aop.RemoteHttpAspectTest;
+import com.ctrip.framework.drc.console.aop.log.LogRecordAspectTest;
 import com.ctrip.framework.drc.console.aop.permission.AccessTokenAspectTest;
 import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
+import com.ctrip.framework.drc.console.controller.log.OperationLogControllerTest;
 import com.ctrip.framework.drc.console.controller.v2.CentralServiceControllerTest;
 import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
@@ -106,6 +108,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         OpenApiServiceImplTest.class,
         RemoteHttpAspectTest.class,
         AccessTokenAspectTest.class,
+        LogRecordAspectTest.class,
         QConfigServiceImplTest.class,
 
         RowsFilterMetaServiceTest.class,
@@ -145,6 +148,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MysqlServiceV2ImplTest.class,
 //
         // controller
+        OperationLogControllerTest.class,
         MetaControllerV2Test.class,
         MhaReplicationControllerTest.class,
         MessengerControllerV2Test.class,
