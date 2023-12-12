@@ -144,7 +144,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
             } else {
                 long start = lastTrxId;
                 if (end > start) {
-                    GtidSet gtidSet = new GtidSet(uuid + ":" + start + "-" + end);
+                    GtidSet gtidSet = new GtidSet(uuid + ":" + (start + 1) + "-" + end);
                     unionGtidSetGap(gtidSet);
                     logger.info("[Merge][Uuid][{}] gtid set: {}", registryKey, gtidSet.toString());
                 }
