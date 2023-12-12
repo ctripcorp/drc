@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
@@ -68,6 +69,8 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private DbTblDao dbTblDao;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
@@ -208,8 +211,13 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }
         String dbOwner = dbTbls.get(0).getDbOwner();
 
-        //ql_deng TODO 2023/11/16:dbOwner
-        ApprovalApiRequest request = buildRequest(username, username, approvalTbl.getId());
+        ApprovalApiRequest request;
+        if (consoleConfig.getConflictDbOwnerApprovalSwitch()) {
+            request = buildRequest(dbOwner, username, approvalTbl.getId());
+        } else {
+            request = buildRequest(username, username, approvalTbl.getId());
+        }
+
         ApprovalApiResponse response = approvalApiService.createApproval(request);
 
         approvalTbl.setTicketId(response.getData().get(0).getTicket_ID());

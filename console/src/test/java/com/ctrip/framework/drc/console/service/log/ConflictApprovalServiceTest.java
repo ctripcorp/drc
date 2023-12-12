@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.log.*;
@@ -62,6 +63,8 @@ public class ConflictApprovalServiceTest {
     private UserService userService;
     @Mock
     private DbTblDao dbTblDao;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     @Before
     public void setUp() {
