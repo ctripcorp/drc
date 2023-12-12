@@ -714,6 +714,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 ConflictRowRecordCompareEqualView view = future.get(10, TimeUnit.SECONDS);
                 views.add(view);
             } catch (Exception e) {
+                logger.error("compare row record error, {}", e);
                 throw ConsoleExceptionUtils.message("compare row logs timeout");
             }
         }

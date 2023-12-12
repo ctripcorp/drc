@@ -171,8 +171,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testGetConflictRowRecordView() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", new ArrayList<>(), 12);
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(), 12);
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", new ArrayList<>(), new ArrayList<>(), 12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(),  new ArrayList<>(),12);
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
@@ -295,8 +295,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateHandleSql() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), 12);
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", Lists.newArrayList("datachange_lasttime"), 12);
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"),12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"), 12);
 
         Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
@@ -323,18 +323,33 @@ public class ConflictLogServiceTest {
         Assert.assertEquals(result.size(), 1);
     }
 
-    private Map<String, Object> getEmptyRecord() {
-        Map<String, Object> record = getSrcResMap();
-        record.put("record", new ArrayList<>() );
-        return record;
-    }
-    
     @Test
     public void testIsInBlackListWithCache() throws Exception {
         Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(getConflictDbBlackListTbls());
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
         Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));
+    }
+
+    @Test
+    public void testCompareRowRecordsEqual() throws Exception {
+        Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
+        Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
+
+        List<ConflictRowRecordCompareEqualView> result = conflictLogService.compareRowRecordsEqual(Lists.newArrayList(1L));
+        Assert.assertEquals(result.size(), 1);
+        Assert.assertTrue(result.get(0).getRecordIsEqual());
+    }
+
+    private Map<String, Object> getEmptyRecord() {
+        Map<String, Object> record = getSrcResMap();
+        record.put("record", new ArrayList<>() );
+        return record;
     }
 
     private List<ConflictDbBlackListTbl> getConflictDbBlackListTbls() {

@@ -27,13 +27,6 @@ public class QueryRecordsRequest {
         this.columnSize = columnSize;
     }
 
-    public QueryRecordsRequest(String mha, String sql, List<String> onUpdateColumns, int columnSize) {
-        this.mha = mha;
-        this.sql = sql;
-        this.onUpdateColumns = onUpdateColumns;
-        this.columnSize = columnSize;
-    }
-
     public List<String> getUniqueIndexColumns() {
         return uniqueIndexColumns;
     }
@@ -84,6 +77,6 @@ public class QueryRecordsRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mha, sql, onUpdateColumns, columnSize);
+        return Objects.hash(mha, sql, onUpdateColumns, uniqueIndexColumns, columnSize);
     }
 }
