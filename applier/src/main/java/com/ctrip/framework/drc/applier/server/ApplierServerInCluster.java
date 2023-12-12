@@ -11,10 +11,10 @@ public class ApplierServerInCluster extends ApplierServer {
     public ApplierConfigDto config;
 
     public ApplierServerInCluster(ApplierConfigDto config) throws Exception {
+        this.config = config;
         setConfig(config, ApplierConfigDto.class);
         setName(config.getRegistryKey());
         define();
-        this.config = config;
     }
 
     @Override
