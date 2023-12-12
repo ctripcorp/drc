@@ -38,7 +38,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 
     protected static final int INITIAL_DELAY = 5;
 
-    protected static final int PERIOD = 60 * 12;
+    protected static final int PERIOD = 60 * 4;
 
     protected static final TimeUnit TIME_UNIT = TimeUnit.MINUTES;
 

@@ -157,7 +157,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 String dstRegion = mhaServiceV2.getRegion(dstMha);
 
                 logger.warn("[[task=ConflictAlarm]]type:{}, db:{}, table:{}, count:{}",type.name(),db, table, count);
-                if (!domainConfig.getSendConflictAlarmEmailSwitch() && isTriggerAlarmTooManyTimes(db,table,type) ) {
+                if (!domainConfig.getSendConflictAlarmEmailSwitch() || isTriggerAlarmTooManyTimes(db,table,type) ) {
                     continue;
                 }
                 Email email = generateEmail(db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);

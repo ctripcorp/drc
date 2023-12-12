@@ -116,6 +116,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
     
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
+    private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -524,5 +525,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(DRC_ACCESS_TOKEN_KEY, "");
     }
 
+    public boolean getOperationLogSwitch() {
+        return getBooleanProperty(OPERATION_LOG_SWITCH,false);
+    }
     
 }
