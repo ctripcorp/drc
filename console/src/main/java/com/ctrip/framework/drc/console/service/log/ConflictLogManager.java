@@ -171,7 +171,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         }
     }
     
-    private boolean isTriggerAlarmTooManyTimes(String db, String table,ConflictCountType type)  { // todo hdpan test 
+    private boolean isTriggerAlarmTooManyTimes(String db, String table,ConflictCountType type)  { 
         Integer count = tableAlarmCountHourlyMap.getOrDefault(db + "." +  table + "-" + type.name(),0);
         if (count >= domainConfig.getConflictAlarmTimesPerHour()) {
             return true;

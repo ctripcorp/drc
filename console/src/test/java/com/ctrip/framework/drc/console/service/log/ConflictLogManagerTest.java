@@ -80,6 +80,8 @@ public class ConflictLogManagerTest {
         Mockito.when(opsApiService.getConflictCount(Mockito.anyString(), Mockito.anyString(), 
                 Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.anyInt()))
                 .thenReturn(getConflictCounts());
+        Mockito.when(domainConfig.getSendConflictAlarmEmailSwitch()).thenReturn(true);
+        Mockito.when(domainConfig.getConflictAlarmTimesPerHour()).thenReturn(2);
         
         conflictLogManager.checkConflict();
         Mockito.verify(emailService, Mockito.times(4)).sendEmail(Mockito.any(Email.class));
