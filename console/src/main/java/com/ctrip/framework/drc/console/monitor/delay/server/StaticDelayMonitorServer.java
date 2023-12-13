@@ -27,12 +27,14 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.SpringUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.text.ParseException;
@@ -64,8 +66,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private ScheduledExecutorService checkScheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(2,"DelayMonitor");
 
-    @Autowired
-    private CentralService centralService;
+    private CentralService centralService = SpringUtils.getApplicationContext().getBean("centralService", CentralService.class);
 
     private MySQLConnector mySQLConnector;
 
