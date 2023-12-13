@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
-import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
@@ -15,8 +15,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Set;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 
 /**
  * Created by jixinwang on 2022/11/1
@@ -102,7 +100,7 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
             }
 
             for (Messenger modified : messengers) {
-                String registerKey = RegistryKey.from(clusterId, DRC_MQ);
+                String registerKey = NameUtils.getMessengerRegisterKey(clusterId, modified);
                 Messenger activeMessenger = currentMetaManager.getActiveMessenger(registerKey);
                 if (modified.equalsWithIpPort(activeMessenger)) {
                     activeMessenger.setNameFilter(modified.getNameFilter());
