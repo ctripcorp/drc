@@ -26,7 +26,7 @@ public class DateUtils {
     }
 
     /**
-     * 获取当天零点时间
+     * 获取当天结束时间
      */
     public static String getEndDateOfDay(long time) {
         return longToString(getEndTimeOfDay(time));

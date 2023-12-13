@@ -18,7 +18,7 @@ import java.util.List;
  * 2023/9/26 14:26
  */
 @Repository
-public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
+public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
 
     private static final String CONFLICT_TRX_LOG_ID = "conflict_trx_log_id";
     private static final String DB_NAME = "db_name";
@@ -50,19 +50,24 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     }
 
     public List<ConflictRowsLogTbl> queryByTrxLogId(long trxLogId) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(CONFLICT_TRX_LOG_ID, trxLogId, Types.BIGINT);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.equal(CONFLICT_TRX_LOG_ID, trxLogId, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 
     public List<ConflictRowsLogTbl> queryByTrxLogIds(List<Long> trxLogIds) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().in(CONFLICT_TRX_LOG_ID, trxLogIds, Types.BIGINT);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.in(CONFLICT_TRX_LOG_ID, trxLogIds, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 
     private SelectSqlBuilder buildSqlBuilder(ConflictRowsLogQueryParam param) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT)
+                .and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT)
+                .and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP)
+                .and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
+
         if (!param.isAdmin()) {
             sqlBuilder.and().in(DB_NAME, param.getDbsWithPermission(), Types.VARCHAR);
         }
@@ -89,19 +94,6 @@ public class  ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
             }
         }
 
-        if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
-            sqlBuilder.and().greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
-        }
-        if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
-            sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
-        }
-
-        if (StringUtils.isNotBlank(param.getCreateBeginTime())) {
-            sqlBuilder.and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP);
-        }
-        if (StringUtils.isNotBlank(param.getCreateEndTime())) {
-            sqlBuilder.and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
-        }
         return sqlBuilder;
     }
 

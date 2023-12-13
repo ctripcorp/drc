@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.config;
 
 import com.ctrip.framework.drc.console.config.meta.DcInfo;
+import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.config.Config;
@@ -111,6 +112,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
     private static String DBA_CFL_BLACK_LIST_CLEAR_SWITCH = "dba.cfl.black.list.clear.switch";
     private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
+    private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conlict.log.query.time.interval";
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
@@ -519,6 +521,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getConflictDbOwnerApprovalSwitch() {
         return getBooleanProperty(CONFLICT_DB_OWNER_APPROVAL_SWITCH, false);
+    }
+
+    public long getConflictLogQueryTimeInterval() {
+        return getLongProperty(CONFLICT_LOG_QUERY_TIME_INTERVAL, Constants.ONE_DAY);
     }
 
     public String getDrcAccessTokenKey() {

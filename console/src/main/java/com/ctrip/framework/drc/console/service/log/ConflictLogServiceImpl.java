@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
@@ -85,6 +86,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     @Autowired
     private DbaApiService dbaApiService;
@@ -100,7 +103,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
     private static final int TWELVE = 12;
-    private static final int INTERVAL_SIZE = 20;
+    private static final int INTERVAL_SIZE = 10;
     private static final int Time_OUT = 90;
     private static final String ROW_LOG_ID = "drc_row_log_id";
     private static final String UPDATE_SQL = "UPDATE %s SET %s WHERE %s";
@@ -144,10 +147,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         long diffTime = param.getEndHandleTime() - param.getBeginHandleTime();
 
-        long interval = Constants.FIVE_MINUTE;
-        if (diffTime <= Constants.FIVE_MINUTE) {
+        long interval = consoleConfig.getConflictLogQueryTimeInterval();
+        if (diffTime <= interval) {
             return conflictRowsLogTblDao.getCount(param);
-        } else if (diffTime >= Constants.TWO_HOUR) {
+        } else if (diffTime >= interval * INTERVAL_SIZE) {
             interval = diffTime / INTERVAL_SIZE;
         }
 
@@ -188,10 +191,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         resetParam(param);
         long diffTime = param.getEndHandleTime() - param.getBeginHandleTime();
 
-        long interval = Constants.FIVE_MINUTE;
-        if (diffTime <= Constants.FIVE_MINUTE) {
+        long interval = consoleConfig.getConflictLogQueryTimeInterval();
+        if (diffTime <= interval) {
             return conflictTrxLogTblDao.getCount(param);
-        } else if (diffTime >= Constants.TWO_HOUR) {
+        } else if (diffTime >= interval * INTERVAL_SIZE) {
             interval = diffTime / INTERVAL_SIZE;
         }
 
@@ -393,7 +396,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
         param.setCreateBeginTime(DateUtils.getStartDateOfDay(param.getBeginHandleTime()));
-        param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime()));
+        param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime() - 1));
         Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
         param.setAdmin(permissionAndDbsCanQuery.getLeft());
         param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
@@ -407,7 +410,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
         param.setCreateBeginTime(DateUtils.getStartDateOfDay(param.getBeginHandleTime()));
-        param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime()));
+        param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime() - 1));
 
         Pair<Boolean, List<String>> adminAndDbs = getPermissionAndDbsCanQuery();
         param.setAdmin(adminAndDbs.getLeft());
@@ -699,7 +702,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 onUpdateColumnMap.putAll(result.getOnUpdateColumnMap());
                 uniqueIndexMap.putAll(result.getUniqueIndexColumnMap());
             } catch (Exception e) {
-                throw ConsoleExceptionUtils.message("compare row logs timeout");
+                logger.error("compare row logs fail, {}", e);
+                throw ConsoleExceptionUtils.message("compare log record fail");
             }
         }
 
@@ -727,7 +731,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 views.add(view);
             } catch (Exception e) {
                 logger.error("compare row record error, {}", e);
-                throw ConsoleExceptionUtils.message("compare row logs timeout");
             }
         }
 

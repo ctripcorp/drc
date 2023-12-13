@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
@@ -76,11 +77,14 @@ public class ConflictLogServiceTest {
     private DbaApiService dbaApiService;
     @Mock
     private IAMService iamService;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     @Before
     public void setUp() {
         System.setProperty("iam.config.enable","off"); // skip the constructor of IAMServiceImpl
         MockitoAnnotations.openMocks(this);
+        Mockito.when(consoleConfig.getConflictLogQueryTimeInterval()).thenReturn(Constants.ONE_DAY);
     }
 
     @Test
@@ -126,7 +130,7 @@ public class ConflictLogServiceTest {
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db"));
 
         int result = conflictLogService.getTrxLogCount(param);
-        Assert.assertEquals(result, 24);
+        Assert.assertEquals(result, 1);
     }
 
     @Test
@@ -145,7 +149,7 @@ public class ConflictLogServiceTest {
         Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
 
         int result = conflictLogService.getRowsLogCount(param);
-        Assert.assertEquals(result, 24);
+        Assert.assertEquals(result, 1);
     }
 
     @Test

@@ -47,21 +47,26 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
     }
 
     public ConflictTrxLogTbl queryByGtid(String gtid) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.equal(GTID, gtid, Types.VARCHAR);
         return queryOne(sqlBuilder);
     }
 
     public ConflictTrxLogTbl queryByGtid(String gtid, Long beginHandleTime, Long endHandleTime) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR)
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.equal(GTID, gtid, Types.VARCHAR)
                 .and().greaterThan(HANDLE_TIME, beginHandleTime, Types.BIGINT)
                 .and().lessThan(HANDLE_TIME, endHandleTime, Types.BIGINT);
         return queryOne(sqlBuilder);
     }
 
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT)
+                .and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT)
+                .and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP)
+                .and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
+
         if (!param.isAdmin()) {
             sqlBuilder.and().in(DB, param.getDbsWithPermission(), Types.VARCHAR);
         }
@@ -78,20 +83,6 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
             sqlBuilder.and().equal(GTID, param.getGtId(), Types.VARCHAR);
         }
         sqlBuilder.and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
-
-        if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
-            sqlBuilder.and().greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
-        }
-        if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
-            sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
-        }
-
-        if (StringUtils.isNotBlank(param.getCreateBeginTime())) {
-            sqlBuilder.and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP);
-        }
-        if (StringUtils.isNotBlank(param.getCreateEndTime())) {
-            sqlBuilder.and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
-        }
 
         return sqlBuilder;
     }

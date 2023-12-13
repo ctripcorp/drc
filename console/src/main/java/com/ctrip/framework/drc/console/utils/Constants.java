@@ -28,5 +28,5 @@ public class Constants {
     public static final Long ONE_HOUR = 60 * 60 * 1000L;
     public static final Long TWO_HOUR = 2 * 60 * 60 * 1000L;
     public static final Long FIVE_MINUTE = 5 * 60000L;
-
+    public static final Long ONE_DAY = 24 * 60 * 60 * 1000L;
 }
