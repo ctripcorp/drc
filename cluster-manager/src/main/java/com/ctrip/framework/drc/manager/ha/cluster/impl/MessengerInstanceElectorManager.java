@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
@@ -15,11 +16,7 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
+import java.util.*;
 
 /**
  * Created by jixinwang on 2022/10/31
@@ -60,21 +57,28 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
 
     @Override
     protected void handleClusterModified(ClusterComparator comparator) {
-
         String clusterId = comparator.getCurrent().getId();
-        String registryKey = RegistryKey.from(clusterId, DRC_MQ);
-        observerClusterLeader(registryKey);
+        MessengerComparator messengerComparator = comparator.getMessengerComparator();
+        Set<Messenger> addedMessenger = messengerComparator.getAdded();
+        doObserveLeader(clusterId, addedMessenger);
+    }
+
+    private void doObserveLeader(String clusterId, Collection<Messenger> messengers) {
+        for (Messenger messenger : messengers) {
+            String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+            observerClusterLeader(registryKey);
+        }
     }
 
     protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId){
         RegistryKey registryKey = RegistryKey.from(tmpClusterId);
         String clusterId = registryKey.toString();
-        logger.info("[Transfer] {} to {}", tmpClusterId, clusterId);
+        logger.info("[Transfer][messenger] {} to {}", tmpClusterId, clusterId);
 
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));
 
-        logger.info("[updateShardLeader]{}, {}", clusterId, childrenPaths);
+        logger.info("[updateShardLeader][messenger]{}, {}", tmpClusterId, childrenPaths);
 
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 

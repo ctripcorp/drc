@@ -112,6 +112,10 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         if (server != null && !server.isDisposed()) {
             server.stop();
             server.dispose();
+        } else {
+            String name = server == null ? null : server.getName();
+            String status = server == null ? null : server.getPhaseName();
+            logger.info("ignore server remove, name: {}, status: {}", name, status);
         }
     }
 

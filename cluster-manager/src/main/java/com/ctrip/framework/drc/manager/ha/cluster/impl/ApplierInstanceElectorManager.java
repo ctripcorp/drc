@@ -72,11 +72,11 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
 
         RegistryKey registryKey = RegistryKey.from(tmpClusterId);
         String clusterId = registryKey.toString();
-        logger.info("[Transfer] {} to {}", tmpClusterId, clusterId);
+        logger.info("[Transfer][applier] {} to {}", tmpClusterId, clusterId);
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));
 
-        logger.info("[updateClusterLeader]{}, {}", clusterId, childrenPaths);
+        logger.info("[updateClusterLeader][applier]{}, {}", tmpClusterId, childrenPaths);
 
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
@@ -110,7 +110,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
 
     private Applier getApplier(String clusterId, String ip, int port, String targetMha) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
-        logger.info("[DbCluster] is {}", dbCluster);
+        logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
         return applierList.stream().filter(applier -> applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port && applier.getTargetMhaName().equalsIgnoreCase(targetMha)).findFirst().orElse(null);
     }
