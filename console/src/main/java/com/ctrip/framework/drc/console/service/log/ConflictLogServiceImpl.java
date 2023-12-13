@@ -430,7 +430,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
         trxLogs.stream().forEach(trxLog -> {
             List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream().filter(cflLog -> {
-                String tableName = cflLog.getDb() + "\\." + cflLog.getTable();
+                String tableName = cflLog.getDb() + "." + cflLog.getTable();
                 return !regexFilter.filter(tableName);
             }).collect(Collectors.toList());
             trxLog.setCflLogs(cflLogs);
