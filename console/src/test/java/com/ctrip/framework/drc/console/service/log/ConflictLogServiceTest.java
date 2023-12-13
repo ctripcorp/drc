@@ -24,10 +24,17 @@ import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,6 +51,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.util.StopWatch;
 
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
 
@@ -86,6 +94,62 @@ public class ConflictLogServiceTest {
         MockitoAnnotations.openMocks(this);
         Mockito.when(consoleConfig.getConflictLogQueryTimeInterval()).thenReturn(Constants.ONE_DAY);
     }
+    
+//    @Test
+//    public void testMatch() throws IOException {
+//        List<String> dbFilters = Lists.newArrayList();
+//        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/resources/blacklist.txt"))) {
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                dbFilters.add(line);
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        String dbFilter = Joiner.on(",").join(dbFilters);
+//        System.out.println(dbFilter);
+//        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
+//        List<AviatorRegexFilter> regexFilterList = dbFilters.stream().map(AviatorRegexFilter::new).collect(Collectors.toList());
+//        System.out.println(regexFilter.filter("pkgpricedb"+"."+ "res_price_1"));
+//        System.out.println(regexFilterList.stream().anyMatch(filter -> filter.filter("pkgpricedb"+"."+ "res_price_1")));
+//        
+//    }
+//    
+//    @Test
+//    public void testCflBlacklist() throws IOException {
+//        
+//        List<String> dbFilters = Lists.newArrayList();
+//        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/resources/blacklist.txt"))) {
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                dbFilters.add(line);
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        String dbFilter = Joiner.on(",").join(dbFilters);
+//        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
+//        List<AviatorRegexFilter> regexFilterList = dbFilters.stream().map(AviatorRegexFilter::new).collect(Collectors.toList());
+//
+//        StopWatch stopWatch = new StopWatch();
+//        stopWatch.start("task1");
+//        for (int i = 0; i < 100 * 10000; i++) {
+//            regexFilter.filter("pkgpricedb"+"."+ "res_price_602");
+//        }
+//        stopWatch.stop();
+//        System.out.println(stopWatch.getLastTaskTimeMillis());
+//        
+//        stopWatch.start("task2");
+//        for (int i = 0; i < 100 * 10000; i++) {
+//            for (AviatorRegexFilter filter : regexFilterList) {
+//                if (filter.filter("pkgpricedb"+"."+ "res_price_602")) {
+//                    break;
+//                }
+//            }
+//        }
+//        stopWatch.stop();
+//        System.out.println(stopWatch.getLastTaskTimeMillis());
+//    }
 
     @Test
     public void testGetConflictTrxLogView() throws Exception {
