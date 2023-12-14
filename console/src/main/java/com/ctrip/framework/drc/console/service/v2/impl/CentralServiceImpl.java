@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.DdlHistoryTbl;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
@@ -14,6 +15,7 @@ import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
+import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -48,6 +50,8 @@ public class CentralServiceImpl implements CentralService {
     private DdlHistoryTblDao ddlHistoryTblDao;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+    @Autowired
+    private MachineService machineService;
 
 
     @Override
@@ -78,6 +82,20 @@ public class CentralServiceImpl implements CentralService {
     public List<MhaDbReplicationDto> getMhaDbReplications(String dcName) {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDcName(dcName, null);
         return replicationDtos.stream().filter(e -> Boolean.TRUE.equals(e.getDrcStatus())).collect(Collectors.toList());
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/uuid", forwardType = ForwardTypeEnum.TO_META_DB)
+    public String getUuidInMetaDb(String mhaName, String ip, Integer port) throws SQLException {
+        logger.info("getUuidInMetaDb mhaName: {}, ip: {}, port: {}", mhaName, ip, port);
+        return machineService.getUuid(ip, port);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/uuid/correct", forwardType = ForwardTypeEnum.TO_META_DB,
+            httpType=HttpRequestEnum.POST, requestClass = MachineTbl.class)
+    public Integer correctMachineUuid(MachineTbl requestBody) throws SQLException {
+        return machineService.correctUuid(requestBody.getIp(), requestBody.getPort(), requestBody.getUuid());
     }
 
     private Long getDcId(String dcName) throws SQLException {

@@ -313,6 +313,22 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         mhaDbReplicationTblDao.batchUpdate(updates);
         this.maintainDelayMonitorDbTable(inserts, updates);
     }
+    
+    @Override
+    public boolean isDbReplicationExist(Long mhaId, List<String> dbs) throws SQLException {
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbs);
+        if (CollectionUtils.isEmpty(dbTbls)) {
+            return false;
+        }
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(
+                dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList()), Lists.newArrayList(mhaId));
+        if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+            return false;
+        }
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryMappingIds(mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId)
+                        .collect(Collectors.toList()));
+        return !CollectionUtils.isEmpty(dbReplicationTbls);
+    }
 
     private List<DbReplicationTbl> filterGreyMha(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
         List<Long> mappingIds = dbReplicationTbls.stream().map(e -> {
