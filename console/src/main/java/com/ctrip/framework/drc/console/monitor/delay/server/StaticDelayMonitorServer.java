@@ -33,7 +33,6 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -62,9 +61,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private final Logger dbLogger = LoggerFactory.getLogger("dbDelayMonitorLogger");
 
-    private ScheduledExecutorService checkScheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(2,"DelayMonitor");
+    private ScheduledExecutorService checkScheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(2, "DelayMonitor");
 
-    @Autowired
     private CentralService centralService;
 
     private MySQLConnector mySQLConnector;
@@ -104,7 +102,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private static final int PERIOD = 1;
 
     private DelayMonitorSlaveConfig config;
-    
+
     private boolean isReplicatorMaster = true;
 
     // the time which was updated by local Console and flew thru local MySQL-local Rep-dest Applier-dest MySQL, and finally sent by dest Rep
@@ -121,7 +119,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private static final String DEBUG = "debug";
 
-    private static final String INFO= "info";
+    private static final String INFO = "info";
 
     private static final String CLOG_TAGS = "[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},role={}]]";
     private static final String CLOG_TAGS_V2 = "[[monitor=delay_v2,db={},direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},role={}]]";
@@ -149,7 +147,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                 }
                 try {
                     log("reconnecting...", DEBUG, null);
-                    if(!getLifecycleState().isStopped()) {
+                    if (!getLifecycleState().isStopped()) {
                         this.stop();
                     }
                     this.start();
@@ -191,14 +189,14 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log("[release] DelayMonitorLogEvent: ", ERROR, e);
                 }
             }
-        } else if(logEvent instanceof ParsedDdlLogEvent) {
+        } else if (logEvent instanceof ParsedDdlLogEvent) {
             try {
                 ParsedDdlLogEvent parsedDdlLogEvent = (ParsedDdlLogEvent) logEvent;
                 QueryType queryType = parsedDdlLogEvent.getQueryType();
                 String ddl = parsedDdlLogEvent.getDdl();
                 String schema = parsedDdlLogEvent.getSchema();
                 String table = parsedDdlLogEvent.getTable();
-                if(QueryType.TRUNCATE.equals(queryType)) {
+                if (QueryType.TRUNCATE.equals(queryType)) {
                     try {
                         String data = String.format("[TRUNCATE] %s.%s in %s.%s(%s)", schema, table, config.getCluster(), config.getDestMha(), config.getDestDc());
                         log(data, INFO, null);
@@ -221,7 +219,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log("[release] ParsedDdlLogEvent: ", ERROR, e);
                 }
             }
-        } else if(logEvent instanceof DrcHeartbeatLogEvent) {
+        } else if (logEvent instanceof DrcHeartbeatLogEvent) {
             try {
                 logEventCallBack.onHeartHeat();
             } finally {
@@ -310,10 +308,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
 
     public StaticDelayMonitorServer(MySQLSlaveConfig mySQLSlaveConfig,
-            MySQLConnector mySQLConnector,
-            PeriodicalUpdateDbTask periodicalUpdateDbTask,
-            PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2,
-            long delayExceptionTime) {
+                                    MySQLConnector mySQLConnector,
+                                    PeriodicalUpdateDbTask periodicalUpdateDbTask,
+                                    PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2,
+                                    CentralService centralService,
+                                    long delayExceptionTime) {
         super(mySQLSlaveConfig);
         this.config = (DelayMonitorSlaveConfig) mySQLSlaveConfig;
         this.setLogEventHandler(eventHandler);
@@ -321,6 +320,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         this.periodicalUpdateDbTask = periodicalUpdateDbTask;
         this.periodicalUpdateDbTaskV2 = periodicalUpdateDbTaskV2;
         this.delayExceptionTime = delayExceptionTime;
+        this.centralService = centralService;
         toleranceTime = TOLERANCE_TIME;
 
         if (config.getMha() != null && config.getMha().equals(config.getDestMha())) {
@@ -348,7 +348,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         super.doStart();
         Long rTime = System.currentTimeMillis();
         receiveTimeMap.put(config.getMha(), rTime);
-        log("init receiveTime: "+ rTime + '(' + dateFormatThreadLocal.get().format(rTime) + ')', INFO, null);
+        log("init receiveTime: " + rTime + '(' + dateFormatThreadLocal.get().format(rTime) + ')', INFO, null);
 
         checkScheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
             @Override
@@ -359,10 +359,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     long curTime = System.currentTimeMillis();
 
                     Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
-                    while(iterator.hasNext()) {
+                    while (iterator.hasNext()) {
                         Entry<String, Long> entry = iterator.next();
                         String mhaName = entry.getKey();
-                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) { 
+                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
                             if (isReplicatorMaster) {
                                 iterator.remove();
                             }
@@ -432,12 +432,12 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         if (!parseExecutorService.awaitTermination(1, TimeUnit.SECONDS)) {
             parseExecutorService.shutdownNow();
         }
-        if(!checkScheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS)) {
+        if (!checkScheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS)) {
             checkScheduledExecutorService.shutdownNow();
         }
         UnidirectionalEntity unidirectionalEntity = entityMap.remove(config.getMha());
         if (unidirectionalEntity != null) {
-            DefaultReporterHolder.getInstance().removeRegister( config.getMeasurement(),"destMha",config.getDestMha());
+            DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(), "destMha", config.getDestMha());
         }
 
         Map<String, UnidirectionalEntity> remove = entityV2Map.remove(config.getMha());
@@ -512,12 +512,12 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         } catch (Exception e) {
             mhaString = mhaDelayInfoJson;
         }
-        
+
         if (!isReplicatorMaster && !mhaString.equalsIgnoreCase(config.getDestMha())) {
             // filter same region drc other mha delayInfo 
             return;
         }
-        
+
         String delayString = (String) values.get(3);
         log("mha: " + mhaString + ", delayString: " + delayString + ", GTID: " + gtid, INFO, null);
 
@@ -548,18 +548,18 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                                     "monitor=delay,direction={}({}):{}({})," +
                                     "cluster={}," +
                                     "replicator={}:{}," +
-                                    "measurement={},slow={}," 
+                                    "measurement={},slow={},"
                                     + "role={}]]" +
-                            "\n[Report Delay] {}ms" +
-                            "\nGTID: {}" +
-                            "\ndelay = currentTime({}) - datachange_lasttime({})" +
-                            "[or commitTime]",
+                                    "\n[Report Delay] {}ms" +
+                                    "\nGTID: {}" +
+                                    "\ndelay = currentTime({}) - datachange_lasttime({})" +
+                                    "[or commitTime]",
                             mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
                             config.getCluster(),
                             config.getEndpoint().getHost(), config.getEndpoint().getPort(),
                             config.getMeasurement(), delay > SLOW_THRESHOLD,
                             isReplicatorMaster,
-                            delay, gtid, 
+                            delay, gtid,
                             formatter.format(rTime), delayString);
                 } else {
                     logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
@@ -584,27 +584,27 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             case WARN:
                 logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
                         config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
-                        config.getMeasurement(),isReplicatorMaster);
+                        config.getMeasurement(), isReplicatorMaster);
                 break;
             case ERROR:
                 logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
                         config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
-                        config.getMeasurement(),isReplicatorMaster, t);
+                        config.getMeasurement(), isReplicatorMaster, t);
                 break;
             case DEBUG:
                 logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
                         config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
-                        config.getMeasurement(),isReplicatorMaster);
+                        config.getMeasurement(), isReplicatorMaster);
                 break;
             case INFO:
                 logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
                         config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
-                        config.getMeasurement(),isReplicatorMaster);
+                        config.getMeasurement(), isReplicatorMaster);
                 break;
         }
     }
 
-    private void logForDb( String dbName, String msg, String types, Throwable t) {
+    private void logForDb(String dbName, String msg, String types, Throwable t) {
         String prefix = CLOG_TAGS_V2 + msg;
 
         switch (types) {

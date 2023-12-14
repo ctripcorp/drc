@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorSe
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
@@ -89,6 +90,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Autowired private PeriodicalUpdateDbTask periodicalUpdateDbTask;
     @Autowired private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
     @Autowired private MonitorServiceV2 monitorServiceV2;
+    @Autowired private CentralService centralService;
 
     private static void log(DelayMonitorSlaveConfig config, String msg, String types, Exception e) {
         String prefix = CLOG_TAGS + msg;
@@ -222,6 +224,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 new DelayMonitorPooledConnector(config.getEndpoint()),
                 periodicalUpdateDbTask,
                 periodicalUpdateDbTaskV2,
+                centralService,
                 consoleConfig.getDelayExceptionTime()
         );
     }

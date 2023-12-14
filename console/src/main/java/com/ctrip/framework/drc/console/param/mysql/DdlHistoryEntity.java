@@ -61,4 +61,15 @@ public class DdlHistoryEntity {
     public void setTableName(String tableName) {
         this.tableName = tableName;
     }
+
+    @Override
+    public String toString() {
+        return "DdlHistoryEntity{" +
+                "mha='" + mha + '\'' +
+                ", ddl='" + ddl + '\'' +
+                ", queryType=" + queryType +
+                ", schemaName='" + schemaName + '\'' +
+                ", tableName='" + tableName + '\'' +
+                '}';
+    }
 }
