@@ -327,7 +327,8 @@ public class CurrentMeta implements Releasable {
                 logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupClusterId, surviveAppliers, activeApplier);
                 doSetActive(backupClusterId, activeApplier, appliers);
             } else {
-                logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{}, {}", clusterId, surviveAppliers, activeApplier);
+                logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{}", clusterId, surviveAppliers, activeApplier);
+                //TODO: change to remove
                 this.surviveAppliers.clear();
             }
         }
