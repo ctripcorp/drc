@@ -129,18 +129,21 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
         for (String uuid : uuids) {
             Long lastTrxId = lastReceivedTxs.get(uuid);
-            GtidSet.Interval interval = getStartAndEnd(previousGtidSet, uuid);
+            GtidSet gtidSetOfUuid = previousGtidSet.filterGtid(Sets.newHashSet(uuid));
+            if (gtidSetOfUuid == null || gtidSetOfUuid.isContainedWithin(context.fetchGtidSet())) {
+                continue;
+            }
+
+            GtidSet.Interval interval = getStartAndEnd(gtidSetOfUuid, uuid);
             if (interval == null) {
                 continue;
             }
             long end = interval.getEnd();
 
             if (lastTrxId == null) {
-                long start = interval.getStart();
-                GtidSet gtidSet = new GtidSet(uuid + ":" + start + "-" + end);
-                unionGtidSetGap(gtidSet);
+                unionGtidSetGap(gtidSetOfUuid);
                 lastReceivedTxs.put(uuid, end);
-                logger.info("[Merge][Uuid][{}] last null, gtid set: {}", registryKey, gtidSet.toString());
+                logger.info("[Merge][Uuid][{}] last null, gtid set: {}", registryKey, gtidSetOfUuid.toString());
             } else {
                 long start = lastTrxId;
                 if (end > start) {
