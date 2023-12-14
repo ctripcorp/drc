@@ -72,7 +72,7 @@ public class ConflictLogManagerTest {
         dbMigrationParam.setNewMha(newMha);
         
         dbMigrationParam.setDbs(Lists.newArrayList("bbzsoftivrdb"));
-
+        dbMigrationParam.setOperator("test");
         String s = JsonUtils.toJson(dbMigrationParam);
         System.out.println(s);
     }

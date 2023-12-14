@@ -95,6 +95,7 @@ public class CentralServiceImpl implements CentralService {
     @PossibleRemote(path = "/api/drc/v2/centralService/uuid/correct", forwardType = ForwardTypeEnum.TO_META_DB,
             httpType=HttpRequestEnum.POST, requestClass = MachineTbl.class)
     public Integer correctMachineUuid(MachineTbl requestBody) throws SQLException {
+        logger.info("correctMachineUuid requestBody: {}", requestBody);
         return machineService.correctUuid(requestBody.getIp(), requestBody.getPort(), requestBody.getUuid());
     }
 

@@ -76,8 +76,9 @@ public class CentralServiceController {
     }
 
     @PostMapping("uuid/correct")
-    public ApiResult correctUuidInMetaDb(MachineTbl requestBody) {
+    public ApiResult correctUuidInMetaDb(@RequestBody MachineTbl requestBody) {
         try {
+            logger.info("[[tag=centralService]] correctUuidInMetaDb requestBody: {}", requestBody);
             Integer affected = centralService.correctMachineUuid(requestBody);
             return ApiResult.getSuccessInstance(affected);
         } catch (Throwable e) {
