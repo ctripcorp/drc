@@ -239,11 +239,12 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     }
 
     private void unionExecutedGtidSetGap(String uuid, long start, long end) {
-        if (end < start) {
-            return;
+        if (end > start) {
+            String toCompensateGtidSetString = uuid + ":" + start + "-" + end;
+            toCompensateGtidSet = toCompensateGtidSet.union(new GtidSet(toCompensateGtidSetString));
+        } else if (end == start) {
+            toCompensateGtidSet.add(uuid + ":" + end);
         }
-        String toCompensateGtidSetString = uuid + ":" + start + "-" + end;
-        toCompensateGtidSet = toCompensateGtidSet.union(new GtidSet(toCompensateGtidSetString));
     }
 
     private void clearExecutedGtidSetGap() {
