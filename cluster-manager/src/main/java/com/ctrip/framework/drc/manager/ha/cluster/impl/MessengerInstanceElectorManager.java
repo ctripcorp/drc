@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
@@ -70,7 +71,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         }
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId){
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId) {
         RegistryKey registryKey = RegistryKey.from(tmpClusterId);
         String clusterId = registryKey.toString();
         logger.info("[Transfer][messenger] {} to {}", tmpClusterId, clusterId);
@@ -84,12 +85,14 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
 
         List<Messenger> survivalMessengers = new ArrayList<>(childrenData.size());
 
-        for(String path : sortedChildren){
-            for(ChildData childData : childrenData){
-                if(path.equals(childData.getPath())){
+        String targetDB = RegistryKey.getTargetDB(tmpClusterId);
+
+        for (String path : sortedChildren) {
+            for (ChildData childData : childrenData) {
+                if (path.equals(childData.getPath())) {
                     String data = new String(childData.getData());
                     ZookeeperValue zookeeperValue = JsonCodec.INSTANCE.decode(data, ZookeeperValue.class);
-                    Messenger messenger = getMessenger(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
+                    Messenger messenger = getMessenger(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetDB);
                     if (messenger != null) {
                         survivalMessengers.add(messenger);
                         logger.info("[Survive] messenger {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
@@ -101,7 +104,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
             }
         }
 
-        if(survivalMessengers.size() != childrenData.size()){
+        if (survivalMessengers.size() != childrenData.size()) {
             throw new IllegalStateException(String.format("[children data not equal with survival messengers]%s, %s", childrenData, survivalMessengers));
         }
 
@@ -110,9 +113,13 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         currentMetaManager.setSurviveMessengers(clusterId, survivalMessengers, activeMessenger);
     }
 
-    private Messenger getMessenger(String clusterId, String ip, int port) {
+    private Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Messenger> messengerList = dbCluster.getMessengers();
-        return messengerList.stream().filter(messenger -> messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port).findFirst().orElse(null);
+        return messengerList.stream().filter(messenger ->
+                messenger.getIp().equalsIgnoreCase(ip)
+                        && messenger.getPort() == port
+                        && (targetDB == null || ObjectUtils.equals(messenger.getIncludedDbs(), targetDB)))
+                .findFirst().orElse(null);
     }
 }

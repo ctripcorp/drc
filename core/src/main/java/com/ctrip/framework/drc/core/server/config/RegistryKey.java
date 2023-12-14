@@ -60,7 +60,7 @@ public class RegistryKey {
                 return ids[3];
             }
         }
-        throw new IllegalArgumentException("Illegal path " + path);
+        return null;
     }
 
     @Override

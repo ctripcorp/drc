@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.core.Constants;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
@@ -13,6 +12,7 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
@@ -68,7 +68,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         }
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId){
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId) {
 
         RegistryKey registryKey = RegistryKey.from(tmpClusterId);
         String clusterId = registryKey.toString();
@@ -82,12 +82,15 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
 
         List<Applier> survivalAppliers = new ArrayList<>(childrenData.size());
 
-        for(String path : sortedChildren){
-            for(ChildData childData : childrenData){
-                if(path.equals(childData.getPath())){
+        String targetMha = RegistryKey.getTargetMha(tmpClusterId);
+        String targetDB = RegistryKey.getTargetDB(tmpClusterId);
+
+        for (String path : sortedChildren) {
+            for (ChildData childData : childrenData) {
+                if (path.equals(childData.getPath())) {
                     String data = new String(childData.getData());
                     ZookeeperValue zookeeperValue = JsonCodec.INSTANCE.decode(data, ZookeeperValue.class);
-                    Applier applier = getApplier(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), RegistryKey.getTargetMha(tmpClusterId));
+                    Applier applier = getApplier(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetMha, targetDB);
                     if (applier != null) {
                         survivalAppliers.add(applier);
                         logger.info("[Survive] applier {} {}:{}", clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
@@ -99,7 +102,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
             }
         }
 
-        if(survivalAppliers.size() != childrenData.size()){
+        if (survivalAppliers.size() != childrenData.size()) {
             throw new IllegalStateException(String.format("[children data not equal with survival appliers]%s, %s", childrenData, survivalAppliers));
         }
 
@@ -108,10 +111,15 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         currentMetaManager.setSurviveAppliers(clusterId, survivalAppliers, activeApplier);
     }
 
-    private Applier getApplier(String clusterId, String ip, int port, String targetMha) {
+    private Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
-        return applierList.stream().filter(applier -> applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port && applier.getTargetMhaName().equalsIgnoreCase(targetMha)).findFirst().orElse(null);
+        return applierList.stream().filter(applier ->
+                applier.getIp().equalsIgnoreCase(ip)
+                        && applier.getPort() == port
+                        && applier.getTargetMhaName().equalsIgnoreCase(targetMha)
+                        && (targetDB == null || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
+                .findFirst().orElse(null);
     }
 }
