@@ -28,4 +28,7 @@ public interface MhaDbReplicationService {
     void refreshMhaReplication();
 
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
+
+    boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
+
 }

@@ -157,6 +157,19 @@ public class OperationLogTbl {
     public void setDeleted(Integer deleted) {
         this.deleted = deleted;
     }
-    
-    
+
+    @Override
+    public String toString() {
+        return "OperationLogTbl{" +
+                "id=" + id +
+                ", type='" + type + '\'' +
+                ", attr='" + attr + '\'' +
+                ", operation='" + operation + '\'' +
+                ", operator='" + operator + '\'' +
+                ", fail=" + fail +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                ", deleted=" + deleted +
+                '}';
+    }
 }

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
@@ -59,6 +60,30 @@ public class CentralServiceController {
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getMhaDbReplications fail");
             return ApiResult.getFailInstance(null, "getMhaDbReplications fail");
+        }
+    }
+    
+    @GetMapping("uuid")
+    public ApiResult getUuidInMetaDb(@RequestParam String mhaName,@RequestParam String ip,@RequestParam Integer port) {
+        try {
+            logger.info("[[tag=centralService]] getUuidInMetaDb");
+            String uuid = centralService.getUuidInMetaDb(mhaName,ip,port);
+            return ApiResult.getSuccessInstance(uuid);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getUuidInMetaDb fail, mhaName: {}, ip: {}, port: {}", mhaName, ip, port, e);
+            return ApiResult.getFailInstance(null, "getUuidInMetaDb fail");
+        }
+    }
+
+    @PostMapping("uuid/correct")
+    public ApiResult correctUuidInMetaDb(@RequestBody MachineTbl requestBody) {
+        try {
+            logger.info("[[tag=centralService]] correctUuidInMetaDb requestBody: {}", requestBody);
+            Integer affected = centralService.correctMachineUuid(requestBody);
+            return ApiResult.getSuccessInstance(affected);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] correctUuidInMetaDb fail, requestBody: {}", requestBody, e);
+            return ApiResult.getFailInstance(0, "correctUuidInMetaDb fail");
         }
     }
 

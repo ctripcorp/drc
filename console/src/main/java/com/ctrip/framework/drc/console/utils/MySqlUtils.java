@@ -543,8 +543,11 @@ public class MySqlUtils {
         return tables.stream().map(TableSchemaName::toString).collect(Collectors.toList());
     }
 
-
-    public static String getUuid(String ip, int port, String user, String password, boolean master) throws Exception {
+    public static String getUuid(Endpoint endpoint, boolean master) throws SQLException {
+        return getUuid(endpoint.getHost(), endpoint.getPort(), endpoint.getUser(), endpoint.getPassword(), master);
+    }
+    
+    public static String getUuid(String ip, int port, String user, String password, boolean master) throws SQLException {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;

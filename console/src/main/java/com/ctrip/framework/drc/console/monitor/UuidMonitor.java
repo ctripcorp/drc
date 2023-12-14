@@ -2,37 +2,28 @@ package com.ctrip.framework.drc.console.monitor;
 
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
-import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
-import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.service.utils.Constants;
-import com.ctrip.framework.drc.console.vo.response.UuidResponseVo;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
-import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObserver;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,9 +42,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Component
 @DependsOn("dbClusterSourceProvider")
 public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
-
-    public static final Logger uuidLogger = LoggerFactory.getLogger(UuidMonitor.class);
-
+    
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
     @Autowired
@@ -69,15 +58,9 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     private MonitorTableSourceProvider monitorTableSourceProvider;
     
     @Autowired
-    private OpenService openService;
-
-    @Autowired
-    private MachineTblDao machineTblDao;
+    private CentralService centralService;
     
     private static final String UUID_ERROR_NUM_MEASUREMENT = "fx.drc.uuid.errorNums";
-    protected static final String ALI_RDS = "/*FORCE_MASTER*/";
-    private static final String UUIDCommand = "show  global  variables  like \"server_uuid\";";
-    private static final int UUID_INDEX = 2;
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
 
@@ -99,186 +82,83 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     @Override
     public void scheduledTask() {
         if (isRegionLeader) {
-            uuidLogger.info("[[monitor=UUIDMonitor]] is a leader,going to monitor");
+            logger.info("[[monitor=UUIDMonitor]] is a leader,going to monitor");
             String uuidMonitorSwitch = monitorTableSourceProvider.getUuidMonitorSwitch();
             if (!SWITCH_STATUS_ON.equalsIgnoreCase(uuidMonitorSwitch)) {
-                uuidLogger.info("[[monitor=UUIDMonitor]] uuidMonitor switch close");
+                logger.info("[[monitor=UUIDMonitor]] uuidMonitor switch close");
                 return;
             }
             for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
-                monitorUuid(entry);
+                monitorUuid(entry,true);
             }
             for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
-                monitorUuid(entry);
+                monitorUuid(entry,false);
             }
         } else {
             reporter.removeRegister(UUID_ERROR_NUM_MEASUREMENT);
-            uuidLogger.info("[[monitor=UUIDMonitor]] not leader,remove monitor");
+            logger.info("[[monitor=UUIDMonitor]] not leader,remove monitor");
         }
         
     }
 
-    private void monitorUuid(Map.Entry<MetaKey, MySqlEndpoint> entry) {
+    private void monitorUuid(Map.Entry<MetaKey, MySqlEndpoint> entry,boolean isMaster) {
         MetaKey metaKey = entry.getKey();
         MySqlEndpoint mySqlEndpoint = entry.getValue();
         String ip = mySqlEndpoint.getIp();
         int port = mySqlEndpoint.getPort();
-        
-        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(mySqlEndpoint);
         BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
         Map<String, String> entityTags = entity.getTags();
-        String uuidFromCommand = null;
-        List<String> uuidFromDB = null;
-        String uuidStringFromDB = null;
-        try {
-            uuidFromCommand = getUUIDFromCommand(sqlOperatorWrapper);
-            uuidStringFromDB = getUUIDFromDB(ip,port);
-            if(uuidStringFromDB != null) {
-                uuidFromDB = Arrays.asList(uuidStringFromDB.split(","));
-            }
-        } catch (SQLException e) {
-            uuidLogger.error("[[monitor=UUIDMonitor]] SQLException occur in getUUID", e);
-        }
-        if (uuidFromCommand == null || uuidFromDB == null) {
-            uuidLogger.info("[[monitor=UUIDMonitor]] No such Db:" + ip + ":" + port);
-        } else {
-            if (uuidFromDB.contains(uuidFromCommand)) {
-                reporter.resetReportCounter(entityTags, 0L, UUID_ERROR_NUM_MEASUREMENT);
-                uuidLogger.info("[[monitor=UUIDMonitor]] mysql {}:{} ,uuid correct",ip,port);
-            } else {
-                reporter.resetReportCounter(entityTags, 1L, UUID_ERROR_NUM_MEASUREMENT);
-                uuidLogger.info("[[monitor=UUIDMonitor]] mysql {}:{},RealUUID:{},ErrorUUID:{}", ip,port,uuidFromCommand, uuidStringFromDB);
-                
-                // auto-correct
-                if (monitorTableSourceProvider.getUuidCorrectSwitch().equalsIgnoreCase(SWITCH_STATUS_ON)) {
-                    uuidLogger.info("[[monitor=UUIDMonitor]] uuidCorrectSwitch already on");
-                    autoCorrect(ip,port,uuidStringFromDB,uuidFromCommand);
-                }
-                
-            }
-        }
-    }
-    
-    private String getUUIDFromDB(String ip, int port) throws SQLException {// select from db
-        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
-        MachineTbl machineTbl;
         
-        if (publicCloudRegion.contains(regionName)) {
-            machineTbl = getUUIDFromRemoteDB(ip, port);
-            uuidLogger.info("[[monitor=UUIDMonitor]] get UUID from remote dc,current dc is {}",localDcName);
-        } else {
-            machineTbl = getUUIDFromLocalDB(ip,port);
-            uuidLogger.info("[[monitor=UUIDMonitor]] get UUID from local dc,current dc is {}",localDcName);
-        }
-        return machineTbl != null ? machineTbl.getUuid() : null;
-    }
-    
-    private MachineTbl getUUIDFromRemoteDB(String ip, int port) {
-        String centerRegionUrl = consoleConfig.getCenterRegionUrl();
-        if (!StringUtils.isEmpty(centerRegionUrl)) {
-            try {
-                String uri = String.format("%s/api/drc/v1/monitor/uuid?ip={ip}&port={port}", centerRegionUrl);
-                Map<String, Object> params = Maps.newHashMap();
-                params.put("ip", ip);
-                params.put("port", port);
-                UuidResponseVo uuidResponseVo = openService.getUUIDFromRemoteDC(uri,params);
-                if (Constants.zero.equals(uuidResponseVo.getStatus())) {
-                    return uuidResponseVo.getData();
+        try {
+            String uuidFromCommand = getUUIDFromCommand(mySqlEndpoint,isMaster);
+            String uuidStringFromDB = getUUIDFromMetaDB(metaKey.getMhaName(),ip,port);
+            if (uuidFromCommand == null || uuidStringFromDB == null) {
+                logger.info("[[monitor=UUIDMonitor]] No such Db:" + ip + ":" + port);
+                return;
+            }
+            List<String> uuidsFromMetaDB = Lists.newArrayList(uuidStringFromDB.split(","));
+            boolean uuidCorrect = uuidsFromMetaDB.contains(uuidFromCommand);
+            reporter.resetReportCounter(entityTags, uuidCorrect? 0L : 1L, UUID_ERROR_NUM_MEASUREMENT);
+            if (!uuidCorrect) {
+                logger.info("[[monitor=UUIDMonitor]] mysql {}:{},RealUUID:{},ErrorUUID:{}", ip,port,uuidFromCommand, uuidStringFromDB);
+                if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUuidCorrectSwitch())) {
+                    autoCorrect(ip, port, uuidsFromMetaDB, uuidFromCommand);
                 }
-            } catch (Throwable t) {
-                logger.warn("[[monitor=UUIDMonitor]] fail get uuid from center region",t);
             }
-        }
-        uuidLogger.warn(" [[monitor=UUIDMonitor]] no such mysqlMachine {}:{} in db",ip,port);
-        return null;
-    }
-    
-    private MachineTbl getUUIDFromLocalDB(String ip, int port) throws SQLException {
-        MachineTbl machineTbl = machineTblDao.queryByIpPort(ip, port);
-        if (machineTbl == null) {
-            uuidLogger.warn(" [[monitor=UUIDMonitor]] no such mysqlMachine {}:{} in db",ip,port);
-        }
-        return machineTbl;
-    }
-
-    private String getUUIDFromCommand(WriteSqlOperatorWrapper sqlOperatorWrapper) throws SQLException { // show  global  variables  like  'server_uuid';
-        ReadResource readResource = null;
-        try {
-            String command;
-            command = ALI_RDS + UUIDCommand;
-            GeneralSingleExecution execution = new GeneralSingleExecution(command);
-            readResource = sqlOperatorWrapper.select(execution);
-            ResultSet rs = readResource.getResultSet();
-            if (rs == null) {
-                return null;
-            }
-            rs.next();
-            String res = rs.getString(UUID_INDEX);
-            return res;
-        } finally {
-            if (readResource != null) {
-                readResource.close();
-            }
-        }
-    }
-
-    private boolean autoCorrect(String ip, int port, String uuidStringFromDB,String uuidFromCommand) {
-        try {
-            // update UUID
-            Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
-            MachineTbl sample;
-            // get Pk and uuid
-            if (publicCloudRegion.contains(regionName)) {
-                sample = getUUIDFromRemoteDB(ip, port);
-            } else {
-                sample = getUUIDFromLocalDB(ip, port);
-            }
-            if (sample == null) {
-                uuidLogger.warn("[[monitor=UUIDMonitor]] error occur in update errorUUID when getUUid");
-                return false;
-            }
-            // correct
-            if ((publicCloudRegion.contains(regionName)) && uuidStringFromDB != null) {
-                String uuidString = uuidStringFromDB + "," + uuidFromCommand;
-                sample.setUuid(uuidString);
-            } else {
-                sample.setUuid(uuidFromCommand);
-            }
-            
-            // update
-            if (updateUuid(sample)) {
-                uuidLogger.info("[[monitor=UUIDMonitor]] update Machine {}:{} UUID change from {} to {}", ip, port, uuidStringFromDB, sample.getUuid());
-                return true;
-            }
-            uuidLogger.warn("[[monitor=UUIDMonitor]] error occur in update errorUUID");
         } catch (SQLException e) {
-            uuidLogger.error("[[monitor=UUIDMonitor]] SQLException occur in update errorUUID", e);
+            logger.error("[[monitor=UUIDMonitor]] monitorUuid error", e);
         }
-        return false;
+        
     }
     
-    private boolean updateUuid(MachineTbl machineTblWithUuid) throws SQLException {
-        // update
-        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
-        if (publicCloudRegion.contains(regionName)) {
-            String centerRegionUrl = consoleConfig.getCenterRegionUrl();
-            if (!StringUtils.isEmpty(centerRegionUrl)) {
-                try {
-                    String uri = String.format("%s/api/drc/v1/monitor/uuid", centerRegionUrl);
-                    ApiResult<String> response = openService.updateUuidByMachineTbl(uri, machineTblWithUuid);
-                    if (Constants.zero.equals(response.getStatus())) {
-                        return true;
-                    }
-                } catch (Throwable t) {
-                    logger.warn("[[monitor=UUIDMonitor]] fail get uuid from center region:",t);
-                }
+    private String getUUIDFromMetaDB(String mha,String ip, int port) throws SQLException {
+        return centralService.getUuidInMetaDb(mha, ip, port);
+    }
+
+    private String getUUIDFromCommand(Endpoint endpoint, boolean master) throws SQLException {
+        return MySqlUtils.getUuid(endpoint, master);
+    }
+    
+    private void autoCorrect(String ip, int port, List<String> uuidsFromMetaDB,String uuidFromCommand) {
+        try {
+            Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+            MachineTbl correctMachine = new MachineTbl();
+            correctMachine.setIp(ip);
+            correctMachine.setPort(port);
+            if (publicCloudRegion.contains(regionName)) {
+                uuidsFromMetaDB.add(uuidFromCommand);
+                correctMachine.setUuid(StringUtils.join(uuidsFromMetaDB, ","));
+            } else {
+                correctMachine.setUuid(uuidFromCommand);
             }
-            return false;
-        } else {
-            int update = machineTblDao.update(machineTblWithUuid);
-            return update == 1;
+            // update
+            Integer affectRow = centralService.correctMachineUuid(correctMachine);
+            logger.info("[[monitor=UUIDMonitor]] update Machine {}:{} UUID change from {} to {},affectRows:{}",
+                    ip, port, uuidsFromMetaDB, uuidFromCommand,affectRow);
+        } catch (SQLException e) {
+            logger.error("[[monitor=UUIDMonitor]] SQLException occur in update errorUUID", e);
         }
-    } 
+    }
     
     protected BaseEndpointEntity getEntity(Endpoint endpoint, MetaKey metaKey) {
         BaseEndpointEntity entity;

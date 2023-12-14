@@ -36,8 +36,6 @@ public class DbMigrationController {
     private static final Logger logger = LoggerFactory.getLogger(DbMigrationController.class);
     @Autowired
     private DbMigrationService dbMigrationService;
-    @Autowired
-    private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
     
     @DeleteMapping("abandon")

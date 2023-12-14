@@ -109,14 +109,14 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private ResourceService resourceService;
-
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-
     @Autowired
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
     @Autowired
     private MessengerServiceV2 messengerServiceV2;
+    @Autowired
+    private MhaDbReplicationService mhaDbReplicationService;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -140,9 +140,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
-        // meta info check and init
         logger.info("dbMigrationCheckAndCreateTask start, request: {}", JsonUtils.toJson(dbMigrationRequest));
         checkDbMigrationParam(dbMigrationRequest);
+        // check task
         List<MigrationTaskTbl> migrationTasks = migrationTaskTblDao.queryByOldMhaDBA(dbMigrationRequest.getOldMha().getName());
         MigrationTaskTbl sameTask = findSameTask(dbMigrationRequest, migrationTasks);
         if (sameTask != null) {
@@ -151,6 +151,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             return Pair.of("Repeated task, status is " + sameTask.getStatus(), sameTask.getId());
         }
         checkDbRepeatedMigrationTask(dbMigrationRequest, migrationTasks);
+        // check migration drc related
+        if (migrationDrcDoNotCare(dbMigrationRequest)) {
+            return Pair.of(null, null);
+        }
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
         StringBuilder tips = new StringBuilder();
@@ -228,6 +232,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         tips.insert(0, "task init success! ");
         return Pair.of(tips.toString(), taskId);
     }
+
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -1147,6 +1152,17 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         return mhaTblV2sByRegion;
     }
 
+
+    private boolean migrationDrcDoNotCare(DbMigrationParam dbMigrationRequest) throws SQLException {
+        MigrateMhaInfo oldMha = dbMigrationRequest.getOldMha();
+        MachineTbl mhaMaterNode = machineTblDao.queryByIpPort(oldMha.getMasterIp(), oldMha.getMasterPort());
+        if (mhaMaterNode == null) {
+            return true;
+        }
+        boolean dbReplicationExist = mhaDbReplicationService.isDbReplicationExist(mhaMaterNode.getMhaId(), dbMigrationRequest.getDbs());
+        return !dbReplicationExist;
+    }
+    
     private MhaTblV2 checkAndInitMhaInfo(MigrateMhaInfo mhaInfo) throws SQLException {
         MhaTblV2 mhaTblV2;
         MachineTbl mhaMaterNode = machineTblDao.queryByIpPort(mhaInfo.getMasterIp(), mhaInfo.getMasterPort());

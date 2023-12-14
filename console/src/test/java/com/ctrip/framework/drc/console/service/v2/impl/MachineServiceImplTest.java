@@ -91,6 +91,26 @@ public class MachineServiceImplTest {
 
     }
 
+    @Test
+    public void testGetUuid() throws SQLException {
+        MachineTbl machineTbl = new MachineTbl();
+        machineTbl.setUuid("uuid1");
+        when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(machineTbl);
+        Assert.assertEquals("uuid1",machineServiceImpl.getUuid("ip1", 3306));
+        when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
+        Assert.assertNull(machineServiceImpl.getUuid("ip1", 3306));
+    }
+
+    @Test
+    public void testCorrectUuid() throws SQLException {
+        when(machineTblDao.update(any(MachineTbl.class))).thenReturn(1);
+        MachineTbl machineTbl = new MachineTbl();
+        machineTbl.setUuid("uuid1");
+        when(machineTblDao.queryByIpPort(anyString(), anyInt())).thenReturn(machineTbl);
+        Assert.assertEquals(1,machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
+        when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
+        Assert.assertEquals(0,machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
+    }
 }
 
 //Generated with love by TestMe :) Please report issues and submit feature requests at: http://weirddev.com/forum#!/testme

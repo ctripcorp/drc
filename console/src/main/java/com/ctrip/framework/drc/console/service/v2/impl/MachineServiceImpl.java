@@ -94,6 +94,25 @@ public class MachineServiceImpl implements MachineService {
         }
     }
 
+    @Override
+    public String getUuid(String ip, int port) throws SQLException {
+        MachineTbl machineTbl = machineTblDao.queryByIpPort(ip, port);
+        if (machineTbl == null) {
+            return null;
+        }
+        return machineTbl.getUuid();
+    }
+
+    @Override
+    public Integer correctUuid(String ip, Integer port, String uuid) throws SQLException {
+        MachineTbl machineTbl = machineTblDao.queryByIpPort(ip, port);
+        if (machineTbl == null) {
+            return 0;
+        }
+        machineTbl.setUuid(uuid);
+        return machineTblDao.update(machineTbl);
+    }
+
     private Endpoint getMasterEndpointFromDbaApi(String mha) {
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mha);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
