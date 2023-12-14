@@ -146,6 +146,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DbApplierBuildServiceV2Test.class,
         MhaDbReplicationServiceImplTest.class,
         MysqlServiceV2ImplTest.class,
+        CentralServiceImplTest.class,
 //
         // controller
         OperationLogControllerTest.class,
