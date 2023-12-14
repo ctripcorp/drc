@@ -68,7 +68,7 @@ public class CurrentMeta implements Releasable {
 
     public boolean watchMessengerIfNotWatched(String clusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.watchMessengerIfNotWatched();
+        return currentShardMeta.watchMessengerIfNotWatched(clusterId);
     }
 
     public boolean watchApplierIfNotWatched(String clusterId) {
@@ -221,8 +221,6 @@ public class CurrentMeta implements Releasable {
 
         private AtomicBoolean replicatorWatched = new AtomicBoolean(false);
 
-        private AtomicBoolean messengerWatched = new AtomicBoolean(false);
-
         private String clusterId;
 
         private List<Replicator> surviveReplicators = Lists.newArrayList();  // all replicators
@@ -236,6 +234,8 @@ public class CurrentMeta implements Releasable {
         private Map<String, Pair<String, Integer>> applierMasters = Maps.newConcurrentMap();  // another zone replicator connected by applier
 
         private Map<String, AtomicBoolean> appliersWatched = Maps.newConcurrentMap();
+
+        private Map<String, AtomicBoolean> messengersWatched = Maps.newConcurrentMap();
 
         public CurrentClusterMeta() {
 
@@ -261,10 +261,6 @@ public class CurrentMeta implements Releasable {
             return replicatorWatched.compareAndSet(false, true);
         }
 
-        public boolean watchMessengerIfNotWatched() {
-            return messengerWatched.compareAndSet(false, true);
-        }
-
         public boolean watchApplierIfNotWatched(String clusterId) {
             AtomicBoolean applierWatched = appliersWatched.get(clusterId);
             if (applierWatched == null) {
@@ -272,6 +268,15 @@ public class CurrentMeta implements Releasable {
                 appliersWatched.put(clusterId, applierWatched);
             }
             return applierWatched.compareAndSet(false, true);
+        }
+
+        public boolean watchMessengerIfNotWatched(String clusterId) {
+            AtomicBoolean messengerWatched = messengersWatched.get(clusterId);
+            if (messengerWatched == null) {
+                messengerWatched = new AtomicBoolean(false);
+                messengersWatched.put(clusterId, messengerWatched);
+            }
+            return messengerWatched.compareAndSet(false, true);
         }
 
         public CurrentClusterMeta(String clusterId, Endpoint endpoint) {
