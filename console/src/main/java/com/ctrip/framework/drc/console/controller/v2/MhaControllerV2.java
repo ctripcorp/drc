@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dengquanliang
@@ -97,6 +98,28 @@ public class MhaControllerV2 {
             return ApiResult.getSuccessInstance(purgedGtid);
         } catch (Throwable e) {
             logger.error("[[tag=gtidQuery]] getMhaPurgedGtid from mha: {},configGtid:{}", mha, e);
+            return ApiResult.getFailInstance(e, "unexpected exception");
+        }
+    }
+
+    @GetMapping("gtid/applied")
+    public ApiResult<String> getMhaAppliedGtid(@RequestParam String mha) {
+        try {
+            String appliedGtid = mysqlServiceV2.getMhaAppliedGtid(mha);
+            return ApiResult.getSuccessInstance(appliedGtid);
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaAppliedGtid from mha: {},configGtid:{}", mha, e);
+            return ApiResult.getFailInstance(e, "unexpected exception");
+        }
+    }
+
+    @GetMapping("db/gtid/applied")
+    public ApiResult<Map<String, String>> getMhaDbAppliedGtid(@RequestParam String mha) {
+        try {
+            Map<String, String> mhaDbAppliedGtid = mysqlServiceV2.getMhaDbAppliedGtid(mha);
+            return ApiResult.getSuccessInstance(mhaDbAppliedGtid);
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaDbAppliedGtid from mha: {},configGtid:{}", mha, e);
             return ApiResult.getFailInstance(e, "unexpected exception");
         }
     }

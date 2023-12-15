@@ -239,6 +239,10 @@ public class CommonDataInit {
             List ids = i.getArgument(0, List.class);
             return resourceTbls.stream().filter(e -> ids.contains(e.getId())).collect(Collectors.toList());
         });
+        when(resourceTblDao.queryByType(anyInt())).thenAnswer(i -> {
+            int type = i.getArgument(0, Integer.class);
+            return resourceTbls.stream().filter(e -> type == e.getType() && e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        });
         // ReplicatorTbl
         List<ReplicatorTbl> replicatorTbls = this.getData("ReplicatorTbl.json", ReplicatorTbl.class);
         when(replicatorTblDao.queryByRGroupIds(anyList(), anyInt())).thenAnswer(i -> {

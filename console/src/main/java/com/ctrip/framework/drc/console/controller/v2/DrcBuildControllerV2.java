@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -92,6 +95,44 @@ public class DrcBuildControllerV2 {
     public ApiResult<List<DbApplierDto>> getMhaDbAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
         try {
             return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbAppliers(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/gtidTruncated")
+    public ApiResult<String> getMhaDrcExecutedGtidTruncate(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDrcExecutedGtidTruncate(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/dbGtidTruncated")
+    public ApiResult<String> getDbDrcExecutedGtidTruncate(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getDbDrcExecutedGtidTruncate(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/gtid")
+    public ApiResult<String> getMhaDrcExecutedGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDrcExecutedGtid(srcMhaName, dstMhaName).toString());
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/dbGtid")
+    public ApiResult<String> getDbDrcExecutedGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            Map<String, GtidSet> dbDrcExecutedGtid = dbDrcBuildService.getDbDrcExecutedGtid(srcMhaName, dstMhaName);
+            Map<String, String> map = dbDrcExecutedGtid.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+            return ApiResult.getSuccessInstance(map);
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

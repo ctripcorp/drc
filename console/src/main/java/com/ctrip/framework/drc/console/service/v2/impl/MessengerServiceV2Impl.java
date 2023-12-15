@@ -2,8 +2,14 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
@@ -25,6 +31,8 @@ import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
+import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
@@ -118,6 +126,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private MessengerGroupTblV3Dao messengerGroupTblV3Dao;
     @Autowired
     private MessengerTblV3Dao messengerTblV3Dao;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
 
     @Override
     public List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs) {
@@ -246,6 +256,57 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             Map<Long, MhaTblV2> mhaTblV2Map = mhaTblV2Dao.queryByIds(mhaIdList).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
 
             return messengers.stream()
+                    .sorted(Comparator.comparing(MessengerGroupTbl::getDatachangeLasttime).reversed()) // order by .. desc
+                    .map(e -> mhaTblV2Map.get(e.getMhaId())).filter(Objects::nonNull).collect(Collectors.toList());
+        } catch (SQLException e) {
+            logger.error("queryAllBu exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public List<MhaTblV2> getMessengerMhaTbls(MessengerQueryDto queryDto) {
+        try {
+            MhaQueryDto mha = queryDto.getMha();
+            MessengerGroupTbl sample = new MessengerGroupTbl();
+            sample.setDeleted(BooleanEnum.FALSE.getCode());
+            List<MessengerGroupTbl> messengerGroups = messengerGroupTblDao.queryBy(sample);
+            Set<Long> mhaIds = Sets.newHashSet();
+            // query by mha
+            if (mha != null && mha.isConditionalQuery()) {
+                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(mha);
+                if (CollectionUtils.isEmpty(mhaTblV2Map)) {
+                    return Collections.emptyList();
+                }
+                mhaIds.addAll(mhaTblV2Map.keySet());
+            }
+            // query by db name
+            if (!StringUtils.isBlank(queryDto.getDbNames())) {
+                List<String> dbNames = Arrays.stream(queryDto.getDbNames().split(","))
+                        .map(String::trim)
+                        .filter(e -> !org.apache.commons.lang.StringUtils.isEmpty(e))
+                        .collect(Collectors.toList());
+                List<MhaTblV2> relatedMhas = mhaServiceV2.queryRelatedMhaByDbName(dbNames);
+                if (CollectionUtils.isEmpty(relatedMhas)) {
+                    return Collections.emptyList();
+                }
+                List<Long> mhaIdsByDbName = relatedMhas.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+                if (CollectionUtils.isEmpty(mhaIds)) {
+                    mhaIds.addAll(mhaIdsByDbName);
+                } else {
+                    mhaIds.retainAll(mhaIdsByDbName);
+                }
+                if (CollectionUtils.isEmpty(mhaIds)) {
+                    return Collections.emptyList();
+                }
+            }
+            if (!CollectionUtils.isEmpty(mhaIds)) {
+                messengerGroups = messengerGroups.stream().filter(e -> mhaIds.contains(e.getMhaId())).collect(Collectors.toList());
+            }
+            List<Long> mhaIdList = messengerGroups.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
+            Map<Long, MhaTblV2> mhaTblV2Map = mhaTblV2Dao.queryByIds(mhaIdList).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+
+            return messengerGroups.stream()
                     .sorted(Comparator.comparing(MessengerGroupTbl::getDatachangeLasttime).reversed()) // order by .. desc
                     .map(e -> mhaTblV2Map.get(e.getMhaId())).filter(Objects::nonNull).collect(Collectors.toList());
         } catch (SQLException e) {

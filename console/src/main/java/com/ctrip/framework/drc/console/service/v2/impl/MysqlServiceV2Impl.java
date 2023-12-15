@@ -84,6 +84,32 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/mha/gtid/applied")
+    public String getMhaAppliedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaAppliedGtid from mha{}", mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaAppliedGtid from mha {},machine not exist", mha);
+            return null;
+        } else {
+            return MySqlUtils.getMhaAppliedGtid(endpoint);
+        }
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mha/db/gtid/applied")
+    public Map<String, String> getMhaDbAppliedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaDbAppliedGtid from mha{}", mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaDbAppliedGtid from mha {},machine not exist", mha);
+            return null;
+        } else {
+            return MySqlUtils.getMhaDbAppliedGtid(endpoint);
+        }
+    }
+
+    @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/lastUpdateTime")
     public Long getDelayUpdateTime(String srcMha, String mha) {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);

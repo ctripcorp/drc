@@ -206,7 +206,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             List<Messenger> messengers = messengerService.generateDbMessengers(mhaTbl.getId());
             messengers.forEach(dbCluster::addMessenger);
         }
-        if (CollectionUtils.isEmpty(dbCluster.getAppliers())) {
+        if (CollectionUtils.isEmpty(dbCluster.getMessengers())) {
             List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
             messengers.forEach(dbCluster::addMessenger);
         }

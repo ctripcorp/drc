@@ -166,7 +166,7 @@ public class MetaGeneratorV5 {
         // index
         private Map<Long, MhaTblV2> mhaTblIdMap;
         private Map<Long, DcTbl> dcTblMap;
-        private Map<Long, DbTbl> dbTblMap;
+        private Map<Long, String> dbIdToNameMap;
         private Map<Long, ResourceTbl> resourceTblIdMap;
         private Map<Long, List<MhaDbMappingTbl>> mhaDbMappingTblsByMhaIdMap;
         private Map<Long, MhaDbMappingTbl> mhaDbMappingTblsByMappingIdMap;
@@ -184,11 +184,14 @@ public class MetaGeneratorV5 {
         public Map<MultiKey, List<DbReplicationTbl>> dbReplicationByMhaPairMap;
         public Map<Long, RowsFilterTblV2> rowsFilterMap;
         public Map<Long, ColumnsFilterTblV2> colsFilterMap;
+        private volatile Map<Long, MessengerFilterTbl> messengerFilterMap;
         private Map<Long, List<ApplierTblV3>> dbApplierTblsByGroupIdMap;
         private Map<Long, ApplierGroupTblV3> dbApplierGroupTblByMhaDbReplicationId;
         private Map<Long, List<MessengerTblV3>> dbMessengerTblsByGroupIdMap;
         private Map<Long, MessengerGroupTblV3> dbMessengerGroupTblByMhaDbReplicationId;
         private Map<MultiKey, MhaDbReplicationTbl> mhaDbReplicationByKeyMap;
+        private volatile Map<Long, Map<Long, List<MhaDbReplicationTbl>>> mhaDbReplicationGroupByDstToSrcMhaIdMap;
+
         private final RowsFilterServiceV2 rowsFilterServiceV2;
         private final ColumnsFilterServiceV2 columnsFilterServiceV2;
 
@@ -305,24 +308,22 @@ public class MetaGeneratorV5 {
             }
         }
 
-        private void generateDbAppliers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
-            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(mhaTbl.getId());
-            if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+        private void generateDbAppliers(DbCluster dbCluster, MhaTblV2 dstMhaTbl) throws SQLException {
+            Map<Long, List<MhaDbReplicationTbl>> srcMhaMap = mhaDbReplicationGroupByDstToSrcMhaIdMap.get(dstMhaTbl.getId());
+            if (CollectionUtils.isEmpty(srcMhaMap)) {
                 return;
             }
-            List<Long> mhaDbMappingId = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-            List<MhaDbReplicationTbl> replicationTbls = mhaDbReplicationTbls.stream().filter(e -> mhaDbMappingId.contains(e.getDstMhaDbMappingId())).collect(Collectors.toList());
-
-            // group by src mha
-            Map<Long, List<MhaDbReplicationTbl>> srcMha = replicationTbls.stream().collect(Collectors.groupingBy(e -> mhaDbMappingTblsByMappingIdMap.get(e.getSrcMhaDbMappingId()).getMhaId()));
-            for (Map.Entry<Long, List<MhaDbReplicationTbl>> entry : srcMha.entrySet()) {
-                generateApplierInstances(dbCluster, mhaTblIdMap.get(entry.getKey()), mhaTbl, entry.getValue());
+            for (Map.Entry<Long, List<MhaDbReplicationTbl>> entry : srcMhaMap.entrySet()) {
+                MhaTblV2 srcMhaTbl = mhaTblIdMap.get(entry.getKey());
+                List<MhaDbReplicationTbl> mhaDbReplicationTbls = entry.getValue();
+                generateDbApplierInstances(dbCluster, srcMhaTbl, dstMhaTbl, mhaDbReplicationTbls);
             }
         }
 
 
-        private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, List<MhaDbReplicationTbl> value) throws SQLException {
-            for (MhaDbReplicationTbl mhaDbReplicationTbl : value) {
+        private void generateDbApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, List<MhaDbReplicationTbl> mhaDbReplicationTbls) throws SQLException {
+            DcTbl srcDcTbl = dcTblMap.get(srcMhaTbl.getDcId());
+            for (MhaDbReplicationTbl mhaDbReplicationTbl : mhaDbReplicationTbls) {
                 ApplierGroupTblV3 applierGroupTbl = dbApplierGroupTblByMhaDbReplicationId.get(mhaDbReplicationTbl.getId());
                 if (applierGroupTbl == null) {
                     continue;
@@ -338,21 +339,19 @@ public class MetaGeneratorV5 {
                     continue;
                 }
 
-                DcTbl srcDcTbl = dcTblMap.get(srcMhaTbl.getDcId());
-                String dbName = Objects.requireNonNull(mhaDbMappingId2DbNameMap.get(mhaDbReplicationTbl.getSrcMhaDbMappingId()));
+                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(mhaDbReplicationTbl.getSrcMhaDbMappingId(),"");
                 String nameFilter = TableNameBuilder.buildNameFilter(mhaDbMappingId2DbNameMap, dbReplicationTblList);
                 String nameMapping = TableNameBuilder.buildNameMapping(mhaDbMappingId2DbNameMap, dbReplicationTblList);
                 String properties = getProperties(dbReplicationTblList, applierGroupTbl.getConcurrency());
                 for (ApplierTblV3 applierTbl : applierTblV3s) {
                     String resourceIp = Optional.ofNullable(resourceTblIdMap.get(applierTbl.getResourceId())).map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
-                    logger.debug("generate applier: {} for mha: {}", resourceIp, dstMhaTbl.getMhaName());
                     Applier applier = new Applier();
                     applier.setIp(resourceIp)
                             .setPort(applierTbl.getPort())
                             .setTargetIdc(srcDcTbl.getDcName())
                             .setTargetMhaName(srcMhaTbl.getMhaName())
                             .setGtidExecuted(applierGroupTbl.getGtidInit())
-                            .setIncludedDbs(dbName)
+                            .setIncludedDbs(dbName.toLowerCase())
                             .setNameFilter(nameFilter)
                             .setNameMapping(nameMapping)
                             .setTargetName(srcMhaTbl.getClusterName())
@@ -389,11 +388,11 @@ public class MetaGeneratorV5 {
                 return;
             }
             List<DbReplicationTbl> dbReplicationTbls = dbReplicationByKeyMap.get(getKey(replicationTbl));
-            String dbName = mhaDbMappingId2DbNameMap.get(replicationTbl.getSrcMhaDbMappingId());
             if (CollectionUtils.isEmpty(dbReplicationTbls)) {
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.meta.update.messenger.empty", dbCluster.getMhaName());
                 return;
             }
+            String dbName = mhaDbMappingId2DbNameMap.getOrDefault(replicationTbl.getSrcMhaDbMappingId(),"");
             MessengerProperties messengerProperties = getMessengerProperties(dbReplicationTbls);
             String propertiesJson = JsonCodec.INSTANCE.encode(messengerProperties);
             if (CollectionUtils.isEmpty(messengerProperties.getMqConfigs())) {
@@ -405,7 +404,7 @@ public class MetaGeneratorV5 {
                 Messenger messenger = new Messenger()
                         .setIp(resourceTbl.getIp())
                         .setPort(messengerTbl.getPort())
-                        .setIncludedDbs(dbName)
+                        .setIncludedDbs(dbName.toLowerCase())
                         .setNameFilter(messengerProperties.getNameFilter())
                         .setGtidExecuted(dbMessengerGroup.getGtidExecuted())
                         .setApplyMode(ApplyMode.db_mq.getType())
@@ -422,24 +421,23 @@ public class MetaGeneratorV5 {
 
             for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
                 List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblsByDbRplicationIdMap.get(dbReplicationTbl.getId());
-                Long messengerFilterId = dbReplicationFilterMappings.stream()
+                MessengerFilterTbl messengerFilterTbl = dbReplicationFilterMappings.stream()
                         .map(DbReplicationFilterMappingTbl::getMessengerFilterId)
-                        .filter(e -> e != null && e > 0L).findFirst().orElse(null);
+                        .filter(NumberUtils::isPositive)
+                        .map(messengerFilterMap::get)
+                        .findFirst().orElse(null);
 
-                MessengerFilterTbl messengerFilterTbl = messengerFilterTbls.stream().filter(e -> e.getId().equals(messengerFilterId)).findFirst().orElse(null);
                 if (null == messengerFilterTbl) {
                     logger.warn("Messenger Filter is Null, dbReplicationTbl: {}", dbReplicationTbl);
                     continue;
                 }
                 MqConfig mqConfig = JsonUtils.fromJson(messengerFilterTbl.getProperties(), MqConfig.class);
 
-                MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblsByMappingIdMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
-                DbTbl dbTbl = dbTblMap.get(mhaDbMappingTbl.getDbId());
-                String tableName = dbTbl.getDbName() + "\\." + dbReplicationTbl.getSrcLogicTableName();
+                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(),"");
+                String tableName = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
                 srcTables.add(tableName);
                 mqConfig.setTable(tableName);
                 mqConfig.setTopic(dbReplicationTbl.getDstLogicTableName());
-                // processor is null
                 mqConfigs.add(mqConfig);
             }
 
@@ -627,7 +625,7 @@ public class MetaGeneratorV5 {
                 if (CollectionUtils.isEmpty(dbReplicationFilterMappings)) {
                     continue;
                 }
-                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationDto.getSrcMhaDbMappingId(), "");
+                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationDto.getSrcMhaDbMappingId(),"");
                 String tableName = dbName + "\\." + dbReplicationDto.getSrcLogicTableName();
 
                 // rows filter
@@ -692,50 +690,17 @@ public class MetaGeneratorV5 {
 
 
         private MessengerProperties getMessengerProperties(Long mhaId) {
-            MessengerProperties messengerProperties = new MessengerProperties();
             List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(mhaId);
             if (mhaDbMappingTbls == null) {
                 logger.error("mha{} mhaDbMappingTbls is null", mhaId);
-                return messengerProperties;
+                return new MessengerProperties();
             }
 
             List<DbReplicationTbl> dbReplicationTbls = mhaDbMappingTbls.stream()
                     .flatMap(e -> dbReplicationByKeyMap.getOrDefault(new MultiKey(e.getId(), -1L, ReplicationTypeEnum.DB_TO_MQ.getType()), Collections.emptyList()).stream())
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            List<DbTbl> dbTbls = mhaDbMappingTbls.stream().map(e -> dbTblMap.get(e.getDbId())).collect(Collectors.toList());
-            Map<Long, Long> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
-            Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
-
-            Set<String> srcTables = new HashSet<>();
-            List<MqConfig> mqConfigs = new ArrayList<>();
-
-            for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
-                List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblsByDbRplicationIdMap.get(dbReplicationTbl.getId());
-                Long messengerFilterId = dbReplicationFilterMappings.stream()
-                        .map(DbReplicationFilterMappingTbl::getMessengerFilterId)
-                        .filter(e -> e != null && e > 0L).findFirst().orElse(null);
-
-                MessengerFilterTbl messengerFilterTbl = messengerFilterTbls.stream().filter(e -> e.getId().equals(messengerFilterId)).findFirst().orElse(null);
-                if (null == messengerFilterTbl) {
-                    logger.warn("Messenger Filter is Null, dbReplicationTbl: {}", dbReplicationTbl);
-                    continue;
-                }
-                MqConfig mqConfig = JsonUtils.fromJson(messengerFilterTbl.getProperties(), MqConfig.class);
-
-                long dbId = mhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
-                String dbName = dbTblMap.getOrDefault(dbId, "");
-                String tableName = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
-                srcTables.add(tableName);
-                mqConfig.setTable(tableName);
-                mqConfig.setTopic(dbReplicationTbl.getDstLogicTableName());
-                // processor is null
-                mqConfigs.add(mqConfig);
-            }
-
-            messengerProperties.setMqConfigs(mqConfigs);
-            messengerProperties.setNameFilter(Joiner.on(",").join(srcTables));
-            return messengerProperties;
+            return getMessengerProperties(dbReplicationTbls);
         }
 
 
@@ -781,22 +746,27 @@ public class MetaGeneratorV5 {
         long end = System.currentTimeMillis();
         META_LOGGER.info("[meta refresh] v5 cost: {} ms", end - start);
 
+        // filter deleted mha
+        task.mhaTblIdMap = task.mhaTbls.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
+        task.mhaDbMappingTbls = task.mhaDbMappingTbls.stream().filter(e -> task.mhaTblIdMap.containsKey(e.getMhaId())).collect(Collectors.toList());
+
+
         // index objects
         // map by id
         task.dcTblMap = task.dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, Function.identity()));
         task.resourceTblIdMap = task.resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity()));
-        task.dbTblMap = task.dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, Function.identity()));
-        task.mhaTblIdMap = task.mhaTbls.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
-        task.rowsFilterMap = task.rowsFilterTbls.stream().collect(Collectors.toMap(RowsFilterTblV2::getId, e -> e));
-        task.colsFilterMap = task.columnsFilterTbls.stream().collect(Collectors.toMap(ColumnsFilterTblV2::getId, e -> e));
+        task.rowsFilterMap = task.rowsFilterTbls.stream().collect(Collectors.toMap(RowsFilterTblV2::getId, Function.identity()));
+        task.colsFilterMap = task.columnsFilterTbls.stream().collect(Collectors.toMap(ColumnsFilterTblV2::getId, Function.identity()));
+        task.messengerFilterMap = task.messengerFilterTbls.stream().collect(Collectors.toMap(MessengerFilterTbl::getId, Function.identity()));
         task.mhaDbMappingTblsByMappingIdMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
-        task.mhaDbMappingId2DbNameMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> task.dbTblMap.get(e.getDbId()).getDbName()));
+        task.dbIdToNameMap = task.dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        task.mhaDbMappingId2DbNameMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> task.dbIdToNameMap.get(e.getDbId())));
 
         // map by field
         task.dbReplicationByKeyMap = task.dbReplicationTbls.stream().collect(Collectors.groupingBy(StreamUtils::getKey));
-        task.replicatorGroupByMhaIdMap = task.replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, e -> e));
-        task.messengerGroupByMhaIdMap = task.messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, e -> e));
-        task.applierGroupByMhaReplicationIdMap = task.applierGroupTbls.stream().filter(e -> e.getMhaReplicationId() != null && e.getMhaReplicationId() > 0).collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, e -> e));
+        task.replicatorGroupByMhaIdMap = task.replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, Function.identity()));
+        task.messengerGroupByMhaIdMap = task.messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, Function.identity()));
+        task.applierGroupByMhaReplicationIdMap = task.applierGroupTbls.stream().filter(e -> NumberUtils.isPositive(e.getMhaReplicationId())).collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, Function.identity()));
         task.dbApplierGroupTblByMhaDbReplicationId = task.dbApplierGroupTbl.stream().collect(Collectors.toMap(ApplierGroupTblV3::getMhaDbReplicationId, Function.identity(), (e1, e2) -> e1));
         task.dbMessengerGroupTblByMhaDbReplicationId = task.dbMessengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTblV3::getMhaDbReplicationId, Function.identity(), (e1, e2) -> e1));
         task.mhaDbReplicationByKeyMap = task.mhaDbReplicationTbls.stream().collect(Collectors.toMap(StreamUtils::getKey, Function.identity()));
@@ -808,6 +778,13 @@ public class MetaGeneratorV5 {
             return new MultiKey(src.getMhaId(), dst.getMhaId());
         }));
         task.mhaReplicationGroupByDstMhaIdMap = task.mhaReplicationTbls.stream().collect(Collectors.groupingBy(MhaReplicationTbl::getDstMhaId));
+
+        Map<Long, MhaTblV2> mhaDbMappingId2MhaTblMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> task.mhaTblIdMap.get(e.getMhaId())));
+        task.mhaDbReplicationGroupByDstToSrcMhaIdMap = task.mhaDbReplicationTbls.stream().filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType()))
+                .collect(Collectors.groupingBy(
+                        e -> mhaDbMappingId2MhaTblMap.get(e.getDstMhaDbMappingId()).getId(),
+                        Collectors.groupingBy(e -> mhaDbMappingId2MhaTblMap.get(e.getSrcMhaDbMappingId()).getId())
+                ));
         task.machineTblsGroupByMhaIdMap = task.machineTbls.stream().collect(Collectors.groupingBy(MachineTbl::getMhaId));
         task.replicatorsByGroupIdMap = task.replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
         task.mhaDbMappingTblsByMhaIdMap = task.mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));

@@ -11,15 +11,6 @@ public class MhaQueryDto implements Serializable {
     private Long buId;
 
     private Long regionId;
-    // split with ","
-    private String dbNames;
-    public String getDbNames() {
-        return dbNames;
-    }
-
-    public void setDbNames(String dbNames) {
-        this.dbNames = dbNames;
-    }
 
     public boolean isConditionalQuery() {
         return StringUtils.isNotBlank(name)

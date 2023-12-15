@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.apache.commons.lang.StringUtils;
@@ -43,26 +44,43 @@ public class MessengerControllerV2 {
     public ApiResult<List<MessengerVo>> getAllMessengerVos() {
         try {
             List<MhaTblV2> messengerMhaTbls = messengerService.getAllMessengerMhaTbls();
-
-            List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
-            Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
-
-            // convert
-            List<MessengerVo> messengerVoList = messengerMhaTbls.stream().map(mhaDto -> {
-                MessengerVo messengerVo = new MessengerVo();
-                messengerVo.setMhaName(mhaDto.getMhaName());
-                BuTbl buTbl = buMap.get(mhaDto.getBuId());
-                if (buTbl != null) {
-                    messengerVo.setBu(buTbl.getBuName());
-                }
-                messengerVo.setMonitorSwitch(mhaDto.getMonitorSwitch());
-                return messengerVo;
-            }).collect(Collectors.toList());
+            List<MessengerVo> messengerVoList = getMessengerVos(messengerMhaTbls);
             return ApiResult.getSuccessInstance(messengerVoList);
         } catch (Throwable e) {
             logger.error("getAllMessengerVos exception", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
+    }
+
+    @GetMapping("query")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MessengerVo>> queryMessengerVos(MessengerQueryDto queryDto) {
+        logger.info("[meta] MessengerQueryDto :{}", queryDto.toString());
+        try {
+            List<MhaTblV2> messengerMhaTbls = messengerService.getMessengerMhaTbls(queryDto);
+            List<MessengerVo> messengerVoList = getMessengerVos(messengerMhaTbls);
+            return ApiResult.getSuccessInstance(messengerVoList);
+        } catch (Throwable e) {
+            logger.error("queryMessengerVos exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    private List<MessengerVo> getMessengerVos(List<MhaTblV2> messengerMhaTbls) {
+        List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
+        Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
+
+        // convert
+        return messengerMhaTbls.stream().map(mhaDto -> {
+            MessengerVo messengerVo = new MessengerVo();
+            messengerVo.setMhaName(mhaDto.getMhaName());
+            BuTbl buTbl = buMap.get(mhaDto.getBuId());
+            if (buTbl != null) {
+                messengerVo.setBu(buTbl.getBuName());
+            }
+            messengerVo.setMonitorSwitch(mhaDto.getMonitorSwitch());
+            return messengerVo;
+        }).collect(Collectors.toList());
     }
 
     @DeleteMapping("deleteMha")

@@ -15,8 +15,10 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTxTableIntersectionGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
@@ -40,6 +42,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.*;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_TRANSACTION_TABLE_NAME_PREFIX;
 import static com.ctrip.framework.drc.core.service.utils.Constants.DRC_MONITOR_SCHEMA_TABLE;
 
 /**
@@ -685,6 +688,52 @@ public class MySqlUtils {
 
     public static String getPurgedGtid(Endpoint endpoint) {
         return new ExecutedGtidQueryTask(endpoint, Lists.newArrayList(new PurgedGtidReader())).call();
+    }
+
+    public static String getMhaAppliedGtid(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            return new TransactionTableGtidReader(endpoint).getExecutedGtids(connection);
+        } catch (Throwable e) {
+            logger.error(String.format("[[endpoint=%s:%s]] getMhaAppliedGtid error: ", endpoint.getHost(), endpoint.getPort()), e);
+            removeSqlOperator(endpoint);
+            return null;
+        }
+    }
+
+    public static Map<String, String> getMhaDbAppliedGtid(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            List<String> dbNamesInDrcTxTable = getDbNamesInDrcTxTable(endpoint);
+            HashMap<String, String> map = Maps.newHashMap();
+            for (String dbName : dbNamesInDrcTxTable) {
+                String gtid = new DbTxTableIntersectionGtidReader(endpoint, dbName).getExecutedGtids(connection);
+                map.put(dbName, gtid);
+            }
+            return map;
+        } catch (Throwable e) {
+            logger.error(String.format("[[endpoint=%s:%s]] getMhaDbAppliedGtid error: ", endpoint.getHost(), endpoint.getPort()), e);
+            removeSqlOperator(endpoint);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    private static List<String> getDbNamesInDrcTxTable(Endpoint endpoint) throws SQLException {
+        List<String> tables = Lists.newArrayList();
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement("show tables from drcmonitordb;");
+             ResultSet resultSet = statement.executeQuery();) {
+            while (resultSet.next()) {
+                tables.add(resultSet.getString(1));
+            }
+            int prefixLen = DRC_DB_TRANSACTION_TABLE_NAME_PREFIX.length();
+            return tables.stream()
+                    .filter(e -> e.startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX))
+                    .map(e -> e.substring(prefixLen).toLowerCase())
+                    .collect(Collectors.toList());
+        }
     }
 
     public static String getSqlResultString(Endpoint endpoint, String sql, int index) {
