@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
+import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -111,6 +112,14 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             logger.error("queryMhaByName exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    @Override
+    public Map<Long, MhaTblV2> query(MhaQueryDto mha) {
+        if (mha == null || !mha.isConditionalQuery()) {
+            return Collections.emptyMap();
+        }
+        return query(StringUtils.trim(mha.getName()), mha.getBuId(), mha.getRegionId());
     }
 
     @Override

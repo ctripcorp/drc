@@ -230,7 +230,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             GtidSet nextExecutedGtidSet = doGetGtids(nextFile, false);
             GtidSet executedGtidInCurrentFile = nextExecutedGtidSet.subtract(currentExecutedGtidSet);
             logger.info("executedGtidInCurrentFile {}, executedGtid {} for current file {}", executedGtidInCurrentFile, executedGtid, currentFile.getName());
-            executedGtidInCurrentFile = executedGtidInCurrentFile.intersectionGtidSet(executedGtid);
+            executedGtidInCurrentFile = executedGtidInCurrentFile.getIntersectionUUIDs(executedGtid);
             logger.info("filtered executedGtidInCurrentFile {}, executedGtid {} for current file {}", executedGtidInCurrentFile, executedGtid, currentFile.getName());
             return executedGtidInCurrentFile.isContainedWithin(executedGtid);
         } catch (Throwable t) {
