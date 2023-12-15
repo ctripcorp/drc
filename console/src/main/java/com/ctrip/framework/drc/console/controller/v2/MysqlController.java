@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.google.common.collect.Lists;
@@ -250,6 +251,17 @@ public class MysqlController {
         } catch (Exception e) {
             logger.info("write to mha entity fail: {}", requestBody, e);
             return ApiResult.getFailInstance(new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), e.getMessage()));
+        }
+    }
+
+    @GetMapping("autoIncrement")
+    public ApiResult<AutoIncrementVo> getAutoIncrementAndOffset(@RequestParam String mha) {
+        try {
+            logger.info("getAutoIncrementAndOffset, mha: {}", mha);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getAutoIncrementAndOffset(mha));
+        } catch (Exception e) {
+            logger.error("getAutoIncrementAndOffset, mha: {}", mha, e);
+            return ApiResult.getFailInstance(null);
         }
     }
 

@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTxTableIntersectionGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
@@ -806,6 +807,15 @@ public class MySqlUtils {
     public static Integer checkAutoIncrementOffset(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementOffset ", endpoint.getSocketAddress());
         return getSqlResultInteger(endpoint, CHECK_INCREMENT_OFFSET, SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static AutoIncrementVo queryAutoIncrementAndOffset(Endpoint endpoint) {
+        Integer increment = checkAutoIncrementStep(endpoint);
+        Integer offset = checkAutoIncrementOffset(endpoint);
+        if (increment == null || offset == null) {
+            return null;
+        }
+        return new AutoIncrementVo(increment, offset);
     }
 
     public static Integer checkDrcTables(Endpoint endpoint) {

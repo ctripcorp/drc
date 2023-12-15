@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -111,6 +112,12 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
     public List<MhaReplicationTbl> queryByDstMhaId(long dstMhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(DST_MHA_ID, dstMhaId, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
+    public List<MhaReplicationTbl> queryAllMhaReplicationsOnDrc() throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(DRC_STATUS, BooleanEnum.TRUE.getCode(), Types.BIGINT);
         return queryList(sqlBuilder);
     }
 }

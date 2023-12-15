@@ -23,6 +23,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
+import com.ctrip.framework.drc.console.dto.v2.DoubleSyncMhaInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
@@ -30,6 +31,7 @@ import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -38,10 +40,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -312,6 +311,30 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         } catch (InterruptedException | ExecutionException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
         }
+    }
+
+    @Override
+    public DoubleSyncMhaInfoDto getAllDoubleSyncMhas() throws SQLException {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllMhaReplicationsOnDrc();
+        List<MultiKey> multiKeys = new ArrayList<>();
+        List<Long> doubleSyncMhaIds = new ArrayList<>();
+        List<MultiKey> doubleSyncMultiKeys = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            long srcMhaId = mhaReplicationTbl.getSrcMhaId();
+            long dstMhaId = mhaReplicationTbl.getDstMhaId();
+            MultiKey multiKey = new MultiKey(srcMhaId, dstMhaId);
+            multiKeys.add(multiKey);
+            if (multiKeys.contains(new MultiKey(dstMhaId, srcMhaId))) {
+                doubleSyncMultiKeys.add(multiKey);
+                doubleSyncMhaIds.add(srcMhaId);
+                doubleSyncMhaIds.add(dstMhaId);
+            }
+        }
+
+        doubleSyncMhaIds = doubleSyncMhaIds.stream().distinct().collect(Collectors.toList());
+        List<MhaTblV2> doubleSyncMhas = mhaTblV2Dao.queryByIds(doubleSyncMhaIds);
+
+        return new DoubleSyncMhaInfoDto(doubleSyncMultiKeys, doubleSyncMhas);
     }
 
     @Override
