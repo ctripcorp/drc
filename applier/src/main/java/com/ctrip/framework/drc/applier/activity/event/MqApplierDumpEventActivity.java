@@ -27,7 +27,7 @@ public class MqApplierDumpEventActivity extends ApplierDumpEventActivity {
     }
 
     @Override
-    protected void addPosition(String gtid) {
+    protected void persistPosition(String gtid) {
         mqPosition.add(gtid);
     }
 }

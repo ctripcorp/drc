@@ -82,7 +82,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     }
 
     @Override
-    protected void addPosition(String gtid) {
+    protected void persistPosition(String gtid) {
         transactionTable.recordToMemory(gtid);
     }
 

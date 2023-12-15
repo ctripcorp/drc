@@ -3,20 +3,17 @@ package com.ctrip.framework.drc.applier.activity.event;
 import com.ctrip.framework.drc.applier.activity.replicator.converter.ApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.event.ApplierDrcTableMapEvent;
+import com.ctrip.framework.drc.applier.event.ApplierDrcUuidLogEvent;
+import com.ctrip.framework.drc.applier.event.ApplierPreviousGtidsLogEvent;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DrcUuidLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.PreviousGtidsLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
-import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
-import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
+import com.ctrip.framework.drc.fetcher.event.*;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -40,21 +37,19 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
     public boolean skipEvent = false;
 
-    private String lastUuid;
-
-    private long lastTrxId;
+    private String lastReceivedUuid;
 
     protected boolean gapInited = false;
 
-    protected GtidSet.Interval startAndEndTrxId;
+    protected GtidSet.Interval receivedStartAndEndTrxId;
 
-    protected GtidSet toCompensateGtidSet = new GtidSet(StringUtils.EMPTY);
+    protected GtidSet toInitGap = new GtidSet(StringUtils.EMPTY);
 
     private GtidSet previousGtidSet = new GtidSet(StringUtils.EMPTY);
 
     private Set<String> uuids = Sets.newHashSet();
 
-    //key: uuid, value: last received gtid
+    //key: uuid, value: last received trxId
     private Map<String, Long> lastReceivedTxs = Maps.newHashMap();
 
     @Override
@@ -86,28 +81,32 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                     Columns.from(drcEvent.getColumns()).getNames());
         }
 
-        if (event instanceof PreviousGtidsLogEvent) {
-            previousGtidSet = ((PreviousGtidsLogEvent) event).getGtidSet();
-            event.release();
+        if (event instanceof ApplierPreviousGtidsLogEvent) {
+            previousGtidSet = ((ApplierPreviousGtidsLogEvent) event).getGtidSet();
         }
 
-        if (event instanceof DrcUuidLogEvent) {
-            uuids = ((DrcUuidLogEvent) event).getUuids();
-            DrcUuidLogEvent uuidLogEvent = (DrcUuidLogEvent) event;
-            unionGtidSetOfUuids(uuidLogEvent);
-            event.release();
+        if (event instanceof ApplierDrcUuidLogEvent) {
+            ApplierDrcUuidLogEvent uuidLogEvent = (ApplierDrcUuidLogEvent) event;
+            uuids =uuidLogEvent.getUuids();
+            compensateGapOfDiffUuid(uuidLogEvent);
         }
     }
 
     @Override
     protected void afterHandleLogEvent(FetcherEvent logEvent) {
-        if (shouldSkip(logEvent)) {
+        if (shouldSkip(logEvent) || ignoreEvent(logEvent)) {
             logEvent.release();
-            capacity.release();
+            if (logEvent instanceof MonitoredGtidLogEvent) {
+                capacity.release();
+            }
             progress.tick();
         } else {
             super.afterHandleLogEvent(logEvent);
         }
+    }
+
+    private boolean ignoreEvent(FetcherEvent event) {
+        return event instanceof ApplierPreviousGtidsLogEvent || event instanceof ApplierDrcUuidLogEvent;
     }
 
     protected void handleApplierDrcGtidEvent(FetcherEvent event) {
@@ -115,13 +114,11 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     }
 
     protected void handleApplierGtidEvent(ApplierGtidEvent event) {
-        String currentUuid = event.getServerUUID().toString();
-        lastReceivedTxs.put(currentUuid, event.getId());
-        checkPositionGap(event, currentUuid);
+        compensateGapIfNeed(event);
         event.involve(context);
     }
 
-    private void unionGtidSetOfUuids(DrcUuidLogEvent uuidLogEvent) {
+    private void compensateGapOfDiffUuid(ApplierDrcUuidLogEvent uuidLogEvent) {
         uuids = uuidLogEvent.getUuids();
         if (uuids == null || previousGtidSet == null) {
             return;
@@ -129,22 +126,22 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
         for (String uuid : uuids) {
             Long lastTrxId = lastReceivedTxs.get(uuid);
-            GtidSet gtidSetOfUuid = previousGtidSet.filterGtid(Sets.newHashSet(uuid));
-            if (gtidSetOfUuid == null || gtidSetOfUuid.isContainedWithin(context.fetchGtidSet())) {
+            GtidSet previousGtidSetOfUuid = previousGtidSet.filterGtid(Sets.newHashSet(uuid));
+            if (previousGtidSetOfUuid == null || previousGtidSetOfUuid.isContainedWithin(context.fetchGtidSet())) {
                 continue;
             }
 
-            GtidSet.Interval previousInterval = getStartAndEnd(gtidSetOfUuid, uuid);
+            GtidSet.Interval previousInterval = getStartAndEnd(previousGtidSetOfUuid, uuid);
             if (previousInterval == null) {
                 continue;
             }
             long previousEnd = previousInterval.getEnd();
 
-            // merge the all previous gtid set
             if (lastTrxId == null) {
-                unionGtidSetGap(gtidSetOfUuid);
+                // merge the all previous gtid set
+                compensateGap(previousGtidSetOfUuid);
                 lastReceivedTxs.put(uuid, previousEnd);
-                logger.info("[Merge][Uuid][{}] last null, gtid set: {}", registryKey, gtidSetOfUuid.toString());
+                logger.info("[Merge][Uuid][{}] last null, all gtid set: {}", registryKey, previousGtidSetOfUuid.toString());
             } else {
                 // merge the gap in the begin
                 long previousStart = previousInterval.getStart();
@@ -153,38 +150,53 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                     long receivedStart = receivedInterval.getStart();
                     if (previousStart < receivedStart) {
                         GtidSet previousGtidSet = new GtidSet(uuid + ":" + previousStart + "-" + (receivedStart - 1));
-                        unionGtidSetGap(previousGtidSet);
+                        compensateGap(previousGtidSet);
+                        logger.info("[Merge][Uuid][{}] begin gtid set: {}", registryKey, previousGtidSet.toString());
                     }
                 }
 
                 // merge the gap in the end
                 if (previousEnd > lastTrxId) {
                     GtidSet gtidSet = new GtidSet(uuid + ":" + (lastTrxId + 1) + "-" + previousEnd);
-                    unionGtidSetGap(gtidSet);
-                    logger.info("[Merge][Uuid][{}] gtid set: {}", registryKey, gtidSet.toString());
+                    compensateGap(gtidSet);
+                    logger.info("[Merge][Uuid][{}] end gtid set: {}", registryKey, gtidSet.toString());
                 }
             }
         }
     }
 
     @VisibleForTesting
-    protected void checkPositionGap(ApplierGtidEvent applierGtidEvent, String currentUuid) {
+    protected void compensateGapIfNeed(ApplierGtidEvent applierGtidEvent) {
+        String uuid = applierGtidEvent.getServerUUID().toString();
         long trxId = applierGtidEvent.getId();
 
-        if (!currentUuid.equalsIgnoreCase(lastUuid)) {
-            lastUuid = currentUuid;
+        if (!uuid.equalsIgnoreCase(lastReceivedUuid)) {
             gapInited = false;
-            startAndEndTrxId = getStartAndEnd(context.fetchGtidSet(), currentUuid);
-            if (startAndEndTrxId != null) {
-                unionExecutedGtidSetGap(currentUuid, startAndEndTrxId.getStart() + 1, trxId - 1);
+            receivedStartAndEndTrxId = getStartAndEnd(context.fetchGtidSet(), uuid);
+            if (receivedStartAndEndTrxId != null) {
+                saveGapToInit(uuid, receivedStartAndEndTrxId.getStart() + 1, trxId - 1);
             }
         } else {
-            if (gapInited && trxId > lastTrxId + 1) {
-                compensateGtidSetGap(currentUuid, lastTrxId, trxId);
+            long lastTrxId = lastReceivedTxs.get(uuid);
+            if (gapInited) {
+                if (trxId > lastTrxId + 1) {
+                    compensateGap(uuid, lastTrxId + 1, trxId);
+                }
+            } else {
+                if (trxId > lastTrxId + 1) {
+                    saveGapToInit(uuid, lastTrxId + 1, trxId - 1);
+                }
+
+                if (receivedStartAndEndTrxId == null || trxId >= receivedStartAndEndTrxId.getEnd()) {
+                    compensateGap(toInitGap);
+                    gapInited = true;
+                    clearInitedGap();
+                }
             }
-            initGapIfNeed(currentUuid, trxId);
         }
-        lastTrxId = trxId;
+
+        lastReceivedUuid = uuid;
+        lastReceivedTxs.put(uuid, trxId);
     }
 
     protected boolean shouldSkip(FetcherEvent logEvent) {
@@ -211,25 +223,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         return false;
     }
 
-    private void initGapIfNeed(String uuid, long trxId) {
-        if (gapInited) {
-            return;
-        }
-
-        if (startAndEndTrxId == null) {
-            gapInited = true;
-            return;
-        }
-
-        unionExecutedGtidSetGap(uuid, lastTrxId + 1, trxId - 1);
-        if (trxId >= startAndEndTrxId.getEnd()) {
-            unionGtidSetGap(toCompensateGtidSet);
-            gapInited = true;
-            clearExecutedGtidSetGap();
-        }
-    }
-
-    private void unionGtidSetGap(GtidSet gtidSet) {
+    private void compensateGap(GtidSet gtidSet) {
         updateContextGtidSet(gtidSet);
         persistPosition(gtidSet);
     }
@@ -238,30 +232,29 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
     }
 
-    protected void addPosition(String gtid) {
+    protected void persistPosition(String gtid) {
 
     }
 
-    private void compensateGtidSetGap(String uuid, long start, long end) {
-        for (long i = start + 1; i < end; i++) {
+    private void compensateGap(String uuid, long start, long end) {
+        for (long i = start; i < end; i++) {
             String gtid = uuid + ":" + i;
             updateContextGtidSet(gtid);
-            addPosition(gtid);
+            persistPosition(gtid);
         }
     }
 
-    private void unionExecutedGtidSetGap(String uuid, long start, long end) {
+    private void saveGapToInit(String uuid, long start, long end) {
         if (end > start) {
-            String toCompensateGtidSetString = uuid + ":" + start + "-" + end;
-            toCompensateGtidSet = toCompensateGtidSet.union(new GtidSet(toCompensateGtidSetString));
+            toInitGap = toInitGap.union(new GtidSet(uuid + ":" + start + "-" + end));
         } else if (end == start) {
-            toCompensateGtidSet.add(uuid + ":" + end);
+            toInitGap.add(uuid + ":" + end);
         }
     }
 
-    private void clearExecutedGtidSetGap() {
-        toCompensateGtidSet = new GtidSet(StringUtils.EMPTY);
-        logger.info("[Merge][{}] clear toCompensateGtidSet", registryKey);
+    private void clearInitedGap() {
+        logger.info("[Merge][{}] clear inited gap: {}", registryKey, toInitGap);
+        toInitGap = new GtidSet(StringUtils.EMPTY);
     }
 
     private GtidSet.Interval getStartAndEnd(GtidSet gtidSet, String uuid) {

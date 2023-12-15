@@ -146,20 +146,9 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta;
     }
 
-    private CurrentClusterMeta getCurrentClusterMeta(String clusterId) {
-        CurrentClusterMeta clusterMeta = currentMetas.get(clusterId);
-        if (clusterMeta == null) {
-            int lastIndex = clusterId.lastIndexOf(".");  //TODO should optimise ?
-            String subClusterId = clusterId.substring(0, lastIndex);
-            clusterMeta = currentMetas.get(subClusterId);
-
-            if (clusterMeta == null) {
-                int last2Index = subClusterId.lastIndexOf(".");
-                String subSubClusterId = subClusterId.substring(0, last2Index);
-                clusterMeta = currentMetas.get(subSubClusterId);
-            }
-        }
-        return clusterMeta;
+    private CurrentClusterMeta getCurrentClusterMeta(String tmpClusterId) {
+        String clusterId = RegistryKey.from(tmpClusterId).toString();
+        return currentMetas.get(clusterId);
     }
 
     @Override

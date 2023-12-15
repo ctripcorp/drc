@@ -31,24 +31,24 @@ public class ApplierDumpEventActivityTest {
         dumpEventActivity.updateContextGtidSet(gtidSet);
 
         ApplierGtidEvent applierGtidEvent1 = new ApplierGtidEvent(uuid + ":15");
-        dumpEventActivity.checkPositionGap(applierGtidEvent1, uuid);
-        Assert.assertEquals(uuid + ":1-14", dumpEventActivity.toCompensateGtidSet.toString());
+        dumpEventActivity.compensateGapIfNeed(applierGtidEvent1, uuid);
+        Assert.assertEquals(uuid + ":1-14", dumpEventActivity.toInitGap.toString());
 
         ApplierGtidEvent applierGtidEvent2 = new ApplierGtidEvent(uuid + ":20");
-        dumpEventActivity.checkPositionGap(applierGtidEvent2, uuid);
-        Assert.assertEquals(uuid + ":1-14:16-19", dumpEventActivity.toCompensateGtidSet.toString());
+        dumpEventActivity.compensateGapIfNeed(applierGtidEvent2, uuid);
+        Assert.assertEquals(uuid + ":1-14:16-19", dumpEventActivity.toInitGap.toString());
 
         ApplierGtidEvent applierGtidEvent3 = new ApplierGtidEvent(uuid + ":21");
-        dumpEventActivity.checkPositionGap(applierGtidEvent3, uuid);
-        Assert.assertEquals(uuid + ":1-14:16-19", dumpEventActivity.toCompensateGtidSet.toString());
+        dumpEventActivity.compensateGapIfNeed(applierGtidEvent3, uuid);
+        Assert.assertEquals(uuid + ":1-14:16-19", dumpEventActivity.toInitGap.toString());
 
         ApplierGtidEvent applierGtidEvent4 = new ApplierGtidEvent(uuid + ":61");
-        dumpEventActivity.checkPositionGap(applierGtidEvent4, uuid);
-        Assert.assertEquals(StringUtils.EMPTY, dumpEventActivity.toCompensateGtidSet.toString());
+        dumpEventActivity.compensateGapIfNeed(applierGtidEvent4, uuid);
+        Assert.assertEquals(StringUtils.EMPTY, dumpEventActivity.toInitGap.toString());
         Assert.assertEquals(uuid + ":1-14:16-19:22-60", dumpEventActivity.getContext().fetchGtidSet().toString());
 
         ApplierGtidEvent applierGtidEvent5 = new ApplierGtidEvent(uuid + ":65");
-        dumpEventActivity.checkPositionGap(applierGtidEvent5, uuid);
+        dumpEventActivity.compensateGapIfNeed(applierGtidEvent5, uuid);
         Assert.assertEquals(uuid + ":1-14:16-19:22-60:62-64", dumpEventActivity.getContext().fetchGtidSet().toString());
     }
 }
