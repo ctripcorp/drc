@@ -4,11 +4,13 @@ import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by mingdongli
@@ -287,12 +289,63 @@ public class GtidSet {
         return new GtidSet(uuidSets);
     }
 
-    public GtidSet intersectionGtidSet(GtidSet otherGtidSet) {
+    /**
+     * @return intersection (uuid) of two set
+     */
+    public GtidSet getIntersectionUUIDs(GtidSet otherGtidSet) {
         Set<String> currentUuids = getUUIDs();
         Set<String> executedUuids = otherGtidSet.getUUIDs();
         Set<String> intersectionUuids = new HashSet<>(currentUuids);
         intersectionUuids.retainAll(executedUuids);
         return filterGtid(intersectionUuids);
+    }
+
+    /**
+     * @return intersection (uuid && intervals) of two set
+     */
+    public GtidSet getIntersection(GtidSet other) {
+        Map<String, GtidSet.UUIDSet> uuidSets = Maps.newHashMap();
+        Set<String> uuids = getUUIDs();
+        for (String uuid : uuids) {
+            UUIDSet currSet = this.getUUIDSet(uuid);
+            UUIDSet otherSet = other.getUUIDSet(uuid);
+            if (currSet != null && otherSet != null) {
+                uuidSets.put(uuid, currSet.getIntersection(otherSet));
+            }
+        }
+        return new GtidSet(uuidSets);
+    }
+
+
+    /**
+     * @return get intersections of all
+     */
+    public static GtidSet getIntersection(List<GtidSet> list) {
+        list = list.stream().filter(e -> !CollectionUtils.isEmpty(e.getUUIDs())).collect(Collectors.toList());
+        GtidSet res = new GtidSet("");
+        if (CollectionUtils.isEmpty(list)) {
+            return res;
+        }
+        res = list.get(0);
+        for (int i = 1; i < list.size(); i++) {
+            res = res.getIntersection(list.get(i));
+        }
+        return res;
+    }
+
+
+    public GtidSet getGtidFirstInterval() {
+        GtidSet res = new GtidSet("");
+        Set<String> uuids = getUUIDs();
+        for (String uuid : uuids) {
+            GtidSet.UUIDSet uuidSet = getUUIDSet(uuid);
+            if (uuidSet == null || CollectionUtils.isEmpty(uuidSet.getIntervals())) {
+                continue;
+            }
+            // only put 1st interval
+            res.putUUIDSet(new GtidSet.UUIDSet(uuid, Lists.newArrayList(uuidSet.getIntervals().get(0))));
+        }
+        return res;
     }
 
     public boolean isContainedWithin(String gtid) {
@@ -626,6 +679,28 @@ public class GtidSet {
                 sb.append(iter.next());
             }
             return sb.toString();
+        }
+
+        public UUIDSet getIntersection(UUIDSet other) {
+            List<Interval> intervals1 = this.getIntervals();
+            List<Interval> intervals2 = other.getIntervals();
+            int i = 0, j = 0;
+            List<Interval> res = Lists.newArrayList();
+            while (i < intervals1.size() && j < intervals2.size()) {
+                Interval interval1 = intervals1.get(i);
+                Interval interval2 = intervals2.get(j);
+                long start = Math.max(interval1.getStart(), interval2.getStart());
+                long end = Math.min(interval1.getEnd(), interval2.getEnd());
+                if (start <= end) {
+                    res.add(new Interval(start, end));
+                }
+                if (interval1.getEnd() < interval2.getEnd()) {
+                    i++;
+                } else {
+                    j++;
+                }
+            }
+            return new UUIDSet(this.getUUID(), res);
         }
     }
 

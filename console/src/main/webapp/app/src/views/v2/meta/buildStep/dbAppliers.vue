@@ -41,6 +41,11 @@
                   v-if="!submitted" @click="fillMhaApplier()">一键录入 mha applier
           </Button>
         </Col>
+        <Col span="4">
+          <Button :loading="dataLoading" style="margin-top: 10px;text-align: right" type="primary" ghost
+                  v-if="!submitted" @click="preClearAndUpdateMhaGtid()">一键回滚
+          </Button>
+        </Col>
 
       </Row>
       <div :style="{padding: '1px 1px',height: '100%'}">
@@ -106,6 +111,32 @@
               </template>
             </div>
           </Modal>
+          <Modal
+            v-model="rollbackModal"
+            title="回滚至 MHA 同步"
+            width="1200px"
+            @on-ok="clearAndUpdateMhaGtid">
+            <div :style="{padding: '1px 1px',height: '100%'}">
+              <p>
+                <span style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">你正在进行回滚操作，将更新mha位点，并清空所有 db applier！</span>
+              </p>
+              <Divider></Divider>
+              <Form style="width: 80%">
+                <FormItem label="当前 DB 同步位点">
+                <template>
+                  <Table style="margin-top: 20px" stripe :columns="dbGtidColumns" :data="gtidCheck.dbApplied" border>
+                  </Table>
+                </template>
+                </FormItem>
+                <FormItem label="当前 Mha 同步位点">
+                  <Input :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaApplied" readonly/>
+                </FormItem>
+                <FormItem label="回滚后，Mha 初始同步位点将被设置为：">
+                  <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaTarget" readonly/>
+                </FormItem>
+              </Form>
+            </div>
+          </Modal>
         </template>
       </div>
 
@@ -137,6 +168,13 @@ export default {
       submitted: false,
       applierResourceList: [],
       batchUpdateModal: false,
+      rollbackModal: false,
+      gtidCheck: {
+        mhaApplied: '',
+        dbApplied: [],
+        mhaTarget: ''
+      },
+      mhaApplierInitGtid: null,
       deleteData: [],
       filters: [],
       filterMap: {
@@ -245,6 +283,30 @@ export default {
           }
         }
       ],
+      dbGtidColumns: [
+        {
+          title: '库名',
+          key: 'dbName',
+          width: 200
+        },
+        {
+          title: '当前同步位点',
+          key: 'gtidInit',
+          render: (h, params) => {
+            const row = params.row
+            const gtidInit = row.gtidInit
+            if (gtidInit === null || gtidInit.length === 0) {
+              return h('Tag', {
+                props: {
+                  color: 'blue'
+                }
+              }, '无')
+            } else {
+              return h('span', gtidInit)
+            }
+          }
+        }
+      ],
       updateData: [],
       propertiesJson: {},
       tableData: [],
@@ -313,7 +375,8 @@ export default {
         },
         dstBuildParam: {
           mhaName: this.initInfo.dstMhaName,
-          dbApplierDtos: this.getFilteredData()
+          dbApplierDtos: this.getFilteredData(),
+          applierInitGtid: this.gtidCheck.mhaTarget
         }
       }
       console.log(params)
@@ -334,6 +397,7 @@ export default {
           this.$Message.error('提交异常: ' + message)
         })
         .finally(() => {
+          this.gtidCheck.mhaTarget = null
           this.dataLoading = false
         })
     },
@@ -388,7 +452,7 @@ export default {
       this.dataLoading = true
       Promise.all([
         this.axios.get('/api/drc/v2/config/mha/applier?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName),
-        this.axios.get('/api/drc/v2/config/mha/applierGtid?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
+        this.axios.get('/api/drc/v2/config/mha/dbApplier/gtidTruncated?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
       ])
         .then(async ([res1, res2]) => {
           console.log('res1', res1)
@@ -398,10 +462,6 @@ export default {
             return
           }
           const ips = res1.data.data
-          if (ips == null || ips.length === 0) {
-            this.$Message.info('mha applier 为空，无法设置')
-            return
-          }
           const gtid = res2.data.data
           this.tableData.forEach(row => {
             row.ips = ips
@@ -411,6 +471,56 @@ export default {
         .finally(() => {
           this.dataLoading = false
         })
+    },
+    preClearAndUpdateMhaGtid () {
+      // 1. get gtid infos
+      this.dataLoading = true
+      Promise.all([
+        this.axios.get('/api/drc/v2/config/mha/dbApplier/gtid?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName),
+        this.axios.get('/api/drc/v2/config/mha/dbApplier/dbGtid?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName),
+        this.axios.get('/api/drc/v2/config/mha/dbApplier/dbGtidTruncated?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
+      ])
+        .then(async ([res1, res2, res3]) => {
+          console.log('res1', res1)
+          console.log('res2', res2)
+          console.log('res3', res3)
+          if (res1.data.status !== 0 || res2.data.status !== 0 || res3.data.status !== 0) {
+            this.$Message.error('查询 gtid 信息失败')
+            return
+          }
+          this.gtidCheck.mhaApplied = res1.data.data
+          this.gtidCheck.dbApplied = extract(res2.data.data)
+          this.gtidCheck.mhaTarget = res3.data.data
+          this.rollbackModal = true
+        })
+        .finally(() => {
+          this.dataLoading = false
+        })
+
+      function extract (data) {
+        const ret = []
+        for (const [key, value] of Object.entries(data)) {
+          if (value && value.length > 0) {
+            ret.push({ dbName: key, gtidInit: value })
+          }
+        }
+        return ret
+      }
+    },
+    clearAndUpdateMhaGtid () {
+      // 1. clear db applier
+      this.tableData.forEach(row => {
+        row.ips = this.target.ips
+        row.gtidInit = this.target.gtid
+      })
+      // 2. set mha gtid to be update
+      this.mhaApplierInitGtid = this.gtidCheck.mhaTarget
+      if (!this.gtidCheck.mhaTarget || this.gtidCheck.mhaTarget.length === 0) {
+        this.$Message.warning('回滚失败，target mha gtid 不存在')
+        return
+      }
+      // 3. submit
+      this.submitDbAppliers()
     },
     batchUpdateAppliers () {
       const selectedDbNames = this.$refs.multipleTable.getSelection().map(e => e.dbName)

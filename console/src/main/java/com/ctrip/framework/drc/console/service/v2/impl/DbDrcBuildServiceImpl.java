@@ -2,22 +2,18 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.v3.MessengerGroupTblV3Dao;
-import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
+import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MessengerGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -30,14 +26,20 @@ import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +84,12 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     private MessengerTblV3Dao messengerTblV3Dao;
     @Autowired
     private MessengerGroupTblV3Dao messengerGroupTblV3Dao;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
+    @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
 
@@ -178,7 +186,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
         List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
         List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByType(ModuleEnum.APPLIER.getCode());
 
         // config db applier
         if (!CollectionUtils.isEmpty(dstDbAppliers)) {
@@ -189,30 +197,93 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             this.checkDbAppliers(dstDbAppliers);
             List<DbReplicationTbl> srcToDstDbReplications = this.getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
             List<MhaDbReplicationDto> srcToDstMhaDbReplicationDtos = mhaDbReplicationService.queryByMha(srcMhaName, dstMhaName, dstDbAppliers.stream().map(DbApplierDto::getDbName).collect(Collectors.toList()));
-            configureDbApplierGroup(srcToDstMhaDbReplicationDtos, dstDbAppliers, resourceTbls, srcToDstDbReplications);
+            this.configureDbAppliers(srcToDstMhaDbReplicationDtos, dstDbAppliers, resourceTbls, srcToDstDbReplications);
         }
-        if (!CollectionUtils.isEmpty(srcDbAppliers)) {
-            // src <- dst
-            if (!this.isDbApplierConfigurable(srcMhaName)) {
-                throw new ConsoleException("mha " + srcMhaName + " is not allowed to configure db appliers");
-            }
-            this.checkDbAppliers(dstDbAppliers);
-            List<DbReplicationTbl> dstToSrcDbReplications = this.getExistDbReplications(dstMhaDbMappings, srcMhaDbMappings);
-            List<MhaDbReplicationDto> dstToSrcMhaDbReplicationDtos = mhaDbReplicationService.queryByMha(dstMhaName, srcMhaName, srcDbAppliers.stream().map(DbApplierDto::getDbName).collect(Collectors.toList()));
-            configureDbApplierGroup(dstToSrcMhaDbReplicationDtos, srcDbAppliers, resourceTbls, dstToSrcDbReplications);
+
+        if (!StringUtils.isBlank(dstBuildParam.getApplierInitGtid())) {
+            ApplierGroupTblV2 applierGroupTblV2 = this.getApplierGroupTblV2(srcMha, dstMha);
+            applierGroupTblV2.setGtidInit(dstBuildParam.getApplierInitGtid());
+            applierGroupTblV2Dao.update(applierGroupTblV2);
         }
 
         // refresh
         Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
+        String drcString = XmlUtils.formatXML(drc.toString());
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
-            logger.error("metaProvider scheduledTask error, {}", e);
+            logger.error("metaProvider scheduledTask error", e);
         }
-        return XmlUtils.formatXML(drc.toString());
+        return drcString;
     }
 
-    private void configureDbApplierGroup(List<MhaDbReplicationDto> mhaDbReplicationDtos, List<DbApplierDto> dbApplierDtos, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> srcDbReplications) throws SQLException {
+    @Override
+    public String getDbDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName) {
+        try {
+            Map<String, GtidSet> dbGtidMap = this.getDbDrcExecutedGtid(srcMhaName, dstMhaName);
+            return GtidSet.getIntersection(Lists.newArrayList(dbGtidMap.values())).getGtidFirstInterval().toString();
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION);
+        }
+    }
+
+    @Override
+    public String getMhaDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName) {
+        try {
+            GtidSet gtidSet = this.getMhaDrcExecutedGtid(srcMhaName, dstMhaName);
+            return gtidSet.getGtidFirstInterval().toString();
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION);
+        }
+    }
+
+
+    @Override
+    public GtidSet getMhaDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException {
+        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
+        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
+
+        ApplierGroupTblV2 applierGroupTblV2 = this.getApplierGroupTblV2(srcMha, dstMha);
+
+        String appliedGtid = mysqlServiceV2.getMhaAppliedGtid(dstMha.getMhaName());
+        if (appliedGtid == null) {
+            throw ConsoleExceptionUtils.message("query mha applied gtid fail");
+        }
+        GtidSet mhaAppliedGtid = new GtidSet(appliedGtid);
+        return mhaAppliedGtid.union(new GtidSet(applierGroupTblV2.getGtidInit()));
+    }
+
+    @Override
+    public Map<String, GtidSet> getDbDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException {
+        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
+        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
+
+        // db applier gtid init
+        Map<String, String> mhaDbAppliedGtid = mysqlServiceV2.getMhaDbAppliedGtid(dstMha.getMhaName());
+        if (mhaDbAppliedGtid == null) {
+            throw ConsoleExceptionUtils.message("query db applied gtid fail");
+        }
+
+        // db applier gtid apply
+        List<DbApplierDto> mhaDbAppliers = this.getMhaDbAppliers(srcMha.getMhaName(), dstMha.getMhaName());
+        Map<String, GtidSet> gtidInitMap = mhaDbAppliers.stream()
+                .filter(e -> !StringUtils.isEmpty(e.getGtidInit()))
+                .collect(Collectors.toMap(DbApplierDto::getDbName, e -> new GtidSet(e.getGtidInit())));
+
+        // union all for each db
+        Set<String> dbNames = Sets.newHashSet();
+        dbNames.addAll(mhaDbAppliedGtid.keySet());
+        dbNames.addAll(gtidInitMap.keySet());
+        Map<String, GtidSet> map = Maps.newHashMap();
+        for (String dbName : dbNames) {
+            GtidSet appliedGtid = new GtidSet(mhaDbAppliedGtid.get(dbName));
+            GtidSet initGtid = gtidInitMap.get(dbName);
+            map.put(dbName, appliedGtid.union(initGtid));
+        }
+        return map;
+    }
+
+    private void configureDbAppliers(List<MhaDbReplicationDto> mhaDbReplicationDtos, List<DbApplierDto> dbApplierDtos, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> srcDbReplications) throws SQLException {
         // 0. check dbReplication exist;
         checkExistDbReplication(mhaDbReplicationDtos, dbApplierDtos, srcDbReplications);
 
@@ -243,11 +314,12 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
             if (!CollectionUtils.isEmpty(insertIps)) {
                 for (String ip : insertIps) {
+                    Long resourceId = Optional.ofNullable(resourceIpToIdMap.get(ip)).orElseThrow(() -> ConsoleExceptionUtils.message("ip not exist: " + ip));
                     ApplierTblV3 applierTbl = new ApplierTblV3();
                     applierTbl.setApplierGroupId(applierGroupTblV3.getId());
                     applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
                     applierTbl.setMaster(BooleanEnum.FALSE.getCode());
-                    applierTbl.setResourceId(resourceIpToIdMap.get(ip));
+                    applierTbl.setResourceId(resourceId);
                     applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
 
                     insertAppliers.add(applierTbl);
@@ -257,7 +329,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             if (!CollectionUtils.isEmpty(deleteIps)) {
                 Map<Long, ApplierTblV3> existApplierMap = existAppliers.stream().collect(Collectors.toMap(ApplierTblV3::getResourceId, Function.identity()));
                 for (String ip : deleteIps) {
-                    ApplierTblV3 applierTbl = existApplierMap.get(resourceIpToIdMap.get(ip));
+                    Long resourceId = Optional.ofNullable(resourceIpToIdMap.get(ip)).orElseThrow(() -> ConsoleExceptionUtils.message("ip not exist: " + ip));
+                    ApplierTblV3 applierTbl = existApplierMap.get(resourceId);
                     applierTbl.setDeleted(BooleanEnum.TRUE.getCode());
                     deleteAppliers.add(applierTbl);
                 }
@@ -375,6 +448,18 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }).collect(Collectors.toList());
         messengerGroupTblV3Dao.upsert(groupTblV3List);
         return groupTblV3List;
+    }
+
+    private ApplierGroupTblV2 getApplierGroupTblV2(MhaTblV2 srcMha, MhaTblV2 dstMha) throws SQLException {
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
+        if (mhaReplicationTbl == null) {
+            throw ConsoleExceptionUtils.message("mha replication not exist");
+        }
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
+        if (applierGroupTblV2 == null) {
+            throw ConsoleExceptionUtils.message("mha applier group not exist");
+        }
+        return applierGroupTblV2;
     }
 
     private void configureMessengers(List<DbApplierDto> dbApplierDtos, List<MhaDbReplicationDto> replicationDtos, List<MessengerGroupTblV3> groupTblV3List) throws SQLException {

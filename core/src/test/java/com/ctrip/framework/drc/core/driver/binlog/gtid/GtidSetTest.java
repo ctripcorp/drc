@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.gtid;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet.Interval;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet.UUIDSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
@@ -11,6 +12,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,7 +39,7 @@ public class GtidSetTest {
         boolean legal = purgedGtidSet.isContainedWithin(new GtidSet("b63f7e4a-a213-11ed-989f-02720d9a4dd2:1-16863592"));
         Assert.assertTrue(legal);
     }
-    
+
     @Test
     public void encode() throws IOException {
         byte[] decoded = gtidSet.encode();
@@ -223,7 +225,7 @@ public class GtidSetTest {
         big = new GtidSet("");
         small = new GtidSet(UUID + ":3-8:75-85:98");
         res = big.subtract(small);
-        Assert.assertEquals(res.toString(),  "");
+        Assert.assertEquals(res.toString(), "");
 
         big = new GtidSet(UUID + ":1-10:50-100");
         small = new GtidSet(UUID + ":3-8:75-85:98-99");
@@ -340,8 +342,31 @@ public class GtidSetTest {
         GtidSet executeGtidSetd = new GtidSet(executed);
         Assert.assertEquals(currentGtidSet.isContainedWithin(executeGtidSetd), false);
 
-        currentGtidSet = currentGtidSet.intersectionGtidSet(executeGtidSetd);
+        currentGtidSet = currentGtidSet.getIntersectionUUIDs(executeGtidSetd);
         Assert.assertEquals(currentGtidSet.isContainedWithin(executeGtidSetd), true);
+        System.out.println(currentGtidSet);
+    }
+
+    @Test
+    public void testIntersectionAll() {
+        String current = "24b9c5bc-070f-11ec-aa01-b8cef6507418:153148495-153445256,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-5";
+        String executed = "34b4ecc5-3675-11ea-a598-b8599ffdbbb4:1-362422,c4fff537-2a2a-11eb-aae0-506b4b4791b4:2-4:6-7";
+        GtidSet currentGtidSet = new GtidSet(current);
+        GtidSet executeGtidSetd = new GtidSet(executed);
+        GtidSet result = currentGtidSet.getIntersection(executeGtidSetd);
+        Assert.assertEquals(new GtidSet("c4fff537-2a2a-11eb-aae0-506b4b4791b4:2-4"), result);
+    }
+
+    @Test
+    public void testIntersectionList() {
+        List<GtidSet> list = Lists.newArrayList(
+                new GtidSet("a:1-10,b:1-10"),
+                new GtidSet("a:1-5:7-9,b:7-11"),
+                new GtidSet("a:1-8,b:6-8")
+        );
+
+        Assert.assertNotEquals(new GtidSet("a:1-5:7-8,b:7-8,c:1-10"), GtidSet.getIntersection(list));
+        Assert.assertEquals(new GtidSet("a:1-5:7-8,b:7-8"), GtidSet.getIntersection(list));
     }
 
     @Test
@@ -591,5 +616,20 @@ public class GtidSetTest {
         gtid = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2";
         expected.expandTo(gtid);
         Assert.assertEquals(new GtidSet("b207f82e-2a7b-11ec-b128-1c34da51a830:25326877445,56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2").toString(), expected.toString());
+    }
+
+    @Test
+    public void testGetBriefGtidSet() {
+        GtidSet gtidSet = new GtidSet("c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-39:100-200,34b4ecc5-3675-11ea-a598-b8599ffdbbb4:1-362422");
+        GtidSet briefGtidSet = gtidSet.getGtidFirstInterval();
+        Assert.assertEquals(new GtidSet("c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-39,34b4ecc5-3675-11ea-a598-b8599ffdbbb4:1-362422"), briefGtidSet);
+    }
+
+
+    @Test
+    public void test() {
+        GtidSet dbGtid = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-157408102:157408104-157538824");
+        GtidSet mhaGtid = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-156744202:156744639-157076784");
+        System.out.println(mhaGtid.isContainedWithin(dbGtid));
     }
 }

@@ -143,7 +143,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictApprovalServiceTest.class,
         CentralServiceTest.class,
         RouteServiceTest.class,
-        DbApplierBuildServiceV2Test.class,
+        DbDrcBuildServiceImplTest.class,
         MhaDbReplicationServiceImplTest.class,
         MysqlServiceV2ImplTest.class,
         CentralServiceImplTest.class,

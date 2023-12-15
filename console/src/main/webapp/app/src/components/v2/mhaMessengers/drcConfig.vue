@@ -325,11 +325,12 @@ export default {
       return this.drc.dbMessengerSwitch || this.hasAppliers(this.drc.dbMessengerList)
     },
     showMhaApplierConfig () {
-      return !this.hasAppliers(this.drc.dbMessengerList)
+      return true
+      // return !this.hasAppliers(this.drc.dbMessengerList)
     },
     hasAppliers (dbApplierDtos) {
       for (const x of dbApplierDtos) {
-        if (x.ips) {
+        if (x.ips && x.ips.length > 0) {
           return true
         }
       }

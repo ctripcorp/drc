@@ -6,7 +6,56 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
-        <Card>
+        <Row :gutter=10 align="middle">
+          <Col span="2">
+            <Card :padding=5>
+              <template #title>DB 相关</template>
+              <Input prefix="ios-search" v-model="dbNames" placeholder="DB 名↵" @on-enter="getAllMessengerVos()">
+              </Input>
+            </Card>
+          </Col>
+          <Col span="16">
+            <Row :gutter=10 align="middle">
+              <Col span="24">
+                <Card :padding=5>
+                  <template #title>相关 MHA</template>
+                  <Row :gutter=10>
+                    <Col span="14">
+                      <Input prefix="ios-search" v-model="mha.name" placeholder="集群名↵"
+                             @on-enter="getAllMessengerVos()">
+                      </Input>
+                    </Col>
+                    <Col span="5">
+                      <Select filterable prefix="ios-home" clearable v-model="mha.buId" placeholder="部门"
+                              @on-change="getAllMessengerVos()">
+                        <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
+                      </Select>
+                    </Col>
+                    <Col span="5">
+                      <Select filterable prefix="ios-pin" clearable v-model="mha.regionId"
+                              placeholder="地域"
+                              @on-change="getAllMessengerVos()">
+                        <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
+                            item.regionName
+                          }}
+                        </Option>
+                      </Select>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+          </Col>
+          <Col span="4">
+            <Row :gutter=10 align="middle">
+              <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getAllMessengerVos()">查询</Button>
+            </Row>
+            <Row :gutter=10 align="middle" style="margin-top: 20px">
+              <Button icon="md-refresh" @click="resetParam" :loading="dataLoading">重置</Button>
+            </Row>
+          </Col>
+        </Row>
+        <br>
           <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
             <Col span="2" style="display: flex;float: left;margin: 5px" >
               <Dropdown placement="bottom-start">
@@ -38,12 +87,11 @@
               :total="total"
               :current.sync="current"
               :page-size="size"
-              :page-size-opts="[10,20,40,80,100]"
+              :page-size-opts="[1000]"
               show-sizer
               show-elevator
               @on-page-size-change="handleChangeSize"></Page>
           </div>
-        </Card>
       </div>
       <Drawer title="DRC配置" width="80" :closable="true" v-model="cluster.drawer.show">
         <template #header>
@@ -114,10 +162,18 @@ export default {
         },
         mhaToBeRemoved: ''
       },
+      dbNames: null,
+      mha: {
+        name: this.$route.query.mhaName,
+        buId: null,
+        regionId: null
+      },
       total: 0,
       current: 1,
-      size: 100,
+      size: 1000,
       tableData: [],
+      bus: [],
+      regions: [],
       switchOneInfo: {},
       columns: [
         {
@@ -202,21 +258,65 @@ export default {
     }
   },
   methods: {
+    getBus () {
+      this.axios.get('/api/drc/v2/meta/bus/all')
+        .then(response => {
+          this.bus = response.data.data
+        })
+    },
+    getRegions () {
+      this.axios.get('/api/drc/v2/meta/regions/all')
+        .then(response => {
+          this.regions = response.data.data
+        })
+    },
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
+    },
+    resetParam () {
+      this.mha = {
+        name: null,
+        buId: null,
+        regionId: null
+      }
+      this.dbNames = null
+      this.getAllMessengerVos()
+    },
+    getParams () {
+      const params = {
+        mha: this.mha,
+        dbNames: this.dbNames
+      }
+      return this.flattenObj(params)
+    },
     getAllMessengerVos () {
       this.dataLoading = true
-      this.axios.get('/api/drc/v2/messenger/all').then(response => {
-        if (response.data.status === 1) {
-          this.$Message.error('查询失败：' + response.message)
-          return
-        }
-        this.tableData = response.data.data
-        this.total = this.tableData.length
-        this.$Message.success('查询成功')
-      }).catch(message => {
-        this.$Message.error('查询异常: ' + message)
-      }).finally(() => {
-        this.dataLoading = false
-      })
+      const reqParam = this.getParams()
+      this.axios.get('/api/drc/v2/messenger/query', { params: reqParam })
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询失败：' + response.message)
+            return
+          }
+          this.tableData = response.data.data
+          this.total = this.tableData.length
+          this.$Message.success('查询成功')
+        }).catch(message => {
+          this.$Message.error('查询异常: ' + message)
+        }).finally(() => {
+          this.dataLoading = false
+        })
     },
     handleChangeSize (val) {
       this.size = val
@@ -337,6 +437,8 @@ export default {
     }
   },
   created () {
+    this.getRegions()
+    this.getBus()
     this.getAllMessengerVos()
   }
 }
