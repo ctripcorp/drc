@@ -624,6 +624,7 @@ public class TransactionContextResource extends AbstractContext
                 overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
+            overwriteMark(false,destCurrentRecord, null,"apply fail" + e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.insert() - execute: ", e);
         }
@@ -644,7 +645,6 @@ public class TransactionContextResource extends AbstractContext
             return;
         }
         initState(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
-        // todo hdpan check onUpdate change to distinguish DBA touch job
         try {
             STATEMENT:
             for (int i = 0; i < this.beforeRows.size(); i++) {
@@ -723,6 +723,7 @@ public class TransactionContextResource extends AbstractContext
                 overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
+            overwriteMark(false, destCurrentRecord, null, "apply fail" + e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.update() - execute: ", e);
         }
@@ -783,6 +784,7 @@ public class TransactionContextResource extends AbstractContext
                 overwriteMark(true, destCurrentRecord, null, "ignore conflict");
             }
         } catch (Throwable e) {
+            overwriteMark(false, destCurrentRecord, null, "apply fail" + e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.delete()", e);
         }
@@ -841,7 +843,7 @@ public class TransactionContextResource extends AbstractContext
         }
     }
 
-    private void overwriteMark(Boolean isOverwrite, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
+    private void overwriteMark(Boolean overWriteSuccess, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
         String db = fetchTableKey().getDatabaseName();
         String table = fetchTableKey().getTableName();
         curCflRowLog.setDb(db);
@@ -849,7 +851,7 @@ public class TransactionContextResource extends AbstractContext
         curCflRowLog.setDstRecord(destCurrentRecord);
         curCflRowLog.setHandleSql(conflictHandleSql);
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
-        curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
+        curCflRowLog.setRowRes(overWriteSuccess ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
         boolean b = trxRecorder.recordCflRowLogIfNecessary(curCflRowLog);
     }
     
