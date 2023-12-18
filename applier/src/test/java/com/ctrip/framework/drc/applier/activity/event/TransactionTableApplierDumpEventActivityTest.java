@@ -26,8 +26,6 @@ public class TransactionTableApplierDumpEventActivityTest {
 
     private TransactionTable transactionTable = Mockito.mock(TransactionTableResource.class);
 
-    private String uuid = "45c8023b-888d-11ec-9f82-b8cef68a4636";
-
     @Before
     public void setUp() {
         dumpEventActivity = new TransactionTableApplierDumpEventActivity();

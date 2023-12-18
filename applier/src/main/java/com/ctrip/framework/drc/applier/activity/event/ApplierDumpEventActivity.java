@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.*;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
-import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
@@ -143,7 +142,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                 lastReceivedTxs.put(uuid, previousEnd);
                 logger.info("[Merge][Uuid][{}] last null, all gtid set: {}", registryKey, previousGtidSetOfUuid.toString());
             } else {
-                // merge the gap in the begin
+                // merge the gap in the start
                 long previousStart = previousInterval.getStart();
                 GtidSet.Interval receivedInterval = getStartAndEnd(context.fetchGtidSet(), uuid);
                 if (receivedInterval != null) {
@@ -151,7 +150,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                     if (previousStart < receivedStart) {
                         GtidSet previousGtidSet = new GtidSet(uuid + ":" + previousStart + "-" + (receivedStart - 1));
                         compensateGap(previousGtidSet);
-                        logger.info("[Merge][Uuid][{}] begin gtid set: {}", registryKey, previousGtidSet.toString());
+                        logger.info("[Merge][Uuid][{}] start gtid set: {}", registryKey, previousGtidSet.toString());
                     }
                 }
 
@@ -165,19 +164,22 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         }
     }
 
-    @VisibleForTesting
-    protected void compensateGapIfNeed(ApplierGtidEvent applierGtidEvent) {
+    private void compensateGapIfNeed(ApplierGtidEvent applierGtidEvent) {
         String uuid = applierGtidEvent.getServerUUID().toString();
         long trxId = applierGtidEvent.getId();
+        Long lastTrxId = lastReceivedTxs.get(uuid);
 
         if (!uuid.equalsIgnoreCase(lastReceivedUuid)) {
             gapInited = false;
             receivedStartAndEndTrxId = getStartAndEnd(context.fetchGtidSet(), uuid);
-            if (receivedStartAndEndTrxId != null) {
-                saveGapToInit(uuid, receivedStartAndEndTrxId.getStart() + 1, trxId - 1);
+            if (lastTrxId == null) {
+                if (receivedStartAndEndTrxId != null) {
+                    saveGapToInit(uuid, receivedStartAndEndTrxId.getStart() + 1, trxId - 1);
+                }
+            } else {
+                saveGapToInit(uuid, lastTrxId + 1, trxId - 1);
             }
         } else {
-            long lastTrxId = lastReceivedTxs.get(uuid);
             if (gapInited) {
                 if (trxId > lastTrxId + 1) {
                     compensateGap(uuid, lastTrxId + 1, trxId);
