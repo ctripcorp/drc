@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -53,6 +54,25 @@ public class MessengerControllerV2Test {
         when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(List.of(e1));
 
         ApiResult<List<MessengerVo>> result = messengerControllerV2.getAllMessengerVos();
+        MessengerVo data = result.getData().get(0);
+        Assert.assertEquals(data.getMhaName(), mhaTblV2.getMhaName());
+        Assert.assertEquals(data.getBu(), e1.getBuName());
+    }
+
+    @Test
+    public void testQueryAllMessengerVos() throws Exception {
+        long buId = 1L;
+        MhaTblV2 mhaTblV2 = new MhaTblV2();
+        mhaTblV2.setBuId(buId);
+        mhaTblV2.setMonitorSwitch(0);
+        when(messengerService.getMessengerMhaTbls(any())).thenReturn(List.of(mhaTblV2));
+        BuTbl e1 = new BuTbl();
+        e1.setId(buId);
+        e1.setBuName("bbz");
+        when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(List.of(e1));
+
+        MessengerQueryDto queryDto = new MessengerQueryDto();
+        ApiResult<List<MessengerVo>> result = messengerControllerV2.queryMessengerVos(queryDto);
         MessengerVo data = result.getData().get(0);
         Assert.assertEquals(data.getMhaName(), mhaTblV2.getMhaName());
         Assert.assertEquals(data.getBu(), e1.getBuName());

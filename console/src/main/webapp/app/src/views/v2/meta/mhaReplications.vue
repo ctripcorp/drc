@@ -7,7 +7,7 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
         <Row :gutter=10 align="middle">
-          <Col span="2">
+          <Col span="3">
             <Card :padding=5>
               <template #title>DB 相关</template>
               <Input prefix="ios-search" v-model="dbNames" placeholder="DB 名↵" @on-enter="getReplications(1)">
@@ -115,7 +115,7 @@
               </Select>
             </Card>
           </Col>
-          <Col span="4">
+          <Col span="3">
             <Row :gutter=10 align="middle">
               <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications(1)">查询</Button>
               <i-switch v-model="preciseSearchMode" size="large" style="margin-left: 10px">进阶
@@ -528,6 +528,7 @@ export default {
         regionId: null
       }
       this.drcStatus = null
+      this.dbNames = null
       this.getReplications(1)
     },
     async getReplications (pageIndex = 1) {

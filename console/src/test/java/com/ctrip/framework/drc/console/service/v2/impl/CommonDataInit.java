@@ -13,13 +13,11 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
-import java.util.Collections;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -31,6 +29,7 @@ import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -72,8 +71,6 @@ public class CommonDataInit {
     QConfigService qConfigService;
     @Mock
     MetaInfoServiceV2 metaInfoServiceV2;
-    @Mock
-    DrcBuildService drcBuildService;
     @Mock
     AbstractDao abstractDao;
     @Mock
@@ -241,6 +238,10 @@ public class CommonDataInit {
         when(resourceTblDao.queryByIds(anyList())).thenAnswer(i -> {
             List ids = i.getArgument(0, List.class);
             return resourceTbls.stream().filter(e -> ids.contains(e.getId())).collect(Collectors.toList());
+        });
+        when(resourceTblDao.queryByType(anyInt())).thenAnswer(i -> {
+            int type = i.getArgument(0, Integer.class);
+            return resourceTbls.stream().filter(e -> type == e.getType() && e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         });
         // ReplicatorTbl
         List<ReplicatorTbl> replicatorTbls = this.getData("ReplicatorTbl.json", ReplicatorTbl.class);
@@ -633,7 +634,7 @@ public class CommonDataInit {
     }
 
 
-    private <T> List<T> getData(String fileName, Class<T> clazz) {
+    public  <T> List<T> getData(String fileName, Class<T> clazz) {
         String prefix = "/testData/messengerServiceV2/";
         String pathPrefix = System.getProperty("mock.data.path.prefix");
         if (StringUtils.isNotBlank(pathPrefix) ) {

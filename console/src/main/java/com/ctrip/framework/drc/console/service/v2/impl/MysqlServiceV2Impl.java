@@ -2,7 +2,10 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
+import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
@@ -46,6 +49,10 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Autowired
     private CacheMetaService cacheMetaService;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private DdlHistoryTblDao ddlHistoryTblDao;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -73,6 +80,32 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return null;
         } else {
             return MySqlUtils.getPurgedGtid(endpoint);
+        }
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mha/gtid/applied")
+    public String getMhaAppliedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaAppliedGtid from mha{}", mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaAppliedGtid from mha {},machine not exist", mha);
+            return null;
+        } else {
+            return MySqlUtils.getMhaAppliedGtid(endpoint);
+        }
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mha/db/gtid/applied")
+    public Map<String, String> getMhaDbAppliedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaDbAppliedGtid from mha{}", mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaDbAppliedGtid from mha {},machine not exist", mha);
+            return null;
+        } else {
+            return MySqlUtils.getMhaDbAppliedGtid(endpoint);
         }
     }
 
@@ -224,7 +257,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return new HashMap<>();
         }
         try {
-            return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns(), requestBody.getColumnSize());
+            return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns(), requestBody.getUniqueIndexColumns(), requestBody.getColumnSize());
         } catch (Exception e) {
             throw ConsoleExceptionUtils.message(e.getMessage());
         }
@@ -233,6 +266,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/onUpdateColumns")
     public List<String> getAllOnUpdateColumns(String mha, String db, String table) {
+        logger.info("getAllOnUpdateColumns, mha: {}, db:{}, table: {}", mha, db, table);
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("queryTableRecords from mha: {}, db not exist", mha);
@@ -269,8 +303,9 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/uniqueIndex")
+    @PossibleRemote(path = "/api/drc/v2/mysql/firstUniqueIndex")
     public String getFirstUniqueIndex(String mha, String db, String table) {
+        logger.info("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("getFirstUniqueIndex from mha: {}, db not exist", mha);
@@ -280,14 +315,33 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/uniqueIndex")
+    public List<String> getUniqueIndex(String mha, String db, String table) {
+        logger.info("getUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("getFirstUniqueIndex from mha: {}, db not exist", mha);
+            return null;
+        }
+        return MySqlUtils.getUniqueIndex(endpoint, db, table);
+    }
+
+    @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/write", httpType = HttpRequestEnum.POST, requestClass = MysqlWriteEntity.class)
     public StatementExecutorResult write(MysqlWriteEntity requestBody) {
-        Endpoint endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
+        logger.info("execute write sql, requestBody: {}", requestBody);
+        Endpoint endpoint;
+        if (requestBody.getAccountType() == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
+        } else {
+            endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
+        }
+
         if (endpoint == null) {
             logger.error("write to mha: {}, db not exist", requestBody.getMha());
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), Constants.ENDPOINT_NOT_EXIST);
         }
-        return MySqlUtils.write(endpoint, requestBody.getSql());
+        return MySqlUtils.write(endpoint, requestBody.getSql(), requestBody.getAccountType());
     }
 
     @Override
@@ -314,4 +368,5 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
         return Boolean.TRUE.equals(res);
     }
+
 }

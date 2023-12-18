@@ -8,14 +8,17 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTxTableIntersectionGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
@@ -29,8 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.sql.*;
 import java.sql.Date;
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -39,6 +42,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.*;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_TRANSACTION_TABLE_NAME_PREFIX;
 import static com.ctrip.framework.drc.core.service.utils.Constants.DRC_MONITOR_SCHEMA_TABLE;
 
 /**
@@ -542,8 +546,11 @@ public class MySqlUtils {
         return tables.stream().map(TableSchemaName::toString).collect(Collectors.toList());
     }
 
-
-    public static String getUuid(String ip, int port, String user, String password, boolean master) throws Exception {
+    public static String getUuid(Endpoint endpoint, boolean master) throws SQLException {
+        return getUuid(endpoint.getHost(), endpoint.getPort(), endpoint.getUser(), endpoint.getPassword(), master);
+    }
+    
+    public static String getUuid(String ip, int port, String user, String password, boolean master) throws SQLException {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
@@ -615,8 +622,14 @@ public class MySqlUtils {
         }
     }
 
-    public static void removeWriteSqlOperator(Endpoint endpoint) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+    public static void removeWriteSqlOperator(Endpoint endpoint, int accountType) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
+        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
+        } else {
+            writeSqlOperatorWrapper = sqlOperatorMapper.remove(endpoint);
+        }
+
         if (writeSqlOperatorWrapper != null) {
             try {
                 writeSqlOperatorWrapper.stop();
@@ -675,6 +688,52 @@ public class MySqlUtils {
 
     public static String getPurgedGtid(Endpoint endpoint) {
         return new ExecutedGtidQueryTask(endpoint, Lists.newArrayList(new PurgedGtidReader())).call();
+    }
+
+    public static String getMhaAppliedGtid(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            return new TransactionTableGtidReader(endpoint).getExecutedGtids(connection);
+        } catch (Throwable e) {
+            logger.error(String.format("[[endpoint=%s:%s]] getMhaAppliedGtid error: ", endpoint.getHost(), endpoint.getPort()), e);
+            removeSqlOperator(endpoint);
+            return null;
+        }
+    }
+
+    public static Map<String, String> getMhaDbAppliedGtid(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            List<String> dbNamesInDrcTxTable = getDbNamesInDrcTxTable(endpoint);
+            HashMap<String, String> map = Maps.newHashMap();
+            for (String dbName : dbNamesInDrcTxTable) {
+                String gtid = new DbTxTableIntersectionGtidReader(endpoint, dbName).getExecutedGtids(connection);
+                map.put(dbName, gtid);
+            }
+            return map;
+        } catch (Throwable e) {
+            logger.error(String.format("[[endpoint=%s:%s]] getMhaDbAppliedGtid error: ", endpoint.getHost(), endpoint.getPort()), e);
+            removeSqlOperator(endpoint);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    private static List<String> getDbNamesInDrcTxTable(Endpoint endpoint) throws SQLException {
+        List<String> tables = Lists.newArrayList();
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement("show tables from drcmonitordb;");
+             ResultSet resultSet = statement.executeQuery();) {
+            while (resultSet.next()) {
+                tables.add(resultSet.getString(1));
+            }
+            int prefixLen = DRC_DB_TRANSACTION_TABLE_NAME_PREFIX.length();
+            return tables.stream()
+                    .filter(e -> e.startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX))
+                    .map(e -> e.substring(prefixLen).toLowerCase())
+                    .collect(Collectors.toList());
+        }
     }
 
     public static String getSqlResultString(Endpoint endpoint, String sql, int index) {
@@ -862,11 +921,11 @@ public class MySqlUtils {
         return "three accounts ready";
     }
 
-    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, int columnSize) throws Exception {
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, List<String> uniqueIndexColumns, int columnSize) throws Exception {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
-            Map<String, String> parseResultMap = parseSql(rawSql, onUpdateColumns);
+            Map<String, String> parseResultMap = parseSql(rawSql, onUpdateColumns, uniqueIndexColumns);
 
             String tableName = parseResultMap.get("tableName");
             String sql = String.format(SELECT_SQL, tableName, parseResultMap.get("conditionStr"));
@@ -956,7 +1015,7 @@ public class MySqlUtils {
                 }
             }
         } catch (Throwable t) {
-            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            logger.error("[[monitor=table,endpoint={}:{}]] getFirstUniqueIndex error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
             return null;
         } finally {
@@ -967,14 +1026,42 @@ public class MySqlUtils {
         return null;
     }
 
-    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+    public static List<String> getUniqueIndex(Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(INDEX_QUERY, db, table);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+
+            List<List<String>> identifies = extractIndex(rs);
+            return identifies.stream().flatMap(Collection::stream).distinct().collect(Collectors.toList());
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getUniqueIndex error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return new ArrayList<>();
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+    }
+
+    public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
+        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        } else {
+            writeSqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        }
+
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             return writeSqlOperatorWrapper.writeWithResult(execution);
         } catch (Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
-            removeWriteSqlOperator(endpoint);
+            removeWriteSqlOperator(endpoint, accountType);
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
         }
     }
@@ -1033,7 +1120,7 @@ public class MySqlUtils {
         return ret;
     }
 
-    public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns) {
+    public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns, List<String> uniqueIndexColumns) {
         Map<String, String> parseResult = new HashMap<>();
 
         String dbType = JdbcConstants.MYSQL;
@@ -1082,6 +1169,9 @@ public class MySqlUtils {
             StringBuilder condition = new StringBuilder();
             for (int i = 0; i < columns.size(); i++) {
                 String columnName = columns.get(i).toString();
+                if (!uniqueIndexColumns.contains(columnName)) {
+                    continue;
+                }
                 if (onUpdateColumns.contains(columnName)) {
                     continue;
                 }
@@ -1141,19 +1231,6 @@ public class MySqlUtils {
 
     public static String toSqlField(String s) {
         return MARKS + s + MARKS;
-    }
-
-    public static Object toSqlValue(Object val) {
-        if (val == null) {
-            return null;
-        }
-        if (val instanceof byte[]) {
-            return CommonUtils.byteToHexString((byte[]) val);
-        }
-        if (val instanceof String) {
-            return toStringVal(val);
-        }
-        return val;
     }
 
     public static Object toSqlValue(Object val, String columnType) {

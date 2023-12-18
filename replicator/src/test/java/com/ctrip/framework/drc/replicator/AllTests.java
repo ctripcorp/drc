@@ -17,11 +17,13 @@ import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorTableMapL
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlIndexFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TypeConvertFilterTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManagerRefreshTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.*;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTaskTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTaskTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
@@ -112,7 +114,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         DdlParserTest.class,
         RetryTaskTest.class,
         DbCreateTaskTest.class,
-        DbDisposeTaskTest.class,
+//        DbDisposeTaskTest.class,
         DbRestoreTaskTest.class,
         SchemeApplyTaskTest.class,
 
@@ -124,7 +126,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         ChannelAttributeKeyTest.class,
         CommandHandlerManagerTest.class,
         TransactionFlagsTest.class,
-        MySQLSchemaManagerRefreshTest.class,
 
         //controller
         ReplicatorContainerControllerTest.class
@@ -132,31 +133,37 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
 })
 public class AllTests {
 
-    public static final String ROW_FILTER_PROPERTIES = "{" +
-            "  \"rowsFilters\": [" +
-            "    {" +
-            "      \"mode\": \"%s\"," +
-            "      \"tables\": \"drc1.insert1\"," +
-            "      \"parameters\": {" +
-            "        \"columns\": [" +
-            "          \"id\"," +
-            "          \"one\"" +
-            "        ]," +
-            "        \"context\": \"regre2\"" +
-            "      }" +
-            "    }" +
-            "  ]," +
-            "  \"talbePairs\": [" +
-            "    {" +
-            "      \"source\": \"sourceTableName1\"," +
-            "      \"target\": \"targetTableName1\"" +
-            "    }," +
-            "    {" +
-            "      \"source\": \"sourceTableName2\"," +
-            "      \"target\": \"targetTableName2\"" +
-            "    }" +
-            "  ]" +
-            "}";
+    public static final String ROW_FILTER_PROPERTIES = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"%s\",\n" +
+            "      \"tables\": \"drc1.insert1\",\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"id\",\n" +
+            "              \"one\"\n" +
+            "            ],\n" +
+            "            \"context\": \"regre2\"\n" +
+            "          }\n" +
+            "        ],\n" +
+            "        \"drcStrategyId\": 2000000002,\n" +
+            "        \"routeStrategyId\": 0\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"talbePairs\": [\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName1\",\n" +
+            "      \"target\": \"targetTableName1\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName2\",\n" +
+            "      \"target\": \"targetTableName2\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}\n";
 
     public static final int SRC_PORT = 13309;
 

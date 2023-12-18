@@ -75,6 +75,16 @@ public class DdlHistoryTbl implements DalPojo {
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp datachangeLasttime;
 
+	public static DdlHistoryTbl createDdlHistoryPojo(long mhaId, String ddl, int queryType, String schemaName, String tableName) {
+		DdlHistoryTbl daoPojo = new DdlHistoryTbl();
+		daoPojo.setMhaId(mhaId);
+		daoPojo.setDdl(ddl);
+		daoPojo.setQueryType(queryType);
+		daoPojo.setSchemaName(schemaName);
+		daoPojo.setTableName(tableName);
+		return daoPojo;
+	}
+
 	public Long getId() {
 		return id;
 	}

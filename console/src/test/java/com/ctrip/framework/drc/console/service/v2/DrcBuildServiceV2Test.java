@@ -14,7 +14,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.service.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
@@ -84,6 +84,10 @@ public class DrcBuildServiceV2Test {
     private BuTblDao buTblDao;
     @Mock
     private DcTblDao dcTblDao;
+    @Mock
+    private RouteTblDao routeTblDao;
+    @Mock
+    private ProxyTblDao proxyTblDao;
     @Mock
     private CacheMetaService cacheMetaService;
     @Mock
@@ -429,6 +433,5 @@ public class DrcBuildServiceV2Test {
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
     }
-
 
 }

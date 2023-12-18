@@ -27,4 +27,12 @@ public class ConflictAutoHandleParam {
     public void setRowLogIds(List<Long> rowLogIds) {
         this.rowLogIds = rowLogIds;
     }
+
+    @Override
+    public String toString() {
+        return "ConflictAutoHandleParam{" +
+                "writeSide=" + writeSide +
+                ", rowLogIds=" + rowLogIds +
+                '}';
+    }
 }

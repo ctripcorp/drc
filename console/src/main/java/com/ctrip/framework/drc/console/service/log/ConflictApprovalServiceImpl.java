@@ -1,14 +1,12 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.*;
 import com.ctrip.framework.drc.console.dao.log.entity.*;
-import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
-import com.ctrip.framework.drc.console.enums.ApprovalTypeEnum;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
@@ -71,6 +69,8 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private DbTblDao dbTblDao;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
@@ -181,9 +181,17 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
             throw ConsoleExceptionUtils.message("handle sql is empty");
         }
 
-        Pair<Long, String> resultPair = insertBatchTbl(handleSqlDtos, param.getWriteSide());
-        Long batchId = resultPair.getLeft();
+        Pair<ConflictAutoHandleBatchTbl, String> resultPair = insertBatchTbl(handleSqlDtos, param.getWriteSide());
+        ConflictAutoHandleBatchTbl batchTbl = resultPair.getLeft();
+        Long batchId = batchTbl.getId();
         String dbName = resultPair.getRight();
+        String targetMhaName = BooleanEnum.FALSE.getCode().equals(param.getWriteSide()) ? batchTbl.getDstMhaName() : batchTbl.getSrcMhaName();
+
+        MysqlWriteEntity entity = new MysqlWriteEntity(targetMhaName, Constants.CREATE_DRC_WRITE_FILTER, MysqlAccountTypeEnum.DRC_CONSOLE.getCode());
+        StatementExecutorResult result = mysqlServiceV2.write(entity);
+        if (result == null || result.getResult() != SqlResultEnum.SUCCESS.getCode()) {
+            throw ConsoleExceptionUtils.message("createConflictApproval fail, " + result.getMessage());
+        }
 
         List<ConflictAutoHandleTbl> autoHandleTbls = handleSqlDtos.stream().map(source -> {
             ConflictAutoHandleTbl target = new ConflictAutoHandleTbl();
@@ -203,8 +211,13 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }
         String dbOwner = dbTbls.get(0).getDbOwner();
 
-        //ql_deng TODO 2023/11/16:dbOwner
-        ApprovalApiRequest request = buildRequest(username, username, approvalTbl.getId());
+        ApprovalApiRequest request;
+        if (consoleConfig.getConflictDbOwnerApprovalSwitch()) {
+            request = buildRequest(dbOwner, username, approvalTbl.getId());
+        } else {
+            request = buildRequest(username, username, approvalTbl.getId());
+        }
+
         ApprovalApiResponse response = approvalApiService.createApproval(request);
 
         approvalTbl.setTicketId(response.getData().get(0).getTicket_ID());
@@ -246,8 +259,9 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         String targetMha = batchTbl.getTargetMhaType() == 0 ? batchTbl.getDstMhaName() : batchTbl.getSrcMhaName();
         List<ConflictAutoHandleTbl> conflictAutoHandleTbls = conflictAutoHandleTblDao.queryByBatchId(batchTbl.getId());
 
-        //ql_deng TODO 2023/11/16:drc filter sql
         StringBuilder sqlBuilder = new StringBuilder(Constants.BEGIN);
+        String insertWriteFilterSql = String.format(Constants.INSERT_DRC_WRITE_FILTER, DrcWriteFilterTypeEnum.CONFLICT.getCode(), approvalTbl.getId(), "");
+        sqlBuilder.append("\n").append(insertWriteFilterSql);
         List<String> sqlList = conflictAutoHandleTbls.stream()
                 .filter(e -> StringUtils.isNotBlank(e.getAutoHandleSql()))
                 .map(e -> Constants.CONFLICT_SQL_PREFIX + e.getAutoHandleSql())
@@ -258,7 +272,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         String sql = Joiner.on(";\n").join(sqlList);
         sqlBuilder.append("\n").append(sql).append(";\n").append(Constants.COMMIT);
 
-        MysqlWriteEntity entity = new MysqlWriteEntity(targetMha, sqlBuilder.toString());
+        MysqlWriteEntity entity = new MysqlWriteEntity(targetMha, sqlBuilder.toString(), MysqlAccountTypeEnum.DRC_WRITE.getCode());
         StatementExecutorResult result = mysqlServiceV2.write(entity);
         batchTbl.setStatus(result.getResult());
         batchTbl.setRemark(result.getMessage());
@@ -301,7 +315,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         return approvalTbl;
     }
 
-    private Pair<Long, String> insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {
+    private Pair<ConflictAutoHandleBatchTbl, String> insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {
         List<Long> rowLogIds = handleSqlDtos.stream().map(ConflictHandleSqlDto::getRowLogId).collect(Collectors.toList());
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(rowLogIds);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
@@ -340,6 +354,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         batchTbl.setStatus(SqlResultEnum.NOT_EXECUTED.getCode());
 
         Long batchId = conflictAutoHandleBatchTblDao.insertWithReturnId(batchTbl);
-        return Pair.of(batchId, dbNames.get(0));
+        batchTbl.setId(batchId);
+        return Pair.of(batchTbl, dbNames.get(0));
     }
 }

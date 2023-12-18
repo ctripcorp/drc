@@ -51,7 +51,6 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-
         super.setUp();
         when(zkClient.get()).thenReturn(curatorFramework);
         when(currentMetaManager.watchMessengerIfNotWatched(anyString())).thenReturn(true);

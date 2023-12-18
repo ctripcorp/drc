@@ -15,7 +15,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.service.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
@@ -101,6 +101,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private BuTblDao buTblDao;
     @Autowired
     private DcTblDao dcTblDao;
+    @Autowired
+    private ProxyTblDao proxyTblDao;
+    @Autowired
+    private RouteTblDao routeTblDao;
     @Autowired
     private CacheMetaService cacheMetaService;
     @Autowired
@@ -309,7 +313,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     private void addConflictBlackList(String nameFilter) {
-        executorService.submit( () -> {
+        executorService.submit(() -> {
             try {
                 conflictLogService.addDbBlacklist(nameFilter, LogBlackListType.AUTO);
             } catch (Exception e) {
@@ -610,7 +614,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
         String dcInDbaSystem = memberlist.stream().findFirst().map(MemberInfo::getMachine_located_short).get();
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
-        String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(),null);
+        String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(), null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
         MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
@@ -619,10 +623,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
-            machinesToBeInsert.add(extractFrom(memberInfo,mhaId));
+            machinesToBeInsert.add(extractFrom(memberInfo, mhaId));
         }
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
-        logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName,Arrays.stream(ints).sum());
+        logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName, Arrays.stream(ints).sum());
 
         mhaTblV2.setId(mhaId);
         return mhaTblV2;
@@ -654,6 +658,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(mhaTbl.getMhaName());
         autoConfigReplicatorsWithGtid(mhaTbl, mhaExecutedGtid);
     }
+
     @Override
     public void autoConfigReplicatorsWithGtid(MhaTblV2 mhaTbl, String gtidInit) throws SQLException {
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTbl.getId());
@@ -697,7 +702,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(String.format("configure appliers fail, mha replication not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
         }
         ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-        if(applierGroupTblV2 == null) {
+        if (applierGroupTblV2 == null) {
             throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
         }
         autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, gtid);
@@ -777,7 +782,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("[[mha={}]] getMhaExecutedGtid failed", mhaTbl.getMhaName());
             throw new ConsoleException("getMhaExecutedGtid failed!");
         }
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),BooleanEnum.FALSE.getCode());
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
         messengerGroupTbl.setGtidExecuted(mhaExecutedGtid);
         messengerGroupTblDao.update(messengerGroupTbl);
         logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mhaExecutedGtid);
@@ -950,15 +955,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         machineTbl.setUuid(uuid);
         return machineTbl;
     }
-    private MachineTbl extractFrom(MemberInfo memberInfo,Long mhaId) {
+
+    private MachineTbl extractFrom(MemberInfo memberInfo, Long mhaId) {
         String serviceIp = memberInfo.getService_ip();
         int dnsPort = memberInfo.getDns_port();
         String dcInDbaSystem = memberInfo.getMachine_located_short();
         boolean isMaster = memberInfo.getRole().toLowerCase().contains("master");
         String uuid = null;
         try {
-            uuid = MySqlUtils.getUuid(serviceIp, dnsPort,monitorTableSourceProvider.getMonitorUserVal(),
-                    monitorTableSourceProvider.getMonitorPasswordVal(),isMaster);
+            uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorTableSourceProvider.getMonitorUserVal(),
+                    monitorTableSourceProvider.getMonitorPasswordVal(), isMaster);
         } catch (Exception e) {
             logger.warn("getUuid failed, serviceIp:{}, dnsPort:{}, dcInDbaSystem:{}, isMaster:{}, e:{}",
                     serviceIp, dnsPort, dcInDbaSystem, isMaster, e.getMessage());

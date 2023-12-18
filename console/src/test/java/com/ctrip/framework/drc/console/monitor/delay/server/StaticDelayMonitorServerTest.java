@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPoo
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2;
 import com.ctrip.framework.drc.console.monitor.netty.NettyServer;
-import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.impl.CentralServiceImpl;
 import com.ctrip.framework.drc.console.utils.HeartbeatRequestHandler;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
@@ -77,6 +77,7 @@ public class StaticDelayMonitorServerTest {
                 connector, 
                 new PeriodicalUpdateDbTask(),
                 new PeriodicalUpdateDbTaskV2(),
+                new CentralServiceImpl(),
                 864500000L
         );
         staticDelayMonitorClient.initialize();

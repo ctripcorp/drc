@@ -6,16 +6,14 @@ import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.service.MySqlService;
-import com.ctrip.framework.drc.console.service.impl.MySqlServiceImpl;
-import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.impl.MysqlServiceV2Impl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -35,10 +33,13 @@ public class RemoteHttpAspectTest {
     @Mock
     private DcTblDao dcTblDao;
 
-    @Spy
-    private MySqlServiceImpl mySqlService;
+    @Mock
+    private CacheMetaService cacheMetaService;
 
-    private MySqlService proxy;
+    @Spy
+    private MysqlServiceV2Impl mysqlServiceV2;
+
+    private MysqlServiceV2 proxy;
 
 
     @Before
@@ -58,7 +59,7 @@ public class RemoteHttpAspectTest {
                     put("region2", "url2");
                 }}
         );
-        AspectJProxyFactory factory = new AspectJProxyFactory(mySqlService);
+        AspectJProxyFactory factory = new AspectJProxyFactory(mysqlServiceV2);
         factory.setProxyTargetClass(true);
         factory.addAspect(aop);
         proxy = factory.getProxy();
@@ -68,37 +69,24 @@ public class RemoteHttpAspectTest {
     public void testForwardByArgs() throws SQLException {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha1"), Mockito.anyInt())).thenReturn(getMhaTblV2());
         Mockito.when(dcTblDao.queryByPk(Mockito.anyLong())).thenReturn(getDc());
+        MySqlEndpoint mySqlEndpoint = new MySqlEndpoint("ip", 3306, "usr", "psw", true);
+        Mockito.when(cacheMetaService.getMasterEndpoint(Mockito.anyString())).thenReturn(mySqlEndpoint);
+
 
         // forward
         Mockito.when(consoleConfig.getRegionForDc(Mockito.eq("dc2"))).thenReturn("region2");
-        proxy.getCreateTableStatements(
-                "mha1",
-                "unionFilter",
-                new MySqlEndpoint("ip", 3306, "usr", "psw", true)
-        );
-        Mockito.verify(mySqlService, Mockito.never()).getCreateTableStatements(
-                Mockito.anyString(), Mockito.anyString(), Mockito.any(Endpoint.class)
-        );
+        proxy.getMhaExecutedGtid("mha1");
+        Mockito.verify(mysqlServiceV2, Mockito.never()).getMhaExecutedGtid(Mockito.anyString());
 
         // not forward
         // case1:localRegion is not a public cloud region
         Mockito.when(consoleConfig.getRegionForDc(Mockito.eq("dc2"))).thenReturn("region1");
-        proxy.getCreateTableStatements(
-                "mha1",
-                "unionFilter",
-                new MySqlEndpoint("ip", 3306, "usr", "psw", true)
-        );
-        Mockito.verify(mySqlService, Mockito.atLeastOnce()).getCreateTableStatements(
-                Mockito.anyString(), Mockito.anyString(), Mockito.any(Endpoint.class)
-        );
+        proxy.getMhaExecutedGtid("mha1");
+        Mockito.verify(mysqlServiceV2, Mockito.atLeastOnce()).getMhaExecutedGtid(Mockito.anyString());
 
         // case2:localRegion is a public cloud region
         Mockito.when(consoleConfig.getRegion()).thenReturn("region2");
-        proxy.getCreateTableStatements(
-                "mha1",
-                "unionFilter",
-                new MySqlEndpoint("ip", 3306, "usr", "psw", true)
-        );
+        proxy.getMhaExecutedGtid("mha1");
 
     }
 

@@ -220,13 +220,24 @@ public class MysqlController {
         }
     }
 
-    @GetMapping("uniqueIndex")
+    @GetMapping("firstUniqueIndex")
     public ApiResult<String> getFirstUniqueIndex(@RequestParam String mha, @RequestParam String db, @RequestParam String table) {
         try {
             logger.info("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
             return ApiResult.getSuccessInstance(mysqlServiceV2.getFirstUniqueIndex(mha, db, table));
         } catch (Exception e) {
             logger.error("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("uniqueIndex")
+    public ApiResult<List<String>> getUniqueIndex(@RequestParam String mha, @RequestParam String db, @RequestParam String table) {
+        try {
+            logger.info("getUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getUniqueIndex(mha, db, table));
+        } catch (Exception e) {
+            logger.error("getUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table, e);
             return ApiResult.getFailInstance(null);
         }
     }

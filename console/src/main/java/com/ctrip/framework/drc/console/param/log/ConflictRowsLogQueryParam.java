@@ -18,14 +18,32 @@ public class ConflictRowsLogQueryParam {
     private String tableName;
     private Long beginHandleTime;
     private Long endHandleTime;
+    private String createBeginTime;
+    private String createEndTime;
     private String srcRegion;
     private String dstRegion;
     private Integer rowResult;
     private Integer brief;
     private boolean likeSearch;
     private PageReq pageReq;
-    
-    public boolean getLikeSearch() {
+
+    public String getCreateBeginTime() {
+        return createBeginTime;
+    }
+
+    public void setCreateBeginTime(String createBeginTime) {
+        this.createBeginTime = createBeginTime;
+    }
+
+    public String getCreateEndTime() {
+        return createEndTime;
+    }
+
+    public void setCreateEndTime(String createEndTime) {
+        this.createEndTime = createEndTime;
+    }
+
+    public boolean isLikeSearch() {
         return likeSearch;
     }
 

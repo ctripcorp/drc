@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
+import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -57,9 +58,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
-    @Autowired
-    private MhaTblDao mhaTblDao;
-
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
     @Autowired
@@ -114,6 +112,14 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             logger.error("queryMhaByName exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    @Override
+    public Map<Long, MhaTblV2> query(MhaQueryDto mha) {
+        if (mha == null || !mha.isConditionalQuery()) {
+            return Collections.emptyMap();
+        }
+        return query(StringUtils.trim(mha.getName()), mha.getBuId(), mha.getRegionId());
     }
 
     @Override
@@ -375,15 +381,9 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     @Override
     public void updateMhaTag(String mhaName, String tag) throws Exception {
-        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
         mhaTblV2.setTag(tag);
         mhaTblV2Dao.update(mhaTblV2);
-
-        if (mhaTbl != null) {
-            mhaTbl.setTag(tag);
-            mhaTblDao.update(mhaTbl);
-        }
     }
 
     @Override

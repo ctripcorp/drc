@@ -25,6 +25,7 @@ import java.util.List;
 @RequestMapping("/api/drc/v2/generator/")
 public class DrcGeneratorController {
     private static final Logger logger = LoggerFactory.getLogger(DrcGeneratorController.class);
+
     @Autowired
     private MetaGeneratorV5 metaGeneratorV5;
     @Autowired
@@ -62,6 +63,8 @@ public class DrcGeneratorController {
             Drc drcV5 = metaGeneratorV5.getDrc();
             stopWatch.stop();
             list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
+
+
 
             // compareResult
             String summaryInfo = stopWatch.prettyPrint();
