@@ -213,8 +213,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster applierMasterChange(String clusterId, Pair<String, Integer> newMaster, Applier applier) {  //notify by http
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String targetMhaName = applier.getTargetMhaName();
-        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
         STATE_LOGGER.info("[applierMasterChange] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
@@ -229,8 +228,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster applierPropertyChange(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String targetMhaName = applier.getTargetMhaName();
-        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
         STATE_LOGGER.info("[applierPropertyChange] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
@@ -245,7 +243,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster messengerPropertyChange(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
+        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
         STATE_LOGGER.info("[messengerPropertyChange] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
@@ -275,8 +273,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
                 STATE_LOGGER.warn("[Empty][mysqlMasterChanged] replicators and do nothing for {}", clusterId);
                 continue;
             }
-            String targetMhaName = applier.getTargetMhaName();
-            String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+
+            String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
             applierNotifier.notify(newClusterId, dbCluster);
             res.add(dbCluster);
         }

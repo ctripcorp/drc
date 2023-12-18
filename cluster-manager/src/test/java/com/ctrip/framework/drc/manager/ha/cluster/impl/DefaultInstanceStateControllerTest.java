@@ -364,6 +364,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
         applier.setPort(backupPort);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
         List<Applier> appliers = Lists.newArrayList(applier);
 
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
