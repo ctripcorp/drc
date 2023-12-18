@@ -150,6 +150,7 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
         AutoIncrementVo increment1 = mysqlServiceV2.getAutoIncrementAndOffset(mhaName1);
         boolean correctIncrement = checkAutoIncrement(increment0, increment1);
         if (!correctIncrement) {
+            CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=autoIncrement]] report autoIncrement, mhaName0: {}, mhaName1: {}", mhaName0, mhaName1);
             reporter.reportResetCounter(getTags(mhaName0, mhaName1), 1L, AUTO_INCREMENT_MEASUREMENT);
         }
     }
