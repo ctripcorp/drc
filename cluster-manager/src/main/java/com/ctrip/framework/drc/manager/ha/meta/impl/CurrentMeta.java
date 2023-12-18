@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.meta.impl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -25,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 
 /**
  * @Author limingdong
@@ -87,9 +90,9 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getSurviveReplicators();
     }
 
-    public List<Messenger> getSurviveMessengers(String clusterId) {
+    public List<Messenger> getSurviveMessengers(String clusterId, String dbName) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.getSurviveMessengers();
+        return currentShardMeta.getSurviveMessengers(dbName);
     }
 
     public List<Applier> getSurviveAppliers(String clusterId, String backupClusterId) {
@@ -120,7 +123,6 @@ public class CurrentMeta implements Releasable {
     public Applier getActiveApplier(String clusterId, String backupClusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
         return currentShardMeta.getActiveApplier(backupClusterId);
-
     }
 
     public List<Applier> getActiveAppliers(String clusterId) {
@@ -128,7 +130,12 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getActiveAppliers();
     }
 
-    public Messenger getActiveMessenger(String clusterId) {
+    public Messenger getActiveMessenger(String clusterId, String dbName) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+        return currentShardMeta.getActiveMessenger(dbName);
+    }
+
+    public List<Messenger> getActiveMessengers(String clusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
         return currentShardMeta.getActiveMessenger();
     }
@@ -170,7 +177,7 @@ public class CurrentMeta implements Releasable {
                     Dbs dbs = clusterMeta.getDbs();
                     List<Db> dbList = dbs.getDbs();
                     Endpoint endpoint = null;
-                    for(Db db : dbList) {
+                    for (Db db : dbList) {
                         if (db.isMaster()) {
                             endpoint = new DefaultEndPoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword());
                         }
@@ -214,11 +221,11 @@ public class CurrentMeta implements Releasable {
 
         private List<Replicator> surviveReplicators = Lists.newArrayList();  // all replicators
 
-        private List<Messenger> surviveMessengers = Lists.newArrayList();  // all messengers
-
         private Endpoint mysqlMaster;  //mysql master
 
         private Map<String, List<Applier>> surviveAppliers = Maps.newConcurrentMap();  // all appliers
+
+        private Map<String, List<Messenger>> surviveMessengers = Maps.newConcurrentMap(); // all messengers
 
         private Map<String, Pair<String, Integer>> applierMasters = Maps.newConcurrentMap();  // another zone replicator connected by applier
 
@@ -294,9 +301,12 @@ public class CurrentMeta implements Releasable {
                 if (!checkIn(surviveMessengers, activeMessenger)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeMessenger + ", all:" + this.surviveMessengers);
                 }
-                this.surviveMessengers = (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
-                logger.info("[setSurviveMessengers]{},{},{}", clusterId, surviveMessengers, activeMessenger);
-                return doSetActive(clusterId, activeMessenger, this.surviveMessengers);
+                String dbName = ApplyMode.getApplyMode(surviveMessengers.get(0).getApplyMode()) == ApplyMode.db_mq ?
+                        surviveMessengers.get(0).getIncludedDbs() : DRC_MQ;
+                List<Messenger> messengers = (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
+                this.surviveMessengers.put(dbName, messengers);
+                logger.info("[setSurviveMessengers]{},{},{},{}", clusterId, dbName, surviveMessengers, activeMessenger);
+                return doSetActive(dbName, activeMessenger, messengers);
             } else {
                 logger.info("[setSurviveMessengers][survive messenger none, clear]{},{},{}", clusterId, surviveMessengers, activeMessenger);
                 this.surviveMessengers.clear();
@@ -317,7 +327,6 @@ public class CurrentMeta implements Releasable {
                 doSetActive(backupClusterId, activeApplier, appliers);
             } else {
                 logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{}", clusterId, surviveAppliers, activeApplier);
-                //TODO: change to remove
                 this.surviveAppliers.clear();
             }
         }
@@ -330,9 +339,9 @@ public class CurrentMeta implements Releasable {
                 return false;
             }
 
-            if(applierMaster == null){
+            if (applierMaster == null) {
                 applierMasters.remove(clusterId);
-            }else{
+            } else {
                 applierMasters.put(clusterId, new Pair<String, Integer>(applierMaster.getKey(), applierMaster.getValue()));
             }
 
@@ -378,7 +387,7 @@ public class CurrentMeta implements Releasable {
 
         public List<Applier> getActiveAppliers() {  //all idc
             List<Applier> appliers = Lists.newArrayList();
-            for (Map.Entry<String , List<Applier>> entry : surviveAppliers.entrySet()) {
+            for (Map.Entry<String, List<Applier>> entry : surviveAppliers.entrySet()) {
                 for (Applier survive : entry.getValue()) {
                     if (survive.isMaster()) {
                         appliers.add(survive);
@@ -388,13 +397,28 @@ public class CurrentMeta implements Releasable {
             return appliers;
         }
 
-        public Messenger getActiveMessenger() {
-            for (Messenger survive : surviveMessengers) {
-                if (survive.isMaster()) {
-                    return survive;
+        public Messenger getActiveMessenger(String dbName) {
+            List<Messenger> messengers = surviveMessengers.get(dbName);
+            if (messengers != null) {
+                for (Messenger survive : messengers) {
+                    if (survive.isMaster()) {
+                        return survive;
+                    }
                 }
             }
             return null;
+        }
+
+        public List<Messenger> getActiveMessenger() {
+            List<Messenger> messengers = Lists.newArrayList();
+            for (Map.Entry<String, List<Messenger>> entry : surviveMessengers.entrySet()) {
+                for (Messenger survive : entry.getValue()) {
+                    if (survive.isMaster()) {
+                        messengers.add(survive);
+                    }
+                }
+            }
+            return messengers;
         }
 
         public Replicator getActiveReplicator() {
@@ -439,8 +463,12 @@ public class CurrentMeta implements Releasable {
             return (List<Replicator>) MetaClone.clone((Serializable) surviveReplicators);
         }
 
-        public List<Messenger> getSurviveMessengers() {
-            return (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
+        public List<Messenger> getSurviveMessengers(String dbName) {
+            List<Messenger> messengers = surviveMessengers.get(dbName);
+            if (messengers == null) {
+                return null;
+            }
+            return (List<Messenger>) MetaClone.clone((Serializable) messengers);
         }
 
         public List<Applier> getSurviveAppliers(String backupClusterId) {

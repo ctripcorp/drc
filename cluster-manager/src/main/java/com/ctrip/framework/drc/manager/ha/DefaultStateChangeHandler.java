@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -69,8 +70,8 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
     @Override
     public void messengerActiveElected(String clusterId, Messenger messenger) {
         STATE_LOGGER.info("[messengerActiveElected]{},{}", clusterId, messenger);
-
-        List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId);
+        String dbName = NameUtils.getMessengerDbName(messenger);
+        List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId, dbName);
         if (messengers == null || messengers.size() == 0) {
             STATE_LOGGER.info("[{}][messengerActiveElected][none messenger survive, do nothing]", getClass().getSimpleName());
             return;

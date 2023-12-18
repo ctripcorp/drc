@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -51,30 +52,30 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
 
-//        super.setUp();
-//        when(zkClient.get()).thenReturn(curatorFramework);
-//        when(currentMetaManager.watchMessengerIfNotWatched(anyString())).thenReturn(true);
-//        when(instanceActiveElectAlgorithmManager.get(anyString())).thenReturn(new DefaultInstanceActiveElectAlgorithm());
-//        when(regionCache.getCluster(anyString())).thenReturn(dbCluster);
-//
-//        Messenger messenger = dbCluster.getMessengers().get(0);
-//        zookeeperValue.setPort(messenger.getPort());
-//        zookeeperValue.setIp(messenger.getIp());
-//        messengerInstanceManager.initialize();
-//        messengerInstanceManager.start();
+        super.setUp();
+        when(zkClient.get()).thenReturn(curatorFramework);
+        when(currentMetaManager.watchMessengerIfNotWatched(anyString())).thenReturn(true);
+        when(instanceActiveElectAlgorithmManager.get(anyString())).thenReturn(new DefaultInstanceActiveElectAlgorithm());
+        when(regionCache.getCluster(anyString())).thenReturn(dbCluster);
+
+        Messenger messenger = dbCluster.getMessengers().get(0);
+        zookeeperValue.setPort(messenger.getPort());
+        zookeeperValue.setIp(messenger.getIp());
+        messengerInstanceManager.initialize();
+        messengerInstanceManager.start();
     }
 
     @After
     public void tearDown() {
-//        try {
-//            if (persistentNode != null) {
-//                persistentNode.close();
-//            }
-//            messengerInstanceManager.stop();
-//            messengerInstanceManager.dispose();
-//        } catch (Exception e) {
-//
-//        }
+        try {
+            if (persistentNode != null) {
+                persistentNode.close();
+            }
+            messengerInstanceManager.stop();
+            messengerInstanceManager.dispose();
+        } catch (Exception e) {
+
+        }
     }
 
 
@@ -95,6 +96,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
         newMessenger.setIp("12.21.12.21");
         newMessenger.setPort(4321);
+        newMessenger.setApplyMode(ApplyMode.mq.getType());
         cloneDbCluster.getMessengers().clear();
         cloneDbCluster.getMessengers().add(newMessenger);
         ClusterComparator clusterComparator = new ClusterComparator(dbCluster, cloneDbCluster);
@@ -117,6 +119,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         Messenger messenger = new Messenger();
         messenger.setIp("127.0.0.1");
         messenger.setPort(8080);
+        messenger.setApplyMode(ApplyMode.mq.getType());
         current.addMessenger(messenger);
 
         DbCluster future = new DbCluster();
@@ -126,12 +129,13 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         messenger2.setProperties("test_property");
         messenger2.setIp("127.0.0.1");
         messenger2.setPort(8080);
+        messenger2.setApplyMode(ApplyMode.mq.getType());
         future.addMessenger(messenger2);
 
         ClusterComparator comparator = new ClusterComparator(current, future);
         comparator.compare();
 
-        Mockito.when(currentMetaManager.getActiveMessenger(Mockito.anyString())).thenReturn(messenger);
+        Mockito.when(currentMetaManager.getActiveMessenger(Mockito.anyString(), Mockito.anyString())).thenReturn(messenger);
         Mockito.when(clusterManagerConfig.checkApplierProperty()).thenReturn(true);
 
         messengerInstanceManager.handleClusterModified(comparator);

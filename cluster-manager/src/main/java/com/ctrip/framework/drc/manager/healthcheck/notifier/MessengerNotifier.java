@@ -79,7 +79,9 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
                 config.setApplyMode(messenger.getApplyMode());
                 String nameFilter = messenger.getNameFilter();
 
-                if (StringUtils.isNotBlank(nameFilter)) {
+                if (StringUtils.isBlank(nameFilter)) {
+                    nameFilter = getDelayMonitorRegex(messenger.getApplyMode(), messenger.getIncludedDbs());
+                } else {
                     String formatNameFilter = nameFilter.trim().toLowerCase();
                     if (!formatNameFilter.contains(DRC_DELAY_MONITOR_NAME) && !formatNameFilter.contains(DRC_DELAY_MONITOR_NAME_REGEX)) {
                         nameFilter = getDelayMonitorRegex(messenger.getApplyMode(), messenger.getIncludedDbs()) + "," + nameFilter;

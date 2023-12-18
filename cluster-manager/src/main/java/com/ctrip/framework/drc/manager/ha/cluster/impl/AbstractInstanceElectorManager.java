@@ -51,6 +51,12 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
         observerClusterLeader(cluster.getId());
     }
 
+    /**
+     * clusterId is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     protected void observerClusterLeader(final String clusterId) {
 
         logger.info("[observerShardLeader]{}", clusterId);

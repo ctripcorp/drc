@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.meta.comparator;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import org.junit.Assert;
@@ -53,7 +54,7 @@ public class MessengerComparatorTest extends AbstractDbClusterTest {
         Assert.assertEquals(metaComparators.size(), 1);
 
         for (MetaComparator metaComparator : metaComparators) {
-            InstanceComparator instanceComparator = (InstanceComparator) metaComparator;
+            MessengerPropertyComparator instanceComparator = (MessengerPropertyComparator) metaComparator;
             Messenger messenger1 = (Messenger) instanceComparator.getCurrent();
             Messenger messenger2 = (Messenger) instanceComparator.getFuture();
             Assert.assertEquals(messenger1.getIp(), messenger2.getIp());
@@ -67,6 +68,7 @@ public class MessengerComparatorTest extends AbstractDbClusterTest {
         DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
         newMessenger.setIp("12.21.12.21");
         newMessenger.setPort(4321);
+        newMessenger.setApplyMode(ApplyMode.mq.getType());
         cloneDbCluster.getMessengers().add(newMessenger);
 
         messengerComparator = new MessengerComparator(dbCluster, cloneDbCluster);

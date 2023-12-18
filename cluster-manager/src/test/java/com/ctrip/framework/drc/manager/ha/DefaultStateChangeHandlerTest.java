@@ -15,6 +15,7 @@ import org.mockito.Mock;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 import static com.ctrip.framework.drc.manager.AllTests.BACKUP_DAL_CLUSTER_ID;
 
 /**
@@ -98,7 +99,7 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
 
 
         when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
-        when(currentMetaManager.getSurviveMessengers(CLUSTER_ID)).thenReturn(Lists.newArrayList(newMessenger));
+        when(currentMetaManager.getSurviveMessengers(CLUSTER_ID, DRC_MQ)).thenReturn(Lists.newArrayList(newMessenger));
         stateChangeHandler.messengerActiveElected(CLUSTER_ID, newMessenger);
         verify(instanceStateController, times(1)).addMessenger(CLUSTER_ID, newMessenger);
     }

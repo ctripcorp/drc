@@ -13,6 +13,7 @@ import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
@@ -119,7 +120,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
                 applier.getIp().equalsIgnoreCase(ip)
                         && applier.getPort() == port
                         && applier.getTargetMhaName().equalsIgnoreCase(targetMha)
-                        && (targetDB == null || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
+                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
                 .findFirst().orElse(null);
     }
 }

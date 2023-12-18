@@ -93,7 +93,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
 
                 String nameFilter = applier.getNameFilter();
                 if (StringUtils.isBlank(nameFilter)) {
-                    nameFilter = DRC_DELAY_MONITOR_NAME_REGEX;
+                    nameFilter = getDelayMonitorRegex(applier.getApplyMode(), applier.getIncludedDbs());
                 } else {
                     String formatNameFilter = nameFilter.trim().toLowerCase();
                     if (!formatNameFilter.contains(DRC_DELAY_MONITOR_NAME) && !formatNameFilter.contains(DRC_DELAY_MONITOR_NAME_REGEX)) {

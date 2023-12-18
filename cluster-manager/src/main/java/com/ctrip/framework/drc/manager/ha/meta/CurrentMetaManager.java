@@ -29,9 +29,11 @@ public interface CurrentMetaManager extends Observable {
 
     Applier getActiveApplier(String clusterId, String backupClusterId);
 
-    Messenger getActiveMessenger(String clusterId);
-
     List<Applier> getActiveAppliers(String clusterId);
+
+    Messenger getActiveMessenger(String clusterId, String dbName);
+
+    List<Messenger> getActiveMessengers(String clusterId);
 
     Replicator getActiveReplicator(String clusterId);
 
@@ -39,7 +41,7 @@ public interface CurrentMetaManager extends Observable {
 
     List<Replicator> getSurviveReplicators(String clusterId);
 
-    List<Messenger> getSurviveMessengers(String clusterId);
+    List<Messenger> getSurviveMessengers(String tmpClusterId, String dbName);
 
     List<Applier> getSurviveAppliers(String clusterId, String backupClusterId);
 

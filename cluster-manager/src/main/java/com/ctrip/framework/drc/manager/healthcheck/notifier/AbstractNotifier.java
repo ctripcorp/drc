@@ -62,6 +62,12 @@ public abstract class AbstractNotifier implements Notifier {
         }
     }
 
+    /**
+     * clusterId is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
     public void notifyAdd(String clusterId, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
@@ -71,6 +77,12 @@ public abstract class AbstractNotifier implements Notifier {
         }
     }
 
+    /**
+     * clusterId is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
     public void notifyRegister(String clusterId, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
@@ -80,6 +92,12 @@ public abstract class AbstractNotifier implements Notifier {
         }
     }
 
+    /**
+     * clusterId is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
     public void notifyRemove(String clusterId, Instance instance, boolean deleted) {
         String ip = instance.getIp();

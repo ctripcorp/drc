@@ -101,7 +101,7 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
 
             for (Messenger modified : messengers) {
                 String registerKey = NameUtils.getMessengerRegisterKey(clusterId, modified);
-                Messenger activeMessenger = currentMetaManager.getActiveMessenger(registerKey);
+                Messenger activeMessenger = currentMetaManager.getActiveMessenger(registerKey, NameUtils.getMessengerDbName(modified));
                 if (modified.equalsWithIpPort(activeMessenger)) {
                     activeMessenger.setNameFilter(modified.getNameFilter());
                     activeMessenger.setProperties(modified.getProperties());

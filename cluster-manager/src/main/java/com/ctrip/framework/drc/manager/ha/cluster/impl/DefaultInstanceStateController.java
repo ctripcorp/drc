@@ -133,7 +133,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         applierNotifier.notifyAdd(newClusterId, body);
 
-        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier));
+        String backupClusterId = NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier);
+        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupClusterId);
         for (Applier a : appliers) {
             if (!a.equalsWithIpPort(applier) && a.getTargetMhaName().equalsIgnoreCase(applier.getTargetMhaName())
                     && ObjectUtils.equals(a.getIncludedDbs(), applier.getIncludedDbs())) {
@@ -156,7 +157,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         messengerNotifier.notifyAdd(newClusterId, body);
 
-        List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId);
+        String dbName = NameUtils.getMessengerDbName(messenger);
+        List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId, dbName);
         for (Messenger m : messengers) {
             if (!m.equalsWithIpPort(messenger) && ObjectUtils.equals(m.getIncludedDbs(), messenger.getIncludedDbs())) {
                 removeMessenger(clusterId, m, false);
