@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StopWatch;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -77,10 +78,15 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
                 return;
             }
             CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=autoIncrement]] is leader, going to check");
+            StopWatch stopWatch = new StopWatch();
             try {
+                stopWatch.start();
                 checkAutoIncrement();
             } catch (Exception e) {
                 CONSOLE_AUTO_INCREMENT_LOGGER.error("[[monitor=autoIncrement]] fail, {}", e);
+            } finally {
+                stopWatch.stop();
+                CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=autoIncrement]] task cost: {}", stopWatch.getTotalTimeMillis());
             }
         } else {
             CONSOLE_AUTO_INCREMENT_LOGGER.warn("[[monitor=autoIncrement]] is not leader do nothing");
