@@ -314,30 +314,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     }
 
     @Override
-    public DoubleSyncMhaInfoDto getAllDoubleSyncMhas() throws SQLException {
-        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllMhaReplicationsOnDrc();
-        List<MultiKey> multiKeys = new ArrayList<>();
-        List<Long> doubleSyncMhaIds = new ArrayList<>();
-        List<MultiKey> doubleSyncMultiKeys = new ArrayList<>();
-        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
-            long srcMhaId = mhaReplicationTbl.getSrcMhaId();
-            long dstMhaId = mhaReplicationTbl.getDstMhaId();
-            MultiKey multiKey = new MultiKey(srcMhaId, dstMhaId);
-            multiKeys.add(multiKey);
-            if (multiKeys.contains(new MultiKey(dstMhaId, srcMhaId))) {
-                doubleSyncMultiKeys.add(multiKey);
-                doubleSyncMhaIds.add(srcMhaId);
-                doubleSyncMhaIds.add(dstMhaId);
-            }
-        }
-
-        doubleSyncMhaIds = doubleSyncMhaIds.stream().distinct().collect(Collectors.toList());
-        List<MhaTblV2> doubleSyncMhas = mhaTblV2Dao.queryByIds(doubleSyncMhaIds);
-
-        return new DoubleSyncMhaInfoDto(doubleSyncMultiKeys, doubleSyncMhas);
-    }
-
-    @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException {
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryById(mhaReplicationId);

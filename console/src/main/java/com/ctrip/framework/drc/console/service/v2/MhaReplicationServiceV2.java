@@ -53,9 +53,4 @@ public interface MhaReplicationServiceV2 {
      * 批量获取延迟（允许部分成功）
      */
     List<MhaDelayInfoDto> getMhaReplicationDelaysV2(List<MhaReplicationDto> mhaReplicationDtoList);
-
-    /**
-     * 获取所有双向同步的mha
-     */
-    DoubleSyncMhaInfoDto getAllDoubleSyncMhas() throws SQLException;
 }

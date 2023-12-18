@@ -114,10 +114,4 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         sqlBuilder.and().equal(DST_MHA_ID, dstMhaId, Types.BIGINT);
         return queryList(sqlBuilder);
     }
-
-    public List<MhaReplicationTbl> queryAllMhaReplicationsOnDrc() throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(DRC_STATUS, BooleanEnum.TRUE.getCode(), Types.BIGINT);
-        return queryList(sqlBuilder);
-    }
 }

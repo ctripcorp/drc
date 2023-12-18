@@ -1,29 +1,32 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dto.v2.DoubleSyncMhaInfoDto;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
-import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.pojo.MetaKey;
-import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
-import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
@@ -42,9 +45,15 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
-    private MhaReplicationServiceV2 mhaReplicationServiceV2;
-    @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private DcTblDao dcTblDao;
+    @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+
+    private Reporter reporter =  DefaultReporterHolder.getInstance();
 
     public final int INITIAL_DELAY = 30;
     public final int PERIOD = 300;
@@ -69,10 +78,9 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
             }
             CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=autoIncrement]] is leader, going to check");
             try {
-                DoubleSyncMhaInfoDto doubleSyncMhaInfoDto = mhaReplicationServiceV2.getAllDoubleSyncMhas();
-                checkAutoIncrement(doubleSyncMhaInfoDto);
+                checkAutoIncrement();
             } catch (Exception e) {
-
+                CONSOLE_AUTO_INCREMENT_LOGGER.error("[[monitor=autoIncrement]] fail, {}", e);
             }
         } else {
             CONSOLE_AUTO_INCREMENT_LOGGER.warn("[[monitor=autoIncrement]] is not leader do nothing");
@@ -80,44 +88,109 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
 
     }
 
-    private void checkAutoIncrement(DoubleSyncMhaInfoDto doubleSyncMhaInfoDto) {
-        List<MultiKey> doubleSyncMultiKeys = doubleSyncMhaInfoDto.getDoubleSyncMultiKeys();
-        List<MhaTblV2> mhaTblV2s = doubleSyncMhaInfoDto.getMhaTblV2s();
-        Map<Long, String> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+    protected void checkAutoIncrement() throws SQLException {
+        List<String> mhaWhitelist = monitorTableSourceProvider.getIncrementIdMonitorWhitelist();
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllExist().stream()
+                .filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
 
+        List<MultiKey> doubleSyncMultiKeys = getDoubleSyncMultiKeys(mhaReplicationTbls);
+        Map<Long, MhaTblV2> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
+        Map<Long, String> regionMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getRegionName));
+        Map<Long, List<Long>> dstMhaReplicationMap = mhaReplicationTbls.stream().collect(Collectors.groupingBy(
+                MhaReplicationTbl::getDstMhaId, Collectors.mapping(MhaReplicationTbl::getSrcMhaId, Collectors.toList())));
+
+        List<MultiKey> checkMultiKeys = new ArrayList<>();
         for (MultiKey multiKey : doubleSyncMultiKeys) {
-            String srcMhaName = mhaMap.get(multiKey.getKey(0));
-            String dstMhaName = mhaMap.get(multiKey.getKey(1));
-            AutoIncrementVo srcIncrement = mysqlServiceV2.getAutoIncrementAndOffset(srcMhaName);
-            AutoIncrementVo dstIncrement = mysqlServiceV2.getAutoIncrementAndOffset(dstMhaName);
-            boolean correctIncrement = checkAutoIncrement(srcIncrement, dstIncrement);
-            if (!correctIncrement) {
-                DefaultReporterHolder.getInstance().reportResetCounter(getTags(srcMhaName, dstMhaName), 1L, AUTO_INCREMENT_MEASUREMENT);
-            }
+            long srcMhaId = (long) multiKey.getKey(0);
+            long dstMhaId = (long) multiKey.getKey(1);
+
+            MhaTblV2 srcMhaTbl = mhaMap.get(srcMhaId);
+            MhaTblV2 dstMhaTbl = mhaMap.get(dstMhaId);
+            String srcMhaName = srcMhaTbl.getMhaName();
+            String dstMhaName = dstMhaTbl.getMhaName();
+
+            //double sync
+            checkAutoIncrement(srcMhaName, dstMhaName, checkMultiKeys, mhaWhitelist);
+
+            //cyclic sync
+            List<Long> toSrcMhaIds = dstMhaReplicationMap.get(srcMhaId).stream().filter(e -> !e.equals(dstMhaId)).collect(Collectors.toList());
+            List<Long> toDstMhaId = dstMhaReplicationMap.get(dstMhaId).stream().filter(e -> !e.equals(srcMhaId)).collect(Collectors.toList());
+            checkCyclicSyncAutoIncrement(toSrcMhaIds, dstMhaTbl, regionMap, mhaMap, checkMultiKeys, mhaWhitelist);
+            checkCyclicSyncAutoIncrement(toDstMhaId, srcMhaTbl, regionMap, mhaMap, checkMultiKeys, mhaWhitelist);
         }
     }
 
-    private Map<String, String> getTags(String srcMhaName, String dstMhaName) {
+    private void checkCyclicSyncAutoIncrement(List<Long> mhaId0s, MhaTblV2 mha1, Map<Long, String> regionMap, Map<Long, MhaTblV2> mhaMap, List<MultiKey> checkMultiKeys, List<String> mhaWhitelist) {
+        if (CollectionUtils.isEmpty(mhaId0s)) {
+            return;
+        }
+
+        String region1 = regionMap.get(mha1.getDcId());
+        for (long mhaId0 : mhaId0s) {
+            MhaTblV2 mha0 = mhaMap.get(mhaId0);
+            String region0 = regionMap.get(mha0.getDcId());
+            if (region0.equals(region1)) {
+                continue;
+            }
+            checkAutoIncrement(mha0.getMhaName(), mha1.getMhaName(), checkMultiKeys, mhaWhitelist);
+        }
+    }
+
+    private void checkAutoIncrement(String mhaName0, String mhaName1, List<MultiKey> checkMultiKeys, List<String> mhaWhitelist) {
+        if (mhaWhitelist.contains(mhaName0) || mhaWhitelist.contains(mhaName1)) {
+            return;
+        }
+        if (checkMultiKeys.contains(new MultiKey(mhaName0, mhaName1)) || checkMultiKeys.contains(new MultiKey(mhaName1, mhaName0))) {
+            return;
+        }
+        checkMultiKeys.add(new MultiKey(mhaName0, mhaName1));
+        AutoIncrementVo increment0 = mysqlServiceV2.getAutoIncrementAndOffset(mhaName0);
+        AutoIncrementVo increment1 = mysqlServiceV2.getAutoIncrementAndOffset(mhaName1);
+        boolean correctIncrement = checkAutoIncrement(increment0, increment1);
+        if (!correctIncrement) {
+            reporter.reportResetCounter(getTags(mhaName0, mhaName1), 1L, AUTO_INCREMENT_MEASUREMENT);
+        }
+    }
+
+
+    private List<MultiKey> getDoubleSyncMultiKeys(List<MhaReplicationTbl> mhaReplicationTbls) {
+        List<MultiKey> multiKeys = new ArrayList<>();
+        List<MultiKey> doubleSyncMultiKeys = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            long srcMhaId = mhaReplicationTbl.getSrcMhaId();
+            long dstMhaId = mhaReplicationTbl.getDstMhaId();
+            MultiKey multiKey = new MultiKey(srcMhaId, dstMhaId);
+            multiKeys.add(multiKey);
+            if (multiKeys.contains(new MultiKey(dstMhaId, srcMhaId))) {
+                doubleSyncMultiKeys.add(multiKey);
+            }
+        }
+        return doubleSyncMultiKeys;
+    }
+
+    private Map<String, String> getTags(String mhaName0, String mhaName1) {
         Map<String, String> tags = new HashMap<>();
-        tags.put("srcMhaName", srcMhaName);
-        tags.put("dstMhaName", dstMhaName);
+        tags.put("mhaName0", mhaName0);
+        tags.put("mhaName1", mhaName1);
         return tags;
     }
 
-    private boolean checkAutoIncrement(AutoIncrementVo srcIncrement, AutoIncrementVo dstIncrement) {
-        if (srcIncrement == null || dstIncrement == null) {
+    private boolean checkAutoIncrement(AutoIncrementVo increment0, AutoIncrementVo increment1) {
+        if (increment0 == null || increment1 == null) {
             CONSOLE_AUTO_INCREMENT_LOGGER.warn("increment is null");
             return false;
         }
-        int srcIncrementStep = srcIncrement.getIncrement();
-        int srcOffset = srcIncrement.getOffset();
-        int dstIncrementStep = dstIncrement.getIncrement();
-        int dstOffset = dstIncrement.getOffset();
+        int incrementStep0 = increment0.getIncrement();
+        int offset0 = increment0.getOffset();
+        int incrementStep1 = increment1.getIncrement();
+        int offset1 = increment1.getOffset();
 
-        if (srcOffset == dstOffset) {
+        if (offset0 == offset1) {
             return false;
         }
-        if (srcIncrementStep == 1 || dstIncrementStep == 1) {
+        if (incrementStep0 == 1 || incrementStep1 == 1) {
             return false;
         }
         return true;
