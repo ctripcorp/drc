@@ -61,7 +61,6 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
     public final int PERIOD = 300;
     public final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
     private static final String AUTO_INCREMENT_MEASUREMENT = "fx.drc.auto.increment";
-    private final String CENTER_REGION = consoleConfig.getCenterRegion();
 
     @Override
     public void initialize() {
@@ -135,6 +134,7 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
             return;
         }
 
+        String CENTER_REGION = consoleConfig.getCenterRegion();
         String region1 = regionMap.get(mha1.getDcId());
         for (long mhaId0 : mhaId0s) {
             MhaTblV2 mha0 = mhaMap.get(mhaId0);
