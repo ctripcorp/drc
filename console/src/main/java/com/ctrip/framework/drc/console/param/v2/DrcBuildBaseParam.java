@@ -74,4 +74,16 @@ public class DrcBuildBaseParam {
     public void setApplierInitGtid(String applierInitGtid) {
         this.applierInitGtid = applierInitGtid;
     }
+
+    @Override
+    public String toString() {
+        return "DrcBuildBaseParam{" +
+                "mhaName='" + mhaName + '\'' +
+                ", replicatorIps=" + replicatorIps +
+                ", applierIps=" + applierIps +
+                ", dbApplierDtos=" + dbApplierDtos +
+                ", replicatorInitGtid='" + replicatorInitGtid + '\'' +
+                ", applierInitGtid='" + applierInitGtid + '\'' +
+                '}';
+    }
 }

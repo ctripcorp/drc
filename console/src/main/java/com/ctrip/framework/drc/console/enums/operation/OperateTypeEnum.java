@@ -9,9 +9,12 @@ package com.ctrip.framework.drc.console.enums.operation;
 public enum OperateTypeEnum {
     MHA_REPLICATION("MHA同步","MHA_replication"),
     MESSENGER_REPLICATION("Messenger同步","messenger_replication"),
+    ROWS_FILTER_MARK("行过滤标记","rows_filter_mark"),
 
     DB_MIGRATION("DB迁移","db_migration"),
-    CONFLICT_RESOLUTION("冲突处理","conflict_resolution");
+    CONFLICT_RESOLUTION("冲突处理","conflict_resolution"),
+    DRC_RESOURCE("DRC资源","drc_resource"),
+    ;
 
     private String name;
     private String val;
