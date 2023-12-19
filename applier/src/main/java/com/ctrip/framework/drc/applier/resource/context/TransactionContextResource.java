@@ -624,7 +624,7 @@ public class TransactionContextResource extends AbstractContext
                 overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
-            recordRollback(e.getMessage());
+            throwableLeadToRollback(e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.insert() - execute: ", e);
         }
@@ -723,7 +723,7 @@ public class TransactionContextResource extends AbstractContext
                 overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
-            recordRollback(e.getMessage());
+            throwableLeadToRollback(e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.update() - execute: ", e);
         }
@@ -784,7 +784,7 @@ public class TransactionContextResource extends AbstractContext
                 overwriteMark(true, destCurrentRecord, null, "ignore conflict");
             }
         } catch (Throwable e) {
-            recordRollback(e.getMessage());
+            throwableLeadToRollback(e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.delete()", e);
         }
@@ -842,12 +842,19 @@ public class TransactionContextResource extends AbstractContext
             curCflRowLog.setRawRes(rawSqlExecuteResult);
         }
     }
-
-    private void recordRollback(String errorMsg) {
-        if (UNKNOWN_COLUMN.name().equalsIgnoreCase(rawSqlExecuteResult)) {
-            overwriteMark(false, destCurrentRecord, null, "missing column value is not default:" + errorMsg);
-        } else {
-            overwriteMark(false, destCurrentRecord, null, "apply throw Exception:" + errorMsg);
+    
+    private void throwableLeadToRollback(String errorMsg) {
+        try {
+            if (curCflRowLog == null) { // Not initialized yet
+                conflictMark(true);
+            }
+            if (UNKNOWN_COLUMN.name().equalsIgnoreCase(rawSqlExecuteResult)) {
+                overwriteMark(false, destCurrentRecord, null, "missing column value is not default:" + errorMsg);
+            } else {
+                overwriteMark(false, destCurrentRecord, null, "apply throw Exception:" + errorMsg);
+            } 
+        } catch (Throwable e) {
+            logger.error("throwableLeadToRollback:{},record fail",errorMsg,e);
         }
     }
     
