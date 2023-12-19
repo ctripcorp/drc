@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -60,6 +61,7 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
     public final int PERIOD = 300;
     public final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
     private static final String AUTO_INCREMENT_MEASUREMENT = "fx.drc.auto.increment";
+    private final String CENTER_REGION = consoleConfig.getCenterRegion();
 
     @Override
     public void initialize() {
@@ -138,6 +140,9 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
             MhaTblV2 mha0 = mhaMap.get(mhaId0);
             String region0 = regionMap.get(mha0.getDcId());
             if (region0.equals(region1)) {
+                continue;
+            }
+            if (EnvUtils.fat() && (region1.equals(CENTER_REGION) || region0.equals(CENTER_REGION))) {
                 continue;
             }
             checkAutoIncrement(mha0.getMhaName(), mha1.getMhaName(), checkMultiKeys, mhaWhitelist);
