@@ -25,7 +25,7 @@ public class MqServerInCluster extends ApplierServerInCluster {
 
     @Override
     public void define() throws Exception {
-        logger.info("mq apply count is: {} for: {}", config.getWorkerCount(), config.getRegistryKey());
+        logger.info("mq apply concurrency : {} for: {}", applyConcurrency, config.getRegistryKey());
         source(MqApplierDumpEventActivity.class)
                 .with(ExecutorResource.class)
                 .with(LinkContextResource.class)
@@ -40,7 +40,7 @@ public class MqServerInCluster extends ApplierServerInCluster {
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
-                .link(MqApplyActivity.class, config.getWorkerCount())
+                .link(MqApplyActivity.class, applyConcurrency)
                 .link(CommitActivity.class);
         check();
     }

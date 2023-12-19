@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.server.config.applier.dto;
 
 import com.ctrip.framework.drc.core.meta.ApplierMeta;
-import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,10 +13,6 @@ import java.util.Objects;
  * Nov 07, 2019
  */
 public class ApplierConfigDto extends ApplierMeta {
-
-    private static final int DEFAULT_APPLY_COUNT = 10;
-    private static final int TRANSACTION_TABLE_APPLY_COUNT = 100;
-    private static final int DB_TRANSACTION_TABLE_APPLY_COUNT = 20;
 
     private int gaqSize;
     private int workerCount;
@@ -32,8 +27,6 @@ public class ApplierConfigDto extends ApplierMeta {
     private String skipEvent;
     private int applyMode;
     private String properties;
-
-    private DataMediaConfig dataMediaConfig;
 
     public String getManagerIp() {
         return managerIp;
@@ -68,27 +61,7 @@ public class ApplierConfigDto extends ApplierMeta {
     }
 
     public int getWorkerCount() {
-        Integer concurrency = getDataMediaConfig().getConcurrency();
-        if (concurrency != null && concurrency > 0) {
-            workerCount = concurrency;
-        }
-
-        if (workerCount > 0) {
-            return workerCount;
-        } else {
-            int applyParallel;
-            switch (ApplyMode.getApplyMode(applyMode)) {
-                case transaction_table:
-                    applyParallel = TRANSACTION_TABLE_APPLY_COUNT;
-                    break;
-                case db_transaction_table:
-                    applyParallel = DB_TRANSACTION_TABLE_APPLY_COUNT;
-                    break;
-                default:
-                    applyParallel = DEFAULT_APPLY_COUNT;
-            }
-            return applyParallel;
-        }
+        return workerCount;
     }
 
     public void setWorkerCount(int workerCount) {
@@ -157,21 +130,6 @@ public class ApplierConfigDto extends ApplierMeta {
 
     public void setProperties(String properties) {
         this.properties = properties;
-    }
-
-    public DataMediaConfig getDataMediaConfig() {
-        if (dataMediaConfig == null) {
-            try {
-                dataMediaConfig = DataMediaConfig.from(getRegistryKey(), properties);
-            } catch (Exception e) {
-                throw new RuntimeException("parse dataMediaConfig error: ", e);
-            }
-        }
-        return dataMediaConfig;
-    }
-
-    public void setDataMediaConfig(DataMediaConfig dataMediaConfig) {
-        this.dataMediaConfig = dataMediaConfig;
     }
 
     @JsonIgnore
