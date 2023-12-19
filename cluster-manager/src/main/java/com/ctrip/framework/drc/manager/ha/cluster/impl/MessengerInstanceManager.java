@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerPropertyComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -100,9 +101,9 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
             }
 
             for (Messenger modified : messengers) {
-                String registerKey = NameUtils.getMessengerRegisterKey(clusterId, modified);
-                Messenger activeMessenger = currentMetaManager.getActiveMessenger(registerKey, NameUtils.getMessengerDbName(modified));
-                if (modified.equalsWithIpPort(activeMessenger)) {
+                String dbName =  NameUtils.getMessengerDbName(modified);
+                Messenger activeMessenger = currentMetaManager.getActiveMessenger(clusterId, dbName);
+                if (modified.equalsWithIpPort(activeMessenger) && ObjectUtils.equals(modified.getIncludedDbs(), activeMessenger.getIncludedDbs())) {
                     activeMessenger.setNameFilter(modified.getNameFilter());
                     activeMessenger.setProperties(modified.getProperties());
                     logger.info("[visitModified][messengerPropertyChange] clusterId: {}, activeMessenger: {}", clusterId, activeMessenger);

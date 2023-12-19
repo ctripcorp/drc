@@ -53,62 +53,68 @@ public abstract class AbstractNotifier implements Notifier {
         notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);
     }
 
+    /**
+     * registryKey is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
-    public void notify(String clusterId, DbCluster dbCluster) {  //retry when failed
+    public void notify(String registryKey, DbCluster dbCluster) {  //retry when failed
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
             PostSend postSend = new PostSend(ipAndPort, url, dbCluster);
-            notifyExecutor.execute(clusterId, new SendTask(clusterId, postSend));
+            notifyExecutor.execute(registryKey, new SendTask(registryKey, postSend));
         }
     }
 
     /**
-     * clusterId is diff:
+     * registryKey is diff:
      * replicator: name.mha
      * applier: name.mha.dstMha[.dstDB]
      * messenger: name.mha._drc_mq[.dstDB]
      */
     @Override
-    public void notifyAdd(String clusterId, DbCluster dbCluster) {
+    public void notifyAdd(String registryKey, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, false);
-            notifyExecutor.execute(clusterId, new SendTask(clusterId, putSend));
+            notifyExecutor.execute(registryKey, new SendTask(registryKey, putSend));
         }
     }
 
     /**
-     * clusterId is diff:
+     * registryKey is diff:
      * replicator: name.mha
      * applier: name.mha.dstMha[.dstDB]
      * messenger: name.mha._drc_mq[.dstDB]
      */
     @Override
-    public void notifyRegister(String clusterId, DbCluster dbCluster) {
+    public void notifyRegister(String registryKey, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getRegisterPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, true);
-            notifyExecutor.execute(clusterId, new SendTask(clusterId, putSend));
+            notifyExecutor.execute(registryKey, new SendTask(registryKey, putSend));
         }
     }
 
     /**
-     * clusterId is diff:
+     * registryKey is diff:
      * replicator: name.mha
      * applier: name.mha.dstMha[.dstDB]
      * messenger: name.mha._drc_mq[.dstDB]
      */
     @Override
-    public void notifyRemove(String clusterId, Instance instance, boolean deleted) {
+    public void notifyRemove(String registryKey, Instance instance, boolean deleted) {
         String ip = instance.getIp();
         int port = instance.getPort();
         String url = String.format(NOTIFY_URL, ip + ":" + port, getUrlPath());
-        String deleteUrl = url + "/" + clusterId + "/";
+        String deleteUrl = url + "/" + registryKey + "/";
         if ((instance instanceof Applier || instance instanceof Messenger) && !deleted) {
             deleteUrl += deleted;
         }
         DeleteSend deleteSend = new DeleteSend(deleteUrl);
-        notifyExecutor.execute(clusterId, new SendTask(clusterId, deleteSend));
+        notifyExecutor.execute(registryKey, new SendTask(registryKey, deleteSend));
     }
 
     private void doNotify(HttpSend httpSend) {

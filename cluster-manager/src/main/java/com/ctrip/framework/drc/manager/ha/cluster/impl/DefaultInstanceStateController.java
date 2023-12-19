@@ -92,9 +92,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerApplier(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
-        STATE_LOGGER.info("[registerApplier] for {},{}", newClusterId, body);
-        applierNotifier.notifyRegister(newClusterId, body);
+        String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
+        STATE_LOGGER.info("[registerApplier] for {},{}", registryKey, body);
+        applierNotifier.notifyRegister(registryKey, body);
         return body;
     }
 
@@ -108,9 +108,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerMessenger(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
-        STATE_LOGGER.info("[registerMessenger] for {},{}", newClusterId, body);
-        messengerNotifier.notifyRegister(newClusterId, body);
+        String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+        STATE_LOGGER.info("[registerMessenger] for {},{}", registryKey, body);
+        messengerNotifier.notifyRegister(registryKey, body);
         return body;
     }
 
@@ -124,17 +124,17 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster addApplier(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
-        STATE_LOGGER.info("[addApplier] for {},{}", newClusterId, body);
+        String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
+        STATE_LOGGER.info("[addApplier] for {},{}", registryKey, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
-            STATE_LOGGER.warn("[Empty][addApplier] replicators and do nothing for {}", newClusterId);
+            STATE_LOGGER.warn("[Empty][addApplier] replicators and do nothing for {}", registryKey);
             return body;
         }
-        applierNotifier.notifyAdd(newClusterId, body);
+        applierNotifier.notifyAdd(registryKey, body);
 
-        String backupClusterId = NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier);
-        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupClusterId);
+        String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(applier);
+        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupRegistryKey);
         for (Applier a : appliers) {
             if (!a.equalsWithIpPort(applier) && a.getTargetMhaName().equalsIgnoreCase(applier.getTargetMhaName())
                     && ObjectUtils.equals(a.getIncludedDbs(), applier.getIncludedDbs())) {
@@ -148,14 +148,14 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster addMessenger(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
-        STATE_LOGGER.info("[addMessenger] for {},{}", newClusterId, body);
+        String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+        STATE_LOGGER.info("[addMessenger] for {},{}", registryKey, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
-            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", newClusterId);
+            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", registryKey);
             return body;
         }
-        messengerNotifier.notifyAdd(newClusterId, body);
+        messengerNotifier.notifyAdd(registryKey, body);
 
         String dbName = NameUtils.getMessengerDbName(messenger);
         List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId, dbName);
@@ -185,9 +185,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             return;
         }
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
-        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
-        STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", newClusterId, messenger, delete);
-        messengerNotifier.notifyRemove(newClusterId, messenger, delete);
+        String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+        STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", registryKey, messenger, delete);
+        messengerNotifier.notifyRemove(registryKey, messenger, delete);
     }
 
     @Override
@@ -197,9 +197,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             return;
         }
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
-        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
-        STATE_LOGGER.info("[removeApplier] for {},{}", newClusterId, applier);
-        applierNotifier.notifyRemove(newClusterId, applier, delete);
+        String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
+        STATE_LOGGER.info("[removeApplier] for {},{}", registryKey, applier);
+        applierNotifier.notifyRemove(registryKey, applier, delete);
     }
 
     /**
@@ -228,14 +228,14 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster applierPropertyChange(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
-        STATE_LOGGER.info("[applierPropertyChange] for {},{}", newClusterId, body);
+        String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
+        STATE_LOGGER.info("[applierPropertyChange] for {},{}", registryKey, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
             STATE_LOGGER.warn("[Empty][applierPropertyChange] replicators and do nothing for {}", clusterId);
             return body;
         }
-        applierNotifier.notifyAdd(newClusterId, body);
+        applierNotifier.notifyAdd(registryKey, body);
         return body;
     }
 
@@ -243,14 +243,14 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster messengerPropertyChange(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        String newClusterId = NameUtils.getMessengerRegisterKey(clusterId, messenger);
-        STATE_LOGGER.info("[messengerPropertyChange] for {},{}", newClusterId, body);
+        String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+        STATE_LOGGER.info("[messengerPropertyChange] for {},{}", registryKey, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
             STATE_LOGGER.warn("[Empty][messengerPropertyChange] replicators and do nothing for {}", clusterId);
             return body;
         }
-        messengerNotifier.notifyAdd(newClusterId, body);
+        messengerNotifier.notifyAdd(registryKey, body);
         return body;
     }
 
@@ -274,8 +274,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
                 continue;
             }
 
-            String newClusterId = NameUtils.getApplierRegisterKey(clusterId, applier);
-            applierNotifier.notify(newClusterId, dbCluster);
+            String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
+            applierNotifier.notify(registryKey, dbCluster);
             res.add(dbCluster);
         }
 

@@ -13,6 +13,7 @@ import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
@@ -26,8 +27,8 @@ import java.util.*;
 public class MessengerInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
 
     @Override
-    protected String getLeaderPath(String clusterId) {
-        return ClusterZkConfig.getApplierLeaderLatchPath(clusterId);
+    protected String getLeaderPath(String registryKey) {
+        return ClusterZkConfig.getApplierLeaderLatchPath(registryKey);
     }
 
     @Override
@@ -36,8 +37,8 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
     }
 
     @Override
-    protected boolean watchIfNotWatched(String clusterId) {
-        return currentMetaManager.watchMessengerIfNotWatched(clusterId);
+    protected boolean watchIfNotWatched(String registryKey) {
+        return currentMetaManager.watchMessengerIfNotWatched(registryKey);
     }
 
     @Override
@@ -71,21 +72,21 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         }
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId) {
-        RegistryKey registryKey = RegistryKey.from(tmpClusterId);
-        String clusterId = registryKey.toString();
-        logger.info("[Transfer][messenger] {} to {}", tmpClusterId, clusterId);
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String registryKey) {
+
+        String clusterId = RegistryKey.from(registryKey).toString();
+        logger.info("[Transfer][messenger] {} to {}", registryKey, clusterId);
 
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));
 
-        logger.info("[updateShardLeader][messenger]{}, {}", tmpClusterId, childrenPaths);
+        logger.info("[updateShardLeader][messenger]{}, {}", registryKey, childrenPaths);
 
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
         List<Messenger> survivalMessengers = new ArrayList<>(childrenData.size());
 
-        String targetDB = RegistryKey.getTargetDB(tmpClusterId);
+        String targetDB = RegistryKey.getTargetDB(registryKey);
 
         for (String path : sortedChildren) {
             for (ChildData childData : childrenData) {
@@ -117,9 +118,8 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Messenger> messengerList = dbCluster.getMessengers();
         return messengerList.stream().filter(messenger ->
-                messenger.getIp().equalsIgnoreCase(ip)
-                        && messenger.getPort() == port
-                        && (targetDB == null || ObjectUtils.equals(messenger.getIncludedDbs(), targetDB)))
+                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port
+                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(messenger.getIncludedDbs(), targetDB)))
                 .findFirst().orElse(null);
     }
 }

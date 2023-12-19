@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -99,12 +100,12 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
             }
 
             for (Applier modified : appliers) {
-                String backupClusterId = NameUtils.getApplierBackupRegisterKey(modified);
-                Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupClusterId);
-                if (modified.equalsWithIpPort(activeApplier)) {
+                String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(modified);
+                Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupRegistryKey);
+                if (modified.equalsWithIpPort(activeApplier) && ObjectUtils.equals(modified.getIncludedDbs(), activeApplier.getIncludedDbs())) {
                     activeApplier.setNameFilter(modified.getNameFilter());
                     activeApplier.setProperties(modified.getProperties());
-                    logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupClusterId, activeApplier);
+                    logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupRegistryKey, activeApplier);
                     instanceStateController.applierPropertyChange(clusterId, activeApplier);
                 }
             }

@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.manager.ha.meta.impl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -26,8 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 
 /**
  * @Author limingdong
@@ -53,9 +50,9 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.setSurviveReplicators(surviveReplicators, activeReplicator);
     }
 
-    public boolean setSurviveMessengers(String clusterId, List<Messenger> surviveMessengers, Messenger activeMessenger) {
+    public void setSurviveMessengers(String clusterId, List<Messenger> surviveMessengers, Messenger activeMessenger) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.setSurviveMessengers(surviveMessengers, activeMessenger);
+        currentShardMeta.setSurviveMessengers(surviveMessengers, activeMessenger);
     }
 
     public void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier) {
@@ -64,23 +61,23 @@ public class CurrentMeta implements Releasable {
 
     }
 
-    public boolean watchReplicatorIfNotWatched(String clusterId) {
-        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+    public boolean watchReplicatorIfNotWatched(String registryKey) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(registryKey);
         return currentShardMeta.watchReplicatorIfNotWatched();
     }
 
-    public boolean watchMessengerIfNotWatched(String clusterId) {
-        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.watchMessengerIfNotWatched(clusterId);
+    public boolean watchMessengerIfNotWatched(String registryKey) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(registryKey);
+        return currentShardMeta.watchMessengerIfNotWatched(registryKey);
     }
 
-    public boolean watchApplierIfNotWatched(String clusterId) {
-        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.watchApplierIfNotWatched(clusterId);
+    public boolean watchApplierIfNotWatched(String registryKey) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(registryKey);
+        return currentShardMeta.watchApplierIfNotWatched(registryKey);
     }
 
-    public void addResource(String clusterId, Releasable releasable) {
-        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+    public void addResource(String registryKey, Releasable releasable) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(registryKey);
         currentShardMeta.addResource(releasable);
 
     }
@@ -95,9 +92,9 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getSurviveMessengers(dbName);
     }
 
-    public List<Applier> getSurviveAppliers(String clusterId, String backupClusterId) {
+    public List<Applier> getSurviveAppliers(String clusterId, String backupRegistryKey) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.getSurviveAppliers(backupClusterId);
+        return currentShardMeta.getSurviveAppliers(backupRegistryKey);
     }
 
     public boolean setApplierMaster(String clusterId, String backupClusterId, Pair<String, Integer> replicatorMaster) {
@@ -120,9 +117,14 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getApplierMaster(backupClusterId);
     }
 
-    public Applier getActiveApplier(String clusterId, String backupClusterId) {
+    public Applier getActiveApplier(String clusterId, String backupRegistryKey) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.getActiveApplier(backupClusterId);
+        return currentShardMeta.getActiveApplier(backupRegistryKey);
+    }
+
+    public List<Applier> getActiveAppliers(String clusterId, String backupClusterId) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+        return currentShardMeta.getActiveAppliers(backupClusterId);
     }
 
     public List<Applier> getActiveAppliers(String clusterId) {
@@ -145,16 +147,16 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getActiveReplicator();
     }
 
-    private CurrentClusterMeta getCurrentClusterMetaOrThrowException(String clusterId) {
-        CurrentClusterMeta currentShardMeta = getCurrentClusterMeta(clusterId);
+    private CurrentClusterMeta getCurrentClusterMetaOrThrowException(String registryKey) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMeta(registryKey);
         if (currentShardMeta == null) {
-            throw new IllegalArgumentException("can not find :" + clusterId);
+            throw new IllegalArgumentException("can not find :" + registryKey);
         }
         return currentShardMeta;
     }
 
-    private CurrentClusterMeta getCurrentClusterMeta(String tmpClusterId) {
-        String clusterId = RegistryKey.from(tmpClusterId).toString();
+    private CurrentClusterMeta getCurrentClusterMeta(String registryKey) {
+        String clusterId = RegistryKey.from(registryKey).toString();
         return currentMetas.get(clusterId);
     }
 
@@ -223,14 +225,19 @@ public class CurrentMeta implements Releasable {
 
         private Endpoint mysqlMaster;  //mysql master
 
+        // key(backupRegistryKey): targetName.targetMha[.dstDB]
         private Map<String, List<Applier>> surviveAppliers = Maps.newConcurrentMap();  // all appliers
 
+        // key: dbName（default name is _drc_mq）
         private Map<String, List<Messenger>> surviveMessengers = Maps.newConcurrentMap(); // all messengers
 
+        // key(backupClusterId): targetName.targetMha
         private Map<String, Pair<String, Integer>> applierMasters = Maps.newConcurrentMap();  // another zone replicator connected by applier
 
+        // key(registryKey): name.mha.dstMha[.dstDB]
         private Map<String, AtomicBoolean> appliersWatched = Maps.newConcurrentMap();
 
+        // key(registryKey): name.mha._drc_mq[.dstDB]
         private Map<String, AtomicBoolean> messengersWatched = Maps.newConcurrentMap();
 
         public CurrentClusterMeta() {
@@ -257,20 +264,20 @@ public class CurrentMeta implements Releasable {
             return replicatorWatched.compareAndSet(false, true);
         }
 
-        public boolean watchApplierIfNotWatched(String clusterId) {
-            AtomicBoolean applierWatched = appliersWatched.get(clusterId);
+        public boolean watchApplierIfNotWatched(String registryKey) {
+            AtomicBoolean applierWatched = appliersWatched.get(registryKey);
             if (applierWatched == null) {
                 applierWatched = new AtomicBoolean(false);
-                appliersWatched.put(clusterId, applierWatched);
+                appliersWatched.put(registryKey, applierWatched);
             }
             return applierWatched.compareAndSet(false, true);
         }
 
-        public boolean watchMessengerIfNotWatched(String clusterId) {
-            AtomicBoolean messengerWatched = messengersWatched.get(clusterId);
+        public boolean watchMessengerIfNotWatched(String registryKey) {
+            AtomicBoolean messengerWatched = messengersWatched.get(registryKey);
             if (messengerWatched == null) {
                 messengerWatched = new AtomicBoolean(false);
-                messengersWatched.put(clusterId, messengerWatched);
+                messengersWatched.put(registryKey, messengerWatched);
             }
             return messengerWatched.compareAndSet(false, true);
         }
@@ -296,21 +303,21 @@ public class CurrentMeta implements Releasable {
             }
         }
 
-        public boolean setSurviveMessengers(List<Messenger> surviveMessengers, Messenger activeMessenger) {
+        public void setSurviveMessengers(List<Messenger> surviveMessengers, Messenger activeMessenger) {
             if (surviveMessengers.size() > 0) {
                 if (!checkIn(surviveMessengers, activeMessenger)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeMessenger + ", all:" + this.surviveMessengers);
                 }
-                String dbName = ApplyMode.getApplyMode(surviveMessengers.get(0).getApplyMode()) == ApplyMode.db_mq ?
-                        surviveMessengers.get(0).getIncludedDbs() : DRC_MQ;
+
+                String dbName = NameUtils.getMessengerDbName(activeMessenger);
                 List<Messenger> messengers = (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
                 this.surviveMessengers.put(dbName, messengers);
                 logger.info("[setSurviveMessengers]{},{},{},{}", clusterId, dbName, surviveMessengers, activeMessenger);
-                return doSetActive(dbName, activeMessenger, messengers);
+                doSetActive(dbName, activeMessenger, messengers);
             } else {
                 logger.info("[setSurviveMessengers][survive messenger none, clear]{},{},{}", clusterId, surviveMessengers, activeMessenger);
+                //TODO: clear too much
                 this.surviveMessengers.clear();
-                return false;
             }
         }
 
@@ -319,30 +326,30 @@ public class CurrentMeta implements Releasable {
                 if (!checkIn(surviveAppliers, activeApplier)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeApplier + ", all:" + this.surviveAppliers);
                 }
-                String backupClusterId = RegistryKey.from(activeApplier.getTargetName(), activeApplier.getTargetMhaName());
-                backupClusterId = NameUtils.dotSchemaIfNeed(backupClusterId, activeApplier);
+                String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(activeApplier);
                 List<Applier> appliers = (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
-                this.surviveAppliers.put(backupClusterId, appliers);
-                logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupClusterId, surviveAppliers, activeApplier);
-                doSetActive(backupClusterId, activeApplier, appliers);
+                this.surviveAppliers.put(backupRegistryKey, appliers);
+                logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupRegistryKey, surviveAppliers, activeApplier);
+                doSetActive(backupRegistryKey, activeApplier, appliers);
             } else {
                 logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{}", clusterId, surviveAppliers, activeApplier);
+                //TODO: clear too much
                 this.surviveAppliers.clear();
             }
         }
 
-        public boolean setApplierMaster(String clusterId, Pair<String, Integer> applierMaster) {
-            logger.info("[setApplierMaster]{},{}", clusterId, applierMaster);
-            Pair<String, Integer> previousApplierMaster = applierMasters.get(clusterId);
+        public boolean setApplierMaster(String backupClusterId, Pair<String, Integer> applierMaster) {
+            logger.info("[setApplierMaster]{},{}", backupClusterId, applierMaster);
+            Pair<String, Integer> previousApplierMaster = applierMasters.get(backupClusterId);
 
             if (ObjectUtils.equals(previousApplierMaster, applierMaster)) {
                 return false;
             }
 
             if (applierMaster == null) {
-                applierMasters.remove(clusterId);
+                applierMasters.remove(backupClusterId);
             } else {
-                applierMasters.put(clusterId, new Pair<String, Integer>(applierMaster.getKey(), applierMaster.getValue()));
+                applierMasters.put(backupClusterId, new Pair<String, Integer>(applierMaster.getKey(), applierMaster.getValue()));
             }
 
             return true;
@@ -364,17 +371,17 @@ public class CurrentMeta implements Releasable {
             return new DefaultEndPoint(mysqlMaster.getHost(), mysqlMaster.getPort(), mysqlMaster.getUser(), mysqlMaster.getPassword());
         }
 
-        public Pair<String, Integer> getApplierMaster(String clusterId) {
-            Pair<String, Integer> res = applierMasters.get(clusterId);
+        public Pair<String, Integer> getApplierMaster(String backupClusterId) {
+            backupClusterId = RegistryKey.from(backupClusterId).toString();
+            Pair<String, Integer> res = applierMasters.get(backupClusterId);
             if (res == null) {
                 return null;
             }
             return new Pair<String, Integer>(res.getKey(), res.getValue());
-
         }
 
-        public Applier getActiveApplier(String backupClusterId) {  //single idc
-            List<Applier> appliers = surviveAppliers.get(backupClusterId);
+        public Applier getActiveApplier(String backupRegistryKey) {  //single idc
+            List<Applier> appliers = surviveAppliers.get(backupRegistryKey);
             if (appliers != null) {
                 for (Applier survive : appliers) {
                     if (survive.isMaster()) {
@@ -390,6 +397,19 @@ public class CurrentMeta implements Releasable {
             for (Map.Entry<String, List<Applier>> entry : surviveAppliers.entrySet()) {
                 for (Applier survive : entry.getValue()) {
                     if (survive.isMaster()) {
+                        appliers.add(survive);
+                    }
+                }
+            }
+            return appliers;
+        }
+
+        public List<Applier> getActiveAppliers(String backupClusterId) {
+            List<Applier> appliers = Lists.newArrayList();
+            for (Map.Entry<String, List<Applier>> entry : surviveAppliers.entrySet()) {
+                for (Applier survive : entry.getValue()) {
+                    if (survive.isMaster()
+                            && RegistryKey.from(survive.getTargetName(), survive.getTargetMhaName()).equalsIgnoreCase(backupClusterId)) {
                         appliers.add(survive);
                     }
                 }
@@ -471,8 +491,8 @@ public class CurrentMeta implements Releasable {
             return (List<Messenger>) MetaClone.clone((Serializable) messengers);
         }
 
-        public List<Applier> getSurviveAppliers(String backupClusterId) {
-            List<Applier> appliers = surviveAppliers.get(backupClusterId);
+        public List<Applier> getSurviveAppliers(String backupRegistryKey) {
+            List<Applier> appliers = surviveAppliers.get(backupRegistryKey);
             if (appliers == null) {
                 return null;
             }

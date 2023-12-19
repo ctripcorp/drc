@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
@@ -52,22 +51,22 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
     }
 
     /**
-     * clusterId is diff:
+     * registryKey is diff:
      * replicator: name.mha
      * applier: name.mha.dstMha[.dstDB]
      * messenger: name.mha._drc_mq[.dstDB]
      */
-    protected void observerClusterLeader(final String clusterId) {
+    protected void observerClusterLeader(final String registryKey) {
 
-        logger.info("[observerShardLeader]{}", clusterId);
+        logger.info("[observerShardLeader]{}", registryKey);
 
-        final String leaderLatchPath = getLeaderPath(clusterId);
+        final String leaderLatchPath = getLeaderPath(registryKey);
         final CuratorFramework client = zkClient.get();
 
-        if(watchIfNotWatched(clusterId)){
+        if(watchIfNotWatched(registryKey)){
             try {
-                logger.info("[observerClusterLeader][add PathChildrenCache]{}", clusterId);
-                PathChildrenCache pathChildrenCache = new PathChildrenCache(client, leaderLatchPath, true, XpipeThreadFactory.create(String.format("PathChildrenCache:%s-%s", getType(), clusterId)));
+                logger.info("[observerClusterLeader][add PathChildrenCache]{}", registryKey);
+                PathChildrenCache pathChildrenCache = new PathChildrenCache(client, leaderLatchPath, true, XpipeThreadFactory.create(String.format("PathChildrenCache:%s-%s", getType(), registryKey)));
                 pathChildrenCache.getListenable().addListener(new PathChildrenCacheListener() {
 
                     private AtomicBoolean isFirst = new AtomicBoolean(true);
@@ -84,31 +83,31 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
                             }
                         }
 
-                        logger.info("[childEvent]{}, {}, {}", clusterId, event.getType(), ZkUtils.toString(event.getData()));
+                        logger.info("[childEvent]{}, {}, {}", registryKey, event.getType(), ZkUtils.toString(event.getData()));
                         if (CONNECTION_SUSPENDED == event.getType() || CONNECTION_RECONNECTED == event.getType() || CONNECTION_LOST == event.getType()) {
                             return;
                         }
-                        updateClusterLeader(leaderLatchPath, pathChildrenCache.getCurrentData(), clusterId);
+                        updateClusterLeader(leaderLatchPath, pathChildrenCache.getCurrentData(), registryKey);
                     }
                 });
-                currentMetaManager.addResource(clusterId, new Releasable() {
+                currentMetaManager.addResource(registryKey, new Releasable() {
                     @Override
                     public void release() throws Exception {
 
                         try{
-                            logger.info("[release][release children cache]{}", clusterId);
+                            logger.info("[release][release children cache]{}", registryKey);
                             pathChildrenCache.close();
                         }catch (Exception e){
-                            logger.error(String.format("[release][release children cache]%s", clusterId), e);
+                            logger.error(String.format("[release][release children cache]%s", registryKey), e);
                         }
                     }
                 });
                 pathChildrenCache.start();
             } catch (Exception e) {
-                logger.error("[observerShardLeader]" + clusterId, e);
+                logger.error("[observerShardLeader]" + registryKey, e);
             }
         } else{
-            logger.warn("[observerShardLeader][already watched]{}", clusterId);
+            logger.warn("[observerShardLeader][already watched]{}", registryKey);
         }
     }
 
@@ -119,7 +118,7 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
         }
     };
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String clusterId){
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String registryKey){
     }
 
     @Override
@@ -140,9 +139,9 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
         //nothing to do
     }
 
-    protected abstract String getLeaderPath(String clusterId);
+    protected abstract String getLeaderPath(String registryKey);
 
     protected abstract String getType();
 
-    protected abstract boolean watchIfNotWatched(String clusterId);
+    protected abstract boolean watchIfNotWatched(String registryKey);
 }

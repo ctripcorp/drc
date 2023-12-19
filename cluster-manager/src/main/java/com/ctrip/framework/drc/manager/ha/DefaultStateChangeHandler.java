@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -73,21 +72,21 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
         String dbName = NameUtils.getMessengerDbName(messenger);
         List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId, dbName);
         if (messengers == null || messengers.size() == 0) {
-            STATE_LOGGER.info("[{}][messengerActiveElected][none messenger survive, do nothing]", getClass().getSimpleName());
+            STATE_LOGGER.info("[messengerActiveElected][none messenger survive, do nothing], dbCluster: {}", clusterId);
             return;
         }
 
         if (currentMetaManager.hasCluster(clusterId)) {
             DbCluster dbCluster = currentMetaManager.getCluster(clusterId);
             if (dbCluster == null) {
-                STATE_LOGGER.info("[messengerActiveElected][not interested, do nothing]");
+                STATE_LOGGER.info("[messengerActiveElected][not interested, do nothing], dbCluster: {}", clusterId);
                 return;
             }
 
             instanceStateController.addMessenger(clusterId, messenger);  // notify all messengers
-            STATE_LOGGER.info("[Notify] add messenger dbCluster {}", clusterId);
+            STATE_LOGGER.info("[Notify] add messenger dbCluster {}, db: {}", clusterId, dbName);
         } else {
-            STATE_LOGGER.info("[messengerActiveElected][not interested, do nothing]");
+            STATE_LOGGER.info("[messengerActiveElected][not interested, do nothing], dbCluster: {}", clusterId);
         }
     }
 
@@ -95,42 +94,42 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
     public void applierActiveElected(String clusterId, Applier applier) {
         STATE_LOGGER.info("[applierActiveElected]{},{}", clusterId, applier);
 
-        String backupClusterId = NameUtils.dotSchemaIfNeed(RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()), applier);
-        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupClusterId);
+        String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(applier);
+        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupRegistryKey);
         if (appliers == null || appliers.size() == 0) {
-            STATE_LOGGER.info("[applierActiveElected][none applier survive, do nothing]");
+            STATE_LOGGER.info("[applierActiveElected][none applier survive, do nothing], dbCluster: {}", clusterId);
             return;
         }
 
         if (currentMetaManager.hasCluster(clusterId)) {
             DbCluster dbCluster = currentMetaManager.getCluster(clusterId);
             if (dbCluster == null) {
-                STATE_LOGGER.info("[applierActiveElected][not interested, do nothing]");
+                STATE_LOGGER.info("[applierActiveElected][not interested, do nothing], dbCluster: {}", clusterId);
                 return;
             }
 
             instanceStateController.addApplier(clusterId, applier);
-            STATE_LOGGER.info("[Notify] add applier dbCluster {}", clusterId);
+            STATE_LOGGER.info("[Notify] add applier dbCluster {}, target: {}", clusterId, backupRegistryKey);
         } else {
-            STATE_LOGGER.info("[applierActiveElected][not interested, do nothing]");
+            STATE_LOGGER.info("[applierActiveElected][not interested, do nothing], dbCluster: {}", clusterId);
         }
     }
 
+    // backupClusterId: targetName.targetMhaName
     @Override
     public void applierMasterChanged(String clusterId, String backupClusterId, Pair<String, Integer> newMaster) {
         STATE_LOGGER.info("[applierMasterChanged]{},{},{}", clusterId, backupClusterId, newMaster);
-        Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupClusterId);
+        List<Applier> activeAppliers = currentMetaManager.getActiveAppliers(clusterId, backupClusterId);
 
-        if (activeApplier == null) {  //when add new applier, chooser get replicator but not register, then return. when applier register, pick up active one to add
+        if (activeAppliers == null) {  //when add new applier, chooser get replicator but not register, then return. when applier register, pick up active one to add
             STATE_LOGGER.info("[applierMasterChanged][no active applier, do nothing]{},{},{}", clusterId, backupClusterId, newMaster);
             return;
         }
-        if (!activeApplier.isMaster()) {
-            throw new IllegalStateException("[active applier not active]{}" + activeApplier);
-        }
 
-        STATE_LOGGER.info("[applierMasterChanged][set active applier master]{}, {}", activeApplier, newMaster);
-        instanceStateController.applierMasterChange(clusterId, newMaster, activeApplier);
+        for (Applier activeApplier : activeAppliers) {
+            STATE_LOGGER.info("[applierMasterChanged][set active applier master]{}, {}", activeApplier, newMaster);
+            instanceStateController.applierMasterChange(clusterId, newMaster, activeApplier);
+        }
     }
 
     @Override

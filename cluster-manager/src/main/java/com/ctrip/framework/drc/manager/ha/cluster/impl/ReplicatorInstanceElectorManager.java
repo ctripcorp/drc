@@ -25,8 +25,8 @@ import java.util.List;
 public class ReplicatorInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
 
     @Override
-    protected String getLeaderPath(String clusterId) {
-        return ClusterZkConfig.getReplicatorLeaderLatchPath(clusterId);
+    protected String getLeaderPath(String registryKey) {
+        return ClusterZkConfig.getReplicatorLeaderLatchPath(registryKey);
     }
 
     @Override
@@ -35,8 +35,8 @@ public class ReplicatorInstanceElectorManager extends AbstractInstanceElectorMan
     }
 
     @Override
-    protected boolean watchIfNotWatched(String clusterId) {
-        return currentMetaManager.watchReplicatorIfNotWatched(clusterId);
+    protected boolean watchIfNotWatched(String registryKey) {
+        return currentMetaManager.watchReplicatorIfNotWatched(registryKey);
     }
 
     @Override

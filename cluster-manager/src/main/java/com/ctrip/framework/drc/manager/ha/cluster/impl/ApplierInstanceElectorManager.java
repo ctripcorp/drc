@@ -28,8 +28,8 @@ import java.util.*;
 public class ApplierInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
 
     @Override
-    protected String getLeaderPath(String clusterId) {
-        return ClusterZkConfig.getApplierLeaderLatchPath(clusterId);
+    protected String getLeaderPath(String registryKey) {
+        return ClusterZkConfig.getApplierLeaderLatchPath(registryKey);
     }
 
     @Override
@@ -38,8 +38,8 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
     }
 
     @Override
-    protected boolean watchIfNotWatched(String clusterId) {
-        return currentMetaManager.watchApplierIfNotWatched(clusterId);
+    protected boolean watchIfNotWatched(String registryKey) {
+        return currentMetaManager.watchApplierIfNotWatched(registryKey);
     }
 
     @Override
@@ -69,22 +69,21 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         }
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId) {
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String registryKey) {
 
-        RegistryKey registryKey = RegistryKey.from(tmpClusterId);
-        String clusterId = registryKey.toString();
-        logger.info("[Transfer][applier] {} to {}", tmpClusterId, clusterId);
+        String clusterId = RegistryKey.from(registryKey).toString();
+        logger.info("[Transfer][applier] {} to {}", registryKey, clusterId);
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));
 
-        logger.info("[updateClusterLeader][applier]{}, {}", tmpClusterId, childrenPaths);
+        logger.info("[updateClusterLeader][applier]{}, {}", registryKey, childrenPaths);
 
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
         List<Applier> survivalAppliers = new ArrayList<>(childrenData.size());
 
-        String targetMha = RegistryKey.getTargetMha(tmpClusterId);
-        String targetDB = RegistryKey.getTargetDB(tmpClusterId);
+        String targetMha = RegistryKey.getTargetMha(registryKey);
+        String targetDB = RegistryKey.getTargetDB(registryKey);
 
         for (String path : sortedChildren) {
             for (ChildData childData : childrenData) {
@@ -117,8 +116,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
         return applierList.stream().filter(applier ->
-                applier.getIp().equalsIgnoreCase(ip)
-                        && applier.getPort() == port
+                applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port
                         && applier.getTargetMhaName().equalsIgnoreCase(targetMha)
                         && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
                 .findFirst().orElse(null);
