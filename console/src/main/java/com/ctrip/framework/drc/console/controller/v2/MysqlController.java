@@ -255,12 +255,12 @@ public class MysqlController {
     }
 
     @GetMapping("autoIncrement")
-    public ApiResult<AutoIncrementVo> getAutoIncrementAndOffset(@RequestParam String mha) {
+    public ApiResult getAutoIncrementAndOffset(@RequestParam String mha) {
         try {
             logger.info("getAutoIncrementAndOffset, mha: {}", mha);
             return ApiResult.getSuccessInstance(mysqlServiceV2.getAutoIncrementAndOffset(mha));
         } catch (Exception e) {
-            logger.error("getAutoIncrementAndOffset, mha: {}", mha, e);
+            logger.error("getAutoIncrementAndOffset fail, mha: {}", mha, e);
             return ApiResult.getFailInstance(null);
         }
     }
