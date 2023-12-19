@@ -127,6 +127,10 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
         }
 
         for (Applier activeApplier : activeAppliers) {
+            if (!activeApplier.isMaster()) {
+                STATE_LOGGER.info("[applierMasterChanged][active applier not active]{}, {}", activeApplier, newMaster);
+                continue;
+            }
             STATE_LOGGER.info("[applierMasterChanged][set active applier master]{}, {}", activeApplier, newMaster);
             instanceStateController.applierMasterChange(clusterId, newMaster, activeApplier);
         }

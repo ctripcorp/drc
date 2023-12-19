@@ -104,22 +104,22 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
         verify(instanceStateController, times(1)).addMessenger(CLUSTER_ID, newMessenger);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void applierMasterChanged() {
-        when(currentMetaManager.getActiveApplier(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(null);
+        when(currentMetaManager.getActiveAppliers(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(null);
         stateChangeHandler.applierMasterChanged(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, applierMaster);
         verify(instanceStateController, times(0)).applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
 
         newApplier.setMaster(false);
-        when(currentMetaManager.getActiveApplier(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(newApplier);
+        when(currentMetaManager.getActiveAppliers(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(Lists.newArrayList(newApplier));
         stateChangeHandler.applierMasterChanged(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, applierMaster);
-
+        verify(instanceStateController, times(0)).applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
     }
 
     @Test
     public void applierMasterChangedRight() {
         newApplier.setMaster(true);
-        when(currentMetaManager.getActiveApplier(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(newApplier);
+        when(currentMetaManager.getActiveAppliers(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(Lists.newArrayList(newApplier));
         stateChangeHandler.applierMasterChanged(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, applierMaster);
         verify(instanceStateController, times(1)).applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
     }
