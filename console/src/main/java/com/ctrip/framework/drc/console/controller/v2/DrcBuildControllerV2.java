@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
@@ -34,6 +37,8 @@ public class DrcBuildControllerV2 {
     private DbDrcBuildService dbDrcBuildService;
 
     @PostMapping("mha")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.ADD,
+            success = "buildMha with DrcMhaBuildParam: {#param.toString()}")
     public ApiResult<Boolean> buildMha(@RequestBody DrcMhaBuildParam param) {
         try {
             drcBuildServiceV2.buildMha(param);
@@ -44,6 +49,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("messengerMha")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.ADD,
+            success = "buildMessengerMha with MessengerMhaBuildParam: {#param.toString()}")
     public ApiResult<Boolean> buildMessengerMha(@RequestBody MessengerMhaBuildParam param) {
         logger.info("buildMessengerMha: {}", param);
         try {
@@ -56,6 +63,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "buildDrc with DrcBuildParam: {#param.toString()}")
     public String buildDrc(@RequestBody DrcBuildParam param) {
         try {
             return drcBuildServiceV2.buildDrc(param);
@@ -65,6 +74,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("db/applier")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "buildDbApplier with DrcBuildParam: {#param.toString()}")
     public ApiResult<String> buildDrcDbAppliers(@RequestBody DrcBuildParam param) {
         try {
             return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbApplier(param));
@@ -74,6 +85,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("db/messenger")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "buildDbMessenger with DrcBuildBaseParam: {#param.toString()}")
     public ApiResult<String> buildDrcDbMessenger(@RequestBody DrcBuildBaseParam param) {
         try {
             return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbMessenger(param));
@@ -166,6 +179,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("dbReplications")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "configureDbReplication with DbReplicationBuildParam: {#param.toString()}")
     public ApiResult<Boolean> configureDbReplication(@RequestBody DbReplicationBuildParam param) {
         try {
             drcBuildServiceV2.buildDbReplicationConfig(param);
@@ -185,6 +200,8 @@ public class DrcBuildControllerV2 {
     }
 
     @DeleteMapping("dbReplications")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.DELETE,
+            success = "deleteDbReplications with dbReplicationIds: {#dbReplicationIds}")
     public ApiResult<Boolean> deleteDbReplications(@RequestParam List<Long> dbReplicationIds) {
         try {
             drcBuildServiceV2.deleteDbReplications(dbReplicationIds);
@@ -223,6 +240,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("messenger/submitConfig")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "submitConfig with MessengerMetaDto: {#dto.toString()}")
     public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] submit meta config for {}", dto);
         try {

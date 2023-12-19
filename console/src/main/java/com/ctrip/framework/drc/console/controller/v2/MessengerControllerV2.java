@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
@@ -85,6 +88,8 @@ public class MessengerControllerV2 {
 
     @DeleteMapping("deleteMha")
     @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.DELETE,
+            success = "removeMessengerGroupInMha with mhaName: {#mhaName}")
     public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName) {
         try {
             logger.info("removeMessengerGroupInMha in mha:{}", mhaName);
@@ -137,6 +142,8 @@ public class MessengerControllerV2 {
 
     @PostMapping("submitConfig")
     @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "submitConfig with MqConfigDto: {#dto.toString()}")
     public ApiResult<Boolean> submitConfig(@RequestBody MqConfigDto dto) {
         logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
         try {
@@ -154,6 +161,8 @@ public class MessengerControllerV2 {
 
     @DeleteMapping("deleteMqConfig")
     @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.DELETE,
+            success = "deleteMqConfig with MqConfigDeleteRequestDto: {#requestDto.toString()}")
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {
         logger.info("deleteMqConfig: {}", requestDto);
         try {

@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
@@ -75,6 +78,8 @@ public class ResourceController {
     }
 
     @PutMapping
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.ADD,
+    success = "configureResource with ResourceBuildParam {#param}")
     public ApiResult<Boolean> configureResource(@RequestBody ResourceBuildParam param) {
         try {
             resourceService.configureResource(param);
@@ -85,6 +90,8 @@ public class ResourceController {
     }
 
     @DeleteMapping
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.DELETE,
+    success = "offlineResource with resourceId {#resourceId}")
     public ApiResult<Boolean> offlineResource(@RequestParam long resourceId) {
         try {
             resourceService.offlineResource(resourceId);
@@ -95,6 +102,8 @@ public class ResourceController {
     }
 
     @PostMapping("deactivate")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.UPDATE,
+    success = "deactivateResource with resourceId {#resourceId}")
     public ApiResult<Boolean> deactivateResource(@RequestParam long resourceId) {
         try {
             resourceService.deactivateResource(resourceId);
@@ -105,6 +114,8 @@ public class ResourceController {
     }
 
     @PostMapping("active")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.UPDATE,
+    success = "recoverResource with resourceId {#resourceId}")
     public ApiResult<Boolean> recoverResource(@RequestParam long resourceId) {
         try {
             resourceService.recoverResource(resourceId);

@@ -61,6 +61,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public static final String MYSQL_DELAY_MESUREMENT = "fx.drc.delay.mysql";
 
     private static final String INCREMENT_ID_MONITOR_SWITCH = "increment.id.monitor.switch";
+    private static final String INCREMENT_ID_MONITOR_WHITELIST = "increment.id.monitor.whitelist";
 
     private static final String TABLE_CONSISTENCY_MONITOR_SWITCH = "table.consistency.monitor.switch";
     private static final String TABLE_CONSISTENCY_MONITOR_PERIOD = "table.consistency.monitor.period";
@@ -319,6 +320,14 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getIncrementIdMonitorSwitch() {
         return getProperty(INCREMENT_ID_MONITOR_SWITCH, SWITCH_STATUS_OFF);
+    }
+
+    public List<String> getIncrementIdMonitorWhitelist() {
+        String whitelistStr = getProperty(INCREMENT_ID_MONITOR_WHITELIST, EMPTY_STRING);
+        if (StringUtils.isBlank(whitelistStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(whitelistStr.split(DELIMITER));
     }
 
     public String getTableConsistencySwitch() {
