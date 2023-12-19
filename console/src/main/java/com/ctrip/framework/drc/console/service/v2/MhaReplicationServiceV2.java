@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
-import com.ctrip.framework.drc.console.dto.v2.DoubleSyncMhaInfoDto;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.core.http.PageResult;

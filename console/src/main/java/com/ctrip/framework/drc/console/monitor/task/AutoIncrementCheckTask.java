@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -55,10 +54,11 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
 
-    private Reporter reporter =  DefaultReporterHolder.getInstance();
+    private Reporter reporter = DefaultReporterHolder.getInstance();
 
     public final int INITIAL_DELAY = 30;
     public final int PERIOD = 300;
+    private static final int INCREMENT_SIZE = 1000;
     public final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
     private static final String AUTO_INCREMENT_MEASUREMENT = "fx.drc.auto.increment";
 
@@ -120,28 +120,30 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
 
             //double sync
             checkAutoIncrement(srcMhaName, dstMhaName, checkMultiKeys, mhaWhitelist);
+        }
 
-            //cyclic sync
-            List<Long> toSrcMhaIds = dstMhaReplicationMap.get(srcMhaId).stream().filter(e -> !e.equals(dstMhaId)).collect(Collectors.toList());
-            List<Long> toDstMhaId = dstMhaReplicationMap.get(dstMhaId).stream().filter(e -> !e.equals(srcMhaId)).collect(Collectors.toList());
-            checkCyclicSyncAutoIncrement(toSrcMhaIds, dstMhaTbl, regionMap, mhaMap, checkMultiKeys, mhaWhitelist);
-            checkCyclicSyncAutoIncrement(toDstMhaId, srcMhaTbl, regionMap, mhaMap, checkMultiKeys, mhaWhitelist);
+        //cyclic sync
+        for (Map.Entry<Long, List<Long>> entry : dstMhaReplicationMap.entrySet()) {
+            List<Long> mhaIds = entry.getValue();
+            checkCyclicSyncAutoIncrement(mhaIds, regionMap, mhaMap, checkMultiKeys, mhaWhitelist);
         }
     }
 
-    private void checkCyclicSyncAutoIncrement(List<Long> mhaId0s, MhaTblV2 mha1, Map<Long, String> regionMap, Map<Long, MhaTblV2> mhaMap, List<MultiKey> checkMultiKeys, List<String> mhaWhitelist) {
-        if (CollectionUtils.isEmpty(mhaId0s)) {
-            return;
-        }
-
-        String region1 = regionMap.get(mha1.getDcId());
-        for (long mhaId0 : mhaId0s) {
+    private void checkCyclicSyncAutoIncrement(List<Long> mhaIds, Map<Long, String> regionMap, Map<Long, MhaTblV2> mhaMap, List<MultiKey> checkMultiKeys, List<String> mhaWhitelist) {
+        int size = mhaIds.size();
+        for (int i = 0; i < size; i++) {
+            long mhaId0 = mhaIds.get(i);
             MhaTblV2 mha0 = mhaMap.get(mhaId0);
             String region0 = regionMap.get(mha0.getDcId());
-            if (region0.equals(region1)) {
-                continue;
+            for (int j = 1; j < size; j++) {
+                long mhaId1 = mhaIds.get(j);
+                MhaTblV2 mha1 = mhaMap.get(mhaId1);
+                String region1 = regionMap.get(mha1.getDcId());
+                if (region0.equals(region1)) {
+                    continue;
+                }
+                checkAutoIncrement(mha0.getMhaName(), mha1.getMhaName(), checkMultiKeys, mhaWhitelist);
             }
-            checkAutoIncrement(mha0.getMhaName(), mha1.getMhaName(), checkMultiKeys, mhaWhitelist);
         }
     }
 
@@ -201,6 +203,19 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
         if (incrementStep0 == 1 || incrementStep1 == 1) {
             return false;
         }
-        return true;
+
+        List<Integer> incrementNumList0 = getAutoIncrementNum(offset0, incrementStep0);
+        List<Integer> incrementNumList1 = getAutoIncrementNum(offset1, incrementStep1);
+        return !CollectionUtils.containsAny(incrementNumList0, incrementNumList1);
+    }
+
+    private static List<Integer> getAutoIncrementNum(int offset, int step) {
+        int index = offset;
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1; i <= INCREMENT_SIZE; i++) {
+            list.add(index);
+            index += step;
+        }
+        return list;
     }
 }
