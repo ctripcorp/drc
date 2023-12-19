@@ -23,4 +23,12 @@ public class DrcBuildParam {
     public void setDstBuildParam(DrcBuildBaseParam dstBuildParam) {
         this.dstBuildParam = dstBuildParam;
     }
+
+    @Override
+    public String toString() {
+        return "DrcBuildParam{" +
+                "srcBuildParam=" + srcBuildParam +
+                ", dstBuildParam=" + dstBuildParam +
+                '}';
+    }
 }

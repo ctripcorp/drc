@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.DbQuery;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
@@ -111,6 +114,8 @@ public class DbDrcBuildControllerV2 {
 
     @PostMapping("submit")
     @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "DbDrcBuildControllerV2 submit with DrcAutoBuildReq: {#req.toString()}")
     public ApiResult<Void> submit(@RequestBody DrcAutoBuildReq req) {
         logger.info("[meta] auto build drc, req: {}", req);
         try {

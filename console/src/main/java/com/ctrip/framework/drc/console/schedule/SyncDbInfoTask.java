@@ -130,7 +130,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                         List<String> remoteDbNameList = new ArrayList<>();
                         for (JsonElement jsonElement : dbArray) {
                             JsonObject jsonObject = jsonElement.getAsJsonObject();
-                            String name = jsonObject.get("db_name").getAsString();
+                            String name = jsonObject.get("db_name").getAsString().toLowerCase();
                             remoteDbNameList.add(name);
                         }
 
@@ -163,7 +163,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                     setValue(dbEntity, dbInfo);
                                     boolean status = true;
                                     for (DbTbl db : dbs) {
-                                        if (db.getDbName().equals(dbInfo.get("db_name").getAsString())) {
+                                        if (db.getDbName().equalsIgnoreCase(dbInfo.get("db_name").getAsString())) {
                                             dbEntity.setId(db.getId());
                                             updates.add(dbEntity);
                                             status = false;

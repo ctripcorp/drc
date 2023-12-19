@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -160,6 +163,8 @@ public class MhaControllerV2 {
     }
 
     @PostMapping("tag")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "updateMhaTag with mhaName: {#mhaReplicationId},tag: {#tag}")
     public ApiResult<Boolean> updateMhaTag(@RequestParam String mhaName, @RequestParam String tag) {
         try {
             mhaServiceV2.updateMhaTag(mhaName, tag);
