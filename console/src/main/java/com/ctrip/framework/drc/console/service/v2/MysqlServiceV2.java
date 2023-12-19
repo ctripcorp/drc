@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 
 import java.util.List;
@@ -64,4 +65,6 @@ public interface MysqlServiceV2 {
     StatementExecutorResult write(MysqlWriteEntity requestBody);
 
     Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody);
+
+    AutoIncrementVo getAutoIncrementAndOffset(String mha);
 }

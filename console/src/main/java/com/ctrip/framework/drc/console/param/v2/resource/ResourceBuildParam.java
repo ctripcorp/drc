@@ -50,4 +50,15 @@ public class ResourceBuildParam {
     public void setAz(String az) {
         this.az = az;
     }
+
+    @Override
+    public String toString() {
+        return "ResourceBuildParam{" +
+                "ip='" + ip + '\'' +
+                ", type='" + type + '\'' +
+                ", dcName='" + dcName + '\'' +
+                ", tag='" + tag + '\'' +
+                ", az='" + az + '\'' +
+                '}';
+    }
 }

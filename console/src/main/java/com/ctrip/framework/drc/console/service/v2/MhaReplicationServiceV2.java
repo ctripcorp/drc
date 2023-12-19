@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.core.http.PageResult;
 
 import java.sql.SQLException;
 import java.util.List;
-import org.apache.commons.lang3.tuple.Pair;
 
 public interface MhaReplicationServiceV2 {
     PageResult<MhaReplicationTbl> queryByPage(MhaReplicationQuery query);
@@ -44,6 +43,7 @@ public interface MhaReplicationServiceV2 {
 
     /**
      * 下线同步链路
+     *
      * @param mhaReplicationId
      */
     boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException;
