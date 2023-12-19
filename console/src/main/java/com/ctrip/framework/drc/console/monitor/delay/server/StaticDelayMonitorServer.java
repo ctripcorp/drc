@@ -191,6 +191,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             }
         } else if (logEvent instanceof ParsedDdlLogEvent) {
             try {
+                if (isReplicatorMaster) {
+                    return;
+                }
+                // slave replicator monitor connect by local console, suitable for double-truncate-check monitor;
                 ParsedDdlLogEvent parsedDdlLogEvent = (ParsedDdlLogEvent) logEvent;
                 QueryType queryType = parsedDdlLogEvent.getQueryType();
                 String ddl = parsedDdlLogEvent.getDdl();
@@ -202,8 +206,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         log(data, INFO, null);
                         String catName = String.format("%s.%s.%s.%s", config.getCluster(), config.getDestMha(), schema, table);
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.truncate", catName);
-
-                        DdlHistoryEntity entity = new DdlHistoryEntity(config.getMha(), ddl, queryType.ordinal(), schema, table);
+                        DdlHistoryEntity entity = new DdlHistoryEntity(config.getDestMha(), ddl, queryType.ordinal(), schema, table);
                         centralService.insertDdlHistory(entity);
                     } catch (Throwable t) {
                         String data = String.format("Fail insert truncate history for %s.%s", schema, table);
