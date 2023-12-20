@@ -52,7 +52,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     @InstanceConfig(path = "applyConcurrency")
     public int applyConcurrency = DEFAULT_APPLY_COUNT;
 
-    private int initialPoolSize = 5;
+    private int initialPoolSize = 1;
 
     public int validationInterval = 30000;
 
