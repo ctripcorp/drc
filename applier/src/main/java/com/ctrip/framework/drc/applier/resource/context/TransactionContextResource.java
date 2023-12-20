@@ -848,11 +848,8 @@ public class TransactionContextResource extends AbstractContext
             if (curCflRowLog == null) { // Not initialized yet
                 conflictMark(true);
             }
-            if (UNKNOWN_COLUMN.name().equalsIgnoreCase(rawSqlExecuteResult)) {
-                overwriteMark(false, destCurrentRecord, null, "missing column value is not default:" + errorMsg);
-            } else {
-                overwriteMark(false, destCurrentRecord, null, "apply throw Exception:" + errorMsg);
-            } 
+            String sqlResult = (UNKNOWN_COLUMN.name().equalsIgnoreCase(rawSqlExecuteResult) ? "missing column value is not default:" : "apply throw Exception:");
+            overwriteMark(false, destCurrentRecord, null, sqlResult + errorMsg);
         } catch (Throwable e) {
             logger.error("throwableLeadToRollback:{},record fail",errorMsg,e);
         }
