@@ -28,6 +28,8 @@ public class ApplierConfigDto extends ApplierMeta {
     private int applyMode;
     private String properties;
 
+    private int applyConcurrency;
+
     public String getManagerIp() {
         return managerIp;
     }
@@ -130,6 +132,14 @@ public class ApplierConfigDto extends ApplierMeta {
 
     public void setProperties(String properties) {
         this.properties = properties;
+    }
+
+    public int getApplyConcurrency() {
+        return applyConcurrency;
+    }
+
+    public void setApplyConcurrency(int applyConcurrency) {
+        this.applyConcurrency = applyConcurrency;
     }
 
     @JsonIgnore

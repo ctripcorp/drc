@@ -48,7 +48,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private static final int RETRY_TIME = 10;
 
-    private static final int MERGE_THRESHOLD = 20;
+    private static final int MERGE_THRESHOLD = 60;
 
     private static final int PERIOD = 5;
 

@@ -27,7 +27,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
 
     @Override
     public void define() throws Exception {
-        logger.info("apply concurrency : {} for: {}", applyConcurrency, config.getRegistryKey());
+        logger.info("apply concurrency : {} for: {}", config.getApplyConcurrency(), config.getRegistryKey());
         source(TransactionTableApplierDumpEventActivity.class)
                 .with(ExecutorResource.class)
                 .with(LinkContextResource.class)
@@ -44,7 +44,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
-                .link(TransactionTableApplyActivity.class, applyConcurrency)
+                .link(TransactionTableApplyActivity.class, config.getApplyConcurrency())
                 .link(CommitActivity.class);
         check();
     }

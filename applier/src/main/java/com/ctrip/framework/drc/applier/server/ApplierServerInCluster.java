@@ -10,12 +10,10 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
  */
 public class ApplierServerInCluster extends ApplierServer {
 
-    private static final int DEFAULT_APPLY_COUNT = 10;
-    private static final int TRANSACTION_TABLE_APPLY_COUNT = 100;
+    public static final int DEFAULT_APPLY_COUNT = 10;
+    public static final int TRANSACTION_TABLE_APPLY_COUNT = 100;
 
     public ApplierConfigDto config;
-
-    public int applyConcurrency;
 
     public ApplierServerInCluster(ApplierConfigDto config) throws Exception {
         this.config = config;
@@ -35,6 +33,7 @@ public class ApplierServerInCluster extends ApplierServer {
         DataMediaConfig dataMediaConfig = DataMediaConfig.from(config.getRegistryKey(), properties);
         Integer concurrency = dataMediaConfig.getConcurrency();
 
+        int applyConcurrency;
         switch (ApplyMode.getApplyMode(config.getApplyMode())) {
             case transaction_table:
                 applyConcurrency = TRANSACTION_TABLE_APPLY_COUNT;
@@ -46,5 +45,6 @@ public class ApplierServerInCluster extends ApplierServer {
         if (concurrency != null && concurrency > 0 && concurrency <= 100) {
             applyConcurrency = concurrency;
         }
+        config.setApplyConcurrency(applyConcurrency);
     }
 }
