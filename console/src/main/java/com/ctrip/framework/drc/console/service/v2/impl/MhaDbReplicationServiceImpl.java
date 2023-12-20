@@ -352,11 +352,11 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             mhaDbMappingIds.add(dbReplicationTbl.getSrcMhaDbMappingId());
             mhaDbMappingIds.add(dbReplicationTbl.getDstMhaDbMappingId());
         });
-        Set<Long> matchMhaDbMappingIds= mhaDbMappings.stream()
+        Set<Long> matchMhaIds= mhaDbMappings.stream()
                 .filter(mhaDbMapping -> mhaDbMappingIds.contains(mhaDbMapping.getId()))
                 .map(MhaDbMappingTbl::getMhaId)
                 .collect(Collectors.toSet());
-        return mhaTblV2Dao.queryByIds(Lists.newArrayList(matchMhaDbMappingIds));
+        return mhaTblV2Dao.queryByIds(Lists.newArrayList(matchMhaIds));
     }
 
     private List<DbReplicationTbl> filterGreyMha(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
