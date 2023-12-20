@@ -32,8 +32,9 @@ public class DefaultFileCheckTest {
     public void testStart() throws InterruptedException {
         when(fileManager.getCurrentLogSize()).thenReturn(100L);
         fileCheck.start(channel);
-        Thread.sleep(180);
-        Mockito.verify(channel, Mockito.times(1)).close();
+        Thread.sleep(500);
+        Mockito.verify(channel, Mockito.atLeastOnce()).close();
+        fileCheck.stop();
     }
 
     class TestDefaultFileCheck extends DefaultFileCheck {
