@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.*;
 
@@ -207,6 +208,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
         when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
         when(tableMapLogEvent.getTableName()).thenReturn(tableName);
+        when(tableMapLogEvent.getSchemaName()).thenReturn(DRC_MONITOR_SCHEMA_NAME);
         when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);

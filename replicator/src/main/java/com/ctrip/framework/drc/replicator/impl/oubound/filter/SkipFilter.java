@@ -104,15 +104,13 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
                 inExcludeGroup = false;
             }
+        } else {
+            if (checkPartialTransaction(value, value.isEverSeeGtid())) {
+                value.setSkipEvent(true);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
+                logger.warn("check event partial false, event type: {}", eventType);
+            }
         }
-//        else {
-//            // TODO: can remove in next version
-//            if (checkPartialTransaction(value, value.isEverSeeGtid())) {
-//                value.setSkipEvent(true);
-//                DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
-//                logger.warn("check event partial false, event type: {}", eventType);
-//            }
-//        }
     }
 
     private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid) {
@@ -147,6 +145,7 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     }
 
     // first file start with non gtid event, for example gtid in binlog.00001, and tablemap in binlog.00002
+    // replicator slave received first file does not need previous_gtids_log_event
     private boolean checkPartialTransaction(OutboundLogEventContext value, boolean everSeeGtid) {
         if (!everSeeGtid && !LogEventUtils.isDrcEvent(value.getEventType())) {
             value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
