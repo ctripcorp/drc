@@ -75,5 +75,24 @@ public class DbMigrationParam {
         public void setMasterPort(int masterPort) {
             this.masterPort = masterPort;
         }
+
+        @Override
+        public String toString() {
+            return "MigrateMhaInfo{" +
+                    "name='" + name + '\'' +
+                    ", masterIp='" + masterIp + '\'' +
+                    ", masterPort=" + masterPort +
+                    '}';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "DbMigrationParam{" +
+                "dbs=" + dbs +
+                ", oldMha=" + oldMha +
+                ", newMha=" + newMha +
+                ", operator='" + operator + '\'' +
+                '}';
     }
 }

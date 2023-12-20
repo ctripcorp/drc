@@ -24,17 +24,10 @@ import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,7 +44,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.util.StopWatch;
 
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
 

@@ -17,6 +17,8 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVoApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
@@ -367,6 +369,22 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         Map<String, Map<String, String>> ddlSchemas = getDDLSchemas(dbList);
         Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
         return Boolean.TRUE.equals(res);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/autoIncrement", responseType = AutoIncrementVoApiResult.class)
+    public AutoIncrementVo getAutoIncrementAndOffset(String mha) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("getAutoIncrementAndOffset from {} , endpoint not exist", mha);
+            return null;
+        }
+
+        AutoIncrementVo result = MySqlUtils.queryAutoIncrementAndOffset(endpoint);
+        if (result == null) {
+            logger.error("getAutoIncrementAndOffset null, mha: {}", mha);
+        }
+        return result;
     }
 
 }

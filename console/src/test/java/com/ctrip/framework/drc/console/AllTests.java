@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitorTest;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManagerTest;
+import com.ctrip.framework.drc.console.monitor.MultiTruncateMonitorTest;
 import com.ctrip.framework.drc.console.monitor.MysqlConfigsMonitorTest;
 import com.ctrip.framework.drc.console.monitor.UuidMonitorTest;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
@@ -35,6 +36,7 @@ import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTe
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
+import com.ctrip.framework.drc.console.monitor.task.AutoIncrementCheckTaskTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.pojo.CreatePojoTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
@@ -173,6 +175,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         AbstractMonitorTest.class,
         UuidMonitorTest.class,
         MqDelayMonitorServerTest.class,
+        AutoIncrementCheckTaskTest.class,
+        MultiTruncateMonitorTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

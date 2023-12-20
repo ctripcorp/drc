@@ -145,4 +145,24 @@ public class MqConfigDto implements Serializable {
     public void setMessengerGroupId(long messengerGroupId) {
         this.messengerGroupId = messengerGroupId;
     }
+
+    @Override
+    public String toString() {
+        return "MqConfigDto{" +
+                "dbReplicationId=" + dbReplicationId +
+                ", mhaName='" + mhaName + '\'' +
+                ", bu='" + bu + '\'' +
+                ", mqType='" + mqType + '\'' +
+                ", table='" + table + '\'' +
+                ", topic='" + topic + '\'' +
+                ", serialization='" + serialization + '\'' +
+                ", persistent=" + persistent +
+                ", persistentDb='" + persistentDb + '\'' +
+                ", order=" + order +
+                ", orderKey='" + orderKey + '\'' +
+                ", delayTime=" + delayTime +
+                ", processor='" + processor + '\'' +
+                ", messengerGroupId=" + messengerGroupId +
+                '}';
+    }
 }

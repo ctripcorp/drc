@@ -1,13 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
-import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -22,7 +19,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
