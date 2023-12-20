@@ -160,7 +160,7 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
         boolean correctIncrement = checkAutoIncrement(increment0, increment1);
         if (!correctIncrement) {
             CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=autoIncrement]] report autoIncrement, mhaName0: {}, mhaName1: {}", mhaName0, mhaName1);
-            reporter.reportResetCounter(getTags(mhaName0, mhaName1), 1L, AUTO_INCREMENT_MEASUREMENT);
+            reporter.resetReportCounter(getTags(mhaName0, mhaName1), 1L, AUTO_INCREMENT_MEASUREMENT);
         }
     }
 
