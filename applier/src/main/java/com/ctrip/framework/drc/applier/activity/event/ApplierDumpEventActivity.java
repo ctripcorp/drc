@@ -129,7 +129,6 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         }
 
         for (String uuid : uuids) {
-            Long lastTrxId = lastReceivedTxs.get(uuid);
             GtidSet previousGtidSetOfUuid = previousGtidSet.filterGtid(Sets.newHashSet(uuid));
             if (previousGtidSetOfUuid == null || previousGtidSetOfUuid.isContainedWithin(context.fetchGtidSet())) {
                 continue;
@@ -139,34 +138,32 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
             if (previousInterval == null) {
                 continue;
             }
+            long previousStart = previousInterval.getStart();
             long previousEnd = previousInterval.getEnd();
 
-            if (lastTrxId == null) {
-                // merge the all previous gtid set
+            GtidSet.Interval receivedInterval = getStartAndEnd(context.fetchGtidSet(), uuid);
+
+            // merge the all previous gtid set
+            if (receivedInterval == null) {
                 compensateGap(previousGtidSetOfUuid);
-                lastReceivedTxs.put(uuid, previousEnd);
                 DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                loggerTT.info("[Merge][Uuid][{}] last null, all gtid set: {}", registryKey, previousGtidSetOfUuid.toString());
+                loggerTT.info("[Merge][Uuid][{}] merge gtid set all: {}", registryKey, previousGtidSetOfUuid.toString());
             } else {
                 // merge the gap in the start
-                long previousStart = previousInterval.getStart();
-                GtidSet.Interval receivedInterval = getStartAndEnd(context.fetchGtidSet(), uuid);
-                if (receivedInterval != null) {
-                    long receivedStart = receivedInterval.getStart();
-                    if (previousStart < receivedStart) {
-                        GtidSet previousGtidSet = new GtidSet(uuid + ":" + previousStart + "-" + (receivedStart - 1));
-                        compensateGap(previousGtidSet);
-                        DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                        loggerTT.info("[Merge][Uuid][{}] start gtid set: {}", registryKey, previousGtidSet.toString());
-                    }
-                }
-
-                // merge the gap in the end
-                if (previousEnd > lastTrxId) {
-                    GtidSet gtidSet = new GtidSet(uuid + ":" + (lastTrxId + 1) + "-" + previousEnd);
-                    compensateGap(gtidSet);
+                long receivedStart = receivedInterval.getStart();
+                if (previousStart < receivedStart) {
+                    GtidSet startGtidSet = new GtidSet(uuid + ":" + previousStart + "-" + (receivedStart - 1));
+                    compensateGap(startGtidSet);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                    loggerTT.info("[Merge][Uuid][{}] end gtid set: {}", registryKey, gtidSet.toString());
+                    loggerTT.info("[Merge][Uuid][{}] merge gtid set start: {}", registryKey, startGtidSet.toString());
+                }
+                // merge the gap in the end
+                long receivedEnd = receivedInterval.getEnd();
+                if (previousEnd > receivedEnd) {
+                    GtidSet endGtidSet = new GtidSet(uuid + ":" + (receivedEnd + 1) + "-" + previousEnd);
+                    compensateGap(endGtidSet);
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
+                    loggerTT.info("[Merge][Uuid][{}] merge gtid set end: {}", registryKey, endGtidSet.toString());
                 }
             }
         }
