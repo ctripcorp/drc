@@ -486,7 +486,13 @@
             <AppenderRef ref="DbDelayMonitorRollingFileWarn"/>
             <AppenderRef ref="DbDelayMonitorRollingFileError"/>
         </Logger>
-
+        <Logger name="consoleMonitorLogger" additivity="false" level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileDebug"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileInfo"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileWarn"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileError"/>
+        </Logger>
         <Logger name="gtidMonitorLogger" additivity="false" level="info">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="GtidMonitorRollingFileDebug"/>
