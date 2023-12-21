@@ -54,6 +54,7 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
 
     protected T next() throws InterruptedException {
         TrackedTask<T> next = tasks.take();
+        logger.error("take one");
         getMetricReporter().report(toString() + ".wait.delay", null, System.currentTimeMillis() - next.time);
         return next.unwrap();
     }

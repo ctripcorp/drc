@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.schedule;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
@@ -54,6 +55,9 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 
     @Autowired
     private DbTblDao dbTblDao;
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
 
     @Override
@@ -67,7 +71,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
     @Override
     public void scheduledTask() {
         try {
-            if (isRegionLeader) {
+            if (isRegionLeader && consoleConfig.isCenterRegion()) {
                 logger.info("[[task=SyncDbInfoTask]] is leader");
                 DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.schedule", "syncDBInfoFromCMSTask",
                         new RetryTask<>(this, RETRY_TIME)
