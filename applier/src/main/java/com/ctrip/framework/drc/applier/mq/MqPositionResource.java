@@ -35,7 +35,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     private static final int RETRY_TIME = 3;
 
-    private static final int PERSIST_POSITION_PERIOD_TIME = 10;
+    private static final int PERSIST_POSITION_PERIOD_TIME = 30;
 
     @InstanceConfig(path = "gtidExecuted")
     public String initialGtidExecuted = "";
