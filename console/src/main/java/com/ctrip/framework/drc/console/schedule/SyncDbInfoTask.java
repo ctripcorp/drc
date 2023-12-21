@@ -130,18 +130,19 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                         }
 
                         //handle offline dbs
-//                        List<String> dbWhiteList = monitorTableSourceProvider.getSyncDbWhitelist();
-//                        List<String> remoteDbNameList = new ArrayList<>();
-//                        for (JsonElement jsonElement : dbArray) {
-//                            JsonObject jsonObject = jsonElement.getAsJsonObject();
-//                            String name = jsonObject.get("db_name").getAsString().toLowerCase();
-//                            remoteDbNameList.add(name);
-//                        }
-
-
-//                        List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
-//                        final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
-//                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName()) && !dbWhiteList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
+                        List<String> dbWhiteList = monitorTableSourceProvider.getSyncDbWhitelist();
+                        List<String> remoteDbNameList = new ArrayList<>();
+                        for (JsonElement jsonElement : dbArray) {
+                            JsonObject jsonObject = jsonElement.getAsJsonObject();
+                            String name = jsonObject.get("db_name").getAsString().toLowerCase();
+                            remoteDbNameList.add(name);
+                        }
+                        
+                        List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
+                        final List<DbTbl> redundantDbInfos = dbInfosInDb.stream()
+                                .filter(dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName().toLowerCase()) 
+                                        && !dbWhiteList.contains(dbInfoInDb.getDbName().toLowerCase()))
+                                .collect(Collectors.toList());
 
                         // update
                         int size = 100;
@@ -168,8 +169,10 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                     boolean noSameDbInMetaDB = true;
                                     for (DbTbl dbTblInMetaDb : dbs) {
                                         if (dbTblInMetaDb.getDbName().equalsIgnoreCase(dbInfo.get("db_name").getAsString())) {
-                                            dbEntity.setId(dbTblInMetaDb.getId());
-                                            updates.add(dbEntity);
+                                            if (different(dbEntity, dbTblInMetaDb)) {
+                                                dbEntity.setId(dbTblInMetaDb.getId());
+                                                updates.add(dbEntity);
+                                            }
                                             noSameDbInMetaDB = false;
                                             break;
                                         }
@@ -196,16 +199,23 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 //                            dbTblDao.batchDelete(excessDbInfos);
 //                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
 //                        }
-//                        logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
+                        logger.info("[[task=SyncDbInfoTask]]redundantDbs size:{}, redundantDbInfos: {}", redundantDbInfos.size(), redundantDbInfos);
                     });
         } catch (Exception e) {
             logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error", e);
         }
     }
 
+    private boolean different(DbTbl dbEntity, DbTbl dbTblInMetaDb) {
+        return StringUtils.equalsIgnoreCase(dbEntity.getDbName(), dbTblInMetaDb.getDbName())
+                && StringUtils.equalsIgnoreCase(dbEntity.getBuCode(), dbTblInMetaDb.getBuCode())
+                && StringUtils.equalsIgnoreCase(dbEntity.getBuName(), dbTblInMetaDb.getBuName())
+                && StringUtils.equalsIgnoreCase(dbEntity.getDbOwner(), dbTblInMetaDb.getDbOwner());
+    }
+
     @VisibleForTesting
     protected void setValue(DbTbl target,JsonObject source) {
-        target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString().toLowerCase());
+        target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString());
         target.setBuName(source.get("organization_name").isJsonNull() ? null : source.get("organization_name").getAsString());
         target.setDbOwner(source.get("dbowners").isJsonNull() ? null : source.get("dbowners").getAsString().split(";")[0]);
         long organizationId = source.get("organization_id").getAsLong();
