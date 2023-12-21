@@ -217,6 +217,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                 }
 
                 if (receivedStartAndEndTrxId == null || trxId >= receivedStartAndEndTrxId.getEnd()) {
+                    loggerTT.info("[Merge][{}] save gap to init, last union gtid set: {}", registryKey, toInitGap);
                     compensateGap(toInitGap);
                     gapInited = true;
                     clearInitedGap();
@@ -274,11 +275,14 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     }
 
     private void saveGapToInit(String uuid, long start, long end) {
+        loggerTT.info("[Merge][{}] save gap to init, uuid: {}, start: {}, end: {}", registryKey, uuid, start, end);
+        loggerTT.info("[Merge][{}] save gap to init, uuid: {}, before gtid set: {}", registryKey, uuid, toInitGap);
         if (end > start) {
             toInitGap = toInitGap.union(new GtidSet(uuid + ":" + start + "-" + end));
         } else if (end == start) {
             toInitGap.add(uuid + ":" + end);
         }
+        loggerTT.info("[Merge][{}] save gap to init, uuid: {}, after gtid set: {}", registryKey, uuid, toInitGap);
     }
 
     private void clearInitedGap() {
