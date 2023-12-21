@@ -74,7 +74,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     @Override
     protected void persistPosition(GtidSet gtidSet) {
         transactionTable.merge(gtidSet);
-        logger.info("[Merge][{}] transaction table init merge: {}", registryKey, gtidSet.toString());
+        loggerTT.info("[Merge][{}] transaction table init merge: {}", registryKey, gtidSet.toString());
     }
 
     @Override

@@ -87,11 +87,13 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
         if (event instanceof ApplierPreviousGtidsLogEvent) {
             previousGtidSet = ((ApplierPreviousGtidsLogEvent) event).getGtidSet();
+            loggerTT.info("[Merge][Uuid][{}] receive previousGtidSet: {}", registryKey, previousGtidSet.toString());
         }
 
         if (event instanceof ApplierDrcUuidLogEvent) {
             ApplierDrcUuidLogEvent uuidLogEvent = (ApplierDrcUuidLogEvent) event;
             uuids =uuidLogEvent.getUuids();
+            loggerTT.info("[Merge][Uuid][{}] receive uuids: {}", registryKey, uuids.toString());
             compensateGapOfDiffUuid(uuidLogEvent);
         }
     }
@@ -131,6 +133,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         for (String uuid : uuids) {
             GtidSet previousGtidSetOfUuid = previousGtidSet.filterGtid(Sets.newHashSet(uuid));
             if (previousGtidSetOfUuid == null || previousGtidSetOfUuid.isContainedWithin(context.fetchGtidSet())) {
+                loggerTT.info("[Merge][Uuid][{}] merge gtid ignore: {},{}", registryKey, uuid, previousGtidSetOfUuid);
                 continue;
             }
 
@@ -147,7 +150,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
             if (receivedInterval == null) {
                 compensateGap(previousGtidSetOfUuid);
                 DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                loggerTT.info("[Merge][Uuid][{}] merge gtid set all: {}", registryKey, previousGtidSetOfUuid.toString());
+                loggerTT.info("[Merge][Uuid][{}] merge gtid set all: {},{}", registryKey, uuid, previousGtidSetOfUuid.toString());
             } else {
                 // merge the gap in the start
                 long receivedStart = receivedInterval.getStart();
@@ -155,7 +158,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                     GtidSet startGtidSet = new GtidSet(uuid + ":" + previousStart + "-" + (receivedStart - 1));
                     compensateGap(startGtidSet);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                    loggerTT.info("[Merge][Uuid][{}] merge gtid set start: {}", registryKey, startGtidSet.toString());
+                    loggerTT.info("[Merge][Uuid][{}] merge gtid set start: {},{}", registryKey, uuid, startGtidSet.toString());
                 }
                 // merge the gap in the end
                 long receivedEnd = receivedInterval.getEnd();
@@ -163,7 +166,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                     GtidSet endGtidSet = new GtidSet(uuid + ":" + (receivedEnd + 1) + "-" + previousEnd);
                     compensateGap(endGtidSet);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                    loggerTT.info("[Merge][Uuid][{}] merge gtid set end: {}", registryKey, endGtidSet.toString());
+                    loggerTT.info("[Merge][Uuid][{}] merge gtid set end: {},{}", registryKey, uuid, endGtidSet.toString());
                 }
             }
         }
