@@ -30,6 +30,7 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
     private static final String DST_LOGIC_TABLE_NAME = "dst_logic_table_name";
     private static final String REPLICATION_TYPE = "replication_type";
     private static final String DELETED = "deleted";
+    private static final String DRC_STATUS = "drc_status";
 
     public DbReplicationTblDao() throws SQLException {
         super(DbReplicationTbl.class);
@@ -142,6 +143,12 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
             return Collections.emptyList();
         }
         return queryBySQL(buildSQL(samples));
+    }
+
+    public List<DbReplicationTbl> queryByDrcStatus(int drcStatus) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(DRC_STATUS, drcStatus, Types.TINYINT);
+        return queryList(sqlBuilder);
     }
 
     private String buildSQL(List<DbReplicationTbl> samples) {

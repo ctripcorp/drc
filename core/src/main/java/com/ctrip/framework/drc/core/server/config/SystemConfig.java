@@ -125,6 +125,9 @@ public class SystemConfig {
 
     public static final Logger CONSOLE_BEACON_HEALTH_LOGGER = LoggerFactory.getLogger(CONSOLE_BEACON_HEALTH_LOG);
 
+    public static final String CONSOLE_MONITOR_LOG = "consoleMonitorLogger";
+    public static final Logger CONSOLE_MONITOR_LOGGER = LoggerFactory.getLogger(CONSOLE_MONITOR_LOG);
+
     public static final String CONSOLE_DATA_CONSISTENCY_MONITOR_LOG = "consistencyMonitorLogger";
 
     public static final Logger CONSOLE_DC_LOGGER = LoggerFactory.getLogger(CONSOLE_DATA_CONSISTENCY_MONITOR_LOG);
