@@ -157,7 +157,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                 List<DbTbl> updates = new LinkedList<>();
                                 for (int j = i * size; j < i * size + size && j < len; j++) {
                                     JsonObject dbInfo = dbArray.get(j).getAsJsonObject();
-                                    String dbName = dbInfo.get("db_name").getAsString();
+                                    String dbName = dbInfo.get("db_name").getAsString().toLowerCase();
                                     dbNames.add(dbName);
                                 }
 
@@ -169,7 +169,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                     boolean noSameDbInMetaDB = true;
                                     for (DbTbl dbTblInMetaDb : dbs) {
                                         if (dbTblInMetaDb.getDbName().equalsIgnoreCase(dbInfo.get("db_name").getAsString())) {
-                                            if (different(dbEntity, dbTblInMetaDb)) {
+                                            if (!equals(dbEntity, dbTblInMetaDb)) { //db name update all to lowercase
                                                 dbEntity.setId(dbTblInMetaDb.getId());
                                                 updates.add(dbEntity);
                                             }
@@ -206,8 +206,8 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         }
     }
 
-    private boolean different(DbTbl dbEntity, DbTbl dbTblInMetaDb) {
-        return StringUtils.equalsIgnoreCase(dbEntity.getDbName(), dbTblInMetaDb.getDbName())
+    private boolean equals(DbTbl dbEntity, DbTbl dbTblInMetaDb) {
+        return StringUtils.equals(dbEntity.getDbName(), dbTblInMetaDb.getDbName()) 
                 && StringUtils.equalsIgnoreCase(dbEntity.getBuCode(), dbTblInMetaDb.getBuCode())
                 && StringUtils.equalsIgnoreCase(dbEntity.getBuName(), dbTblInMetaDb.getBuName())
                 && StringUtils.equalsIgnoreCase(dbEntity.getDbOwner(), dbTblInMetaDb.getDbOwner());
@@ -215,7 +215,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 
     @VisibleForTesting
     protected void setValue(DbTbl target,JsonObject source) {
-        target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString());
+        target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString().toLowerCase());
         target.setBuName(source.get("organization_name").isJsonNull() ? null : source.get("organization_name").getAsString());
         target.setDbOwner(source.get("dbowners").isJsonNull() ? null : source.get("dbowners").getAsString().split(";")[0]);
         long organizationId = source.get("organization_id").getAsLong();
