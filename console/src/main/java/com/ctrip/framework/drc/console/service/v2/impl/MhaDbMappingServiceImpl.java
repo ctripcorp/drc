@@ -208,13 +208,13 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
                 logger.info("duplicate dbName: {},dbTblList size: {},",dbName, dbTblList.size());
                 dbTblList.sort(Comparator.comparing(DbTbl::getCreateTime));
                 List<DbTbl> duplicateDbTbls = dbTblList.subList(1, dbTblList.size());
-                List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIds(duplicateDbTbls.stream().map(DbTbl::getId).collect(Collectors.toList()));
+                List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsIgnoreDeleted(duplicateDbTbls.stream().map(DbTbl::getId).collect(Collectors.toList()));
                 if (!CollectionUtils.isEmpty(mhaDbMappingTbls)) {
                     Iterator<DbTbl> iterator = duplicateDbTbls.iterator();
+                    Set<Long> dbIdsWithMhaDbMapping = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
                     while (iterator.hasNext()) {
                         DbTbl dbTbl = iterator.next();
-                        Set<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
-                        if (dbIds.contains(dbTbl.getId())) {
+                        if (dbIdsWithMhaDbMapping.contains(dbTbl.getId())) {
                             logger.warn("dbTbl duplicate,has mhaDbMapping not remove, dbTbl: {}", dbTbl);
                             iterator.remove();
                         }

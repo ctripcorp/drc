@@ -88,4 +88,13 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         sqlBuilder.and().inNullable(DB_ID, dbIds, Types.BIGINT);
         return queryList(sqlBuilder);
     }
+    
+    public List<MhaDbMappingTbl> queryByDbIdsIgnoreDeleted(List<Long> dbIds) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds)) {
+            return Collections.emptyList();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(DB_ID, dbIds, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
 }

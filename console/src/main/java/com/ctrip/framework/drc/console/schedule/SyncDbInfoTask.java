@@ -172,6 +172,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                             if (!equals(dbEntity, dbTblInMetaDb)) { //db name update all to lowercase
                                                 dbEntity.setId(dbTblInMetaDb.getId());
                                                 updates.add(dbEntity);
+                                                logger.info("[[task=SyncDbInfoTask,batch={}]] updateBatch execute,db:{}", i, dbEntity.getDbName());
                                             }
                                             noSameDbInMetaDB = false;
                                             break;
