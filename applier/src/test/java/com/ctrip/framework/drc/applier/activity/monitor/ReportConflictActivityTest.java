@@ -28,6 +28,8 @@ public class ReportConflictActivityTest {
         reportConflictActivity.setRestTemplate(restTemplate);
         
         reportConflictActivity.initialize();
+        reportConflictActivity.start();
+        reportConflictActivity.stop();
         
         // test config in drc.properties
         ConflictTransactionLog conflictTransactionLog = new ConflictTransactionLog();
