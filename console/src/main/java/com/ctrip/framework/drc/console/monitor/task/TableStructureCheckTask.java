@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
+import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -24,8 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StopWatch;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -54,6 +55,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
 
+    private Reporter reporter = DefaultReporterHolder.getInstance();
     private static final String TABLE_STRUCTURE_MEASUREMENT = "drc.table.structure";
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "tableStructureCheck"));
 
@@ -71,54 +73,57 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             return;
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
-
         try {
-            List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
-            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist().stream()
-                    .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())).collect(Collectors.toList());
-            List<DbTbl> dbTbls = dbTblDao.queryAllExist();
-            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
-
-            Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
-            Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
-            Map<Long, String> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
-
-            Map<MultiKey, Set<String>> dbReplicationMap = new HashMap<>();
-            for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
-                long srcMhaMappingId = dbReplicationTbl.getSrcMhaDbMappingId();
-                long dstMhaMappingId = dbReplicationTbl.getDstMhaDbMappingId();
-                String logicTableName = dbReplicationTbl.getSrcLogicTableName();
-                if (dbReplicationMap.containsKey(new MultiKey(srcMhaMappingId, dstMhaMappingId))) {
-                    dbReplicationMap.get(new MultiKey(srcMhaMappingId, dstMhaMappingId)).add(logicTableName);
-                } else if (dbReplicationMap.containsKey(new MultiKey(dstMhaMappingId, srcMhaMappingId))) {
-                    dbReplicationMap.get(new MultiKey(dstMhaMappingId, srcMhaMappingId)).add(logicTableName);
-                } else {
-                    dbReplicationMap.put(new MultiKey(srcMhaMappingId, dstMhaMappingId), Sets.newHashSet(logicTableName));
-                }
-            }
-
-            for (Map.Entry<MultiKey, Set<String>> entry : dbReplicationMap.entrySet()) {
-                MultiKey multiKey = entry.getKey();
-                Set<String> logicTables = entry.getValue();
-                long srcMhaMappingId = (long) multiKey.getKey(0);
-                long dstMhaMappingId = (long) multiKey.getKey(1);
-
-                MhaDbMappingTbl srcMhaDbMappingTbl = mhaDbMappingTblMap.get(srcMhaMappingId);
-                MhaDbMappingTbl dstMhaDbMappingTbl = mhaDbMappingTblMap.get(dstMhaMappingId);
-                String srcMhaName = mhaMap.get(srcMhaDbMappingTbl.getMhaId());
-                String dstMhaName = mhaMap.get(dstMhaDbMappingTbl.getMhaId());
-                String dbName = dbTblMap.get(srcMhaDbMappingTbl.getDbId());
-                List<String> dbTables = logicTables.stream().map(table -> dbName + "\\." + table).collect(Collectors.toList());
-                String dbFilter = Joiner.on(",").join(dbTables);
-
-                executorService.submit(() -> {
-                    Map<String, Set<String>> srcTableColumns = mysqlServiceV2.getTableColumns(new DbFilterReq(srcMhaName, dbFilter));
-                    Map<String, Set<String>> dstTableColumns = mysqlServiceV2.getTableColumns(new DbFilterReq(dstMhaName, dbFilter));
-                    compareTableColumns(srcMhaName, dstMhaName, srcTableColumns, dstTableColumns);
-                });
-            }
+            checkTableStructure();
         } catch (Exception e) {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=tableStructureCheck]] fail, {}", e);
+        }
+    }
+
+    protected void checkTableStructure() throws SQLException {
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist().stream()
+                .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryAllExist();
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+
+        Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
+        Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        Map<Long, String> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+
+        Map<MultiKey, Set<String>> dbReplicationMap = new HashMap<>();
+        for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
+            long srcMhaMappingId = dbReplicationTbl.getSrcMhaDbMappingId();
+            long dstMhaMappingId = dbReplicationTbl.getDstMhaDbMappingId();
+            String logicTableName = dbReplicationTbl.getSrcLogicTableName();
+            if (dbReplicationMap.containsKey(new MultiKey(srcMhaMappingId, dstMhaMappingId))) {
+                dbReplicationMap.get(new MultiKey(srcMhaMappingId, dstMhaMappingId)).add(logicTableName);
+            } else if (dbReplicationMap.containsKey(new MultiKey(dstMhaMappingId, srcMhaMappingId))) {
+                dbReplicationMap.get(new MultiKey(dstMhaMappingId, srcMhaMappingId)).add(logicTableName);
+            } else {
+                dbReplicationMap.put(new MultiKey(srcMhaMappingId, dstMhaMappingId), Sets.newHashSet(logicTableName));
+            }
+        }
+
+        for (Map.Entry<MultiKey, Set<String>> entry : dbReplicationMap.entrySet()) {
+            MultiKey multiKey = entry.getKey();
+            Set<String> logicTables = entry.getValue();
+            long srcMhaMappingId = (long) multiKey.getKey(0);
+            long dstMhaMappingId = (long) multiKey.getKey(1);
+
+            MhaDbMappingTbl srcMhaDbMappingTbl = mhaDbMappingTblMap.get(srcMhaMappingId);
+            MhaDbMappingTbl dstMhaDbMappingTbl = mhaDbMappingTblMap.get(dstMhaMappingId);
+            String srcMhaName = mhaMap.get(srcMhaDbMappingTbl.getMhaId());
+            String dstMhaName = mhaMap.get(dstMhaDbMappingTbl.getMhaId());
+            String dbName = dbTblMap.get(srcMhaDbMappingTbl.getDbId());
+            List<String> dbTables = logicTables.stream().map(table -> dbName + "\\." + table).collect(Collectors.toList());
+            String dbFilter = Joiner.on(",").join(dbTables);
+
+            executorService.submit(() -> {
+                Map<String, Set<String>> srcTableColumns = mysqlServiceV2.getTableColumns(new DbFilterReq(srcMhaName, dbFilter));
+                Map<String, Set<String>> dstTableColumns = mysqlServiceV2.getTableColumns(new DbFilterReq(dstMhaName, dbFilter));
+                compareTableColumns(srcMhaName, dstMhaName, srcTableColumns, dstTableColumns);
+            });
         }
     }
 
@@ -130,14 +135,14 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
-                DefaultReporterHolder.getInstance().resetReportCounter(getTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_STRUCTURE_MEASUREMENT);
+                reporter.resetReportCounter(getTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_STRUCTURE_MEASUREMENT);
             }
         }
     }
 
     private Map<String, String> getTags(String srcMhaName, String dstMhaName, String tableName, List<String> diffColumns) {
         Map<String, String> tags = new HashMap<>();
-        String[] dbTable = tableName.split(".");
+        String[] dbTable = tableName.split("\\.");
         tags.put("srcMha", srcMhaName);
         tags.put("dstMha", dstMhaName);
         tags.put("db", dbTable[0]);

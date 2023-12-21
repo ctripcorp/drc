@@ -15,7 +15,7 @@ import java.util.List;
  * Created by dengquanliang
  * 2023/6/15 11:35
  */
-public class MigrateEntityBuilder {
+public class PojoBuilder {
 
     public static List<ReplicatorGroupTbl> getReplicatorGroupTbls() {
         List<ReplicatorGroupTbl> replicatorGroupTbls = new ArrayList<>();

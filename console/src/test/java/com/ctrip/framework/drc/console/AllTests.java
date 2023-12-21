@@ -36,6 +36,7 @@ import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.AutoIncrementCheckTaskTest;
+import com.ctrip.framework.drc.console.monitor.task.TableStructureCheckTaskTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.pojo.CreatePojoTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
@@ -175,6 +176,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         UuidMonitorTest.class,
         MqDelayMonitorServerTest.class,
         AutoIncrementCheckTaskTest.class,
+        TableStructureCheckTaskTest.class,
 
         // config
         DefaultConsoleConfigTest.class,
