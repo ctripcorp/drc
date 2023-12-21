@@ -29,4 +29,14 @@ public class DdlHistoryTblDao extends AbstractDao<DdlHistoryTbl> {
                 Types.TIMESTAMP);
         return client.query(selectSqlBuilder, new DalHints());
     }
+
+    public List<DdlHistoryTbl> queryByDbAndTime(String db, String table, Timestamp startTime, Timestamp endTime) throws SQLException {
+        SelectSqlBuilder selectSqlBuilder = new SelectSqlBuilder();
+        selectSqlBuilder.selectAll()
+                .equal("schema_name", db, Types.VARCHAR)
+                .and().equal("table_name", table, Types.VARCHAR)
+                .and().greaterThan(CREATE_TIME, startTime, Types.TIMESTAMP)
+                .and().lessThan(CREATE_TIME, endTime, Types.TIMESTAMP);
+        return client.query(selectSqlBuilder, new DalHints());
+    }
 }

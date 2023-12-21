@@ -12,7 +12,9 @@ import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
+import java.util.Map.Entry;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,6 +194,57 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
             logger.info("copyMhaDbMappings from :{},expected size: {} ,res:{}",
                     newMhaTbl.getMhaName(), toBeInsert.size(), Arrays.stream(ints).sum());
         }
+    }
+
+    @Override
+    public Pair<Integer, Integer> removeDuplicateDbTblWithoutMhaDbMapping(boolean executeDelete) throws SQLException {
+        List<DbTbl> dbTbls = dbTblDao.queryAll();
+        List<DbTbl> dbTblsTobeDeleted = Lists.newArrayList();
+        Map<String, List<DbTbl>> dbTblMap = dbTbls.stream().collect(Collectors.groupingBy(e -> e.getDbName().toLowerCase()));
+        for (Entry<String, List<DbTbl>> entry : dbTblMap.entrySet()) {
+            String dbName = entry.getKey();
+            List<DbTbl> dbTblList = entry.getValue();
+            if (dbTblList.size() > 1) {
+                logger.info("duplicate dbName: {},dbTblList size: {},",dbName, dbTblList.size());
+                dbTblList.sort(Comparator.comparing(DbTbl::getCreateTime));
+                List<DbTbl> duplicateDbTbls = dbTblList.subList(1, dbTblList.size());
+                List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIds(duplicateDbTbls.stream().map(DbTbl::getId).collect(Collectors.toList()));
+                if (!CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+                    Iterator<DbTbl> iterator = duplicateDbTbls.iterator();
+                    while (iterator.hasNext()) {
+                        DbTbl dbTbl = iterator.next();
+                        Set<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
+                        if (dbIds.contains(dbTbl.getId())) {
+                            logger.warn("dbTbl duplicate,has mhaDbMapping not remove, dbTbl: {}", dbTbl);
+                            iterator.remove();
+                        }
+                    }
+                }
+                if (!CollectionUtils.isEmpty(duplicateDbTbls)) {
+                    dbTblsTobeDeleted.addAll(duplicateDbTbls);
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(dbTblsTobeDeleted)) {
+            logger.info("dbTblsTobeDeleted: {}", dbTblsTobeDeleted);
+            if (executeDelete) {
+                int batchSize = 100;
+                int size = dbTblsTobeDeleted.size();
+                int batchCount = size / batchSize + 1;
+                int affectedRows = 0;
+                for (int i = 0; i < batchCount; i++) {
+                    int fromIndex = i * batchSize;
+                    int toIndex = Math.min((i + 1) * batchSize, size);
+                    List<DbTbl> subList = dbTblsTobeDeleted.subList(fromIndex, toIndex);
+                    int[] ints = dbTblDao.batchDelete(subList);
+                    logger.info("batchDelete dbTblsTobeDeleted, fromIndex: {}, toIndex: {}, res: {}", fromIndex, toIndex, Arrays.stream(ints).sum());
+                    affectedRows += Arrays.stream(ints).sum();
+                }
+                return Pair.of(dbTblsTobeDeleted.size(), affectedRows);
+            }
+            return Pair.of(dbTblsTobeDeleted.size(), 0);
+        }
+        return Pair.of(0, 0);
     }
 
     private List<MhaDbMappingTbl> copyFrom(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) {

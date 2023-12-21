@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.monitor;
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.google.common.collect.Lists;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -85,7 +87,8 @@ public class MultiTruncateMonitorTest {
             + "        \"ddl\": \"truncate table mysql_cluster\",\n"
             + "        \"schemaName\": \"opstestdatadb\",\n"
             + "        \"tableName\": \"mysql_cluster\",\n"
-            + "        \"queryType\": 4\n"
+            + "        \"queryType\": 4,\n"
+            + "        \"createTime\": \"2021-03-18 15:00:00\"\n"
             + "    },\n"
             + "    {\n"
             + "        \"id\": 2,\n"
@@ -124,9 +127,10 @@ public class MultiTruncateMonitorTest {
                 .collect(Collectors.toList());
         when(mhaDbReplicationService.getReplicationRelatedMha(eq("migrationdb"),eq("benchmark"))).thenReturn(migrationdbMha);
         when(mhaDbReplicationService.getReplicationRelatedMha(eq("opstestdatadb"),eq("mysql_cluster"))).thenReturn(opstestdatadbMha);
+        when(ddlHistoryTblDao.queryByDbAndTime(eq("opstestdatadb"),eq("mysql_cluster"),any(),any())).thenReturn(Lists.newArrayList());
         multiTruncateMonitor.scheduledTask();
-        Mockito.verify(reporter, times(1)).resetReportCounter(any(),eq(0L),any());
-        Mockito.verify(reporter, times(1)).resetReportCounter(any(),eq(1L),any());
+        Mockito.verify(reporter, times(1)).reportResetCounter(any(),eq(0L),anyString());
+        Mockito.verify(reporter, times(1)).reportResetCounter(any(),eq(1L),anyString());
         
     }
 }
