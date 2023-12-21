@@ -75,7 +75,7 @@ public class MhaDbMappingServiceTest {
         when(mhaDbMappingTblDao.queryByDbIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
         mhaDbMappingTbl.setDbId(6L);
-        when(mhaDbMappingTblDao.queryByDbIds(Mockito.eq(Lists.newArrayList(6L,7L)))).thenReturn(Lists.newArrayList(mhaDbMappingTbl));
+        when(mhaDbMappingTblDao.queryByDbIdsIgnoreDeleted(Mockito.eq(Lists.newArrayList(6L,7L)))).thenReturn(Lists.newArrayList(mhaDbMappingTbl));
 
         when(dbTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[] {1,1});
         Pair<Integer, Integer> pair = mhaDbMappingService.removeDuplicateDbTblWithoutMhaDbMapping(true);
