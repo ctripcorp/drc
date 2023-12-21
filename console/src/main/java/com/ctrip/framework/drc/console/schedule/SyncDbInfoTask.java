@@ -205,7 +205,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 
     @VisibleForTesting
     protected void setValue(DbTbl target,JsonObject source) {
-        target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString());
+        target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString().toLowerCase());
         target.setBuName(source.get("organization_name").isJsonNull() ? null : source.get("organization_name").getAsString());
         target.setDbOwner(source.get("dbowners").isJsonNull() ? null : source.get("dbowners").getAsString().split(";")[0]);
         long organizationId = source.get("organization_id").getAsLong();
