@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 /**
  * @ClassName MultiTruncateMonitor
@@ -39,6 +40,7 @@ public class MultiTruncateMonitor extends  AbstractLeaderAwareMonitor {
     
     private Reporter reporter = DefaultReporterHolder.getInstance();
     
+    
 
 
     @Override
@@ -55,7 +57,8 @@ public class MultiTruncateMonitor extends  AbstractLeaderAwareMonitor {
             return;
         }
         try {
-            Timestamp timestamp = new Timestamp(System.currentTimeMillis() - 1000 * 60 * 60 );
+            long HOUR_MILLIS = 1000 * 60 * 60;
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis() - HOUR_MILLIS);
             List<DdlHistoryTbl> ddlHistories = ddlHistoryTblDao.queryByStartCreateTime(timestamp);
             // ddlHistories group by schemaName & tableName
             Map<String, Map<String, List<DdlHistoryTbl>>> dbTableTruncateListMap = ddlHistories.stream()
@@ -71,14 +74,23 @@ public class MultiTruncateMonitor extends  AbstractLeaderAwareMonitor {
                     }
                     if (relatedMha.size() == truncateList.size()) {
                         logger.info("[[task=MultiTruncateMonitor]] consistent size:{}, db:{}, table:{}", truncateList.size(), db, table);
-                        reporter.resetReportCounter(getReportTags(db,table,""),0L,MULTI_TRUNCATE_LOSS_MEASUREMENT);
+                        reporter.reportResetCounter(getReportTags(db,table,""),0L,MULTI_TRUNCATE_LOSS_MEASUREMENT);
                     } else if (relatedMha.size() > truncateList.size()) {
                         // inconsistent
                         Set<Long> truncatedMhaId = truncateList.stream().map(DdlHistoryTbl::getMhaId).collect(Collectors.toSet());
                         for (MhaTblV2 mhaTblV2 : relatedMha) {
                             if (!truncatedMhaId.contains(mhaTblV2.getId())) {
+                                Timestamp createTime = truncateList.get(0).getCreateTime();
+                                Timestamp before = new Timestamp(createTime.getTime() - HOUR_MILLIS);
+                                Timestamp after = new Timestamp(createTime.getTime() + HOUR_MILLIS);
+                                List<DdlHistoryTbl> ddlHistoryTbls = ddlHistoryTblDao.queryByDbAndTime(db, table, before, after);
+                                boolean truncateExecuted = !CollectionUtils.isEmpty(ddlHistoryTbls) 
+                                        && ddlHistoryTbls.stream().anyMatch(ddl -> ddl.getMhaId().equals(mhaTblV2.getId()));
+                                if (truncateExecuted) {
+                                    continue;
+                                }
                                 logger.warn("[[task=MultiTruncateMonitor]] loss truncate db:{}, table:{}, mha:{}", db, table, mhaTblV2.getMhaName());
-                                reporter.resetReportCounter(getReportTags(db,table,mhaTblV2.getMhaName()),1L,MULTI_TRUNCATE_LOSS_MEASUREMENT);
+                                reporter.reportResetCounter(getReportTags(db,table,mhaTblV2.getMhaName()),1L,MULTI_TRUNCATE_LOSS_MEASUREMENT);
                             }
                         }
                     } else {
@@ -89,9 +101,11 @@ public class MultiTruncateMonitor extends  AbstractLeaderAwareMonitor {
                 }
             }
         } catch (Throwable t) {
-            logger.error("[[task=ConflictAlarm]]error", t);
+            logger.error("[[task=MultiTruncateMonitor]]error", t);
         }
     }
+    
+    
     public Map<String,String> getReportTags(String db, String table,String mha){
         Map<String,String> tags = Maps.newHashMap();
         tags.put("db",db);

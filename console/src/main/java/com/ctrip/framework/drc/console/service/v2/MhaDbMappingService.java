@@ -21,4 +21,7 @@ public interface MhaDbMappingService {
     void buildMhaDbMappings(String mhaName,List<String> dbList) throws SQLException;
 
     void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException;
+    
+    // tmp api
+    Pair<Integer,Integer> removeDuplicateDbTblWithoutMhaDbMapping(boolean executeDelete) throws SQLException;
 }

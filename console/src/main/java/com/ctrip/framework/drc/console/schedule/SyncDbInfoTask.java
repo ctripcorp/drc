@@ -126,18 +126,18 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                         }
 
                         //handle offline dbs
-                        List<String> dbWhiteList = monitorTableSourceProvider.getSyncDbWhitelist();
-                        List<String> remoteDbNameList = new ArrayList<>();
-                        for (JsonElement jsonElement : dbArray) {
-                            JsonObject jsonObject = jsonElement.getAsJsonObject();
-                            String name = jsonObject.get("db_name").getAsString().toLowerCase();
-                            remoteDbNameList.add(name);
-                        }
+//                        List<String> dbWhiteList = monitorTableSourceProvider.getSyncDbWhitelist();
+//                        List<String> remoteDbNameList = new ArrayList<>();
+//                        for (JsonElement jsonElement : dbArray) {
+//                            JsonObject jsonObject = jsonElement.getAsJsonObject();
+//                            String name = jsonObject.get("db_name").getAsString().toLowerCase();
+//                            remoteDbNameList.add(name);
+//                        }
 
 
-                        List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
-                        final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
-                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName()) && !dbWhiteList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
+//                        List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
+//                        final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
+//                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName()) && !dbWhiteList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
 
                         // update
                         int size = 100;
@@ -161,16 +161,16 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                     JsonObject dbInfo = dbArray.get(m).getAsJsonObject();
                                     DbTbl dbEntity = new DbTbl();
                                     setValue(dbEntity, dbInfo);
-                                    boolean status = true;
-                                    for (DbTbl db : dbs) {
-                                        if (db.getDbName().equalsIgnoreCase(dbInfo.get("db_name").getAsString())) {
-                                            dbEntity.setId(db.getId());
+                                    boolean noSameDbInMetaDB = true;
+                                    for (DbTbl dbTblInMetaDb : dbs) {
+                                        if (dbTblInMetaDb.getDbName().equalsIgnoreCase(dbInfo.get("db_name").getAsString())) {
+                                            dbEntity.setId(dbTblInMetaDb.getId());
                                             updates.add(dbEntity);
-                                            status = false;
+                                            noSameDbInMetaDB = false;
                                             break;
                                         }
                                     }
-                                    if (status) {
+                                    if (noSameDbInMetaDB) {
                                         inserts.add(dbEntity);
                                     }
                                 }
@@ -192,7 +192,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 //                            dbTblDao.batchDelete(excessDbInfos);
 //                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
 //                        }
-                        logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
+//                        logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
                     });
         } catch (Exception e) {
             logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error", e);
@@ -208,6 +208,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         String buCode = buId2BuCodeMap.get(organizationId);
         target.setBuCode(StringUtils.isEmpty(buCode) ? null : buCode);
     }
+    
 
 
     @Override

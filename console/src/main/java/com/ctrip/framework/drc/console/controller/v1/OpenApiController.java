@@ -1,10 +1,13 @@
 package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.service.OpenApiService;
+import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +27,8 @@ public class OpenApiController {
     
     @Autowired
     private OpenApiService openApiService;
+    @Autowired
+    private MhaDbMappingService mhaDbMappingService;
     
 
     @GetMapping("info/messengers")
@@ -42,6 +47,16 @@ public class OpenApiController {
             return ApiResult.getSuccessInstance(openApiService.getDrcDbInfos(dbName));
         } catch (Exception e) {
             logger.error("error in queryDrcDbInfos",e);
+            return ApiResult.getFailInstance(e,"error");
+        }
+    }
+    
+    @DeleteMapping("duplicateDbs")
+    public ApiResult deleteDuplicateDbs(@RequestParam boolean executeDelete) {
+        try {
+            return ApiResult.getSuccessInstance(mhaDbMappingService.removeDuplicateDbTblWithoutMhaDbMapping(executeDelete));
+        } catch (Exception e) {
+            logger.error("error in deleteDuplicateDbs",e);
             return ApiResult.getFailInstance(e,"error");
         }
     }
