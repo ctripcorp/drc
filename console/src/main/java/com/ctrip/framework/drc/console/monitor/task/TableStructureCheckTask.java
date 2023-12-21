@@ -67,9 +67,10 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
-        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-            return;
-        }
+        //ql_deng TODO 2023/12/21:
+//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+//            return;
+//        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
 
         try {
