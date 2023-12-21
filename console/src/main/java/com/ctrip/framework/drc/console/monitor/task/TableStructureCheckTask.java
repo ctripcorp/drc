@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,8 +41,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MO
 @Order(2)
 public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
@@ -84,7 +83,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
             Map<Long, String> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
 
-            Map<MultiKey, List<String>> dbReplicationMap = new HashMap<>();
+            Map<MultiKey, Set<String>> dbReplicationMap = new HashMap<>();
             for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
                 long srcMhaMappingId = dbReplicationTbl.getSrcMhaDbMappingId();
                 long dstMhaMappingId = dbReplicationTbl.getDstMhaDbMappingId();
@@ -94,13 +93,13 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
                 } else if (dbReplicationMap.containsKey(new MultiKey(dstMhaMappingId, srcMhaMappingId))) {
                     dbReplicationMap.get(new MultiKey(dstMhaMappingId, srcMhaMappingId)).add(logicTableName);
                 } else {
-                    dbReplicationMap.put(new MultiKey(srcMhaMappingId, dstMhaMappingId), Lists.newArrayList(logicTableName));
+                    dbReplicationMap.put(new MultiKey(srcMhaMappingId, dstMhaMappingId), Sets.newHashSet(logicTableName));
                 }
             }
 
-            for (Map.Entry<MultiKey, List<String>> entry : dbReplicationMap.entrySet()) {
+            for (Map.Entry<MultiKey, Set<String>> entry : dbReplicationMap.entrySet()) {
                 MultiKey multiKey = entry.getKey();
-                List<String> logicTables = entry.getValue();
+                Set<String> logicTables = entry.getValue();
                 long srcMhaMappingId = (long) multiKey.getKey(0);
                 long dstMhaMappingId = (long) multiKey.getKey(1);
 

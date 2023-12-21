@@ -831,6 +831,13 @@
             <AppenderRef ref="DbDelayMonitorRollingFileWarn"/>
             <AppenderRef ref="DbDelayMonitorRollingFileError"/>
         </Logger>
+        <Logger name="consoleMonitorLogger" additivity="false" level="info">
+            <AppenderRef ref="Cat"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileDebug"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileInfo"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileWarn"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileError"/>
+        </Logger>
         <Logger name="beaconHealthLogger" additivity="false" level="info">
             <AppenderRef ref="BeaconHealthRollingFileDebug"/>
             <AppenderRef ref="BeaconHealthRollingFileInfo"/>
