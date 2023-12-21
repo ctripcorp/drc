@@ -133,7 +133,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         for (String uuid : uuids) {
             GtidSet previousGtidSetOfUuid = previousGtidSet.filterGtid(Sets.newHashSet(uuid));
             if (previousGtidSetOfUuid == null || previousGtidSetOfUuid.isContainedWithin(context.fetchGtidSet())) {
-                loggerTT.info("[Merge][Uuid][{}] merge gtid ignore: {},{}", registryKey, uuid, previousGtidSetOfUuid);
+                loggerTT.info("[Merge][Uuid][{}] merge gtid set ignore: {},{}", registryKey, uuid, previousGtidSetOfUuid);
                 continue;
             }
 
