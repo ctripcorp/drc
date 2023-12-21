@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.*;
@@ -20,6 +19,8 @@ import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,8 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_
  * @create 2021/3/4
  */
 public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
+
+    protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     @InstanceResource
     public Progress progress;
@@ -143,7 +146,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                 compensateGap(previousGtidSetOfUuid);
                 lastReceivedTxs.put(uuid, previousEnd);
                 DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                logger.info("[Merge][Uuid][{}] last null, all gtid set: {}", registryKey, previousGtidSetOfUuid.toString());
+                loggerTT.info("[Merge][Uuid][{}] last null, all gtid set: {}", registryKey, previousGtidSetOfUuid.toString());
             } else {
                 // merge the gap in the start
                 long previousStart = previousInterval.getStart();
@@ -154,7 +157,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                         GtidSet previousGtidSet = new GtidSet(uuid + ":" + previousStart + "-" + (receivedStart - 1));
                         compensateGap(previousGtidSet);
                         DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                        logger.info("[Merge][Uuid][{}] start gtid set: {}", registryKey, previousGtidSet.toString());
+                        loggerTT.info("[Merge][Uuid][{}] start gtid set: {}", registryKey, previousGtidSet.toString());
                     }
                 }
 
@@ -163,7 +166,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
                     GtidSet gtidSet = new GtidSet(uuid + ":" + (lastTrxId + 1) + "-" + previousEnd);
                     compensateGap(gtidSet);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("Drc.uuid.merge", getRegistryKeyTag(registryKey) + ":" + getUuidTag(uuid), 1, 0);
-                    logger.info("[Merge][Uuid][{}] end gtid set: {}", registryKey, gtidSet.toString());
+                    loggerTT.info("[Merge][Uuid][{}] end gtid set: {}", registryKey, gtidSet.toString());
                 }
             }
         }
@@ -279,7 +282,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     }
 
     private void clearInitedGap() {
-        logger.info("[Merge][{}] clear inited gap: {}", registryKey, toInitGap);
+        loggerTT.info("[Merge][{}] clear inited gap: {}", registryKey, toInitGap);
         toInitGap = new GtidSet(StringUtils.EMPTY);
     }
 
@@ -302,7 +305,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     protected void updateContextGtidSet(GtidSet gtidset) {
         GtidSet set = context.fetchGtidSet();
         context.updateGtidSet(set.union(gtidset));
-        logger.info("[Merge][{}] update context gtidset, context gtidset: {}, to merge gtidset: {}, unioned gtidset: {}", registryKey, set.toString(), gtidset.toString(), context.fetchGtidSet().toString());
+        loggerTT.info("[Merge][{}] update context gtidset, context gtidset: {}, to merge gtidset: {}, unioned gtidset: {}", registryKey, set.toString(), gtidset.toString(), context.fetchGtidSet().toString());
     }
 
     protected void updateContextGtidSet(String gtid) {
