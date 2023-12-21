@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
@@ -17,7 +16,6 @@ import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -25,12 +23,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StopWatch;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_AUTO_INCREMENT_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MONITOR_LOGGER;
 
 /**
@@ -71,8 +71,11 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 //            return;
 //        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
+        CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
 
+        StopWatch stopWatch = new StopWatch();
         try {
+            stopWatch.start();
             List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
             List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist().stream()
                     .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())).collect(Collectors.toList());
@@ -119,6 +122,11 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             }
         } catch (Exception e) {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=tableStructureCheck]] fail, {}", e);
+            CONSOLE_AUTO_INCREMENT_LOGGER.error("[[monitor=tableStructureCheck]] fail, {}", e);
+        } finally {
+            stopWatch.stop();
+            CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=tableStructureCheck]] task cost: {}", stopWatch.getTotalTimeMillis());
+            CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] task cost: {}", stopWatch.getTotalTimeMillis());
         }
     }
 
@@ -129,7 +137,8 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             Set<String> dstColumns = dstTableColumns.get(tableName);
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
-                logger.info("report diff columns between mha: {} and {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
+                CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
+                CONSOLE_AUTO_INCREMENT_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
                 DefaultReporterHolder.getInstance().resetReportCounter(getTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_STRUCTURE_MEASUREMENT);
             }
         }

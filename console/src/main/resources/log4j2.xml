@@ -155,79 +155,6 @@
                 <SizeBasedTriggeringPolicy size="512 MB"/>
             </Policies>
         </RollingFile>
-        <!--Console Monitor appenders-->
-        <RollingFile name="ConsoleMonitorRollingFileDebug" fileName="${baseDir}/console-monitor_debug.log"
-                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.console-monitor_debug.log.gz">
-            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
-            <Filters>
-                <ThresholdFilter level="DEBUG"/>
-                <ThresholdFilter level="INFO" onMatch="DENY" onMismatch="NEUTRAL"/>
-            </Filters>
-            <Policies>
-                <TimeBasedTriggeringPolicy/>
-                <SizeBasedTriggeringPolicy size="500 MB"/>
-            </Policies>
-            <DefaultRolloverStrategy max="5">
-                <Delete basePath="${baseDir}" maxDepth="2">
-                    <IfFileName glob="${appName}*.console-monitor_debug.log.gz"/>
-                    <IfLastModified age="7d"/>
-                </Delete>
-            </DefaultRolloverStrategy>
-        </RollingFile>
-
-        <RollingFile name="ConsoleMonitorRollingFileInfo" fileName="${baseDir}/console-monitor_info.log"
-                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.console-monitor_info.log.gz">
-            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
-            <Filters>
-                <ThresholdFilter level="INFO"/>
-                <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="NEUTRAL"/>
-            </Filters>
-            <Policies>
-                <TimeBasedTriggeringPolicy/>
-                <SizeBasedTriggeringPolicy size="500 MB"/>
-            </Policies>
-            <DefaultRolloverStrategy max="5">
-                <Delete basePath="${baseDir}" maxDepth="2">
-                    <IfFileName glob="${appName}*.console-monitor_info.log.gz"/>
-                    <IfLastModified age="7d"/>
-                </Delete>
-            </DefaultRolloverStrategy>
-        </RollingFile>
-
-        <RollingFile name="ConsoleMonitorRollingFileWarn" fileName="${baseDir}/console-monitor_warn.log"
-                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.console-monitor_warn.log.gz">
-            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
-            <Filters>
-                <ThresholdFilter level="WARN"/>
-                <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL"/>
-            </Filters>
-            <Policies>
-                <TimeBasedTriggeringPolicy/>
-                <SizeBasedTriggeringPolicy size="500 MB"/>
-            </Policies>
-            <DefaultRolloverStrategy max="5">
-                <Delete basePath="${baseDir}" maxDepth="2">
-                    <IfFileName glob="${appName}*.console-monitor_warn.log.gz"/>
-                    <IfLastModified age="7d"/>
-                </Delete>
-            </DefaultRolloverStrategy>
-        </RollingFile>
-
-        <RollingFile name="ConsoleMonitorRollingFileError" fileName="${baseDir}/console-monitor_error.log"
-                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.console-monitor_error.log.gz">
-            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
-            <ThresholdFilter level="ERROR"/>
-            <Policies>
-                <TimeBasedTriggeringPolicy/>
-                <SizeBasedTriggeringPolicy size="500 MB"/>
-            </Policies>
-            <DefaultRolloverStrategy max="5">
-                <Delete basePath="${baseDir}" maxDepth="2">
-                    <IfFileName glob="${appName}*.console-monitor_error.log.gz"/>
-                    <IfLastModified age="7d"/>
-                </Delete>
-            </DefaultRolloverStrategy>
-        </RollingFile>
 
         <!--Gtid Monitor appenders-->
         <RollingFile name="GtidMonitorRollingFileDebug" fileName="/opt/logs/drc/console/gtid-monitor_debug.log"
@@ -558,13 +485,6 @@
             <AppenderRef ref="DbDelayMonitorRollingFileInfo"/>
             <AppenderRef ref="DbDelayMonitorRollingFileWarn"/>
             <AppenderRef ref="DbDelayMonitorRollingFileError"/>
-        </Logger>
-        <Logger name="consoleMonitorLogger" additivity="false" level="info">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="ConsoleMonitorRollingFileDebug"/>
-            <AppenderRef ref="ConsoleMonitorRollingFileInfo"/>
-            <AppenderRef ref="ConsoleMonitorRollingFileWarn"/>
-            <AppenderRef ref="ConsoleMonitorRollingFileError"/>
         </Logger>
         <Logger name="gtidMonitorLogger" additivity="false" level="info">
             <AppenderRef ref="Console"/>
