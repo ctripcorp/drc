@@ -30,7 +30,6 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
     private static final String DST_LOGIC_TABLE_NAME = "dst_logic_table_name";
     private static final String REPLICATION_TYPE = "replication_type";
     private static final String DELETED = "deleted";
-    private static final String DRC_STATUS = "drc_status";
 
     public DbReplicationTblDao() throws SQLException {
         super(DbReplicationTbl.class);
@@ -145,11 +144,6 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         return queryBySQL(buildSQL(samples));
     }
 
-    public List<DbReplicationTbl> queryByDrcStatus(int drcStatus) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(DRC_STATUS, drcStatus, Types.TINYINT);
-        return queryList(sqlBuilder);
-    }
 
     private String buildSQL(List<DbReplicationTbl> samples) {
         // e.g: (src_mha_db_mapping_id, dst_mha_db_mapping_id, replication_type) IN ((13119, 13126, 0), (13161, 13189, 0));
