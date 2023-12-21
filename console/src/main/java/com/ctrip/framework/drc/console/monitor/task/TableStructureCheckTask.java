@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
@@ -30,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_AUTO_INCREMENT_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MONITOR_LOGGER;
 
 /**
@@ -41,6 +41,8 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MO
 @Order(2)
 public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
@@ -56,26 +58,21 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "tableStructureCheck"));
 
     @Override
-    //ql_deng TODO 2023/12/21:
     public void initialize() {
         setInitialDelay(1);
-        setPeriod(5);
+        setPeriod(30);
         setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
 
     @Override
     public void scheduledTask() {
-        //ql_deng TODO 2023/12/21:
-//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-//            return;
-//        }
+        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+            return;
+        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
-        CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
 
-        StopWatch stopWatch = new StopWatch();
         try {
-            stopWatch.start();
             List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
             List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist().stream()
                     .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())).collect(Collectors.toList());
@@ -122,11 +119,6 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             }
         } catch (Exception e) {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=tableStructureCheck]] fail, {}", e);
-            CONSOLE_AUTO_INCREMENT_LOGGER.error("[[monitor=tableStructureCheck]] fail, {}", e);
-        } finally {
-            stopWatch.stop();
-            CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=tableStructureCheck]] task cost: {}", stopWatch.getTotalTimeMillis());
-            CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] task cost: {}", stopWatch.getTotalTimeMillis());
         }
     }
 
@@ -138,7 +130,6 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
-                CONSOLE_AUTO_INCREMENT_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
                 DefaultReporterHolder.getInstance().resetReportCounter(getTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_STRUCTURE_MEASUREMENT);
             }
         }
