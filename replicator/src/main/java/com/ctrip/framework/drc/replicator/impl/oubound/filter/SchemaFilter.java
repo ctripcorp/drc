@@ -9,6 +9,7 @@ import java.util.Set;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
 import static com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent.UNKNOWN;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 
 /**
@@ -18,7 +19,7 @@ public class SchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext
 
     private String registerKey;
 
-    private Set<String> schemas = Sets.newHashSet(UNKNOWN);
+    private Set<String> schemas = Sets.newHashSet(UNKNOWN, DRC_MONITOR_SCHEMA_NAME);
 
     public SchemaFilter(OutboundFilterChainContext context) {
         registerKey = context.getRegisterKey();

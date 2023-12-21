@@ -27,11 +27,15 @@ public interface CurrentMetaManager extends Observable {
 
     void importSlot(int slotId);
 
-    Applier getActiveApplier(String clusterId, String backupClusterId);
+    Applier getActiveApplier(String clusterId, String backupRegistryKey);
 
-    Messenger getActiveMessenger(String clusterId);
+    List<Applier> getActiveAppliers(String clusterId, String backupClusterId);
 
     List<Applier> getActiveAppliers(String clusterId);
+
+    Messenger getActiveMessenger(String clusterId, String dbName);
+
+    List<Messenger> getActiveMessengers(String clusterId);
 
     Replicator getActiveReplicator(String clusterId);
 
@@ -39,9 +43,9 @@ public interface CurrentMetaManager extends Observable {
 
     List<Replicator> getSurviveReplicators(String clusterId);
 
-    List<Messenger> getSurviveMessengers(String clusterId);
+    List<Messenger> getSurviveMessengers(String clusterId, String dbName);
 
-    List<Applier> getSurviveAppliers(String clusterId, String backupClusterId);
+    List<Applier> getSurviveAppliers(String clusterId, String backupRegistryKey);
 
     String getCurrentMetaDesc();
 
@@ -51,7 +55,7 @@ public interface CurrentMetaManager extends Observable {
 
     void setSurviveReplicators(String registryKey, List<Replicator> surviveReplicators, Replicator activeReplicator);
 
-    void setSurviveAppliers(String registryKey, List<Applier> surviveAppliers, Applier activeApplier);
+    void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier);
 
     void setSurviveMessengers(String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger);
 
@@ -61,7 +65,7 @@ public interface CurrentMetaManager extends Observable {
 
     boolean watchMessengerIfNotWatched(String registryKey);
 
-    void setApplierMaster(String registryKey, String backupRegistryKey, String ip, int port);
+    void setApplierMaster(String registryKey, String backupClusterId, String ip, int port);
 
     void setMySQLMaster(String registryKey, Endpoint endpoint);
 
@@ -69,7 +73,7 @@ public interface CurrentMetaManager extends Observable {
 
     Endpoint getMySQLMaster(String registryKey);
 
-    Pair<String, Integer> getApplierMaster(String registryKey, String backupRegistryKey);
+    Pair<String, Integer> getApplierMaster(String clusterId, String backupRegistryKey);
 
     Route randomRoute(String clusterId, String dstDc);
 

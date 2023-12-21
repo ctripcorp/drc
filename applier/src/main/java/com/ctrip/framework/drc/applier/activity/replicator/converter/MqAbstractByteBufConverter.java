@@ -43,6 +43,10 @@ public class MqAbstractByteBufConverter extends AbstractByteBufConverter {
                 return new DrcErrorLogEvent();
             case drc_heartbeat_log_event:
                 return new DrcHeartbeatLogEvent();
+            case drc_uuid_log_event:
+                return new ApplierDrcUuidLogEvent();
+            case previous_gtids_log_event:
+                return new ApplierPreviousGtidsLogEvent();
             default:
                 return null;
         }

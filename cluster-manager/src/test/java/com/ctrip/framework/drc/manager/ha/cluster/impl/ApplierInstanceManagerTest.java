@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dbs;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -52,6 +53,7 @@ public class ApplierInstanceManagerTest {
         Applier applier = new Applier();
         applier.setIp("127.0.0.1");
         applier.setPort(8080);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
         current.addApplier(applier);
 
         DbCluster future = new DbCluster();
@@ -61,6 +63,7 @@ public class ApplierInstanceManagerTest {
         applier2.setProperties("test_property");
         applier2.setIp("127.0.0.1");
         applier2.setPort(8080);
+        applier2.setApplyMode(ApplyMode.transaction_table.getType());
         future.addApplier(applier2);
 
         ClusterComparator comparator = new ClusterComparator(current, future);

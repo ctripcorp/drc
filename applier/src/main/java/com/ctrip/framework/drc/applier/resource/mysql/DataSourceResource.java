@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.applier.server.ApplierServerInCluster.DEFAULT_APPLY_COUNT;
 import static com.ctrip.framework.drc.core.monitor.datasource.AbstractDataSource.setCommonProperty;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
@@ -48,8 +49,10 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     @InstanceResource
     public Executor executor;
 
-    @InstanceConfig(path = "target.poolSize")
-    public int poolSize = 100;
+    @InstanceConfig(path = "applyConcurrency")
+    public int applyConcurrency = DEFAULT_APPLY_COUNT;
+
+    private int initialPoolSize = 1;
 
     public int validationInterval = 30000;
 
@@ -76,15 +79,15 @@ public class DataSourceResource extends AbstractResource implements DataSource {
         properties.setValidationInterval(validationInterval);
         setCommonProperty(properties);
 
-        properties.setMaxActive(poolSize);
-        properties.setMaxIdle(poolSize);
-        properties.setInitialSize(30);
-        properties.setMinIdle(poolSize);
+        properties.setMaxActive(applyConcurrency);
+        properties.setMaxIdle(applyConcurrency);
+        properties.setInitialSize(initialPoolSize);
+        properties.setMinIdle(applyConcurrency);
         properties.setValidator(new DrcDataSourceValidator(properties));
 
         inner = new DrcTomcatDataSource(properties);
 
-        logger.info("[INIT DataSource] {}", URL);
+        logger.info("[INIT DataSource] {}, applyConcurrency: {}", URL, applyConcurrency);
 
         executor.execute(()-> {
             warmUp();

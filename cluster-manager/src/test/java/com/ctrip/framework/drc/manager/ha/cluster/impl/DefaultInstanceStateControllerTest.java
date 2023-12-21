@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -106,6 +107,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
         applier.setPort(backupPort);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
 
         List<Replicator> replicatorList = Lists.newArrayList();
         newReplicator.setIp(LOCAL_IP);
@@ -131,6 +133,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         messenger.setMaster(true);
         messenger.setIp(LOCAL_IP);
         messenger.setPort(backupPort);
+        messenger.setApplyMode(ApplyMode.mq.getType());
 
         when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(null);
         when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
@@ -154,6 +157,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
         applier.setPort(backupPort);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
 
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
         when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
@@ -181,6 +185,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         messenger.setMaster(true);
         messenger.setIp(LOCAL_IP);
         messenger.setPort(backupPort);
+        messenger.setApplyMode(ApplyMode.mq.getType());
 
         when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(dbCluster.getReplicators().get(0));
         when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
@@ -204,6 +209,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
         applier.setPort(backupPort);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
 
         List<Replicator> replicatorList = Lists.newArrayList();
         newReplicator.setIp(LOCAL_IP);
@@ -229,6 +235,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         messenger.setMaster(true);
         messenger.setIp(LOCAL_IP);
         messenger.setPort(backupPort);
+        messenger.setApplyMode(ApplyMode.mq.getType());
 
         when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(null);
         when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
@@ -254,6 +261,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
         applier.setPort(backupPort);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
 
         Applier multiapplier = new Applier();
         multiapplier.setTargetMhaName("mockTargetMha_multi");
@@ -261,6 +269,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         multiapplier.setMaster(true);
         multiapplier.setIp("127.0.0.3");
         multiapplier.setPort(backupPort);
+        multiapplier.setApplyMode(ApplyMode.transaction_table.getType());
 
         Applier slaveApplier = new Applier();
         slaveApplier.setTargetMhaName("mockTargetMha");
@@ -268,6 +277,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         slaveApplier.setMaster(false);
         slaveApplier.setIp("127.0.0.3");
         slaveApplier.setPort(backupPort);
+        slaveApplier.setApplyMode(ApplyMode.transaction_table.getType());
         List<Applier> surviveAppliers = Lists.newArrayList(applier, slaveApplier, multiapplier);
 
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
@@ -298,6 +308,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         messenger.setMaster(true);
         messenger.setIp(LOCAL_IP);
         messenger.setPort(backupPort);
+        messenger.setApplyMode(ApplyMode.mq.getType());
 
         when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(dbCluster.getReplicators().get(0));
         when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
@@ -353,6 +364,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
         applier.setPort(backupPort);
+        applier.setApplyMode(ApplyMode.transaction_table.getType());
         List<Applier> appliers = Lists.newArrayList(applier);
 
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());

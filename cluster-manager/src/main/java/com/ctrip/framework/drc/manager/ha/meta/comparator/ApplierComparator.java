@@ -46,20 +46,21 @@ public class ApplierComparator extends AbstractMetaComparator<Applier, ApplierCh
         List<Applier> subResult = new LinkedList<>();
         List<Pair<Applier, Applier>> intersectResult = new LinkedList<>();
 
-        for(Applier Applier1 : all1){
+        for(Applier applier1 : all1){
 
-            Applier Applier2Equal = null;
-            for(Applier Applier2 : all2){
-                if(Applier1.equalsWithIpPort(Applier2)
-                        && ObjectUtils.equals(Applier1.getTargetMhaName(), Applier2.getTargetMhaName())){
-                    Applier2Equal = Applier2;
+            Applier applier2Equal = null;
+            for(Applier applier2 : all2){
+                if(applier1.equalsWithIpPort(applier2)
+                        && ObjectUtils.equals(applier1.getTargetMhaName(), applier2.getTargetMhaName())
+                        && ObjectUtils.equals(applier1.getIncludedDbs(), applier2.getIncludedDbs())){
+                    applier2Equal = applier2;
                     break;
                 }
             }
-            if(Applier2Equal == null){
-                subResult.add(Applier1);
+            if(applier2Equal == null){
+                subResult.add(applier1);
             }else{
-                intersectResult.add(new Pair<>(Applier1, Applier2Equal));
+                intersectResult.add(new Pair<>(applier1, applier2Equal));
             }
         }
         return new Pair<List<Applier>, List<Pair<Applier, Applier>>>(subResult, intersectResult);

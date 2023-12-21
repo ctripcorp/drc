@@ -159,25 +159,30 @@ public class UnidirectionalStarter extends AbstractTestStarter {
 
 
     private static final String ROW_FILTER_PROPERTIES_REGEX = "{" +
-            "  \"rowsFilters\": [" +
-            "    {" +
-            "      \"mode\": \"java_regex\"," +
-            "      \"tables\": \"drc4.row_filter\"," +
-            "      \"parameters\": {" +
-            "        \"columns\": [" +
-            "          \"uid\"" +
-            "        ]," +
-            "        \"context\": \"trip.*\"" +
-            "      }" +
-            "    }" +
-            "  ]," +
+            "  \"concurrency\": 10,\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"java_regex\",\n" +
+            "      \"tables\": \"drc4.row_filter\",\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"uid\"\n" +
+            "            ],\n" +
+            "            \"context\": \"trip.*\"\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
             "  \"columnsFilters\": [" +
             "    {" +
             "      \"mode\": \"exclude\"," +
             "      \"tables\": \"drc1.insert1\"," +
-            "        \"columns\": [" +
-            "          \"two\"" +
-            "        ]" +
+            "      \"columns\": [" +
+            "        \"two\"" +
+            "      ]" +
             "    }" +
             "  ]" +
             "}";
