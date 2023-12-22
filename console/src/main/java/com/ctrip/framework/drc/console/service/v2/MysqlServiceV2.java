@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -49,6 +50,11 @@ public interface MysqlServiceV2 {
 
     // route By mhaName
     Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
+
+    /**
+     * key: tableName, values: columns
+     */
+    Map<String, Set<String>> getTableColumns(DbFilterReq requestBody);
 
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
 

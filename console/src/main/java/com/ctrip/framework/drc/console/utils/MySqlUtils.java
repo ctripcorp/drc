@@ -406,6 +406,15 @@ public class MySqlUtils {
         return commonColumns;
     }
 
+    /**
+     * key: db.table, values: columns
+     */
+    public static Map<String, Set<String>> getTableColumns(Endpoint endpoint, String dbFilter) {
+        List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(dbFilter));
+        Map<String, Set<String>> tableColumns = getAllColumnsByTable(endpoint, tablesAfterFilter, false);
+        return tableColumns;
+    }
+
     protected static String filterStmt(String roughStmt, Endpoint endpoint, String table) {
         // lower case
         String lowerCaseStmt = roughStmt.toLowerCase();

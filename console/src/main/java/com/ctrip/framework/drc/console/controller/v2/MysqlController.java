@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -97,6 +98,16 @@ public class MysqlController {
             } else {
                 return ApiResult.getFailInstance("other error");
             }
+        }
+    }
+    @PostMapping("tableColumns")
+    public ApiResult getTableColumns(@RequestBody DbFilterReq requestBody) {
+        logger.info("getTableColumns requestBody: {}", requestBody);
+        try {
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getTableColumns(requestBody));
+        } catch (Exception e) {
+            logger.info("getTableColumns fail: {}", e);
+            return ApiResult.getFailInstance(null);
         }
     }
 

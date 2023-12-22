@@ -144,6 +144,7 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         return queryBySQL(buildSQL(samples));
     }
 
+
     private String buildSQL(List<DbReplicationTbl> samples) {
         // e.g: (src_mha_db_mapping_id, dst_mha_db_mapping_id, replication_type) IN ((13119, 13126, 0), (13161, 13189, 0));
         List<String> list = samples.stream().map(e -> String.format("(%d,%d,%d)", e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId(), e.getReplicationType())).collect(Collectors.toList());

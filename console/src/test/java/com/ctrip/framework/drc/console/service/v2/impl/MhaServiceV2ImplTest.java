@@ -42,7 +42,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getReplicatorTbls;
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
