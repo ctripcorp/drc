@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -57,12 +58,13 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
     private Reporter reporter = DefaultReporterHolder.getInstance();
     private static final String TABLE_STRUCTURE_MEASUREMENT = "drc.table.structure";
+    private static final String TABLE_COLUMN_STRUCTURE_MEASUREMENT = "drc.table.column.structure";
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "tableStructureCheck"));
 
     @Override
     public void initialize() {
         setInitialDelay(1);
-        setPeriod(30);
+        setPeriod(60);
         setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
@@ -128,19 +130,44 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     }
 
     private void compareTableColumns(String srcMhaName, String dstMhaName, Map<String, Set<String>> srcTableColumns, Map<String, Set<String>> dstTableColumns) {
+        if (CollectionUtils.isEmpty(srcTableColumns)) {
+            srcTableColumns = new HashMap<>();
+        }
+        if (CollectionUtils.isEmpty(dstTableColumns)) {
+            dstTableColumns = new HashMap<>();
+        }
+        Set<String> srcTables = Sets.newHashSet(srcTableColumns.keySet());
+        Set<String> dstTables = Sets.newHashSet(dstTableColumns.keySet());
+        List<String> diffTables = getDiff(srcTables, dstTables);
+        if (!CollectionUtils.isEmpty(diffTables)) {
+            CONSOLE_MONITOR_LOGGER.info("report diff tables between mha: {} -> {}, diffTables: {}", srcMhaName, dstMhaName, diffTables);
+            reporter.resetReportCounter(getTableTags(srcMhaName, dstMhaName, diffTables), 1L, TABLE_STRUCTURE_MEASUREMENT);
+        }
+
         for (Map.Entry<String, Set<String>> entry : srcTableColumns.entrySet()) {
             String tableName = entry.getKey();
+            if (diffTables.contains(tableName)) {
+                continue;
+            }
             Set<String> srcColumns = entry.getValue();
             Set<String> dstColumns = dstTableColumns.get(tableName);
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
-                reporter.resetReportCounter(getTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_STRUCTURE_MEASUREMENT);
+                reporter.resetReportCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
             }
         }
     }
 
-    private Map<String, String> getTags(String srcMhaName, String dstMhaName, String tableName, List<String> diffColumns) {
+    private Map<String, String> getTableTags(String srcMhaName, String dstMhaName, List<String> diffTables) {
+        Map<String, String> tags = new HashMap<>();
+        tags.put("srcMha", srcMhaName);
+        tags.put("dstMha", dstMhaName);
+        tags.put("diffTable", Joiner.on(",").join(diffTables));
+        return tags;
+    }
+
+    private Map<String, String> getColumnTags(String srcMhaName, String dstMhaName, String tableName, List<String> diffColumns) {
         Map<String, String> tags = new HashMap<>();
         String[] dbTable = tableName.split("\\.");
         tags.put("srcMha", srcMhaName);
@@ -153,6 +180,16 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
     private List<String> getDiff(Set<String> set0, Set<String> set1) {
         List<String> diffs = new ArrayList<>();
+        if (CollectionUtils.isEmpty(set0) && CollectionUtils.isEmpty(set1)) {
+            return diffs;
+        }
+        if (CollectionUtils.isEmpty(set0)) {
+            return Lists.newArrayList(set1);
+        }
+        if (CollectionUtils.isEmpty(set1)) {
+            return Lists.newArrayList(set0);
+        }
+
         for (String s : set0) {
             if (!set1.contains(s)) {
                 diffs.add(s);

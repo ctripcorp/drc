@@ -47,6 +47,9 @@ public class TableStructureCheckTaskTest {
     @Mock
     private Reporter reporter;
 
+    private static final String TABLE_STRUCTURE_MEASUREMENT = "drc.table.structure";
+    private static final String TABLE_COLUMN_STRUCTURE_MEASUREMENT = "drc.table.column.structure";
+
     @Before
     public void setUp(){
         MockitoAnnotations.openMocks(this);
@@ -75,7 +78,13 @@ public class TableStructureCheckTaskTest {
 
         task.checkTableStructure();
         Thread.sleep(200);
-        Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_COLUMN_STRUCTURE_MEASUREMENT));
+
+        map1.put("db.table1", Sets.newHashSet("col1", "col2"));
+        task.checkTableStructure();
+        Thread.sleep(200);
+        Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_COLUMN_STRUCTURE_MEASUREMENT));
+        Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_STRUCTURE_MEASUREMENT));
     }
 
     @Test
