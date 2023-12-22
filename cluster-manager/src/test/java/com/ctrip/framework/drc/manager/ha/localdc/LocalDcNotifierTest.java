@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.localdc;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -37,7 +38,7 @@ public class LocalDcNotifierTest extends AbstractDbClusterTest {
         localDcNotifier.replicatorActiveElected(CLUSTER_ID, null);
         verify(instanceStateController, times(0)).addMessenger(anyString(), anyObject());
 
-        when(currentMetaManager.getActiveMessenger(CLUSTER_ID)).thenReturn(newMessenger);
+        when(currentMetaManager.getActiveMessengers(CLUSTER_ID)).thenReturn(Lists.newArrayList(newMessenger));
         localDcNotifier.replicatorActiveElected(CLUSTER_ID, null);
         Thread.sleep(100);
         verify(instanceStateController, times(1)).addMessenger(anyString(), anyObject());

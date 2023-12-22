@@ -15,6 +15,7 @@ import org.mockito.Mock;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 import static com.ctrip.framework.drc.manager.AllTests.BACKUP_DAL_CLUSTER_ID;
 
 /**
@@ -98,27 +99,27 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
 
 
         when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
-        when(currentMetaManager.getSurviveMessengers(CLUSTER_ID)).thenReturn(Lists.newArrayList(newMessenger));
+        when(currentMetaManager.getSurviveMessengers(CLUSTER_ID, DRC_MQ)).thenReturn(Lists.newArrayList(newMessenger));
         stateChangeHandler.messengerActiveElected(CLUSTER_ID, newMessenger);
         verify(instanceStateController, times(1)).addMessenger(CLUSTER_ID, newMessenger);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void applierMasterChanged() {
-        when(currentMetaManager.getActiveApplier(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(null);
+        when(currentMetaManager.getActiveAppliers(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(null);
         stateChangeHandler.applierMasterChanged(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, applierMaster);
         verify(instanceStateController, times(0)).applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
 
         newApplier.setMaster(false);
-        when(currentMetaManager.getActiveApplier(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(newApplier);
+        when(currentMetaManager.getActiveAppliers(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(Lists.newArrayList(newApplier));
         stateChangeHandler.applierMasterChanged(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, applierMaster);
-
+        verify(instanceStateController, times(0)).applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
     }
 
     @Test
     public void applierMasterChangedRight() {
         newApplier.setMaster(true);
-        when(currentMetaManager.getActiveApplier(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(newApplier);
+        when(currentMetaManager.getActiveAppliers(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID)).thenReturn(Lists.newArrayList(newApplier));
         stateChangeHandler.applierMasterChanged(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, applierMaster);
         verify(instanceStateController, times(1)).applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
     }

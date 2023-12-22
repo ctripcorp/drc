@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitorTest;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManagerTest;
+import com.ctrip.framework.drc.console.monitor.MultiTruncateMonitorTest;
 import com.ctrip.framework.drc.console.monitor.MysqlConfigsMonitorTest;
 import com.ctrip.framework.drc.console.monitor.UuidMonitorTest;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
@@ -177,6 +178,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MqDelayMonitorServerTest.class,
         AutoIncrementCheckTaskTest.class,
         TableStructureCheckTaskTest.class,
+        MultiTruncateMonitorTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

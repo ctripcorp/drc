@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -328,6 +329,34 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryMappingIds(mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId)
                         .collect(Collectors.toList()));
         return !CollectionUtils.isEmpty(dbReplicationTbls);
+    }
+
+    @Override
+    public List<MhaTblV2> getReplicationRelatedMha(String db, String table) throws SQLException {
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(db));
+        if (CollectionUtils.isEmpty(dbTbls)) {
+            return Lists.newArrayList();
+        }
+        List<MhaDbMappingTbl> mhaDbMappings = mhaDbMappingTblDao.queryByDbIds(dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList()));
+        if (CollectionUtils.isEmpty(mhaDbMappings)) {
+            return Lists.newArrayList();
+        }
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByRelatedMappingIds(
+                mhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),
+                ReplicationTypeEnum.DB_TO_DB.getType());
+        List<DbReplicationTbl> matchDbReplications = dbReplicationTbls.stream().filter(dbReplicationTbl -> 
+                        new AviatorRegexFilter(dbReplicationTbl.getSrcLogicTableName()).filter(table))
+                .collect(Collectors.toList());
+        Set<Long> mhaDbMappingIds = Sets.newHashSet();
+        matchDbReplications.forEach(dbReplicationTbl -> {
+            mhaDbMappingIds.add(dbReplicationTbl.getSrcMhaDbMappingId());
+            mhaDbMappingIds.add(dbReplicationTbl.getDstMhaDbMappingId());
+        });
+        Set<Long> matchMhaIds= mhaDbMappings.stream()
+                .filter(mhaDbMapping -> mhaDbMappingIds.contains(mhaDbMapping.getId()))
+                .map(MhaDbMappingTbl::getMhaId)
+                .collect(Collectors.toSet());
+        return mhaTblV2Dao.queryByIds(Lists.newArrayList(matchMhaIds));
     }
 
     private List<DbReplicationTbl> filterGreyMha(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {

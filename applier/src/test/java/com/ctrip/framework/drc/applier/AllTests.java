@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier;
 
+import com.ctrip.framework.drc.applier.activity.event.ApplierDumpEventActivityTest;
 import com.ctrip.framework.drc.applier.activity.event.TransactionTableApplierDumpEventActivityTest;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivityTest;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnectorTest;
@@ -98,6 +99,7 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         ApplierServerControllerTest.class,
 
         //activity
+        ApplierDumpEventActivityTest.class,
         TransactionTableApplierDumpEventActivityTest.class,
         ReportConflictActivityTest.class,
 

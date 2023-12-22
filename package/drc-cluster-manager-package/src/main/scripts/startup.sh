@@ -120,7 +120,7 @@ elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ] || [ $ENV = "UAT" ];then
     USED_MEM=`getSafeXmx`
     XMN=`getSafeXmn $USED_MEM`
     MAX_DIRECT=2
-    JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
+    JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g -Xdebug -Xrunjdwp:transport=dt_socket,address=*:8787,suspend=n,server=y"
 else
     #MB
     USED_MEM=1600

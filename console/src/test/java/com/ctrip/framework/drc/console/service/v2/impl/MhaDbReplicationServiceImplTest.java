@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
@@ -23,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.ctrip.framework.drc.console.service.v2.impl.MessengerServiceV2ImplTest.VPC_MHA_NAME;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 public class MhaDbReplicationServiceImplTest extends CommonDataInit {
@@ -103,6 +106,16 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         replication1.setDstMhaDbMappingId(dstId);
         replication1.setReplicationType(type);
         return replication1;
+    }
+
+    @Test
+    public void testGetReplicationRelatedMha() throws SQLException {
+        List<MhaTblV2> replicationRelatedMha = mhaDbReplicationService.getReplicationRelatedMha("db1", "table1");
+        Assert.assertEquals(2, replicationRelatedMha.size());
+        replicationRelatedMha = mhaDbReplicationService.getReplicationRelatedMha("db1", "table3");
+        Assert.assertEquals(0, replicationRelatedMha.size());
+        replicationRelatedMha = mhaDbReplicationService.getReplicationRelatedMha("db4", "table1");
+        Assert.assertEquals(0, replicationRelatedMha.size());
     }
 }
 

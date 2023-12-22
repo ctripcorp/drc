@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierPropertyComparator;
@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -99,12 +100,12 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
             }
 
             for (Applier modified : appliers) {
-                String backupClusterId = RegistryKey.from(modified.getTargetName(), modified.getTargetMhaName());
-                Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupClusterId);
-                if (modified.equalsWithIpPort(activeApplier)) {
+                String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(modified);
+                Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupRegistryKey);
+                if (modified.equalsWithIpPort(activeApplier) && ObjectUtils.equals(modified.getIncludedDbs(), activeApplier.getIncludedDbs())) {
                     activeApplier.setNameFilter(modified.getNameFilter());
                     activeApplier.setProperties(modified.getProperties());
-                    logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupClusterId, activeApplier);
+                    logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupRegistryKey, activeApplier);
                     instanceStateController.applierPropertyChange(clusterId, activeApplier);
                 }
             }

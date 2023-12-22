@@ -102,11 +102,11 @@ public class DrcInfoAnalysisUtils {
         all.addAll(sin);
         all.addAll(fra);
         all.addAll(sinibuaws);
-//        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(all);
-//        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(all);
+        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(all);
+        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(all);
         String res = "sha:\n" + getAllDistinctDbs(all);
-//        res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
-//        res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
+        res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
+        res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
 
 
         URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");

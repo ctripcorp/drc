@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
@@ -96,8 +97,11 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
         DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
         newMessenger.setIp("12.21.12.21");
         newMessenger.setPort(4321);
+        newMessenger.setApplyMode(ApplyMode.mq.getType());
         cloneDbCluster.getMessengers().add(newMessenger);
-        messengerInstanceElectorManager.update(new ClusterComparator(dbCluster, cloneDbCluster), null);
+        ClusterComparator clusterComparator = new ClusterComparator(dbCluster, cloneDbCluster);
+        clusterComparator.compare();
+        messengerInstanceElectorManager.update(clusterComparator, null);
         verify(instanceStateController, times(0)).removeMessenger(dbCluster.getId(), dbCluster.getMessengers().get(0), true);
     }
 }

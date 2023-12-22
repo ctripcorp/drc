@@ -18,6 +18,8 @@ public interface TransactionTable {
 
     void commit(String gtid);
 
+    void merge(GtidSet gtidSet);
+
     void recordToMemory(String gtid);
 
     GtidSet mergeRecord(String uuid, boolean needRetry);

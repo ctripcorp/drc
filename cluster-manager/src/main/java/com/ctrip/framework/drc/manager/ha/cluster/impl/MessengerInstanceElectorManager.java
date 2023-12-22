@@ -5,20 +5,20 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
+import java.util.*;
 
 /**
  * Created by jixinwang on 2022/10/31
@@ -27,8 +27,8 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 public class MessengerInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
 
     @Override
-    protected String getLeaderPath(String clusterId) {
-        return ClusterZkConfig.getApplierLeaderLatchPath(clusterId);
+    protected String getLeaderPath(String registryKey) {
+        return ClusterZkConfig.getApplierLeaderLatchPath(registryKey);
     }
 
     @Override
@@ -37,8 +37,8 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
     }
 
     @Override
-    protected boolean watchIfNotWatched(String clusterId) {
-        return currentMetaManager.watchMessengerIfNotWatched(clusterId);
+    protected boolean watchIfNotWatched(String registryKey) {
+        return currentMetaManager.watchMessengerIfNotWatched(registryKey);
     }
 
     @Override
@@ -47,8 +47,10 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         try {
             List<Messenger> messengers = dbCluster.getMessengers();
             if (!messengers.isEmpty()) {
-                String registryKey = RegistryKey.from(clusterId, DRC_MQ);
-                observerClusterLeader(registryKey);
+                for (Messenger messenger : messengers) {
+                    String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+                    observerClusterLeader(registryKey);
+                }
             }
         } catch (Exception e) {
             logger.error("[handleClusterAdd]" + clusterId, e);
@@ -57,32 +59,41 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
 
     @Override
     protected void handleClusterModified(ClusterComparator comparator) {
-
         String clusterId = comparator.getCurrent().getId();
-        String registryKey = RegistryKey.from(clusterId, DRC_MQ);
-        observerClusterLeader(registryKey);
+        MessengerComparator messengerComparator = comparator.getMessengerComparator();
+        Set<Messenger> addedMessenger = messengerComparator.getAdded();
+        doObserveLeader(clusterId, addedMessenger);
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId){
-        RegistryKey registryKey = RegistryKey.from(tmpClusterId);
-        String clusterId = registryKey.toString();
-        logger.info("[Transfer] {} to {}", tmpClusterId, clusterId);
+    private void doObserveLeader(String clusterId, Collection<Messenger> messengers) {
+        for (Messenger messenger : messengers) {
+            String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+            observerClusterLeader(registryKey);
+        }
+    }
+
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String registryKey) {
+
+        String clusterId = RegistryKey.from(registryKey).toString();
+        logger.info("[Transfer][messenger] {} to {}", registryKey, clusterId);
 
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));
 
-        logger.info("[updateShardLeader]{}, {}", clusterId, childrenPaths);
+        logger.info("[updateShardLeader][messenger]{}, {}", registryKey, childrenPaths);
 
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
         List<Messenger> survivalMessengers = new ArrayList<>(childrenData.size());
 
-        for(String path : sortedChildren){
-            for(ChildData childData : childrenData){
-                if(path.equals(childData.getPath())){
+        String targetDB = RegistryKey.getTargetDB(registryKey);
+
+        for (String path : sortedChildren) {
+            for (ChildData childData : childrenData) {
+                if (path.equals(childData.getPath())) {
                     String data = new String(childData.getData());
                     ZookeeperValue zookeeperValue = JsonCodec.INSTANCE.decode(data, ZookeeperValue.class);
-                    Messenger messenger = getMessenger(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
+                    Messenger messenger = getMessenger(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetDB);
                     if (messenger != null) {
                         survivalMessengers.add(messenger);
                         logger.info("[Survive] messenger {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
@@ -94,7 +105,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
             }
         }
 
-        if(survivalMessengers.size() != childrenData.size()){
+        if (survivalMessengers.size() != childrenData.size()) {
             throw new IllegalStateException(String.format("[children data not equal with survival messengers]%s, %s", childrenData, survivalMessengers));
         }
 
@@ -103,9 +114,12 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         currentMetaManager.setSurviveMessengers(clusterId, survivalMessengers, activeMessenger);
     }
 
-    private Messenger getMessenger(String clusterId, String ip, int port) {
+    private Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Messenger> messengerList = dbCluster.getMessengers();
-        return messengerList.stream().filter(messenger -> messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port).findFirst().orElse(null);
+        return messengerList.stream().filter(messenger ->
+                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port
+                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(messenger.getIncludedDbs(), targetDB)))
+                .findFirst().orElse(null);
     }
 }

@@ -78,14 +78,14 @@ public class MqPositionResourceTest {
 
     @Test
     public void updatePosition() {
-        mqPosition.updatePosition(toUpdateGtid);
+        mqPosition.add(toUpdateGtid);
         String position = mqPosition.getCurrentPosition();
         Assert.assertEquals(toUpdateGtid, position);
     }
 
     @Test
     public void getPosition() {
-        String position = mqPosition.getPosition();
+        String position = mqPosition.get();
         Assert.assertEquals(toUpdateGtid, position);
     }
 }

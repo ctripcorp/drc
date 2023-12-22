@@ -32,7 +32,7 @@ public interface Reporter extends Ordered {
     void reportResetCounter(Map<String, String> tags, Long value, String measurement);
 
     void reportResetCounter(Map<String, String> tags, Long value, MeasurementEnum measurementEnum);
-
+    
     void resetReportCounter(Map<String, String> tags, Long value, String measurement);
 
     void reportGtidGapCount(@Valid GtidGapEntity gtidGapEntity, Long gap);

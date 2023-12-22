@@ -44,7 +44,7 @@ public class DataSourceResourceTest {
         dataSourceResource.executor = executorResource;
         dataSourceResource.password = ROOT;
         dataSourceResource.username = ROOT;
-        dataSourceResource.poolSize = 0;
+        dataSourceResource.applyConcurrency = 0;
         dataSourceResource.URL = "jdbc:mysql://10.10.10.10:3306?allowMultiQueries=true&useLocalSessionState=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8";
         dataSourceResource.initialize();
         dataSourceResource.start();
@@ -69,7 +69,7 @@ public class DataSourceResourceTest {
         dataSourceResource.executor = executorResource;
         dataSourceResource.password = PASSWORD;
         dataSourceResource.username = ROOT;
-        dataSourceResource.poolSize = 100;
+        dataSourceResource.applyConcurrency = 100;
         dataSourceResource.validationInterval = 500;
         dataSourceResource.URL = "jdbc:mysql://127.0.0.1:3306?allowMultiQueries=true&useLocalSessionState=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8";
         dataSourceResource.initialize();

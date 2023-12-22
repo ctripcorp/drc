@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 
@@ -14,7 +15,6 @@ import java.util.List;
 public interface MhaDbReplicationService {
     /**
      * query mhaDbReplication by conditions
-     *
      * @param srcMhaName src mha
      * @param dstMhaName dst mha
      * @param dbNames    related db names. query all if empty or null
@@ -31,4 +31,5 @@ public interface MhaDbReplicationService {
 
     boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
 
+    List<MhaTblV2> getReplicationRelatedMha(String db, String table) throws SQLException;
 }

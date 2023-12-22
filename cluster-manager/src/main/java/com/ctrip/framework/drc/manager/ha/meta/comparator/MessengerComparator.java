@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.comparator.AbstractMetaComparator;
 import com.ctrip.xpipe.tuple.Pair;
+import com.ctrip.xpipe.utils.ObjectUtils;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -23,8 +24,8 @@ public class MessengerComparator extends AbstractMetaComparator<Messenger, Messe
 
     @Override
     public void compare() {
-        List<Messenger> currentAll =  current.getMessengers();
-        List<Messenger> futureAll =  future.getMessengers();
+        List<Messenger> currentAll = current.getMessengers();
+        List<Messenger> futureAll = future.getMessengers();
 
 
         Pair<List<Messenger>, List<Pair<Messenger, Messenger>>> subResult = sub(futureAll, currentAll);
@@ -44,18 +45,19 @@ public class MessengerComparator extends AbstractMetaComparator<Messenger, Messe
         List<Messenger> subResult = new LinkedList<>();
         List<Pair<Messenger, Messenger>> intersectResult = new LinkedList<>();
 
-        for(Messenger messenger1 : all1){
+        for (Messenger messenger1 : all1) {
 
             Messenger messenger2Equal = null;
-            for(Messenger messenger2 : all2){
-                if(messenger1.equalsWithIpPort(messenger2)){
+            for (Messenger messenger2 : all2) {
+                if (messenger1.equalsWithIpPort(messenger2)
+                        && ObjectUtils.equals(messenger1.getIncludedDbs(), messenger2.getIncludedDbs())) {
                     messenger2Equal = messenger2;
                     break;
                 }
             }
-            if(messenger2Equal == null){
+            if (messenger2Equal == null) {
                 subResult.add(messenger1);
-            }else{
+            } else {
                 intersectResult.add(new Pair<>(messenger1, messenger2Equal));
             }
         }
@@ -64,10 +66,10 @@ public class MessengerComparator extends AbstractMetaComparator<Messenger, Messe
 
     private void compareConfigConfig(List<Pair<Messenger, Messenger>> allModified) {
 
-        for(Pair<Messenger, Messenger> pair : allModified){
+        for (Pair<Messenger, Messenger> pair : allModified) {
             Messenger current = pair.getValue();
             Messenger future = pair.getKey();
-            if(current.equals(future)){
+            if (current.equals(future)) {
                 continue;
             }
             MessengerPropertyComparator messengerPropertyComparator = new MessengerPropertyComparator(current, future);

@@ -52,7 +52,7 @@ public class AutoIncrementCheckTaskTest {
 
     @Test
     public void testScheduledTask() throws SQLException {
-        Mockito.doNothing().when(reporter).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doNothing().when(reporter).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
         Mockito.when(mhaReplicationTblDao.queryAllExist()).thenReturn(getMhaReplicationTbls());
         Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(getMhaTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
@@ -61,7 +61,7 @@ public class AutoIncrementCheckTaskTest {
         Mockito.when(mysqlServiceV2.getAutoIncrementAndOffset(Mockito.eq("mhaName1"))).thenReturn(new AutoIncrementVo(2, 1));
 
         task.checkAutoIncrement();
-        Mockito.verify(reporter, Mockito.times(2)).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
     }
 
     private List<MhaReplicationTbl> getMhaReplicationTbls() {

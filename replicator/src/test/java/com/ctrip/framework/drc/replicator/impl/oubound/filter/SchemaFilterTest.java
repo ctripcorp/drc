@@ -25,7 +25,7 @@ public class SchemaFilterTest {
         SchemaFilter schemaFilter = new SchemaFilter(context);
 
         Set<String> schemas = schemaFilter.getSchemas();
-        Assert.assertEquals(3, schemas.size());
+        Assert.assertEquals(4, schemas.size());
         Assert.assertTrue(schemas.contains("drc1"));
         Assert.assertTrue(schemas.contains("drc2"));
 

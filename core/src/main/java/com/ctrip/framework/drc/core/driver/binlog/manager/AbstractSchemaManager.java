@@ -34,6 +34,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     protected Map<TableId, TableInfo> tableInfoMap = Maps.newConcurrentMap();
     protected Map<String, Map<String, String>> schemaCache = Maps.newConcurrentMap();
+    protected boolean schemaCacheInit;
 
     public static final int PORT_STEP = 10000;
 
@@ -56,6 +57,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         logger.info("[Schema] port is {}", port);
         this.endpoint = endpoint;
         this.registryKey = registryKey;
+        this.schemaCacheInit = false;
         ddlMonitorExecutorService = ThreadUtils.newSingleThreadExecutor(getThreadName(getClass().getSimpleName(), registryKey));
     }
 
@@ -78,10 +80,14 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public synchronized Map<String, Map<String, String>> snapshot() {
-        if (CollectionUtils.isEmpty(schemaCache)) {
+        if (snapshotCacheNeedInit()) {
             schemaCache = doSnapshot(inMemoryEndpoint);
         }
         return Collections.unmodifiableMap(schemaCache);
+    }
+
+    protected boolean snapshotCacheNeedInit() {
+        return !schemaCacheInit || CollectionUtils.isEmpty(schemaCache);
     }
 
     /**
@@ -94,6 +100,8 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTaskV2(endpoint, dataSource, registryKey)).call();
         if (snapshot == null) {
             snapshot = Maps.newHashMap();
+        } else {
+            schemaCacheInit = true;
         }
         return snapshot;
     }
