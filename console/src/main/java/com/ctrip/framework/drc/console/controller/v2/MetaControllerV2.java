@@ -170,4 +170,14 @@ public class MetaControllerV2 {
         }
     }
 
+    @GetMapping("dbBuCodes/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<String>> getAllDbBuCodes() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllDbBuCode());
+        } catch (Throwable e) {
+            logger.error("getAllDcs exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 }

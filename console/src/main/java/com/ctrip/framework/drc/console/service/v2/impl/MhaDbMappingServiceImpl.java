@@ -8,13 +8,17 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaQuery;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.framework.drc.console.utils.NumberUtils;
+import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
 import com.google.common.collect.Lists;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +50,8 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
     private static final String DRC = "drc";
 
@@ -64,7 +71,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     }
 
     @Override
-    public void buildMhaDbMappings(String mhaName,List<String> dbList) throws SQLException {
+    public void buildMhaDbMappings(String mhaName, List<String> dbList) throws SQLException {
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         insertDbs(dbList);
 
@@ -193,6 +200,50 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
             int[] ints = mhaDbMappingTblDao.batchInsert(toBeInsert);
             logger.info("copyMhaDbMappings from :{},expected size: {} ,res:{}",
                     newMhaTbl.getMhaName(), toBeInsert.size(), Arrays.stream(ints).sum());
+        }
+    }
+
+
+    @Override
+    public List<MhaDbMappingTbl> query(MhaDbQueryDto query) {
+        try {
+            // mha id
+            List<Long> mhaIds = Lists.newArrayList();
+            List<Long> dbIds = Lists.newArrayList();
+            if (query.hasMhaCondition()) {
+                MhaQuery mhaQuery = new MhaQuery();
+                if (NumberUtils.isPositive(query.getRegionId())) {
+                    List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
+                    List<Long> dcIdList = dcDos.stream()
+                            .filter(e -> query.getRegionId().equals(e.getRegionId()))
+                            .map(DcDo::getDcId)
+                            .collect(Collectors.toList());
+                    if (CollectionUtils.isEmpty(dcIdList)) {
+                        return Collections.emptyList();
+                    }
+                    mhaQuery.setDcIdList(dcIdList);
+                }
+
+                if (mhaQuery.emptyQueryCondition()) {
+                    return Collections.emptyList();
+                }
+                mhaIds = mhaTblV2Dao.query(mhaQuery)
+                        .stream().map(MhaTblV2::getId).collect(Collectors.toList());
+                if(CollectionUtils.isEmpty(mhaIds)){
+                    return Collections.emptyList();
+                }
+            }
+            if (query.hasDbCondition()) {
+                dbIds = dbTblDao.queryByLikeDbNamesOrBuCode(query.getDbName(), query.getBuCode())
+                        .stream().map(DbTbl::getId).collect(Collectors.toList());
+                if(CollectionUtils.isEmpty(dbIds)){
+                    return Collections.emptyList();
+                }
+            }
+            return mhaDbMappingTblDao.queryByDbIdsOrMhaIds(dbIds, mhaIds);
+        } catch (SQLException e) {
+            logger.error("queryMhaByName exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
 

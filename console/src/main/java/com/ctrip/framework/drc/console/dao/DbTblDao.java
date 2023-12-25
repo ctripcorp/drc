@@ -8,10 +8,12 @@ import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -23,6 +25,8 @@ public class DbTblDao extends AbstractDao<DbTbl> {
 
 	private static final String ID = "id";
 	private static final String DELETED = "deleted";
+	public static final String DB_NAME = "db_name";
+	public static final String BU_CODE = "bu_code";
 
 	public DbTblDao() throws SQLException {
 		super(DbTbl.class);
@@ -33,14 +37,25 @@ public class DbTblDao extends AbstractDao<DbTbl> {
 			throw new IllegalArgumentException("build sql: query DbTbl queryByDbNames, but dbNames is empty.");
 		}
 		SelectSqlBuilder builder = new SelectSqlBuilder();
-		builder.selectAll().in("db_name", dbNames, Types.VARCHAR, false);
+		builder.selectAll().in(DB_NAME, dbNames, Types.VARCHAR, false);
 		return client.query(builder,new DalHints());
+    }
+
+    public List<DbTbl> queryByLikeDbNamesOrBuCode(String dbName, String buCodes) throws SQLException {
+        if (StringUtils.isEmpty(dbName) && StringUtils.isEmpty(buCodes)) {
+            return Collections.emptyList();
+        }
+        SelectSqlBuilder builder = initSqlBuilder();
+        builder.and()
+				.likeNullable(DB_NAME, dbName, MatchPattern.CONTAINS, Types.VARCHAR).and()
+				.equalNullable(BU_CODE, buCodes, Types.VARCHAR, false);
+        return client.query(builder, new DalHints());
     }
 
 	public List<DbTbl> queryByPage(DbQuery query) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder().atPage(query.getPageIndex(), query.getPageSize())
                 .orderBy(ID, false);
-        sqlBuilder.and().likeNullable("db_name", query.getLikeByDbNameFromBeginning(),  MatchPattern.BEGIN_WITH,Types.VARCHAR);
+        sqlBuilder.and().likeNullable(DB_NAME, query.getLikeByDbNameFromBeginning(),  MatchPattern.BEGIN_WITH,Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
     }
 

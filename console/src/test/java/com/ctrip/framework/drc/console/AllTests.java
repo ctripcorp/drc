@@ -16,13 +16,10 @@ import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
+import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitorTest;
-import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManagerTest;
-import com.ctrip.framework.drc.console.monitor.MultiTruncateMonitorTest;
-import com.ctrip.framework.drc.console.monitor.MysqlConfigsMonitorTest;
-import com.ctrip.framework.drc.console.monitor.UuidMonitorTest;
+import com.ctrip.framework.drc.console.monitor.*;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.SqlOperatorTest;
 import com.ctrip.framework.drc.console.monitor.consistency.table.DefaultTableProviderTest;
@@ -59,6 +56,8 @@ import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServic
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
+import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDtoTest;
+import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDtoTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.AfterClass;
@@ -214,7 +213,10 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //entity
         MhaInstanceGroupDtoTest.class,
         MhaReplicationQueryTest.class,
-        CreatePojoTest.class
+        CreatePojoTest.class,
+        MhaDbDelayInfoDtoTest.class,
+        MhaDbQueryDtoTest.class,
+        MhaDbReplicationQueryDtoTest.class
 
 })
 public class AllTests {

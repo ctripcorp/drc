@@ -17,6 +17,9 @@
             <MenuItem name="/v2/mhaReplications" to="/v2/mhaReplications">
               <span>MHA 同步</span>
             </MenuItem>
+            <MenuItem name="/v2/mhaDbReplications" to="/v2/mhaDbReplications">
+              <span>DB 粒度同步</span>
+            </MenuItem>
             <MenuItem name="/v2/messengersV2" to="/v2/messengersV2">
               <span>Messenger 同步</span>
             </MenuItem>
@@ -143,6 +146,7 @@ export default {
         this.openNames = ['']
         break
       case '/v2/mhaReplications':
+      case '/v2/mhaDbReplications':
       case '/drcV2':
       case '/v2/buildMessengerV2':
       case '/v2/messengersV2':

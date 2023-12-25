@@ -27,7 +27,6 @@ import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -121,6 +120,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return null;
         }
         return MySqlUtils.getDelayUpdateTime(endpoint, srcMha);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/db/lastUpdateTime")
+    public Map<String, Long> getDbDelayUpdateTime(String srcMha, String mha, List<String> dbNames) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=delayQuery]] getDbDelayUpdateTime from mha {},machine not exist", mha);
+            return null;
+        }
+        return MySqlUtils.getDbDelayUpdateTime(endpoint, srcMha, dbNames);
     }
 
     @Override
@@ -306,20 +316,6 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         return dbMap;
     }
 
-    @VisibleForTesting
-    protected static Set<String> getExistDrcMonitorTables(List<String> tablesFromDb) {
-        if(CollectionUtils.isEmpty(tablesFromDb)){
-            return Collections.emptySet();
-        }
-        Set<String> db1 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX))
-                .map(e -> e.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
-        Set<String> db2 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX))
-                .map(e -> e.substring(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
-        // intersection
-        db1.retainAll(db2);
-        return db1;
-    }
-
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/firstUniqueIndex")
     public String getFirstUniqueIndex(String mha, String db, String table) {
@@ -374,8 +370,11 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
 
         Set<String> dbList = dbs.stream().map(String::toLowerCase).collect(Collectors.toSet());
-        List<String> existTablesInDrcMonitorDb = MySqlUtils.getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
-        Set<String> existDbs = getExistDrcMonitorTables(existTablesInDrcMonitorDb);
+        Set<String> existDbs = MySqlUtils.getDbHasDrcMonitorTables(endpoint);
+        if (existDbs == null) {
+            logger.error("createDrcMonitorDbTable fail, req:" + requestBody);
+            return Boolean.FALSE;
+        }
         dbList.removeAll(existDbs);
         if (CollectionUtils.isEmpty(dbList)) {
             logger.info("no need to create table for {} {}", mha, dbs);
