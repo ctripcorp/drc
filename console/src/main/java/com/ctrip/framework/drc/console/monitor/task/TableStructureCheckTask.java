@@ -5,10 +5,13 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
@@ -54,6 +57,8 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private DbTblDao dbTblDao;
     @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
+    @Autowired
     private MysqlServiceV2 mysqlServiceV2;
 
     private Reporter reporter = DefaultReporterHolder.getInstance();
@@ -74,15 +79,18 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
-        CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
+        CONSOLE_MONITOR_LOGGER.info("tableStructureCheck is leader, going to check");
         try {
             checkTableStructure();
         } catch (Exception e) {
-            CONSOLE_MONITOR_LOGGER.error("[[monitor=tableStructureCheck]] fail, {}", e);
+            CONSOLE_MONITOR_LOGGER.error("tableStructureCheck fail, {}", e);
         }
     }
 
     protected void checkTableStructure() throws SQLException {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllExist().stream()
+                .filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist().stream()
                 .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())).collect(Collectors.toList());
@@ -107,6 +115,11 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             }
         }
 
+        List<MultiKey> mhaReplicationMultiKeys = getMhaReplicationMultiKeys(mhaReplicationTbls);
+        Map<MultiKey, List<String>> mhaReplicationMap = new HashMap<>();
+        mhaReplicationMultiKeys.forEach(multiKey -> {
+            mhaReplicationMap.put(multiKey, new ArrayList<>());
+        });
         for (Map.Entry<MultiKey, Set<String>> entry : dbReplicationMap.entrySet()) {
             MultiKey multiKey = entry.getKey();
             Set<String> logicTables = entry.getValue();
@@ -115,11 +128,26 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
             MhaDbMappingTbl srcMhaDbMappingTbl = mhaDbMappingTblMap.get(srcMhaMappingId);
             MhaDbMappingTbl dstMhaDbMappingTbl = mhaDbMappingTblMap.get(dstMhaMappingId);
-            String srcMhaName = mhaMap.get(srcMhaDbMappingTbl.getMhaId());
-            String dstMhaName = mhaMap.get(dstMhaDbMappingTbl.getMhaId());
             String dbName = dbTblMap.get(srcMhaDbMappingTbl.getDbId());
             List<String> dbTables = logicTables.stream().map(table -> dbName + "\\." + table).collect(Collectors.toList());
             String dbFilter = Joiner.on(",").join(dbTables);
+
+            long srcMhaId = srcMhaDbMappingTbl.getMhaId();
+            long dstMhaId = dstMhaDbMappingTbl.getMhaId();
+            if (mhaReplicationMultiKeys.contains(new MultiKey(srcMhaId, dstMhaId))) {
+                mhaReplicationMap.get(new MultiKey(srcMhaId, dstMhaId)).add(dbFilter);
+            } else if (mhaReplicationMultiKeys.contains(new MultiKey(dstMhaId, srcMhaId))) {
+                mhaReplicationMap.get(new MultiKey(dstMhaId, srcMhaId)).add(dbFilter);
+            }
+        }
+
+        for (Map.Entry<MultiKey, List<String>> entry : mhaReplicationMap.entrySet()) {
+            MultiKey multiKey = entry.getKey();
+            String dbFilter = Joiner.on(",").join(entry.getValue());
+            long srcMhaId = (long) multiKey.getKey(0);
+            long dstMhaId = (long) multiKey.getKey(1);
+            String srcMhaName = mhaMap.get(srcMhaId);
+            String dstMhaName = mhaMap.get(dstMhaId);
 
             executorService.submit(() -> {
                 Map<String, Set<String>> srcTableColumns = mysqlServiceV2.getTableColumns(new DbFilterReq(srcMhaName, dbFilter));
@@ -127,6 +155,19 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
                 compareTableColumns(srcMhaName, dstMhaName, srcTableColumns, dstTableColumns);
             });
         }
+    }
+
+    private List<MultiKey> getMhaReplicationMultiKeys(List<MhaReplicationTbl> mhaReplicationTbls) {
+        List<MultiKey> mhaReplicationMultiKeys = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            long srcMhaId = mhaReplicationTbl.getSrcMhaId();
+            long dstMhaId = mhaReplicationTbl.getDstMhaId();
+            if (mhaReplicationMultiKeys.contains(new MultiKey(dstMhaId, srcMhaId))) {
+                continue;
+            }
+            mhaReplicationMultiKeys.add(new MultiKey(srcMhaId, dstMhaId));
+        }
+        return mhaReplicationMultiKeys;
     }
 
     private void compareTableColumns(String srcMhaName, String dstMhaName, Map<String, Set<String>> srcTableColumns, Map<String, Set<String>> dstTableColumns) {
@@ -141,7 +182,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         List<String> diffTables = getDiff(srcTables, dstTables);
         if (!CollectionUtils.isEmpty(diffTables)) {
             CONSOLE_MONITOR_LOGGER.info("report diff tables between mha: {} -> {}, diffTables: {}", srcMhaName, dstMhaName, diffTables);
-            reporter.resetReportCounter(getTableTags(srcMhaName, dstMhaName, diffTables), 1L, TABLE_STRUCTURE_MEASUREMENT);
+            reporter.reportResetCounter(getTableTags(srcMhaName, dstMhaName, diffTables), 1L, TABLE_STRUCTURE_MEASUREMENT);
         }
 
         for (Map.Entry<String, Set<String>> entry : srcTableColumns.entrySet()) {
@@ -154,7 +195,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
-                reporter.resetReportCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
+                reporter.reportResetCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
             }
         }
     }
