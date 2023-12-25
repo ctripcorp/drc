@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -231,6 +232,21 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         } else {
             throw new IllegalArgumentException("no machine find for" + mhaName);
         }
+    }
+
+    /**
+     * key: tableName, values: columns
+     */
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/tableColumns", httpType = HttpRequestEnum.POST, requestClass = DbFilterReq.class)
+    public Map<String, Set<String>> getTableColumns(DbFilterReq requestBody) {
+        logger.info("getTableColumns requestBody: {}", requestBody);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
+        if (endpoint == null) {
+            logger.error("getTableColumns from mha: {}, db not exit", requestBody.getMha());
+            return null;
+        }
+        return MySqlUtils.getTableColumns(endpoint, requestBody.getDbFilter());
     }
 
     @Override

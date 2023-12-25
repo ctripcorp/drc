@@ -53,6 +53,16 @@ public class RegistryKey {
         throw new IllegalArgumentException("Illegal path " + path);
     }
 
+    public static String getTargetDB(String path) {
+        if (StringUtils.isNotBlank(path)) {
+            String[] ids = path.split("\\" + DOT);
+            if (ids.length > 3) { //local idc : clusterName.mhaName.replicatorMhaName[.db]
+                return ids[3];
+            }
+        }
+        return null;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

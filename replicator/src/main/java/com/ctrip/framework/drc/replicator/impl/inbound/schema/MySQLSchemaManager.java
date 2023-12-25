@@ -171,7 +171,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     }
     @Override
     public synchronized Map<String, Map<String, String>> snapshot() {
-        if (DynamicConfig.getInstance().getDisableSnapshotCacheSwitch() || CollectionUtils.isEmpty(schemaCache)) {
+        if (snapshotCacheNeedInit() || DynamicConfig.getInstance().getDisableSnapshotCacheSwitch()) {
             Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
             if (!CollectionUtils.isEmpty(schemaCache)) {
                 boolean same = schemaCache.equals(snapshot);

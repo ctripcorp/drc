@@ -248,18 +248,28 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public Applier getActiveApplier(String clusterId, String backupClusterId) {
-        return currentMeta.getActiveApplier(clusterId, backupClusterId);
+    public Applier getActiveApplier(String clusterId, String backupRegistryKey) {
+        return currentMeta.getActiveApplier(clusterId, backupRegistryKey);
     }
 
     @Override
-    public Messenger getActiveMessenger(String clusterId) {
-        return currentMeta.getActiveMessenger(clusterId);
+    public List<Applier> getActiveAppliers(String clusterId, String backupClusterId) {
+        return currentMeta.getActiveAppliers(clusterId, backupClusterId);
     }
 
     @Override
     public List<Applier> getActiveAppliers(String clusterId) {
         return currentMeta.getActiveAppliers(clusterId);
+    }
+
+    @Override
+    public Messenger getActiveMessenger(String clusterId, String dbName) {
+        return currentMeta.getActiveMessenger(clusterId, dbName);
+    }
+
+    @Override
+    public List<Messenger> getActiveMessengers(String clusterId) {
+        return currentMeta.getActiveMessengers(clusterId);
     }
 
     @Override
@@ -283,13 +293,13 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public List<Messenger> getSurviveMessengers(String clusterId) {
-        return currentMeta.getSurviveMessengers(clusterId);
+    public List<Applier> getSurviveAppliers(String clusterId, String backupRegistryKey) {
+        return currentMeta.getSurviveAppliers(clusterId, backupRegistryKey);
     }
 
     @Override
-    public List<Applier> getSurviveAppliers(String clusterId, String backupClusterId) {
-        return currentMeta.getSurviveAppliers(clusterId, backupClusterId);
+    public List<Messenger> getSurviveMessengers(String clusterId, String dbName) {
+        return currentMeta.getSurviveMessengers(clusterId, dbName);
     }
 
     @Override
@@ -303,8 +313,8 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public void addResource(String clusterId, Releasable releasable) {
-        currentMeta.addResource(clusterId, releasable);
+    public void addResource(String registryKey, Releasable releasable) {
+        currentMeta.addResource(registryKey, releasable);
     }
 
     @Override
@@ -320,9 +330,9 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public void setSurviveAppliers(String registryKey, List<Applier> surviveAppliers, Applier activeApplier) {
-        currentMeta.setSurviveAppliers(registryKey, surviveAppliers, activeApplier);
-        notifyApplierActiveElected(registryKey, activeApplier);
+    public void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier) {
+        currentMeta.setSurviveAppliers(clusterId, surviveAppliers, activeApplier);
+        notifyApplierActiveElected(clusterId, activeApplier);
     }
 
     @Override

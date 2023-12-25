@@ -235,4 +235,9 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     public void setContext(NetworkContextResource context) {
         this.context = context;
     }
+
+    @VisibleForTesting
+    public NetworkContextResource getContext() {
+        return context;
+    }
 }

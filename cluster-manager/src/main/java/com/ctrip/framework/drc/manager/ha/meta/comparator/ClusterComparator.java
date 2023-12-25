@@ -55,8 +55,14 @@ public class ClusterComparator extends AbstractMetaComparator<Instance, DbCluste
 
     @Override
     public String toString() {
-        return String.format("%s: replicator:{added:%s, removed:%s, changed:%s}, applier:{added:%s, removed:%s, changed:%s}, dbs:{added:%s, removed:%s, changed:%s}", idDesc(), replicatorComparator.getAdded(), replicatorComparator.getRemoved(), replicatorComparator.getMofified(),
-                applierComparator.getAdded(), applierComparator.getRemoved(), applierComparator.getMofified(), dbComparator.getAdded(), dbComparator.getRemoved(), dbComparator.getMofified());
+        return String.format("%s: replicator:{added:%s, removed:%s, changed:%s}, " +
+                        "applier:{added:%s, removed:%s, changed:%s}, " +
+                        "messenger:{added:%s, removed:%s, changed:%s}, " +
+                        "dbs:{added:%s, removed:%s, changed:%s}", idDesc(),
+                replicatorComparator.getAdded(), replicatorComparator.getRemoved(), replicatorComparator.getMofified(),
+                applierComparator.getAdded(), applierComparator.getRemoved(), applierComparator.getMofified(),
+                messengerComparator.getAdded(), messengerComparator.getRemoved(), messengerComparator.getMofified(),
+                dbComparator.getAdded(), dbComparator.getRemoved(), dbComparator.getMofified());
     }
 
     public DbCluster getCurrent() {

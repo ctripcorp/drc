@@ -36,7 +36,7 @@ public class MqApplyActivity extends ApplyActivity {
 
     @Override
     protected Transaction onSuccess(Transaction transaction) throws InterruptedException {
-        mqPosition.updatePosition(transactionContext.fetchGtid());
+        mqPosition.add(transactionContext.fetchGtid());
         return super.onSuccess(transaction);
     }
 
