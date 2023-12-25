@@ -184,7 +184,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         List<String> diffTables = getDiff(srcTables, dstTables);
         if (!CollectionUtils.isEmpty(diffTables)) {
             CONSOLE_MONITOR_LOGGER.info("report diff tables between mha: {} -> {}, diffTables: {}", srcMhaName, dstMhaName, diffTables);
-            reporter.resetReportCounter(getTableTags(srcMhaName, dstMhaName, diffTables), 1L, TABLE_STRUCTURE_MEASUREMENT);
+            reporter.reportResetCounter(getTableTags(srcMhaName, dstMhaName, diffTables), 1L, TABLE_STRUCTURE_MEASUREMENT);
         }
 
         for (Map.Entry<String, Set<String>> entry : srcTableColumns.entrySet()) {
@@ -197,7 +197,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
-                reporter.resetReportCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
+                reporter.reportResetCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
             }
         }
     }
