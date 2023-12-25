@@ -31,6 +31,8 @@ public interface MysqlServiceV2 {
     // query (sourceMhaName) delay monitor info in (mha)
     Long getDelayUpdateTime(String sourceMhaName, String mhaName);
 
+    Map<String /*dbName*/, Long /*time*/> getDbDelayUpdateTime(String sourceMhaName, String mhaName, List<String> dbNames);
+
     // route By mha
     Map<String, Object> preCheckMySqlConfig(String mha) ;
 

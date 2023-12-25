@@ -16,6 +16,8 @@ public interface MetaInfoServiceV2 {
 
     List<BuTbl> queryAllBuWithCache();
 
+    List<String> queryAllDbBuCode();
+
     List<RegionTbl> queryAllRegion();
 
     List<RegionTbl> queryAllRegionWithCache();

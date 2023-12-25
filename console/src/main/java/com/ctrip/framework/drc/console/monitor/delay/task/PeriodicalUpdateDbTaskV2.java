@@ -164,7 +164,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             for (MhaDbReplicationDto e : mhaDbReplicationDtos) {
                 list.add(updateExecutor.submit(() -> {
                     String dbName = e.getSrc().getDbName().toLowerCase();
-                    Long mappingId = e.getId();
+                    Long mappingId = e.getSrc().getMhaDbMappingId();
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
                     String delayInfoJson = DbDelayDto.DelayInfo.from(dcName, region, mhaName, dbName).toJson();

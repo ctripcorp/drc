@@ -59,6 +59,13 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     private final Supplier<List<DcDo>> dcCache = Suppliers.memoizeWithExpiration(this::queryAllDc, 10, TimeUnit.SECONDS);
     private final Supplier<List<RegionTbl>> regionCache = Suppliers.memoizeWithExpiration(this::queryAllRegion, 10, TimeUnit.SECONDS);
     private final Supplier<List<BuTbl>> buCache = Suppliers.memoizeWithExpiration(this::queryAllBu, 10, TimeUnit.SECONDS);
+    private final Supplier<List<String>> dbBuCodeCache = Suppliers.memoizeWithExpiration(() -> {
+        try {
+            return this.dbTblDao.queryAllExist().stream().map(DbTbl::getBuCode).distinct().collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }, 1, TimeUnit.MINUTES);
 
     @Autowired
     private DcTblDao dcTblDao;
@@ -275,6 +282,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             }
         }
     }
+
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
         // db mappings
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
@@ -447,6 +455,10 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         }
     }
 
+    @Override
+    public List<String> queryAllDbBuCode() {
+        return dbBuCodeCache.get();
+    }
 
     @Override
     public List<RegionTbl> queryAllRegion() {
