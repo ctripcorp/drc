@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MultiKey;
@@ -81,7 +80,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
-        CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going on to check");
+        CONSOLE_MONITOR_LOGGER.info("[[monitor=tableStructureCheck]] is leader, going to check");
         try {
             checkTableStructure();
         } catch (Exception e) {

@@ -73,6 +73,24 @@ public class PojoBuilder {
         return Lists.newArrayList(mhaReplicationTbl);
     }
 
+    public static List<MhaReplicationTbl> getMhaReplicationTbls1() {
+        MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
+        mhaReplicationTbl.setDeleted(0);
+        mhaReplicationTbl.setId(200L);
+        mhaReplicationTbl.setSrcMhaId(200L);
+        mhaReplicationTbl.setDstMhaId(201L);
+        mhaReplicationTbl.setDrcStatus(1);
+
+        MhaReplicationTbl tbl1 = new MhaReplicationTbl();
+        tbl1.setDeleted(0);
+        tbl1.setId(201L);
+        tbl1.setSrcMhaId(201L);
+        tbl1.setDstMhaId(200L);
+        tbl1.setDrcStatus(1);
+        return Lists.newArrayList(mhaReplicationTbl, tbl1);
+    }
+
+
 
     public static ColumnsFilterTblV2 getColumnsFilterTblV2() {
         ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();
