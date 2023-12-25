@@ -67,10 +67,9 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "tableStructureCheck"));
 
     @Override
-    //ql_deng TODO 2023/12/25:
     public void initialize() {
         setInitialDelay(1);
-        setPeriod(5);
+        setPeriod(60);
         setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
