@@ -845,6 +845,7 @@ public class TransactionContextResource extends AbstractContext
     
     private void throwableLeadToRollback(String errorMsg) {
         try {
+            logger.error("throwableLeadToRollback errorMsg:{},rawSqlExecuteResult:{}",errorMsg,rawSqlExecuteResult);
             if (curCflRowLog == null) { // Not initialized yet
                 conflictMark(true);
             }
