@@ -47,7 +47,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
-        if (isRegionLeader || !consoleConfig.isCenterRegion()) {
+        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is slave, going to check");
