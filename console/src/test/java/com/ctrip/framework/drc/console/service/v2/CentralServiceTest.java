@@ -17,7 +17,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.sql.SQLException;
 
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getMhaTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaTblV2s;
 
 /**
  * Created by dengquanliang

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.zookeeper;
 
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -66,11 +67,13 @@ public abstract class AbstractDbClusterTest extends AbstractZkTest {
         newApplier.setMaster(true);
         newApplier.setIp(LOCAL_IP);
         newApplier.setPort(backupPort);
+        newApplier.setApplyMode(ApplyMode.transaction_table.getType());
 
 
         newMessenger.setMaster(true);
         newMessenger.setIp(LOCAL_IP);
         newMessenger.setPort(backupPort);
+        newMessenger.setApplyMode(ApplyMode.mq.getType());
 
         applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
 

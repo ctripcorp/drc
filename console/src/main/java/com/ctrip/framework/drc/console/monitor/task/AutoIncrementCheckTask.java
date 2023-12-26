@@ -56,17 +56,14 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
 
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
-    public final int INITIAL_DELAY = 30;
-    public final int PERIOD = 300;
     private static final int INCREMENT_SIZE = 1000;
-    public final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
     private static final String AUTO_INCREMENT_MEASUREMENT = "fx.drc.auto.increment";
 
     @Override
     public void initialize() {
-        setInitialDelay(INITIAL_DELAY);
-        setPeriod(PERIOD);
-        setTimeUnit(TIME_UNIT);
+        setInitialDelay(1);
+        setPeriod(30);
+        setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
 
@@ -160,7 +157,7 @@ public class AutoIncrementCheckTask extends AbstractLeaderAwareMonitor {
         boolean correctIncrement = checkAutoIncrement(increment0, increment1);
         if (!correctIncrement) {
             CONSOLE_AUTO_INCREMENT_LOGGER.info("[[monitor=autoIncrement]] report autoIncrement, mhaName0: {}, mhaName1: {}", mhaName0, mhaName1);
-            reporter.resetReportCounter(getTags(mhaName0, mhaName1), 1L, AUTO_INCREMENT_MEASUREMENT);
+            reporter.reportResetCounter(getTags(mhaName0, mhaName1), 1L, AUTO_INCREMENT_MEASUREMENT);
         }
     }
 

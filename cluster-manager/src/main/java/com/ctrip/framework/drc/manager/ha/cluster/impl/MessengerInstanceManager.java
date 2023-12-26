@@ -4,19 +4,18 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
-import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerPropertyComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Set;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 
 /**
  * Created by jixinwang on 2022/11/1
@@ -102,9 +101,9 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
             }
 
             for (Messenger modified : messengers) {
-                String registerKey = RegistryKey.from(clusterId, DRC_MQ);
-                Messenger activeMessenger = currentMetaManager.getActiveMessenger(registerKey);
-                if (modified.equalsWithIpPort(activeMessenger)) {
+                String dbName =  NameUtils.getMessengerDbName(modified);
+                Messenger activeMessenger = currentMetaManager.getActiveMessenger(clusterId, dbName);
+                if (modified.equalsWithIpPort(activeMessenger) && ObjectUtils.equals(modified.getIncludedDbs(), activeMessenger.getIncludedDbs())) {
                     activeMessenger.setNameFilter(modified.getNameFilter());
                     activeMessenger.setProperties(modified.getProperties());
                     logger.info("[visitModified][messengerPropertyChange] clusterId: {}, activeMessenger: {}", clusterId, activeMessenger);

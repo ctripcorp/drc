@@ -110,7 +110,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     }
 
     private GtidSet unionPositionFromZk(GtidSet gtidSet) {
-        String positionFromZk = mqPosition.getPosition();
+        String positionFromZk = mqPosition.get();
         if (StringUtils.isBlank(positionFromZk)) {
             return gtidSet;
         } else {

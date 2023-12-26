@@ -15,6 +15,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
@@ -38,7 +39,7 @@ public class LocalDcNotifier implements StateChangeHandler {
     @Override
     public void replicatorActiveElected(String clusterId, Replicator replicator) {
         // notify messenger in local dc
-        Messenger activeMessenger = currentMetaManager.getActiveMessenger(clusterId);
+        List<Messenger> activeMessenger = currentMetaManager.getActiveMessengers(clusterId);
         if (activeMessenger == null) {
             NOTIFY_LOGGER.info("[replicatorActiveElected][no active messenger, do nothing]{}", clusterId);
             return;
@@ -70,17 +71,19 @@ public class LocalDcNotifier implements StateChangeHandler {
 
         private String clusterId;
 
-        private Messenger activeMessenger;
+        private List<Messenger> activeMessengers;
 
-        public LocalDcNotifyTask(String clusterId, Messenger activeMessenger) {
+        public LocalDcNotifyTask(String clusterId, List<Messenger> activeMessengers) {
             this.clusterId = clusterId;
-            this.activeMessenger = activeMessenger;
+            this.activeMessengers = activeMessengers;
         }
 
         @Override
         protected void doRun() {
-            NOTIFY_LOGGER.info("[replicatorActiveElected][notify local dc messenger]{}, {}", clusterId, activeMessenger);
-            instanceStateController.addMessenger(clusterId, activeMessenger);
+            for (Messenger activeMessenger : activeMessengers) {
+                NOTIFY_LOGGER.info("[replicatorActiveElected][notify local dc messenger]{}, {}", clusterId, activeMessenger);
+                instanceStateController.addMessenger(clusterId, activeMessenger);
+            }
         }
     }
 

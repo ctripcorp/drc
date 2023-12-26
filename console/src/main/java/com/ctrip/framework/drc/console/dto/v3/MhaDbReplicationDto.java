@@ -6,6 +6,10 @@ public class MhaDbReplicationDto {
     private MhaDbDto dst;
     private Integer replicationType;
     private Boolean drcStatus;
+    /**
+     * @see com.ctrip.framework.drc.console.enums.TransmissionTypeEnum
+     */
+    private String transmissionType;
 
     public static final MhaDbDto MQ_DTO = new MhaDbDto(-1L, null, null);
 
@@ -47,6 +51,14 @@ public class MhaDbReplicationDto {
 
     public void setDrcStatus(Boolean drcStatus) {
         this.drcStatus = drcStatus;
+    }
+
+    public String getTransmissionType() {
+        return transmissionType;
+    }
+
+    public void setTransmissionType(String transmissionType) {
+        this.transmissionType = transmissionType;
     }
 
     @Override

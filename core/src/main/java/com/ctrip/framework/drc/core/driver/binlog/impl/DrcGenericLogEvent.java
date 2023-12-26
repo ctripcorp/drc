@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 
@@ -62,6 +63,11 @@ public abstract class DrcGenericLogEvent<T> extends AbstractLogEvent {
 
     public T getContent() {
         return content;
+    }
+
+    @VisibleForTesting
+    public void setContent(T content) {
+        this.content = content;
     }
 
     protected abstract GenericTypeReference<T> getGenericTypeReference();

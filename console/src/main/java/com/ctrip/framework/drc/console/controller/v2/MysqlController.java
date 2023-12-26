@@ -1,13 +1,13 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
-import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.google.common.collect.Lists;
@@ -16,11 +16,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -99,6 +102,16 @@ public class MysqlController {
             }
         }
     }
+    @PostMapping("tableColumns")
+    public ApiResult getTableColumns(@RequestBody DbFilterReq requestBody) {
+        logger.info("getTableColumns requestBody: {}", requestBody);
+        try {
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getTableColumns(requestBody));
+        } catch (Exception e) {
+            logger.info("getTableColumns fail: {}", e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
 
     @GetMapping("columnCheck")
     public ApiResult columnCheck(@RequestParam String mhaName, @RequestParam String namespace, @RequestParam String name, @RequestParam String column) {
@@ -166,6 +179,28 @@ public class MysqlController {
             logger.error(String.format("getMhaDelay error: %s for %s", srcMha, mha), e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
+    }
+
+    @GetMapping("db/lastUpdateTime")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Map<String, Long>> getMhaDbLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha, @RequestParam String dbNames) {
+        logger.info("getMhaLastUpdateTime: {} for {}, {}", srcMha, mha, dbNames);
+        List<String> dbNameList = parseListString(dbNames);
+        try {
+            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha) || CollectionUtils.isEmpty(dbNameList)) {
+                return ApiResult.getFailInstance(null, "mha name or dbNames should not be blank!");
+            }
+            Map<String, Long> timeMap = mysqlServiceV2.getDbDelayUpdateTime(srcMha.trim(), mha.trim(), dbNameList);
+            return ApiResult.getSuccessInstance(timeMap);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaDelay error: %s for %s (%s)", srcMha, mha, dbNames), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    // "[db1, db2]" -> "db1, db2" -> ["db1"," db2"] ->  ["db1","db2"]
+    private static List<String> parseListString(String listStr) {
+        return Arrays.stream(listStr.substring(1, listStr.length() - 1).split(",")).map(String::trim).collect(Collectors.toList());
     }
 
     @GetMapping("currentTime")

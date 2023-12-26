@@ -45,7 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 
 /**
  * Created by dengquanliang

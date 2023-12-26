@@ -1,21 +1,16 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultCurrentMetaManager;
-import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.manager.utils.SpringUtils;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.ctrip.xpipe.proxy.ProxyEndpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.*;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.context.ApplicationContext;
 
@@ -34,8 +29,6 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
     private static final String URL_PATH = "appliers";
 
     private CurrentMetaManager currentMetaManager;
-
-    private ListeningExecutorService gtidQueryExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "ApplierNotifier-ExecutedGtidQuery"));
 
     private ApplierNotifier() {
         super();
@@ -96,15 +89,15 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                 config.port = applier.getPort();
                 config.setGtidExecuted(applier.getGtidExecuted());
                 config.setIncludedDbs(applier.getIncludedDbs());
-                config.setApplyMode(dbCluster.getApplyMode());
+                config.setApplyMode(applier.getApplyMode());
 
                 String nameFilter = applier.getNameFilter();
                 if (StringUtils.isBlank(nameFilter)) {
-                    nameFilter = DRC_DELAY_MONITOR_NAME_REGEX;
+                    nameFilter = getDelayMonitorRegex(applier.getApplyMode(), applier.getIncludedDbs());
                 } else {
                     String formatNameFilter = nameFilter.trim().toLowerCase();
                     if (!formatNameFilter.contains(DRC_DELAY_MONITOR_NAME) && !formatNameFilter.contains(DRC_DELAY_MONITOR_NAME_REGEX)) {
-                        nameFilter = DRC_DELAY_MONITOR_NAME_REGEX + "," + nameFilter;
+                        nameFilter = getDelayMonitorRegex(applier.getApplyMode(), applier.getIncludedDbs()) + "," + nameFilter;
                     }
                 }
                 config.setNameFilter(nameFilter);

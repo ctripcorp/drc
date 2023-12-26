@@ -5,12 +5,15 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
 import org.springframework.stereotype.Component;
@@ -25,8 +28,8 @@ import java.util.*;
 public class ApplierInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
 
     @Override
-    protected String getLeaderPath(String clusterId) {
-        return ClusterZkConfig.getApplierLeaderLatchPath(clusterId);
+    protected String getLeaderPath(String registryKey) {
+        return ClusterZkConfig.getApplierLeaderLatchPath(registryKey);
     }
 
     @Override
@@ -35,8 +38,8 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
     }
 
     @Override
-    protected boolean watchIfNotWatched(String clusterId) {
-        return currentMetaManager.watchApplierIfNotWatched(clusterId);
+    protected boolean watchIfNotWatched(String registryKey) {
+        return currentMetaManager.watchApplierIfNotWatched(registryKey);
     }
 
     @Override
@@ -61,31 +64,33 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
 
     private void doObserveLeader(String clusterId, Collection<Applier> appliers) {
         for (Applier applier : appliers) {
-            String registryKey = clusterId + "." + applier.getTargetMhaName();
+            String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
             observerClusterLeader(registryKey);
         }
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId){
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String registryKey) {
 
-        RegistryKey registryKey = RegistryKey.from(tmpClusterId);
-        String clusterId = registryKey.toString();
-        logger.info("[Transfer] {} to {}", tmpClusterId, clusterId);
+        String clusterId = RegistryKey.from(registryKey).toString();
+        logger.info("[Transfer][applier] {} to {}", registryKey, clusterId);
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));
 
-        logger.info("[updateClusterLeader]{}, {}", clusterId, childrenPaths);
+        logger.info("[updateClusterLeader][applier]{}, {}", registryKey, childrenPaths);
 
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
         List<Applier> survivalAppliers = new ArrayList<>(childrenData.size());
 
-        for(String path : sortedChildren){
-            for(ChildData childData : childrenData){
-                if(path.equals(childData.getPath())){
+        String targetMha = RegistryKey.getTargetMha(registryKey);
+        String targetDB = RegistryKey.getTargetDB(registryKey);
+
+        for (String path : sortedChildren) {
+            for (ChildData childData : childrenData) {
+                if (path.equals(childData.getPath())) {
                     String data = new String(childData.getData());
                     ZookeeperValue zookeeperValue = JsonCodec.INSTANCE.decode(data, ZookeeperValue.class);
-                    Applier applier = getApplier(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), RegistryKey.getTargetMha(tmpClusterId));
+                    Applier applier = getApplier(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetMha, targetDB);
                     if (applier != null) {
                         survivalAppliers.add(applier);
                         logger.info("[Survive] applier {} {}:{}", clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
@@ -97,7 +102,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
             }
         }
 
-        if(survivalAppliers.size() != childrenData.size()){
+        if (survivalAppliers.size() != childrenData.size()) {
             throw new IllegalStateException(String.format("[children data not equal with survival appliers]%s, %s", childrenData, survivalAppliers));
         }
 
@@ -106,10 +111,14 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         currentMetaManager.setSurviveAppliers(clusterId, survivalAppliers, activeApplier);
     }
 
-    private Applier getApplier(String clusterId, String ip, int port, String targetMha) {
+    private Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
-        logger.info("[DbCluster] is {}", dbCluster);
+        logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
-        return applierList.stream().filter(applier -> applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port && applier.getTargetMhaName().equalsIgnoreCase(targetMha)).findFirst().orElse(null);
+        return applierList.stream().filter(applier ->
+                applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port
+                        && applier.getTargetMhaName().equalsIgnoreCase(targetMha)
+                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
+                .findFirst().orElse(null);
     }
 }

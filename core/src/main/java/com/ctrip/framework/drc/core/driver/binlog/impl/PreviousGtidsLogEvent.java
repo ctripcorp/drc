@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 
@@ -95,6 +96,11 @@ public class PreviousGtidsLogEvent extends AbstractLogEvent {
 
     public GtidSet getGtidSet() {
         return gtidSet;
+    }
+
+    @VisibleForTesting
+    public void setGtidSet(GtidSet gtidSet) {
+        this.gtidSet = gtidSet;
     }
 
     public Long getChecksum() {

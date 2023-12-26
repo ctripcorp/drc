@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
@@ -21,4 +22,9 @@ public interface MhaDbMappingService {
     void buildMhaDbMappings(String mhaName,List<String> dbList) throws SQLException;
 
     void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException;
+
+    List<MhaDbMappingTbl> query(MhaDbQueryDto mhaDbQueryDto);
+    
+    // tmp api
+    Pair<Integer,Integer> removeDuplicateDbTblWithoutMhaDbMapping(boolean executeDelete) throws SQLException;
 }

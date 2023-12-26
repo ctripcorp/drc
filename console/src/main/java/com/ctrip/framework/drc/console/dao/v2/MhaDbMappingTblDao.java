@@ -71,6 +71,17 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         return client.query(sqlBuilder, new DalHints());
     }
 
+    public List<MhaDbMappingTbl> queryByDbIdsOrMhaIds(List<Long> dbIds, List<Long> mhaIds) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds) && CollectionUtils.isEmpty(mhaIds)) {
+            return Collections.emptyList();
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().
+                and().inNullable(MHA_ID, mhaIds, Types.BIGINT).
+                and().inNullable(DB_ID, dbIds, Types.BIGINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
     public List<MhaDbMappingTbl> queryByMhaId(long mhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(MHA_ID, mhaId, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
@@ -86,6 +97,15 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
     public List<MhaDbMappingTbl> queryByDbIds(List<Long> dbIds) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().inNullable(DB_ID, dbIds, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+    
+    public List<MhaDbMappingTbl> queryByDbIdsIgnoreDeleted(List<Long> dbIds) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds)) {
+            return Collections.emptyList();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(DB_ID, dbIds, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 }

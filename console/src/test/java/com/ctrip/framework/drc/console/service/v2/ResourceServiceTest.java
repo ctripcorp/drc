@@ -29,7 +29,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 
 /**
  * Created by dengquanliang

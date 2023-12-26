@@ -83,6 +83,8 @@ public class SystemConfig {
 
     public static final String DRC_DELAY_MONITOR_NAME_REGEX = DRC_MONITOR_SCHEMA_NAME + "\\." + DRC_DELAY_MONITOR_TABLE_NAME;
 
+    public static final String DRC_DELAY_MONITOR_NAME_REGEX_V2 = DRC_MONITOR_SCHEMA_NAME + "\\." + "(delaymonitor|dly.*)";
+
     public static final String MESSENGER_DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
 
     public static final String DRC_MQ = "_drc_mq";
@@ -124,6 +126,9 @@ public class SystemConfig {
     public static final String CONSOLE_BEACON_HEALTH_LOG = "beaconHealthLogger";
 
     public static final Logger CONSOLE_BEACON_HEALTH_LOGGER = LoggerFactory.getLogger(CONSOLE_BEACON_HEALTH_LOG);
+
+    public static final String CONSOLE_MONITOR_LOG = "consoleMonitorLogger";
+    public static final Logger CONSOLE_MONITOR_LOGGER = LoggerFactory.getLogger(CONSOLE_MONITOR_LOG);
 
     public static final String CONSOLE_DATA_CONSISTENCY_MONITOR_LOG = "consistencyMonitorLogger";
 

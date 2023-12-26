@@ -39,7 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 
 /**
  * Created by dengquanliang

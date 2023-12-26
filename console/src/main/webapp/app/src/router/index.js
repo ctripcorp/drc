@@ -130,6 +130,10 @@ const routes = [
     component: () => import('../views/v2/meta/mhaReplications.vue')
   },
   {
+    path: '/v2/mhaDbReplications',
+    component: () => import('../views/v2/meta/mhaDbReplications.vue')
+  },
+  {
     path: '/v2/mhaReplicationDetails',
     component: () => import('../views/v2/meta/mhaReplicationDetails.vue')
   },

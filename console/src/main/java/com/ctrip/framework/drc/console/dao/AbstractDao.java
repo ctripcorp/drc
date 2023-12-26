@@ -25,6 +25,7 @@ public class AbstractDao<T> {
     protected final DalTableDao<T> client;
     protected final DalTableOperations<T> dalTableOperations;
 
+    protected static final String ID = "id";
 
     public AbstractDao(Class<T> clazz) throws SQLException {
         this.client = new DalTableDao<>(new DalDefaultJpaParser<>(clazz));

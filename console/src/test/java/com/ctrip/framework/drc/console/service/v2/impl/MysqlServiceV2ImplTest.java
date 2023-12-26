@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,7 +18,7 @@ public class MysqlServiceV2ImplTest {
         tables.add("tx_db1");
         tables.add("dly_db2");
         tables.add("tx_db3");
-        Set<String> existDrcMonitorTables = MysqlServiceV2Impl.getExistDrcMonitorTables(tables);
+        Set<String> existDrcMonitorTables = MySqlUtils.getDbHasDrcMonitorTables(tables);
         Assert.assertTrue(existDrcMonitorTables.contains("db1"));
         Assert.assertFalse(existDrcMonitorTables.contains("db2"));
         Assert.assertFalse(existDrcMonitorTables.contains("db3"));
@@ -25,7 +26,6 @@ public class MysqlServiceV2ImplTest {
         Assert.assertEquals(1, existDrcMonitorTables.size());
 
 
-        Assert.assertEquals(0, MysqlServiceV2Impl.getExistDrcMonitorTables(Lists.newArrayList()).size());
-        Assert.assertEquals(0, MysqlServiceV2Impl.getExistDrcMonitorTables(null).size());
+        Assert.assertEquals(0, MySqlUtils.getDbHasDrcMonitorTables(Lists.newArrayList()).size());
     }
 }

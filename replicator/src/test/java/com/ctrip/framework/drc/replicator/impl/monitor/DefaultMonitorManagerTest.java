@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_TABLE_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 
 /**
  * @Author limingdong
@@ -44,6 +45,7 @@ public class DefaultMonitorManagerTest extends AbstractTransactionTest {
         super.initMocks();
         delayMonitor.addObserver(monitorEventObserver1);
         delayMonitor.addObserver(monitorEventObserver2);
+        when(tableMapLogEvent.getSchemaName()).thenReturn(DRC_MONITOR_SCHEMA_NAME);
         when(tableMapLogEvent.getTableName()).thenReturn(DRC_DELAY_MONITOR_TABLE_NAME);
         when(updateRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(updateRowsEvent.getPayloadBuf()).thenReturn(getXidEventHeader());
