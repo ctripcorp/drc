@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.config;
 
 import com.ctrip.framework.drc.console.config.meta.DcInfo;
+import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.config.Config;
@@ -52,6 +53,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public static String MHA_DAL_CLUSTER_INFOS = "mha.dalcluster.info";
 
     public static String DELAY_EXCEPTION_TIME = "delay.exception";
+    public static String DELAY_UPDATE_TIMEOUT_TIME = "delay.update.task.timeout.milliseconds";
 
     public static String DEFAULT_DELAY_EXCEPTION_TIME = "864500000";
 
@@ -102,13 +104,21 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
-    private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
+    private static String META_GENERATOR_V5_SWITCH = "meta.generator.v5.switch";
+    private static String META_DB_APPLIER_CONFIG_SWITCH = "meta.db.applier.config.switch";
+    private static String META_DB_APPLIER_CONFIG_SWITCH_KEY = META_DB_APPLIER_CONFIG_SWITCH + ".%s";
     private static String META_REALTIME_SWITCH = "meta.realtime";
     
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
+    private static String DBA_CFL_BLACK_LIST_CLEAR_SWITCH = "dba.cfl.black.list.clear.switch";
+    private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
+    private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conlict.log.query.time.interval";
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
+    
+    private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
+    private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -183,6 +193,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public long getDelayExceptionTime() {
         String timeStr = getProperty(DELAY_EXCEPTION_TIME, DEFAULT_DELAY_EXCEPTION_TIME);
+        return Long.parseLong(timeStr);
+    }
+
+    public long getDelayExceptionTimeInMilliseconds() {
+        String timeStr = getProperty(DELAY_UPDATE_TIMEOUT_TIME, "5000");
         return Long.parseLong(timeStr);
     }
 
@@ -476,8 +491,16 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
     }
 
-    public String getMetaGeneratorV3Switch() {
-        return getProperty(META_GENERATOR_V3_SWITCH, SWITCH_OFF);
+    public boolean getMetaGeneratorV5Switch() {
+        return getBooleanProperty(META_GENERATOR_V5_SWITCH, false);
+    }
+
+    public boolean getDbApplierConfigureSwitch(String mha) {
+        String value = getProperty(String.format(META_DB_APPLIER_CONFIG_SWITCH_KEY, mha));
+        if (StringUtils.isBlank(value)) {
+            return getBooleanProperty(META_DB_APPLIER_CONFIG_SWITCH, false);
+        }
+        return Boolean.parseBoolean(value);
     }
 
     public String getMetaRealtimeSwitch() {
@@ -491,4 +514,25 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getCflBlackListAutoAddSwitch() {
         return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
     }
+
+    public boolean getDBACflBlackListClearSwitch() {
+        return getBooleanProperty(DBA_CFL_BLACK_LIST_CLEAR_SWITCH, false);
+    }
+
+    public boolean getConflictDbOwnerApprovalSwitch() {
+        return getBooleanProperty(CONFLICT_DB_OWNER_APPROVAL_SWITCH, false);
+    }
+
+    public long getConflictLogQueryTimeInterval() {
+        return getLongProperty(CONFLICT_LOG_QUERY_TIME_INTERVAL, Constants.ONE_DAY);
+    }
+
+    public String getDrcAccessTokenKey() {
+        return getProperty(DRC_ACCESS_TOKEN_KEY, "");
+    }
+
+    public boolean getOperationLogSwitch() {
+        return getBooleanProperty(OPERATION_LOG_SWITCH,false);
+    }
+    
 }

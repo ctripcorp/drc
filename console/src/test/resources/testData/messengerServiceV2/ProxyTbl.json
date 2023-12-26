@@ -2,7 +2,7 @@
   {
     "id": 1,
     "dcId": 1,
-    "url": "PROXY://10.25.222.15:80",
+    "uri": "PROXY://10.25.222.15:80",
     "active": 1,
     "monitor_active": 1,
     "deleted": 0,

@@ -98,8 +98,10 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         logger.info("start to add applier servers for {}, apply mode is: {}", config.getRegistryKey(), applyMode.getName());
         switch (applyMode) {
             case transaction_table:
+            case db_transaction_table:
                 return new TransactionTableApplierServerInCluster(config);
             case mq:
+            case db_mq:
                 return new MqServerInCluster(config);
             default:
                 return new ApplierServerInCluster(config);
@@ -110,6 +112,10 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         if (server != null && !server.isDisposed()) {
             server.stop();
             server.dispose();
+        } else {
+            String name = server == null ? null : server.getName();
+            String status = server == null ? null : server.getPhaseName();
+            logger.info("ignore server remove, name: {}, status: {}", name, status);
         }
     }
 

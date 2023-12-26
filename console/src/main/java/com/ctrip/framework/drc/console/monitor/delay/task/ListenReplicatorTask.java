@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
-import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.comparator.ListeningReplicatorComparator;
@@ -13,9 +11,9 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPoo
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
-import com.ctrip.framework.drc.console.service.monitor.MonitorService;
-import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Replicator;
@@ -31,13 +29,6 @@ import com.ctrip.xpipe.utils.OsUtils;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +36,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 
 /**
  * @author shenhaibo
@@ -87,7 +88,9 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Autowired private DbMetaCorrectService dbMetaCorrectService;
     @Autowired private DefaultConsoleConfig consoleConfig;
     @Autowired private PeriodicalUpdateDbTask periodicalUpdateDbTask;
+    @Autowired private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
     @Autowired private MonitorServiceV2 monitorServiceV2;
+    @Autowired private CentralService centralService;
 
     private static void log(DelayMonitorSlaveConfig config, String msg, String types, Exception e) {
         String prefix = CLOG_TAGS + msg;
@@ -220,6 +223,8 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 config,
                 new DelayMonitorPooledConnector(config.getEndpoint()),
                 periodicalUpdateDbTask,
+                periodicalUpdateDbTaskV2,
+                centralService,
                 consoleConfig.getDelayExceptionTime()
         );
     }

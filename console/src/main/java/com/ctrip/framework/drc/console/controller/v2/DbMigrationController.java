@@ -1,9 +1,12 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
@@ -36,11 +39,11 @@ public class DbMigrationController {
     private static final Logger logger = LoggerFactory.getLogger(DbMigrationController.class);
     @Autowired
     private DbMigrationService dbMigrationService;
-    @Autowired
-    private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
     
     @DeleteMapping("abandon")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE,operator = "admin",
+            success = "abandonMigrationTask with taskId:{#taskId}")
     private ApiResult abandonMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.abandonTask(taskId)) {
@@ -58,6 +61,8 @@ public class DbMigrationController {
     }
 
     @PutMapping("beforeDataMigration/checkAndCreateTask")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.ADD,operator = "DBA",
+            success = "dbMigrationCheckAndInit with DbMigrationParam:{#dbMigrationParam.toString()}")
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
             Pair<String, Long> tipsAndTaskId = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
@@ -76,6 +81,8 @@ public class DbMigrationController {
     }
     
     @PostMapping("afterDataMigration/preStart")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "DBA",
+            success = "preStartDbMigrationTask with taskId:{#taskId}")
     public ApiResult preStartDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.preStartDbMigrationTask(taskId)) {
@@ -93,6 +100,8 @@ public class DbMigrationController {
     }
     
     @PostMapping("beforeDalSwtich/start")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "DBA",
+            success = "startDbMigrationTask with taskId:{#taskId}")
     public ApiResult startDbMigrationTask (@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.startDbMigrationTask(taskId)) {
@@ -163,6 +172,8 @@ public class DbMigrationController {
     }
 
     @PostMapping("afterDalSwtich/commit")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE,operator = "DBA",
+            success = "offlineOldDrcConfig with taskId:{#taskId}")
     public ApiResult<String> offlineOldDrcConfig(@RequestParam long taskId) {
         try {
             dbMigrationService.offlineOldDrcConfig(taskId);
@@ -173,6 +184,8 @@ public class DbMigrationController {
     }
 
     @PostMapping("afterDalSwtich/rollback")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE,operator = "DBA",
+            success = "rollBackNewDrcConfig with taskId:{#taskId}")
     public ApiResult<String> rollBackNewDrcConfig(@RequestParam long taskId) {
         try {
             dbMigrationService.rollBackNewDrcConfig(taskId);
@@ -183,6 +196,8 @@ public class DbMigrationController {
     }
 
     @DeleteMapping("/mha/replicator")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE,operator = "admin",
+            success = "deleteReplicator with mhaName:{#mhaName}")
     public ApiResult<String> deleteReplicator(@RequestParam String mhaName) {
         try {
             dbMigrationService.deleteReplicator(mhaName);

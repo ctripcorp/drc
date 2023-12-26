@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;

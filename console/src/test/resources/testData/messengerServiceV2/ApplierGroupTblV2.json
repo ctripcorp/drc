@@ -2,7 +2,7 @@
   {
     "id": 1,
     "mhaReplicationId": 1,
-    "gtidInit": "applierGtidInit1",
+    "gtidInit": "a:1-100",
     "deleted": 0,
     "createTime": "2016-05-03 17:58:43",
     "datachangeLasttime": "2032-11-05 02:50:48"
@@ -10,6 +10,14 @@
   {
     "id": 2,
     "mhaReplicationId": 2,
+    "gtidInit": "applierGtidInit2",
+    "deleted": 0,
+    "createTime": "2016-05-03 17:58:43",
+    "datachangeLasttime": "2032-11-05 02:50:48"
+  },
+  {
+    "id": 3,
+    "mhaReplicationId": 3,
     "gtidInit": "applierGtidInit2",
     "deleted": 0,
     "createTime": "2016-05-03 17:58:43",

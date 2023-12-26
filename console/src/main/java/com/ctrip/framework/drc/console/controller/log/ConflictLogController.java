@@ -1,10 +1,15 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
+import com.ctrip.framework.drc.console.aop.permission.AccessToken;
+import com.ctrip.framework.drc.console.enums.TokenType;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.service.log.LogBlackListType;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -31,13 +36,15 @@ public class ConflictLogController {
     private ConflictLogService conflictLogService;
 
     @GetMapping("trx")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY,
+            success = "getConflictTrxLogView with ConflictTrxLogQueryParam: {#param.db}")
     public ApiResult<List<ConflictTrxLogView>> getConflictTrxLogView(ConflictTrxLogQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogView(param));
             apiResult.setPageReq(param.getPageReq());
             return apiResult;
         } catch (Exception e) {
-            logger.error("getConflictTrxLogView error, {}", e);
+            logger.error("getConflictTrxLogView error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -53,6 +60,8 @@ public class ConflictLogController {
     }
 
     @GetMapping("rows")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY,
+            success = "getConflictRowsLogView with ConflictRowsLogQueryParam: {#param.toString()}")
     public ApiResult<List<ConflictRowsLogView>> getConflictRowsLogView(ConflictRowsLogQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowsLogView(param));
@@ -86,9 +95,12 @@ public class ConflictLogController {
     }
 
     @GetMapping("detail")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY,
+            success = "getConflictTrxLogDetailView with conflictTrxLogId: {#conflictTrxLogId}")
     public ApiResult<ConflictTrxLogDetailView> getConflictTrxLogDetailView(@RequestParam long conflictTrxLogId) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogDetailView(conflictTrxLogId));
+            ApiResult apiResult = ApiResult.getSuccessInstance(
+                    conflictLogService.getConflictTrxLogDetailView(conflictTrxLogId));
             return apiResult;
         } catch (Exception e) {
             logger.error("getConflictTrxLogDetailView error, {}", e);
@@ -97,9 +109,11 @@ public class ConflictLogController {
     }
 
     @GetMapping("records")
-    public ApiResult<ConflictCurrentRecordView> getConflictCurrentRecordView(@RequestParam long conflictTrxLogId, @RequestParam int columnSize) {
+    public ApiResult<ConflictCurrentRecordView> getConflictCurrentRecordView(@RequestParam long conflictTrxLogId,
+            @RequestParam int columnSize) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictCurrentRecordView(conflictTrxLogId, columnSize));
+            ApiResult apiResult = ApiResult.getSuccessInstance(
+                    conflictLogService.getConflictCurrentRecordView(conflictTrxLogId, columnSize));
             return apiResult;
         } catch (Exception e) {
             logger.error("getConflictCurrentRecordView error, {}", e);
@@ -108,9 +122,11 @@ public class ConflictLogController {
     }
 
     @GetMapping("/row/record")
-    public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam long conflictRowLogId, @RequestParam int columnSize) {
+    public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam long conflictRowLogId,
+            @RequestParam int columnSize) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogId, columnSize));
+            ApiResult apiResult = ApiResult.getSuccessInstance(
+                    conflictLogService.getConflictRowRecordView(conflictRowLogId, columnSize));
             return apiResult;
         } catch (Exception e) {
             logger.error("getConflictRowRecordView error, {}", e);
@@ -129,6 +145,17 @@ public class ConflictLogController {
         }
     }
 
+    @GetMapping("/compare")
+    public ApiResult<List<ConflictRowRecordCompareEqualView>> compareRowRecordsEqual(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.compareRowRecordsEqual(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            logger.error("compareRowRecordsEqual error, {}", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @PostMapping("")
     public ApiResult<Boolean> createConflictLog(@RequestBody List<ConflictTransactionLog> trxLogs) {
         try {
@@ -141,6 +168,8 @@ public class ConflictLogController {
     }
 
     @DeleteMapping("/v2")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE,
+            success = "deleteTrxLogs from {#beginTime} to {#endTime}")
     public ApiResult<Long> deleteTrxLogs(@RequestParam long beginTime, @RequestParam long endTime) {
         try {
             long result = conflictLogService.deleteTrxLogs(beginTime, endTime);
@@ -152,6 +181,8 @@ public class ConflictLogController {
     }
 
     @DeleteMapping("")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE,
+            success = "deleteRowLogs from {#beginTime} to {#endTime}")
     public ApiResult<Map<String, Integer>> deleteRowLogs(@RequestParam long beginTime, @RequestParam long endTime) {
         try {
             return ApiResult.getSuccessInstance(conflictLogService.deleteTrxLogsByTime(beginTime, endTime));
@@ -164,7 +195,8 @@ public class ConflictLogController {
     @GetMapping("/rows/check")
     public ApiResult<Pair<String, String>> checkSameMhaReplication(@RequestParam List<Long> conflictRowLogIds) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.checkSameMhaReplication(conflictRowLogIds));
+            ApiResult apiResult = ApiResult.getSuccessInstance(
+                    conflictLogService.checkSameMhaReplication(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
             logger.error("checkSameMhaReplication error, {}", e);
@@ -175,7 +207,8 @@ public class ConflictLogController {
     @GetMapping("/rows/detail")
     public ApiResult<ConflictTrxLogDetailView> getConflictRowLogDetailView(@RequestParam List<Long> conflictRowLogIds) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getRowLogDetailView(conflictRowLogIds));
+            ApiResult apiResult = ApiResult.getSuccessInstance(
+                    conflictLogService.getRowLogDetailView(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
             logger.error("getConflictRowLogDetailView error, {}", e);
@@ -186,7 +219,8 @@ public class ConflictLogController {
     @GetMapping("/rows/records")
     public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam List<Long> conflictRowLogIds) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogIds));
+            ApiResult apiResult = ApiResult.getSuccessInstance(
+                    conflictLogService.getConflictRowRecordView(conflictRowLogIds));
             return apiResult;
         } catch (Exception e) {
             logger.error("getConflictRowRecordView error, {}", e);
@@ -195,6 +229,8 @@ public class ConflictLogController {
     }
 
     @PostMapping("/rows/handleSql")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
+            success = "createHandleSql with ConflictAutoHandleParam : {#param.toString()}")
     public ApiResult<ConflictAutoHandleView> createHandleSql(@RequestBody ConflictAutoHandleParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.createHandleSql(param));
@@ -223,6 +259,34 @@ public class ConflictLogController {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("deleteBlacklist error, {}", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
+    @PostMapping("blacklist/dba/touchjob")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD, operator = "DBA",
+            success = "addBlackListForTouchJob with db : {#db} and table : {#table}")
+    public ApiResult<Boolean> addBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
+        try {
+            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("addBlackListForTouchJob error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
+    @DeleteMapping("blacklist/dba/touchjob")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE, operator = "DBA",
+            success = "deleteBlackListForTouchJob with db : {#db} and table : {#table}")
+    public ApiResult<Boolean> deleteBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
+        try {
+            conflictLogService.deleteBlacklist(db + "\\." + table);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("deleteBlackListForTouchJob error", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

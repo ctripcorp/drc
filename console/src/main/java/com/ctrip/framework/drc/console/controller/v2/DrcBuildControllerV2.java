@@ -1,11 +1,17 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
+import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -25,8 +33,12 @@ public class DrcBuildControllerV2 {
 
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private DbDrcBuildService dbDrcBuildService;
 
     @PostMapping("mha")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.ADD,
+            success = "buildMha with DrcMhaBuildParam: {#param.toString()}")
     public ApiResult<Boolean> buildMha(@RequestBody DrcMhaBuildParam param) {
         try {
             drcBuildServiceV2.buildMha(param);
@@ -37,6 +49,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("messengerMha")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.ADD,
+            success = "buildMessengerMha with MessengerMhaBuildParam: {#param.toString()}")
     public ApiResult<Boolean> buildMessengerMha(@RequestBody MessengerMhaBuildParam param) {
         logger.info("buildMessengerMha: {}", param);
         try {
@@ -49,6 +63,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "buildDrc with DrcBuildParam: {#param.toString()}")
     public String buildDrc(@RequestBody DrcBuildParam param) {
         try {
             return drcBuildServiceV2.buildDrc(param);
@@ -57,10 +73,97 @@ public class DrcBuildControllerV2 {
         }
     }
 
+    @PostMapping("db/applier")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "buildDbApplier with DrcBuildParam: {#param.toString()}")
+    public ApiResult<String> buildDrcDbAppliers(@RequestBody DrcBuildParam param) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbApplier(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e);
+        }
+    }
+
+    @PostMapping("db/messenger")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "buildDbMessenger with DrcBuildBaseParam: {#param.toString()}")
+    public ApiResult<String> buildDrcDbMessenger(@RequestBody DrcBuildBaseParam param) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbMessenger(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e);
+        }
+    }
+
     @GetMapping("mha/applier")
     public ApiResult<List<String>> getMhaAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
         try {
             return ApiResult.getSuccessInstance(drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier")
+    public ApiResult<List<DbApplierDto>> getMhaDbAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbAppliers(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/gtidTruncated")
+    public ApiResult<String> getMhaDrcExecutedGtidTruncate(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDrcExecutedGtidTruncate(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/dbGtidTruncated")
+    public ApiResult<String> getDbDrcExecutedGtidTruncate(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getDbDrcExecutedGtidTruncate(srcMhaName, dstMhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/gtid")
+    public ApiResult<String> getMhaDrcExecutedGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDrcExecutedGtid(srcMhaName, dstMhaName).toString());
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/dbGtid")
+    public ApiResult<String> getDbDrcExecutedGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            Map<String, GtidSet> dbDrcExecutedGtid = dbDrcBuildService.getDbDrcExecutedGtid(srcMhaName, dstMhaName);
+            Map<String, String> map = dbDrcExecutedGtid.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+            return ApiResult.getSuccessInstance(map);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbMessenger")
+    public ApiResult<List<DbApplierDto>> getMhaDbMessengers(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbMessengers(mhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha/dbApplier/switch")
+    public ApiResult<Boolean> getMhaDbAppliers(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.isDbApplierConfigurable(mhaName));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
@@ -76,6 +179,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("dbReplications")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "configureDbReplication with DbReplicationBuildParam: {#param.toString()}")
     public ApiResult<Boolean> configureDbReplication(@RequestBody DbReplicationBuildParam param) {
         try {
             drcBuildServiceV2.buildDbReplicationConfig(param);
@@ -95,6 +200,8 @@ public class DrcBuildControllerV2 {
     }
 
     @DeleteMapping("dbReplications")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.DELETE,
+            success = "deleteDbReplications with dbReplicationIds: {#dbReplicationIds}")
     public ApiResult<Boolean> deleteDbReplications(@RequestParam List<Long> dbReplicationIds) {
         try {
             drcBuildServiceV2.deleteDbReplications(dbReplicationIds);
@@ -133,6 +240,8 @@ public class DrcBuildControllerV2 {
     }
 
     @PostMapping("messenger/submitConfig")
+    @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "submitConfig with MessengerMetaDto: {#dto.toString()}")
     public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] submit meta config for {}", dto);
         try {

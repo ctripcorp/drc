@@ -54,6 +54,12 @@ public class BuTbl implements DalPojo {
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp datachangeLasttime;
 
+	public static BuTbl createBuPojo(String buName) {
+		BuTbl daoPojo = new BuTbl();
+		daoPojo.setBuName(buName);
+		return daoPojo;
+	}
+
 	public Long getId() {
 		return id;
 	}

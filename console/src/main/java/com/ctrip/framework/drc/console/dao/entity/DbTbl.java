@@ -168,4 +168,20 @@ public class DbTbl implements DalPojo {
 	public void setIsDrc(Integer isDrc) {
 		this.isDrc = isDrc;
 	}
+
+	@Override
+	public String toString() {
+		return "DbTbl{" +
+				"id=" + id +
+				", dbName='" + dbName + '\'' +
+				", dbOwner='" + dbOwner + '\'' +
+				", buCode='" + buCode + '\'' +
+				", buName='" + buName + '\'' +
+				", deleted=" + deleted +
+				", createTime=" + createTime +
+				", datachangeLasttime=" + datachangeLasttime +
+				", trafficSendLastTime=" + trafficSendLastTime +
+				", isDrc=" + isDrc +
+				'}';
+	}
 }

@@ -7,6 +7,9 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
+import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
@@ -53,6 +56,27 @@ public class ConflictLogManagerTest {
         MockitoAnnotations.openMocks(this);
     }
     
+    @Test
+    public void test() {
+        DbMigrationParam dbMigrationParam = new DbMigrationParam();
+        MigrateMhaInfo oldMha = new MigrateMhaInfo();
+        oldMha.setName("fat-bbz-pub-13");
+        oldMha.setMasterIp("10.21.6.216");
+        oldMha.setMasterPort(55111);
+        dbMigrationParam.setOldMha(oldMha);
+        
+        MigrateMhaInfo newMha = new MigrateMhaInfo();
+        newMha.setName("fat-bbz-pub-14");
+        newMha.setMasterIp("testip");
+        newMha.setMasterPort(55111);
+        dbMigrationParam.setNewMha(newMha);
+        
+        dbMigrationParam.setDbs(Lists.newArrayList("bbzsoftivrdb"));
+        dbMigrationParam.setOperator("test");
+        String s = JsonUtils.toJson(dbMigrationParam);
+        System.out.println(s);
+    }
+    
 
     @Test
     public void testCheckConflict() throws IOException, SQLException {
@@ -79,6 +103,8 @@ public class ConflictLogManagerTest {
         Mockito.when(opsApiService.getConflictCount(Mockito.anyString(), Mockito.anyString(), 
                 Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.anyInt()))
                 .thenReturn(getConflictCounts());
+        Mockito.when(domainConfig.getSendConflictAlarmEmailSwitch()).thenReturn(true);
+        Mockito.when(domainConfig.getConflictAlarmTimesPerHour()).thenReturn(2);
         
         conflictLogManager.checkConflict();
         Mockito.verify(emailService, Mockito.times(4)).sendEmail(Mockito.any(Email.class));
@@ -87,17 +113,24 @@ public class ConflictLogManagerTest {
     @Test
     public void testClearBlackListAddedAutomatically() throws SQLException {
         Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
-        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode())).thenReturn(getCflLogBlackListTbls());
+        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode())).thenReturn(getCflLogBlackListTbls(LogBlackListType.AUTO));
         Mockito.when(domainConfig.getCflBlackListExpirationHour()).thenReturn(5);
         Mockito.when(cflLogBlackListTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[]{1});
-        conflictLogManager.clearBlackListAddedAutomatically();
+        conflictLogManager.clearBlackListAddedAutomatically(LogBlackListType.AUTO);
         Mockito.verify(cflLogBlackListTblDao, Mockito.times(1)).batchDelete(Mockito.anyList());
+
+        Mockito.when(consoleConfig.getDBACflBlackListClearSwitch()).thenReturn(true);
+        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.DBA.getCode())).thenReturn(getCflLogBlackListTbls(LogBlackListType.DBA));
+        Mockito.when(domainConfig.getDBACflBlackListExpirationHour()).thenReturn(5);
+        Mockito.when(cflLogBlackListTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[]{1});
+        conflictLogManager.clearBlackListAddedAutomatically(LogBlackListType.DBA);
+        Mockito.verify(cflLogBlackListTblDao, Mockito.times(2)).batchDelete(Mockito.anyList());
         
     }
 
-    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls() {
+    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls(LogBlackListType type) {
         ConflictDbBlackListTbl blackListTbl = new ConflictDbBlackListTbl();
-        blackListTbl.setType(LogBlackListType.AUTO.getCode());
+        blackListTbl.setType(type.getCode());
         blackListTbl.setDbFilter("db1\\..*");
         blackListTbl.setDatachangeLasttime(new Timestamp(System.currentTimeMillis() - 1000 * 60 * 60 * 5));
         return Lists.newArrayList(blackListTbl);

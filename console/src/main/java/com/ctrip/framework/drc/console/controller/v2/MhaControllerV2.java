@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -18,6 +20,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dengquanliang
@@ -102,6 +105,28 @@ public class MhaControllerV2 {
         }
     }
 
+    @GetMapping("gtid/applied")
+    public ApiResult<String> getMhaAppliedGtid(@RequestParam String mha) {
+        try {
+            String appliedGtid = mysqlServiceV2.getMhaAppliedGtid(mha);
+            return ApiResult.getSuccessInstance(appliedGtid);
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaAppliedGtid from mha: {},configGtid:{}", mha, e);
+            return ApiResult.getFailInstance(e, "unexpected exception");
+        }
+    }
+
+    @GetMapping("db/gtid/applied")
+    public ApiResult<Map<String, String>> getMhaDbAppliedGtid(@RequestParam String mha) {
+        try {
+            Map<String, String> mhaDbAppliedGtid = mysqlServiceV2.getMhaDbAppliedGtid(mha);
+            return ApiResult.getSuccessInstance(mhaDbAppliedGtid);
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaDbAppliedGtid from mha: {},configGtid:{}", mha, e);
+            return ApiResult.getFailInstance(e, "unexpected exception");
+        }
+    }
+
     @GetMapping("gtid/checkResult")
     public ApiResult getGtidCheckResult(@RequestParam String mha, @RequestParam String configGtid) {
         try {
@@ -138,6 +163,8 @@ public class MhaControllerV2 {
     }
 
     @PostMapping("tag")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "updateMhaTag with mhaName: {#mhaReplicationId},tag: {#tag}")
     public ApiResult<Boolean> updateMhaTag(@RequestParam String mhaName, @RequestParam String tag) {
         try {
             mhaServiceV2.updateMhaTag(mhaName, tag);

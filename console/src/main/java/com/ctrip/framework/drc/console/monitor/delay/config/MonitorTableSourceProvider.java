@@ -31,6 +31,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DB_CLUSTER_MONITOR = "consistency.monitor.%s";
 
     private static final String DELAY_MONITOR_UPDATEDB_SWITCH = "delay.monitor.updatedb.switch";
+    private static final String DELAY_MONITOR_UPDATEDB_V2_SWITCH = "delay.monitor.updatedb.v2.switch";
 
     private static final String BTDHS_MONITOR_SWITCH = "btdhs.monitor.switch";
     private static final String MYSQL_CONFIGS_MONITOR_SWITCH = "mysql.configs.monitor.switch";
@@ -60,6 +61,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public static final String MYSQL_DELAY_MESUREMENT = "fx.drc.delay.mysql";
 
     private static final String INCREMENT_ID_MONITOR_SWITCH = "increment.id.monitor.switch";
+    private static final String INCREMENT_ID_MONITOR_WHITELIST = "increment.id.monitor.whitelist";
 
     private static final String TABLE_CONSISTENCY_MONITOR_SWITCH = "table.consistency.monitor.switch";
     private static final String TABLE_CONSISTENCY_MONITOR_PERIOD = "table.consistency.monitor.period";
@@ -266,6 +268,10 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(DELAY_MONITOR_UPDATEDB_SWITCH, SWITCH_STATUS_ON);
     }
 
+    public boolean getDelayMonitorUpdateDbV2Switch() {
+        return SWITCH_STATUS_ON.equals(getProperty(DELAY_MONITOR_UPDATEDB_V2_SWITCH, SWITCH_STATUS_OFF));
+    }
+
     public String getBtdhsMonitorSwitch() {
         return getProperty(BTDHS_MONITOR_SWITCH, SWITCH_STATUS_ON);
     }
@@ -314,6 +320,14 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getIncrementIdMonitorSwitch() {
         return getProperty(INCREMENT_ID_MONITOR_SWITCH, SWITCH_STATUS_OFF);
+    }
+
+    public List<String> getIncrementIdMonitorWhitelist() {
+        String whitelistStr = getProperty(INCREMENT_ID_MONITOR_WHITELIST, EMPTY_STRING);
+        if (StringUtils.isBlank(whitelistStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(whitelistStr.split(DELIMITER));
     }
 
     public String getTableConsistencySwitch() {

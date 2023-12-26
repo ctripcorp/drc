@@ -1,10 +1,10 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 
-import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
 import com.ctrip.framework.drc.console.service.v2.MetaCompareService;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV4;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV5;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -27,9 +27,9 @@ public class DrcGeneratorController {
     private static final Logger logger = LoggerFactory.getLogger(DrcGeneratorController.class);
 
     @Autowired
-    private MetaGenerator metaGenerator;
+    private MetaGeneratorV5 metaGeneratorV5;
     @Autowired
-    private MetaGeneratorV2 metaGeneratorV2;
+    private MetaGeneratorV4 metaGeneratorV4;
     @Autowired
     private MetaGeneratorV3 metaGeneratorV3;
     @Autowired
@@ -49,35 +49,46 @@ public class DrcGeneratorController {
             list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 
 
-            // v1
-            logger.info("start v1");
-            stopWatch.start(metaGenerator.getClass().getSimpleName());
-            metaGenerator.getDrc();
+            // v4
+            logger.info("start v4");
+            stopWatch.start(metaGeneratorV4.getClass().getSimpleName());
+            Drc drcV4 = metaGeneratorV4.getDrc();
             stopWatch.stop();
             list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 
 
-            // v2
-            logger.info("start v2");
-            stopWatch.start(metaGeneratorV2.getClass().getSimpleName());
-            Drc drcV2 = metaGeneratorV2.getDrc();
+            // v5
+            logger.info("start v5");
+            stopWatch.start(metaGeneratorV5.getClass().getSimpleName());
+            Drc drcV5 = metaGeneratorV5.getDrc();
             stopWatch.stop();
             list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
+
 
 
             // compareResult
             String summaryInfo = stopWatch.prettyPrint();
-            Boolean compareResult = null;
+            List<Boolean> compareResult = Lists.newArrayList();
             if (Boolean.TRUE.equals(compare)) {
-                stopWatch.start(metaCompareService.getClass().getSimpleName());
-                String res = metaCompareService.compareDrcMeta(drcV2, drcV3);
+                stopWatch.start("compare v3, v4");
+                String res = metaCompareService.compareDrcMeta(drcV3, drcV4);
                 stopWatch.stop();
                 list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 
                 if (!StringUtils.isEmpty(res)) {
-                    summaryInfo += String.format("\n-----Compare Result------\n\n%s\n\n--------------------\n", res);
+                    summaryInfo += String.format("\n-----Compare (v3,v4)Result------\n\n%s\n\n--------------------\n", res);
                 }
-                compareResult = metaCompareService.isConsistent(res);
+                compareResult.add(metaCompareService.isConsistent(res));
+
+                stopWatch.start("compare v4, v5");
+                String res2 = metaCompareService.compareDrcMeta(drcV4, drcV5);
+                stopWatch.stop();
+                list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
+
+                if (!StringUtils.isEmpty(res2)) {
+                    summaryInfo += String.format("\n-----Compare (v4,v5)Result------\n\n%s\n\n--------------------\n", res2);
+                }
+                compareResult.add(metaCompareService.isConsistent(res2));
             }
             logger.info(summaryInfo);
             return ApiResult.getSuccessInstance(new GeneratorStatistics(list, compareResult, summaryInfo));
@@ -89,40 +100,54 @@ public class DrcGeneratorController {
 
 
     @GetMapping("generateV3")
-    public ApiResult<String> generateV3() {
+    public String generateV3() {
         try {
             // v3
             logger.info("start v3");
             Drc drcV3 = metaGeneratorV3.getDrc();
             logger.info("finish v3");
-            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drcV3.toString()));
+            return XmlUtils.formatXML(drcV3.toString());
         } catch (Throwable e) {
             logger.error("benchMarkTest error", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
+            return  e.getMessage();
         }
     }
 
-    @GetMapping("generateV2")
-    public ApiResult<String> generateV2() {
+    @GetMapping("generateV4")
+    public String generatev4() {
         try {
-            // v2
-            logger.info("start v2");
-            Drc drcV2 = metaGeneratorV2.getDrc();
-            logger.info("finish v2");
-            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drcV2.toString()));
+            // v4
+            logger.info("start v4");
+            Drc drcv4 = metaGeneratorV4.getDrc();
+            logger.info("finish v4");
+            return XmlUtils.formatXML(drcv4.toString());
         } catch (Throwable e) {
             logger.error("benchMarkTest error", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
+            return  e.getMessage();
+        }
+    }
+
+    @GetMapping("generateV5")
+    public String generateV5() {
+        try {
+            // v5
+            logger.info("start v5");
+            Drc drcv5 = metaGeneratorV5.getDrc();
+            logger.info("finish v5");
+            return XmlUtils.formatXML(drcv5.toString());
+        } catch (Throwable e) {
+            logger.error("benchMarkTest error", e);
+            return  e.getMessage();
         }
     }
 
 
     static class GeneratorStatistics {
         private final List<Task> task;
-        private final Boolean same;
+        private final List<Boolean> same;
         private final String summaryInfo;
 
-        public GeneratorStatistics(List<Task> task, Boolean same, String summaryInfo) {
+        public GeneratorStatistics(List<Task> task, List<Boolean> same, String summaryInfo) {
             this.task = task;
             this.same = same;
             this.summaryInfo = summaryInfo;
@@ -136,7 +161,7 @@ public class DrcGeneratorController {
             return summaryInfo;
         }
 
-        public Boolean getSame() {
+        public List<Boolean> getSame() {
             return same;
         }
 

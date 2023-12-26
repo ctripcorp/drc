@@ -1,7 +1,8 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV4;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV5;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,9 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGE
 public class DaoConfig extends AbstractConfig implements Config {
 
     @Autowired
-    private MetaGeneratorV3 metaGeneratorV3;
-
+    private MetaGeneratorV4 metaGeneratorV4;
+    @Autowired
+    private MetaGeneratorV5 metaGeneratorV5;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
@@ -33,7 +35,7 @@ public class DaoConfig extends AbstractConfig implements Config {
 
             DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.meta.update", "dao", () -> {
                 long s = System.currentTimeMillis();
-                Drc drc = metaGeneratorV3.getDrc();
+                Drc drc = consoleConfig.getMetaGeneratorV5Switch() ? metaGeneratorV5.getDrc() : metaGeneratorV4.getDrc();
                 META_LOGGER.info("update config in DaoConfig");
                 long e = System.currentTimeMillis();
                 META_LOGGER.info("dao update meta info, took {}ms", e - s);

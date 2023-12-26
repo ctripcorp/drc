@@ -3,10 +3,10 @@ package com.ctrip.framework.drc.applier.server;
 import com.ctrip.framework.drc.applier.activity.event.*;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivity;
@@ -27,6 +27,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
 
     @Override
     public void define() throws Exception {
+        logger.info("apply concurrency : {} for: {}", config.getApplyConcurrency(), config.getRegistryKey());
         source(TransactionTableApplierDumpEventActivity.class)
                 .with(ExecutorResource.class)
                 .with(LinkContextResource.class)
@@ -43,7 +44,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
-                .link(TransactionTableApplyActivity.class, 100)
+                .link(TransactionTableApplyActivity.class, config.getApplyConcurrency())
                 .link(CommitActivity.class);
         check();
     }

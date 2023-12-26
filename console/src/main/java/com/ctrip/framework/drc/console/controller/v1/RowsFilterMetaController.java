@@ -2,7 +2,10 @@ package com.ctrip.framework.drc.console.controller.v1;
 
 import com.ctrip.framework.drc.console.aop.AuthToken;
 import com.ctrip.framework.drc.console.aop.RateLimit;
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.enums.HttpRequestParamEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
@@ -57,6 +60,8 @@ public class RowsFilterMetaController {
     @RateLimit
     @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.REQUEST_BODY)
     @PutMapping()
+    @LogRecord(type = OperateTypeEnum.ROWS_FILTER_MARK, attr = OperateAttrEnum.ADD,
+            success = "addWhitelist with  operator:{#operator},RowsMetaFilterParam: {#param.toString()}",operator = "USER")
     public ApiResult<Boolean> addWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Add Rows Filter Whitelist, param: {}", param);
@@ -75,6 +80,8 @@ public class RowsFilterMetaController {
     @RateLimit
     @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.REQUEST_BODY)
     @DeleteMapping()
+    @LogRecord(type = OperateTypeEnum.ROWS_FILTER_MARK, attr = OperateAttrEnum.DELETE,
+            success = "deleteWhitelist with operator:{#operator},RowsMetaFilterParam: {#param.toString()}",operator = "USER")
     public ApiResult<Boolean> deleteWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Delete Rows Filter Whitelist, param: {}", param);
@@ -93,6 +100,8 @@ public class RowsFilterMetaController {
     @RateLimit
     @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.REQUEST_BODY)
     @PostMapping()
+    @LogRecord(type = OperateTypeEnum.ROWS_FILTER_MARK, attr = OperateAttrEnum.UPDATE,
+            success = "updateWhitelist with operator:{#operator},RowsMetaFilterParam: {#param.toString()}",operator = "USER")
     public ApiResult<Boolean> updateWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Update Rows Filter Whitelist, param: {}", param);
@@ -109,6 +118,8 @@ public class RowsFilterMetaController {
     }
 
     @PutMapping("/meta")
+    @LogRecord(type = OperateTypeEnum.ROWS_FILTER_MARK, attr = OperateAttrEnum.ADD,
+            success = "createMetaMessage with RowsFilterMetaMessageCreateParam:{#param.toString()}")
     public ApiResult<Boolean> createMetaMessage(@RequestBody RowsFilterMetaMessageCreateParam param) {
         try {
             logger.info("Create Meta Message, param: {}", param);
@@ -125,6 +136,8 @@ public class RowsFilterMetaController {
     }
 
     @PostMapping("/mapping")
+    @LogRecord(type = OperateTypeEnum.ROWS_FILTER_MARK, attr = OperateAttrEnum.ADD,
+            success = "createOrUpdateMetaMapping with RowsFilterMetaMappingCreateParam:{#param.toString()}")
     public ApiResult<Boolean> createOrUpdateMetaMapping(@RequestBody RowsFilterMetaMappingCreateParam param) {
         try {
             logger.info("Create Meta Mapping, param: {}", param);
@@ -163,6 +176,8 @@ public class RowsFilterMetaController {
     }
 
     @DeleteMapping ("/meta")
+    @LogRecord(type = OperateTypeEnum.ROWS_FILTER_MARK, attr = OperateAttrEnum.DELETE,
+            success = "deleteMetaMessage with metaFilterId:{#metaFilterId}")
     public ApiResult<Boolean> deleteMetaMessage(@RequestParam Long metaFilterId) {
         try {
             logger.info("Delete Rows Filter Meta Message, metaFilterId: {}", metaFilterId);

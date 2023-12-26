@@ -16,7 +16,7 @@
                 <TimeBasedTriggeringPolicy/>
                 <SizeBasedTriggeringPolicy size="500 MB"/>
             </Policies>
-            <DefaultRolloverStrategy max="5">
+            <DefaultRolloverStrategy max="12">
                 <Delete basePath="${baseDir}" maxDepth="2">
                     <IfFileName glob="${appName}*.info.log.gz"/>
                     <IfLastModified age="7d"/>

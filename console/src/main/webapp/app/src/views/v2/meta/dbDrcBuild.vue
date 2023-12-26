@@ -4,7 +4,8 @@
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
       <BreadcrumbItem to="/v2/dbDrcBuild">建立 DRC 同步</BreadcrumbItem>
     </Breadcrumb>
-    <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
+    <Content class="content"
+             :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
       <Row :gutter=10 align="middle">
         <Col span="13">
           <Form :model="formItem" :label-width="100" style="margin-right: 20px;margin-top: 10px">
@@ -25,19 +26,21 @@
                   :remote-method="getExistDb"
                   :loading="dataLoading">
                   <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">
-                    {{option.dbName}}
+                    {{ option.dbName }}
                   </Option>
                 </Select>
               </FormItem>
             </div>
             <div v-if="formItem.buildMode === 1">
               <FormItem label="dalcluster" :required=true>
-                <Input @on-keydown.space.prevent v-model="formItem.dalClusterModeOption.dalClusterName" placeholder="请输入 dalCluster 名称" @on-blur="afterEnterDalCluster"/>
+                <Input @on-keydown.space.prevent v-model="formItem.dalClusterModeOption.dalClusterName"
+                       placeholder="请输入 dalCluster 名称" @on-blur="afterEnterDalCluster"/>
               </FormItem>
             </div>
             <div v-if="formItem.buildMode === 2">
               <FormItem label="数据库列表" :required=true>
-                <Input @on-keydown.space.prevent v-model="formItem.dbName" placeholder="请输入数据库列表，英文逗号分隔" @on-blur="afterEnterDalCluster"/>
+                <Input @on-keydown.space.prevent v-model="formItem.dbName" placeholder="请输入数据库列表，英文逗号分隔"
+                       @on-blur="afterEnterDalCluster"/>
               </FormItem>
             </div>
             <FormItem label="同步方向" :required=true>
@@ -49,7 +52,8 @@
                       源 region
                     </template>
                     <FormItem>
-                      <Select filterable clearable v-model="formItem.srcRegionName" placeholder="地域" @on-change="afterSwitchRegion">
+                      <Select filterable clearable v-model="formItem.srcRegionName" placeholder="地域"
+                              @on-change="afterSwitchRegion">
                         <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
                           {{ region }}
                         </Option>
@@ -58,7 +62,9 @@
                   </Card>
                 </Col>
                 <Col span="2" style="text-align: center">
-                  <Button size="small" shape="circle" type="default" :loading="dataLoading" @click="getRegionOptions">-></Button>
+                  <Button size="small" shape="circle" type="default" :loading="dataLoading" @click="getRegionOptions">
+                    ->
+                  </Button>
                 </Col>
                 <Col span="11">
                   <Card :bordered="true">
@@ -67,7 +73,8 @@
                       目标 region
                     </template>
                     <FormItem>
-                      <Select filterable clearable v-model="formItem.dstRegionName" placeholder="地域" @on-change="afterSwitchRegion">
+                      <Select filterable clearable v-model="formItem.dstRegionName" placeholder="地域"
+                              @on-change="afterSwitchRegion">
                         <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
                           {{ region }}
                         </Option>
@@ -78,7 +85,8 @@
               </Row>
             </FormItem>
             <FormItem label="同步表" :required=true>
-              <Input @on-keydown.space.prevent v-model="formItem.tableName" placeholder="请输入正则表达式" @on-blur="afterEnterTableName"></Input>
+              <Input @on-keydown.space.prevent v-model="formItem.tableName" placeholder="请输入正则表达式"
+                     @on-blur="afterEnterTableName"></Input>
             </FormItem>
             <FormItem label="行过滤">
               <i-switch v-model="formItem.switch.rowsFilter" size="large">
@@ -94,47 +102,74 @@
               <template #title>
                 <Icon type="md-settings"/>
                 行过滤配置
-                <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading" @click="getCommonColumns" style="margin-left: 50px">获取公共字段</Button>
+                <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading"
+                        @click="getCommonColumns" style="margin-left: 50px">获取公共字段
+                </Button>
               </template>
               <FormItem label="模式">
-                <Select v-model="formItem.rowsFilterDetail.mode" style="width: 200px" placeholder="选择行过滤模式" >
-                  <Option v-for="item in formItem.constants.rowsFilter.modes" :value="item.mode" :key="item.mode">{{ item.name }}</Option>
+                <Select v-model="formItem.rowsFilterDetail.mode" style="width: 200px" placeholder="选择行过滤模式">
+                  <Option v-for="item in formItem.constants.rowsFilter.modes" :value="item.mode" :key="item.mode">
+                    {{ item.name }}
+                  </Option>
                 </Select>
               </FormItem>
-              <FormItem  label="规则内容" v-if="formItem.rowsFilterDetail.mode !== 1 || formItem.rowsFilterDetail.fetchMode === 0">
-                <Input v-if="formItem.rowsFilterDetail.mode !== 1" type="textarea" v-model="formItem.rowsFilterDetail.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                <Select v-if="formItem.rowsFilterDetail.mode === 1 && formItem.rowsFilterDetail.fetchMode === 0"  v-model="formItem.constants.rowsFilter.configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
-                  <Option v-for="item in formItem.constants.rowsFilter.regionsForChose" :value="item" :key="item">{{ item }}</Option>
+              <FormItem label="规则内容"
+                        v-if="formItem.rowsFilterDetail.mode !== 1 || formItem.rowsFilterDetail.fetchMode === 0">
+                <Input v-if="formItem.rowsFilterDetail.mode !== 1" type="textarea"
+                       v-model="formItem.rowsFilterDetail.context" style="width: 250px" placeholder="请输入行过滤内容"/>
+                <Select v-if="formItem.rowsFilterDetail.mode === 1 && formItem.rowsFilterDetail.fetchMode === 0"
+                        v-model="formItem.constants.rowsFilter.configInTripUid.regionsChosen" multiple
+                        style="width: 200px" placeholder="Region 选择">
+                  <Option v-for="item in formItem.constants.rowsFilter.regionsForChose" :value="item" :key="item">
+                    {{ item }}
+                  </Option>
                 </Select>
               </FormItem>
-              <FormItem v-if="formItem.rowsFilterDetail.mode === 1" label="空处理" >
+              <FormItem v-if="formItem.rowsFilterDetail.mode === 1" label="空处理">
                 <Checkbox v-model="formItem.rowsFilterDetail.illegalArgument">【字段为空时】同步</Checkbox>
               </FormItem>
               <Divider v-if="formItem.rowsFilterDetail.mode === 1">UDL配置</Divider>
               <FormItem label="UDL字段" v-if="formItem.rowsFilterDetail.mode === 1">
-                <Select   v-model="formItem.rowsFilterDetail.udlColumns"  filterable allow-create  multiple style="width: 200px" placeholder="不选默认则无UDL配置">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                <Select v-model="formItem.rowsFilterDetail.udlColumns" filterable allow-create multiple
+                        style="width: 200px" placeholder="不选默认则无UDL配置">
+                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
+                      item
+                    }}
+                  </Option>
                 </Select>
               </FormItem>
-              <FormItem label="DRC UDL策略id" v-if="formItem.rowsFilterDetail.mode === 1 && formItem.rowsFilterDetail.udlColumns.length !== 0">
-                <Select   v-model="formItem.rowsFilterDetail.drcStrategyId"  filterable allow-create  style="width: 200px" placeholder="请选择ucs策略id">
-                  <Option v-for="item in formItem.constants.rowsFilter.drcStrategyIdsForChose" :value="item" :key="item">{{ item }}</Option>
+              <FormItem label="DRC UDL策略id"
+                        v-if="formItem.rowsFilterDetail.mode === 1 && formItem.rowsFilterDetail.udlColumns.length !== 0">
+                <Select v-model="formItem.rowsFilterDetail.drcStrategyId" filterable allow-create style="width: 200px"
+                        placeholder="请选择ucs策略id">
+                  <Option v-for="item in formItem.constants.rowsFilter.drcStrategyIdsForChose" :value="item"
+                          :key="item">{{ item }}
+                  </Option>
                 </Select>
               </FormItem>
               <Divider v-if="formItem.rowsFilterDetail.mode === 1">UID配置</Divider>
               <FormItem label="相关字段" v-if="formItem.rowsFilterDetail.mode !== 1">
-                <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create  multiple style="width: 200px" placeholder="选择相关字段">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple
+                        style="width: 200px" placeholder="选择相关字段">
+                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item"
+                          :lable="item"></Option>
                 </Select>
               </FormItem>
               <FormItem label="UID字段" v-if="formItem.rowsFilterDetail.mode === 1">
-                <Select  v-model="formItem.rowsFilterDetail.columns"   filterable allow-create  multiple style="width: 200px" placeholder="不选默认则无UID配置">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple
+                        style="width: 200px" placeholder="不选默认则无UID配置">
+                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
+                      item
+                    }}
+                  </Option>
                 </Select>
               </FormItem>
               <FormItem label="fetchMode" v-if="formItem.rowsFilterDetail.mode === 1">
-                <Select  v-model="formItem.rowsFilterDetail.fetchMode" style="width: 200px" placeholder="选择" @on-change="fetchModeChange()">
-                  <Option v-for="item in formItem.constants.rowsFilter.fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
+                <Select v-model="formItem.rowsFilterDetail.fetchMode" style="width: 200px" placeholder="选择"
+                        @on-change="fetchModeChange()">
+                  <Option v-for="item in formItem.constants.rowsFilter.fetchModeForChose" :value="item.v" :key="item.k">
+                    {{ item.k }}
+                  </Option>
                 </Select>
               </FormItem>
             </Card>
@@ -153,44 +188,61 @@
               <template #title>
                 <Icon type="md-settings"/>
                 列过滤配置
-                <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading" @click="getCommonColumns" style="margin-left: 50px">获取公共字段</Button>
+                <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading"
+                        @click="getCommonColumns" style="margin-left: 50px">获取公共字段
+                </Button>
               </template>
               <FormItem label="模式">
                 <Select v-model="formItem.colsFilterDetail.mode" style="width: 200px" placeholder="选择字段过滤模式">
-                  <Option v-for="item in formItem.constants.colsFilter.modes" :value="item.mode" :key="item.mode">{{ item.name }}</Option>
+                  <Option v-for="item in formItem.constants.colsFilter.modes" :value="item.mode" :key="item.mode">
+                    {{ item.name }}
+                  </Option>
                 </Select>
               </FormItem>
               <FormItem label="字段">
-                <Select  v-model="formItem.colsFilterDetail.columns"  filterable allow-create
-                         @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关的字段">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                <Select v-model="formItem.colsFilterDetail.columns" filterable allow-create
+                        @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关的字段">
+                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
+                      item
+                    }}
+                  </Option>
                 </Select>
               </FormItem>
             </Card>
             <FormItem label="业务部门" :required=true>
-              <Select filterable prefix="ios-home" clearable v-model="formItem.buName" placeholder="部门">
+              <Select filterable prefix="ios-home"
+                      @on-change="autoSetTag"
+                      clearable v-model="formItem.buName" placeholder="部门">
                 <Option v-for="item in meta.bus" :value="item.buName" :key="item.buName">{{ item.buName }}</Option>
               </Select>
             </FormItem>
             <FormItem label="Tag" prop="tag" :required=true>
-              <Select v-model="formItem.tag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
+              <Select v-model="formItem.tag" filterable allow-create style="width: 200px" placeholder="选择tag"
+                      @on-create="handleCreateTag">
                 <Option v-for="item in meta.tags" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </FormItem>
-            <FormItem label="初始同步位点" prop="gtidInit" v-if="previewDataList !== null && previewDataList.length === 1 && formItem.buildMode === 0 && previewDataList[0].drcStatus !== 1">
-              <Input v-model="formItem.gtidInit" style="width: 80%;margin-right: 10px" :border="false" placeholder="请输入binlog拉取位点"/>
+            <FormItem label="初始同步位点" prop="gtidInit"
+                      v-if="gtidConfigurable">
+              <Input v-model="formItem.gtidInit" style="width: 80%;margin-right: 10px" :border="false"
+                     placeholder="请输入binlog拉取位点"/>
               <Button type="success" @click="querySrcMhaGtidCheckRes">位点校验</Button>
             </FormItem>
             <FormItem>
-              <Button type="primary" :loading="dataLoading" :disabled="previewDataList.length === 0 || !formItem.tableName" @click="beforeSubmit">提交</Button>
+              <Button type="primary" :loading="dataLoading"
+                      :disabled="previewDataList.length === 0 || !formItem.tableName" @click="beforeSubmit">提交
+              </Button>
             </FormItem>
           </Form>
         </Col>
         <Col span="11">
           <Divider>预览：同步集群</Divider>
-          <Button type="primary" :loading="table.dbMhaTableLoading"  @click="getDalInfo" style="margin-bottom: 5px">检查同步集群</Button>
-          <Table size="small" :loading="table.dbMhaTableLoading" stripe :columns="table.dbMhaTableColumn" :data="preCheckMhaReplicationPage" border></Table>
-          <div >
+          <Button type="primary" :loading="table.dbMhaTableLoading" @click="getDalInfo" style="margin-bottom: 5px">
+            检查同步集群
+          </Button>
+          <Table size="small" :loading="table.dbMhaTableLoading" stripe :columns="table.dbMhaTableColumn"
+                 :data="preCheckMhaReplicationPage" border></Table>
+          <div>
             <Page
               :transfer="true"
               :total="previewDataList.length"
@@ -203,9 +255,12 @@
               @on-page-size-change="(val) => {table.dbMhaTablePage.size = val}"></Page>
           </div>
           <Divider style="margin-top: 50px">预览：同步表</Divider>
-          <Button type="primary" :loading="table.dbTableLoading"  @click="getTableInfo" style="margin-bottom: 5px">检查同步表</Button>
-          <Table size="small"  :loading="table.dbTableLoading" stripe :columns="table.dbTableColumn" :data="preCheckTablePage" border></Table>
-          <div >
+          <Button type="primary" :loading="table.dbTableLoading" @click="getTableInfo" style="margin-bottom: 5px">
+            检查同步表
+          </Button>
+          <Table size="small" :loading="table.dbTableLoading" stripe :columns="table.dbTableColumn"
+                 :data="preCheckTablePage" border></Table>
+          <div>
             <Page
               :transfer="true"
               :total="checkTableDataList.length"
@@ -245,14 +300,15 @@
         :mask-closable="false"
       >
         <Alert type="warning" show-icon v-if="alertInfo.show" closable>
-          {{alertInfo.title}}
-          <template #desc>{{alertInfo.message}}</template>
+          {{ alertInfo.title }}
+          <template #desc>{{ alertInfo.message }}</template>
         </Alert>
         <Alert type="success" show-icon v-if="alertInfo.successShow" closable>
-          {{alertInfo.title}}
-          <template #desc>{{alertInfo.message}}</template>
+          {{ alertInfo.title }}
+          <template #desc>{{ alertInfo.message }}</template>
         </Alert>
-        <Table size="small" :loading="dataLoading" stripe border :columns="drawer.tableColumns" :data="finalBuildParam"></Table>
+        <Table size="small" :loading="dataLoading" stripe border :columns="drawer.tableColumns"
+               :data="finalBuildParam"></Table>
         <div class="drawer-footer">
           <Divider></Divider>
           <Button style="margin-right: 8px" @click="drawer.show = false">关闭</Button>
@@ -614,18 +670,23 @@ export default {
     getRegions () {
       this.axios.get('/api/drc/v2/meta/regions/all')
         .then(response => {
-          this.meta.regions = response.data.data.map((e) => { return e.regionName })
+          this.meta.regions = response.data.data.map((e) => {
+            return e.regionName
+          })
           this.meta.regionOptions = this.meta.regions
         })
     },
     getParams: function () {
       const param = {}
-      param.gtidInit = this.formItem.gtidInit
       param.buName = this.formItem.buName
       param.tag = this.formItem.tag
       param.mode = this.formItem.buildMode
       param.srcRegionName = this.formItem.srcRegionName
       param.dstRegionName = this.formItem.dstRegionName
+
+      if (this.gtidConfigurable) {
+        param.gtidInit = this.formItem.gtidInit
+      }
 
       param.tblsFilterDetail = {
         tableNames: this.formItem.tableName
@@ -697,9 +758,19 @@ export default {
       console.log('selected', this.meta.selectedDb)
       this.formItem.buName = this.meta.selectedDb.buCode
       console.log('selected', this.formItem.tableName)
+      this.autoSetTag()
       await this.getRegionOptions()
       if (this.formItem.srcRegionName && this.formItem.dstRegionName) {
         await this.getDalInfo()
+      }
+    },
+    autoSetTag () {
+      if (this.formItem.buName === 'FLT') {
+        this.formItem.tag = 'FLT'
+      } else if (this.formItem.buName === 'HTL') {
+        this.formItem.tag = 'HTL'
+      } else {
+        this.formItem.tag = 'COMMON'
       }
     },
     async getDalInfo () {
@@ -1034,6 +1105,10 @@ export default {
     }
   },
   computed: {
+    gtidConfigurable () {
+      return this.previewDataList !== null && this.previewDataList.length === 1 &&
+        this.formItem.buildMode === 0 && this.previewDataList[0].drcStatus !== 1
+    },
     preCheckTablePage () {
       const data = this.checkTableDataList
       const start = this.table.dbTablePage.current * this.table.dbTablePage.size - this.table.dbTablePage.size
@@ -1061,7 +1136,7 @@ export default {
 </script>
 
 <style>
-.drawer-footer{
+.drawer-footer {
   width: 100%;
   bottom: 0;
   left: 0;

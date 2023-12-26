@@ -1,15 +1,15 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
@@ -23,6 +23,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -51,7 +52,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
     public static final int MAX_LOOP_COUNT = 20;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(10, "mhaReplicationService");
+    private final ExecutorService executorService = ThreadUtils.newCachedThreadPool("mhaReplicationService");
 
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
@@ -65,6 +66,16 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
+    @Autowired
+    private ApplierTblV2Dao applierTblV2Dao;
+    @Autowired
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Autowired
+    private ReplicatorTblDao replicatorTblDao;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
 
 
     @Override
@@ -268,4 +279,82 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
         }
     }
+
+    @Override
+    public List<MhaDelayInfoDto> getMhaReplicationDelaysV2(List<MhaReplicationDto> mhaReplicationDtoList) {
+        List<Callable<MhaDelayInfoDto>> list = Lists.newArrayList();
+        for (MhaReplicationDto dto : mhaReplicationDtoList) {
+            list.add(() -> this.getMhaReplicationDelay(dto.getSrcMha().getName(), dto.getDstMha().getName()));
+        }
+
+        try {
+            List<MhaDelayInfoDto> res = Lists.newArrayList();
+            List<Future<MhaDelayInfoDto>> futures = executorService.invokeAll(list, 5, TimeUnit.SECONDS);
+            for (Future<MhaDelayInfoDto> future : futures) {
+                if (!future.isCancelled()) {
+                    res.add(future.get());
+                }
+            }
+            return res;
+        } catch (InterruptedException | ExecutionException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
+        }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException {
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryById(mhaReplicationId);
+        if (mhaReplicationTbl == null) return false;
+        MhaTblV2 srcMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getSrcMhaId());
+        MhaTblV2 dstMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getDstMhaId());
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByMappingIds(
+                srcMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),
+                dstMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),
+                ReplicationTypeEnum.DB_TO_DB.getType());
+        if (!CollectionUtils.isEmpty(dbReplicationTbls)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "DbReplications not empty!" );
+        }
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationId, BooleanEnum.FALSE.getCode());
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(),BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(applierTblV2s)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
+                    srcMha.getMhaName() + "==>" + dstMha.getMhaName() + ":Applier not empty!" );
+        }
+
+        List<MhaTblV2> mhasToBeDelete = Lists.newArrayList();
+        markMhaOfflineIfNeed(srcMha, mhasToBeDelete);
+        markMhaOfflineIfNeed(dstMha, mhasToBeDelete);
+
+        logger.info("Going to delete mha replication, srcMha:{}, dstMha:{}", srcMha.getMhaName(), dstMha.getMhaName());
+        mhaReplicationTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        mhaReplicationTblDao.update(mhaReplicationTbl);
+        if (!mhasToBeDelete.isEmpty()) {
+            mhaTblV2Dao.update(mhasToBeDelete);
+        }
+        return true;
+    }
+
+    private void markMhaOfflineIfNeed(MhaTblV2 mha, List<MhaTblV2> mhasToBeDelete) throws SQLException {
+        MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaId(mha.getId(), BooleanEnum.FALSE.getCode());
+        if (messengerGroup != null) { // mha has messenger
+            return;
+        }
+        ReplicatorGroupTbl mhaRGroup = replicatorGroupTblDao.queryByMhaId(mha.getId());
+        List<ReplicatorTbl> mhaReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(mhaRGroup.getId()), BooleanEnum.FALSE.getCode());
+        List<MhaReplicationTbl> mhaReplications = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mha.getId()));
+        if (mhaReplications.size() == 1) { // going to mark mha as offline
+            if (!CollectionUtils.isEmpty(mhaReplicators)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
+                        mha.getMhaName() + "will offline,but Replicator not empty!");
+            } else {
+                logger.info("Going to mark mha {} as offline", mha.getMhaName());
+                mha.setDeleted(BooleanEnum.TRUE.getCode());
+                mhasToBeDelete.add(mha);
+            }
+        }
+    }
+
 }

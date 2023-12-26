@@ -96,6 +96,18 @@ public class RouteTbl implements DalPojo {
     @Type(value = Types.VARCHAR)
     private String optionalProxyIds;
 
+    public static RouteTbl createRoutePojo(Long routeOrgId, Long srcDcId, Long dstDcId, String srcProxyIds, String relayProxyIds, String dstProxyIds, String tag) {
+        RouteTbl routeTbl = new RouteTbl();
+        routeTbl.setRouteOrgId(routeOrgId);
+        routeTbl.setSrcDcId(srcDcId);
+        routeTbl.setDstDcId(dstDcId);
+        routeTbl.setSrcProxyIds(srcProxyIds);
+        routeTbl.setOptionalProxyIds(relayProxyIds);
+        routeTbl.setDstProxyIds(dstProxyIds);
+        routeTbl.setTag(tag);
+        return routeTbl;
+    }
+
     public Long getId() {
         return id;
     }

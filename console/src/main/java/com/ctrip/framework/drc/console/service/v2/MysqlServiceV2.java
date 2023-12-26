@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 
 import java.util.List;
@@ -20,6 +22,10 @@ public interface MysqlServiceV2 {
 
     // forward by mha
     String getMhaPurgedGtid(String mha);
+
+    String getMhaAppliedGtid(String mha);
+
+    Map<String /*dbName*/, String /*applied gtid*/> getMhaDbAppliedGtid(String mha);
 
     // query (sourceMhaName) delay monitor info in (mha)
     Long getDelayUpdateTime(String sourceMhaName, String mhaName);
@@ -54,5 +60,11 @@ public interface MysqlServiceV2 {
 
     String getFirstUniqueIndex(String mha, String db, String table);
 
+    List<String> getUniqueIndex(String mha, String db, String table);
+
     StatementExecutorResult write(MysqlWriteEntity requestBody);
+
+    Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody);
+
+    AutoIncrementVo getAutoIncrementAndOffset(String mha);
 }

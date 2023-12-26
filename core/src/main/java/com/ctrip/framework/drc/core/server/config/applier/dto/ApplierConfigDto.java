@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.server.config.applier.dto;
 
 import com.ctrip.framework.drc.core.meta.ApplierMeta;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
@@ -12,6 +13,7 @@ import java.util.Objects;
  * Nov 07, 2019
  */
 public class ApplierConfigDto extends ApplierMeta {
+
     private int gaqSize;
     private int workerCount;
     private int workerSize;
@@ -25,6 +27,8 @@ public class ApplierConfigDto extends ApplierMeta {
     private String skipEvent;
     private int applyMode;
     private String properties;
+
+    private int applyConcurrency;
 
     public String getManagerIp() {
         return managerIp;
@@ -130,9 +134,19 @@ public class ApplierConfigDto extends ApplierMeta {
         this.properties = properties;
     }
 
+    public int getApplyConcurrency() {
+        return applyConcurrency;
+    }
+
+    public void setApplyConcurrency(int applyConcurrency) {
+        this.applyConcurrency = applyConcurrency;
+    }
+
     @JsonIgnore
     public String getRegistryKey() {
-        return ApplierRegistryKey.from(target.mhaName, super.getCluster(), replicator.mhaName);
+        String registerKey = ApplierRegistryKey.from(target.mhaName, super.getCluster(), replicator.mhaName);
+        registerKey = NameUtils.dotSchemaIfNeed(registerKey, applyMode, includedDbs);
+        return registerKey;
     }
 
     @Override

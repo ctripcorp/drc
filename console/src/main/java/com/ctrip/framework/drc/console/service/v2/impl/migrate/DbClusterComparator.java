@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl.migrate;
 
-import static com.ctrip.framework.drc.core.service.utils.Constants.COMMA;
-
-import com.ctrip.framework.drc.console.service.DrcBuildService;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -16,16 +14,19 @@ import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerHelper;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
+
+import static com.ctrip.framework.drc.core.service.utils.Constants.COMMA;
 
 /**
  * @ClassName DbClusterComparator
@@ -39,7 +40,7 @@ public class DbClusterComparator implements Callable<String> {
     
     private final DbCluster newDbCluster;
     
-    private final DrcBuildService drcBuildService;
+    private final MysqlServiceV2 mysqlServiceV2;
     
     private final StringBuilder recorder;
     
@@ -50,17 +51,15 @@ public class DbClusterComparator implements Callable<String> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public DbClusterComparator(DbCluster oldDbCluster, DbCluster newDbCluster,
-            DrcBuildService drcBuildService,  boolean costTimeTrace,Set<String> vpcDcs) {
+                               MysqlServiceV2 mysqlServiceV2, boolean costTimeTrace, Set<String> vpcDcs) {
         this.oldDbCluster = oldDbCluster;
         this.newDbCluster = newDbCluster;
-        this.drcBuildService = drcBuildService;
+        this.mysqlServiceV2 = mysqlServiceV2;
         this.recorder = new StringBuilder();
         this.costTimeTrace = costTimeTrace;
         this.vpcDcs = vpcDcs;
     }
-    
-    
-    
+
     @Override
     public String call() throws Exception {
         try {
@@ -204,16 +203,16 @@ public class DbClusterComparator implements Callable<String> {
 
     private boolean compareNameFilter(String srcMha,String destMha,String oldNameFilter, String newNameFilter) {
 
-        List<String> oldTables = drcBuildService.queryTablesWithNameFilter(srcMha, oldNameFilter);
-        List<String> newTables = drcBuildService.queryTablesWithNameFilter(srcMha, newNameFilter);
+        List<String> oldTables = mysqlServiceV2.queryTablesWithNameFilter(srcMha, oldNameFilter);
+        List<String> newTables = mysqlServiceV2.queryTablesWithNameFilter(srcMha, newNameFilter);
 
         if (CollectionUtils.isEmpty(oldTables) && destMha != null) {
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{} match table is empty",srcMha, oldNameFilter);
-            oldTables = drcBuildService.queryTablesWithNameFilter(destMha, oldNameFilter);
+            oldTables = mysqlServiceV2.queryTablesWithNameFilter(destMha, oldNameFilter);
         }
         if (CollectionUtils.isEmpty(newTables) && destMha != null) {
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{} match table is empty",srcMha, newNameFilter);
-            newTables = drcBuildService.queryTablesWithNameFilter(destMha, newNameFilter);
+            newTables = mysqlServiceV2.queryTablesWithNameFilter(destMha, newNameFilter);
         }
         
         if (CollectionUtils.isEmpty(oldTables) && CollectionUtils.isEmpty(newTables)) {

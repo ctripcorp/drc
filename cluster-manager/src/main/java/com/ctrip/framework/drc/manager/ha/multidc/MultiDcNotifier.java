@@ -54,7 +54,7 @@ public class MultiDcNotifier implements StateChangeHandler {
         }
 
         Map<String, RegionInfo> regionInfos = config.getCmRegionInfos();
-        Map<String, String> backupDcs = regionMetaCache.getBackupDcs(clusterId); //dcName, clusterName.mhaName
+        Map<String, String> backupDcs = regionMetaCache.getBackupDcs(clusterId); //dcName, targetName.targetMhaName
         NOTIFY_LOGGER.info("[replicatorActiveElected][notify backup dc]{}, {}, {}", clusterId, backupDcs, activeReplicator);
         for (Map.Entry<String, String> entry : backupDcs.entrySet()) {
 

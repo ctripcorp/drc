@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
@@ -26,7 +27,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
 /**
  * Created by jixinwang on 2021/8/23
@@ -39,13 +40,15 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private static final int TRANSACTION_TABLE_MERGE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.TRANSACTION_TABLE_MERGE_SIZE, SystemConfig.DEFAULT_TRANSACTION_TABLE_MERGE_SIZE));
 
-    private static final String UPDATE_TRANSACTION_TABLE = "update `drcmonitordb`.`gtid_executed` set `gno` = ? where `id`= ? and `server_uuid`= ?;";
+    private static final String UPDATE_TRANSACTION_SQL = "update `drcmonitordb`.`%s` set `gno` = ? where `id`= ? and `server_uuid`= ?;";
+    private String UPDATE_TRANSACTION_TABLE;
 
-    private static final String INSERT_TRANSACTION_TABLE = "insert into `drcmonitordb`.`gtid_executed`(`id`, `server_uuid`, `gno`) values(?, ?, ?);";
+    private static final String INSERT_TRANSACTION_SQL = "insert into `drcmonitordb`.`%s`(`id`, `server_uuid`, `gno`) values(?, ?, ?);";
+    private String INSERT_TRANSACTION_TABLE;
 
     private static final int RETRY_TIME = 10;
 
-    private static final int MERGE_THRESHOLD = 20;
+    private static final int MERGE_THRESHOLD = 60;
 
     private static final int PERIOD = 5;
 
@@ -67,7 +70,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private Map<Integer, String> indexAndGtid = new ConcurrentHashMap<Integer, String>();
 
-    private GtidSet gtidSavedInMemory = new GtidSet("");
+    private volatile GtidSet gtidSavedInMemory = new GtidSet("");
 
     private final Object gtidSavedInMemoryLock = new Object();
 
@@ -96,8 +99,25 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
+    @InstanceConfig(path = "nameFilter")
+    public String nameFilter;
+
+    @InstanceConfig(path = "applyMode")
+    public int applyMode;
+
+    @InstanceConfig(path = "includedDbs")
+    public String includedDbs;
+
+    private String trxTableName;
+
     @Override
     protected void doInitialize() throws Exception {
+        trxTableName = getTrxTableName();
+        UPDATE_TRANSACTION_TABLE = String.format(UPDATE_TRANSACTION_SQL, trxTableName);
+        INSERT_TRANSACTION_TABLE = String.format(INSERT_TRANSACTION_SQL, trxTableName);
+
+        logger.info("[transaction] update: {}, insert: {}", UPDATE_TRANSACTION_TABLE, INSERT_TRANSACTION_TABLE);
+
         endpoint = new DefaultEndPoint(ip, port, username, password);
         PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
@@ -111,6 +131,14 @@ public class TransactionTableResource extends AbstractResource implements Transa
             flags[i] = new Object();
         }
         startGtidMergeSchedule();
+    }
+
+    private String getTrxTableName() {
+        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
+            return DRC_DB_TRANSACTION_TABLE_NAME_PREFIX + includedDbs;
+        } else {
+            return DRC_TRANSACTION_TABLE_NAME;
+        }
     }
 
     @Override
@@ -167,7 +195,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey, trxTableName), RETRY_TIME).call();
             if (res == null) {
                 loggerTT.error("[TT][{}] merge gtid set error, shutdown server", registryKey);
                 logger.info("transaction table status is stopped for {}", registryKey);
@@ -314,6 +342,14 @@ public class TransactionTableResource extends AbstractResource implements Transa
                 loggerTT.info("[TT][{}] merge gtid for up to memory merge size end", registryKey);
             }
             gtidSavedInMemory.add(gtid);
+        }
+    }
+
+    @Override
+    public void merge(GtidSet gtidSet) {
+        synchronized (gtidSavedInMemoryLock) {
+            gtidSavedInMemory = gtidSavedInMemory.union(gtidSet);
+            asyncMergeGtid(true);
         }
     }
 

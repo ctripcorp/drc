@@ -151,6 +151,10 @@ const routes = [
     component: () => import('../views/v2/ops/migration.vue')
   },
   {
+    path: '/v2/operationlog',
+    component: () => import('../views/v2/ops/operationlog.vue')
+  },
+  {
     path: '/drcV2',
     name: 'drcV2',
     component: () => import('../views/v2/meta/drcV2.vue')
@@ -159,6 +163,16 @@ const routes = [
     path: '/dbTables',
     name: 'dbTables',
     component: () => import('../views/v2/meta/buildStep/dbTables.vue')
+  },
+  {
+    path: '/dbAppliers',
+    name: 'dbAppliers',
+    component: () => import('../views/v2/meta/buildStep/dbAppliers.vue')
+  },
+  {
+    path: '/dbMessengers',
+    name: 'dbMessengers',
+    component: () => import('../components/v2/mhaMessengers/dbMessengers.vue')
   },
   {
     path: '/dbReplicationConfigV2',

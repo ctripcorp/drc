@@ -1,12 +1,13 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
+import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.google.common.collect.Lists;
@@ -207,13 +208,37 @@ public class MysqlController {
         }
     }
 
-    @GetMapping("uniqueIndex")
+    @PostMapping("createDrcMonitorDbTable")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDrcMonitorDbTable(@RequestBody DrcDbMonitorTableCreateReq requestBody) {
+        try {
+            logger.info("createDrcMonitorDbTable, req: {}", requestBody);
+            Boolean createResult = mysqlServiceV2.createDrcMonitorDbTable(requestBody);
+            return ApiResult.getSuccessInstance(createResult);
+        } catch (Exception e) {
+            logger.error("createDrcMonitorDbTable, mha: " + requestBody, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("firstUniqueIndex")
     public ApiResult<String> getFirstUniqueIndex(@RequestParam String mha, @RequestParam String db, @RequestParam String table) {
         try {
             logger.info("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
             return ApiResult.getSuccessInstance(mysqlServiceV2.getFirstUniqueIndex(mha, db, table));
         } catch (Exception e) {
             logger.error("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("uniqueIndex")
+    public ApiResult<List<String>> getUniqueIndex(@RequestParam String mha, @RequestParam String db, @RequestParam String table) {
+        try {
+            logger.info("getUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getUniqueIndex(mha, db, table));
+        } catch (Exception e) {
+            logger.error("getUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table, e);
             return ApiResult.getFailInstance(null);
         }
     }
@@ -226,6 +251,17 @@ public class MysqlController {
         } catch (Exception e) {
             logger.info("write to mha entity fail: {}", requestBody, e);
             return ApiResult.getFailInstance(new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), e.getMessage()));
+        }
+    }
+
+    @GetMapping("autoIncrement")
+    public ApiResult getAutoIncrementAndOffset(@RequestParam String mha) {
+        try {
+            logger.info("getAutoIncrementAndOffset, mha: {}", mha);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getAutoIncrementAndOffset(mha));
+        } catch (Exception e) {
+            logger.error("getAutoIncrementAndOffset fail, mha: {}", mha, e);
+            return ApiResult.getFailInstance(null);
         }
     }
 

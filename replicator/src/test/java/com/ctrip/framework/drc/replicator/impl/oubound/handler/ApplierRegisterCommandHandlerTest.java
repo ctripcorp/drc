@@ -156,7 +156,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         }
         Thread.sleep(300);
 
-        verify(channel, times(2 * 2 + 1 + 2)).writeAndFlush(any(DefaultFileRegion.class));  //gtid and drc_uuid_log in last two files, and format_log、 previous_log in last file, switch file will send empty msg
+        verify(channel, times(2 * 4 + 1)).writeAndFlush(any(DefaultFileRegion.class));  //format_log、previous_log、drc_uuid_log、gtid in last two files, switch file will send empty msg
         verify(outboundMonitorReport, times(2)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(2)).addOneCount();
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
@@ -168,7 +168,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
-        verify(channel, times( 1 + 1)).writeAndFlush(any(DefaultFileRegion.class));  //xid and drc_uuid_log
+        verify(channel, times( 1 + 1 + 1 + 1)).writeAndFlush(any(DefaultFileRegion.class));  //format_log、previous_log、drc_uuid_log、xid
         verify(outboundMonitorReport, times(0)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(0)).addOneCount();
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
@@ -180,7 +180,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
-        verify(channel, times( 3)).writeAndFlush(any(DefaultFileRegion.class));  //ddl、drc table map、 drc_uuid_log
+        verify(channel, times( 5)).writeAndFlush(any(DefaultFileRegion.class));  //ddl、drc table map、 format_log、previous_log、drc_uuid_log
         verify(outboundMonitorReport, times(0)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(0)).addOneCount();
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
@@ -234,7 +234,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
-        verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 2/*format_log、previous_log*/ + 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
@@ -248,7 +248,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(500);
 
-        verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + (maxGtidId - 1) * 4 /*transaction size*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 2/*format_log、previous_log*/ + 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + (maxGtidId - 1) * 4 /*transaction size*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
@@ -262,7 +262,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
-        verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 2/*format_log、previous_log*/ + 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
@@ -276,7 +276,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
-        verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 2/*format_log、previous_log*/ + 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
@@ -293,7 +293,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         int numTransaction = maxGtidId - (ddlId + 1);
 
-        verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*drc_gtid_log_event*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 2/*format_log、previous_log*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*drc_gtid_log_event*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
@@ -310,7 +310,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         int numTransaction = maxGtidId - (ddlId + 1);
 
-        verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 2/*format_log、previous_log*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
     }
 
     @Test
@@ -363,7 +363,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
-        verify(channel, Mockito.times(6 /* db1.table1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times(2/*format_log、previous_log*/ + 6 /* db1.table1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(0)).setHeartBeat(false);
     }
 

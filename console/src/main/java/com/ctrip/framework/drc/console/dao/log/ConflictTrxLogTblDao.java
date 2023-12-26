@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
-import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
@@ -27,6 +26,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
     private static final String GTID = "gtid";
     private static final String HANDLE_TIME = "handle_time";
     private static final String TRX_RESULT = "trx_result";
+    private static final String CREATE_TIME = "create_time";
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
 
     public ConflictTrxLogTblDao() throws SQLException {
@@ -47,21 +47,26 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
     }
 
     public ConflictTrxLogTbl queryByGtid(String gtid) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.equal(GTID, gtid, Types.VARCHAR);
         return queryOne(sqlBuilder);
     }
 
     public ConflictTrxLogTbl queryByGtid(String gtid, Long beginHandleTime, Long endHandleTime) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR)
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.equal(GTID, gtid, Types.VARCHAR)
                 .and().greaterThan(HANDLE_TIME, beginHandleTime, Types.BIGINT)
                 .and().lessThan(HANDLE_TIME, endHandleTime, Types.BIGINT);
         return queryOne(sqlBuilder);
     }
 
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT)
+                .and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT)
+                .and().greaterThanEquals(CREATE_TIME, param.getCreateBeginTime(), Types.TIMESTAMP)
+                .and().lessThanEquals(CREATE_TIME, param.getCreateEndTime(), Types.TIMESTAMP);
+
         if (!param.isAdmin()) {
             sqlBuilder.and().in(DB, param.getDbsWithPermission(), Types.VARCHAR);
         }
@@ -78,13 +83,6 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
             sqlBuilder.and().equal(GTID, param.getGtId(), Types.VARCHAR);
         }
         sqlBuilder.and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
-
-        if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
-            sqlBuilder.and().greaterThanEquals(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
-        }
-        if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
-            sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
-        }
 
         return sqlBuilder;
     }

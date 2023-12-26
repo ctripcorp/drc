@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
@@ -7,6 +8,7 @@ import com.ctrip.framework.drc.core.entity.Instance;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.command.AbstractCommand;
@@ -45,48 +47,74 @@ public abstract class AbstractNotifier implements Notifier {
     private static final String NOTIFY_URL = "http://%s/%s";
 
     protected AbstractNotifier() {
-        ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "CM-Notifier-Service");
+        int threadNum = DynamicConfig.getInstance().getCmNotifyThread();
+        logger.info("{} notify thread num is: {}", getClass().getSimpleName(), threadNum);
+        ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(threadNum, "CM-Notifier-Service");
         notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);
     }
 
+    /**
+     * registryKey is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
-    public void notify(String clusterId, DbCluster dbCluster) {  //retry when failed
+    public void notify(String registryKey, DbCluster dbCluster) {  //retry when failed
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
             PostSend postSend = new PostSend(ipAndPort, url, dbCluster);
-            notifyExecutor.execute(clusterId, new SendTask(clusterId, postSend));
+            notifyExecutor.execute(registryKey, new SendTask(registryKey, postSend));
         }
     }
 
+    /**
+     * registryKey is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
-    public void notifyAdd(String clusterId, DbCluster dbCluster) {
+    public void notifyAdd(String registryKey, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, false);
-            notifyExecutor.execute(clusterId, new SendTask(clusterId, putSend));
+            notifyExecutor.execute(registryKey, new SendTask(registryKey, putSend));
         }
     }
 
+    /**
+     * registryKey is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
-    public void notifyRegister(String clusterId, DbCluster dbCluster) {
+    public void notifyRegister(String registryKey, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getRegisterPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, true);
-            notifyExecutor.execute(clusterId, new SendTask(clusterId, putSend));
+            notifyExecutor.execute(registryKey, new SendTask(registryKey, putSend));
         }
     }
 
+    /**
+     * registryKey is diff:
+     * replicator: name.mha
+     * applier: name.mha.dstMha[.dstDB]
+     * messenger: name.mha._drc_mq[.dstDB]
+     */
     @Override
-    public void notifyRemove(String clusterId, Instance instance, boolean deleted) {
+    public void notifyRemove(String registryKey, Instance instance, boolean deleted) {
         String ip = instance.getIp();
         int port = instance.getPort();
         String url = String.format(NOTIFY_URL, ip + ":" + port, getUrlPath());
-        String deleteUrl = url + "/" + clusterId + "/";
+        String deleteUrl = url + "/" + registryKey + "/";
         if ((instance instanceof Applier || instance instanceof Messenger) && !deleted) {
             deleteUrl += deleted;
         }
         DeleteSend deleteSend = new DeleteSend(deleteUrl);
-        notifyExecutor.execute(clusterId, new SendTask(clusterId, deleteSend));
+        notifyExecutor.execute(registryKey, new SendTask(registryKey, deleteSend));
     }
 
     private void doNotify(HttpSend httpSend) {
@@ -109,6 +137,15 @@ public abstract class AbstractNotifier implements Notifier {
             NOTIFY_LOGGER.error("{}", errMsg, e);
             throw new DrcServerException(errMsg, e);
         }
+    }
+
+    protected String getDelayMonitorRegex(int applyMode, String includeDbs) {
+        String delayMonitorRegex = DRC_MONITOR_SCHEMA_NAME + "\\." + "(delaymonitor";
+        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
+            delayMonitorRegex = delayMonitorRegex + "|" + DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + includeDbs;
+        }
+        delayMonitorRegex = delayMonitorRegex + ")";
+        return delayMonitorRegex;
     }
 
     private boolean checkStatus(int status) {

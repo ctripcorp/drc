@@ -38,6 +38,7 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
@@ -102,6 +103,8 @@ public class DbMigrationServiceImplTest {
     private RegionConfig regionConfig;
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private MhaDbReplicationService mhaDbReplicationService;
 
 
     // init tblEntity  mhaTbls & mhaReplicationTbls & dbTbls & mhaDbMappingTbls & dbReplicationTbls & filterMapping
@@ -403,7 +406,7 @@ public class DbMigrationServiceImplTest {
         Mockito.when(mhaTblV2Dao.queryByPk(Mockito.eq(1L))).thenReturn(mha1);
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip2"), Mockito.eq(3306))).thenReturn(null);
         Mockito.when(drcBuildServiceV2.syncMhaInfoFormDbaApi(Mockito.eq("mha2"))).thenReturn(mha2);
-        
+        Mockito.when(mhaDbReplicationService.isDbReplicationExist(Mockito.anyLong(),Mockito.anyList())).thenReturn(true);
         // getReplicationInfoInOldMha
         List<DbTbl> dbTbls = Lists.newArrayList(db1, db2);
         Mockito.when(dbTblDao.queryByDbNames(Mockito.eq(dbMigrationParam.getDbs()))).thenReturn(dbTbls);

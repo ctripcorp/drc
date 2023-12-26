@@ -8,6 +8,9 @@ import java.util.List;
  */
 public class ConflictRowsRecordCompareView {
     private List<ConflictRowsRecordDetail> recordDetailList;
+    /**
+     * unEqualRowLogIds
+     */
     private List<Long> rowLogIds;
 
     public List<ConflictRowsRecordDetail> getRecordDetailList() {

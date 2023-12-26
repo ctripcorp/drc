@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.meta.impl;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
 import org.assertj.core.util.Lists;
@@ -75,6 +76,7 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier1.setTargetName(name1);
         applier1.setTargetMhaName(mhaName1);
         applier1.setMaster(true);
+        applier1.setApplyMode(ApplyMode.transaction_table.getType());
 
         Applier applier1_slave = new Applier();
         applier1_slave.setIp("127.0.0.10");
@@ -82,6 +84,7 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier1_slave.setTargetName(name1);
         applier1_slave.setTargetMhaName(mhaName1);
         applier1_slave.setMaster(false);
+        applier1_slave.setApplyMode(ApplyMode.transaction_table.getType());
 
 
         Applier applier2 = new Applier();
@@ -92,6 +95,7 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier2.setTargetName(name2);
         applier2.setTargetMhaName(mhaName2);
         applier2.setMaster(true);
+        applier2.setApplyMode(ApplyMode.transaction_table.getType());
 
         Applier applier2_slave = new Applier();
         applier2_slave.setIp("127.0.0.30");
@@ -99,6 +103,7 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier2_slave.setTargetName(name2);
         applier2_slave.setTargetMhaName(mhaName2);
         applier2_slave.setMaster(false);
+        applier2_slave.setApplyMode(ApplyMode.transaction_table.getType());
 
         Applier applier3 = new Applier();
         String name3 = "integration-test3";
@@ -108,6 +113,7 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier3.setTargetName(name3);
         applier3.setTargetMhaName(mhaName3);
         applier3.setMaster(true);
+        applier3.setApplyMode(ApplyMode.transaction_table.getType());
 
         currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier1, applier1_slave), applier1);
         currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier2, applier2_slave), applier2);

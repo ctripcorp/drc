@@ -7,8 +7,8 @@ import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
 
+import java.sql.SQLException;
 import java.util.List;
-import org.apache.commons.lang3.tuple.Pair;
 
 public interface MhaReplicationServiceV2 {
     PageResult<MhaReplicationTbl> queryByPage(MhaReplicationQuery query);
@@ -40,4 +40,16 @@ public interface MhaReplicationServiceV2 {
      * 批量获取延迟
      */
     List<MhaDelayInfoDto> getMhaReplicationDelays(List<MhaReplicationDto> mhaReplicationDtoList);
+
+    /**
+     * 下线同步链路
+     *
+     * @param mhaReplicationId
+     */
+    boolean deleteMhaReplication(Long mhaReplicationId) throws SQLException;
+
+    /**
+     * 批量获取延迟（允许部分成功）
+     */
+    List<MhaDelayInfoDto> getMhaReplicationDelaysV2(List<MhaReplicationDto> mhaReplicationDtoList);
 }

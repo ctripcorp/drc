@@ -9,9 +9,12 @@ import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
+import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
@@ -25,16 +28,11 @@ import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
@@ -46,11 +44,16 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     DbClusterApiService dbClusterService;
     @Mock
     OPSApiService opsApiServiceImpl;
+    @Mock
+    MhaServiceV2Impl mhaServiceV2;
+    @Mock
+    MhaDbReplicationServiceImpl mhaDbReplicationService;
 
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
         when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
+        doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
         super.setUp();
     }
 
@@ -63,7 +66,36 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         Assert.assertTrue(ids.contains(1L));
         Assert.assertTrue(ids.contains(2L));
     }
+    @Test
+    public void testQueryMessengerMhaTbls() throws Exception {
+        MessengerQueryDto queryDto = new MessengerQueryDto();
+        MhaTblV2 mhaTblV2 = new MhaTblV2();
+        mhaTblV2.setMhaName("mha1");
+        mhaTblV2.setId(1L);
 
+        // query all
+        List<MhaTblV2> result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
+        List<Long> ids = result.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+        Assert.assertTrue(ids.contains(1L));
+        Assert.assertTrue(ids.contains(2L));
+
+        // query by mha
+        MhaQueryDto mhaQueryDto = new MhaQueryDto();
+        mhaQueryDto.setName("mha1");
+        queryDto.setMha(mhaQueryDto);
+        HashMap<Long, MhaTblV2> map = new HashMap<>();
+        map.put(1L, mhaTblV2);
+        when(mhaServiceV2.query(any())).thenReturn(map);
+        result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
+        Assert.assertTrue(result.stream().anyMatch(e-> e.getId() == 1L));
+
+        // query by bu
+        queryDto = new MessengerQueryDto();
+        when(mhaServiceV2.queryRelatedMhaByDbName(any())).thenReturn(Lists.newArrayList(mhaTblV2));
+        queryDto.setDbNames("db1");
+        result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
+        System.out.println(result);
+    }
     @Test
     public void testQueryMhaMessengerConfigs() throws Exception {
         List<MqConfigVo> mq1 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha1");
@@ -457,7 +489,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         List<MhaMessengerDto> relatedMhaMessenger = messengerServiceV2Impl.getRelatedMhaMessenger(mhas, dbs);
 
         Assert.assertEquals(2, relatedMhaMessenger.size());
-        Assert.assertEquals(2,relatedMhaMessenger.get(0).getDbs().size());
+        Assert.assertEquals(2, relatedMhaMessenger.get(0).getDbs().size());
         System.out.println(relatedMhaMessenger);
     }
 

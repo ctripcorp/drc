@@ -72,7 +72,7 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
     }
 
     /**
-     * @param backupClusterId
+     * @param backupClusterId: targetName.targetMhaName
      * @param clusterId
      * @param ip
      * @param port

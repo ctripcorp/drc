@@ -28,8 +28,6 @@ public class ReportConflictActivityTest {
         reportConflictActivity.setRestTemplate(restTemplate);
         
         reportConflictActivity.initialize();
-        reportConflictActivity.start();
-        reportConflictActivity.stop(); // stop take task from queue
         
         // test config in drc.properties
         ConflictTransactionLog conflictTransactionLog = new ConflictTransactionLog();
@@ -70,8 +68,6 @@ public class ReportConflictActivityTest {
         report = reportConflictActivity.report(conflictTransactionLog);
         Assert.assertFalse(report);
         
-        Thread.sleep(200);
-        reportConflictActivity.dispose();
     }
 
     @Test

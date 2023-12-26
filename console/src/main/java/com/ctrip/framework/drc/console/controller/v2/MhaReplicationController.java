@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -8,6 +9,8 @@ import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
+import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -28,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -148,7 +152,22 @@ public class MhaReplicationController {
                 }
                 query.setRelatedMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
             }
-
+            if (!StringUtils.isBlank(queryDto.getDbNames())) {
+                List<String> dbNames = Arrays.stream(queryDto.getDbNames().split(","))
+                        .map(String::trim)
+                        .filter(e->!StringUtils.isEmpty(e))
+                        .collect(Collectors.toList());
+                List<MhaTblV2> relatedMhas = mhaServiceV2.queryRelatedMhaByDbName(dbNames);
+                if (CollectionUtils.isEmpty(relatedMhas)) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
+                }
+                List<Long> mhaIds = relatedMhas.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+                query.addOrIntersectSrcMhaIds(mhaIds);
+                query.addOrIntersectDstMhaIds(mhaIds);
+                if (CollectionUtils.isEmpty(query.getSrcMhaIdList()) || CollectionUtils.isEmpty(query.getDstMhaIdList())) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
+                }
+            }
             query.setDrcStatus(queryDto.getDrcStatus());
             // query replication
             PageResult<MhaReplicationTbl> tblPageResult = mhaReplicationServiceV2.queryByPage(query);
@@ -204,7 +223,7 @@ public class MhaReplicationController {
             }
 
             List<MhaReplicationDto> mhaReplicationDtos = mhaReplicationServiceV2.queryReplicationByIds(replicationIds);
-            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(mhaReplicationDtos);
+            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelaysV2(mhaReplicationDtos);
             List<DelayInfoVo> res = mhaReplicationDelays.stream().map(DelayInfoVo::from).collect(Collectors.toList());
             return ApiResult.getSuccessInstance(res);
         } catch (Throwable e) {
@@ -241,6 +260,17 @@ public class MhaReplicationController {
         }
     }
 
+    @DeleteMapping("offline")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "offlineMhaReplication with mhaReplicationId: {#mhaReplicationId}")
+    public ApiResult<Boolean> offlineMhaReplication(@RequestParam Long mhaReplicationId) {
+        try {
+            return ApiResult.getSuccessInstance(mhaReplicationServiceV2.deleteMhaReplication(mhaReplicationId));
+        } catch (Exception e) {
+            logger.error("deleteMhaReplication error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 
     private List<MhaReplicationVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
         // prepare meta data

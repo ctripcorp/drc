@@ -4,15 +4,20 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
-import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.MetaCompareService;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -21,11 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 /**
  * @ClassName MetaCompareServiceImpl
@@ -38,13 +38,17 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
 
-    @Autowired private DbClusterSourceProvider metaProviderV1;
+    @Autowired
+    private DbClusterSourceProvider metaProviderV1;
 
-    @Autowired private DrcBuildService drcBuildService;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
-    @Autowired private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
 
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
     private volatile Boolean consistent = true;
@@ -62,6 +66,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
     public void scheduledTask() {
         return;
     }
+
     @Override
     public boolean isConsistent(String res) {
         return !(res.contains("not equal") || res.contains("empty") || res.contains("fail"));
@@ -73,23 +78,23 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
         return DefaultTransactionMonitorHolder.getInstance()
                 .logTransaction("DRC.console.schedule", "metaCompare", this::getDrcMetaCompareRes);
     }
-    
-    
+
+
     @Override
     public DbClusterCompareRes compareDbCluster(String dbClusterId) {
         DbClusterCompareRes res = new DbClusterCompareRes();
         try {
-            DbCluster oldDbCluster =  metaProviderV1.getDcBy(dbClusterId).findDbCluster(dbClusterId);
-            DbCluster newDbCluster =  metaProviderV2.getDcBy(dbClusterId).findDbCluster(dbClusterId);
+            DbCluster oldDbCluster = metaProviderV1.getDcBy(dbClusterId).findDbCluster(dbClusterId);
+            DbCluster newDbCluster = metaProviderV2.getDcBy(dbClusterId).findDbCluster(dbClusterId);
             res.setOldDbCluster(oldDbCluster);
             res.setNewDbCluster(newDbCluster);
             String compareRes = new DbClusterComparator(
-                    oldDbCluster, newDbCluster, drcBuildService,
-                    consoleConfig.getCostTimeTraceSwitch(),consoleConfig.getLocalConfigCloudDc()).call();
+                    oldDbCluster, newDbCluster, mysqlServiceV2,
+                    consoleConfig.getCostTimeTraceSwitch(), consoleConfig.getLocalConfigCloudDc()).call();
 
             res.setCompareRes(compareRes);
         } catch (Exception e) {
-            logger.error("[[tag=metaCompare]] compare dbCluster fail:{}",dbClusterId,e);
+            logger.error("[[tag=metaCompare]] compare dbCluster fail:{}", dbClusterId, e);
             res.setCompareRes("compare fail");
         }
         return res;
@@ -124,7 +129,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
             Drc oldDrc = metaProviderV1.getDrc();
             compareLogically(oldDrc, newDrc, recorder);
         } finally {
-            logger.info("[[tag=metaCompare]] res:{}",recorder.toString());
+            logger.info("[[tag=metaCompare]] res:{}", recorder.toString());
         }
         return recorder.toString();
     }
@@ -172,7 +177,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
 
                 recorderFutures.add(comparators.submit(
                         new DbClusterComparator(
-                                oldDbCluster, newDbCluster, drcBuildService, consoleConfig.getCostTimeTraceSwitch(),
+                                oldDbCluster, newDbCluster, mysqlServiceV2, consoleConfig.getCostTimeTraceSwitch(),
                                 consoleConfig.getLocalConfigCloudDc()
                         )));
 
