@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
@@ -404,6 +405,20 @@ public class ConflictLogServiceTest {
         List<ConflictRowRecordCompareEqualView> result = conflictLogService.compareRowRecordsEqual(Lists.newArrayList(1L));
         Assert.assertEquals(result.size(), 1);
         Assert.assertTrue(result.get(0).getRecordIsEqual());
+    }
+
+    @Test
+    public void testGetRowsLogCountView() throws Exception {
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb()).thenReturn(org.assertj.core.util.Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyInt())).thenReturn(org.assertj.core.util.Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
+        Mockito.when(conflictRowsLogTblDao.queryCount()).thenReturn(1);
+        Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyInt())).thenReturn(1);
+
+        ConflictRowsLogCountView result = conflictLogService.getRowsLogCountView();
+        Assert.assertEquals(result.getDbCounts().size(), 1);
+        Assert.assertEquals(result.getRollBackDbCounts().size(), 1);
+        Assert.assertTrue(result.getTotalCount() == 1);
+        Assert.assertTrue(result.getRollBackTotalCount() == 1);
     }
 
     private Map<String, Object> getEmptyRecord() {

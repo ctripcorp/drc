@@ -56,4 +56,7 @@ public interface ConflictLogService {
     boolean isInBlackListWithCache(String db,String table);
 
     List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception;
+
+    ConflictRowsLogCountView getRowsLogCountView() throws Exception;
+
 }

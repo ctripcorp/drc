@@ -5,6 +5,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.base.DalTableOperations;
+import com.ctrip.platform.dal.dao.base.SQLResultSpec;
 import com.ctrip.platform.dal.dao.client.DalOperationsFactory;
 import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
@@ -35,6 +36,14 @@ public class AbstractDao<T> {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal("deleted", BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return sqlBuilder;
+    }
+
+    public <K> List<K> query(String sql, DalHints dalHints, SQLResultSpec result, Object... args) throws SQLException {
+        return client.query(sql, dalHints, result, args);
+    }
+
+    public <K> K queryObject(String sql, DalHints dalHints, SQLResultSpec result, Object... args) throws SQLException {
+        return client.queryObject(sql, dalHints, result, args);
     }
 
     public List<T> queryByPk(List<Long> ids) throws SQLException {
