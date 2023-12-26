@@ -9,6 +9,15 @@ public class ConflictRowsLogCount {
     private String tableName;
     private int count;
 
+    public ConflictRowsLogCount(String dbName, String tableName, int count) {
+        this.dbName = dbName;
+        this.tableName = tableName;
+        this.count = count;
+    }
+
+    public ConflictRowsLogCount() {
+    }
+
     public String getDbName() {
         return dbName;
     }

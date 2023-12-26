@@ -79,11 +79,11 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
-        CONSOLE_MONITOR_LOGGER.info("tableStructureCheck is leader, going to check");
+        CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] is leader, going to check");
         try {
             checkTableStructure();
         } catch (Exception e) {
-            CONSOLE_MONITOR_LOGGER.error("tableStructureCheck fail, {}", e);
+            CONSOLE_MONITOR_LOGGER.error("[[monitor=TableStructureCheckTask]] fail, {}", e);
         }
     }
 
