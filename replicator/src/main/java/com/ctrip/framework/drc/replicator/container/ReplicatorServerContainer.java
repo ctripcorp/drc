@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurat
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,6 +25,11 @@ public class ReplicatorServerContainer extends AbstractServerContainer implement
 
     @Autowired
     private TableFilterConfiguration tableFilterConfiguration;
+
+    @Autowired
+    public void setApplicationContext(ApplicationContext context) {
+        this.context = context;
+    }
 
     @Override
     protected ReplicatorServer getReplicatorServer(ReplicatorConfig config) {

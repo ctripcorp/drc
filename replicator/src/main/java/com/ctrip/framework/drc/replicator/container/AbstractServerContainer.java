@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
+import com.ctrip.framework.drc.replicator.ReplicatorContainerApplication;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
@@ -25,6 +26,8 @@ import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
 import java.util.List;
@@ -43,6 +46,8 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
     private Map<String, Integer> runningPorts = Maps.newConcurrentMap();
 
     private Map<String, DrcServer> drcServers = Maps.newConcurrentMap();
+
+    protected ApplicationContext context;
 
     @Override
     public ApiResult addServer(ReplicatorConfig config) {
@@ -195,7 +200,9 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
     }
 
     @Override
-    public void run(ApplicationArguments applicationArguments) {
+    public void run(ApplicationArguments applicationArguments) throws Exception {
+        logger.info("[Registry] register Component in AbstractServerContainer");
+        ReplicatorContainerApplication.initComponentRegistry((ConfigurableApplicationContext) context);
         registerReplicators();
         logger.info("[Start] register replicator to zk");
     }
