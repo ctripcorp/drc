@@ -15,9 +15,9 @@ public class AviatorRegexFilterTest {
 
     @Test
     public void testFilter() {
-        String filter = "(?!bbzmbrcommoncontactshard0[1-2]db|CommonOrderShard[1-9]DB|CommonOrderShard[1][0-2]DB).*\\.*";
+        String filter = "fncbicardindexdb\\.(uid_brandid_collectionid_rel_\\d*)";
         AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(filter);
-        System.out.println(aviatorRegexFilter.filter("commonorderconfigdb.xjob_timestamp"));
+        System.out.println(aviatorRegexFilter.filter("fncbicardindexdb.uid_brandid_collectionid_rel_ss"));
     }
 
     @Test

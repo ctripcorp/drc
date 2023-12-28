@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.enums.TokenType;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.SQLException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +57,11 @@ public class AccessTokenAspectTest {
     
     @Test
     public void testAccessTokenCheck() throws Exception {
-        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any());
+        try {
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v2/log/conflict/blacklist/dba/touchjob?db=db1&table=table1")
                         .header("DRC-Access-Token", "a2cf09da41f37ea6ec7be2b9a3d650b2")
                         .accept(MediaType.APPLICATION_JSON))

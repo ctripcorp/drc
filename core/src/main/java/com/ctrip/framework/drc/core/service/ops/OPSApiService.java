@@ -25,7 +25,6 @@ public interface OPSApiService extends Ordered {
     
     List<HickWallMhaReplicationDelayEntity> getMhaReplicationDelay(String getAllClusterUrl, String accessToken) throws IOException;
     
-    
     List<HickWallConflictCount> getConflictCount(String apiUrl,String accessToken,boolean isTrx,boolean isCommit,int minutes) throws IOException;
     
 

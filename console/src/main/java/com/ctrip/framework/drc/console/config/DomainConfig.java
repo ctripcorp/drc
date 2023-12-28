@@ -104,19 +104,26 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DOT_TOKEN = "dot.token";
     private static final String DOT_QUERY_API_URL = "dot.query.api.url";
 
-    private static final String CONFLICT_ALARM_SENDER_EMAIL = "conflict.alarm.sender.email";
-    private static final String CONFLICT_ALARM_CC_EMAILS = "conflict.alarm.cc.emails";
-    private static final String DRC_CONFLICT_HANDLE_URL = "drc.conflict.handle.url";
-    private static final String DRC_HICKWALL_MONITOR_URL = "drc.hickwall.monitor.url";
-    private static final String CONFLICT_COMMIT_ROW_THRESHOLD= "conflict.commit.row.threshold";
-    private static final String CONFLICT_ROLLBACK_ROW_THRESHOLD = "conflict.rollback.row.threshold";
-    private static final String CONFLICT_COMMIT_TRX_THRESHOLD = "conflict.commit.trx.threshold";
-    private static final String CONFLICT_ROLLBACK_TRX_THRESHOLD = "conflict.rollback.trx.threshold";
-    private static final String SEND_CONFLICT_ALARM_EMAIL_SWITCH = "send.conflict.alarm.email.switch";
-    private static final String SEND_DBOWNER_CONFLICT_EMAIL_SWITCH = "send.dbowner.conflict.email.switch";
-    private static final String CFL_BLACK_LIST_EXPIRATION_HOUR = "cfl.black.list.expiration.hour";
-    private static final String DBA_CFL_BLACK_LIST_EXPIRATION_HOUR = "dba.cfl.black.list.expiration.hour";
-    private static final String CONFLICT_ALARM_TIMES_PER_HOUR = "conflict.alarm.times.per.hour";
+    
+    private static final String CFL_ALARM_SEND_EMAIL_SWITCH = "cfl.alarm.send.email.switch";
+    private static final String CFL_ALARM_SEND_DB_OWNER_SWITCH = "cfl.alarm.send.db.owner.switch";
+    private static final String CFL_ALARM_SENDER_EMAIL = "cfl.alarm.sender.email";
+    private static final String CFL_ALARM_CC_EMAILS = "cfl.alarm.cc.emails";
+    private static final String CFL_ALARM_DRC_URL= "cfl.alarm.drc.url";
+    private static final String CFL_ALARM_HICKWALL_URL = "cfl.alarm.hickwall.url";
+    private static final String CFL_ALARM_THRESHOLD_COMMIT_ROW = "cfl.alarm.threshold.commit.row";
+    private static final String CFL_ALARM_THRESHOLD_COMMIT_TRX = "cfl.alarm.threshold.commit.trx";
+    private static final String CFL_ALARM_THRESHOLD_ROLLBACK_ROW = "cfl.alarm.threshold.rollback.row";
+    private static final String CFL_ALARM_THRESHOLD_ROLLBACK_TRX = "cfl.alarm.threshold.rollback.trx";
+    
+    private static final String CFL_ALARM_LIMIT_PER_HOUR = "cfl.alarm.limit.per.hour";
+    private static final String CFL_BLACKLIST_NEW_CONFIG_CLEAR_SWITCH = "cfl.blacklist.new.config.clear.switch";
+    private static final String CFL_BLACKLIST_NEW_CONFIG_EXPIRATION_HOUR = "cfl.blacklist.new.config.expiration.hour";
+    private static final String CFL_BLACKLIST_DBA_JOB_CLEAR_SWITCH = "cfl.blacklist.dba.job.clear.switch";
+    private static final String CFL_BLACKLIST_DBA_JOB_EXPIRATION_HOUR = "cfl.blacklist.dba.job.expiration.hour";
+    private static final String CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD = "cfl.blacklist.alarm.hotspot.threshold";
+    private static final String CFL_BLACKLIST_ALARM_HOTSPOT_CLEAR_SWITCH = "cfl.blacklist.alarm.hotspot.clear.switch";
+    private static final String CFL_BLACKLIST_ALARM_HOTSPOT_EXPIRATION_HOUR = "cfl.blacklist.alarm.hotspot.expiration.hour";
     
 
     public String getDbaApprovers() {
@@ -312,12 +319,20 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(DOT_QUERY_API_URL, "");
     }
     
+    public boolean getConflictAlarmSendEmailSwitch() {
+        return getBooleanProperty(CFL_ALARM_SEND_EMAIL_SWITCH, false);
+    }
+    
+    public boolean getConflictAlarmSendDBOwnerSwitch() {
+        return getBooleanProperty(CFL_ALARM_SEND_DB_OWNER_SWITCH, false);
+    }
+    
     public String getConflictAlarmSenderEmail() {
-        return getProperty(CONFLICT_ALARM_SENDER_EMAIL, "");
+        return getProperty(CFL_ALARM_SENDER_EMAIL, "");
     }
     
     public List<String> getConflictAlarmCCEmails() {
-        String ccEmails = getProperty(CONFLICT_ALARM_CC_EMAILS, "");
+        String ccEmails = getProperty(CFL_ALARM_CC_EMAILS, "");
         if (StringUtils.isBlank(ccEmails)) {
             return new ArrayList<>();
         } else {
@@ -325,47 +340,59 @@ public class DomainConfig extends AbstractConfigBean {
         }
     }
     
-    public String getDrcConflictHandleUrl() {
-        return getProperty(DRC_CONFLICT_HANDLE_URL, "");
+    public String getConflictAlarmDrcUrl() {
+        return getProperty(CFL_ALARM_DRC_URL, "");
     }
     
-    public String getDrcHickwallMonitorUrl() {
-        return getProperty(DRC_HICKWALL_MONITOR_URL, "");
+    public String getConflictAlarmHickwallUrl() {
+        return getProperty(CFL_ALARM_HICKWALL_URL, "");
     }
     
-    public long getConflictCommitRowThreshold() {
-        return getLongProperty(CONFLICT_COMMIT_ROW_THRESHOLD,60*1000L);
+    public long getConflictAlarmThresholdCommitRow() {
+        return getLongProperty(CFL_ALARM_THRESHOLD_COMMIT_ROW,60*1000L);
     }
     
-    public long getConflictRollbackRowThreshold() {
-        return getLongProperty(CONFLICT_ROLLBACK_ROW_THRESHOLD,100L);
+    public long getConflictAlarmThresholdRollbackRow() {
+        return getLongProperty(CFL_ALARM_THRESHOLD_ROLLBACK_ROW,100L);
     }
     
-    public long getConflictCommitTrxThreshold() {
-        return getLongProperty(CONFLICT_COMMIT_TRX_THRESHOLD,60*100L);
-    }
-
-    public long getConflictRollbackTrxThreshold() {
-        return getLongProperty(CONFLICT_ROLLBACK_TRX_THRESHOLD,10L);
-    }
-
-    public boolean getSendConflictAlarmEmailSwitch() {
-        return getBooleanProperty(SEND_CONFLICT_ALARM_EMAIL_SWITCH, false);
+    public long getConflictAlarmThresholdCommitTrx() {
+        return getLongProperty(CFL_ALARM_THRESHOLD_COMMIT_TRX,60*100L);
     }
     
-    public boolean getSendDbOwnerConflictEmailToSwitch() {
-    return getBooleanProperty(SEND_DBOWNER_CONFLICT_EMAIL_SWITCH, false);
+    public long getConflictAlarmThresholdRollbackTrx() {
+        return getLongProperty(CFL_ALARM_THRESHOLD_ROLLBACK_TRX,10L);
     }
-
-    public int getCflBlackListExpirationHour() {
-        return getIntProperty(CFL_BLACK_LIST_EXPIRATION_HOUR, 24);
+    
+    public int getConflictAlarmLimitPerHour() {
+        return getIntProperty(CFL_ALARM_LIMIT_PER_HOUR, 4);
     }
-
-    public int getDBACflBlackListExpirationHour() {
-        return getIntProperty(DBA_CFL_BLACK_LIST_EXPIRATION_HOUR, 24*7);
+    
+    public boolean getBlacklistNewConfigSwitch() {
+        return getBooleanProperty(CFL_BLACKLIST_NEW_CONFIG_CLEAR_SWITCH, false);
     }
-
-    public int getConflictAlarmTimesPerHour() {
-        return getIntProperty(CONFLICT_ALARM_TIMES_PER_HOUR, 2);
+    
+    public int getBlacklistNewConfigExpirationHour() {
+        return getIntProperty(CFL_BLACKLIST_NEW_CONFIG_EXPIRATION_HOUR, 24);
+    }
+    
+    public boolean getBlacklistDBAJobClearSwitch() {
+        return getBooleanProperty(CFL_BLACKLIST_DBA_JOB_CLEAR_SWITCH, false);
+    }
+    
+    public int getBlacklistDBAJobExpirationHour() {
+        return getIntProperty(CFL_BLACKLIST_DBA_JOB_EXPIRATION_HOUR, 24);
+    }
+    
+    public boolean getBlacklistAlarmHotspotClearSwitch() {
+        return getBooleanProperty(CFL_BLACKLIST_ALARM_HOTSPOT_CLEAR_SWITCH, false);
+    }
+    
+    public int getBlacklistAlarmHotspotExpirationHour() {
+        return getIntProperty(CFL_BLACKLIST_ALARM_HOTSPOT_EXPIRATION_HOUR, 24);
+    }
+    
+    public long getBlacklistAlarmHotspotThreshold() {
+        return getLongProperty(CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD, 6 * 60L);
     }
 }

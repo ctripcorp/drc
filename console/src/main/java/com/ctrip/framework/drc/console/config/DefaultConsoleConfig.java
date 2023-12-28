@@ -110,7 +110,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_REALTIME_SWITCH = "meta.realtime";
     
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
-    private static String DBA_CFL_BLACK_LIST_CLEAR_SWITCH = "dba.cfl.black.list.clear.switch";
     private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
     private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conlict.log.query.time.interval";
 
@@ -511,14 +510,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getBooleanProperty("config.check.switch", true);
     }
 
-    public boolean getCflBlackListAutoAddSwitch() {
-        return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
-    }
-
-    public boolean getDBACflBlackListClearSwitch() {
-        return getBooleanProperty(DBA_CFL_BLACK_LIST_CLEAR_SWITCH, false);
-    }
-
     public boolean getConflictDbOwnerApprovalSwitch() {
         return getBooleanProperty(CONFLICT_DB_OWNER_APPROVAL_SWITCH, false);
     }
@@ -535,4 +526,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getBooleanProperty(OPERATION_LOG_SWITCH,false);
     }
     
+    public boolean getCflBlackListAutoAddSwitch() {
+        return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
+    }
 }

@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.sql.SQLException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -203,7 +204,11 @@ public class DrcBuildServiceV2Test {
         Mockito.when(mysqlServiceV2.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("test.table"));
         Mockito.doNothing().when(dbReplicationTblDao).batchInsertWithReturnId(Mockito.anyList());
         Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
-        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(LogBlackListType.AUTO));
+        try {
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(LogBlackListType.NEW_CONFIG));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         Mockito.doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
         List<Long> results = drcBuildServiceV2.configureDbReplications(param);
         Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchInsertWithReturnId(Mockito.any());
