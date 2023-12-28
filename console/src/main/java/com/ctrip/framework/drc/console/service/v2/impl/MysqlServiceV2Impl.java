@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVoApiResult;
+import com.ctrip.framework.drc.console.vo.check.v2.StatementExecutorApResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
@@ -341,7 +342,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/write", httpType = HttpRequestEnum.POST, requestClass = MysqlWriteEntity.class)
+    @PossibleRemote(path = "/api/drc/v2/mysql/write", httpType = HttpRequestEnum.POST, requestClass = MysqlWriteEntity.class, responseType = StatementExecutorApResult.class)
     public StatementExecutorResult write(MysqlWriteEntity requestBody) {
         logger.info("execute write sql, requestBody: {}", requestBody);
         Endpoint endpoint;

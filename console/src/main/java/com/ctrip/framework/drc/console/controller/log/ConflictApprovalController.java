@@ -73,6 +73,17 @@ public class ConflictApprovalController {
         }
     }
 
+    @GetMapping("/writeSide")
+    public ApiResult<Integer> getWriteSide(@RequestParam Long approvalId) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getWriteSide(approvalId));
+            return apiResult;
+        } catch (Exception e) {
+            logger.error("getConflictAutoHandleView fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @PostMapping("/callback")
     public ApiResult<Boolean> approvalCallBack(@RequestBody ConflictApprovalCallBackRequest request) {
         try {

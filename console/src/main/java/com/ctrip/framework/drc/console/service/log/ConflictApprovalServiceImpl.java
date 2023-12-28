@@ -169,6 +169,16 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     @Override
+    public int getWriteSide(Long approvalId) throws Exception {
+        ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryById(approvalId);
+        if (conflictApprovalTbl == null) {
+            throw ConsoleExceptionUtils.message("conflict approval not exist");
+        }
+        ConflictAutoHandleBatchTbl batchTbl = conflictAutoHandleBatchTblDao.queryById(conflictApprovalTbl.getBatchId());
+        return batchTbl.getTargetMhaType();
+    }
+
+    @Override
     public void createConflictApproval(ConflictApprovalCreateParam param) throws Exception {
         List<ConflictHandleSqlDto> handleSqlDtos = param.getHandleSqlDtos();
         if (CollectionUtils.isEmpty(handleSqlDtos)) {

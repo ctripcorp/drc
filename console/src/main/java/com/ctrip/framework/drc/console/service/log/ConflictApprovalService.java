@@ -20,6 +20,8 @@ public interface ConflictApprovalService {
 
     List<ConflictAutoHandleView> getConflictAutoHandleView(Long approvalId) throws Exception;
 
+    int getWriteSide(Long approvalId) throws Exception;
+
     void createConflictApproval(ConflictApprovalCreateParam param) throws Exception;
 
     void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception;
