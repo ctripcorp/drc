@@ -29,6 +29,7 @@ public class ReplicatorContainerApplication {
         final ConfigurableApplicationContext context = application.run(args);
 
         final ComponentRegistry registry = initComponentRegistry(context);
+        logger.info("[Registry] register Component in ReplicatorContainerApplication");
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 
@@ -64,13 +65,16 @@ public class ReplicatorContainerApplication {
 
     }
 
-    private static ComponentRegistry initComponentRegistry(ConfigurableApplicationContext context) throws Exception {
+    public static ComponentRegistry initComponentRegistry(ConfigurableApplicationContext context) throws Exception {
+        ComponentRegistry registry = ComponentRegistryHolder.getComponentRegistry();
+        if (registry == null) {
+            registry = new DefaultRegistry(new CreatedComponentRedistry(),
+                    new SpringComponentRegistry(context));
+            ComponentRegistryHolder.initializeRegistry(registry);
+            registry.initialize();
+            registry.start();
+        }
 
-        final ComponentRegistry registry = new DefaultRegistry(new CreatedComponentRedistry(),
-                new SpringComponentRegistry(context));
-        ComponentRegistryHolder.initializeRegistry(registry);
-        registry.initialize();
-        registry.start();
         return registry;
     }
 }
