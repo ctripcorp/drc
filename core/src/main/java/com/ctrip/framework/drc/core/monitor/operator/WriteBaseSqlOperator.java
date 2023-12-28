@@ -9,38 +9,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by mingdongli
- * 2019/11/12 下午5:58.
+ * Created by dengquanliang
+ * 2023/12/28 11:36
  */
-public abstract class BaseSqlOperator extends AbstractLifecycle implements ReadSqlOperator<ReadResource> {
-
+public abstract class WriteBaseSqlOperator  extends AbstractLifecycle implements SqlOperator {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected DataSource dataSource;
+    protected DataSource writeDataSource;
+
     protected PoolProperties poolProperties;
 
     protected Endpoint endpoint;
 
     protected DataSourceManager dataSourceManager = DataSourceManager.getInstance();
 
-    public BaseSqlOperator(Endpoint endpoint, PoolProperties poolProperties) {
+    public WriteBaseSqlOperator(Endpoint endpoint, PoolProperties poolProperties) {
         this.poolProperties = poolProperties;
         this.endpoint = endpoint;
     }
 
     @Override
     protected void doInitialize() throws Exception {
-        dataSource = dataSourceManager.getDataSource(endpoint, poolProperties);
+        writeDataSource = dataSourceManager.getDataSourceForWrite(endpoint, poolProperties);
     }
 
     @Override
     protected void doStop() throws Exception {
-        dataSourceManager.clearDataSource(endpoint);
+        dataSourceManager.clearDataSourceForWrite(endpoint);
     }
 
     @Override
     public PoolProperties getPoolProperties() {
         return poolProperties;
     }
-
 }

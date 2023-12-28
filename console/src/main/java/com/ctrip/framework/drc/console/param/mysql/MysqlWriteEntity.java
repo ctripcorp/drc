@@ -48,6 +48,7 @@ public class MysqlWriteEntity {
         return "MysqlWriteEntity{" +
                 "mha='" + mha + '\'' +
                 ", sql='" + sql + '\'' +
+                ", accountType=" + accountType +
                 '}';
     }
 }
