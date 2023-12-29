@@ -83,15 +83,6 @@ public class ConflictLogController {
         }
     }
 
-    @GetMapping("rows/dbCount")
-    public ApiResult<ConflictRowsLogCountView> getDbCount() {
-        try {
-            return ApiResult.getSuccessInstance(conflictLogService.getRowsLogCountView());
-        } catch (Exception e) {
-            logger.error("getDbCount fail: {}", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
 
     @GetMapping("rows/rowLogIds")
     public ApiResult<List<ConflictRowsLogView>> getConflictRowsLogView(@RequestParam List<Long> rowLogIds) {

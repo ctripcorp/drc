@@ -4,7 +4,7 @@ package com.ctrip.framework.drc.console.dao.log.entity;
  * Created by dengquanliang
  * 2023/12/26 15:26
  */
-public class ConflictRowsLogCount {
+public class ConflictRowsLogCount implements Comparable<ConflictRowsLogCount> {
     private String dbName;
     private String tableName;
     private int count;
@@ -40,5 +40,10 @@ public class ConflictRowsLogCount {
 
     public void setCount(int count) {
         this.count = count;
+    }
+
+    @Override
+    public int compareTo(ConflictRowsLogCount o) {
+        return o.getCount() - this.count;
     }
 }

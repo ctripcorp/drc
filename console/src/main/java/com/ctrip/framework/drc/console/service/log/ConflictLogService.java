@@ -59,4 +59,6 @@ public interface ConflictLogService {
 
     ConflictRowsLogCountView getRowsLogCountView() throws Exception;
 
+    ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception;
+
 }
