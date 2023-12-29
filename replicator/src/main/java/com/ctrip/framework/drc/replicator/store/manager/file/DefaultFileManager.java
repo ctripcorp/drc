@@ -152,7 +152,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
             indicesEventManager.setEverSeeDdl(true);
         }
-        checkIndices(false, context.getEventSize() >= EventTransactionCache.bufferSize || context.isInBigTransaction());
+        boolean isOverflowed = context.getEventSize() >= EventTransactionCache.bufferSize;
+        checkIndices(false, isOverflowed || this.inBigTransaction);
 
         int totalSize = 0;
 
@@ -174,6 +175,12 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     observer.update(logChannel.position(), this);
                 }
             }
+        }
+
+        // reset in the end of big transaction
+        if (this.inBigTransaction && !isOverflowed) {
+            this.inBigTransaction = false;
+            logger.info("[inBigTransaction] reset to false for {} of file {}", registryKey, logFileWrite.getName());
         }
 
         return true;

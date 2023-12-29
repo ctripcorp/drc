@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.core.driver.binlog.impl;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
-import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
@@ -13,8 +12,6 @@ import io.netty.buffer.PooledByteBufAllocator;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.TRANSACTION_BUFFER_SIZE;
 
@@ -71,24 +68,7 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
         }
 
         eventByteBufs.add(compositeByteBuf);
-        ioCache.write(eventByteBufs, new TransactionContext(isDdl, eventSize, checkInBigTransaction()));
-    }
-
-    private boolean checkInBigTransaction() {
-        if (logEvents.isEmpty()) {
-            return false;
-        }
-        LogEvent head = logEvents.get(0);
-        if (drc_filter_log_event == head.getLogEventType()) {
-            head = logEvents.get(1);
-        }
-        LogEvent tail = logEvents.get(eventSize - 1);
-
-        if (logEvents.size() >= TRANSACTION_BUFFER_SIZE) {
-            return true;
-        } else {
-            return xid_log_event == tail.getLogEventType() && !LogEventUtils.isGtidLogEvent(head.getLogEventType());
-        }
+        ioCache.write(eventByteBufs, new TransactionContext(isDdl, eventSize));
     }
 
     @Override
