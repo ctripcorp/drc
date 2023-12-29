@@ -152,7 +152,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
             indicesEventManager.setEverSeeDdl(true);
         }
-        checkIndices(false, context.getEventSize() == EventTransactionCache.bufferSize);
+        checkIndices(false, context.getEventSize() >= EventTransactionCache.bufferSize || context.isInBigTransaction());
 
         int totalSize = 0;
 

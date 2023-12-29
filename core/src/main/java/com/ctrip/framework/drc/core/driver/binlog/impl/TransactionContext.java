@@ -10,6 +10,8 @@ public class TransactionContext {
 
     private int eventSize;
 
+    private boolean inBigTransaction = false;
+
     public TransactionContext(boolean isDdl) {
         this(isDdl, 1);
     }
@@ -17,6 +19,12 @@ public class TransactionContext {
     public TransactionContext(boolean isDdl, int eventSize) {
         this.isDdl = isDdl;
         this.eventSize = eventSize;
+    }
+
+    public TransactionContext(boolean isDdl, int eventSize, boolean inBigTransaction) {
+        this.isDdl = isDdl;
+        this.eventSize = eventSize;
+        this.inBigTransaction = inBigTransaction;
     }
 
     public boolean isDdl() {
@@ -33,5 +41,13 @@ public class TransactionContext {
 
     public void setEventSize(int eventSize) {
         this.eventSize = eventSize;
+    }
+
+    public boolean isInBigTransaction() {
+        return inBigTransaction;
+    }
+
+    public void setInBigTransaction(boolean inBigTransaction) {
+        this.inBigTransaction = inBigTransaction;
     }
 }
