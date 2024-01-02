@@ -533,7 +533,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, LogBlackListType type) throws Exception {
+    public void addDbBlacklist(String dbFilter, LogBlackListType type) throws SQLException {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");

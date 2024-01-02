@@ -6,8 +6,10 @@ package com.ctrip.framework.drc.console.enums.log;/**
  */
 public enum LogBlackListType {
     USER(0, "user add blacklist"),
-    AUTO(1, "new config drc,auto add blacklist"),
-    DBA(2, "dba touch job,add to blacklist");
+    NEW_CONFIG(1, "new config table in drc,auto add blacklist"),
+    DBA_JOB(2, "dba touch job,add to blacklist"),
+    ALARM_HOTSPOT(3, "alarm too many times and no one care,add to blacklist"),
+    ;
     private int code;
     private String desc;
 

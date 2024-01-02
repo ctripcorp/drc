@@ -270,12 +270,12 @@ public class ConflictLogController {
             success = "addBlackListForTouchJob with db : {#db} and table : {#table}")
     public ApiResult<Boolean> addBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
         try {
-            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA);
+            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA_JOB);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addBlackListForTouchJob error", e);
             return ApiResult.getFailInstance(false, e.getMessage());
-        }
+        } 
     }
 
     @AccessToken(type = TokenType.OPEN_API_4_DBA)
