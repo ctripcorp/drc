@@ -1132,12 +1132,10 @@ public class MySqlUtils {
         }
     }
 
-    /**
-     * drc_console
-     */
+
     public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
         if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
-            return writeV2(endpoint,sql);
+            return writeV2(endpoint,sql, true);
         } else {
             return write(endpoint, sql);
         }
@@ -1170,6 +1168,25 @@ public class MySqlUtils {
             logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeWriteSqlOperatorV2(endpoint);
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        }
+    }
+
+    /**
+     * drc_write
+     */
+    public static StatementExecutorResult writeV2(Endpoint endpoint, String sql, boolean remove) {
+        WriteSqlOperatorWrapperV2 writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return writeSqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperatorV2(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        } finally {
+            if (remove) {
+                removeWriteSqlOperatorV2(endpoint);
+            }
         }
     }
 

@@ -34,7 +34,7 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String CREATE_TIME = "create_time";
     private static final String ID = "id";
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
-    private static final String DB_QUERY_SQL = "select db_name, table_name, count(1) as count from conflict_rows_log_tbl where #CONDITDION# group by db_name, table_name order by count desc limit 50";
+    private static final String DB_QUERY_SQL = "select db_name, table_name, count(1) as count from conflict_rows_log_tbl where #CONDITDION# group by db_name, table_name order by count desc limit 100";
     private static final String COUNT_SQL = "select count(1) as count from conflict_rows_log_tbl where #CONDITDION#";
     private static final String CREATE_TIME_CONDITION = "handle_time >= ? and handle_time < ? and create_time >= ? and create_time < ?";
 

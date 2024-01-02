@@ -40,7 +40,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private static long beginHandleTime = 0L;
     private static long endHandleTime = 0L;
     private static long endTimeOfDay = 0L;
-    private static final int COUNT_SIZE = 20;
+    private static final int COUNT_SIZE = 50;
     private static int totalCount;
     private static int rollBackTotalCount;
     private static boolean nextDay = false;
@@ -149,7 +149,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         if (CollectionUtils.isEmpty(counts)) {
             return;
         }
-        int size = counts.size() > COUNT_SIZE ? COUNT_SIZE : counts.size();
+        int size = Math.min(counts.size(), COUNT_SIZE);
 
         for (int i = 0; i < size; i++) {
             ConflictRowsLogCount count = counts.get(i);
