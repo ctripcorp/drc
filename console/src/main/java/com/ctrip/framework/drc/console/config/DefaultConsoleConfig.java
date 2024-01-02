@@ -119,6 +119,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
     private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
+    private static final long DEFAULT_REPLICATOR_SIZE = 20;
+    private static final String REPLICATOR_MAX_SIZE = "replicator.max.size";
+
+
     // only for test
     protected DefaultConsoleConfig(Config config) {
         super(config);
@@ -524,6 +528,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getOperationLogSwitch() {
         return getBooleanProperty(OPERATION_LOG_SWITCH,false);
+    }
+
+    public long getReplicatorMaxSize() {
+        return getLongProperty(REPLICATOR_MAX_SIZE, DEFAULT_REPLICATOR_SIZE);
     }
     
     public boolean getCflBlackListAutoAddSwitch() {

@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -31,6 +32,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.Date;
@@ -43,7 +45,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.*;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_TRANSACTION_TABLE_NAME_PREFIX;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 import static com.ctrip.framework.drc.core.service.utils.Constants.DRC_MONITOR_SCHEMA_TABLE;
 
 /**
@@ -112,6 +114,7 @@ public class MySqlUtils {
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
+    private static final String SELECT_DB_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "select * from drcmonitordb.dly_${dbName} WHERE (CASE JSON_VALID(delay_info) WHEN TRUE THEN JSON_EXTRACT(delay_info, \"$.m\") ELSE NULL END) = ? order by datachange_lasttime desc limit 1";
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = '%s' AND `table_name` = '%s' and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
@@ -265,6 +268,44 @@ public class MySqlUtils {
                 if (rs.next()) {
                     String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
                     return dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime();
+                }
+            }
+        } catch (SQLException | ParseException e) {
+            logger.error("[[endpoint={}:{}]] getDelay({}) error: {}", endpoint.getHost(), endpoint.getPort(), mha, e);
+            removeSqlOperator(endpoint);
+        }
+        return null;
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public static Map<String, Long> getDbDelayUpdateTime(Endpoint endpoint, String mha, List<String> dbNames) {
+        Set<String> dbs = getDbHasDrcMonitorTables(endpoint);
+        if (dbs == null) {
+            return null;
+        }
+        // param filter for sql injection
+        List<String> dbsToQuery = dbNames.stream().filter(dbs::contains).collect(Collectors.toList());
+        List<String> list = Lists.newArrayList();
+        for (String s : dbsToQuery) {
+            list.add("(" + SELECT_DB_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL.replace("${dbName}", s) + ")");
+        }
+        String join = String.join("union", list);
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(join)) {
+                for (int i = 1; i <= list.size(); i++) {
+                    statement.setString(i, mha);
+                }
+                Map<String, Long> ret = new HashMap<>();
+                try (ResultSet rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        String delayInfoJson = rs.getString(2);
+                        String datachangeLasttimeStr = rs.getString(3);
+                        DbDelayDto.DelayInfo delayInfo = DbDelayDto.DelayInfo.parse(delayInfoJson);
+                        String dbName = delayInfo.getB();
+                        ret.put(dbName, dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime());
+                    }
+                    return ret;
                 }
             }
         } catch (SQLException | ParseException e) {
@@ -991,29 +1032,46 @@ public class MySqlUtils {
         return dbs;
     }
 
+
+    /**
+     * @return null if error
+     */
+    public static Set<String> getDbHasDrcMonitorTables(Endpoint endpoint) {
+        List<String> tablesFromDb = getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
+        if(tablesFromDb == null){
+            return null;
+        }
+        return getDbHasDrcMonitorTables(tablesFromDb);
+    }
+
+    public static Set<String> getDbHasDrcMonitorTables(List<String> tablesFromDb) {
+        if(CollectionUtils.isEmpty(tablesFromDb)){
+            return Collections.emptySet();
+        }
+        Set<String> db1 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX))
+                .map(e -> e.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
+        Set<String> db2 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX))
+                .map(e -> e.substring(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
+        // intersection
+        db1.retainAll(db2);
+        return db1;
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public static List<String> getTablesFromDb(Endpoint endpoint, String dbName) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        ReadResource readResource = null;
-        try {
-
-            String sql = String.format("show tables from %s", dbName);
-            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-            readResource = sqlOperatorWrapper.select(execution);
-            ResultSet resultSet = readResource.getResultSet();
+        String sql = String.format("show tables from %s", dbName);
+        try (ReadResource readResource = sqlOperatorWrapper.select(new GeneralSingleExecution(sql));
+             ResultSet resultSet = readResource.getResultSet();) {
             List<String> tables = Lists.newArrayList();
-
             while (resultSet.next()) {
                 tables.add(resultSet.getString(1));
             }
             return tables;
-        } catch(Throwable t) {
-            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTablesFromDb error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
-            throw ConsoleExceptionUtils.message(t.getMessage());
-        } finally {
-            if(readResource != null) {
-                readResource.close();
-            }
+            return null;
         }
     }
 

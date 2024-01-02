@@ -5,10 +5,10 @@ import java.io.Serializable;
 
 public class MhaDelayInfoDto implements Serializable {
 
-    private String srcMha;
-    private String dstMha;
-    private Long srcTime;
-    private Long dstTime;
+    protected String srcMha;
+    protected String dstMha;
+    protected Long srcTime;
+    protected Long dstTime;
 
     @Override
     public String toString() {

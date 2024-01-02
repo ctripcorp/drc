@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
@@ -56,10 +57,14 @@ public class ResourceServiceTest {
     private ApplierGroupTblV2Dao applierGroupTblDao;
     @Mock
     private MhaReplicationTblDao mhaReplicationTblDao;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
     
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(consoleConfig.getReplicatorMaxSize()).thenReturn(20L);
+        Mockito.when(consoleConfig.getCenterRegion()).thenReturn("sha");
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.resource.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
@@ -78,6 +79,8 @@ public class ResourceServiceImpl implements ResourceService {
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private DbDrcBuildService dbDrcBuildService;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -215,7 +218,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
         DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
         List<Long> dcIds = dcTblDao.queryByRegionName(dcTbl.getRegionName()).stream().map(DcTbl::getId).collect(Collectors.toList());
-        return getResourceViews(dcIds, type, mhaTbl.getTag());
+        return getResourceViews(dcIds, dcTbl.getRegionName(), type, mhaTbl.getTag());
     }
 
     @Override
@@ -233,7 +236,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
         List<Long> dcIds = dcTblDao.queryByRegionName(dcTbl.getRegionName()).stream().map(DcTbl::getId).collect(Collectors.toList());
-        return getResourceViewsForDb(dcIds, type, mhaTbl.getTag());
+        return getResourceViewsForDb(dcIds, dcTbl.getRegionName(), type, mhaTbl.getTag());
     }
 
     @Override
@@ -494,7 +497,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private List<ResourceView> getResourceViewsForDb(List<Long> dcIds, int type, String tag) throws SQLException {
+    private List<ResourceView> getResourceViewsForDb(List<Long> dcIds, String region, int type, String tag) throws SQLException {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
 
@@ -512,13 +515,13 @@ public class ResourceServiceImpl implements ResourceService {
 
         List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap, messengerMap);
         if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
-            return getResourceViews(dcIds, type, ResourceTagEnum.COMMON.getName());
+            return getResourceViews(dcIds, region, type, ResourceTagEnum.COMMON.getName());
         }
         Collections.sort(resourceViews);
         return resourceViews;
     }
 
-    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws SQLException {
+    private List<ResourceView> getResourceViews(List<Long> dcIds, String region, int type, String tag) throws SQLException {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
 
@@ -537,7 +540,13 @@ public class ResourceServiceImpl implements ResourceService {
 
         List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap, messengerMap);
         if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
-            return getResourceViews(dcIds, type, ResourceTagEnum.COMMON.getName());
+            return getResourceViews(dcIds, region, type, ResourceTagEnum.COMMON.getName());
+        }
+
+        String centerRegion = consoleConfig.getCenterRegion();
+        if (!centerRegion.equals(region) && type == ModuleEnum.REPLICATOR.getCode()) {
+            long replicatorMaxSize = consoleConfig.getReplicatorMaxSize();
+            resourceViews = resourceViews.stream().filter(e -> e.getInstanceNum() < replicatorMaxSize).collect(Collectors.toList());
         }
         Collections.sort(resourceViews);
         return resourceViews;

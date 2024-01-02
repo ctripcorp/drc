@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
@@ -55,6 +56,7 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -98,13 +100,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
-    private static final ListeningExecutorService queryExecutor = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "queryConflict"));
 
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
     private static final int TWELVE = 12;
     private static final int INTERVAL_SIZE = 10;
-    private static final int Time_OUT = 90;
+    private static final int Time_OUT = 60;
     private static final String ROW_LOG_ID = "drc_row_log_id";
     private static final String UPDATE_SQL = "UPDATE %s SET %s WHERE %s";
     private static final String INSERT_SQL = "INSERT INTO %s (%s) VALUES (%s)";
@@ -144,89 +145,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Override
     public int getRowsLogCount(ConflictRowsLogQueryParam param) throws Exception {
         resetParam(param);
-
-        long diffTime = param.getEndHandleTime() - param.getBeginHandleTime();
-
-        long interval = consoleConfig.getConflictLogQueryTimeInterval();
-        if (diffTime <= interval) {
-            return conflictRowsLogTblDao.getCount(param);
-        } else if (diffTime >= interval * INTERVAL_SIZE) {
-            interval = diffTime / INTERVAL_SIZE;
-        }
-
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();
-
-        long beginTime = param.getBeginHandleTime();
-        long endTime = beginTime + interval;
-        while (beginTime < endTime) {
-            ConflictRowsLogQueryParam copy = new ConflictRowsLogQueryParam();
-            BeanUtils.copyProperties(param, copy);
-            copy.setBeginHandleTime(beginTime);
-            copy.setEndHandleTime(endTime);
-            ListenableFuture<Integer> future = queryExecutor.submit(() -> conflictRowsLogTblDao.getCount(copy));
-            futures.add(future);
-
-            beginTime += interval;
-            endTime = Long.min(endTime + interval, param.getEndHandleTime());
-        }
-
-        int totalCount = 0;
-        for (ListenableFuture<Integer> future : futures) {
-            try {
-                long statTime = System.currentTimeMillis();
-                int count = future.get(Time_OUT, TimeUnit.SECONDS);
-                totalCount += count;
-                logger.info("queryTime: {}, totalCount: {}", System.currentTimeMillis() - statTime, totalCount);
-            } catch (Exception e) {
-                logger.error("query count fail, {}", e);
-                throw ConsoleExceptionUtils.message("query count timeout");
-            }
-        }
-        return totalCount;
-
+        return conflictRowsLogTblDao.getCount(param);
     }
 
     @Override
     public int getTrxLogCount(ConflictTrxLogQueryParam param) throws Exception {
         resetParam(param);
-        long diffTime = param.getEndHandleTime() - param.getBeginHandleTime();
-
-        long interval = consoleConfig.getConflictLogQueryTimeInterval();
-        if (diffTime <= interval) {
-            return conflictTrxLogTblDao.getCount(param);
-        } else if (diffTime >= interval * INTERVAL_SIZE) {
-            interval = diffTime / INTERVAL_SIZE;
-        }
-
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();
-
-        long beginTime = param.getBeginHandleTime();
-        long endTime = beginTime + interval;
-        while (beginTime < endTime) {
-            ConflictTrxLogQueryParam copy = new ConflictTrxLogQueryParam();
-            BeanUtils.copyProperties(param, copy);
-            copy.setBeginHandleTime(beginTime);
-            copy.setEndHandleTime(endTime);
-            ListenableFuture<Integer> future = queryExecutor.submit(() -> conflictTrxLogTblDao.getCount(copy));
-            futures.add(future);
-
-            beginTime += interval;
-            endTime = Long.min(endTime + interval, param.getEndHandleTime());
-        }
-
-        int totalCount = 0;
-        for (ListenableFuture<Integer> future : futures) {
-            try {
-                long statTime = System.currentTimeMillis();
-                int count = future.get(Time_OUT, TimeUnit.SECONDS);
-                totalCount += count;
-                logger.info("queryTime: {}, totalCount: {}", System.currentTimeMillis() - statTime, totalCount);
-            } catch (Exception e) {
-                logger.error("query count fail, {}", e);
-                throw ConsoleExceptionUtils.message("query count timeout");
-            }
-        }
-        return totalCount;
+        return conflictTrxLogTblDao.getCount(param);
     }
 
     @Override
@@ -735,6 +660,49 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
 
         return views;
+    }
+
+    @Override
+    public ConflictRowsLogCountView getRowsLogCountView() throws Exception {
+        Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb());
+        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(BooleanEnum.TRUE.getCode()));
+        Future<Integer> totalCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount());
+        Future<Integer> rollBackCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(BooleanEnum.TRUE.getCode()));
+
+        ConflictRowsLogCountView view = new ConflictRowsLogCountView();
+        Integer totalCount = null;
+        try {
+            totalCount = totalCountFuture.get(Time_OUT, TimeUnit.SECONDS);
+            view.setTotalCount(totalCount);
+        } catch (Exception e) {
+            logger.warn("query totalCount timeout");
+        }
+
+        Integer rollBackCount = null;
+        try {
+            rollBackCount = rollBackCountFuture.get(Time_OUT, TimeUnit.SECONDS);
+            view.setRollBackTotalCount(rollBackCount);
+        } catch (Exception e) {
+            logger.warn("query rollBackCount timeout");
+        }
+
+        List<ConflictRowsLogCount> dbCounts = null;
+        try {
+            dbCounts = dbCountFuture.get(Time_OUT, TimeUnit.SECONDS);
+            view.setDbCounts(dbCounts);
+        } catch (Exception e) {
+            logger.warn("query dbCount timeout");
+        }
+
+        List<ConflictRowsLogCount> rollBackDbCounts = null;
+        try {
+            rollBackDbCounts = rollBackDbCountsFuture.get(Time_OUT, TimeUnit.SECONDS);
+            view.setRollBackDbCounts(rollBackDbCounts);
+        } catch (Exception e) {
+            logger.warn("query rollBackDbCount timeout");
+        }
+
+        return view;
     }
 
     private ConflictRowRecordCompareEqualView getRowRecordCompareView(ConflictRowsLogTbl rowLog,
@@ -1368,7 +1336,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
     }
 
-    private class ColumnsFilterAndIndexColumn{
+    private class ColumnsFilterAndIndexColumn {
         private MultiKey multiKey;
         private Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair;
         private Map<String, List<String>> onUpdateColumnMap;
