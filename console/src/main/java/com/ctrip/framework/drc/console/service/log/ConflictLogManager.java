@@ -131,6 +131,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             String table = entry.getKey();
             Integer count = entry.getValue();
             if (count >= domainConfig.getBlacklistAlarmHotspotThreshold()) {
+                logger.info("[[task=ConflictAlarm]]table:{} alarm too many times:{},add to blacklist", table, count);
                 try {
                     conflictLogService.addDbBlacklist(table, LogBlackListType.ALARM_HOTSPOT);
                 } catch (SQLException e) {
