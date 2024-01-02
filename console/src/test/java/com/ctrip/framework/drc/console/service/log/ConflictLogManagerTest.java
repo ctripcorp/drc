@@ -107,7 +107,7 @@ public class ConflictLogManagerTest {
         conflictLogManager.periodCount = 60 * 24 -1;
         
         conflictLogManager.scheduledTask();
-        Mockito.verify(emailService, Mockito.times(4)).sendEmail(Mockito.any(Email.class));
+        Mockito.verify(emailService, Mockito.times(2)).sendEmail(Mockito.any(Email.class));
         Mockito.verify(cflLogBlackListTblDao, Mockito.times(3)).batchDelete(Mockito.anyList());
         Assert.assertEquals(0, conflictLogManager.periodCount);
         Assert.assertEquals(0,conflictLogManager.tableAlarmCountMap.size());
