@@ -28,6 +28,7 @@ public class DataSourceManager extends AbstractDataSource {
     public static final int MAX_ACTIVE = 50;
 
     private Map<Endpoint, Lock> cachedLocks = new ConcurrentHashMap<>();
+    private Map<Endpoint, Lock> writeCachedLocks = new ConcurrentHashMap<>();
 
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
@@ -41,6 +42,7 @@ public class DataSourceManager extends AbstractDataSource {
     }
 
     private Map<Endpoint, DataSource> dataSourceMap = Maps.newConcurrentMap();
+    private Map<Endpoint, DataSource> writeDataSourceMap = Maps.newConcurrentMap();
 
     public DataSource getDataSource(Endpoint endpoint) {
         return this.getDataSource(endpoint, null);
@@ -60,6 +62,27 @@ public class DataSourceManager extends AbstractDataSource {
                 configureMonitorProperties(endpoint, poolProperties);
                 dataSource = new DrcTomcatDataSource(poolProperties);
                 dataSourceMap.put(endpoint, dataSource);
+            }
+            return dataSource;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public DataSource getDataSourceForWrite(Endpoint endpoint, PoolProperties poolProperties) {
+        Lock lock = writeCachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            DataSource dataSource = writeDataSourceMap.get(endpoint);
+            if (dataSource == null) {
+                if (poolProperties == null) {
+                    poolProperties = getDefaultPoolProperties(endpoint);
+                }
+                logger.info("[DataSource] create for {} with connection properties({})", endpoint.getSocketAddress(), poolProperties.getConnectionProperties());
+                setCommonProperty(poolProperties);
+                configureMonitorProperties(endpoint, poolProperties);
+                dataSource = new DrcTomcatDataSource(poolProperties);
+                writeDataSourceMap.put(endpoint, dataSource);
             }
             return dataSource;
         } finally {
@@ -94,6 +117,20 @@ public class DataSourceManager extends AbstractDataSource {
         lock.lock();
         try {
             DataSource dataSource = dataSourceMap.remove(endpoint);
+            if (dataSource != null) {
+                dataSource.close(true);
+                logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void clearDataSourceForWrite(Endpoint endpoint) {
+        Lock lock = writeCachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            DataSource dataSource = writeDataSourceMap.remove(endpoint);
             if (dataSource != null) {
                 dataSource.close(true);
                 logger.info("[DataSource] close for {}", endpoint.getSocketAddress());

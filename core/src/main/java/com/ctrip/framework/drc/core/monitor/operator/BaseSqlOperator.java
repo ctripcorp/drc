@@ -17,7 +17,6 @@ public abstract class BaseSqlOperator extends AbstractLifecycle implements ReadS
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected DataSource dataSource;
-
     protected PoolProperties poolProperties;
 
     protected Endpoint endpoint;

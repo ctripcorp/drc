@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.delay.impl.operator;
 
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.AbstractSqlOperator;
 import com.ctrip.framework.drc.core.monitor.execution.Execution;
@@ -90,6 +89,7 @@ public abstract class ReadWriteAbstractSqlOperator extends AbstractSqlOperator i
             Connection connection = null;
             Statement statement = null;
             try {
+
                 connection = dataSource.getConnection();
                 statement = connection.createStatement();
                 int num = statement.executeUpdate(sql);

@@ -409,12 +409,12 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testGetRowsLogCountView() throws Exception {
-        Mockito.when(conflictRowsLogTblDao.queryTopNDb()).thenReturn(org.assertj.core.util.Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
-        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyInt())).thenReturn(org.assertj.core.util.Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
-        Mockito.when(conflictRowsLogTblDao.queryCount()).thenReturn(1);
-        Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyInt())).thenReturn(1);
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
+        Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyLong(), Mockito.anyLong())).thenReturn(1);
+        Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(1);
 
-        ConflictRowsLogCountView result = conflictLogService.getRowsLogCountView();
+        ConflictRowsLogCountView result = conflictLogService.getRowsLogCountView(1L, 2L);
         Assert.assertEquals(result.getDbCounts().size(), 1);
         Assert.assertEquals(result.getRollBackDbCounts().size(), 1);
         Assert.assertTrue(result.getTotalCount() == 1);

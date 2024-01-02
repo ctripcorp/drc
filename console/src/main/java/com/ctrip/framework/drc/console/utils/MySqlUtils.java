@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapperV2;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -60,7 +61,7 @@ public class MySqlUtils {
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
-    private static Map<Endpoint, WriteSqlOperatorWrapper> writeSqlOperatorMapper = new HashMap<>();
+    private static Map<Endpoint, WriteSqlOperatorWrapperV2> writeSqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
@@ -673,29 +674,35 @@ public class MySqlUtils {
         }
     }
 
-    public static void removeWriteSqlOperator(Endpoint endpoint, int accountType) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
-        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
-            writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
-        } else {
-            writeSqlOperatorWrapper = sqlOperatorMapper.remove(endpoint);
-        }
-
-        if (writeSqlOperatorWrapper != null) {
+    public static void removeWriteSqlOperator(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperator = sqlOperatorMapper.remove(endpoint);
+        if (sqlOperator != null) {
             try {
-                writeSqlOperatorWrapper.stop();
-                writeSqlOperatorWrapper.dispose();
+                sqlOperator.stop();
+                sqlOperator.dispose();
             } catch (Exception e) {
                 logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
             }
         }
     }
 
-    private static WriteSqlOperatorWrapper getWriteSqlOperatorWrapper(Endpoint endpoint) {
+    public static void removeWriteSqlOperatorV2(Endpoint endpoint) {
+        WriteSqlOperatorWrapperV2 sqlOperator = writeSqlOperatorMapper.remove(endpoint);
+        if (sqlOperator != null) {
+            try {
+                sqlOperator.stop();
+                sqlOperator.dispose();
+            } catch (Exception e) {
+                logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+        }
+    }
+
+    private static WriteSqlOperatorWrapperV2 getWriteSqlOperatorWrapper(Endpoint endpoint) {
         if (writeSqlOperatorMapper.containsKey(endpoint)) {
             return writeSqlOperatorMapper.get(endpoint);
         } else {
-            WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+            WriteSqlOperatorWrapperV2 sqlOperatorWrapper = new WriteSqlOperatorWrapperV2(endpoint);
             try {
                 sqlOperatorWrapper.initialize();
                 sqlOperatorWrapper.start();
@@ -1125,23 +1132,65 @@ public class MySqlUtils {
         }
     }
 
-    public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
-        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
-            writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
-        } else {
-            writeSqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        }
 
+    public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
+        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            return writeV2(endpoint,sql, true);
+        } else {
+            return write(endpoint, sql);
+        }
+    }
+
+    /**
+     * drc_console
+     */
+    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return sqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperator(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        }
+    }
+
+    /**
+     * drc_write
+     */
+    public static StatementExecutorResult writeV2(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapperV2 writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             return writeSqlOperatorWrapper.writeWithResult(execution);
         } catch (Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
-            removeWriteSqlOperator(endpoint, accountType);
+            removeWriteSqlOperatorV2(endpoint);
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
         }
     }
+
+    /**
+     * drc_write
+     */
+    public static StatementExecutorResult writeV2(Endpoint endpoint, String sql, boolean remove) {
+        WriteSqlOperatorWrapperV2 writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return writeSqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperatorV2(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        } finally {
+            if (remove) {
+                removeWriteSqlOperatorV2(endpoint);
+            }
+        }
+    }
+
+
 
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();

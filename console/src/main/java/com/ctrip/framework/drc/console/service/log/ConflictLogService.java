@@ -58,6 +58,6 @@ public interface ConflictLogService {
 
     List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception;
 
-    ConflictRowsLogCountView getRowsLogCountView() throws Exception;
+    ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception;
 
 }

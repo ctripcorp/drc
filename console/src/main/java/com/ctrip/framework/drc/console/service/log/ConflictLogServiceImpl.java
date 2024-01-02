@@ -663,11 +663,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public ConflictRowsLogCountView getRowsLogCountView() throws Exception {
-        Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb());
-        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(BooleanEnum.TRUE.getCode()));
-        Future<Integer> totalCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount());
-        Future<Integer> rollBackCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(BooleanEnum.TRUE.getCode()));
+    public ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception {
+        Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime));
+        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
+        Future<Integer> totalCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime));
+        Future<Integer> rollBackCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
 
         ConflictRowsLogCountView view = new ConflictRowsLogCountView();
         Integer totalCount = null;

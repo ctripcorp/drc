@@ -279,7 +279,7 @@ public class MysqlController {
     }
 
     @PostMapping("write")
-    public ApiResult<StatementExecutorResult> write(@RequestBody MysqlWriteEntity requestBody) {
+    public ApiResult write(@RequestBody MysqlWriteEntity requestBody) {
         try {
             logger.info("write to mha entity: {}", requestBody);
             return ApiResult.getSuccessInstance(mysqlServiceV2.write(requestBody));
