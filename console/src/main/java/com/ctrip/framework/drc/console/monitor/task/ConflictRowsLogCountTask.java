@@ -50,10 +50,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void initialize() {
-        endHandleTime = System.currentTimeMillis();
-        beginHandleTime = DateUtils.getStartTimeOfDay(endHandleTime);
-        endTimeOfDay = DateUtils.getEndTimeOfDay(endHandleTime);
-        setEmpty();
+        reset();
         setInitialDelay(1);
         setPeriod(5);
         setTimeUnit(TimeUnit.MINUTES);
@@ -75,8 +72,17 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             endHandleTime = getNextEndHandleTime(endHandleTime);
         } catch (Exception e) {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=ConflictRowsLogCountTask]] fail, {}", e);
+            reset();
         }
     }
+
+    private void reset() {
+        endHandleTime = System.currentTimeMillis();
+        beginHandleTime = DateUtils.getStartTimeOfDay(endHandleTime);
+        endTimeOfDay = DateUtils.getEndTimeOfDay(endHandleTime);
+        setEmpty();
+    }
+
 
     private void setEmpty() {
         totalCount = 0;
@@ -85,29 +91,43 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         rollBackCountMap = new HashMap<>();
     }
 
-    private void refresh(ConflictRowsLogCountView rowsLogCountView) {
-        totalCount += rowsLogCountView.getTotalCount();
-        rollBackTotalCount += rowsLogCountView.getRollBackTotalCount();
-        List<ConflictRowsLogCount> dbCounts = rowsLogCountView.getDbCounts();
-        List<ConflictRowsLogCount> rollBackDbCounts = rowsLogCountView.getRollBackDbCounts();
-        for (ConflictRowsLogCount dbCount : dbCounts) {
-            String tableName = dbCount.getDbName() + "." + dbCount.getTableName();
-            ConflictRowsLogCount rowsLogCount = tableCountMap.get(tableName);
-            if (rowsLogCount == null) {
-                tableCountMap.put(tableName, dbCount);
-            } else {
-                rowsLogCount.setCount(rowsLogCount.getCount() + dbCount.getCount());
-            }
+    private void refreshAndReport(ConflictRowsLogCountView rowsLogCountView) {
+        if (rowsLogCountView.getTotalCount() != null) {
+            totalCount += rowsLogCountView.getTotalCount();
+            reportTotalCount();
         }
 
-        for (ConflictRowsLogCount dbCount : rollBackDbCounts) {
-            String tableName = dbCount.getDbName() + "." + dbCount.getTableName();
-            ConflictRowsLogCount rowsLogCount = rollBackCountMap.get(tableName);
-            if (rowsLogCount == null) {
-                rollBackCountMap.put(tableName, dbCount);
-            } else {
-                rowsLogCount.setCount(rowsLogCount.getCount() + dbCount.getCount());
+        if (rowsLogCountView.getRollBackTotalCount() != null) {
+            rollBackTotalCount += rowsLogCountView.getRollBackTotalCount();
+            reportRollBackCount();
+        }
+
+        List<ConflictRowsLogCount> dbCounts = rowsLogCountView.getDbCounts();
+        if (dbCounts != null) {
+            for (ConflictRowsLogCount dbCount : dbCounts) {
+                String tableName = dbCount.getDbName() + "." + dbCount.getTableName();
+                ConflictRowsLogCount rowsLogCount = tableCountMap.get(tableName);
+                if (rowsLogCount == null) {
+                    tableCountMap.put(tableName, dbCount);
+                } else {
+                    rowsLogCount.setCount(rowsLogCount.getCount() + dbCount.getCount());
+                }
             }
+            reportDbCount();
+        }
+
+        List<ConflictRowsLogCount> rollBackDbCounts = rowsLogCountView.getRollBackDbCounts();
+        if (rollBackDbCounts != null) {
+            for (ConflictRowsLogCount dbCount : rollBackDbCounts) {
+                String tableName = dbCount.getDbName() + "." + dbCount.getTableName();
+                ConflictRowsLogCount rowsLogCount = rollBackCountMap.get(tableName);
+                if (rowsLogCount == null) {
+                    rollBackCountMap.put(tableName, dbCount);
+                } else {
+                    rowsLogCount.setCount(rowsLogCount.getCount() + dbCount.getCount());
+                }
+            }
+            reportRollBackDbCount();
         }
     }
 
@@ -122,26 +142,30 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         reporter.resetReportCounter(countTimeTags, costTime, ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT);
         CONSOLE_MONITOR_LOGGER.info("ConflictRowsLogCountTask query count cost: {}", costTime);
 
-        refresh(rowsLogCountView);
-        report();
-
+        refreshAndReport(rowsLogCountView);
     }
 
-    private void report() {
+    private void reportTotalCount() {
         Map<String, String> rowLogCountTags = new HashMap<>();
         rowLogCountTags.put("type", "total");
         reporter.resetReportCounter(rowLogCountTags, Long.valueOf(totalCount), ROW_LOG_COUNT_MEASUREMENT);
+    }
 
+    private void reportRollBackCount() {
         Map<String, String> rollBackRowLogCountTags = new HashMap<>();
         rollBackRowLogCountTags.put("type", "rollBack");
         reporter.resetReportCounter(rollBackRowLogCountTags, Long.valueOf(rollBackTotalCount), ROW_LOG_COUNT_MEASUREMENT);
+    }
 
+    private void reportDbCount() {
         List<ConflictRowsLogCount> dbCounts = new ArrayList<>(tableCountMap.values());
-        List<ConflictRowsLogCount> rollBackDbCounts = new ArrayList<>(rollBackCountMap.values());
         Collections.sort(dbCounts);
-        Collections.sort(rollBackDbCounts);
-
         report(dbCounts, ROW_LOG_DB_COUNT_MEASUREMENT);
+    }
+
+    private void reportRollBackDbCount() {
+        List<ConflictRowsLogCount> rollBackDbCounts = new ArrayList<>(rollBackCountMap.values());
+        Collections.sort(rollBackDbCounts);
         report(rollBackDbCounts, ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }
 
