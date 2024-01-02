@@ -48,11 +48,11 @@ public class ConflictRowsLogCountTaskTest {
 
         Mockito.when(conflictLogService.getRowsLogCountView(Mockito.anyLong(), Mockito.anyLong())).thenReturn(view);
         Mockito.when(consoleConfig.isCenterRegion()).thenReturn(false);
-        task.isleader();
+//        task.isleader();
 
         Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);
         task.initialize();
-        task.scheduledTask();
+        task.checkCount();
         Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT));
