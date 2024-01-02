@@ -663,49 +663,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public ConflictRowsLogCountView getRowsLogCountView() throws Exception {
-        Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb());
-        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(BooleanEnum.TRUE.getCode()));
-        Future<Integer> totalCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount());
-        Future<Integer> rollBackCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(BooleanEnum.TRUE.getCode()));
-
-        ConflictRowsLogCountView view = new ConflictRowsLogCountView();
-        Integer totalCount = null;
-        try {
-            totalCount = totalCountFuture.get(Time_OUT, TimeUnit.SECONDS);
-            view.setTotalCount(totalCount);
-        } catch (Exception e) {
-            logger.warn("query totalCount timeout");
-        }
-
-        Integer rollBackCount = null;
-        try {
-            rollBackCount = rollBackCountFuture.get(Time_OUT, TimeUnit.SECONDS);
-            view.setRollBackTotalCount(rollBackCount);
-        } catch (Exception e) {
-            logger.warn("query rollBackCount timeout");
-        }
-
-        List<ConflictRowsLogCount> dbCounts = null;
-        try {
-            dbCounts = dbCountFuture.get(Time_OUT, TimeUnit.SECONDS);
-            view.setDbCounts(dbCounts);
-        } catch (Exception e) {
-            logger.warn("query dbCount timeout");
-        }
-
-        List<ConflictRowsLogCount> rollBackDbCounts = null;
-        try {
-            rollBackDbCounts = rollBackDbCountsFuture.get(Time_OUT, TimeUnit.SECONDS);
-            view.setRollBackDbCounts(rollBackDbCounts);
-        } catch (Exception e) {
-            logger.warn("query rollBackDbCount timeout");
-        }
-
-        return view;
-    }
-
-    @Override
     public ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception {
         Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime));
         Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));

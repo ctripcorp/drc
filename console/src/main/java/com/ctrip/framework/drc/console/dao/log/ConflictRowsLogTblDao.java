@@ -36,7 +36,7 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
     private static final String DB_QUERY_SQL = "select db_name, table_name, count(1) as count from conflict_rows_log_tbl where #CONDITDION# group by db_name, table_name order by count desc limit 50";
     private static final String COUNT_SQL = "select count(1) as count from conflict_rows_log_tbl where #CONDITDION#";
-    private static final String CREATE_TIME_CONDITION = "handle_time >= ? and handle_time < ? create_time >= ? and create_time < ?";
+    private static final String CREATE_TIME_CONDITION = "handle_time >= ? and handle_time < ? and create_time >= ? and create_time < ?";
 
 
     public ConflictRowsLogTblDao() throws SQLException {
@@ -80,43 +80,6 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         return count.getCount();
     }
 
-    public List<ConflictRowsLogCount> queryTopNDb() throws SQLException {
-        long currentTime = System.currentTimeMillis();
-        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
-        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
-        String querySql = DB_QUERY_SQL.replace("#CONDITDION#", CREATE_TIME_CONDITION);
-        return query(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), createStartTime, createEndTime);
-    }
-
-
-    public List<ConflictRowsLogCount> queryTopNDb(int rowResult) throws SQLException {
-        long currentTime = System.currentTimeMillis();
-        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
-        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
-        String condition = CREATE_TIME_CONDITION + " AND row_result = ?";
-        String querySql = DB_QUERY_SQL.replace("#CONDITDION#", condition);
-        return query(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), createStartTime, createEndTime, rowResult);
-    }
-
-    public int queryCount() throws SQLException {
-        long currentTime = System.currentTimeMillis();
-        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
-        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
-        String querySql = COUNT_SQL.replace("#CONDITDION#", CREATE_TIME_CONDITION);
-        ConflictRowsLogCount count = queryObject(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), createStartTime, createEndTime);
-        return count.getCount();
-    }
-
-
-    public int queryCount(int rowResult) throws SQLException {
-        long currentTime = System.currentTimeMillis();
-        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
-        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
-        String condition = CREATE_TIME_CONDITION + " AND row_result = ?";
-        String querySql = COUNT_SQL.replace("#CONDITDION#", condition);
-        ConflictRowsLogCount count = queryObject(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), createStartTime, createEndTime, rowResult);
-        return count.getCount();
-    }
 
     public List<ConflictRowsLogTbl> queryByParam(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);

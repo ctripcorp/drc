@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
@@ -24,10 +25,13 @@ public class ConflictRowsLogCountTaskTest {
     private ConflictLogService conflictLogService;
     @Mock
     private Reporter reporter;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     private static final String ROW_LOG_COUNT_MEASUREMENT = "row.log.count";
     private static final String ROW_LOG_DB_COUNT_MEASUREMENT = "row.log.db.count";
     private static final String ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT = "row.log.db.rollback.count";
+    private static final String ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT = "row.log.count.query.time";
 
     @Before
     public void setUp(){
@@ -35,17 +39,23 @@ public class ConflictRowsLogCountTaskTest {
     }
 
     @Test
-    public void testScheduledTask() throws Exception {
+    public void testScheduledTask() throws Throwable {
         ConflictRowsLogCountView view = new ConflictRowsLogCountView();
         view.setTotalCount(1);
         view.setRollBackTotalCount(1);
         view.setDbCounts(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
         view.setRollBackDbCounts(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
 
-        Mockito.when(conflictLogService.getRowsLogCountView()).thenReturn(view);
-        task.checkCount();
+        Mockito.when(conflictLogService.getRowsLogCountView(Mockito.anyLong(), Mockito.anyLong())).thenReturn(view);
+        Mockito.when(consoleConfig.isCenterRegion()).thenReturn(false);
+        task.isleader();
+
+        Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);
+        task.initialize();
+        task.scheduledTask();
         Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT));
+        Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT));
     }
 }

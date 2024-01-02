@@ -36,14 +36,14 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private static final String ROW_LOG_COUNT_MEASUREMENT = "row.log.count";
     private static final String ROW_LOG_DB_COUNT_MEASUREMENT = "row.log.db.count";
     private static final String ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT = "row.log.db.rollback.count";
-    private static final String ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT = "row.log.count_query_time";
+    private static final String ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT = "row.log.count.query.time";
     private static long beginHandleTime = 0L;
     private static long endHandleTime = 0L;
     private static long endTimeOfDay = 0L;
     private static final int COUNT_SIZE = 20;
     private static int totalCount;
     private static int rollBackTotalCount;
-    private static boolean sameDay = false;
+    private static boolean nextDay = false;
     private static Map<String, ConflictRowsLogCount> tableCountMap;
     private static Map<String, ConflictRowsLogCount> rollBackCountMap;
 
@@ -65,10 +65,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
-        CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is slave, going to check");
+        CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
             checkCount();
-            if (!sameDay) {
+            if (nextDay) {
                 setEmpty();
             }
             beginHandleTime = endHandleTime;
@@ -94,7 +94,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             String tableName = dbCount.getDbName() + "." + dbCount.getTableName();
             ConflictRowsLogCount rowsLogCount = tableCountMap.get(tableName);
             if (rowsLogCount == null) {
-                tableCountMap.put(tableName, rowsLogCount);
+                tableCountMap.put(tableName, dbCount);
             } else {
                 rowsLogCount.setCount(rowsLogCount.getCount() + dbCount.getCount());
             }
@@ -104,7 +104,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             String tableName = dbCount.getDbName() + "." + dbCount.getTableName();
             ConflictRowsLogCount rowsLogCount = rollBackCountMap.get(tableName);
             if (rowsLogCount == null) {
-                rollBackCountMap.put(tableName, rowsLogCount);
+                rollBackCountMap.put(tableName, dbCount);
             } else {
                 rowsLogCount.setCount(rowsLogCount.getCount() + dbCount.getCount());
             }
@@ -131,8 +131,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         Map<String, String> rowLogCountTags = new HashMap<>();
         rowLogCountTags.put("type", "total");
         reporter.resetReportCounter(rowLogCountTags, Long.valueOf(totalCount), ROW_LOG_COUNT_MEASUREMENT);
-        rowLogCountTags.put("type", "rollBack");
-        reporter.resetReportCounter(rowLogCountTags, Long.valueOf(rollBackTotalCount), ROW_LOG_COUNT_MEASUREMENT);
+
+        Map<String, String> rollBackRowLogCountTags = new HashMap<>();
+        rollBackRowLogCountTags.put("type", "rollBack");
+        reporter.resetReportCounter(rollBackRowLogCountTags, Long.valueOf(rollBackTotalCount), ROW_LOG_COUNT_MEASUREMENT);
 
         List<ConflictRowsLogCount> dbCounts = new ArrayList<>(tableCountMap.values());
         List<ConflictRowsLogCount> rollBackDbCounts = new ArrayList<>(rollBackCountMap.values());
@@ -162,10 +164,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         long currentTime = System.currentTimeMillis();
         long currentEndTimeOfDay = DateUtils.getEndTimeOfDay(currentTime);
         if (currentEndTimeOfDay == endTimeOfDay) {
-            sameDay = true;
+            nextDay = false;
             return currentTime;
         } else {
-            sameDay = false;
+            nextDay = true;
             long nextEndHandleTime = DateUtils.getEndTimeOfDay(endHandleTime) + 1L;
             endTimeOfDay = DateUtils.getEndTimeOfDay(nextEndHandleTime);
             return nextEndHandleTime;
