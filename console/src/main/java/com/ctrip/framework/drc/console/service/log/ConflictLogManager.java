@@ -119,8 +119,14 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     }
 
     protected void addAlarmHotspotTablesToBlacklist() {
-        tableAlarmCountMap.putAll(tableAlarmCountHourlyMap);
+        for (Map.Entry<String, Integer> entry : tableAlarmCountHourlyMap.entrySet()) {
+            String table = entry.getKey();
+            Integer hourlyCount = entry.getValue();
+            Integer totalCount = tableAlarmCountMap.getOrDefault(table, 0);
+            tableAlarmCountMap.put(table, totalCount + hourlyCount);
+        }
         tableAlarmCountHourlyMap.clear();
+        
         for (Map.Entry<String, Integer> entry : tableAlarmCountMap.entrySet()) {
             String table = entry.getKey();
             Integer count = entry.getValue();
@@ -224,8 +230,9 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     }
     
     private boolean isTriggerAlarmTooManyTimesAnHour(String db, String table)  {
-        Integer count = tableAlarmCountHourlyMap.getOrDefault(db + "\\." +  table,0);
-        tableAlarmCountHourlyMap.put(db + table,count + 1);
+        String key = db + "\\." +  table;
+        Integer count = tableAlarmCountHourlyMap.getOrDefault(key,0);
+        tableAlarmCountHourlyMap.put(key,count + 1);
         return count >= domainConfig.getConflictAlarmLimitPerHour();
     }
     
