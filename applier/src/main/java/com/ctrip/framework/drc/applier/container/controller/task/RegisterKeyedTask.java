@@ -21,6 +21,7 @@ public class RegisterKeyedTask extends ApplierKeyedTask {
         try {
             logger.info("[Register] applier instance for {} with {}", registryKey, applierConfig);
             serverContainer.registerServer(registryKey);
+            future().setSuccess();
         } catch (Throwable t) {
             logger.error("Register] error in applier instance for {} with {}", registryKey, t);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.instance.error", "register");

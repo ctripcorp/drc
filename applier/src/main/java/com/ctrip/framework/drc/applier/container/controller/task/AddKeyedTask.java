@@ -21,6 +21,7 @@ public class AddKeyedTask extends ApplierKeyedTask {
        try {
            logger.info("[Start] applier instance({}) with {}", registryKey, applierConfig);
            serverContainer.addServer(applierConfig);
+           future().setSuccess();
        } catch (Throwable t) {
            logger.error("[Start] applier instance({}) error", registryKey, t);
            DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.instance.error", "start");
