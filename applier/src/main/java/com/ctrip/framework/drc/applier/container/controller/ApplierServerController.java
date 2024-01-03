@@ -1,9 +1,17 @@
 package com.ctrip.framework.drc.applier.container.controller;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
+
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
+import com.ctrip.framework.drc.applier.container.controller.task.AddKeyedTask;
+import com.ctrip.framework.drc.applier.container.controller.task.DeleteKeyedTask;
+import com.ctrip.framework.drc.applier.container.controller.task.RegisterKeyedTask;
+import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
-import com.ctrip.framework.drc.core.utils.NameUtils;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
+import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +28,9 @@ import java.util.Optional;
 public class ApplierServerController {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
+    // todo change retry from cm to applier should monitor failure event
+    private ExecutorService executorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE,"Applier-Keyed-Task-Service");
+    private KeyedOneThreadTaskExecutor<String> keyedExecutor = new DrcKeyedOneThreadTaskExecutor(executorService);
 
     @Autowired
     private ApplierServerContainer serverContainer;
@@ -38,7 +49,9 @@ public class ApplierServerController {
 
     private ApiResult doAddServer(ApplierConfigDto config) {
         try {
-            serverContainer.addServer(config);
+            String registryKey = config.getRegistryKey();
+            logger.info("[Receive][Add] applier: " + config);
+            keyedExecutor.execute(config.getRegistryKey(),new AddKeyedTask(registryKey,config,serverContainer));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t){
             logger.error("doAddServer error for {}", config.getRegistryKey(), t);
@@ -48,12 +61,11 @@ public class ApplierServerController {
 
     @RequestMapping(value = "/register", method = RequestMethod.PUT)
     public ApiResult<Boolean> register(@RequestBody ApplierConfigDto config) {
-
         try {
-            logger.info("[http] register applier: " + config);
             String registryKey = config.getRegistryKey();
-            serverContainer.registerServer(registryKey);
-            return ApiResult.getSuccessInstance(true);
+            logger.info("[Receive][Register] applier: " + config);
+            keyedExecutor.execute(config.getRegistryKey(),new RegisterKeyedTask(registryKey,config,serverContainer));
+            return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
             logger.error("register error", t);
             return ApiResult.getFailInstance(false);
@@ -62,14 +74,15 @@ public class ApplierServerController {
 
     @RequestMapping(value = {"/{registryKey}/", "/{registryKey}/{delete}"}, method = RequestMethod.DELETE)
     public ApiResult<Boolean> remove(@PathVariable String registryKey, @PathVariable Optional<Boolean> delete) {
-        logger.info("[Remove] applier registryKey {}", registryKey);
+        
         try {
+            logger.info("[Remove] applier registryKey {}", registryKey);
             boolean deleted = true;
             if (delete.isPresent()) {
                 deleted = delete.get();
                 logger.info("[delete] is updated to {} for {}", deleted, registryKey);
             }
-            serverContainer.removeServer(registryKey, deleted);
+            keyedExecutor.execute(registryKey, new DeleteKeyedTask(registryKey,null,serverContainer,deleted));
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("remove error", e);
