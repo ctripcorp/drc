@@ -5,10 +5,13 @@ import com.ctrip.framework.drc.console.service.OpenApiService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.xpipe.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @ClassName OpenApiController
@@ -85,7 +88,8 @@ public class OpenApiController {
     @PostMapping("/tmp/synApplierGtidInfoFromQConfig")
     public ApiResult synApplierGtidInfoFromQConfig(@RequestBody ConfigReq req) {
         try {
-            return ApiResult.getSuccessInstance(mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(req.getConfigText(), Boolean.TRUE.equals(req.getUpdate())));
+            Pair<Integer, List<String>> data = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(req.getConfigText(), Boolean.TRUE.equals(req.getUpdate()));
+            return ApiResult.getSuccessInstance(data.getKey(), data.getValue().toString());
         } catch (Exception e) {
             logger.error("error in syncDbInfo", e);
             return ApiResult.getFailInstance(null,e.getMessage());
