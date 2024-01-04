@@ -64,6 +64,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
+            removeRegister();
             checkCount();
             if (nextDay) {
                 setEmpty();
@@ -83,14 +84,16 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         setEmpty();
     }
 
+    private void removeRegister() {
+        reporter.removeRegister(ROW_LOG_DB_COUNT_MEASUREMENT);
+        reporter.removeRegister(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
+    }
 
     private void setEmpty() {
         totalCount = 0;
         rollBackTotalCount = 0;
         tableCountMap = new HashMap<>();
         rollBackCountMap = new HashMap<>();
-        reporter.removeRegister(ROW_LOG_DB_COUNT_MEASUREMENT);
-        reporter.removeRegister(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }
 
     private void refreshAndReport(ConflictRowsLogCountView rowsLogCountView) {
