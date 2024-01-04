@@ -240,7 +240,7 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         Integer count = result.getKey();
         List<String> messages = result.getValue();
         Assert.assertEquals(1, count.intValue());
-        Assert.assertEquals(0, messages.size());
+        Assert.assertEquals(1, messages.size());
     }
 
     @Test

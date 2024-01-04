@@ -430,10 +430,12 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                 }
                 if (!StringUtils.isEmpty(applierGroupTblV2.getGtidInit())) {
                     targetGtid = new GtidSet(applierGroupTblV2.getGtidInit()).union(new GtidSet(qConfigGtid)).toString();
+                    if (targetGtid.equals(applierGroupTblV2.getGtidInit())) {
+                        continue;
+                    }
+                    illegalMessages.add(String.format("%s: going to update gitd. origin:%s, target:%S", replication, applierGroupTblV2.getGtidInit(), targetGtid));
                 }
-                if (targetGtid.equals(applierGroupTblV2.getGtidInit())) {
-                    continue;
-                }
+                logger.info("update gitd: {} {}->{} (qconfig gtid:{})", replication, applierGroupTblV2.getGtidInit(), targetGtid, qConfigGtid);
                 applierGroupTblV2.setGtidInit(targetGtid);
                 applierGroupUpdateList.add(applierGroupTblV2);
             }
