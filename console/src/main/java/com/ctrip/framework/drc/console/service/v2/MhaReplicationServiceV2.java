@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.http.PageResult;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 public interface MhaReplicationServiceV2 {
     PageResult<MhaReplicationTbl> queryByPage(MhaReplicationQuery query);
@@ -52,4 +53,14 @@ public interface MhaReplicationServiceV2 {
      * 批量获取延迟（允许部分成功）
      */
     List<MhaDelayInfoDto> getMhaReplicationDelaysV2(List<MhaReplicationDto> mhaReplicationDtoList);
+
+    /**
+     * configText -> key value map
+     */
+    Map<String, String> parseConfigFileGtidContent(String configText);
+
+    /**
+     * update applier group gtid property according to qConfig
+     */
+    int synApplierGtidInfoFromQConfig(String configText, boolean update);
 }

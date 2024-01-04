@@ -1,14 +1,13 @@
 package com.ctrip.framework.drc.console.monitor.gtid.function;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.entity.GtidGapEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
-import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -21,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_GTID_LOGGER;
@@ -206,6 +206,7 @@ public class CheckGtid extends AbstractConfigBean {
                 reporter.reportGtidGapRepeat(gtidGapEntity, NON_REPEAT_COUNT);
                 CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [Report RepeatGap] uuid : {} has no repeated gap", dcName, mha, gtidGapEntity.getIp(), gtidGapEntity.getPort(), uuid);
             } else {
+                // todo by yongnian: 2023/12/26 单向同步 not monirored???
                 // if this is not the first time check the gap
                 // check repeat gap logic:
                 //      add the current Gtid Gap's transaction id into previous gtidSet
@@ -238,51 +239,24 @@ public class CheckGtid extends AbstractConfigBean {
     }
 
     /**
-     * @param uuid
-     * @param curGapIntervals
-     * @param lastGtidSet
-     * @return
+     * @return gtid in curGapIntervals, and not in lastGtidSet (limited by last max tx id)
      */
     protected List<GapInterval> getRepeatedGapInterval(String uuid, List<GapInterval> curGapIntervals, GtidSet lastGtidSet) {
-
-        List<GapInterval> repeatedGapIntervals = Lists.newArrayList();
         long maxTransactionId = getMaxTransactionId(lastGtidSet, uuid);
-        Long repeatedGapStart = null, repeatedGapEnd = null;
+        GtidSet curGapGtid = convertToGtid(uuid, curGapIntervals);
+        GtidSet subtract = curGapGtid.subtract(lastGtidSet);
+        return subtract.getUUIDSet(uuid).getIntervals()
+                .stream().filter(e -> e.getStart() < maxTransactionId)
+                .map(e -> new GapInterval(e.getStart(), Math.min(e.getEnd(), maxTransactionId)))
+                .collect(Collectors.toList());
+    }
 
-        for(GapInterval gapInterval : curGapIntervals) {
-            long start = gapInterval.getStart();
-            long end = gapInterval.getEnd();
-            for(long transactionId = start; transactionId <= end; ++transactionId) {
-                if(transactionId >= maxTransactionId) {
-                    if(null != repeatedGapEnd) {
-                        repeatedGapIntervals.add(new GapInterval(repeatedGapStart, repeatedGapEnd));
-                    }
-                    return repeatedGapIntervals;
-                }
-                String gtid = uuid+":"+transactionId;
-                if(lastGtidSet.add(gtid)) {
-                    if(null == repeatedGapStart) {
-                        // first time find the repeat tx id
-                        repeatedGapStart = transactionId;
-                        repeatedGapEnd = transactionId;
-                    } else {
-                        if(transactionId - repeatedGapEnd > 1) {
-                            // if repeat tx id jump over at least one
-                            // 1. make the GapInterval since
-                            // 2. reset the repeatedGapStart
-                            repeatedGapIntervals.add(new GapInterval(repeatedGapStart, repeatedGapEnd));
-                            repeatedGapStart = transactionId;
-                        }
-                        repeatedGapEnd = transactionId;
-                    }
-                }
-            }
-        }
-        if(null != repeatedGapStart) {
-            // add the last one
-            repeatedGapIntervals.add(new GapInterval(repeatedGapStart, repeatedGapEnd));
-        }
-        return repeatedGapIntervals;
+
+    private GtidSet convertToGtid(String uuid, List<GapInterval> curGapIntervals) {
+        List<GtidSet.Interval> list = curGapIntervals.stream().map(e -> new GtidSet.Interval(e.start, e.end)).collect(Collectors.toList());
+        Map<String, GtidSet.UUIDSet> uuidSets = new HashMap<>();
+        uuidSets.put(uuid, new GtidSet.UUIDSet(uuid, list));
+        return new GtidSet(uuidSets);
     }
 
     protected long getRepeatedGapCount(List<GapInterval> gapIntervals) {
