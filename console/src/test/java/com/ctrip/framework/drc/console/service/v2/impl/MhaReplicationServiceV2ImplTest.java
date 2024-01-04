@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.xpipe.tuple.Pair;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -232,24 +233,43 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
     }
 
 
-    @Test(expected = ConsoleException.class)
-    public void testSynConfigGtidAlreadyExistException(){
-        String input = "mha_dalcluster.mha2.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        int i = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-    }
-    @Test(expected = ConsoleException.class)
-    public void testSynConfigMhaNotExist(){
-        String input = "mha_dalcluster.mha2NotExist.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        int i = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-    }    @Test(expected = ConsoleException.class)
-    public void testSynConfigMhaReplicationNotExist(){
-        String input = "mha_dalcluster.mha2.mha3.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        int i = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-    }
     @Test
-    public void testSynConfi2g(){
+    public void testSynConfigGtidAlreadyExistException() {
+        String input = "mha_dalcluster.mha2.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
+        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
+        Integer count = result.getKey();
+        List<String> messages = result.getValue();
+        Assert.assertEquals(1, count.intValue());
+        Assert.assertEquals(0, messages.size());
+    }
+
+    @Test
+    public void testSynConfigMhaNotExist() {
+        String input = "mha_dalcluster.mha2NotExist.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
+        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
+        Integer count = result.getKey();
+        List<String> messages = result.getValue();
+        Assert.assertEquals(0, count.intValue());
+        Assert.assertTrue(messages.size() > 0);
+    }
+
+    @Test
+    public void testSynConfigMhaReplicationNotExist() {
+        String input = "mha_dalcluster.mha2.mha3.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
+        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
+        Integer count = result.getKey();
+        List<String> messages = result.getValue();
+        Assert.assertEquals(0, count.intValue());
+        Assert.assertTrue(messages.size() > 0);
+    }
+
+    @Test
+    public void testSynConfi2g() {
         String input = "mha_dalcluster.mha3.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        int size = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-        Assert.assertEquals(1,size);
+        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
+        Integer count = result.getKey();
+        List<String> messages = result.getValue();
+        Assert.assertEquals(1, count.intValue());
+        Assert.assertEquals(0, messages.size());
     }
 }

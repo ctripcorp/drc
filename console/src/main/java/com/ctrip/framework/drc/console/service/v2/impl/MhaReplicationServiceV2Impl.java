@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -388,7 +389,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public int synApplierGtidInfoFromQConfig(String configText, boolean update) {
+    public Pair<Integer,List<String>> synApplierGtidInfoFromQConfig(String configText, boolean update) {
         try {
             Map<String, String> keyValueMap = this.parseConfigFileGtidContent(configText);
 
@@ -406,7 +407,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             for (Map.Entry<MhaReplicationDto, String> entry : replicationToGtidMap.entrySet()) {
                 MhaReplicationDto replicationDto = entry.getKey();
                 String qConfigGtid = entry.getValue();
-
+                String targetGtid = qConfigGtid;
                 String srcName = replicationDto.getSrcMha().getName();
                 String dstName = replicationDto.getDstMha().getName();
                 String replication = srcName + "->" + dstName;
@@ -428,22 +429,19 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                     continue;
                 }
                 if (!StringUtils.isEmpty(applierGroupTblV2.getGtidInit())) {
-                    if (!applierGroupTblV2.getGtidInit().equals(qConfigGtid)) {
-                        illegalMessages.add(String.format("%s: db gtid exist and not equal:", replication));
-                    }
+                    targetGtid = new GtidSet(applierGroupTblV2.getGtidInit()).union(new GtidSet(qConfigGtid)).toString();
+                }
+                if (targetGtid.equals(applierGroupTblV2.getGtidInit())) {
                     continue;
                 }
-                applierGroupTblV2.setGtidInit(qConfigGtid);
+                applierGroupTblV2.setGtidInit(targetGtid);
                 applierGroupUpdateList.add(applierGroupTblV2);
-            }
-            if (!CollectionUtils.isEmpty(illegalMessages)) {
-                throw ConsoleExceptionUtils.message("illegal:" + illegalMessages);
             }
             if (update) {
                 int[] ints = applierGroupTblV2Dao.batchUpdate(applierGroupUpdateList);
-                return Arrays.stream(ints).sum();
+                return Pair.of(Arrays.stream(ints).sum(), illegalMessages);
             }
-            return applierGroupUpdateList.size();
+            return Pair.of(applierGroupUpdateList.size(), illegalMessages);
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
         }
