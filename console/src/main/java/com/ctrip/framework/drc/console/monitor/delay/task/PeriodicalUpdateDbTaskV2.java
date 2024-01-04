@@ -192,9 +192,9 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         try {
             for (Future<?> future : list) {
                 future.get(defaultConsoleConfig.getDelayExceptionTimeInMilliseconds(), TimeUnit.MILLISECONDS);
-                DefaultEventMonitorHolder.getInstance().logAlertEvent("DRC.console.delay.update.timeout");
             }
         } catch (Exception e) {
+            DefaultEventMonitorHolder.getInstance().logAlertEvent("DRC.console.delay.update.timeout");
             logger.error("[[monitor=delay_v2]] wait timeout for task", e);
         }
     }

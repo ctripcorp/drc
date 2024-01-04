@@ -116,4 +116,13 @@ public class DataMediaConfigTest {
         optional = blank.getRowsFilterRule("table1_wrong");
         Assert.assertFalse(optional.isPresent());
     }
+
+
+    @Test
+    public void getConcurrency() throws Exception {
+        int concurrency = DataMediaConfig.getConcurrency("{\"concurrency\":5,\"rowsFilters\":[],\"columnsFilters\":[]}");
+        Assert.assertEquals(5, concurrency);
+        int concurrency2 = DataMediaConfig.getConcurrency("{\"concurrency\":5,\"rowsFilters\":[{\"mode\":\"trip_udl\",\"tables\":\"drc2\\\\..*\",\"configs\":{\"parameterList\":[{\"columns\":[\"col_alter_10\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"}],\"drcStrategyId\":2000000002,\"routeStrategyId\":0}}],\"columnsFilters\":[]}");
+        Assert.assertEquals(5, concurrency2);
+    }
 }
