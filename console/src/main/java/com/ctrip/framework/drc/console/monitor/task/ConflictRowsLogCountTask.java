@@ -89,6 +89,8 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         rollBackTotalCount = 0;
         tableCountMap = new HashMap<>();
         rollBackCountMap = new HashMap<>();
+        reporter.removeRegister(ROW_LOG_DB_COUNT_MEASUREMENT);
+        reporter.removeRegister(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }
 
     private void refreshAndReport(ConflictRowsLogCountView rowsLogCountView) {
