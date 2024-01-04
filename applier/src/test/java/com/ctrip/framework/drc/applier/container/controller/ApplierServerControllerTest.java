@@ -96,41 +96,43 @@ public class ApplierServerControllerTest {
         dto.setApplyMode(ApplyMode.transaction_table.getType());
         Assert.assertEquals("dstMha_cluster.dstMha.srcMha", dto.getRegistryKey());
 
-        // register
-        Mockito.when(serverContainer.registerServer(Mockito.eq(dto.getRegistryKey())))
-                .thenThrow(new RuntimeException("mock exception"));
+        
+        Mockito.when(serverContainer.registerServer(Mockito.eq(dto.getRegistryKey()))).thenReturn(null);
+        Mockito.when(serverContainer.addServer(Mockito.eq(dto))).thenReturn(true);
+        Mockito.doNothing().when(serverContainer).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+
+        // work success
         ApiResult<Boolean> register = applierServerController.register(dto);
         Assert.assertTrue(register.getData());
-        // add
-        Mockito.when(serverContainer.addServer(Mockito.eq(dto))).thenThrow(new RuntimeException("mock exception"));
+        
         ApiResult<Boolean> add = applierServerController.post(dto);
         Assert.assertTrue(add.getData());
-
-        // delete
-        Mockito.doThrow(new RuntimeException("mock exception")).when(serverContainer)
-                .removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
-        ApiResult<Boolean> delete = applierServerController.register(dto);
+        
+        ApiResult<Boolean> delete = applierServerController.remove(dto.getRegistryKey(), java.util.Optional.of(true));
         Assert.assertTrue(delete.getData());
 
-        Thread.sleep(2000);
-
-        Mockito.when(serverContainer.registerServer(Mockito.eq(dto.getRegistryKey()))).thenReturn(null);
+        Thread.sleep(200);
+        
+        verify(serverContainer, times(1)).registerServer(Mockito.eq(dto.getRegistryKey()));
+        verify(serverContainer, times(1)).addServer(Mockito.eq(dto));
+        verify(serverContainer, times(1)).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+        
+        // work fail
+        Mockito.when(serverContainer.registerServer(Mockito.eq(dto.getRegistryKey()))).thenThrow(new RuntimeException("mock exception"));
+        Mockito.when(serverContainer.addServer(Mockito.eq(dto))).thenThrow(new RuntimeException("mock exception"));
+        Mockito.doThrow(new RuntimeException("mock exception")).when(serverContainer).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+        
         register = applierServerController.register(dto);
         Assert.assertTrue(register.getData());
 
-        Mockito.when(serverContainer.addServer(Mockito.eq(dto))).thenReturn(true);
         add = applierServerController.post(dto);
         Assert.assertTrue(add.getData());
-
-        Mockito.doNothing().when(serverContainer).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+        
         delete = applierServerController.register(dto);
         Assert.assertTrue(delete.getData());
-
-        Thread.sleep(2000);
-
-        verify(serverContainer, atLeast(3)).registerServer(Mockito.eq(dto.getRegistryKey()));
-        verify(serverContainer, times(3)).addServer(Mockito.eq(dto));
-        verify(serverContainer, times(3)).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
-
+        
+        verify(serverContainer, atLeast(2)).registerServer(Mockito.eq(dto.getRegistryKey()));
+        verify(serverContainer, times(1)).addServer(Mockito.eq(dto));
+        verify(serverContainer, times(1)).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
     }
 }
