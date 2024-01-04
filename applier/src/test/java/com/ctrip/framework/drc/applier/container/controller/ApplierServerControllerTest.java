@@ -1,6 +1,12 @@
 package com.ctrip.framework.drc.applier.container.controller;
 
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
+import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.meta.DBInfo;
+import com.ctrip.framework.drc.core.meta.InstanceInfo;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -12,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -72,5 +80,57 @@ public class ApplierServerControllerTest {
         verify(serverContainer, times(1)).removeServer(REGISTRY_KEY, true);
         verify(serverContainer, times(0)).removeServer(REGISTRY_KEY, false);
     }
+    
+    @Test
+    public void testRegisterAddDelete() throws Exception {
+        ApplierConfigDto dto = new ApplierConfigDto();
+        DBInfo target = new DBInfo();
+        target.setMhaName("dstMha");
+        dto.setTarget(target);
 
+        InstanceInfo replicator = new InstanceInfo();
+        replicator.setMhaName("srcMha");
+        dto.setReplicator(replicator);
+
+        dto.setCluster("dstMha_cluster");
+        dto.setApplyMode(ApplyMode.transaction_table.getType());
+        Assert.assertEquals("dstMha_cluster.dstMha.srcMha", dto.getRegistryKey());
+
+        // register
+        Mockito.when(serverContainer.registerServer(Mockito.eq(dto.getRegistryKey())))
+                .thenThrow(new RuntimeException("mock exception"));
+        ApiResult<Boolean> register = applierServerController.register(dto);
+        Assert.assertTrue(register.getData());
+        // add
+        Mockito.when(serverContainer.addServer(Mockito.eq(dto))).thenThrow(new RuntimeException("mock exception"));
+        ApiResult<Boolean> add = applierServerController.post(dto);
+        Assert.assertTrue(add.getData());
+
+        // delete
+        Mockito.doThrow(new RuntimeException("mock exception")).when(serverContainer)
+                .removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+        ApiResult<Boolean> delete = applierServerController.register(dto);
+        Assert.assertTrue(delete.getData());
+
+        Thread.sleep(2000);
+
+        Mockito.when(serverContainer.registerServer(Mockito.eq(dto.getRegistryKey()))).thenReturn(null);
+        register = applierServerController.register(dto);
+        Assert.assertTrue(register.getData());
+
+        Mockito.when(serverContainer.addServer(Mockito.eq(dto))).thenReturn(true);
+        add = applierServerController.post(dto);
+        Assert.assertTrue(add.getData());
+
+        Mockito.doNothing().when(serverContainer).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+        delete = applierServerController.register(dto);
+        Assert.assertTrue(delete.getData());
+
+        Thread.sleep(2000);
+
+        verify(serverContainer, atLeast(3)).registerServer(Mockito.eq(dto.getRegistryKey()));
+        verify(serverContainer, times(3)).addServer(Mockito.eq(dto));
+        verify(serverContainer, times(3)).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+
+    }
 }
