@@ -105,7 +105,8 @@ public class DbMigrationController {
     public ApiResult startDbMigrationTask (@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.startDbMigrationTask(taskId)) {
-                return ApiResult.getInstance(null,0,"startDbMigrationTask " + taskId + " success!");
+                return ApiResult.getInstance(null,+
+                        0,"startDbMigrationTask " + taskId + " success!");
             } else {
                 return ApiResult.getInstance(null,1,"startDbMigrationTask " + taskId + " fail!");
             }
