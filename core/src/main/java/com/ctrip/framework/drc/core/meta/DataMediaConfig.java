@@ -176,6 +176,14 @@ public class DataMediaConfig {
         return optional;
     }
 
+    public static Integer getConcurrency(String properties) {
+        if (StringUtils.isBlank(properties)) {
+            return null;
+        }
+        DataMediaConfig dataMediaConfig = JsonCodec.INSTANCE.decode(properties, DataMediaConfig.class);
+        return dataMediaConfig.getConcurrency();
+    }
+
     public Integer getConcurrency() {
         return concurrency;
     }

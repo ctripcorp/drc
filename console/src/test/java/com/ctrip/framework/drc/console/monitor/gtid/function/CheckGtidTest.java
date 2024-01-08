@@ -118,6 +118,7 @@ public class CheckGtidTest {
 
     @Test
     public void testGetRepeatedGapInterval() {
+         new GtidSet("1e698014-90e5-11e9-a232-56d52b562cdd:1-277006139:277007000-277007001");
 
         String uuid = "1e698014-90e5-11e9-a232-56d52b562cdd";
         List<CheckGtid.GapInterval> curGapIntervals1 = new LinkedList<>() {{
@@ -154,6 +155,22 @@ public class CheckGtidTest {
         Assert.assertEquals(expected3, checkGtid.getRepeatedGapInterval(uuid, curGapIntervals3, gtidSet));
         gtidSet = new GtidSet("1e698014-90e5-11e9-a232-56d52b562abc:366561-370331:370732-374168,1e698014-90e5-11e9-a232-56d52b562cdd:1-277006139:277007000-277007001");
         Assert.assertEquals(expected4, checkGtid.getRepeatedGapInterval(uuid, curGapIntervals4, gtidSet));
+    }
+
+    @Test(timeout = 1000)
+    public void testGetRepeatedGapIntervalHugeGap() {
+
+        String uuid = "1e698014-90e5-11e9-a232-56d52b562cdd";
+        List<CheckGtid.GapInterval> curGapIntervals1 = new LinkedList<>() {{
+            add(new CheckGtid.GapInterval(10L, 277006999L));
+        }};
+
+        List<CheckGtid.GapInterval> expected1 = new LinkedList<>() {{
+            add(new CheckGtid.GapInterval(10L, 277006999L));
+        }};
+
+        GtidSet gtidSet = new GtidSet("1e698014-90e5-11e9-a232-56d52b562abc:366561-370331:370732-374168,1e698014-90e5-11e9-a232-56d52b562cdd:1-10:277007000-277007001");
+        Assert.assertEquals(expected1, checkGtid.getRepeatedGapInterval(uuid, curGapIntervals1, gtidSet));
     }
 
     @Test

@@ -50,12 +50,17 @@ public class ConflictRowsLogCountTaskTest {
         Mockito.when(consoleConfig.isCenterRegion()).thenReturn(false);
 //        task.isleader();
 
-        Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);
         task.initialize();
         task.checkCount();
         Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT));
+
+        task.isleader();
+        Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);
+        task.scheduledTask();
+//        Mockito.verify(reporter, Mockito.times(1)).removeRegister(Mockito.eq(ROW_LOG_DB_COUNT_MEASUREMENT));
+//        Mockito.verify(reporter, Mockito.times(1)).removeRegister(Mockito.eq(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT));
     }
 }
