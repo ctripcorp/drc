@@ -76,9 +76,9 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
-        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-            return;
-        }
+//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+//            return;
+//        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] is leader, going to check");
         try {
             removeRegister();
@@ -211,7 +211,9 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             Map<String, String> tags = new HashMap<>();
             tags.put("srcMha", srcMhaName);
             tags.put("dstMha", dstMhaName);
-            tags.put("diffTable", table);
+            String[] tables = table.split("\\.");
+            tags.put("dbName", tables[0]);
+            tags.put("tableName", tables[1]);
             reporter.resetReportCounter(tags, 1L, TABLE_STRUCTURE_MEASUREMENT);
         }
     }
