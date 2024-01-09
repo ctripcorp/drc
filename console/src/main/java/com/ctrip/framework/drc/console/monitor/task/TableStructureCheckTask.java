@@ -187,7 +187,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         Set<String> dstTables = Sets.newHashSet(dstTableColumns.keySet());
         List<String> diffTables = getDiff(srcTables, dstTables);
         if (!CollectionUtils.isEmpty(diffTables)) {
-            CONSOLE_MONITOR_LOGGER.info("report diff tables between mha: {} -> {}, diffTables: {}", srcMhaName, dstMhaName, diffTables);
+            CONSOLE_MONITOR_LOGGER.info("report diffTables between mha: {} -> {}, diffTables: {}", srcMhaName, dstMhaName, diffTables);
             reportDiffTables(srcMhaName, dstMhaName, diffTables);
         }
 
