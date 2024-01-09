@@ -81,10 +81,16 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] is leader, going to check");
         try {
+            removeRegister();
             checkTableStructure();
         } catch (Exception e) {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=TableStructureCheckTask]] fail, {}", e);
         }
+    }
+
+    private void removeRegister() {
+        reporter.removeRegister(TABLE_STRUCTURE_MEASUREMENT);
+        reporter.removeRegister(TABLE_COLUMN_STRUCTURE_MEASUREMENT);
     }
 
     protected void checkTableStructure() throws SQLException {
@@ -195,7 +201,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
-                reporter.reportResetCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
+                reporter.resetReportCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
             }
         }
     }
@@ -206,7 +212,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             tags.put("srcMha", srcMhaName);
             tags.put("dstMha", dstMhaName);
             tags.put("diffTable", table);
-            reporter.reportResetCounter(tags, 1L, TABLE_STRUCTURE_MEASUREMENT);
+            reporter.resetReportCounter(tags, 1L, TABLE_STRUCTURE_MEASUREMENT);
         }
     }
 

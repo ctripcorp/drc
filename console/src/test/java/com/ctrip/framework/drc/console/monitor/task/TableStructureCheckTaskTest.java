@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.google.common.collect.Sets;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -70,11 +69,11 @@ public class TableStructureCheckTaskTest {
         Map<String, Set<String>> map = new HashMap<>();
         map.put("db.table", Sets.newHashSet("col1"));
         Mockito.when(mysqlServiceV2.getTableColumns(Mockito.any())).thenReturn(map);
-        Mockito.doNothing().when(reporter).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doNothing().when(reporter).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
 
         task.checkTableStructure();
         Thread.sleep(200);
-        Mockito.verify(reporter, Mockito.never()).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter, Mockito.never()).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
 
         Map<String, Set<String>> map1 = new HashMap<>();
         map1.put("db.table", Sets.newHashSet("col1", "col2"));
@@ -82,13 +81,13 @@ public class TableStructureCheckTaskTest {
 
         task.checkTableStructure();
         Thread.sleep(200);
-        Mockito.verify(reporter, Mockito.times(1)).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_COLUMN_STRUCTURE_MEASUREMENT));
+        Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_COLUMN_STRUCTURE_MEASUREMENT));
 
         map1.put("db.table1", Sets.newHashSet("col1", "col2"));
         task.checkTableStructure();
         Thread.sleep(200);
-        Mockito.verify(reporter, Mockito.times(2)).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_COLUMN_STRUCTURE_MEASUREMENT));
-        Mockito.verify(reporter, Mockito.times(1)).reportResetCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_STRUCTURE_MEASUREMENT));
+        Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_COLUMN_STRUCTURE_MEASUREMENT));
+        Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(TABLE_STRUCTURE_MEASUREMENT));
     }
 
 }
