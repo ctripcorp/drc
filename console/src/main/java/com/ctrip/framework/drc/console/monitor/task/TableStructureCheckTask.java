@@ -182,7 +182,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         List<String> diffTables = getDiff(srcTables, dstTables);
         if (!CollectionUtils.isEmpty(diffTables)) {
             CONSOLE_MONITOR_LOGGER.info("report diff tables between mha: {} -> {}, diffTables: {}", srcMhaName, dstMhaName, diffTables);
-            reporter.reportResetCounter(getTableTags(srcMhaName, dstMhaName, diffTables), 1L, TABLE_STRUCTURE_MEASUREMENT);
+            reportDiffTables(srcMhaName, dstMhaName, diffTables);
         }
 
         for (Map.Entry<String, Set<String>> entry : srcTableColumns.entrySet()) {
@@ -200,12 +200,14 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         }
     }
 
-    private Map<String, String> getTableTags(String srcMhaName, String dstMhaName, List<String> diffTables) {
-        Map<String, String> tags = new HashMap<>();
-        tags.put("srcMha", srcMhaName);
-        tags.put("dstMha", dstMhaName);
-        tags.put("diffTable", Joiner.on(",").join(diffTables));
-        return tags;
+    private void reportDiffTables(String srcMhaName, String dstMhaName, List<String> diffTables) {
+        for (String table : diffTables) {
+            Map<String, String> tags = new HashMap<>();
+            tags.put("srcMha", srcMhaName);
+            tags.put("dstMha", dstMhaName);
+            tags.put("diffTable", table);
+            reporter.reportResetCounter(tags, 1L, TABLE_STRUCTURE_MEASUREMENT);
+        }
     }
 
     private Map<String, String> getColumnTags(String srcMhaName, String dstMhaName, String tableName, List<String> diffColumns) {
