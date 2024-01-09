@@ -200,7 +200,7 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             Set<String> dstColumns = dstTableColumns.get(tableName);
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
-                CONSOLE_MONITOR_LOGGER.info("report diff columns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
+                CONSOLE_MONITOR_LOGGER.info("report diffColumns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);
                 reporter.resetReportCounter(getColumnTags(srcMhaName, dstMhaName, tableName, diffColumns), 1L, TABLE_COLUMN_STRUCTURE_MEASUREMENT);
             }
         }
