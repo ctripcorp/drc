@@ -4,7 +4,6 @@ import com.ctrip.xpipe.config.AbstractConfigBean;
 import org.apache.commons.lang3.StringUtils;
 
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SOCKET_TIMEOUT;
 
 /**
