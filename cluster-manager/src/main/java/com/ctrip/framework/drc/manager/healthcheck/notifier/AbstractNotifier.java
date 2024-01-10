@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
+import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Applier;
@@ -10,7 +11,6 @@ import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.command.AbstractCommand;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.retry.RestOperationsRetryPolicyFactory;
@@ -140,12 +140,11 @@ public abstract class AbstractNotifier implements Notifier {
     }
 
     protected String getDelayMonitorRegex(int applyMode, String includeDbs) {
-        String delayMonitorRegex = DRC_MONITOR_SCHEMA_NAME + "\\." + "(delaymonitor";
+        String delayTableName = DRC_DELAY_MONITOR_TABLE_NAME;
         if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
-            delayMonitorRegex = delayMonitorRegex + "|" + DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + includeDbs;
+            delayTableName = DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + includeDbs;
         }
-        delayMonitorRegex = delayMonitorRegex + ")";
-        return delayMonitorRegex;
+        return DRC_MONITOR_SCHEMA_NAME + "\\." + "(" + delayTableName + ")";
     }
 
     private boolean checkStatus(int status) {
