@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.applier.container.controller.task.AddKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.DeleteKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.RegisterKeyedTask;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -28,8 +29,8 @@ import java.util.Optional;
 public class ApplierServerController {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-    // todo change retry from cm to applier should monitor failure event
-    private ExecutorService executorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE,"Applier-Keyed-Task-Service");
+    private int APPLIER_INSTANCE_MODIFY_THREAD = DynamicConfig.getInstance().getApplierInstanceModifyThread();
+    private ExecutorService executorService = ThreadUtils.newFixedThreadPool(APPLIER_INSTANCE_MODIFY_THREAD,"Applier-Keyed-Task-Service");
     private KeyedOneThreadTaskExecutor<String> keyedExecutor = new DrcKeyedOneThreadTaskExecutor(executorService);
 
     @Autowired

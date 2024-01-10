@@ -4,6 +4,7 @@ import com.ctrip.xpipe.config.AbstractConfigBean;
 import org.apache.commons.lang3.StringUtils;
 
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SOCKET_TIMEOUT;
 
 /**
@@ -34,6 +35,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
 
     private static final String CM_NOTIFY_THREAD = "cm.notify.thread";
+    private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
 
     private DynamicConfig() {}
 
@@ -103,5 +105,9 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public int getCmNotifyThread() {
         return getIntProperty(CM_NOTIFY_THREAD, 50);
+    }
+    
+    public int getApplierInstanceModifyThread() {
+        return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 5);
     }
 }

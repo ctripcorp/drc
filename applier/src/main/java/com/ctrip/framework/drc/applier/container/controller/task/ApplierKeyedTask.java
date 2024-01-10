@@ -40,6 +40,6 @@ public class ApplierKeyedTask extends AbstractCommand {
 
     @Override
     public String getName() {
-        return null;
+        return this.getClass().getSimpleName() + "-" +  registryKey;
     }
 }
