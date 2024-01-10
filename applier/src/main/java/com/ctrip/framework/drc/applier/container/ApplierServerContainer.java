@@ -73,7 +73,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                 return true;
             }
         }
-
+        
         logger.info("applier servers does not contain {}", clusterKey);
         createFile(clusterKey);
         doAddServer(config);

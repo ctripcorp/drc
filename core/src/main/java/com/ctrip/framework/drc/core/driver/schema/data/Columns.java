@@ -16,11 +16,13 @@ import static java.util.stream.Collectors.toList;
  */
 public class Columns extends ArrayList<Column> {
 
+    private static final String STANDARD_ON_UPDATE_COLUMN_NAME = "datachange_lasttime";
     private List<List<String>> identifiers;
 
     private boolean arranged = false;
     private List<Bitmap> bitmapsOfIdentifier;
     private List<Bitmap> bitmapsOnUpdate;
+    private Bitmap standardOnUpdate;
 
     public List<Bitmap> getBitmapsOfIdentifier() {
         if (!arranged) {
@@ -40,9 +42,7 @@ public class Columns extends ArrayList<Column> {
 
     public Bitmap getLastBitmapOnUpdate() {
         List<Bitmap> bitmaps = getBitmapsOnUpdate();
-        return bitmaps.get(
-                bitmaps.size() - 1
-        );
+        return (standardOnUpdate == null ? bitmaps.get(bitmaps.size() - 1) : standardOnUpdate);
     }
 
     public static Columns from(List<Column> columns) {
@@ -74,6 +74,9 @@ public class Columns extends ArrayList<Column> {
 
             }
             if (column.isOnUpdate()) {
+                if (STANDARD_ON_UPDATE_COLUMN_NAME.equalsIgnoreCase(column.getName())) {
+                    standardOnUpdate = Bitmap.fromMarks(i);
+                }
                 bitmapsOnUpdate.add(Bitmap.fromMarks(i));
             }
         }
