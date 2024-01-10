@@ -89,7 +89,8 @@
                   <template slot="title">
                     帮助
                   </template>
-                  <MenuItem name="help1">帮助1</MenuItem>
+                  <MenuItem name="help1">
+                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=2130543490'>冲突自助处理</a></MenuItem>
                   <MenuItem name="help2">帮助2</MenuItem>
                 </Submenu>
                 <Submenu name="3">
