@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.container.controller.task.AddKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.DeleteKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.RegisterKeyedTask;
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -29,8 +30,8 @@ import java.util.Optional;
 public class ApplierServerController {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private int APPLIER_INSTANCE_MODIFY_THREAD = DynamicConfig.getInstance().getApplierInstanceModifyThread();
-    private ExecutorService executorService = ThreadUtils.newFixedThreadPool(APPLIER_INSTANCE_MODIFY_THREAD,"Applier-Keyed-Task-Service");
+    private static final ApplierDynamicConfig config = ApplierDynamicConfig.getInstance();
+    private ExecutorService executorService = ThreadUtils.newFixedThreadPool(config.getApplierInstanceModifyThread(),"Applier-Keyed-Task-Service");
     private KeyedOneThreadTaskExecutor<String> keyedExecutor = new DrcKeyedOneThreadTaskExecutor(executorService);
 
     @Autowired

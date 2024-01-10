@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.applier.utils;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
+
 import com.ctrip.xpipe.config.AbstractConfigBean;
 
 /**
@@ -17,6 +19,8 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     private static final String CONFLICT_LOG_UPLOAD_SWITCH = "conflict.log.upload.switch";
     private static final String CONFLICT_LOG_BRIEF_QUEUE_SIZE = "conflict.log.brief.queue.size";
     private static final String CONFLICT_LOG_BRIEF_REPORT_SIZE = "conflict.log.brief.report.size";
+    private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
+
 
     private ApplierDynamicConfig() {}
     
@@ -50,5 +54,9 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
 
     public long getFirstLwmToleranceTime() {
         return getLongProperty(FIRST_APPLIER_LWM_TOLERANCE_TIME, DEFAULT_FIRST_APPLIER_LWM_TOLERANCE_TIME);
+    }
+
+    public int getApplierInstanceModifyThread() {
+        return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 5);
     }
 }
