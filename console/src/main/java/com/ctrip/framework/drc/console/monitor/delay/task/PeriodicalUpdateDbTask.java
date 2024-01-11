@@ -164,9 +164,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
         }
     }
     
-    public Set<String> getSrcMhasShouldMonitor(String dstMha,String srcDc) {
+    public Set<String> getSrcMhasShouldMonitor(String dstClusterName,String dstMha,String srcDc) {
         String srcRegion = consoleConfig.getRegionForDc(srcDc);
-        return cacheMetaService.getSrcMhasShouldMonitor(dstMha,srcRegion);
+        return cacheMetaService.getSrcMhasShouldMonitor(dstClusterName + "." +dstMha,srcRegion);
     }
 
     @Override

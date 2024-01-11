@@ -219,7 +219,7 @@ public class PeriodicalUpdateDbTaskTest {
     public void testGetSrcMhasShouldMonitor() {
         Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
         Mockito.when(cacheMetaService.getSrcMhasShouldMonitor(Mockito.anyString(),Mockito.anyString())).thenReturn(Sets.newHashSet("mha1"));
-        Set<String> mhasShouldMonitor = task.getSrcMhasShouldMonitor("dstMha", "shary");
+        Set<String> mhasShouldMonitor = task.getSrcMhasShouldMonitor("dstCluster","dstMha", "shary");
         Assert.assertEquals(1, mhasShouldMonitor.size());
     }
 
