@@ -133,15 +133,20 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @VisibleForTesting
     protected GtidSet queryPositionFromDb() {
         Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
+        List<GtidReader> gtidReaders = this.getExecutedGtidReaders(endpoint);
+        ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint, gtidReaders);
+        String gtidSet = queryTask.doQuery();
+        emptyPositionFromDb = StringUtils.isBlank(gtidSet);
+        return new GtidSet(gtidSet);
+    }
+    @VisibleForTesting
+    protected List<GtidReader> getExecutedGtidReaders(Endpoint endpoint) {
         List<GtidReader> gtidReaders;
         if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
             gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new DbTransactionTableGtidReader(endpoint, Objects.requireNonNull(includedDbs)));
         } else {
             gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(endpoint));
         }
-        ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint, gtidReaders);
-        String gtidSet = queryTask.doQuery();
-        emptyPositionFromDb = StringUtils.isBlank(gtidSet);
-        return new GtidSet(gtidSet);
+        return gtidReaders;
     }
 }

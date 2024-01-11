@@ -34,7 +34,7 @@ public class DbTransactionTableGtidReader implements GtidReader {
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private GtidSet selectDbGtidSet(Connection connection) throws Exception {
-        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.db.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.db.transaction.table.gtidset.reader.merged", dbName + "-" + endpoint.getHost() + ":" + endpoint.getPort(), () -> {
             GtidSet dbGtidSet = new GtidSet("");
             try (Statement statement = connection.createStatement();
                  ResultSet resultSet = statement.executeQuery(String.format(SELECT_TX_TABLE_GTID_SET, dbName))) {
