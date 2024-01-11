@@ -10,7 +10,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-public class DbTxTableIntersectionGtidReader implements GtidReader {
+public class DbTransactionTableGtidReader implements GtidReader {
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -21,14 +21,7 @@ public class DbTxTableIntersectionGtidReader implements GtidReader {
     private Endpoint endpoint;
     private String dbName;
 
-    public DbTxTableIntersectionGtidReader(Endpoint endpoint) {
-        this.endpoint = endpoint;
-    }
-    public DbTxTableIntersectionGtidReader(String dbName) {
-        this.dbName = dbName;
-    }
-
-    public DbTxTableIntersectionGtidReader(Endpoint endpoint, String dbName) {
+    public DbTransactionTableGtidReader(Endpoint endpoint, String dbName) {
         this.endpoint = endpoint;
         this.dbName = dbName;
     }
@@ -41,7 +34,7 @@ public class DbTxTableIntersectionGtidReader implements GtidReader {
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private GtidSet selectDbGtidSet(Connection connection) throws Exception {
-        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.db.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
             GtidSet dbGtidSet = new GtidSet("");
             try (Statement statement = connection.createStatement();
                  ResultSet resultSet = statement.executeQuery(String.format(SELECT_TX_TABLE_GTID_SET, dbName))) {
