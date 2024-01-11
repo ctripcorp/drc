@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -350,9 +351,17 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     protected void doStart() throws Exception {
         super.doStart();
         Long rTime = System.currentTimeMillis();
-        receiveTimeMap.put(config.getMha(), rTime);
+        if (isReplicatorMaster) {
+            Set<String> mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getDestMha(), config.getDc());
+            mhasShouldMonitor.forEach(mha -> {
+                receiveTimeMap.put(mha, rTime);
+                logger.info("add delay loss check {}->{}, init receiveTime:{}", mha, config.getDestMha(), rTime);
+            });
+            
+        } else {
+            receiveTimeMap.put(config.getMha(), rTime);
+        }
         log("init receiveTime: " + rTime + '(' + dateFormatThreadLocal.get().format(rTime) + ')', INFO, null);
-
         checkScheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -365,7 +374,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     while (iterator.hasNext()) {
                         Entry<String, Long> entry = iterator.next();
                         String mhaName = entry.getKey();
-                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
+                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) { // mha switch related
                             if (isReplicatorMaster) {
                                 iterator.remove();
                             }

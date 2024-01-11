@@ -13,6 +13,7 @@ public class OperationLogQueryParam {
     private String type;
     private String attr;
     private String operator;
+    private String operationKeyword;
     private Long beginCreateTime;
     private Long endCreatTime;
     private Integer fail;
@@ -40,6 +41,14 @@ public class OperationLogQueryParam {
 
     public void setOperator(String operator) {
         this.operator = operator;
+    }
+
+    public String getOperationKeyword() {
+        return operationKeyword;
+    }
+
+    public void setOperationKeyword(String operationKeyword) {
+        this.operationKeyword = operationKeyword;
     }
 
     public Long getBeginCreateTime() {

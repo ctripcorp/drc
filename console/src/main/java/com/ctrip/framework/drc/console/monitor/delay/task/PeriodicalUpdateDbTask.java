@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -16,6 +17,7 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
@@ -48,6 +50,8 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Autowired private DefaultConsoleConfig consoleConfig;
     
     @Autowired private CentralService centralService;
+    
+    @Autowired private CacheMetaService cacheMetaService;
     
 
     public static final int INITIAL_DELAY = 0;
@@ -159,11 +163,15 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
             logger.info("[[monitor=delay]] not leader do nothing");
         }
     }
+    
+    public Set<String> getSrcMhasShouldMonitor(String dstMha,String srcDc) {
+        String srcRegion = consoleConfig.getRegionForDc(srcDc);
+        return cacheMetaService.getSrcMhasShouldMonitor(dstMha,srcRegion);
+    }
 
     @Override
     public void switchToLeader() throws Throwable {
         // do nothing
-        
     }
 
     @Override

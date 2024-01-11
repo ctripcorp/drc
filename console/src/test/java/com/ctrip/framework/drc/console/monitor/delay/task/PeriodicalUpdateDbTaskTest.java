@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -19,6 +20,7 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.google.common.collect.Sets;
+import java.util.Set;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.assertj.core.util.Lists;
 import org.junit.After;
@@ -62,6 +64,8 @@ public class PeriodicalUpdateDbTaskTest {
     @Mock private DefaultConsoleConfig consoleConfig;
 
     @Mock private CentralService centralService;
+    
+    @Mock private CacheMetaService cacheMetaService;
     
 
 
@@ -211,6 +215,14 @@ public class PeriodicalUpdateDbTaskTest {
         Assert.assertEquals(0, task.getMasterMySQLEndpointMap().size());
     }
 
+    @Test
+    public void testGetSrcMhasShouldMonitor() {
+        Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
+        Mockito.when(cacheMetaService.getSrcMhasShouldMonitor(Mockito.anyString(),Mockito.anyString())).thenReturn(Sets.newHashSet("mha1"));
+        Set<String> mhasShouldMonitor = task.getSrcMhasShouldMonitor("dstMha", "shary");
+        Assert.assertEquals(1, mhasShouldMonitor.size());
+    }
+
     private void createDb() throws InterruptedException {
         try {
             db = getDb(PORT);
@@ -273,6 +285,8 @@ public class PeriodicalUpdateDbTaskTest {
             logger.error("Stop db error: ", e);
         }
     }
+
+    
 
     public static final class LocalMasterMySQLEndpointObservable implements MasterMySQLEndpointObservable {
 
