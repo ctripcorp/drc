@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DbTransactionTableGtidReader implements GtidReader {
@@ -15,6 +16,7 @@ public class DbTransactionTableGtidReader implements GtidReader {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final String SELECT_TX_TABLE_GTID_SET = "select `server_uuid`, `gtidset` from `drcmonitordb`.`tx_%s` where `id` = -1;";
+    private static final String SELECT_TX_TABLE_SPECIFIC_GTID_SET = "select `gno`, `gtidset` from `drcmonitordb`.`tx_%s` where `server_uuid` = \"%s\";";
 
 
     // just for logging
@@ -23,6 +25,10 @@ public class DbTransactionTableGtidReader implements GtidReader {
 
     public DbTransactionTableGtidReader(Endpoint endpoint, String dbName) {
         this.endpoint = endpoint;
+        this.dbName = dbName;
+    }
+
+    public DbTransactionTableGtidReader(String dbName) {
         this.dbName = dbName;
     }
 
@@ -50,5 +56,24 @@ public class DbTransactionTableGtidReader implements GtidReader {
             }
             return dbGtidSet;
         });
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public GtidSet getGtidSetByUuid(Connection connection, String uuid) throws SQLException {
+        GtidSet specificGtidSet = new GtidSet("");
+        String sql = String.format(SELECT_TX_TABLE_SPECIFIC_GTID_SET, dbName, uuid);
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+
+            while (resultSet.next()) {
+                String gtidSet = resultSet.getString(2);
+                if (gtidSet != null) {
+                    specificGtidSet = specificGtidSet.union(new GtidSet(gtidSet));
+                } else {
+                    specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
+                }
+            }
+        }
+        return specificGtidSet;
     }
 }

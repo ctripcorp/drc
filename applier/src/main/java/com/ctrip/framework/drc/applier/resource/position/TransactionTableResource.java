@@ -143,7 +143,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     public GtidSet mergeRecord(String uuid, boolean needRetry) {
-        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource, registryKey), RETRY_TIME).call();
+        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource, registryKey, applyMode, includedDbs), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT][{}] query gtid set error, shutdown server", registryKey);
             logger.info("transaction table status is stopped for {}", registryKey);
@@ -202,7 +202,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
                 getSystem().setStatus(SystemStatus.STOPPED);
             }
         } else {
-            new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), 0).call();
+            new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey, trxTableName), 0).call();
         }
     }
 
