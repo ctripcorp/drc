@@ -48,6 +48,20 @@ public class DateUtils {
     }
 
     /**
+     * 获取当天某个整点时间
+     */
+    public static long getTimeOfHour(int hour) {
+        long curTime = System.currentTimeMillis();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(curTime);
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime().getTime();
+    }
+
+    /**
      * 获取当天结束时间戳
      */
     public static long getEndTimeOfDay(long time) {
