@@ -353,11 +353,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         Long rTime = System.currentTimeMillis();
         if (isReplicatorMaster) {
             Set<String> mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getCluster(),config.getDestMha(), config.getDc());
-            logger.info("clusterId:{},mhasShouldMonitor:{}", config.getCluster() + "." + config.getDestMha(), mhasShouldMonitor);
+            logger.info("dstClusterId:{},srcMhasShouldMonitor:{}", config.getCluster() + "." + config.getDestMha(), mhasShouldMonitor);
             mhasShouldMonitor.forEach(mha -> {
                 receiveTimeMap.put(mha, rTime);
             });
-            
         } else {
             receiveTimeMap.put(config.getMha(), rTime);
         }
