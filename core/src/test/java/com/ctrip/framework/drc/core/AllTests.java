@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.config.RegionConfigTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
@@ -200,6 +201,7 @@ import org.junit.runners.Suite;
 
         // QueryTask
         ExecutedGtidQueryTaskTest.class,
+        DbTransactionTableGtidReaderTest.class,
 
         // Write row field with MySQL number type
         WriteFieldTinyTypeTest.class,

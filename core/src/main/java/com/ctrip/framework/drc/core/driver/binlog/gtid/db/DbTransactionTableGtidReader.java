@@ -8,28 +8,27 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
-public class DbTxTableIntersectionGtidReader implements GtidReader {
+public class DbTransactionTableGtidReader implements GtidReader {
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final String SELECT_TX_TABLE_GTID_SET = "select `server_uuid`, `gtidset` from `drcmonitordb`.`tx_%s` where `id` = -1;";
+    private static final String SELECT_TX_TABLE_SPECIFIC_GTID_SET = "select `gno`, `gtidset` from `drcmonitordb`.`tx_%s` where `server_uuid` = \"%s\";";
 
 
     // just for logging
     private Endpoint endpoint;
     private String dbName;
 
-    public DbTxTableIntersectionGtidReader(Endpoint endpoint) {
+    public DbTransactionTableGtidReader(Endpoint endpoint, String dbName) {
         this.endpoint = endpoint;
-    }
-    public DbTxTableIntersectionGtidReader(String dbName) {
         this.dbName = dbName;
     }
 
-    public DbTxTableIntersectionGtidReader(Endpoint endpoint, String dbName) {
-        this.endpoint = endpoint;
+    public DbTransactionTableGtidReader(String dbName) {
         this.dbName = dbName;
     }
 
@@ -41,7 +40,7 @@ public class DbTxTableIntersectionGtidReader implements GtidReader {
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private GtidSet selectDbGtidSet(Connection connection) throws Exception {
-        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.db.transaction.table.gtidset.reader.merged", dbName + "-" + endpoint.getHost() + ":" + endpoint.getPort(), () -> {
             GtidSet dbGtidSet = new GtidSet("");
             try (Statement statement = connection.createStatement();
                  ResultSet resultSet = statement.executeQuery(String.format(SELECT_TX_TABLE_GTID_SET, dbName))) {
@@ -57,5 +56,24 @@ public class DbTxTableIntersectionGtidReader implements GtidReader {
             }
             return dbGtidSet;
         });
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public GtidSet getGtidSetByUuid(Connection connection, String uuid) throws SQLException {
+        GtidSet specificGtidSet = new GtidSet("");
+        String sql = String.format(SELECT_TX_TABLE_SPECIFIC_GTID_SET, dbName, uuid);
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+
+            while (resultSet.next()) {
+                String gtidSet = resultSet.getString(2);
+                if (gtidSet != null) {
+                    specificGtidSet = specificGtidSet.union(new GtidSet(gtidSet));
+                } else {
+                    specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
+                }
+            }
+        }
+        return specificGtidSet;
     }
 }
