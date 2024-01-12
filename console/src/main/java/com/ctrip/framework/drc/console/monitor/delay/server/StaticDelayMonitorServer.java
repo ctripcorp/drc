@@ -356,7 +356,6 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             logger.info("clusterId:{},mhasShouldMonitor:{}", config.getCluster() + "." + config.getDestMha(), mhasShouldMonitor);
             mhasShouldMonitor.forEach(mha -> {
                 receiveTimeMap.put(mha, rTime);
-                logger.info("add delay loss check {}->{}, init receiveTime:{}", mha, config.getDestMha(), rTime);
             });
             
         } else {
