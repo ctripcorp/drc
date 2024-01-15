@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
@@ -242,6 +243,9 @@ public class ConflictLogController {
         }
     }
 
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
+            success = "addDbBlacklist with dbFilter: {#dbFilter}")
     @PostMapping("/db/blacklist")
     public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
         try {
@@ -253,6 +257,8 @@ public class ConflictLogController {
         }
     }
 
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE,
+            success = "deleteBlacklist with dbFilter : {#dbFilter}")
     @DeleteMapping("/db/blacklist")
     public ApiResult<Boolean> deleteBlacklist(@RequestParam String dbFilter) {
         try {
@@ -263,8 +269,19 @@ public class ConflictLogController {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
+
+    @GetMapping("/db/blacklist")
+    public ApiResult<List<ConflictDbBlacklistView>> queryBlacklist(ConflictDbBlacklistQueryParam param) {
+        try {
+            ApiResult result = ApiResult.getSuccessInstance(conflictLogService.getConflictDbBlacklistView(param));
+            result.setPageReq(param.getPageReq());
+            return result;
+        } catch (Exception e) {
+            logger.error("queryBlacklist error, {}", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
     
-    @AccessToken(type = TokenType.OPEN_API_4_DBA)
     @PostMapping("blacklist/dba/touchjob")
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD, operator = "DBA",
             success = "addBlackListForTouchJob with db : {#db} and table : {#table}")

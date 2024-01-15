@@ -4,10 +4,10 @@ package com.ctrip.framework.drc.console.aop.permission;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.controller.log.ConflictLogController;
 import com.ctrip.framework.drc.console.enums.TokenType;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.SQLException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +23,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.DigestUtils;
+
+import java.sql.SQLException;
 
 public class AccessTokenAspectTest {
     
@@ -58,7 +60,7 @@ public class AccessTokenAspectTest {
     @Test
     public void testAccessTokenCheck() throws Exception {
         try {
-            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any());
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any(LogBlackListType.class));
         } catch (SQLException e) {
             e.printStackTrace();
         }

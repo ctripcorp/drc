@@ -60,7 +60,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private static int totalCount;
     private static int rollBackTotalCount;
     private static boolean nextDay = false;
-    private static boolean alarmIsSent = false;
+    private static boolean alarmIsSent = true;
     private static Map<String, ConflictRowsLogCount> tableCountMap;
     private static Map<String, ConflictRowsLogCount> rollBackCountMap;
     private static List<ConflictRowsLogCount> yesterdayTopLogTables;
@@ -78,9 +78,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
-        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-            return;
-        }
+        //ql_deng TODO 2024/1/15:
+//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+//            return;
+//        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
             removeRegister();
@@ -88,6 +89,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             alarm();
             if (nextDay) {
                 setEmpty();
+                alarmIsSent = false;
             }
             beginHandleTime = endHandleTime;
             endHandleTime = getNextEndHandleTime(endHandleTime);
@@ -114,7 +116,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         rollBackTotalCount = 0;
         tableCountMap = new HashMap<>();
         rollBackCountMap = new HashMap<>();
-        alarmIsSent = false;
     }
 
     private void refreshAndReport(ConflictRowsLogCountView rowsLogCountView) {
@@ -247,16 +248,22 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private void reportDbCount() {
         List<ConflictRowsLogCount> dbCounts = new ArrayList<>(tableCountMap.values());
         Collections.sort(dbCounts);
-        int size = Math.min(domainConfig.getConflictAlarmTopNum(), dbCounts.size());
-        yesterdayTopLogTables = dbCounts.subList(0, size);
+        if (nextDay) {
+            int size = Math.min(domainConfig.getConflictAlarmTopNum(), dbCounts.size());
+            yesterdayTopLogTables = dbCounts.subList(0, size);
+        }
+
         report(dbCounts, ROW_LOG_DB_COUNT_MEASUREMENT);
     }
 
     private void reportRollBackDbCount() {
         List<ConflictRowsLogCount> rollBackDbCounts = new ArrayList<>(rollBackCountMap.values());
         Collections.sort(rollBackDbCounts);
-        int size = Math.min(domainConfig.getConflictAlarmRollbackTopNum(), rollBackDbCounts.size());
-        yesterdayTopRollbackLogTables = rollBackDbCounts.subList(0, size);
+        if (nextDay) {
+            int size = Math.min(domainConfig.getConflictAlarmRollbackTopNum(), rollBackDbCounts.size());
+            yesterdayTopRollbackLogTables = rollBackDbCounts.subList(0, size);
+        }
+
         report(rollBackDbCounts, ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }
 
@@ -287,5 +294,11 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             endTimeOfDay = DateUtils.getEndTimeOfDay(nextEndHandleTime);
             return nextEndHandleTime;
         }
+    }
+
+    //for test
+    protected void setNextDay() {
+        nextDay = true;
+        alarmIsSent = false;
     }
 }

@@ -64,6 +64,7 @@ public class ConflictRowsLogCountTaskTest {
         Mockito.when(domainConfig.getConflictAlarmRollbackTopNum()).thenReturn(10);
 
         task.initialize();
+        task.setNextDay();
         task.checkCount();
         Mockito.verify(reporter, Mockito.times(2)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_COUNT_MEASUREMENT));
         Mockito.verify(reporter, Mockito.times(1)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.eq(ROW_LOG_DB_COUNT_MEASUREMENT));
@@ -79,7 +80,6 @@ public class ConflictRowsLogCountTaskTest {
         Mockito.when(emailService.sendEmail(Mockito.any(Email.class))).thenReturn(new EmailResponse());
         Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(PojoBuilder.getDbTbls());
         Mockito.when(domainConfig.getConflictAlarmSendDBOwnerSwitch()).thenReturn(true);
-
 
         task.alarm();
         Mockito.verify(emailService, Mockito.times(2)).sendEmail(Mockito.any(Email.class));
