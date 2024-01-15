@@ -12,7 +12,8 @@ public class MhaReplicationVo {
     private String type;
     private Long datachangeLasttime;
     /**
-     * 1: 已建立
+     * 2: DB 粒度同步中
+     * 1: MHA 同步中
      * 0: 未建立
      */
     private Integer status;

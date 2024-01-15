@@ -117,12 +117,15 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 ApplierGroupTblV3 applierGroupTblV3 = applierGroupTblV3Map.get(replicationTbl.getId());
                 if (replicationTbl.getId() == null || applierGroupTblV3 == null) {
                     return new DbApplierDto(null, null, replicationTbl.getDst().getDbName(), null);
-                } else {
-                    List<ApplierTblV3> appliers = applierMap.getOrDefault(applierGroupTblV3.getId(), Collections.emptyList());
-                    List<String> ips = appliers.stream().map(e -> resouceMap.get(e.getResourceId())).collect(Collectors.toList());
-                    return new DbApplierDto(ips, applierGroupTblV3.getGtidInit(), replicationTbl.getDst().getDbName(), applierGroupTblV3.getConcurrency());
                 }
-            }).collect(Collectors.toList());
+                List<ApplierTblV3> appliers = applierMap.getOrDefault(applierGroupTblV3.getId(), Collections.emptyList());
+                List<String> ips = appliers.stream().map(e -> resouceMap.get(e.getResourceId())).collect(Collectors.toList());
+                if (CollectionUtils.isEmpty(ips) && CollectionUtils.isEmpty(replicationTbl.getLogicTable())) {
+                    // skip
+                    return null;
+                }
+                return new DbApplierDto(ips, applierGroupTblV3.getGtidInit(), replicationTbl.getDst().getDbName(), applierGroupTblV3.getConcurrency());
+            }).filter(Objects::nonNull).collect(Collectors.toList());
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
@@ -272,7 +275,6 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
         // union all for each db
         Set<String> dbNames = Sets.newHashSet();
-        dbNames.addAll(mhaDbAppliedGtid.keySet());
         dbNames.addAll(gtidInitMap.keySet());
         Map<String, GtidSet> map = Maps.newHashMap();
         for (String dbName : dbNames) {
@@ -428,7 +430,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         for (DbApplierDto applierDto : dbApplierDtos) {
             MhaDbReplicationDto dto = map.get(applierDto.getDbName());
             DbReplicationTbl dbReplicationTbl = table.get(getKey(dto));
-            if (dbReplicationTbl == null) {
+            if (dbReplicationTbl == null && !CollectionUtils.isEmpty(applierDto.getIps())) {
                 notConfiguredDbNames.add(applierDto.getDbName());
             }
         }

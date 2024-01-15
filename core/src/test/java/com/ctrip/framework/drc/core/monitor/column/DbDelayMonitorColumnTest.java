@@ -66,7 +66,7 @@ public class DbDelayMonitorColumnTest {
     public void testReadOrigin() {
         ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+        String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
         Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
         List<List<Object>> afterPresentRowsValues = DelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
         Assert.assertEquals(4, afterPresentRowsValues.get(0).size());
@@ -79,14 +79,14 @@ public class DbDelayMonitorColumnTest {
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         Assert.assertFalse(DbDelayMonitorColumn.match(delayMonitorLogEvent));
         Assert.assertTrue(DelayMonitorColumn.match(delayMonitorLogEvent));
-        String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+        String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
         Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
 
         eventByteBuf = initByteBuf(dbDelayBytes);
         delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
         Assert.assertFalse(DelayMonitorColumn.match(delayMonitorLogEvent));
-        delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+        delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
         Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
     }
 
@@ -99,7 +99,7 @@ public class DbDelayMonitorColumnTest {
         Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
 
         // 2. get src name
-        String delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+        String delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
         Assert.assertEquals(delayMonitorSrcDcName, "ntgxh");
 
         // 3. get rows

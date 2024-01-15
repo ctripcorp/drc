@@ -122,6 +122,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         }
         return mhaDbMappingTblV2s.stream()
                 .filter(this::filterGrey)
+                .filter(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType()))
                 .collect(Collectors.groupingBy(e -> e.getSrc().getMhaName()));
     }
 
@@ -134,6 +135,19 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         }
     }
 
+    public Map<String, List<String>> getMhaDbRelatedByDestMha(String mhaName) {
+        Map<String, List<MhaDbReplicationDto>> stringListMap = mhaDbMapCache.get();
+        Map<String, List<String>> ret = new HashMap<>();
+        for (Map.Entry<String, List<MhaDbReplicationDto>> entry : stringListMap.entrySet()) {
+            String srcMha = entry.getKey();
+            List<String> dbs = entry.getValue().stream().filter(e -> e.getDst().getMhaName().equals(mhaName)).map(e -> e.getSrc().getDbName()).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(dbs)) {
+                continue;
+            }
+            ret.put(srcMha, dbs);
+        }
+        return ret;
+    }
 
     private void updateDbDelay() {
         if (!monitorTableSourceProvider.getDelayMonitorUpdateDbV2Switch()) {
@@ -143,9 +157,13 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
         logger.info("[[monitor=delay_v2]] start updateDbDelay");
         Set<Map.Entry<MetaKey, MySqlEndpoint>> entries = masterMySQLEndpointMap.entrySet();
-        List<Future<?>> list = Lists.newArrayList();
         Map<String, List<MhaDbReplicationDto>> mhaDbReplicationMap = mhaDbMapCache.get();
-        for (Map.Entry<MetaKey, MySqlEndpoint> endPointEntry : entries) {
+        Set<Map.Entry<MetaKey, MySqlEndpoint>> filteredEndpointEntries = entries.stream().filter(e -> {
+            String mhaName = e.getKey().getMhaName();
+            return !CollectionUtils.isEmpty(mhaDbReplicationMap.get(mhaName));
+        }).collect(Collectors.toSet());
+        List<Future<?>> list = Lists.newArrayList();
+        for (Map.Entry<MetaKey, MySqlEndpoint> endPointEntry : filteredEndpointEntries) {
             MetaKey metaKey = endPointEntry.getKey();
             Endpoint endpoint = endPointEntry.getValue();
             String registryKey = metaKey.getClusterId();
@@ -153,10 +171,6 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             String dcName = metaKey.getDc();
             String region = consoleConfig.getRegionForDc(dcName);
             List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationMap.getOrDefault(mhaName, Collections.emptyList());
-            if (CollectionUtils.isEmpty(mhaDbReplicationDtos)) {
-                logger.info("[[monitor=delay_v2]] get mhaDbInfo empty for mha:{}", mhaName);
-                continue;
-            }
             List<String> dbNames = mhaDbReplicationDtos.stream().map(e -> e.getSrc().getDbName()).collect(Collectors.toList());
             logger.info("[[monitor=delay_v2]] going to update for mha:{}, dbs:{}", mhaName, dbNames);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.delay.update", mhaName);

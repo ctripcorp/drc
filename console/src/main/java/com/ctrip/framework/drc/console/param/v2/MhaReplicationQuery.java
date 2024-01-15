@@ -7,10 +7,28 @@ import java.util.List;
 import java.util.Objects;
 
 public class MhaReplicationQuery extends PageReq {
+    private List<Long> idList;
+    private List<Long> notInIdList;
     private List<Long> srcMhaIdList;
     private List<Long> dstMhaIdList;
     private List<Long> relatedMhaIdList;
     private Integer drcStatus;
+
+    public List<Long> getIdList() {
+        return idList;
+    }
+
+    public void setIdList(List<Long> idList) {
+        this.idList = idList;
+    }
+
+    public List<Long> getNotInIdList() {
+        return notInIdList;
+    }
+
+    public void setNotInIdList(List<Long> notInIdList) {
+        this.notInIdList = notInIdList;
+    }
 
     public Integer getDrcStatus() {
         return drcStatus;

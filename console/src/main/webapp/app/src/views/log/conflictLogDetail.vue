@@ -102,7 +102,7 @@
 
 <script>
 import conflictRowsLogDetail from './conflictRowsLogDetail.vue'
-import { codemirror } from 'vue-codemirror'
+import codemirror from 'vue-codemirror'
 import 'codemirror/theme/ambiance.css'
 import 'codemirror/mode/sql/sql.js'
 
