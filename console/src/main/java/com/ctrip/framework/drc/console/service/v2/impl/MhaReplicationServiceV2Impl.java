@@ -9,7 +9,13 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
@@ -20,6 +26,7 @@ import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -76,6 +83,12 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private ReplicatorTblDao replicatorTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private ApplierTblV3Dao applierTblV3Dao;
+    @Autowired
+    private ApplierGroupTblV3Dao applierGroupTblV3Dao;
+    @Autowired
+    private MhaDbReplicationTblDao mhaDbReplicationTblDao;
 
 
     @Override
@@ -444,6 +457,33 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                 return Pair.of(Arrays.stream(ints).sum(), illegalMessages);
             }
             return Pair.of(applierGroupUpdateList.size(), illegalMessages);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
+        }
+    }
+
+    @Override
+    public List<MhaReplicationTbl> queryAllHasActiveMhaDbReplications(){
+        try {
+            List<ApplierTblV3> applierTblV3s = applierTblV3Dao.queryAllExist();
+            List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryAllExist();
+            Set<Long> groupIds = applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).collect(Collectors.toSet());
+            List<Long> mhaReplicationIds = applierGroupTblV3s.stream().filter(e -> groupIds.contains(e.getId())).map(ApplierGroupTblV3::getMhaDbReplicationId).collect(Collectors.toList());
+            List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryByIds(mhaReplicationIds);
+            List<Long> mappingIds = mhaDbReplicationTbls.stream().flatMap(e -> Stream.of(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId())).distinct().collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(mappingIds);
+            Map<Long, Long> map = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getMhaId));
+            // (src mha id , dst mha id)
+            List<MhaReplicationTbl> samples = mhaDbReplicationTbls.stream().map(e -> new MultiKey(map.get(e.getSrcMhaDbMappingId()), map.get(e.getDstMhaDbMappingId())))
+                    .distinct()
+                    .map(e -> {
+                        MhaReplicationTbl tbl = new MhaReplicationTbl();
+                        tbl.setSrcMhaId((Long) e.getKey(0));
+                        tbl.setDstMhaId((Long) e.getKey(1));
+                        return tbl;
+                    })
+                    .collect(Collectors.toList());
+            return mhaReplicationTblDao.queryBySamples(samples);
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
         }

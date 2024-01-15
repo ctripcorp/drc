@@ -22,11 +22,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
@@ -53,6 +56,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     
     @Autowired private CacheMetaService cacheMetaService;
     
+
+    @Autowired
+    private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -204,7 +210,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public void clearOldEndpointResource(Endpoint endpoint) {
         removeSqlOperator(endpoint);
     }
-    
+
     public static final class DatachangeLastTime {
 
         private String registryKey;
@@ -250,5 +256,14 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-    
+
+    /**
+     * ignore mha that has db replications
+     */
+    public Set<String> getMhaDbRelatedByDestMha(String destMha) {
+        Set<String> mhasRelated = Sets.newHashSet(super.getMhasRelated());
+        Set<String> mhaDbReplicationRelatedMhas = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(destMha).keySet();
+        mhasRelated.removeAll(mhaDbReplicationRelatedMhas);
+        return mhasRelated;
+    }
 }

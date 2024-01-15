@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import java.util.List;
+
 public class MhaDbReplicationDto {
     private Long id;
     private MhaDbDto src;
@@ -10,6 +12,7 @@ public class MhaDbReplicationDto {
      * @see com.ctrip.framework.drc.console.enums.TransmissionTypeEnum
      */
     private String transmissionType;
+    private List<String> logicTable;
 
     public static final MhaDbDto MQ_DTO = new MhaDbDto(-1L, null, null);
 
@@ -59,6 +62,14 @@ public class MhaDbReplicationDto {
 
     public void setTransmissionType(String transmissionType) {
         this.transmissionType = transmissionType;
+    }
+
+    public List<String> getLogicTable() {
+        return logicTable;
+    }
+
+    public void setLogicTable(List<String> logicTable) {
+        this.logicTable = logicTable;
     }
 
     @Override

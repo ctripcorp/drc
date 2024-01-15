@@ -64,4 +64,9 @@ public interface MhaReplicationServiceV2 {
      * update applier group gtid property according to qConfig
      */
     Pair<Integer,List<String>> synApplierGtidInfoFromQConfig(String configText, boolean update);
+
+    /**
+     * query all mha replication that has db drc
+     */
+    List<MhaReplicationTbl> queryAllHasActiveMhaDbReplications();
 }
