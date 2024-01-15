@@ -12,6 +12,7 @@ public class MhaDbQueryDto implements Serializable {
      * mha related
      */
     private Long regionId;
+    private String mhaName;
     /**
      * db related
      */
@@ -27,7 +28,7 @@ public class MhaDbQueryDto implements Serializable {
     }
 
     public boolean hasMhaCondition() {
-        return NumberUtils.isPositive(regionId);
+        return StringUtils.isNotBlank(mhaName) || NumberUtils.isPositive(regionId);
     }
 
     public String getDbName() {
@@ -53,6 +54,14 @@ public class MhaDbQueryDto implements Serializable {
 
     public void setRegionId(Long regionId) {
         this.regionId = regionId;
+    }
+
+    public String getMhaName() {
+        return mhaName;
+    }
+
+    public void setMhaName(String mhaName) {
+        this.mhaName = mhaName;
     }
 
     @Override

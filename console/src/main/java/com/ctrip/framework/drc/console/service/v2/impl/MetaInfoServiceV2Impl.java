@@ -259,10 +259,13 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
                 continue;
             }
             List<ApplierTblV3> dbAppliers = applierMapByGroupId.get(groupTblV3.getId());
-            if(CollectionUtils.isEmpty(dbAppliers)){
+            if (CollectionUtils.isEmpty(dbAppliers)) {
                 continue;
             }
             List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblGroupingBy.get(Pair.from(replicationDto.getSrc().getMhaDbMappingId(), replicationDto.getDst().getMhaDbMappingId()));
+            if (CollectionUtils.isEmpty(dbReplicationTbls)) {
+                continue;
+            }
             for (ApplierTblV3 applierTbl : dbAppliers) {
                 String resourceIp = Optional.ofNullable(resourceTblMap.get(applierTbl.getResourceId())).map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
                 Applier applier = new Applier();
@@ -272,7 +275,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
                         .setTargetRegion(srcDcTbl.getRegionName())
                         .setTargetMhaName(srcMhaTbl.getMhaName())
                         .setGtidExecuted(groupTblV3.getGtidInit())
-                        .setIncludedDbs(replicationDto.getSrc().getDbName())
+                        .setIncludedDbs(replicationDto.getSrc().getDbName().toLowerCase())
                         .setNameFilter(TableNameBuilder.buildNameFilter(mhaDbMappingMap, dbReplicationTbls))
                         .setNameMapping(TableNameBuilder.buildNameMapping(mhaDbMappingMap, dbReplicationTbls))
                         .setTargetName(srcMhaTbl.getClusterName())

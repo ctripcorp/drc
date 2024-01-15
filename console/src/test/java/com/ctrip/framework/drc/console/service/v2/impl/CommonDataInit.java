@@ -29,10 +29,7 @@ import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.utils.StreamUtils.getKey;
@@ -390,6 +387,19 @@ public class CommonDataInit {
                 return relatedMhaList.contains(e.getSrcMhaId()) || relatedMhaList.contains(e.getDstMhaId());
             }).collect(Collectors.toList());
         });
+
+        when(mhaReplicationTblDao.queryBySamples(anyList())).thenAnswer(i -> {
+            List<MhaReplicationTbl> samples = i.getArgument(0, List.class);
+            Set<MultiKey> keys = samples.stream().map(e -> new MultiKey(e.getSrcMhaId(), e.getDstMhaId())).collect(Collectors.toSet());
+            return mhaReplicationTbls.stream().filter(e -> {
+                if (CollectionUtils.isEmpty(keys)) {
+                    return false;
+                }
+                return !BooleanEnum.TRUE.getCode().equals(e.getDeleted()) && keys.contains(new MultiKey(e.getSrcMhaId(), e.getDstMhaId()));
+            }).collect(Collectors.toList());
+        });
+
+
 
 
         // messengerGroupTbl

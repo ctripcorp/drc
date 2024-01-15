@@ -39,7 +39,7 @@ public class DelayMonitorColumn {
         return updateRowsEvent.getAfterPresentRowsValues();
     }
 
-    public static String getDelayMonitorSrcDcName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
+    public static String getDelayMonitorSrcRegionName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
         List<List<Object>> rowValues = getAfterPresentRowsValues(delayMonitorLogEvent);
         List<Object> values = rowValues.get(0);
         return transform((String) values.get(1), (String) values.get(2));

@@ -2,17 +2,19 @@ package com.ctrip.framework.drc.console.dao.v2;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -49,6 +51,8 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
 
     private void buildQueryCondition(SelectSqlBuilder sqlBuilder, MhaReplicationQuery query) throws SQLException {
         sqlBuilder.and()
+                .inNullable(ID, query.getIdList(), Types.BIGINT).and()
+                .notInNullable(ID, query.getNotInIdList(), Types.BIGINT).and()
                 .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
                 .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT).and()
                 .equalNullable(DRC_STATUS, query.getDrcStatus(), Types.TINYINT).and()
@@ -113,5 +117,19 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(DST_MHA_ID, dstMhaId, Types.BIGINT);
         return queryList(sqlBuilder);
+    }
+
+    public List<MhaReplicationTbl> queryBySamples(List<MhaReplicationTbl> samples) throws SQLException {
+        if (CollectionUtils.isEmpty(samples)) {
+            return Collections.emptyList();
+        }
+        return queryBySQL(buildSQL(samples));
+    }
+
+
+    private String buildSQL(List<MhaReplicationTbl> samples) {
+        // e.g: (src_mha_id, dst_mha_id) IN ((13119, 13126), (13161, 13189));
+        List<String> list = samples.stream().map(e -> String.format("(%d,%d)", e.getSrcMhaId(), e.getDstMhaId())).collect(Collectors.toList());
+        return String.format("(%s, %s) in (%s) and deleted = 0", SRC_MHA_ID, DST_MHA_ID, String.join(",", list));
     }
 }

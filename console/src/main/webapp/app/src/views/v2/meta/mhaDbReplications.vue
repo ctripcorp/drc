@@ -7,7 +7,7 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
         <Row :gutter=10 align="middle">
-          <Col span="10">
+          <Col span="8">
             <Card :padding=5>
               <template #title>DB</template>
               <Row :gutter=10 align="middle">
@@ -25,13 +25,18 @@
               </Row>
             </Card>
           </Col>
-          <Col span="8">
+          <Col span="10">
             <Row :gutter=10 align="middle" v-show="preciseSearchMode">
               <Col span="12">
                 <Card :padding=5>
                   <template #title>源端</template>
                   <Row :gutter=10>
-                    <Col span="24">
+                    <Col span="12">
+                      <Input prefix="ios-search" v-model="srcMhaDb.mhaName" placeholder="Mha 名↵"
+                             @on-enter="getReplications(1)">
+                      </Input>
+                    </Col>
+                    <Col span="12">
                       <Select filterable prefix="ios-pin" clearable v-model="srcMhaDb.regionId" placeholder="地域"
                               @on-change="getReplications(1)">
                         <Option v-for="item in regions" :value="item.id" :key="item.regionName">
@@ -46,7 +51,12 @@
                 <Card :padding=5>
                   <template #title>目标端</template>
                   <Row :gutter=10>
-                    <Col span="24">
+                    <Col span="12">
+                      <Input prefix="ios-search" v-model="dstMhaDb.mhaName" placeholder="Mha 名↵"
+                             @on-enter="getReplications(1)">
+                      </Input>
+                    </Col>
+                    <Col span="12">
                       <Select filterable prefix="ios-pin" clearable v-model="dstMhaDb.regionId"
                               placeholder="地域"
                               @on-change="getReplications(1)">
@@ -63,9 +73,14 @@
             <Row :gutter=10 align="middle" v-show="!preciseSearchMode">
               <Col span="24">
                 <Card :padding=5>
-                  <template #title>地域</template>
+                  <template #title>相关</template>
                   <Row :gutter=10>
-                    <Col span="24">
+                    <Col span="12">
+                      <Input prefix="ios-search" v-model="relatedMhaDb.mhaName" placeholder="Mha 名↵"
+                             @on-enter="getReplications(1)">
+                      </Input>
+                    </Col>
+                    <Col span="12">
                       <Select filterable prefix="ios-pin" clearable v-model="relatedMhaDb.regionId"
                               placeholder="地域"
                               @on-change="getReplications(1)">
@@ -129,8 +144,11 @@
         </Row>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
+            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.src.mhaName,row.dst.mhaName,false)">
+              查看
+            </Button>
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
-              跳转详情
+              编辑
             </Button>
           </template>
         </Table>
@@ -175,7 +193,7 @@
             }">
             </codemirror>
             <Divider />
-            <Button v-if="replicationDetail.deleteMode" type="error"  style="float:right;margin-right:20px" @click="deleteConfig(replicationDetail.replicationId)">
+            <Button v-if="replicationDetail.deleteMode" type="error"  style="float:right;margin-right:20px" @click="deleteConfig()">
               删除
             </Button>
           </div>
@@ -332,7 +350,7 @@ export default {
         {
           title: '操作',
           slot: 'action',
-          width: 100,
+          width: 150,
           align: 'center'
         }
       ],
@@ -342,16 +360,19 @@ export default {
       size: 10,
       // query param
       srcMhaDb: {
+        mhaName: this.$route.query.srcMhaName,
         dbName: this.$route.query.srcDbName,
         buCode: null,
         regionId: null
       },
       dstMhaDb: {
+        mhaName: this.$route.query.dstMhaName,
         dbName: this.$route.query.dstDbName,
         buCode: null,
         regionId: null
       },
       relatedMhaDb: {
+        mhaName: this.$route.query.relatedMhaName,
         dbName: this.$route.query.relatedDbName,
         buCode: null,
         regionId: null
@@ -447,12 +468,15 @@ export default {
       }
       if (this.preciseSearchMode) {
         params.srcMhaDb = {
+          mhaName: this.srcMhaDb.mhaName,
           regionId: this.srcMhaDb.regionId
         }
         params.dstMhaDb = {
+          mhaName: this.dstMhaDb.mhaName,
           regionId: this.dstMhaDb.regionId
         }
       } else {
+        params.relatedMhaDb.mhaName = this.relatedMhaDb.mhaName
         params.relatedMhaDb.regionId = this.relatedMhaDb.regionId
       }
       params.drcStatus = this.drcStatus
@@ -557,27 +581,16 @@ export default {
         this.getReplications(1)
       })
     },
-    deleteConfig (replictionId) {
-      this.dataLoading = true
-      this.axios.delete('/api/drc/v2/replication/offline?mhaReplicationId=' + replictionId).then(response => {
-        if (response.data.status === 0) {
-          this.$Message.success('删除成功')
-        } else {
-          this.$Message.warning('删除失败: ' + response.data.message)
-        }
-        this.getReplications(1)
-      }).catch(message => {
-        this.$Message.error('删除异常: ' + message)
-      }).finally(() => {
-        this.dataLoading = false
-      })
+    deleteConfig () {
+      this.$Message.warning('暂不支持该操作')
     },
-    checkConfig (replicationId, isDeleteMode) {
+    checkConfig (srcMha, dstMha, isDeleteMode) {
       this.dataLoading = true
       this.replicationDetail.data = null
-      this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
+      this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplicationByName', {
         params: {
-          replicationId: replicationId
+          srcMha: srcMha,
+          dstMha: dstMha
         }
       }).then(response => {
         if (response.data.status === 1) {
@@ -585,7 +598,6 @@ export default {
           return
         }
         this.replicationDetail.data = response.data.data
-        this.replicationDetail.replicationId = replicationId
         this.replicationDetail.deleteMode = isDeleteMode
         this.replicationDetail.show = true
       }).catch(message => {

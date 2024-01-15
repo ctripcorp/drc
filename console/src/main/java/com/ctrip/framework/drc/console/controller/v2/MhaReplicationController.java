@@ -31,11 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 import java.util.function.Function;
@@ -169,6 +165,17 @@ public class MhaReplicationController {
                 }
             }
             query.setDrcStatus(queryDto.getDrcStatus());
+            // db drc status
+            List<Long> dbDrcStatusActiveIds = mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications().stream().map(MhaReplicationTbl::getId).collect(Collectors.toList());
+            if (queryDto.getDbDrcStatus() != null) {
+                if (BooleanEnum.TRUE.getCode().equals(queryDto.getDbDrcStatus())) {
+                    query.setIdList(dbDrcStatusActiveIds);
+                } else {
+                    query.setNotInIdList(dbDrcStatusActiveIds);
+                }
+            }
+
+
             // query replication
             PageResult<MhaReplicationTbl> tblPageResult = mhaReplicationServiceV2.queryByPage(query);
             List<MhaReplicationTbl> data = tblPageResult.getData();
@@ -182,7 +189,7 @@ public class MhaReplicationController {
             mhaIdSet.addAll(data.stream().map(MhaReplicationTbl::getDstMhaId).collect(Collectors.toSet()));
             Map<Long, MhaTblV2> mhaTblMap = mhaServiceV2.queryMhaByIds(Lists.newArrayList(mhaIdSet));
 
-            List<MhaReplicationVo> res = this.buildVo(data, mhaTblMap);
+            List<MhaReplicationVo> res = this.buildVo(data, mhaTblMap, Sets.newHashSet(dbDrcStatusActiveIds));
 
             // simplex or duplex
             List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mhaIdSet));
@@ -310,5 +317,17 @@ public class MhaReplicationController {
             }
             return vo;
         }).collect(Collectors.toList());
+    }
+
+
+    private List<MhaReplicationVo> buildVo(List<MhaReplicationTbl> data, Map<Long, MhaTblV2> mhaTblMap, Set<Long> dbDrcStatusActiveIds) {
+        Set<String> idStrings = dbDrcStatusActiveIds.stream().map(Object::toString).collect(Collectors.toSet());
+        List<MhaReplicationVo> vos = this.buildVo(data, mhaTblMap);
+        vos.forEach(e->{
+            if(idStrings.contains(e.getReplicationId())){
+                e.setStatus(2);
+            }
+        });
+        return vos;
     }
 }
