@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -16,15 +17,19 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
@@ -49,6 +54,11 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     
     @Autowired private CentralService centralService;
     
+    @Autowired private CacheMetaService cacheMetaService;
+    
+
+    @Autowired
+    private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -159,11 +169,15 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
             logger.info("[[monitor=delay]] not leader do nothing");
         }
     }
+    
+    public Set<String> getSrcMhasShouldMonitor(String dstClusterName,String dstMha,String srcDc) {
+        String srcRegion = consoleConfig.getRegionForDc(srcDc);
+        return cacheMetaService.getSrcMhasShouldMonitor(dstClusterName + "." +dstMha,srcRegion);
+    }
 
     @Override
     public void switchToLeader() throws Throwable {
         // do nothing
-        
     }
 
     @Override
@@ -196,7 +210,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public void clearOldEndpointResource(Endpoint endpoint) {
         removeSqlOperator(endpoint);
     }
-    
+
     public static final class DatachangeLastTime {
 
         private String registryKey;
@@ -242,5 +256,14 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-    
+
+    /**
+     * ignore mha that has db replications
+     */
+    public Set<String> getMhaDbRelatedByDestMha(String destMha) {
+        Set<String> mhasRelated = Sets.newHashSet(super.getMhasRelated());
+        Set<String> mhaDbReplicationRelatedMhas = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(destMha).keySet();
+        mhasRelated.removeAll(mhaDbReplicationRelatedMhas);
+        return mhasRelated;
+    }
 }

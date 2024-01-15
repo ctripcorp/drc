@@ -8,11 +8,11 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHo
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.sql.Connection;
+import java.util.List;
 
 /**
  * Created by mingdongli

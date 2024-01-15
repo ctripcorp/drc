@@ -31,7 +31,7 @@ public class DelayMonitorColumnTest {
 
     @Test
     public void getDelayMonitorSrcDcName() {
-        String srcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+        String srcDcName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
         Assert.assertEquals(idc, srcDcName);
         delayMonitorLogEvent.release();
     }

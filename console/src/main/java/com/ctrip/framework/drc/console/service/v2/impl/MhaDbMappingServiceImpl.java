@@ -212,6 +212,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
             List<Long> dbIds = Lists.newArrayList();
             if (query.hasMhaCondition()) {
                 MhaQuery mhaQuery = new MhaQuery();
+                mhaQuery.setContainMhaName(query.getMhaName());
                 if (NumberUtils.isPositive(query.getRegionId())) {
                     List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
                     List<Long> dcIdList = dcDos.stream()

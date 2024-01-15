@@ -272,4 +272,10 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         Assert.assertEquals(1, count.intValue());
         Assert.assertEquals(0, messages.size());
     }
+
+    @Test
+    public void test() {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications();
+        Assert.assertFalse(CollectionUtils.isEmpty(mhaReplicationTbls));
+    }
 }

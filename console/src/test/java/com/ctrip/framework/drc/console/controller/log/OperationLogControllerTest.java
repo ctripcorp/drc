@@ -34,8 +34,10 @@ public class OperationLogControllerTest {
     @Test
     public void testGetOperationLogView() throws SQLException {
         when(operationLogService.getOperationLogView(Mockito.any(OperationLogQueryParam.class))).thenReturn(Lists.newArrayList());
-        ApiResult<List<OperationLogView>> operationLogView = operationLogController.getOperationLogView(
-                new OperationLogQueryParam());
+        OperationLogQueryParam operationLogQueryParam = new OperationLogQueryParam();
+        operationLogQueryParam.setOperationKeyword("test");
+        operationLogQueryParam.getOperationKeyword();
+        ApiResult<List<OperationLogView>> operationLogView = operationLogController.getOperationLogView(operationLogQueryParam);
         assertEquals(0,operationLogView.getStatus().intValue());
         
         doThrow(new SQLException()).when(operationLogService).getOperationLogView(Mockito.any(OperationLogQueryParam.class));

@@ -31,6 +31,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
+import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2Test;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.AutoIncrementCheckTaskTest;
@@ -173,6 +174,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         JsonUtilsTest.class,
         CheckGtidTest.class,
         PeriodicalUpdateDbTaskTest.class,
+        PeriodicalUpdateDbTaskV2Test.class,
         AbstractMonitorTest.class,
         UuidMonitorTest.class,
         MqDelayMonitorServerTest.class,

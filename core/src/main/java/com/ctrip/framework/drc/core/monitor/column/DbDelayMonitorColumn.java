@@ -59,9 +59,9 @@ public class DbDelayMonitorColumn {
     }
 
 
-    public static String getDelayMonitorSrcDcName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
+    public static String getDelayMonitorSrcRegionName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
         try {
-            return parseEvent(delayMonitorLogEvent).getDcName();
+            return parseEvent(delayMonitorLogEvent).getRegion();
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }

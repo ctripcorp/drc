@@ -1,8 +1,21 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getReplicatorTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDcTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getReplicatorGroupTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getResourceTbls;
+import static org.junit.Assert.assertTrue;
+
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.MachineTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
@@ -11,17 +24,30 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
+import com.ctrip.xpipe.tuple.Pair;
+import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,17 +59,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getReplicatorTbls;
-import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
-import static org.junit.Assert.assertTrue;
+import org.xml.sax.SAXException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MhaServiceV2ImplTest {
@@ -85,6 +101,9 @@ public class MhaServiceV2ImplTest {
     
     @Mock
     private DomainConfig domainConfig;
+
+    @Mock
+    private MetaProviderV2 metaProviderV2;
     
 
     @Before
@@ -339,5 +358,33 @@ public class MhaServiceV2ImplTest {
                 + "        ]";
         return JsonUtils.fromJsonToList(json,HickWallMhaReplicationDelayEntity.class);
     }
-    
+
+    @Test
+    public void testQueryMhasWithOutDrc() throws IOException, SAXException {
+        InputStream ins = FileUtils.getFileInputStream("testMeta/noARMeta.xml");
+        Drc drc = DefaultSaxParser.parse(ins);
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(drc);
+        List<String> strings = mhaServiceV2.queryMhasWithOutDrc();
+        Assert.assertEquals(2, strings.size());
+        Assert.assertEquals("drcTestW1", strings.get(0));
+        Assert.assertEquals("drcTestW3", strings.get(1));
+    }
+
+    @Test
+    public void testMarkMhaWithOutDrcOffline() throws Exception {
+        InputStream ins = FileUtils.getFileInputStream("testMeta/noARMeta.xml");
+        Drc drc = DefaultSaxParser.parse(ins);
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(drc);
+        MhaTblV2 mhaTblV2 = new MhaTblV2();
+        mhaTblV2.setId(1L);
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("drcTestW3"))).thenReturn(mhaTblV2);
+        Mockito.when(machineTblDao.queryByMhaId(Mockito.eq(1L),Mockito.eq(0))).thenReturn(Lists.newArrayList(new MachineTbl()));
+        Mockito.when(machineTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[]{1});
+        Mockito.when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
+        
+        Pair<Boolean, Integer> res = mhaServiceV2.offlineMhasWithOutDrc(
+                Lists.newArrayList("drcTestW3", "drcTestW4"));
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(1, res.getValue().intValue());
+    }
 }

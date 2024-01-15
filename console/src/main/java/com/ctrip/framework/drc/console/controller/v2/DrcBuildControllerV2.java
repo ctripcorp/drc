@@ -80,7 +80,7 @@ public class DrcBuildControllerV2 {
         try {
             return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbApplier(param));
         } catch (Exception e) {
-            return ApiResult.getFailInstance(e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

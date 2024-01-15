@@ -183,20 +183,20 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                 boolean dbDelay = false;
                 if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
                     ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
-                    String delayMonitorSrcDcName;
+                    String delayMonitorSrcRegionName;
                     if (DynamicConfig.getInstance().getOldDelayEventProcessSwitch() && DelayMonitorColumn.match(delayMonitorLogEvent)) {
-                        delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                        delayMonitorSrcRegionName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
                     } else if (DbDelayMonitorColumn.match(delayMonitorLogEvent)) {
                         dbDelay = true;
-                        delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                        delayMonitorSrcRegionName = DbDelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
                     } else {
                         delayMonitorLogEvent.release(1);
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.parse.fail", key.toString());
                         return;
                     }
-                    if (!key.region.equalsIgnoreCase(delayMonitorSrcDcName)) {
+                    if (!key.region.equalsIgnoreCase(delayMonitorSrcRegionName)) {
                         delayMonitorLogEvent.release(1);
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + ":" + delayMonitorSrcDcName);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + ":" + delayMonitorSrcRegionName);
                         return;
                     }
                 }

@@ -17,7 +17,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOpera
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTxTableIntersectionGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
@@ -765,7 +765,7 @@ public class MySqlUtils {
             List<String> dbNamesInDrcTxTable = getDbNamesInDrcTxTable(endpoint);
             HashMap<String, String> map = Maps.newHashMap();
             for (String dbName : dbNamesInDrcTxTable) {
-                String gtid = new DbTxTableIntersectionGtidReader(endpoint, dbName).getExecutedGtids(connection);
+                String gtid = new DbTransactionTableGtidReader(endpoint, dbName).getExecutedGtids(connection);
                 map.put(dbName, gtid);
             }
             return map;
