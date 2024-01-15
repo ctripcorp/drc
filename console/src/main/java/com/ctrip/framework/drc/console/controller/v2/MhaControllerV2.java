@@ -194,4 +194,25 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+    
+    @GetMapping("shouldOffline")
+    public ApiResult getMhasShouldOffline() {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.queryMhasWithOutDrc());
+        } catch (Exception e) {
+            logger.error("getMhasShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @DeleteMapping("mhaName")
+    public ApiResult deleteMhasShuoldOffline(@RequestBody List<String> mhas) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.offlineMhasWithOutDrc(mhas));
+        } catch (Exception e) {
+            logger.error("deleteMhasShuoldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
 }
