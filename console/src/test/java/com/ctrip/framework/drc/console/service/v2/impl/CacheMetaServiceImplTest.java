@@ -50,6 +50,7 @@ public class CacheMetaServiceImplTest {
         Drc expectedDrc = DefaultSaxParser.parse(ins);
         String expectedDrcString = expectedDrc.toString();
         Mockito.when(metaProviderV2.getDrc()).thenReturn(expectedDrc);
+        Mockito.when(metaProviderV2.getDcBy(Mockito.eq("dbcluster2.mha3dc2"))).thenReturn(expectedDrc.findDc("dc2"));
     }
 
     @Test
@@ -117,5 +118,11 @@ public class CacheMetaServiceImplTest {
         Assert.assertEquals(7,slaveMySQLEndpoint.size());
         Assert.assertEquals(7,masterReplicatorEndpoint.size());
 
+    }
+
+    @Test
+    public void testGetSrcMhasShouldMonitor() {
+        Set<String> mhasShouldMonitor = cacheMetaService.getSrcMhasShouldMonitor("dbcluster2.mha3dc2", "region1");
+        Assert.assertEquals(2,mhasShouldMonitor.size());
     }
 }

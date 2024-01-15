@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 
+import com.ctrip.xpipe.tuple.Pair;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -37,4 +38,8 @@ public interface MhaServiceV2 {
     
     // key:mhaName , value: replicator slave delay
     Map<String,Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception;
+
+    List<String> queryMhasWithOutDrc();
+
+    Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException;
 }

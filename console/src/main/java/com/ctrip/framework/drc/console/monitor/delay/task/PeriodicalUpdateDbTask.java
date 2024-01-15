@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -52,6 +53,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Autowired private DefaultConsoleConfig consoleConfig;
     
     @Autowired private CentralService centralService;
+    
+    @Autowired private CacheMetaService cacheMetaService;
+    
 
     @Autowired
     private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
@@ -165,11 +169,15 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
             logger.info("[[monitor=delay]] not leader do nothing");
         }
     }
+    
+    public Set<String> getSrcMhasShouldMonitor(String dstClusterName,String dstMha,String srcDc) {
+        String srcRegion = consoleConfig.getRegionForDc(srcDc);
+        return cacheMetaService.getSrcMhasShouldMonitor(dstClusterName + "." +dstMha,srcRegion);
+    }
 
     @Override
     public void switchToLeader() throws Throwable {
         // do nothing
-        
     }
 
     @Override

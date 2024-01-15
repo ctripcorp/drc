@@ -24,4 +24,6 @@ public interface CacheMetaService {
     Endpoint getMasterEndpointForWrite(String mha);
 
     List<Endpoint> getMasterEndpointsInAllAccounts(String mha);
+
+    Set<String> getSrcMhasShouldMonitor(String dstMha,String srcRegion);
 }
