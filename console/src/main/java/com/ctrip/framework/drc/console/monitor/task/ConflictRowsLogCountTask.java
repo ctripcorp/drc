@@ -98,10 +98,18 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         }
     }
 
+    public void switchToLeader() {
+        reset();
+        scheduledTask();
+    }
+
     private void reset() {
         endHandleTime = System.currentTimeMillis();
         beginHandleTime = DateUtils.getStartTimeOfDay(endHandleTime);
         endTimeOfDay = DateUtils.getEndTimeOfDay(endHandleTime);
+        alarmIsSent = true;
+        yesterdayTopLogTables = new ArrayList<>();
+        yesterdayTopRollbackLogTables = new ArrayList<>();
         setEmpty();
     }
 
