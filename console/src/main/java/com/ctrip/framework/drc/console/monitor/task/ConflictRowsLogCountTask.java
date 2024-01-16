@@ -296,7 +296,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     }
 
     //for test
-    protected void setNextDay() {
+    protected static void setNextDay() {
         nextDay = true;
         alarmIsSent = false;
     }

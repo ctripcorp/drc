@@ -280,7 +280,8 @@ public class ConflictLogController {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
     @PostMapping("blacklist/dba/touchjob")
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD, operator = "DBA",
             success = "addBlackListForTouchJob with db : {#db} and table : {#table}")
