@@ -29,21 +29,16 @@
         <br>
         <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
           <Col span="2" style="display: flex;float: left;margin: 5px" >
-            <Dropdown placement="bottom-start">
-              <Button type="default" icon="ios-hammer">
-                操作
-                <Icon type="ios-arrow-down"></Icon>
-              </Button>
-              <template #list>
-                <DropdownMenu >
-                  <DropdownItem @click.native="() => {$router.push({path: '/drcResource'})}">资源录入</DropdownItem>
-                </DropdownMenu>
-              </template>
-            </Dropdown>
+            <Button type="default" @click="preAdd" icon="ios-hammer">
+              新增黑名单
+            </Button>
           </Col>
         </Row>
         <Table stripe border :columns="columns" :data="tableData">
           <template slot-scope="{ row, index }" slot="action">
+            <Button type="info" size="small" style="margin-right: 5px" @click="showDetail(row, index)">
+              详情
+            </Button>
             <Button type="error" size="small" style="margin-right: 5px" @click="preDelete(row, index)">
               删除
             </Button>
@@ -65,9 +60,42 @@
         <Modal
           v-model="deleteModal"
           title="确认删除以下黑名单"
-          @on-ok="deleteResource"
+          @on-ok="deleteBlacklist"
           @on-cancel="clearDelete">
           <p>黑名单: "{{deleteDbFilter}}"</p>
+        </Modal>
+        <Modal
+          v-model="detailModal"
+          width="900px"
+          title="黑名单">
+          <div id="xmlCode">
+            <codemirror
+              v-model="detail"
+              class="code"
+              :options="{
+                  mode: 'text/x-mysql',
+                  theme: 'ambiance',
+                  autofocus: true,
+                  lineWrapping: true,
+                  readOnly: true,
+                  lineNumbers: true,
+                  foldGutter: true,
+                  styleActiveLine: true,
+                  gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+            }">
+            </codemirror>
+          </div>
+        </Modal>
+        <Modal
+          v-model="createModal"
+          title="新增黑名单"
+          width="900px"
+          @on-ok="addBlacklist">
+          <Form style="width: 90%">
+            <FormItem label="黑名单">
+              <Input v-model="dbFilter" placeholder="请输入黑名单, 支持正则"/>
+            </FormItem>
+          </Form>
         </Modal>
       </div>
     </Content>
@@ -75,6 +103,8 @@
 </template>
 
 <script>
+import 'codemirror/theme/ambiance.css'
+import 'codemirror/mode/sql/sql.js'
 
 export default {
   name: 'dbBlacklist',
@@ -137,6 +167,8 @@ export default {
       tableData: [],
       deleteModal: false,
       createModal: false,
+      detailModal: false,
+      detail: '',
       deleteDbFilter: '',
       typeList: [
         {
@@ -164,6 +196,7 @@ export default {
           pageIndex: 1
         }
       },
+      dbFilter: '',
       dataLoading: true
     }
   },
@@ -231,6 +264,10 @@ export default {
         this.getData()
       })
     },
+    showDetail (row, index) {
+      this.detail = row.dbFilter
+      this.detailModal = true
+    },
     preDelete (row, index) {
       this.deleteDbFilter = row.dbFilter
       this.deleteModal = true
@@ -238,13 +275,28 @@ export default {
     clearDelete () {
       this.deleteDbFilter = ''
     },
-    deleteResource (row, index) {
+    deleteBlacklist (row, index) {
       this.axios.delete('/api/drc/v2/log/conflict/db/blacklist/?dbFilter=' + this.deleteDbFilter).then(res => {
         if (res.data.status === 0) {
           this.$Message.success('删除成功')
           this.getData()
         } else {
           this.$Message.warning('删除失败 ' + res.data.message)
+        }
+      })
+    },
+    preAdd () {
+      this.createModal = true
+      this.dbFilter = ''
+    },
+    addBlacklist () {
+      this.axios.post('/api/drc/v2/log/conflict/db/blacklist/?dbFilter=' + this.dbFilter).then(res => {
+        if (res.data.status === 0) {
+          this.$Message.success('新增成功')
+          this.createModal = false
+          this.getData()
+        } else {
+          this.$Message.warning('新增失败 ' + res.data.message)
         }
       })
     },
@@ -273,4 +325,27 @@ export default {
 
 </style>
 <style lang="scss">
+.ivu-table .table-info-cell-extra-column-add {
+  background-color: #2db7f5;
+  color: #fff;
+}
+
+.ivu-table .table-info-cell-extra-column-diff {
+  background-color: #ff6600;
+  color: #fff;
+}
+
+.CodeMirror {
+  /* Set height, width, borders, and global font properties here */
+  font-family: monospace;
+  height: auto;
+  color: black;
+  direction: ltr;
+}
+#xmlCode {
+  .CodeMirror {
+    overscroll-y: scroll !important;
+    height: auto !important;
+  }
+}
 </style>

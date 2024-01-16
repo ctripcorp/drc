@@ -78,10 +78,9 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
-        //ql_deng TODO 2024/1/15:
-//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-//            return;
-//        }
+        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+            return;
+        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
             removeRegister();

@@ -243,7 +243,6 @@ public class ConflictLogController {
         }
     }
 
-    @AccessToken(type = TokenType.OPEN_API_4_DBA)
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
             success = "addDbBlacklist with dbFilter: {#dbFilter}")
     @PostMapping("/db/blacklist")
