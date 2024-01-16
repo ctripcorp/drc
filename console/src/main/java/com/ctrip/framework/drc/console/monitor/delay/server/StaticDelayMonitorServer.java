@@ -376,6 +376,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         String mhaName = entry.getKey();
                         if (!mhasRelated.contains(mhaName)) {
                             if (isReplicatorMaster) {
+                                logger.info("check delay loss {}->{}",mhaName,config.getDestMha());
                                 iterator.remove();
                             }
                             continue;
