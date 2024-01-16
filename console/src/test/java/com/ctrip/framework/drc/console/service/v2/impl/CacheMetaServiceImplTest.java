@@ -52,6 +52,16 @@ public class CacheMetaServiceImplTest {
         Mockito.when(metaProviderV2.getDrc()).thenReturn(expectedDrc);
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("dbcluster2.mha3dc2"))).thenReturn(expectedDrc.findDc("dc2"));
     }
+    
+    @Test
+    public void testGetDrcFail() {
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(null);
+        try {
+            cacheMetaService.getMonitorMetaInfo();
+        } catch (Exception e) {
+            Assert.assertEquals("get drc fail",e.getMessage());
+        }
+    }
 
     @Test
     public void testGetAllReplicatorsInLocalRegion() {
