@@ -2,6 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem to="/conflictLog">冲突处理</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
@@ -27,13 +28,13 @@
           </Col>
         </Row>
         <br>
-        <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
-          <Col span="2" style="display: flex;float: left;margin: 5px" >
-            <Button type="default" @click="preAdd" icon="ios-hammer">
-              新增黑名单
-            </Button>
-          </Col>
-        </Row>
+<!--        <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">-->
+<!--          <Col span="2" style="display: flex;float: left;margin: 5px" >-->
+<!--            <Button type="default" @click="preAdd" icon="ios-hammer">-->
+<!--              新增黑名单-->
+<!--            </Button>-->
+<!--          </Col>-->
+<!--        </Row>-->
         <Table stripe border :columns="columns" :data="tableData">
           <template slot-scope="{ row, index }" slot="action">
             <Button type="info" size="small" style="margin-right: 5px" @click="showDetail(row, index)">

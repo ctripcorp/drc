@@ -38,9 +38,6 @@
             <MenuItem name="/conflictLog" to="/conflictLog">
               <span>冲突处理</span>
             </MenuItem>
-            <MenuItem name="/dbBlacklist" to="/dbBlacklist">
-              <span>冲突黑名单</span>
-            </MenuItem>
             <MenuItem name="/v2/operationlog" to="/v2/operationlog">
               <span>操作日志</span>
             </MenuItem>
@@ -163,7 +160,6 @@ export default {
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
       case '/conflictLog':
-      case '/dbBlacklist':
       case '/v2/operationlog':
       case '/monitor':
         this.openNames = ['1']
