@@ -263,9 +263,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
      */
     public Set<String> getMhaDbRelatedByDestMha(String destMha) {
         Set<String> mhasRelated = Sets.newHashSet(super.getMhasRelated());
-        logger.info("mhasRelated:{}", JsonUtils.toJson(mhasRelated));
+        logger.debug("mhasRelated:{}", JsonUtils.toJson(mhasRelated));
         Set<String> mhaDbReplicationRelatedMhas = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(destMha).keySet();
-        logger.info("mhaDbReplicationRelatedMhas:{}", JsonUtils.toJson(mhaDbReplicationRelatedMhas));
+        logger.debug("mhaDbReplicationRelatedMhas:{}", JsonUtils.toJson(mhaDbReplicationRelatedMhas));
         mhasRelated.removeAll(mhaDbReplicationRelatedMhas);
         return mhasRelated;
     }
