@@ -129,7 +129,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
             Drc drc = metaProviderV2.getDrc();
             if(drc == null) {
                 logger.info("[getMonitorMetaInfo] return drc null");
-                return null;
+                throw new RuntimeException("get drc fail");
             }
             for(Dc dc : drc.getDcs().values()) {
                 for(DbCluster dbCluster : dc.getDbClusters().values()) {
@@ -177,7 +177,8 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                 }
             }
         } catch (Exception e) {
-            logger.error("Fail get master replicator endpoint, ", e);
+            logger.error("getMonitorMetaInfo fail:{} ", e.getMessage());
+            throw e;
         }
         return monitorMetaInfo;
     }
