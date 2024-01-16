@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
@@ -262,7 +263,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
      */
     public Set<String> getMhaDbRelatedByDestMha(String destMha) {
         Set<String> mhasRelated = Sets.newHashSet(super.getMhasRelated());
+        logger.debug("mhasRelated:{}", JsonUtils.toJson(mhasRelated));
         Set<String> mhaDbReplicationRelatedMhas = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(destMha).keySet();
+        logger.debug("mhaDbReplicationRelatedMhas:{}", JsonUtils.toJson(mhaDbReplicationRelatedMhas));
         mhasRelated.removeAll(mhaDbReplicationRelatedMhas);
         return mhasRelated;
     }
