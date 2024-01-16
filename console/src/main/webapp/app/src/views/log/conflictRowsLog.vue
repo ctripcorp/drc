@@ -105,6 +105,11 @@
           </template>
         </Dropdown>
       </Col>
+      <Col span="2" style="display: flex;float: left;margin: 5px">
+            <Button type="default" @click="dbBlacklist" icon="md-create">
+              冲突黑名单
+            </Button>
+      </Col>
     </Row>
     <Table border :columns="columns" :data="tableData" ref="multipleTable"
            @on-selection-change="changeSelection">
@@ -509,6 +514,12 @@ export default {
             window.open(detail.href, '_blank')
           }
         })
+    },
+    dbBlacklist () {
+      const detail = this.$router.resolve({
+        path: '/dbBlacklist'
+      })
+      window.open(detail.href, '_blank')
     },
     changeSelection (val) {
       this.multiData = val

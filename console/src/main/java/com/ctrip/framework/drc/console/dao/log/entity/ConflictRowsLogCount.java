@@ -61,4 +61,13 @@ public class ConflictRowsLogCount implements Comparable<ConflictRowsLogCount> {
     public int hashCode() {
         return Objects.hash(dbName, tableName);
     }
+
+    @Override
+    public String toString() {
+        return "ConflictRowsLogCount{" +
+                "dbName='" + dbName + '\'' +
+                ", tableName='" + tableName + '\'' +
+                ", count=" + count +
+                '}';
+    }
 }

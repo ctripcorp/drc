@@ -219,6 +219,11 @@ const routes = [
     component: () => import('../views/log/conflictApproval.vue')
   },
   {
+    path: '/dbBlacklist',
+    name: 'dbBlacklist',
+    component: () => import('../views/log/dbBlacklist.vue')
+  },
+  {
     path: '/conflictRowsLogDetail',
     name: 'conflictRowsLogDetail',
     component: () => import('../views/log/conflictRowsLogDetail.vue')

@@ -50,7 +50,7 @@ export default {
       if (newVal === 'trxLog') {
         this.refresh = true
         // this.refresh = false
-      } else {
+      } else if (newVal === 'rowsLog') {
         this.refresh = false
       }
     }

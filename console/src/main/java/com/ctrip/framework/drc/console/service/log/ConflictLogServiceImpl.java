@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -220,6 +221,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(rowLog.getConflictTrxLogId());
         if (conflictTrxLogTbl == null) {
             throw ConsoleExceptionUtils.message("trxLog not exist");
+        }
+        if (StringUtils.isBlank(rowLog.getHandleSql()) && StringUtils.isBlank(rowLog.getRawSql())) {
+            throw ConsoleExceptionUtils.message("conflict sql is empty");
         }
         String srcMhaName = conflictTrxLogTbl.getSrcMhaName();
         String dstMhaName = conflictTrxLogTbl.getDstMhaName();
@@ -554,6 +558,21 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
         conflictDbBlackListTblDao.delete(tbls);
+    }
+
+    @Override
+    public List<ConflictDbBlacklistView> getConflictDbBlacklistView(ConflictDbBlacklistQueryParam param) throws Exception {
+        List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.query(param);
+        List<ConflictDbBlacklistView> views = tbls.stream().map(source -> {
+            ConflictDbBlacklistView target = new ConflictDbBlacklistView();
+            target.setId(source.getId());
+            target.setDbFilter(source.getDbFilter());
+            target.setType(source.getType());
+            target.setCreateTime(DateUtils.longToString(source.getCreateTime().getTime()));
+
+            return target;
+        }).collect(Collectors.toList());
+        return views;
     }
 
     private void modifyRecords(ConflictCurrentRecordView view) {
@@ -919,7 +938,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 extractRecords(dstResultMap, dstColumnMap, dstColumnTypeMap, dstResult);
             } catch (Exception e) {
                 logger.error("query records error: {}", e);
-                throw ConsoleExceptionUtils.message(e.getMessage());
+                throw ConsoleExceptionUtils.of(e);
             }
         }
 
@@ -1140,6 +1159,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                                 Map<String, List<Map<String, Object>>> columnMap,
                                 Map<String, Map<String, String>> srcColumnTypeMap,
                                 Map<String, Object> result) {
+        if (CollectionUtils.isEmpty(result)) {
+            return;
+        }
         String tableName = String.valueOf(result.get("tableName"));
         List<Map<String, Object>> recordList = (List<Map<String, Object>>) result.get("record");
         if (resultMap.containsKey(tableName)) {
@@ -1160,6 +1182,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                                                                                        List<DbReplicationView> dbReplicationViews,
                                                                                        Map<Long, List<String>> columnsFieldMap) {
         String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
+
+        if (StringUtils.isEmpty(sql)) {
+            throw ConsoleExceptionUtils.message("conflict sql is empty");
+        }
+
         Map<String, Object> srcResultMap;
         Map<String, Object> dstResultMap;
         List<String> onUpdateColumns = indexColumnPair.getLeft();
