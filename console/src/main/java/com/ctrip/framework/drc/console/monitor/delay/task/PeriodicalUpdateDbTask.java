@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
@@ -14,25 +17,21 @@ import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.sql.Timestamp;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
-
-
-import java.sql.Timestamp;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
 /**
  * @author shenhaibo
@@ -263,9 +262,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
      */
     public Set<String> getMhaDbRelatedByDestMha(String destMha) {
         Set<String> mhasRelated = Sets.newHashSet(super.getMhasRelated());
-        logger.debug("mhasRelated:{}", JsonUtils.toJson(mhasRelated));
         Set<String> mhaDbReplicationRelatedMhas = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(destMha).keySet();
-        logger.debug("mhaDbReplicationRelatedMhas:{}", JsonUtils.toJson(mhaDbReplicationRelatedMhas));
         mhasRelated.removeAll(mhaDbReplicationRelatedMhas);
         return mhasRelated;
     }

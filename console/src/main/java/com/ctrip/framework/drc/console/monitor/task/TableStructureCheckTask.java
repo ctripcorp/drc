@@ -81,6 +81,10 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] is leader, going to check");
         try {
+            if (!consoleConfig.getTableStructureCheckSwitch()) {
+                CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] switch is off");
+                return;
+            }
             removeRegister();
             checkTableStructure();
         } catch (Exception e) {
