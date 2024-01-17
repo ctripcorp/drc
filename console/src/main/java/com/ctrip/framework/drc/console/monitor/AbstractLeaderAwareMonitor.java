@@ -59,5 +59,9 @@ public abstract class AbstractLeaderAwareMonitor extends AbstractMonitor impleme
         );
     }
     
+    // only for test
+    public void setRegionLeader(boolean regionLeader) {
+        isRegionLeader = regionLeader;
+    }
 
 }

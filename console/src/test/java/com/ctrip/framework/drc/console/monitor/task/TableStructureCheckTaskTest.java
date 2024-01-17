@@ -60,6 +60,13 @@ public class TableStructureCheckTaskTest {
 
     @Test
     public void testScheduledTask() throws SQLException, InterruptedException {
+        Mockito.when(consoleConfig.getTableStructureCheckSwitch()).thenReturn(false);
+        Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);
+        task.setRegionLeader(true);
+        task.scheduledTask();
+        Mockito.verify(reporter,Mockito.times(0)).removeRegister(Mockito.anyString());
+        
+        
         Mockito.when(mhaReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaReplicationTbls1());
         Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(PojoBuilder.getMhaTblV2s());
         Mockito.when(dbReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getDbReplicationTbls());
