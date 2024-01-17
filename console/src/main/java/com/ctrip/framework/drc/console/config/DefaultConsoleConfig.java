@@ -108,10 +108,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_DB_APPLIER_CONFIG_SWITCH = "meta.db.applier.config.switch";
     private static String META_DB_APPLIER_CONFIG_SWITCH_KEY = META_DB_APPLIER_CONFIG_SWITCH + ".%s";
     private static String META_REALTIME_SWITCH = "meta.realtime";
-    
+
+    private static final String CONFLICT_LOG_RECORD_SWITCH = "conflict.log.record.switch";
     private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
     private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
     private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conflict.log.query.time.interval";
+    private static String TABLE_STRUCTURE_CHECK_SWITCH = "table.structure.check.switch";
+    
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
@@ -536,5 +539,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     
     public boolean getCflBlackListAutoAddSwitch() {
         return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
+    }
+
+    public boolean getTableStructureCheckSwitch() {
+        return getBooleanProperty(TABLE_STRUCTURE_CHECK_SWITCH, true);
+    }
+
+    public boolean getConflictLogRecordSwitch() {
+        return getBooleanProperty(CONFLICT_LOG_RECORD_SWITCH, true);
     }
 }

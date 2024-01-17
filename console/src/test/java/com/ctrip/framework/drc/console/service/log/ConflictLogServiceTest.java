@@ -284,10 +284,14 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateConflict() throws Exception {
+        Mockito.when(consoleConfig.getConflictLogRecordSwitch()).thenReturn(false);
+        ConflictTransactionLog trxLog = buildConflictTransactionLog();
+        conflictLogService.createConflictLog(Lists.newArrayList(trxLog));
+        Mockito.verify(conflictTrxLogTblDao, Mockito.times(0)).batchInsertWithReturnId(Mockito.anyList());
+
+        Mockito.when(consoleConfig.getConflictLogRecordSwitch()).thenReturn(true);
         Mockito.when(conflictTrxLogTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(conflictRowsLogTblDao.insert(Mockito.anyList())).thenReturn(new int[1]);
-
-        ConflictTransactionLog trxLog = buildConflictTransactionLog();
         conflictLogService.createConflictLog(Lists.newArrayList(trxLog));
     }
 

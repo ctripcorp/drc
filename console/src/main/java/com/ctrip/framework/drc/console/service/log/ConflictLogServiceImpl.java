@@ -287,6 +287,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
+        if (!consoleConfig.getConflictLogRecordSwitch()) {
+            return;
+        }
         trxLogs = filterTransactionLogs(trxLogs);
         if (CollectionUtils.isEmpty(trxLogs)) {
             logger.info("trxLogs are empty");
