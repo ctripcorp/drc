@@ -1,19 +1,29 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
+import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
+import com.ctrip.framework.drc.core.service.email.Email;
+import com.ctrip.framework.drc.core.service.email.EmailResponse;
+import com.ctrip.framework.drc.core.service.email.EmailService;
+import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -30,9 +40,15 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private ConflictLogService conflictLogService;
     @Autowired
+    private DbTblDao dbTblDao;
+    @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DomainConfig domainConfig;
 
+    private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private Reporter reporter = DefaultReporterHolder.getInstance();
+
     private static final String ROW_LOG_COUNT_MEASUREMENT = "row.log.count";
     private static final String ROW_LOG_DB_COUNT_MEASUREMENT = "row.log.db.count";
     private static final String ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT = "row.log.db.rollback.count";
@@ -44,8 +60,11 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private static int totalCount;
     private static int rollBackTotalCount;
     private static boolean nextDay = false;
+    private static boolean alarmIsSent = true;
     private static Map<String, ConflictRowsLogCount> tableCountMap;
     private static Map<String, ConflictRowsLogCount> rollBackCountMap;
+    private static List<ConflictRowsLogCount> yesterdayTopLogTables;
+    private static List<ConflictRowsLogCount> yesterdayTopRollbackLogTables;
 
 
     @Override
@@ -66,8 +85,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         try {
             removeRegister();
             checkCount();
+            alarm();
             if (nextDay) {
                 setEmpty();
+                alarmIsSent = false;
             }
             beginHandleTime = endHandleTime;
             endHandleTime = getNextEndHandleTime(endHandleTime);
@@ -77,10 +98,18 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         }
     }
 
+    public void switchToLeader() {
+        reset();
+        scheduledTask();
+    }
+
     private void reset() {
         endHandleTime = System.currentTimeMillis();
         beginHandleTime = DateUtils.getStartTimeOfDay(endHandleTime);
         endTimeOfDay = DateUtils.getEndTimeOfDay(endHandleTime);
+        alarmIsSent = true;
+        yesterdayTopLogTables = new ArrayList<>();
+        yesterdayTopRollbackLogTables = new ArrayList<>();
         setEmpty();
     }
 
@@ -150,6 +179,67 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         refreshAndReport(rowsLogCountView);
     }
 
+    protected void alarm() {
+        if (alarmIsSent || !domainConfig.getConflictAlarmSendEmailSwitch()) {
+            return;
+        }
+        long curTime = System.currentTimeMillis();
+        long sendTime = DateUtils.getTimeOfHour(domainConfig.getConflictAlarmSendTimeHour());
+        if (curTime < sendTime) {
+            return;
+        }
+        CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] send email alarm");
+        try {
+            alarm(yesterdayTopLogTables, ConflictCountType.CONFLICT_ROW);
+            alarm(yesterdayTopRollbackLogTables, ConflictCountType.CONFLICT_ROLLBACK_ROW);
+        } catch (Exception e) {
+            CONSOLE_MONITOR_LOGGER.error("[[monitor=ConflictRowsLogCountTask]] error, {}", e);
+        }
+        alarmIsSent = true;
+    }
+
+    private void alarm(List<ConflictRowsLogCount> logCounts, ConflictCountType type) throws SQLException {
+        if (CollectionUtils.isEmpty(logCounts)) {
+            CONSOLE_MONITOR_LOGGER.info("alarm switch is off or logCounts are empty");
+            return;
+        }
+
+        for (ConflictRowsLogCount logCount : logCounts) {
+            Email email = generateEmail(logCount, type);
+            EmailResponse emailResponse = emailService.sendEmail(email);
+            if (emailResponse.isSuccess()) {
+                CONSOLE_MONITOR_LOGGER.info("[[task=ConflictSendAlarm]]send email success, logCount: {}", logCount);
+            } else {
+                CONSOLE_MONITOR_LOGGER.error("[[task=ConflictSendAlarm]]send email failed, message: {}, logCount: {}", emailResponse.getMessage(), logCount);
+            }
+        }
+    }
+
+    private Email generateEmail(ConflictRowsLogCount count, ConflictCountType type) throws SQLException {
+        String dbName = count.getDbName();
+        String tableName = count.getTableName();
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(dbName));
+        if (CollectionUtils.isEmpty(dbTbls)) {
+            CONSOLE_MONITOR_LOGGER.error("[[monitor=ConflictRowsLogCountTask]] db: {} not exist", dbName);
+            return null;
+        }
+        Email email = new Email();
+        email.setSubject("DRC 数据同步冲突告警");
+        email.setSender(domainConfig.getConflictAlarmSenderEmail());
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch()) {
+            email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
+            domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
+        } else {
+            domainConfig.getConflictAlarmCCEmails().forEach(email::addRecipient);
+        }
+        email.addContentKeyValue("冲突表", dbName + "." + tableName);
+        email.addContentKeyValue("冲突类型", type.name());
+        email.addContentKeyValue("昨日冲突总数", String.valueOf(count.getCount()));
+        email.addContentKeyValue("冲突查询", domainConfig.getConflictAlarmDrcUrl());
+        return email;
+
+    }
+
     private void reportTotalCount() {
         Map<String, String> rowLogCountTags = new HashMap<>();
         rowLogCountTags.put("type", "total");
@@ -165,12 +255,22 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private void reportDbCount() {
         List<ConflictRowsLogCount> dbCounts = new ArrayList<>(tableCountMap.values());
         Collections.sort(dbCounts);
+        if (nextDay) {
+            int size = Math.min(domainConfig.getConflictAlarmTopNum(), dbCounts.size());
+            yesterdayTopLogTables = dbCounts.subList(0, size);
+        }
+
         report(dbCounts, ROW_LOG_DB_COUNT_MEASUREMENT);
     }
 
     private void reportRollBackDbCount() {
         List<ConflictRowsLogCount> rollBackDbCounts = new ArrayList<>(rollBackCountMap.values());
         Collections.sort(rollBackDbCounts);
+        if (nextDay) {
+            int size = Math.min(domainConfig.getConflictAlarmRollbackTopNum(), rollBackDbCounts.size());
+            yesterdayTopRollbackLogTables = rollBackDbCounts.subList(0, size);
+        }
+
         report(rollBackDbCounts, ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }
 
@@ -201,5 +301,11 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             endTimeOfDay = DateUtils.getEndTimeOfDay(nextEndHandleTime);
             return nextEndHandleTime;
         }
+    }
+
+    //for test
+    protected static void setNextDay() {
+        nextDay = true;
+        alarmIsSent = false;
     }
 }

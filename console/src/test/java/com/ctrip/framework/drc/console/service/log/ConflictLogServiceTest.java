@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -41,6 +42,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -421,6 +423,13 @@ public class ConflictLogServiceTest {
         Assert.assertTrue(result.getRollBackTotalCount() == 1);
     }
 
+    @Test
+    public void testGetConflictDbBlacklistView() throws Exception {
+        Mockito.when(conflictDbBlackListTblDao.query(Mockito.any())).thenReturn(getConflictDbBlackListTbls());
+        List<ConflictDbBlacklistView> result = conflictLogService.getConflictDbBlacklistView(new ConflictDbBlacklistQueryParam());
+        Assert.assertEquals(result.size(), getConflictDbBlackListTbls().size());
+    }
+
     private Map<String, Object> getEmptyRecord() {
         Map<String, Object> record = getSrcResMap();
         record.put("record", new ArrayList<>() );
@@ -430,8 +439,14 @@ public class ConflictLogServiceTest {
     private List<ConflictDbBlackListTbl> getConflictDbBlackListTbls() {
         ConflictDbBlackListTbl black1 = new ConflictDbBlackListTbl();
         black1.setDbFilter("db1\\..*");
+        black1.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        black1.setType(0);
+        black1.setId(1L);
         ConflictDbBlackListTbl black2 = new ConflictDbBlackListTbl();
         black2.setDbFilter("db2\\..*");
+        black2.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        black2.setType(0);
+        black2.setId(1L);
         return Lists.newArrayList(black1, black2);
     }
 

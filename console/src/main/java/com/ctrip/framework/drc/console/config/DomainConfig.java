@@ -124,7 +124,11 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD = "cfl.blacklist.alarm.hotspot.threshold";
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_CLEAR_SWITCH = "cfl.blacklist.alarm.hotspot.clear.switch";
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_EXPIRATION_HOUR = "cfl.blacklist.alarm.hotspot.expiration.hour";
-    
+
+    private static String CFL_ALARM_TOP_NUM = "cfl.alarm.top.num";
+    private static String CFL_ALARM_ROLLBACK_TOP_NUM = "cfl.alarm.rollback.top.num";
+    private static String CFL_ALARM_SEND_TIME_HOUR = "cfl.alarm.send.time.hour";
+
 
     public String getDbaApprovers() {
         return getProperty(DBA_APPROVERS);
@@ -362,6 +366,18 @@ public class DomainConfig extends AbstractConfigBean {
     
     public long getConflictAlarmThresholdRollbackTrx() {
         return getLongProperty(CFL_ALARM_THRESHOLD_ROLLBACK_TRX,10L);
+    }
+
+    public int getConflictAlarmTopNum() {
+        return getIntProperty(CFL_ALARM_TOP_NUM, 10);
+    }
+
+    public int getConflictAlarmRollbackTopNum() {
+        return getIntProperty(CFL_ALARM_ROLLBACK_TOP_NUM, 10);
+    }
+
+    public int getConflictAlarmSendTimeHour() {
+        return getIntProperty(CFL_ALARM_SEND_TIME_HOUR, 10);
     }
     
     public int getConflictAlarmLimitPerHour() {

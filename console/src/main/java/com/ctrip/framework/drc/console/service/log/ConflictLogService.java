@@ -2,13 +2,14 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import java.sql.SQLException;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -53,6 +54,8 @@ public interface ConflictLogService {
     void addDbBlacklist(String dbFilter, LogBlackListType type) throws SQLException;
 
     void deleteBlacklist(String dbFilter) throws Exception;
+
+    List<ConflictDbBlacklistView> getConflictDbBlacklistView(ConflictDbBlacklistQueryParam param) throws Exception;
     
     boolean isInBlackListWithCache(String db,String table);
 

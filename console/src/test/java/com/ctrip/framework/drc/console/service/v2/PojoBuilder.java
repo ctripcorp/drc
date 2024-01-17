@@ -187,6 +187,7 @@ public class PojoBuilder {
             tbl.setDeleted(0);
             tbl.setDbName("db" + i);
             tbl.setId(Long.valueOf(i));
+            tbl.setDbOwner("dbOwner" + i);
             tbls.add(tbl);
         }
 

@@ -32,7 +32,7 @@ public class ConflictDbBlackListTbl {
     private String dbFilter;
 
     /**
-     * 黑名单类型，0-用户添加,1-DRC系统自动田间
+     * 黑名单类型，0-用户添加,1-DRC系统自动添加
      * default: 0
      */
     @Column(name = "type")

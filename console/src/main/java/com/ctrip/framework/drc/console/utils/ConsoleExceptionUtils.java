@@ -24,4 +24,8 @@ public class ConsoleExceptionUtils {
     public static ConsoleException message(IErrorDef errorDef, Throwable e) {
         return new ConsoleException(errorDef.getMessage(), e);
     }
+
+    public static ConsoleException of (Throwable e) {
+        return new ConsoleException(e);
+    }
 }
