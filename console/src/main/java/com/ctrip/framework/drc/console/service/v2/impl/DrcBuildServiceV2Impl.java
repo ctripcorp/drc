@@ -9,13 +9,13 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
@@ -988,19 +988,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
         RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
-        if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode())) {
-            if (firstParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
-                rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
-            } else if (firstParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
-                rowsFilterConfigView.setColumns(firstParameters.getColumns());
-            }
+        if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode()) || rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL_UID.getCode())) {
+            setColumnsView(rowsFilterConfigView, firstParameters);
             if (parametersList.size() > 1) {
                 RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
-                if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
-                    rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
-                } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
-                    rowsFilterConfigView.setColumns(secondParameters.getColumns());
-                }
+                setColumnsView(rowsFilterConfigView, secondParameters);
             }
         } else {
             rowsFilterConfigView.setColumns(firstParameters.getColumns());
@@ -1011,6 +1003,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         rowsFilterConfigView.setFetchMode(firstParameters.getFetchMode());
 
         return rowsFilterConfigView;
+    }
+
+    private void setColumnsView(RowsFilterConfigView rowsFilterConfigView, RowsFilterConfig.Parameters secondParameters) {
+        if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+            rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
+        } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
+            rowsFilterConfigView.setColumns(secondParameters.getColumns());
+        }
     }
 
     private ColumnsConfigView buildColumnsConfigView(ColumnsFilterTblV2 columnsFilterTblV2) {

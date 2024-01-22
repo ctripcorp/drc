@@ -43,6 +43,12 @@ public enum RowsFilterType {
             return UserRowsFilterRule.class;
         }
     },
+    TripUdlThenUid("trip_udl_uid") {
+        @Override
+        public Class<? extends RowsFilterRule> filterRuleClass() {
+            return UserRowsUdlThenUidFilterRule.class;
+        }
+    },
 
     Custom("custom") {
         @Override
