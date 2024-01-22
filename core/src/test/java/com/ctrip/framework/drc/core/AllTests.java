@@ -83,6 +83,8 @@ import org.junit.runners.Suite;
         RowsFilterTypeTest.class,
         AbstractRowsFilterRuleForUdlTest.class,
         AbstractRowsFilterRuleForUidTest.class,
+        AbstractRowsFilterRuleForUdlThenUidTest.UdlExistTest.class,
+        AbstractRowsFilterRuleForUdlThenUidTest.UdlNotExistThenUidTest.class,
         //schema
         TableOperationManagerTest.class,
         CommentQueryTaskTest.class,

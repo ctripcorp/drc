@@ -35,6 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -342,7 +343,7 @@ public class DrcBuildServiceV2Test {
         Mockito.when(rowsFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getRowsFilterTbl());
 
         RowsFilterConfigView result = drcBuildServiceV2.getRowsConfigView(200L);
-        Assert.assertEquals(result.getColumns().size(), 1);
+        Assert.assertTrue(CollectionUtils.isEmpty(result.getColumns()));
         Assert.assertEquals(result.getUdlColumns().size(), 1);
         Assert.assertEquals(result.getMode(), 1);
     }

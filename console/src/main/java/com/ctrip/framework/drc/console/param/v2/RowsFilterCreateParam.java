@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
@@ -33,7 +34,32 @@ public class RowsFilterCreateParam {
 
     private Integer fetchMode;
 
+    public void checkParam() {
+        boolean hasUdlColumns = !CollectionUtils.isEmpty(udlColumns);
+        boolean hasColumns = !CollectionUtils.isEmpty(columns);
+        if (this.mode == RowsFilterModeEnum.TRIP_UDL.getCode() || this.mode == RowsFilterModeEnum.TRIP_UDL_UID.getCode()) {
+            if (!hasColumns && !hasUdlColumns) {
+                throw new IllegalArgumentException("columns empty, not allowed!");
+            }
+            boolean configBothUidAndUdl = hasColumns && hasUdlColumns;
+            if (this.mode == RowsFilterModeEnum.TRIP_UDL.getCode() && configBothUidAndUdl) {
+                throw new IllegalArgumentException("config both uid & udl filter, not allowed!");
+            }
+            if (this.mode == RowsFilterModeEnum.TRIP_UDL_UID.getCode() && !configBothUidAndUdl) {
+                throw new IllegalArgumentException("should config both udl and uid!");
+            }
+        } else {
+            if (!hasColumns) {
+                throw new IllegalArgumentException("should config columns!");
+            }
+            if (StringUtils.isEmpty(this.context)) {
+                throw new IllegalArgumentException("context should not be empty!");
+            }
+        }
+    }
+
     public RowsFilterTblV2 extractRowsFilterTbl() {
+        this.checkParam();
         RowsFilterTblV2 rowsFilterTbl = new RowsFilterTblV2();
         rowsFilterTbl.setMode(this.mode);
         RowsFilterConfig.Configs configs = new RowsFilterConfig.Configs();
@@ -42,28 +68,23 @@ public class RowsFilterCreateParam {
             if (!CollectionUtils.isEmpty(udlColumns)) {
                 // generate udl parameters
                 configs.setDrcStrategyId(this.drcStrategyId);
-                RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
-                parameters.setColumns(this.udlColumns);
-                parameters.setUserFilterMode(UserFilterMode.Udl.getName());
-                parameters.setContext(this.context);
-                parameters.setIllegalArgument(this.illegalArgument);
-                parameters.setFetchMode(this.fetchMode);
-                parametersList.add(parameters);
+                parametersList.add(this.getUdlParameters());
             }
             if (!CollectionUtils.isEmpty(columns)) {
                 // generate uid parameters
-                RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
-                parameters.setColumns(this.columns);
-                parameters.setUserFilterMode(UserFilterMode.Uid.getName());
-                parameters.setContext(this.context);
-                parameters.setIllegalArgument(this.illegalArgument);
-                parameters.setFetchMode(this.fetchMode);
-                parametersList.add(parameters);
+                parametersList.add(this.getUidParameters());
             }
 
             configs.setParameterList(parametersList);
             configs.setRouteStrategyId(this.routeStrategyId);
+        } else if (RowsFilterModeEnum.TRIP_UDL_UID.getCode() == this.mode) {
+            List<RowsFilterConfig.Parameters> parametersList = Lists.newArrayList();
+            parametersList.add(this.getUdlParameters());
+            parametersList.add(this.getUidParameters());
+            configs.setDrcStrategyId(this.drcStrategyId);
 
+            configs.setParameterList(parametersList);
+            configs.setRouteStrategyId(this.routeStrategyId);
         } else {
             // generate parameter
             RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
@@ -76,6 +97,26 @@ public class RowsFilterCreateParam {
         }
         rowsFilterTbl.setConfigs(JsonUtils.toJson(configs));
         return rowsFilterTbl;
+    }
+
+    private RowsFilterConfig.Parameters getUidParameters() {
+        RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
+        parameters.setColumns(this.columns);
+        parameters.setUserFilterMode(UserFilterMode.Uid.getName());
+        parameters.setContext(this.context);
+        parameters.setIllegalArgument(this.illegalArgument);
+        parameters.setFetchMode(this.fetchMode);
+        return parameters;
+    }
+
+    private RowsFilterConfig.Parameters getUdlParameters() {
+        RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
+        parameters.setColumns(this.udlColumns);
+        parameters.setUserFilterMode(UserFilterMode.Udl.getName());
+        parameters.setContext(this.context);
+        parameters.setIllegalArgument(this.illegalArgument);
+        parameters.setFetchMode(this.fetchMode);
+        return parameters;
     }
 
     @Override
