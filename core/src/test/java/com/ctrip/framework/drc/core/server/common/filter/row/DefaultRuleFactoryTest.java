@@ -47,5 +47,11 @@ public class DefaultRuleFactoryTest {
         dataMediaConfig = DataMediaConfig.from(registryKey, properties);
         rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
         Assert.assertTrue(rowsFilterRule instanceof CustomRowsFilterRule);
+
+        properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUdlThenUid.getName(), location, location);
+        dataMediaConfig = DataMediaConfig.from(registryKey, properties);
+        rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+        Assert.assertTrue(rowsFilterRule instanceof UserRowsUdlThenUidFilterRule);
+
     }
 }

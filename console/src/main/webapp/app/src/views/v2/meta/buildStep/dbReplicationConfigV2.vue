@@ -42,10 +42,10 @@
         <Col span="13">
           <Form ref="commonInfo" :model="commonInfo" :rules="ruleInline" :label-width="100">
             <FormItem prop="dbName" label="库名" :required=true>
-              <Input type="text" v-model="commonInfo.dbName" :readonly=update placeholder="请输入库名（支持正则）"/>
+              <Input type="text" v-model="commonInfo.dbName" :readonly="update" placeholder="请输入库名（支持正则）"/>
             </FormItem>
             <FormItem prop="tableName" label="表名" :required=true>
-              <Input type="text" v-model="commonInfo.tableName" :readonly=show placeholder="请输入表名（支持正则）">
+              <Input type="text" v-model="commonInfo.tableName" :readonly="show" placeholder="请输入表名（支持正则）">
               </Input>
             </FormItem>
             <FormItem label="行过滤">
@@ -70,52 +70,60 @@
                   </Option>
                 </Select>
               </FormItem>
-              <FormItem label="规则内容" v-if="rowsFilterConfig.mode !== 1 || rowsFilterConfig.fetchMode === 0">
-                <Input v-if="rowsFilterConfig.mode !== 1" type="textarea" v-model="rowsFilterConfig.context"
-                       style="width: 250px" placeholder="请输入行过滤内容"/>
-                <Select v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.fetchMode === 0"
-                        v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
-                  <Option v-for="item in rowsFilterConfig.regionsForChose" :value="item" :key="item">{{ item }}</Option>
-                </Select>
-              </FormItem>
-              <FormItem v-if="rowsFilterConfig.mode === 1" label="空处理">
-                <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
-              </FormItem>
-              <Divider v-if="rowsFilterConfig.mode === 1">UDL配置</Divider>
-              <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 1">
-                <Select v-model="rowsFilterConfig.udlColumns" filterable allow-create multiple style="width: 200px"
-                        @on-create="handleCreateUDLColumn" placeholder="不选默认则无UDL配置">
-                  <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-                </Select>
-              </FormItem>
-              <FormItem label="DRC UDL策略id"
-                        v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.udlColumns.length !== 0">
-                <Select v-model="rowsFilterConfig.drcStrategyId" filterable allow-create style="width: 200px"
-                        placeholder="请选择ucs策略id">
-                  <Option v-for="item in rowsFilterConfig.drcStrategyIdsForChose" :value="item" :key="item">{{ item }}
-                  </Option>
-                </Select>
-              </FormItem>
-              <Divider v-if="rowsFilterConfig.mode === 1">UID配置</Divider>
-              <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 1">
-                <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
-                        @on-create="handleCreateUDLColumn" placeholder="选择相关字段">
-                  <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
-                </Select>
-              </FormItem>
-              <FormItem label="UID字段" v-if="rowsFilterConfig.mode === 1">
-                <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
-                        @on-create="handleCreateUDLColumn" placeholder="不选默认则无UID配置">
-                  <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-                </Select>
-              </FormItem>
-              <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 1">
-                <Select v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择"
-                        @on-change="fetchModeChange()">
-                  <Option v-for="item in rowsFilterConfig.fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}
-                  </Option>
-                </Select>
-              </FormItem>
+              <div v-if="useTripUdlOrUidMode">
+                <FormItem label="规则内容" v-if="fillContextByRegion">
+                  <Select v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
+                    <Option v-for="item in constants.regionsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                </FormItem>
+                <div v-if="showUdlConfigDetail">
+                  <Divider>UDL配置</Divider>
+                  <FormItem label="UDL字段" >
+                    <Select v-model="rowsFilterConfig.udlColumns" filterable allow-create multiple style="width: 200px"
+                            @on-create="handleCreateUDLColumn" placeholder="不选默认则无UDL配置">
+                      <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                    </Select>
+                  </FormItem>
+                  <FormItem label="DRC UDL策略id" v-if="hasUdlColumn">
+                    <Select v-model="rowsFilterConfig.drcStrategyId" filterable allow-create style="width: 200px"
+                            placeholder="请选择ucs策略id">
+                      <Option v-for="item in constants.drcStrategyIdsForChose" :value="item" :key="item">{{ item }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                </div>
+                <div v-if="showUidConfigDetail">
+                  <Divider>UID配置</Divider>
+                  <FormItem label="UID字段" >
+                    <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
+                            @on-create="handleCreateUDLColumn" placeholder="不选默认则无UID配置">
+                      <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                    </Select>
+                  </FormItem>
+                  <FormItem label="fetchMode" v-if="hasUidColumn">
+                    <Select v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择"
+                            @on-change="fetchModeChange()">
+                      <Option v-for="item in rowsFilterConfig.fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                  <FormItem label="空处理" v-if="hasUidColumn">
+                    <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
+                  </FormItem>
+                </div>
+              </div>
+              <div v-else>
+                <FormItem label="规则内容">
+                  <Input type="textarea" v-model="rowsFilterConfig.context"
+                         style="width: 250px" placeholder="请输入行过滤内容"/>
+                </FormItem>
+                <FormItem label="相关字段">
+                  <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
+                          @on-create="handleCreateUDLColumn" placeholder="选择相关字段">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                  </Select>
+                </FormItem>
+              </div>
             </Card>
             <FormItem label="字段过滤">
               <i-switch v-model="formItem.switch.columnsFilter" :disabled="show" size="large">
@@ -190,9 +198,32 @@ export default {
       title: '',
       tableHeight: 80,
       submit: true,
+      constants: {
+        regionsForChose: [
+          'SIN',
+          'SH',
+          'FRA'
+        ],
+        drcStrategyIdsForChose: [
+          2000000002
+        ],
+        filterMode: {
+          JAVA_REGEX: 0,
+          TRIP_UDL: 1,
+          AVIATOR_REGEX: 3,
+          CUSTOM: 4,
+          TRIP_UDL_UID: 5
+        },
+        fetchMode: {
+          RPC: 0,
+          BlackList: 1,
+          WhiteList: 2,
+          BlackList_Global: 3
+        }
+      },
       rowsFilterConfig: {
         mode: 1,
-        drcStrategyId: 0,
+        drcStrategyId: 2000000002,
         routeStrategyId: 0,
         udlColumns: [],
         columns: [],
@@ -215,15 +246,11 @@ export default {
           {
             name: 'custom',
             mode: 4
+          },
+          {
+            name: 'trip_udl_uid',
+            mode: 5
           }
-        ],
-        regionsForChose: [
-          'SIN',
-          'SH',
-          'FRA'
-        ],
-        drcStrategyIdsForChose: [
-          2000000002
         ],
         fetchModeForChose: [
           {
@@ -415,18 +442,19 @@ export default {
     },
     getRowsFilterParam () {
       if (this.formItem.switch.rowsFilter) {
-        if (this.rowsFilterConfig.mode === 1) {
-          if (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0) {
+        if (this.useTripUdlOrUidMode) {
+          // TRIP_UDL
+          if (!this.hasUidColumn && !this.hasUdlColumn) {
             this.$Message.warning('uid 与 uld字段不能同时为空！')
             this.submit = false
             return
           }
-          if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2 || this.rowsFilterConfig.fetchMode === 3) {
-            this.rowsFilterConfig.context = '//filter by config'
-          } else {
+          if (this.fillContextByRegion) {
             this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+          } else {
+            this.rowsFilterConfig.context = '//filter by config'
           }
-          if (this.rowsFilterConfig.fetchMode === 0 &&
+          if (this.fillContextByRegion &&
             (
               this.rowsFilterConfig.context === '' ||
               this.rowsFilterConfig.context === undefined ||
@@ -475,14 +503,14 @@ export default {
               // rowsFilterConfig.context和onfigInTripUid.regionsChosen要放在前面
               // 不然会失效
               this.rowsFilterConfig.context = res.context
-              if (res.mode === 1) {
+              this.rowsFilterConfig.mode = res.mode
+              if (this.useTripUdlOrUidMode) {
                 this.configInTripUid.regionsChosen = res.context.split(',')
               } else {
                 this.configInTripUid = {
                   regionsChosen: []
                 }
               }
-              this.rowsFilterConfig.mode = res.mode
               this.rowsFilterConfig.columns = res.columns === null ? [] : res.columns
               if (res.udlColumns !== null) {
                 this.rowsFilterConfig.udlColumns = res.udlColumns
@@ -620,6 +648,30 @@ export default {
       const start = this.nameFilterCheck.current * this.nameFilterCheck.size - this.nameFilterCheck.size
       const end = start + this.nameFilterCheck.size
       return [...data].slice(start, end)
+    },
+    useTripUdlOrUidMode () {
+      return [this.constants.filterMode.TRIP_UDL, this.constants.filterMode.TRIP_UDL_UID].includes(this.rowsFilterConfig.mode)
+    },
+    hasUdlColumn () {
+      return this.rowsFilterConfig.udlColumns.length !== 0
+    },
+    fillContextByRegion () {
+      return this.rowsFilterConfig.fetchMode === this.constants.fetchMode.RPC
+    },
+    hasUidColumn () {
+      return this.rowsFilterConfig.columns.length !== 0
+    },
+    showUdlConfigDetail () {
+      return this.rowsFilterConfig.mode === this.constants.filterMode.TRIP_UDL_UID || this.hasUdlLegalConfig || !this.hasUidLegalConfig
+    },
+    showUidConfigDetail () {
+      return this.rowsFilterConfig.mode === this.constants.filterMode.TRIP_UDL_UID || this.hasUidLegalConfig || !this.hasUdlLegalConfig
+    },
+    hasUdlLegalConfig () {
+      return this.rowsFilterConfig.udlColumns.length !== 0 && this.rowsFilterConfig.drcStrategyId != null && this.rowsFilterConfig.drcStrategyId > 0
+    },
+    hasUidLegalConfig () {
+      return this.hasUidColumn
     }
   },
   created () {
@@ -646,9 +698,9 @@ export default {
         dbReplicationIds: dbReplicationIds,
         tableData: []
       }
-      this.update = this.$route.query.update
-      this.batchUpdate = this.$route.query.batchUpdate
-      this.show = this.$route.query.show
+      this.update = this.$route.query.update === true || this.$route.query.update === 'true'
+      this.batchUpdate = this.$route.query.batchUpdate === true || this.$route.query.batchUpdate === 'true'
+      this.show = this.$route.query.show === true || this.$route.query.show === 'true'
       const queryMysqlTable = this.commonInfo.dbName !== undefined && this.commonInfo.tableName !== undefined
       if (queryMysqlTable) {
         this.checkMysqlTablesInSrcMha()

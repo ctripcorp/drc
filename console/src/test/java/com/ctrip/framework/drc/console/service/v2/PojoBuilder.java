@@ -121,7 +121,7 @@ public class PojoBuilder {
         RowsFilterCreateParam param = new RowsFilterCreateParam();
         param.setDbReplicationIds(Lists.newArrayList(200L, 201L));
         param.setMode(RowsFilterModeEnum.TRIP_UDL.getCode());
-        param.setColumns(Lists.newArrayList("uid"));
+//        param.setColumns(Lists.newArrayList("uid"));
         param.setUdlColumns(Lists.newArrayList("udl"));
         param.setDrcStrategyId(1);
         param.setRouteStrategyId(0);

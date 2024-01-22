@@ -28,7 +28,7 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
 
     private Set<String> dstLocation = Sets.newHashSet();
 
-    private int drcStrategyId;
+    protected int drcStrategyId;
 
     public UserRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
