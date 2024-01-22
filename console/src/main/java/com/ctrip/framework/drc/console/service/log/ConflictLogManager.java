@@ -21,14 +21,15 @@ import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 
 /**
  * @ClassName ConflictAlarm
@@ -258,7 +259,11 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         email.addContentKeyValue("冲突类型", type.name());
         email.addContentKeyValue("1min冲突统计", count.toString());
         email.addContentKeyValue("监控", domainConfig.getConflictAlarmHickwallUrl() + "&var-mha=" + srcMha);
-        email.addContentKeyValue("自助处理", domainConfig.getConflictAlarmDrcUrl());
+        email.addContentKeyValue("冲突查询", domainConfig.getConflictAlarmDrcUrl());
+        email.addContentKeyValue("冲突用户文档", domainConfig.getCflUserDocumentUrl());
+
+        String dbFilter = db + "\\." + table;
+        email.addContentKeyValue("加入黑名单", domainConfig.getCflAddBlacklistUrl() + "&dbFilter=" + dbFilter + "\n");
         return email;
     }
   
