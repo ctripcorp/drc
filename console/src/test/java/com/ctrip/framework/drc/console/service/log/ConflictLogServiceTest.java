@@ -85,11 +85,11 @@ public class ConflictLogServiceTest {
 
     @Before
     public void setUp() {
-        System.setProperty("iam.config.enable","off"); // skip the constructor of IAMServiceImpl
+        System.setProperty("iam.config.enable", "off"); // skip the constructor of IAMServiceImpl
         MockitoAnnotations.openMocks(this);
         Mockito.when(consoleConfig.getConflictLogQueryTimeInterval()).thenReturn(Constants.ONE_DAY);
     }
-    
+
 //    @Test
 //    public void testMatch() throws IOException {
 //        List<String> dbFilters = Lists.newArrayList();
@@ -235,7 +235,7 @@ public class ConflictLogServiceTest {
     @Test
     public void testGetConflictRowRecordView() throws Exception {
         QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", new ArrayList<>(), new ArrayList<>(), 12);
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(),  new ArrayList<>(),12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(), new ArrayList<>(), 12);
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
@@ -362,7 +362,7 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateHandleSql() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"),12);
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"), 12);
         QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"), 12);
 
         Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
@@ -415,8 +415,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testGetRowsLogCountView() throws Exception {
-        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
-        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1)));
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1L, 1L, 1)));
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1L, 1L, 1)));
         Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyLong(), Mockito.anyLong())).thenReturn(1);
         Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(1);
 
@@ -436,7 +436,7 @@ public class ConflictLogServiceTest {
 
     private Map<String, Object> getEmptyRecord() {
         Map<String, Object> record = getSrcResMap();
-        record.put("record", new ArrayList<>() );
+        record.put("record", new ArrayList<>());
         return record;
     }
 

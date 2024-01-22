@@ -4,7 +4,11 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
+import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
@@ -26,6 +30,8 @@ import org.springframework.util.StopWatch;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MONITOR_LOGGER;
 
@@ -41,6 +47,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private ConflictLogService conflictLogService;
     @Autowired
     private DbTblDao dbTblDao;
+    @Autowired
+    private ConflictRowsLogTblDao conflictRowsLogTblDao;
+    @Autowired
+    private ConflictTrxLogTblDao conflictTrxLogTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
@@ -204,8 +214,17 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             return;
         }
 
+        List<Long> rowLogIds = logCounts.stream().map(ConflictRowsLogCount::getRowLogId).collect(Collectors.toList());
+        List<Long> trxLogIds = logCounts.stream().map(ConflictRowsLogCount::getTrxLogId).collect(Collectors.toList());
+        List<ConflictRowsLogTbl> rowsLogTbls = conflictRowsLogTblDao.queryByIds(rowLogIds);
+        List<ConflictTrxLogTbl> trxLogTbls = conflictTrxLogTblDao.queryByIds(trxLogIds);
+        Map<Long, ConflictRowsLogTbl> rowLogMap = rowsLogTbls.stream().collect(Collectors.toMap(ConflictRowsLogTbl::getId, Function.identity()));
+        Map<Long, ConflictTrxLogTbl> trxLogMap = trxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
+
         for (ConflictRowsLogCount logCount : logCounts) {
-            Email email = generateEmail(logCount, type);
+            ConflictRowsLogTbl rowLog = rowLogMap.get(logCount.getRowLogId());
+            ConflictTrxLogTbl trxLog = trxLogMap.get(logCount.getTrxLogId());
+            Email email = generateEmail(logCount, type, rowLog, trxLog);
             EmailResponse emailResponse = emailService.sendEmail(email);
             if (emailResponse.isSuccess()) {
                 CONSOLE_MONITOR_LOGGER.info("[[task=ConflictSendAlarm]]send email success, logCount: {}", logCount);
@@ -215,7 +234,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         }
     }
 
-    private Email generateEmail(ConflictRowsLogCount count, ConflictCountType type) throws SQLException {
+    private Email generateEmail(ConflictRowsLogCount count, ConflictCountType type, ConflictRowsLogTbl rowLog, ConflictTrxLogTbl trxLog) throws SQLException {
         String dbName = count.getDbName();
         String tableName = count.getTableName();
         List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(dbName));
@@ -235,7 +254,13 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         email.addContentKeyValue("冲突表", dbName + "." + tableName);
         email.addContentKeyValue("冲突类型", type.name());
         email.addContentKeyValue("昨日冲突总数", String.valueOf(count.getCount()));
+        email.addContentKeyValue("同步链路", trxLog.getSrcMhaName() + "(" + rowLog.getSrcRegion() + ")" + "=>" + trxLog.getDstMhaName() + "(" + rowLog.getDstRegion() + ")");
+        email.addContentKeyValue("监控", domainConfig.getConflictAlarmHickwallUrl() + "&var-mha=" + trxLog.getSrcMhaName());
         email.addContentKeyValue("冲突查询", domainConfig.getConflictAlarmDrcUrl());
+        email.addContentKeyValue("冲突用户文档", domainConfig.getCflUserDocumentUrl());
+
+        String dbFilter = dbName + "\\." + tableName;
+        email.addContentKeyValue("加入黑名单", domainConfig.getCflAddBlacklistUrl() + "&dbFilter=" + dbFilter + "\n");
         return email;
 
     }

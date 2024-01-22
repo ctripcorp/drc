@@ -28,13 +28,13 @@
           </Col>
         </Row>
         <br>
-<!--        <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">-->
-<!--          <Col span="2" style="display: flex;float: left;margin: 5px" >-->
-<!--            <Button type="default" @click="preAdd" icon="ios-hammer">-->
-<!--              新增黑名单-->
-<!--            </Button>-->
-<!--          </Col>-->
-<!--        </Row>-->
+        <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
+          <Col span="2" style="display: flex;float: left;margin: 5px" >
+            <Button type="default" @click="preAdd" icon="ios-hammer">
+              新增黑名单
+            </Button>
+          </Col>
+        </Row>
         <Table stripe border :columns="columns" :data="tableData">
           <template slot-scope="{ row, index }" slot="action">
             <Button type="info" size="small" style="margin-right: 5px" @click="showDetail(row, index)">
@@ -167,7 +167,7 @@ export default {
       // get from backend
       tableData: [],
       deleteModal: false,
-      createModal: false,
+      createModal: 'this.$route.query'.createModal === true || this.$route.query.createModal === 'true',
       detailModal: false,
       detail: '',
       deleteDbFilter: '',
@@ -197,7 +197,7 @@ export default {
           pageIndex: 1
         }
       },
-      dbFilter: '',
+      dbFilter: this.$route.query.dbFilter,
       dataLoading: true
     }
   },
