@@ -22,6 +22,7 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.unidal.tuple.Triple;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Order(1)
 @Component
+@Primary
 public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQLEndpointObservable, SlaveMySQLEndpointObservable {
 
     private static final int DEFAULT_UPDATE_MONITOR_INITIAL_DELAY = 10;
@@ -51,7 +53,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
 
     private ScheduledExecutorService updateMySQLMonitorMetaScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("update-mysql-meta-scheduledExecutorService");
 
-    @Autowired private CacheMetaService cacheMetaService;
+    @Autowired protected CacheMetaService cacheMetaService;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
 
@@ -64,7 +66,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
 
     public synchronized void init() throws SQLException {
         if(masterMySQLEndpoint.isEmpty()) {
-            MonitorMetaInfo monitorMetaInfo = cacheMetaService.getMonitorMetaInfo();
+            MonitorMetaInfo monitorMetaInfo = getMonitorMetaInfo();
             masterMySQLEndpoint = monitorMetaInfo.getMasterMySQLEndpoint();
             logger.info("masterMySQLEndpoint size is: {}", masterMySQLEndpoint.size());
             slaveMySQLEndpoint = monitorMetaInfo.getSlaveMySQLEndpoint();
@@ -80,7 +82,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
                 logger.info("[[monitor=monitors]] update monitor meta info switch switch is: {}", updateMonitorMetaInfoSwitch);
                 if(SWITCH_STATUS_ON.equalsIgnoreCase(updateMonitorMetaInfoSwitch)) {
                     try {
-                        MonitorMetaInfo theNewestMonitorMetaInfo = cacheMetaService.getMonitorMetaInfo();
+                        MonitorMetaInfo theNewestMonitorMetaInfo = getMonitorMetaInfo();
                         checkMasterMySQLChange(masterMySQLEndpoint, theNewestMonitorMetaInfo.getMasterMySQLEndpoint());
                         checkSlaveMySQLChange(slaveMySQLEndpoint, theNewestMonitorMetaInfo.getSlaveMySQLEndpoint());
                     } catch (SQLException e) {
@@ -91,6 +93,10 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
                 logger.error("update mySQL monitor meta error", t);
             }
         }, DEFAULT_UPDATE_MONITOR_INITIAL_DELAY, UPDATE_MYSQL_MONITOR_DELAY, TimeUnit.SECONDS);
+    }
+
+    protected MonitorMetaInfo getMonitorMetaInfo() throws SQLException {
+        return cacheMetaService.getMonitorMetaInfo();
     }
 
     @VisibleForTesting

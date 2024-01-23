@@ -214,7 +214,7 @@ public class DbClusterSourceProviderTest extends AbstractTest {
     @Test
     public void testGetMhaGroupPairs() throws Exception {
         Map<String,List<DbClusterSourceProvider.Mha>> actual = dbClusterSourceProvider.getMhaGroupPairs();
-        Assert.assertEquals(4, actual.size());
+        Assert.assertEquals(5, actual.size());
     }
 
     @Test
