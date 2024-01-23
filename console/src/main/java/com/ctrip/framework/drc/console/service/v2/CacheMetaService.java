@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.pojo.MonitorMetaInfo;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 
 import java.sql.SQLException;
@@ -17,7 +18,11 @@ public interface CacheMetaService {
 
     Map<String, Set<String>> getMha2UuidsMap(Set<String> dcNames);
 
+    Map<String, Map<String, Set<String>>> getMhaDbUuidsMap(Set<String> dcNames, Drc drc);
+
     MonitorMetaInfo getMonitorMetaInfo() throws SQLException;
+
+    MonitorMetaInfo getDstMonitorMetaInfo() throws SQLException;
 
     Endpoint getMasterEndpoint(String mha);
 
