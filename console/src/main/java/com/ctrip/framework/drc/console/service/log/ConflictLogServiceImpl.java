@@ -91,16 +91,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DbBlacklistCache dbBlacklistCache;
 
     @Autowired
     private DbaApiService dbaApiService;
-
-    private final Supplier<List<AviatorRegexFilter>> blackList = Suppliers.memoizeWithExpiration(this::queryBlackList, 30, TimeUnit.SECONDS);
 
     private IAMService iamService = ServicesUtil.getIAMService();
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
+    private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("conflictLog"));
 
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
@@ -287,6 +288,16 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
+        cflExecutorService.submit(() -> {
+            try {
+                insertConflictLog(trxLogs);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.of(e);
+            }
+        });
+    }
+
+    public void insertConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
         if (!consoleConfig.getConflictLogRecordSwitch()) {
             return;
         }
@@ -356,18 +367,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
-        List<String> conflictDbBlacklist = conflictDbBlackListTblDao.queryAllExist().stream().map(ConflictDbBlackListTbl::getDbFilter).collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(conflictDbBlacklist)) {
-            return trxLogs;
-        }
-
-        String dbFilter = Joiner.on(",").join(conflictDbBlacklist);
-        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
         trxLogs.stream().forEach(trxLog -> {
-            List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream().filter(cflLog -> {
-                String tableName = cflLog.getDb() + "." + cflLog.getTable();
-                return !regexFilter.filter(tableName);
-            }).collect(Collectors.toList());
+            List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream()
+                    .filter(cflLog -> !isInBlackListWithCache(cflLog.getDb(), cflLog.getTable()))
+                    .collect(Collectors.toList());
             trxLog.setCflLogs(cflLogs);
         });
         return trxLogs.stream().filter(trxLog -> !CollectionUtils.isEmpty(trxLog.getCflLogs())).collect(Collectors.toList());
@@ -551,6 +554,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
+        dbBlacklistCache.refresh();
     }
 
     @Override
@@ -561,6 +565,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
         conflictDbBlackListTblDao.delete(tbls);
+        dbBlacklistCache.refresh();
     }
 
     @Override
@@ -601,10 +606,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public boolean isInBlackListWithCache(String db, String table) {
-        String fullname = db + "." + table;
-        List<AviatorRegexFilter> filters = blackList.get();
+        String fullName = db + "." + table;
+        List<AviatorRegexFilter> filters = dbBlacklistCache.getDbBlacklistInCache();
         for (AviatorRegexFilter filter : filters) {
-            if (filter.filter(fullname)) {
+            if (filter.filter(fullName)) {
                 return true;
             }
         }
@@ -1352,7 +1357,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return Pair.of(dbReplicationViews, columnsFieldMap);
     }
 
-    private List<AviatorRegexFilter> queryBlackList() {
+    @Override
+    public List<AviatorRegexFilter> queryBlackList() {
         try {
             List<AviatorRegexFilter> blackList = new ArrayList<>();
             List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();

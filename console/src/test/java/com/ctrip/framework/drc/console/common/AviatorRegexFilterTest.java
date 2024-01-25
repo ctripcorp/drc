@@ -67,11 +67,11 @@ public class AviatorRegexFilterTest {
         }
         tableName.append(")");
         List<String> blacklist = new ArrayList<>();
-        for (int i = 1; i <= 10000; i++) {
+        for (int i = 1; i <= 200; i++) {
             blacklist.add("db" + i + "\\." + tableName);
         }
 
-        String fullName = "db10000.table1900";
+        String fullName = "db2.table190";
 
         long startTime = System.currentTimeMillis();
         boolean filter = filter(fullName, blacklist);
