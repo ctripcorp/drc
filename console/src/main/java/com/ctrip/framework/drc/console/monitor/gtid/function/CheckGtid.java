@@ -72,6 +72,8 @@ public class CheckGtid extends AbstractConfigBean {
 
         String localDcName = dataCenterService.getDc();
         // traverse the local master db to check GTID gaps
+        List<String> mhaNames = masterMySQLEndpointMap.keySet().stream().filter(Objects::nonNull).map(MetaKey::getMhaName).collect(Collectors.toList());
+        CONSOLE_GTID_LOGGER.info("going to check for mha: {}", mhaNames);
         for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
             String mhaName = entry.getKey().getMhaName();
             Endpoint mySqlMasterEndpoint = entry.getValue();

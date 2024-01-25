@@ -76,6 +76,16 @@ public class BlankReporter implements Reporter {
     }
 
     @Override
+    public void reportDbGtidGapCount(GtidGapEntity gtidGapEntity, Long gap) {
+
+    }
+
+    @Override
+    public void reportDbGtidGapRepeat(GtidGapEntity gtidGapEntity, Long repeatGapCount) {
+
+    }
+
+    @Override
     public void reportTableConsistency(ConsistencyEntity consistencyEntity, ConsistencyEnum consistencyEnum) {
 
     }
