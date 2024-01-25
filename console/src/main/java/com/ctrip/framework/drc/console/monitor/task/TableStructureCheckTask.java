@@ -69,22 +69,26 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     @Override
     public void initialize() {
         setInitialDelay(1);
-        setPeriod(60);
+        //ql_deng TODO 2024/1/25:
+//        setPeriod(60);
+        setPeriod(1);
         setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
 
     @Override
     public void scheduledTask() {
-        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-            return;
-        }
+        //ql_deng TODO 2024/1/25:
+//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+//            return;
+//        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] is leader, going to check");
         try {
-            if (!consoleConfig.getTableStructureCheckSwitch()) {
-                CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] switch is off");
-                return;
-            }
+            //ql_deng TODO 2024/1/25:
+//            if (!consoleConfig.getTableStructureCheckSwitch()) {
+//                CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] switch is off");
+//                return;
+//            }
             removeRegister();
             checkTableStructure();
         } catch (Exception e) {
