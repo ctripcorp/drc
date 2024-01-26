@@ -99,7 +99,7 @@ public class ConflictLogManagerTest {
         
         // mock add alarm hotspot table to blacklist
         Mockito.when(domainConfig.getBlacklistAlarmHotspotThreshold()).thenReturn(1L);
-        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.any(LogBlackListType.class));
+        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.any(LogBlackListType.class),Mockito.any());
         
         // mock schedule status
         Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);

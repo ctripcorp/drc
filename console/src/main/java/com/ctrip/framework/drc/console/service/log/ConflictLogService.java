@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import java.sql.Timestamp;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
@@ -51,7 +52,7 @@ public interface ConflictLogService {
 
     List<ConflictAutoHandleView> createHandleSql(ConflictAutoHandleParam param) throws Exception;
 
-    void addDbBlacklist(String dbFilter, LogBlackListType type) throws SQLException;
+    void addDbBlacklist(String dbFilter, LogBlackListType type, Timestamp expirationTime) throws SQLException;
 
     void deleteBlacklist(String dbFilter) throws Exception;
 

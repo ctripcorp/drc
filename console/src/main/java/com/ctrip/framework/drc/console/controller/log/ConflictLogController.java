@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import java.sql.Timestamp;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,9 +247,9 @@ public class ConflictLogController {
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
             success = "addDbBlacklist with dbFilter: {#dbFilter}")
     @PostMapping("/db/blacklist")
-    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
+    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter,@RequestParam long expirationTime) {
         try {
-            conflictLogService.addDbBlacklist(dbFilter, LogBlackListType.USER);
+            conflictLogService.addDbBlacklist(dbFilter, LogBlackListType.USER,new Timestamp(expirationTime)); // todo hdpan 
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addDbBlacklist error, {}", e);
@@ -287,7 +288,7 @@ public class ConflictLogController {
             success = "addBlackListForTouchJob with db : {#db} and table : {#table}")
     public ApiResult<Boolean> addBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
         try {
-            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA_JOB);
+            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA_JOB,null);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addBlackListForTouchJob error", e);

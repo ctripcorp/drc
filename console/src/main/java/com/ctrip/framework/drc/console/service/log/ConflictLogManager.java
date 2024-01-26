@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.service.email.Email;
@@ -23,6 +24,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +78,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         setPeriod(PERIOD);
         setTimeUnit(TimeUnit.SECONDS);
     }
-
+    
     @Override
     public void scheduledTask() {
         try {
@@ -87,18 +89,25 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             }
             logger.info("[[task=ConflictLogManager]] leader,scheduledTask");
             catMonitor.logTransaction("ConflictLogManager", "checkConflict", this::checkConflictCount);
+            catMonitor.logTransaction("ConflictLogManager", "clearUserBlackList", this::processBlackList);
             if (!isBlacklistProcessPeriod) {
                 return;
             }
-            catMonitor.logTransaction("ConflictLogManager", "clearAutoBlackList", () -> clearBlackList(LogBlackListType.NEW_CONFIG));
-            catMonitor.logTransaction("ConflictLogManager", "clearDBABlackList", () -> clearBlackList(LogBlackListType.DBA_JOB));
-            catMonitor.logTransaction("ConflictLogManager", "clearAlarmBlacklist",() -> clearBlackList(LogBlackListType.ALARM_HOTSPOT));
             catMonitor.logTransaction("ConflictLogManager", "addAlarmHotspotTable", this::addAlarmHotspotTablesToBlacklist);
         } catch (Throwable t) {
             logger.error("[[task=ConflictAlarm]]error", t);
         }
     }
 
+    private void periodCalculate() {
+        periodCount++;
+        isBlacklistProcessPeriod = periodCount % 60 == 0;
+        isClearAlarmCountMapPeriod = periodCount % (60*24) == 0;
+        if (isClearAlarmCountMapPeriod) {
+            periodCount = 0;
+        }
+    }
+    
     @Override
     public void switchToLeader() throws Throwable {
         // doNothing
@@ -108,13 +117,78 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     public void switchToSlave() throws Throwable {
         // doNothing
     }
+
+    private void processBlackList() throws SQLException {
+        List<ConflictDbBlackListTbl> cflBlackLists = cflLogBlackListTblDao.queryAll();
+        if (cflBlackLists == null || cflBlackLists.isEmpty()) {
+            return;
+        }
+       
+        Map<LogBlackListType, List<ConflictDbBlackListTbl>> typeListMap = Maps.newHashMap();
+        for (ConflictDbBlackListTbl cflBlackList : cflBlackLists) {
+            LogBlackListType type = LogBlackListType.getByCode(cflBlackList.getType());
+            List<ConflictDbBlackListTbl> list = typeListMap.getOrDefault(type,Lists.newArrayList());
+            list.add(cflBlackList);
+            typeListMap.put(type, list);
+        }
+        
+        for (Map.Entry<LogBlackListType, List<ConflictDbBlackListTbl>> entry : typeListMap.entrySet()) {
+            LogBlackListType type = entry.getKey();
+            List<ConflictDbBlackListTbl> list = entry.getValue();
+            if (type == LogBlackListType.USER || type == LogBlackListType.NEW_CONFIG || type == LogBlackListType.DBA_JOB || type == LogBlackListType.ALARM_HOTSPOT) {
+                initBlackListWithOutExpirationTime(list, type);
+            } 
+            clearExpiredBlackList(list, type);
+        }
+    }
     
-    private void periodCalculate() {
-        periodCount++;
-        isBlacklistProcessPeriod = periodCount % 60 == 0;
-        isClearAlarmCountMapPeriod = periodCount % (60*24) == 0;
-        if (isClearAlarmCountMapPeriod) {
-            periodCount = 0;
+    // for init data with no expirationTime
+    private void initBlackListWithOutExpirationTime(List<ConflictDbBlackListTbl> blackLists, LogBlackListType type) throws SQLException {
+        for (ConflictDbBlackListTbl blackListTbl : blackLists) {
+            if (blackListTbl.getExpirationTime() == null) {
+                Timestamp createTime = blackListTbl.getCreateTime();
+                if (createTime == null) {
+                    continue;
+                }
+                int expirationHour = domainConfig.getBlacklistExpirationHour(type);
+                Timestamp expirationTime = new Timestamp(createTime.getTime() + (long) expirationHour * 60 * 60 * 1000);
+                blackListTbl.setExpirationTime(expirationTime);
+                cflLogBlackListTblDao.update(blackListTbl);
+            }
+        }
+    }
+    
+    private void clearExpiredBlackList(List<ConflictDbBlackListTbl> allBlackList,LogBlackListType type) throws SQLException {
+        List<ConflictDbBlackListTbl> toBeDelete = Lists.newArrayList();
+        for (ConflictDbBlackListTbl cflBlackList : allBlackList) {
+            Timestamp expirationTime = cflBlackList.getExpirationTime();
+            if (expirationTime == null) {
+                continue;
+            }
+            if (expirationTime.before(new Timestamp(System.currentTimeMillis()))) {
+                toBeDelete.add(cflBlackList);
+            }
+        }
+        if (domainConfig.getBlacklistClearSwitch(type)) {
+            deleteBlackListByBatch(toBeDelete);
+        }
+    }
+    
+    private void deleteBlackListByBatch(List<ConflictDbBlackListTbl> toBeDelete) throws SQLException {
+        if (toBeDelete.isEmpty()) {
+            return;
+        }
+        // delete toBeDelete by batch limit 100 one times
+        int size = toBeDelete.size();
+        int batchCount = size / 100;
+        int mod = size % 100;
+        for (int i = 0; i < batchCount; i++) {
+            List<ConflictDbBlackListTbl> subList = toBeDelete.subList(i * 100, (i + 1) * 100);
+            cflLogBlackListTblDao.delete(subList);
+        }
+        if (mod > 0) {
+            List<ConflictDbBlackListTbl> subList = toBeDelete.subList(batchCount * 100, size);
+            cflLogBlackListTblDao.delete(subList);
         }
     }
 
@@ -133,7 +207,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             if (count >= domainConfig.getBlacklistAlarmHotspotThreshold()) {
                 logger.info("[[task=ConflictAlarm]]table:{} alarm too many times:{},add to blacklist", table, count);
                 try {
-                    conflictLogService.addDbBlacklist(table, LogBlackListType.ALARM_HOTSPOT);
+                    conflictLogService.addDbBlacklist(table, LogBlackListType.ALARM_HOTSPOT,null);
                 } catch (SQLException e) {
                     logger.error("[[task=ConflictAlarm]]{},add ALARM_HOTSPOT Blacklist error", table,e);
                 }
@@ -141,45 +215,6 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         }
         if (isClearAlarmCountMapPeriod) {
             tableAlarmCountMap.clear();
-        }
-    }
-
-    protected void clearBlackList(LogBlackListType type) throws SQLException {
-        boolean clearSwitch;
-        int expirationHour;
-        switch (type) {
-            case NEW_CONFIG:
-                clearSwitch = domainConfig.getBlacklistNewConfigSwitch();
-                expirationHour = domainConfig.getBlacklistNewConfigExpirationHour();
-                break;
-            case DBA_JOB:
-                clearSwitch = domainConfig.getBlacklistDBAJobClearSwitch();
-                expirationHour = domainConfig.getBlacklistDBAJobExpirationHour();
-                break;
-            case ALARM_HOTSPOT:
-                clearSwitch = domainConfig.getBlacklistAlarmHotspotClearSwitch();
-                expirationHour = domainConfig.getBlacklistAlarmHotspotExpirationHour();
-                break;
-            default:
-                throw new IllegalArgumentException("unSupport type " + type);
-        }
-        if (!clearSwitch) {
-            return;
-        }
-        List<ConflictDbBlackListTbl> conflictDbBlackListTbls = cflLogBlackListTblDao.queryByType(type.getCode());
-        long current = System.currentTimeMillis();
-        List<ConflictDbBlackListTbl> toDelete = Lists.newArrayList();
-        for (ConflictDbBlackListTbl blackListTbl : conflictDbBlackListTbls) {
-            if (current - blackListTbl.getDatachangeLasttime().getTime() >= TimeUnit.HOURS.toMillis(expirationHour)) {
-                toDelete.add(blackListTbl);
-                if (toDelete.size() >= 100) {
-                    cflLogBlackListTblDao.batchDelete(toDelete);
-                    toDelete.clear();
-                }
-            }
-        }
-        if (!toDelete.isEmpty()) {
-            cflLogBlackListTblDao.batchDelete(toDelete);
         }
     }
     
@@ -219,6 +254,8 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 if (isTriggerAlarmTooManyTimesAnHour(db,table) || !domainConfig.getConflictAlarmSendEmailSwitch()) {
                     continue;
                 }
+                // todo check table has use traffic or not, if not don't alarm and add to blacklist
+                
                 Email email = generateEmail(db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
                 EmailResponse emailResponse = emailService.sendEmail(email);
                 if (emailResponse.isSuccess()) {

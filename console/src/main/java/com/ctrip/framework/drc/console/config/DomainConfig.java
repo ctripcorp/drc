@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.config;
 
+import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DomainConfig extends AbstractConfigBean {
-    
+
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
@@ -124,6 +125,10 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD = "cfl.blacklist.alarm.hotspot.threshold";
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_CLEAR_SWITCH = "cfl.blacklist.alarm.hotspot.clear.switch";
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_EXPIRATION_HOUR = "cfl.blacklist.alarm.hotspot.expiration.hour";
+    private static final String CFL_BLACKLIST_NO_USER_TRAFFIC_CLEAR_SWITCH = "cfl.blacklist.no.user.traffic.clear.switch";
+    private static final String CFL_BLACKLIST_NO_USER_TRAFFIC_EXPIRATION_HOUR = "cfl.blacklist.no.user.traffic.expiration.hour";
+    private static final String CFL_BLACKLIST_SWITCH_FORMATTER = "cfl.blacklist.%s.switch";
+    private static final String CFL_BLACKLIST_EXPIRATION_HOUR_FORMATTER = "cfl.blacklist.%s.expiration.hour";
 
     private static String CFL_ALARM_TOP_NUM = "cfl.alarm.top.num";
     private static String CFL_ALARM_ROLLBACK_TOP_NUM = "cfl.alarm.rollback.top.num";
@@ -410,5 +415,15 @@ public class DomainConfig extends AbstractConfigBean {
     
     public long getBlacklistAlarmHotspotThreshold() {
         return getLongProperty(CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD, 6 * 60L);
+    }
+    
+    public boolean getBlacklistClearSwitch(LogBlackListType type) {
+        String key = type.name().toLowerCase().replaceAll("_", ".");
+        return getBooleanProperty(String.format(CFL_BLACKLIST_SWITCH_FORMATTER,key), false);
+    }
+    
+    public int getBlacklistExpirationHour(LogBlackListType type) {
+        String key = type.name().toLowerCase().replaceAll("_", ".");
+        return getIntProperty(String.format(CFL_BLACKLIST_EXPIRATION_HOUR_FORMATTER,key), 24);
     }
 }

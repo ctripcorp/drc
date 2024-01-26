@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
@@ -45,6 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.sql.Timestamp;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -91,6 +93,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DomainConfig domainConfig;
 
     @Autowired
     private DbaApiService dbaApiService;
@@ -540,7 +544,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, LogBlackListType type) throws SQLException {
+    public void addDbBlacklist(String dbFilter, LogBlackListType type, Timestamp expirationTime) throws SQLException {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
@@ -548,6 +552,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
 
         ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        if (expirationTime == null) {
+            int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(type);
+            tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
+        } else {
+            tbl.setExpirationTime(expirationTime);
+        }
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
