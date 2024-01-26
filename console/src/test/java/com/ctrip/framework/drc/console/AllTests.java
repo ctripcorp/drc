@@ -32,12 +32,14 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOpera
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2Test;
+import com.ctrip.framework.drc.console.monitor.gtid.function.CheckDbGtidTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.AutoIncrementCheckTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.ConflictRowsLogCountTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.TableStructureCheckTaskTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
+import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParamTest;
 import com.ctrip.framework.drc.console.pojo.CreatePojoTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
@@ -173,6 +175,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MySqlUtilsTest.class,
         JsonUtilsTest.class,
         CheckGtidTest.class,
+        CheckDbGtidTest.class,
         PeriodicalUpdateDbTaskTest.class,
         PeriodicalUpdateDbTaskV2Test.class,
         AbstractMonitorTest.class,
@@ -205,6 +208,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DelayMapTest.class,
 
         DefaultCurrentMetaManagerTest.class,
+        CurrentDstMetaManagerTest.class,
+        MonitorServiceV2ImplTest.class,
 
         FileConfigTest.class,
         CompositeConfigTest.class,
@@ -217,6 +222,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //entity
         MhaInstanceGroupDtoTest.class,
         MhaReplicationQueryTest.class,
+        RowsFilterCreateParamTest.class,
         CreatePojoTest.class,
         MhaDbDelayInfoDtoTest.class,
         MhaDbQueryDtoTest.class,

@@ -112,6 +112,9 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CFL_ALARM_CC_EMAILS = "cfl.alarm.cc.emails";
     private static final String CFL_ALARM_DRC_URL= "cfl.alarm.drc.url";
     private static final String CFL_ALARM_HICKWALL_URL = "cfl.alarm.hickwall.url";
+    private static final String CFL_ADD_BLACKLIST_URL = "cfl.add.blacklist.url";
+    private static final String CFL_USER_DOCUMENT_URL = "cfl.user.document.url";
+
     private static final String CFL_ALARM_THRESHOLD_COMMIT_ROW = "cfl.alarm.threshold.commit.row";
     private static final String CFL_ALARM_THRESHOLD_COMMIT_TRX = "cfl.alarm.threshold.commit.trx";
     private static final String CFL_ALARM_THRESHOLD_ROLLBACK_ROW = "cfl.alarm.threshold.rollback.row";
@@ -356,7 +359,15 @@ public class DomainConfig extends AbstractConfigBean {
     public String getConflictAlarmHickwallUrl() {
         return getProperty(CFL_ALARM_HICKWALL_URL, "");
     }
-    
+
+    public String getCflAddBlacklistUrl() {
+        return getProperty(CFL_ADD_BLACKLIST_URL, "");
+    }
+
+    public String getCflUserDocumentUrl() {
+        return getProperty(CFL_USER_DOCUMENT_URL, "");
+    }
+
     public long getConflictAlarmThresholdCommitRow() {
         return getLongProperty(CFL_ALARM_THRESHOLD_COMMIT_ROW,60*1000L);
     }

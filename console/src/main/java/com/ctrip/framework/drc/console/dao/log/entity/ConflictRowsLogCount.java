@@ -9,15 +9,35 @@ import java.util.Objects;
 public class ConflictRowsLogCount implements Comparable<ConflictRowsLogCount> {
     private String dbName;
     private String tableName;
+    private Long rowLogId;
+    private Long trxLogId;
     private int count;
 
-    public ConflictRowsLogCount(String dbName, String tableName, int count) {
+    public ConflictRowsLogCount(String dbName, String tableName, Long rowLogId, Long trxLogId, int count) {
         this.dbName = dbName;
         this.tableName = tableName;
+        this.rowLogId = rowLogId;
+        this.trxLogId = trxLogId;
         this.count = count;
     }
 
     public ConflictRowsLogCount() {
+    }
+
+    public Long getRowLogId() {
+        return rowLogId;
+    }
+
+    public void setRowLogId(Long rowLogId) {
+        this.rowLogId = rowLogId;
+    }
+
+    public Long getTrxLogId() {
+        return trxLogId;
+    }
+
+    public void setTrxLogId(Long trxLogId) {
+        this.trxLogId = trxLogId;
     }
 
     public String getDbName() {
@@ -67,6 +87,8 @@ public class ConflictRowsLogCount implements Comparable<ConflictRowsLogCount> {
         return "ConflictRowsLogCount{" +
                 "dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +
+                ", rowLogId=" + rowLogId +
+                ", trxLogId=" + trxLogId +
                 ", count=" + count +
                 '}';
     }

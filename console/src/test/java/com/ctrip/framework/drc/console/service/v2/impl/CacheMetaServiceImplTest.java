@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import static com.ctrip.framework.drc.console.utils.UTConstants.XML_FILE_META;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
@@ -15,12 +13,6 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.io.InputStream;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +21,12 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.ClassUtils;
+
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.*;
+
+import static com.ctrip.framework.drc.console.utils.UTConstants.XML_FILE_META;
 
 
 public class CacheMetaServiceImplTest {
@@ -40,6 +38,8 @@ public class CacheMetaServiceImplTest {
     @Mock private DefaultConsoleConfig consoleConfig;
 
     @Mock private MonitorServiceV2 monitorServiceV2;
+
+    private Drc expectedDrc;
     
 
     @Before
@@ -47,7 +47,7 @@ public class CacheMetaServiceImplTest {
         MockitoAnnotations.openMocks(this);
         String file = ClassUtils.getDefaultClassLoader().getResource(XML_FILE_META).getPath();
         InputStream ins = FileUtils.getFileInputStream(file);
-        Drc expectedDrc = DefaultSaxParser.parse(ins);
+        expectedDrc = DefaultSaxParser.parse(ins);
         String expectedDrcString = expectedDrc.toString();
         Mockito.when(metaProviderV2.getDrc()).thenReturn(expectedDrc);
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("dbcluster2.mha3dc2"))).thenReturn(expectedDrc.findDc("dc2"));
@@ -113,6 +113,17 @@ public class CacheMetaServiceImplTest {
         Assert.assertEquals(2,mha2UuidsMap.get("mha1dc2").size());
         Assert.assertEquals(2,mha2UuidsMap.get("mha2dc2").size());
         Assert.assertEquals(4,mha2UuidsMap.get("mha3dc2").size());
+    }
+
+    @Test
+    public void testGetMhaDbUuidsMap() {
+        Set<String> dcs = Sets.newHashSet("dc3");
+        Map<String, Map<String, Set<String>>> mhaDbUuidsMap = cacheMetaService.getMhaDbUuidsMap(dcs, expectedDrc);
+        String mhaName = "mha3dc3";
+        Map<String, Map<String, Set<String>>> mhaDbUuidsMapExpect = new HashMap<>();
+        mhaDbUuidsMapExpect.computeIfAbsent(mhaName, k -> new HashMap<>()).put("db1", Sets.newHashSet("14345678-1234-abcd-abcd-123456789abc", "24345678-1234-abcd-abcd-123456789abc"));
+        mhaDbUuidsMapExpect.get("mha3dc3").put("db2", Sets.newHashSet("14345678-1234-abcd-abcd-123456789abc", "24345678-1234-abcd-abcd-123456789abc"));
+        Assert.assertEquals(mhaDbUuidsMapExpect,mhaDbUuidsMap);
     }
 
     @Test
