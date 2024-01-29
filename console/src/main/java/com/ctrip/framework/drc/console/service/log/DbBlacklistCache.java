@@ -27,7 +27,7 @@ public class DbBlacklistCache {
     private final static String KEY = "key";
     private final LoadingCache<String, List<AviatorRegexFilter>> cache = CacheBuilder.newBuilder()
             .maximumSize(1)
-            .expireAfterAccess(61, TimeUnit.MINUTES)
+            .expireAfterAccess(60, TimeUnit.MINUTES)
             .build(new CacheLoader<>() {
                 @Override
                 public List<AviatorRegexFilter> load(@NotNull String o) {
