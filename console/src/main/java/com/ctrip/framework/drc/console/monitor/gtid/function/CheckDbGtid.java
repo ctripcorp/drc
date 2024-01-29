@@ -113,9 +113,9 @@ public class CheckDbGtid extends AbstractConfigBean {
                                 reportRepeatedGtidGap(curGtidSet, uuid, gtidGapEntity, lastGtidSet);
                                 MDC.remove("mhaName");
                             }
-                            mhaDbGtidSet.computeIfAbsent(mhaName, k -> Maps.newHashMap()).put(dbName, curGtidSet);
                         }
-                        CONSOLE_GTID_LOGGER.info("put current gtidset for {}, with: {}", mhaName, curGtidSet);
+                        mhaDbGtidSet.computeIfAbsent(mhaName, k -> Maps.newHashMap()).put(dbName, curGtidSet);
+                        CONSOLE_GTID_LOGGER.info("put current gtidset for {}.{}, with: {}", mhaName, dbName, curGtidSet);
                     }
 
                     @Override
