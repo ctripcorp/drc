@@ -69,26 +69,22 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
     @Override
     public void initialize() {
         setInitialDelay(1);
-        //ql_deng TODO 2024/1/25:
-//        setPeriod(60);
-        setPeriod(1);
+        setPeriod(60);
         setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
 
     @Override
     public void scheduledTask() {
-        //ql_deng TODO 2024/1/25:
-//        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-//            return;
-//        }
+        if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+            return;
+        }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] is leader, going to check");
         try {
-            //ql_deng TODO 2024/1/25:
-//            if (!consoleConfig.getTableStructureCheckSwitch()) {
-//                CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] switch is off");
-//                return;
-//            }
+            if (!consoleConfig.getTableStructureCheckSwitch()) {
+                CONSOLE_MONITOR_LOGGER.info("[[monitor=TableStructureCheckTask]] switch is off");
+                return;
+            }
             removeRegister();
             checkTableStructure();
         } catch (Exception e) {
@@ -204,8 +200,8 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             if (diffTables.contains(tableName)) {
                 continue;
             }
-            Set<String> srcColumns = entry.getValue();
-            Set<String> dstColumns = dstTableColumns.get(tableName);
+            Set<String> srcColumns = Sets.newHashSet(entry.getValue());
+            Set<String> dstColumns = Sets.newHashSet(dstTableColumns.get(tableName));
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diffColumns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);

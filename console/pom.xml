@@ -144,41 +144,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.framework.drc</groupId>-->
-<!--            <artifactId>trip-service</artifactId>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>kafka-clients</artifactId>-->
-<!--                    <groupId>org.apache.kafka</groupId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>ctrip-dal-client</artifactId>-->
-<!--                    <groupId>com.ctrip.platform</groupId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.kafka</groupId>-->
-<!--            <artifactId>kafka-clients</artifactId>-->
-<!--            <version>2.0.1</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.platform</groupId>-->
-<!--            <artifactId>ctrip-dal-client</artifactId>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.ctrip.platform</groupId>-->
-<!--                    <artifactId>ctrip-datasource</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--            <version>${dal.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.platform</groupId>-->
-<!--            <artifactId>ctrip-datasource</artifactId>-->
-<!--            <version>${dal.version}</version>-->
-<!--        </dependency>-->
     </dependencies>
 
     <profiles>
