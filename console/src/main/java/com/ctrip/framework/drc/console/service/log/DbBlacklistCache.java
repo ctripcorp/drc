@@ -24,6 +24,9 @@ public class DbBlacklistCache {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    @Autowired
+    private ConflictLogService conflictLogService;
+
     private final static String KEY = "key";
     private final LoadingCache<String, List<AviatorRegexFilter>> cache = CacheBuilder.newBuilder()
             .maximumSize(1)
@@ -34,9 +37,6 @@ public class DbBlacklistCache {
                     return conflictLogService.queryBlackList();
                 }
             });
-
-    @Autowired
-    private ConflictLogService conflictLogService;
 
     public List<AviatorRegexFilter> getDbBlacklistInCache() {
         try {

@@ -100,12 +100,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private IAMService iamService = ServicesUtil.getIAMService();
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictLog"));
-    private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newThreadExecutor(10, 30, 10000, "cflExecutorService"));
+    private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newThreadExecutor(10, 50, 10000, "cflExecutorService"));
 
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
     private static final int TWELVE = 12;
-    private static final int INTERVAL_SIZE = 10;
     private static final int Time_OUT = 60;
     private static final String ROW_LOG_ID = "drc_row_log_id";
     private static final String UPDATE_SQL = "UPDATE %s SET %s WHERE %s";
@@ -302,7 +301,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         trxLogs = filterTransactionLogs(trxLogs);
         if (CollectionUtils.isEmpty(trxLogs)) {
-            logger.info("trxLogs are empty");
             return;
         }
 
