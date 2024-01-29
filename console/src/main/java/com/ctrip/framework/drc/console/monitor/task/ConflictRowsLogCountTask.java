@@ -245,7 +245,8 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
-        if (domainConfig.getConflictAlarmSendDBOwnerSwitch()) {
+        boolean inBlacklist = conflictLogService.isInBlackListWithCache(dbName, tableName);
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && !inBlacklist) {
             email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
         } else {

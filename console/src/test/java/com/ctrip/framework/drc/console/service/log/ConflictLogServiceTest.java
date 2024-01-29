@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -47,6 +48,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 
@@ -82,6 +84,8 @@ public class ConflictLogServiceTest {
     private IAMService iamService;
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private DbBlacklistCache dbBlacklistCache;
 
     @Before
     public void setUp() {
@@ -284,15 +288,17 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateConflict() throws Exception {
+        List<AviatorRegexFilter> filters = getConflictDbBlackListTbls().stream().map(tbl -> new AviatorRegexFilter(tbl.getDbFilter())).collect(Collectors.toList());
+        Mockito.when(dbBlacklistCache.getDbBlacklistInCache()).thenReturn(filters);
         Mockito.when(consoleConfig.getConflictLogRecordSwitch()).thenReturn(false);
         ConflictTransactionLog trxLog = buildConflictTransactionLog();
-        conflictLogService.createConflictLog(Lists.newArrayList(trxLog));
+        conflictLogService.insertConflictLog(Lists.newArrayList(trxLog));
         Mockito.verify(conflictTrxLogTblDao, Mockito.times(0)).batchInsertWithReturnId(Mockito.anyList());
 
         Mockito.when(consoleConfig.getConflictLogRecordSwitch()).thenReturn(true);
         Mockito.when(conflictTrxLogTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(conflictRowsLogTblDao.insert(Mockito.anyList())).thenReturn(new int[1]);
-        conflictLogService.createConflictLog(Lists.newArrayList(trxLog));
+        conflictLogService.insertConflictLog(Lists.newArrayList(trxLog));
     }
 
     @Test
@@ -392,7 +398,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testIsInBlackListWithCache() throws Exception {
-        Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(getConflictDbBlackListTbls());
+        List<AviatorRegexFilter> filters = getConflictDbBlackListTbls().stream().map(tbl -> new AviatorRegexFilter(tbl.getDbFilter())).collect(Collectors.toList());
+        Mockito.when(dbBlacklistCache.getDbBlacklistInCache()).thenReturn(filters);
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
         Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));
