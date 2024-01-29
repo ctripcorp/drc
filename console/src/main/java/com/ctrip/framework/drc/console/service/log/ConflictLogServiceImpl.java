@@ -99,9 +99,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     private IAMService iamService = ServicesUtil.getIAMService();
 
-    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
-    private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
-    private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("conflictLog"));
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictLog"));
+    private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newThreadExecutor(10, 30, 10000, "cflExecutorService"));
 
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
@@ -240,7 +239,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         List<ListenableFuture<Pair<Long, ConflictCurrentRecordView>>> futures = new ArrayList<>();
         for (long conflictRowLogId : conflictRowLogIds) {
-            ListenableFuture<Pair<Long, ConflictCurrentRecordView>> future = compareExecutorService.submit(() -> getConflictRowRecordView(conflictRowLogId));
+            ListenableFuture<Pair<Long, ConflictCurrentRecordView>> future = executorService.submit(() -> getConflictRowRecordView(conflictRowLogId));
             futures.add(future);
         }
 
@@ -640,7 +639,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             });
 
             ListenableFuture<ColumnsFilterAndIndexColumn> future =
-                    compareExecutorService.submit(() -> getColumnsFilterAndIndexColumn(multiKey, rowsLogTbls));
+                    executorService.submit(() -> getColumnsFilterAndIndexColumn(multiKey, rowsLogTbls));
             futures.add(future);
         }
 
@@ -691,10 +690,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception {
-        Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime));
-        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
-        Future<Integer> totalCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime));
-        Future<Integer> rollBackCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
+        Future<List<ConflictRowsLogCount>> dbCountFuture = executorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime));
+        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = executorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
+        Future<Integer> totalCountFuture = executorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime));
+        Future<Integer> rollBackCountFuture = executorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
 
         ConflictRowsLogCountView view = new ConflictRowsLogCountView();
         Integer totalCount = null;
