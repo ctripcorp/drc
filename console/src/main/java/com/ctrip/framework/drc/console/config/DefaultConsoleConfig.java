@@ -114,7 +114,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
     private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conflict.log.query.time.interval";
     private static String TABLE_STRUCTURE_CHECK_SWITCH = "table.structure.check.switch";
-    
+    private static String DB_REPLICATION_CONSISTENCY_CHECK_SWITCH = "db.replication.consistency.check.switch";
+
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
@@ -547,5 +548,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getConflictLogRecordSwitch() {
         return getBooleanProperty(CONFLICT_LOG_RECORD_SWITCH, true);
+    }
+
+    public boolean getDbReplicationConsistencyCheckSwitch() {
+        return getBooleanProperty(DB_REPLICATION_CONSISTENCY_CHECK_SWITCH, true);
     }
 }
