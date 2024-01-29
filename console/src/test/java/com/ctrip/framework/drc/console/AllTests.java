@@ -37,6 +37,7 @@ import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.AutoIncrementCheckTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.ConflictRowsLogCountTaskTest;
+import com.ctrip.framework.drc.console.monitor.task.ShardedDbReplicationConsistencyCheckTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.TableStructureCheckTaskTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParamTest;
@@ -185,6 +186,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MqDelayMonitorServerTest.class,
         AutoIncrementCheckTaskTest.class,
         TableStructureCheckTaskTest.class,
+        ShardedDbReplicationConsistencyCheckTaskTest.class,
         MultiTruncateMonitorTest.class,
         ConflictRowsLogCountTaskTest.class,
 
