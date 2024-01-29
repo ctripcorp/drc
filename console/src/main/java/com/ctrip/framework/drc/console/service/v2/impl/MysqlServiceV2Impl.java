@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVoApiResult;
 import com.ctrip.framework.drc.console.vo.check.v2.StatementExecutorApResult;
+import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
@@ -249,15 +250,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
      * key: tableName, values: columns
      */
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/tableColumns", httpType = HttpRequestEnum.POST, requestClass = DbFilterReq.class)
+    @PossibleRemote(path = "/api/drc/v2/mysql/tableColumns", httpType = HttpRequestEnum.POST, requestClass = DbFilterReq.class, responseType = TableColumnsApiResult.class)
     public Map<String, Set<String>> getTableColumns(DbFilterReq requestBody) {
+        Map<String, Set<String>> result = null;
         logger.info("getTableColumns requestBody: {}", requestBody);
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
         if (endpoint == null) {
             logger.error("getTableColumns from mha: {}, db not exit", requestBody.getMha());
-            return null;
+        } else {
+            result = MySqlUtils.getTableColumns(endpoint, requestBody.getDbFilter());
         }
-        return MySqlUtils.getTableColumns(endpoint, requestBody.getDbFilter());
+        return result;
     }
 
     @Override

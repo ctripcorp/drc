@@ -50,6 +50,7 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalServiceTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogManagerTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogServiceTest;
+import com.ctrip.framework.drc.console.service.log.DbBlacklistCacheTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.MigrationTaskManagerTest;
@@ -153,6 +154,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaDbReplicationServiceImplTest.class,
         MysqlServiceV2ImplTest.class,
         CentralServiceImplTest.class,
+        DbBlacklistCacheTest.class,
 //
         // controller
         OperationLogControllerTest.class,
