@@ -41,4 +41,15 @@ public class MessengerNotifierTest extends AbstractNotifierTest {
 
         }
     }
+    @Test
+    public void testGetDelayMonitorRegex(){
+        //
+        String db1 = messengerNotifier.getDelayMonitorRegex(ApplyMode.db_mq.getType(), "db1");
+        Assert.assertEquals("drcmonitordb\\.(dly_db1)", db1);
+        System.out.println(db1);
+        //
+        String db2 = messengerNotifier.getDelayMonitorRegex(ApplyMode.mq.getType(), null);
+        Assert.assertEquals("drcmonitordb\\.(delaymonitor)", db2);
+        System.out.println(db2);
+    }
 }
