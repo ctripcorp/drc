@@ -188,6 +188,7 @@ public class PojoBuilder {
             tbl.setDbName("db" + i);
             tbl.setId(Long.valueOf(i));
             tbl.setDbOwner("dbOwner" + i);
+            tbl.setEmailGroup("test@trip.com");
             tbls.add(tbl);
         }
 

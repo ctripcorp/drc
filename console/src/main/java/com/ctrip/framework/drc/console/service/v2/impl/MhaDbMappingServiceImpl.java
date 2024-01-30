@@ -14,10 +14,13 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -52,8 +55,11 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
+    @Autowired
+    private DbaApiService dbaApiService;
 
     private static final String DRC = "drc";
+    private static final String DAL_CLUSTER = "_dalcluster";
 
     @Override
     public Pair<List<String>, List<String>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
@@ -297,6 +303,26 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
             return Pair.of(dbTblsTobeDeleted.size(), 0);
         }
         return Pair.of(0, 0);
+    }
+
+    @Override
+    public ConfigDbView configEmailGroupForDb(String dalCluster, String emailGroup) throws Exception {
+        List<String> dbNames;
+        if (dalCluster.endsWith(DAL_CLUSTER)) {
+            List<DbClusterInfoDto> list = dbaApiService.getDatabaseClusterInfoList(dalCluster);
+            if (CollectionUtils.isEmpty(list)) {
+                return new ConfigDbView();
+            }
+            dbNames = list.stream().map(DbClusterInfoDto::getDbName).distinct().collect(Collectors.toList());
+        } else {
+            dbNames = Lists.newArrayList(dalCluster);
+        }
+
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
+        dbTbls.stream().forEach(tbl -> tbl.setEmailGroup(emailGroup));
+        dbTblDao.update(dbTbls);
+        List<String> dbList = dbTbls.stream().map(DbTbl::getDbName).collect(Collectors.toList());
+        return new ConfigDbView(dbList, dbList.size());
     }
 
     private List<MhaDbMappingTbl> copyFrom(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) {
