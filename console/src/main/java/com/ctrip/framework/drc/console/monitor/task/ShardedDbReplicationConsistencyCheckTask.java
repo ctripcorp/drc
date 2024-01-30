@@ -80,24 +80,24 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist().stream().filter(e -> mappingIds.contains(e.getId())).collect(Collectors.toList());
         List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryAllExist();
         List<DcTbl> dcTbls = dcTblDao.queryAllExist();
-        Map<Long, String> dcNameMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
+        Map<Long, String> regionNameMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getRegionName));
         List<DbTbl> dbTbls = dbTblDao.queryAllExist();
         Map<Long, String> dbIdToNameMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
-        Map<Long, String> mhaIdToDcName = mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> dcNameMap.get(e.getDcId())));
-        Map<Long, String> mappingIdToDcNameMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> mhaIdToDcName.get(e.getMhaId())));
+        Map<Long, String> mhaIdToRegionName = mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> regionNameMap.get(e.getDcId())));
+        Map<Long, String> mappingIdToRegionNameMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> mhaIdToRegionName.get(e.getMhaId())));
         Map<Long, String> mappingIdToDbNameMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> dbIdToNameMap.get(e.getDbId())));
 
 
         Map<String, Long> dalClusterToDbCount = dbTbls.stream().filter(e -> !e.getDbName().toLowerCase().contains(SHARDBASEDB)).collect(Collectors.groupingBy(e -> getDalClusterName(e.getDbName()), Collectors.counting()));
         // db to db
         Map<RouteDo, List<DbReplicationTbl>> dbToDbReplications = dbReplicationTbls.stream().filter(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType())).collect(
-                Collectors.groupingBy(e -> new RouteDo(mappingIdToDcNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToDcNameMap.get(e.getDstMhaDbMappingId())))
+                Collectors.groupingBy(e -> new RouteDo(mappingIdToRegionNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToRegionNameMap.get(e.getDstMhaDbMappingId())))
         );
         checkDbReplicationConsistency(this.convertToReplicationDoMap(mappingIdToDbNameMap, dbToDbReplications), dalClusterToDbCount);
 
         // db to mq
         Map<RouteDo, List<DbReplicationTbl>> dbToMqReplications = dbReplicationTbls.stream().filter(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType())).collect(
-                Collectors.groupingBy(e -> new RouteDo(mappingIdToDcNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToDcNameMap.get(e.getDstMhaDbMappingId())))
+                Collectors.groupingBy(e -> new RouteDo(mappingIdToRegionNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToRegionNameMap.get(e.getDstMhaDbMappingId())))
         );
         checkDbReplicationConsistency(this.convertToReplicationDoMap(mappingIdToDbNameMap, dbToMqReplications), dalClusterToDbCount);
     }
@@ -181,12 +181,12 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
     }
 
     static class RouteDo {
-        String srcDcName;
-        String dstDcName;
+        String srcRegionName;
+        String dstRegionName;
 
-        public RouteDo(String srcDcName, String dstDcName) {
-            this.srcDcName = srcDcName;
-            this.dstDcName = dstDcName;
+        public RouteDo(String srcRegionName, String dstRegionName) {
+            this.srcRegionName = srcRegionName;
+            this.dstRegionName = dstRegionName;
         }
 
         @Override
@@ -194,20 +194,20 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
             if (this == o) return true;
             if (!(o instanceof RouteDo)) return false;
             RouteDo routeDo = (RouteDo) o;
-            return Objects.equals(srcDcName, routeDo.srcDcName) && Objects.equals(dstDcName, routeDo.dstDcName);
+            return Objects.equals(srcRegionName, routeDo.srcRegionName) && Objects.equals(dstRegionName, routeDo.dstRegionName);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(srcDcName, dstDcName);
+            return Objects.hash(srcRegionName, dstRegionName);
         }
 
         @Override
         public String toString() {
-            if (StringUtils.isEmpty(dstDcName)) {
-                return srcDcName;
+            if (StringUtils.isEmpty(dstRegionName)) {
+                return srcRegionName;
             } else {
-                return srcDcName + "->" + dstDcName;
+                return srcRegionName + "->" + dstRegionName;
             }
         }
     }
