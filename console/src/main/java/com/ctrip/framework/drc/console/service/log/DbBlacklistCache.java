@@ -1,10 +1,13 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -13,6 +16,8 @@ import java.util.List;
  */
 @Component
 public class DbBlacklistCache implements InitializingBean {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ConflictLogService conflictLogService;
@@ -28,8 +33,12 @@ public class DbBlacklistCache implements InitializingBean {
         return blacklist;
     }
 
-    public void refresh() {
-        blacklist = conflictLogService.queryBlackList();
+    public void refresh() throws SQLException {
+        try {
+            blacklist = conflictLogService.queryBlackList();
+        } catch (SQLException e) {
+            logger.error("refresh blacklist error", e);
+        }
     }
 
 }
