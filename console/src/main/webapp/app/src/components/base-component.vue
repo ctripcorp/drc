@@ -160,6 +160,7 @@ export default {
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
       case '/conflictLog':
+      case '/dbBlacklist':
       case '/v2/operationlog':
       case '/monitor':
         this.openNames = ['1']

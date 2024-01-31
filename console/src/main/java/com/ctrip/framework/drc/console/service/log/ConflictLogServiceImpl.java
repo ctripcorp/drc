@@ -19,8 +19,9 @@ import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistDto;
 import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -40,8 +41,6 @@ import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -544,7 +543,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, LogBlackListType type, Timestamp expirationTime) throws SQLException {
+    public void addDbBlacklist(String dbFilter, CflBlacklistType type, Timestamp expirationTime) throws SQLException {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
@@ -561,6 +560,25 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
+        dbBlacklistCache.refresh();
+    }
+
+    @Override
+    public void updateDbBlacklist(ConflictDbBlacklistDto dto) throws SQLException {
+        if (dto.getId() == null || dto.getId() == 0) {
+            throw ConsoleExceptionUtils.message("db blacklist id is null");
+        }
+        ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        if (dto.getExpirationTime() == null) {
+            int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(CflBlacklistType.getByCode(dto.getType()));
+            tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
+        } else {
+            tbl.setExpirationTime(new Timestamp(dto.getExpirationTime()));
+        }
+        tbl.setId(dto.getId());
+        tbl.setDbFilter(dto.getDbFilter());
+        tbl.setType(dto.getType());
+        conflictDbBlackListTblDao.update(tbl);
         dbBlacklistCache.refresh();
     }
 
@@ -584,6 +602,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setDbFilter(source.getDbFilter());
             target.setType(source.getType());
             target.setCreateTime(DateUtils.longToString(source.getCreateTime().getTime()));
+            target.setExpirationTime(source.getExpirationTime() == null ? "" : DateUtils.longToString(source.getExpirationTime().getTime()));
 
             return target;
         }).collect(Collectors.toList());

@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -37,6 +39,8 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Autowired
     private DomainConfig domainConfig;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
     private UserService userService = ApiContainer.getUserServiceImpl();
 
 
@@ -140,4 +144,74 @@ public class DbaApiServiceImpl implements DbaApiService {
         }
         return res;
     }
+
+    /**
+     * {
+     *     "access_token":"...",
+     *     "request_body":
+     *     {
+     *   "db_name":"db",
+     *   "table_name":"table",
+     *   "begin_time":"2024-01-22 14:05",
+     *   "end_time":"2024-01-29 14:05"
+     * }
+     * }
+     * {
+     *     "success": true,
+     *     "content": {
+     *         "seeks": 1,
+     *         "scans": 2,
+     *         "insert": 3,
+     *         "update": 0,
+     *         "delete": 0
+     *     }
+     * }
+     * @return
+     */
+    
+    @Override
+    public boolean everUserTraffic(String region, String dbName, String tableName, long startTime, long endTime, boolean includeRead) {
+        String token;
+        String url;
+        boolean isOverSea = consoleConfig.getCenterRegion().equalsIgnoreCase(region);
+        if (isOverSea) {
+            token = domainConfig.getOverSeaUserDMLQueryToken();
+            url = domainConfig.getOverSeaUserDMLQueryUrl();
+        } else {
+            token = domainConfig.getCenterRegionUserDMLCountQueryToken();
+            url = domainConfig.getCenterRegionUserDMLCountQueryUrl();
+        }
+        LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
+        request.put("access_token", token);
+        request.put("request_body", requestBody);
+        requestBody.put("db_name", dbName);
+        requestBody.put("table_name", tableName);
+        requestBody.put("begin_time", DateUtils.longToString(startTime, "yyyy-MM-dd HH:mm"));
+        requestBody.put("endTime", DateUtils.longToString(endTime, "yyyy-MM-dd HH:mm"));
+
+        String responseString = HttpUtils.post(url, request, String.class);
+        JsonObject jsonObject = JsonUtils.parseObject(responseString);
+        boolean success = jsonObject.get("success").getAsBoolean();
+        if (success) {
+            if (isOverSea) {
+                return jsonObject.get("data").getAsBoolean(); // todo hdpan  
+            }
+            JsonObject content = jsonObject.get("content").getAsJsonObject();
+            int seeks = content.get("seeks").getAsInt();
+            int scans = content.get("scans").getAsInt();
+            int insert = content.get("insert").getAsInt();
+            int update = content.get("update").getAsInt();
+            int delete = content.get("delete").getAsInt();
+            if (includeRead) {
+                return seeks > 0 || scans > 0 || insert > 0 || update > 0 || delete > 0;
+            } else {
+                return insert > 0 || update > 0 || delete > 0;
+            }
+        } else {
+            return false;
+        }
+    }
+    
+    
 }

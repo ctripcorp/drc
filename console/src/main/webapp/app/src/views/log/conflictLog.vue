@@ -2,6 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem to="/conflictLog">冲突处理</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Tabs v-model="tabValue">

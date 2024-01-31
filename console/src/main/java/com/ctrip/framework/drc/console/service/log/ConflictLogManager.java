@@ -7,12 +7,12 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.service.email.Email;
@@ -55,6 +55,10 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private ConflictDbBlackListTblDao cflLogBlackListTblDao;
+    @Autowired
+    private DbBlacklistCache dbBlacklistCache;
+    @Autowired
+    private DbaApiService dbaApiService;
 
     private static final int INITIAL_DELAY = 30;
     private static final int PERIOD = 60;
@@ -67,9 +71,9 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     protected final Map<String,Integer> tableAlarmCountMap = Maps.newHashMap();
     protected final Map<String,Integer> tableAlarmCountHourlyMap = Maps.newHashMap();
     
-    protected int periodCount = 0;
-    private boolean isBlacklistProcessPeriod = false;
-    private boolean isClearAlarmCountMapPeriod = false;
+    protected int minuteCount = 0;
+    private boolean isOverOneHour = false;
+    private boolean isOverOneDay = false;
     
     
     
@@ -84,14 +88,19 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     public void scheduledTask() {
         try {
             periodCalculate();
-            if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-                logger.info("[[task=ConflictLogManager]]not a leader do nothing");
+            // todo hdpan  临时关闭
+//            if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+//                logger.info("[[task=ConflictLogManager]]not a leader do nothing");
+//                return; 
+//            }
+            boolean test = false;
+            if (test) {
                 return;
             }
             logger.info("[[task=ConflictLogManager]] leader,scheduledTask");
             catMonitor.logTransaction("ConflictLogManager", "checkConflict", this::checkConflictCount);
-            catMonitor.logTransaction("ConflictLogManager", "clearUserBlackList", this::processBlackList);
-            if (!isBlacklistProcessPeriod) {
+            catMonitor.logTransaction("ConflictLogManager", "clearUserBlackList", this::clearBlacklist);
+            if (!isOverOneHour) {
                 return;
             }
             catMonitor.logTransaction("ConflictLogManager", "addAlarmHotspotTable", this::addAlarmHotspotTablesToBlacklist);
@@ -101,11 +110,11 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     }
 
     private void periodCalculate() {
-        periodCount++;
-        isBlacklistProcessPeriod = periodCount % 60 == 0;
-        isClearAlarmCountMapPeriod = periodCount % (60*24) == 0;
-        if (isClearAlarmCountMapPeriod) {
-            periodCount = 0;
+        minuteCount++;
+        isOverOneHour = minuteCount % 60 == 0;
+        isOverOneDay = minuteCount % (60*24) == 0;
+        if (isOverOneDay) {
+            minuteCount = 0;
         }
     }
     
@@ -119,47 +128,50 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         // doNothing
     }
 
-    private void processBlackList() throws SQLException {
-        List<ConflictDbBlackListTbl> cflBlackLists = cflLogBlackListTblDao.queryAll();
+    private void clearBlacklist() throws SQLException {
+        List<ConflictDbBlackListTbl> cflBlackLists = cflLogBlackListTblDao.queryAllExist();
         if (cflBlackLists == null || cflBlackLists.isEmpty()) {
             return;
         }
        
-        Map<LogBlackListType, List<ConflictDbBlackListTbl>> typeListMap = Maps.newHashMap();
+        Map<CflBlacklistType, List<ConflictDbBlackListTbl>> typeListMap = Maps.newHashMap();
         for (ConflictDbBlackListTbl cflBlackList : cflBlackLists) {
-            LogBlackListType type = LogBlackListType.getByCode(cflBlackList.getType());
+            CflBlacklistType type = CflBlacklistType.getByCode(cflBlackList.getType());
             List<ConflictDbBlackListTbl> list = typeListMap.getOrDefault(type,Lists.newArrayList());
             list.add(cflBlackList);
             typeListMap.put(type, list);
         }
         
-        for (Map.Entry<LogBlackListType, List<ConflictDbBlackListTbl>> entry : typeListMap.entrySet()) {
-            LogBlackListType type = entry.getKey();
+        boolean everClear = false;
+        for (Map.Entry<CflBlacklistType, List<ConflictDbBlackListTbl>> entry : typeListMap.entrySet()) {
+            CflBlacklistType type = entry.getKey();
             List<ConflictDbBlackListTbl> list = entry.getValue();
-            if (type == LogBlackListType.USER || type == LogBlackListType.NEW_CONFIG || type == LogBlackListType.DBA_JOB || type == LogBlackListType.ALARM_HOTSPOT) {
-                initBlackListWithOutExpirationTime(list, type);
-            } 
-            clearExpiredBlackList(list, type);
+            initBlackListWithOutExpirationTime(list, type);
+            everClear |= clearExpiredBlackList(list, type);
+        }
+        if (everClear) {
+            dbBlacklistCache.refresh();
         }
     }
     
     // for init data with no expirationTime
-    private void initBlackListWithOutExpirationTime(List<ConflictDbBlackListTbl> blackLists, LogBlackListType type) throws SQLException {
+    private void initBlackListWithOutExpirationTime(List<ConflictDbBlackListTbl> blackLists, CflBlacklistType type) throws SQLException {
         for (ConflictDbBlackListTbl blackListTbl : blackLists) {
-            if (blackListTbl.getExpirationTime() == null) {
-                Timestamp createTime = blackListTbl.getCreateTime();
-                if (createTime == null) {
-                    continue;
-                }
-                int expirationHour = domainConfig.getBlacklistExpirationHour(type);
-                Timestamp expirationTime = new Timestamp(createTime.getTime() + (long) expirationHour * 60 * 60 * 1000);
-                blackListTbl.setExpirationTime(expirationTime);
-                cflLogBlackListTblDao.update(blackListTbl);
+            if (blackListTbl.getExpirationTime() != null) {
+                continue;
             }
+            if (type == CflBlacklistType.USER) {
+                continue; // skip user blacklist config without expirationTime
+            }
+            int expirationHour = domainConfig.getBlacklistExpirationHour(type);
+            Timestamp expirationTime = new Timestamp(blackListTbl.getCreateTime().getTime() + (long) expirationHour * 60 * 60 * 1000);
+            blackListTbl.setExpirationTime(expirationTime);
+            logger.info("init expirationTime ,type={}, blacklist={},expirationTime={}", type, blackListTbl,expirationTime);
+            cflLogBlackListTblDao.update(blackListTbl);
         }
     }
     
-    private void clearExpiredBlackList(List<ConflictDbBlackListTbl> allBlackList,LogBlackListType type) throws SQLException {
+    private boolean clearExpiredBlackList(List<ConflictDbBlackListTbl> allBlackList, CflBlacklistType type) throws SQLException {
         List<ConflictDbBlackListTbl> toBeDelete = Lists.newArrayList();
         for (ConflictDbBlackListTbl cflBlackList : allBlackList) {
             Timestamp expirationTime = cflBlackList.getExpirationTime();
@@ -167,12 +179,15 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 continue;
             }
             if (expirationTime.before(new Timestamp(System.currentTimeMillis()))) {
+                logger.info("blacklist expire, type={}, blacklist={},expirationTime={}", type, cflBlackList,expirationTime);
                 toBeDelete.add(cflBlackList);
             }
         }
         if (domainConfig.getBlacklistClearSwitch(type)) {
             deleteBlackListByBatch(toBeDelete);
+            return true;
         }
+        return false;
     }
     
     private void deleteBlackListByBatch(List<ConflictDbBlackListTbl> toBeDelete) throws SQLException {
@@ -185,11 +200,11 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         int mod = size % 100;
         for (int i = 0; i < batchCount; i++) {
             List<ConflictDbBlackListTbl> subList = toBeDelete.subList(i * 100, (i + 1) * 100);
-            cflLogBlackListTblDao.delete(subList);
+            cflLogBlackListTblDao.batchDelete(subList);
         }
         if (mod > 0) {
             List<ConflictDbBlackListTbl> subList = toBeDelete.subList(batchCount * 100, size);
-            cflLogBlackListTblDao.delete(subList);
+            cflLogBlackListTblDao.batchDelete(subList);
         }
     }
 
@@ -201,20 +216,20 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             tableAlarmCountMap.put(table, totalCount + hourlyCount);
         }
         tableAlarmCountHourlyMap.clear();
-        
+
         for (Map.Entry<String, Integer> entry : tableAlarmCountMap.entrySet()) {
             String table = entry.getKey();
             Integer count = entry.getValue();
             if (count >= domainConfig.getBlacklistAlarmHotspotThreshold()) {
                 logger.info("[[task=ConflictAlarm]]table:{} alarm too many times:{},add to blacklist", table, count);
                 try {
-                    conflictLogService.addDbBlacklist(table, LogBlackListType.ALARM_HOTSPOT,null);
+                    conflictLogService.addDbBlacklist(table, CflBlacklistType.ALARM_HOTSPOT,null);
                 } catch (SQLException e) {
                     logger.error("[[task=ConflictAlarm]]{},add ALARM_HOTSPOT Blacklist error", table,e);
                 }
             }
         }
-        if (isClearAlarmCountMapPeriod) {
+        if (isOverOneDay) {
             tableAlarmCountMap.clear();
         }
     }
@@ -255,9 +270,15 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 if (isTriggerAlarmTooManyTimesAnHour(db,table) || !domainConfig.getConflictAlarmSendEmailSwitch()) {
                     continue;
                 }
-                // todo check table has use traffic or not, if not don't alarm and add to blacklist
-                
-                Email email = generateEmail(db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
+                long currentTimeMillis = System.currentTimeMillis();
+                long pastTime = currentTimeMillis - 1000 * 60 * 60 * 24 * 7; // one week
+//                boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
+                boolean everUserTraffic = false; // todo hdpan for test ,add blacklist when no user traffic 3 days
+                Email email = generateEmail(everUserTraffic,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
+                if (!everUserTraffic) {
+                    conflictLogService.addDbBlacklist(table, CflBlacklistType.NO_USER_TRAFFIC,null);
+                    dbBlacklistCache.refresh();
+                }
                 EmailResponse emailResponse = emailService.sendEmail(email);
                 if (emailResponse.isSuccess()) {
                     logger.info("[[task=ConflictAlarm]]send email success, db:{}, table:{}, count:{}", db, table, count);
@@ -276,7 +297,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     }
     
    
-    private Email generateEmail(String db, String table, String srcMha, String dstMha, String srcRegion, String dstRegion, ConflictCountType type, Long count) throws SQLException{
+    private Email generateEmail(boolean everUserTraffic,String db, String table, String srcMha, String dstMha, String srcRegion, String dstRegion, ConflictCountType type, Long count) throws SQLException{
         List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(db));
         if (dbTbls.isEmpty()) {
             logger.error("[[task=ConflictAlarm]]db:{} not found in drc", db);
@@ -285,7 +306,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
-        if (domainConfig.getConflictAlarmSendDBOwnerSwitch()) {
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && everUserTraffic) {
             email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
         } else {

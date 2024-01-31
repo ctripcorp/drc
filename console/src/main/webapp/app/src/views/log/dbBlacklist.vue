@@ -3,6 +3,7 @@
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
       <BreadcrumbItem to="/conflictLog">冲突处理</BreadcrumbItem>
+      <BreadcrumbItem to="/dbBlacklist">黑名单</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
@@ -37,8 +38,11 @@
         </Row>
         <Table stripe border :columns="columns" :data="tableData">
           <template slot-scope="{ row, index }" slot="action">
-            <Button type="info" size="small" style="margin-right: 5px" @click="showDetail(row, index)">
+            <Button type="success" size="small" style="margin-right: 5px" @click="showDetail(row, index)">
               详情
+            </Button>
+            <Button type="primary" size="small" style="margin-right: 5px" @click="preUpdate(row, index)">
+              修改
             </Button>
             <Button type="error" size="small" style="margin-right: 5px" @click="preDelete(row, index)">
               删除
@@ -89,12 +93,16 @@
         </Modal>
         <Modal
           v-model="createModal"
-          title="新增黑名单"
+          title="黑名单变更"
           width="900px"
-          @on-ok="addBlacklist">
-          <Form style="width: 90%">
+          @on-ok="blacklistChange">
+          <Form style="width: 100%" label-position="right">
             <FormItem label="黑名单">
-              <Input v-model="dbFilter" placeholder="请输入黑名单, 支持正则"/>
+              <Input v-model="dbFilter" placeholder="请输入黑名单, 支持正则" style="width: 500px"/>
+            </FormItem>
+            <FormItem label="过期时间">
+              <DatePicker type="datetime" :editable="false" v-model="dbFilterExpirationTime"
+                          :clearable="false" placeholder="请选择黑名单过期时间"></DatePicker>
             </FormItem>
           </Form>
         </Modal>
@@ -135,7 +143,10 @@ export default {
               text = 'DBA'
               color = 'success'
             } else if (type === 3) {
-              text = '告警'
+              text = '告警无处理'
+              color = 'volcano'
+            } else if (type === 4) {
+              text = '告警无流量'
               color = 'volcano'
             } else {
               text = '未知'
@@ -149,6 +160,11 @@ export default {
           }
         },
         {
+          title: '过期时间',
+          key: 'expirationTime',
+          width: 180
+        },
+        {
           title: '修改时间',
           key: 'createTime',
           width: 180
@@ -157,7 +173,7 @@ export default {
           title: '操作',
           slot: 'action',
           align: 'center',
-          width: 150
+          width: 200
         }
       ],
       // page
@@ -167,6 +183,7 @@ export default {
       // get from backend
       tableData: [],
       deleteModal: false,
+      isUpdate: false,
       createModal: 'this.$route.query'.createModal === true || this.$route.query.createModal === 'true',
       detailModal: false,
       detail: '',
@@ -185,8 +202,12 @@ export default {
           val: 2
         },
         {
-          name: '告警',
+          name: '告警无处理',
           val: 3
+        },
+        {
+          name: '告警无流量',
+          val: 4
         }
       ],
       queryParam: {
@@ -197,7 +218,10 @@ export default {
           pageIndex: 1
         }
       },
+      blacklistId: 0,
+      blacklistType: 0,
       dbFilter: this.$route.query.dbFilter,
+      dbFilterExpirationTime: null,
       dataLoading: true
     }
   },
@@ -269,6 +293,14 @@ export default {
       this.detail = row.dbFilter
       this.detailModal = true
     },
+    preUpdate (row, index) {
+      this.blacklistId = row.id
+      this.blacklistType = row.type
+      this.dbFilter = row.dbFilter
+      this.dbFilterExpirationTime = row.expirationTime
+      this.isUpdate = true
+      this.createModal = true
+    },
     preDelete (row, index) {
       this.deleteDbFilter = row.dbFilter
       this.deleteModal = true
@@ -287,11 +319,47 @@ export default {
       })
     },
     preAdd () {
-      this.createModal = true
+      this.isUpdate = false
       this.dbFilter = ''
+      this.dbFilterExpirationTime = null
+      this.createModal = true
+    },
+    blacklistChange () {
+      if (this.isUpdate) {
+        this.updateBlacklist()
+      } else {
+        this.addBlacklist()
+      }
+    },
+    updateBlacklist () {
+      const expirationTime = new Date(this.dbFilterExpirationTime).getTime()
+      if (isNaN(expirationTime)) {
+        this.$Message.warning('过期时间为空或格式不正确')
+        return
+      }
+      const params = {
+        id: this.blacklistId,
+        type: this.blacklistType,
+        dbFilter: this.dbFilter,
+        expirationTime: expirationTime
+      }
+      this.axios.put('/api/drc/v2/log/conflict/db/blacklist', params).then(res => {
+        if (res.data.status === 0) {
+          this.$Message.success('修改成功')
+          this.createModal = false
+          this.getData()
+        } else {
+          this.$Message.warning('修改失败 ' + res.data.message)
+        }
+      })
     },
     addBlacklist () {
-      this.axios.post('/api/drc/v2/log/conflict/db/blacklist/?dbFilter=' + this.dbFilter).then(res => {
+      const expirationTime = new Date(this.dbFilterExpirationTime).getTime()
+      if (isNaN(expirationTime)) {
+        this.$Message.warning('过期时间为空或格式不正确')
+        return
+      }
+      this.axios.post('/api/drc/v2/log/conflict/db/blacklist/?dbFilter=' + this.dbFilter + '&expirationTime=' + expirationTime).then(res => {
         if (res.data.status === 0) {
           this.$Message.success('新增成功')
           this.createModal = false
