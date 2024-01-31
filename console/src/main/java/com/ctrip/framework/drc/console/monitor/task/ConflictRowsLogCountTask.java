@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -21,6 +22,7 @@ import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -242,13 +244,17 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=ConflictRowsLogCountTask]] db: {} not exist", dbName);
             return null;
         }
+        DbTbl dbTbl = dbTbls.get(0);
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
         boolean inBlacklist = conflictLogService.isInBlackListWithCache(dbName, tableName);
         if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && !inBlacklist) {
-            email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
+            email.addRecipient(dbTbl.getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
+            if (StringUtils.isNotBlank(dbTbl.getEmailGroup())) {
+                email.addCc(dbTbl.getEmailGroup());
+            }
         } else {
             domainConfig.getConflictAlarmCCEmails().forEach(email::addRecipient);
         }
@@ -263,7 +269,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         String dbFilter = dbName + "\\." + tableName;
         email.addContentKeyValue("加入黑名单", domainConfig.getCflAddBlacklistUrl() + "&dbFilter=" + dbFilter + "\n");
         return email;
-
     }
 
     private void reportTotalCount() {

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
@@ -27,4 +28,6 @@ public interface MhaDbMappingService {
     
     // tmp api
     Pair<Integer,Integer> removeDuplicateDbTblWithoutMhaDbMapping(boolean executeDelete) throws SQLException;
+
+    ConfigDbView configEmailGroupForDb(String dalCluster, String emailGroup) throws Exception;
 }

@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
@@ -21,6 +22,7 @@ import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -245,12 +247,16 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             logger.error("[[task=ConflictAlarm]]db:{} not found in drc", db);
             return null;
         }
+        DbTbl dbTbl = dbTbls.get(0);
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
         if (domainConfig.getConflictAlarmSendDBOwnerSwitch()) {
-            email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
+            email.addRecipient(dbTbl.getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
+            if (StringUtils.isNotBlank(dbTbl.getEmailGroup())) {
+                email.addCc(dbTbl.getEmailGroup());
+            }
         } else {
             domainConfig.getConflictAlarmCCEmails().forEach(email::addRecipient);
         }

@@ -1355,18 +1355,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public List<AviatorRegexFilter> queryBlackList() {
-        try {
-            List<AviatorRegexFilter> blackList = new ArrayList<>();
-            List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
-            for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
-                blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
-            }
-            return blackList;
-        } catch (Exception e) {
-            logger.error("queryBlackList error", e);
-            return Collections.emptyList();
+    public List<AviatorRegexFilter> queryBlackList() throws SQLException {
+        List<AviatorRegexFilter> blackList = new ArrayList<>();
+        List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
+        for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
+            blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
         }
+        return blackList;
     }
 
     private class ColumnsFilterAndIndexColumn {

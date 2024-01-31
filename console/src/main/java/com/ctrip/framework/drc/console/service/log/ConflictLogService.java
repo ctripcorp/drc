@@ -64,6 +64,6 @@ public interface ConflictLogService {
 
     ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception;
 
-    List<AviatorRegexFilter> queryBlackList();
+    List<AviatorRegexFilter> queryBlackList() throws SQLException;
 
 }

@@ -89,6 +89,18 @@ public class DbTbl implements DalPojo {
 	@Type(value = Types.TINYINT)
 	private Integer isDrc;
 
+	@Column(name = "email_group")
+	@Type(value = Types.VARCHAR)
+	private String emailGroup;
+
+	public String getEmailGroup() {
+		return emailGroup;
+	}
+
+	public void setEmailGroup(String emailGroup) {
+		this.emailGroup = emailGroup;
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -182,6 +194,7 @@ public class DbTbl implements DalPojo {
 				", datachangeLasttime=" + datachangeLasttime +
 				", trafficSendLastTime=" + trafficSendLastTime +
 				", isDrc=" + isDrc +
+				", emailGroup='" + emailGroup + '\'' +
 				'}';
 	}
 }
