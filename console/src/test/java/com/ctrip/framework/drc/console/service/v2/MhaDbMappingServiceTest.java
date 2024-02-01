@@ -8,8 +8,12 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaDbMappingServiceImpl;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
@@ -49,6 +53,8 @@ public class MhaDbMappingServiceTest {
     private MetaInfoServiceV2 metaInfoServiceV2;
     @Mock
     private MhaTblV2Dao mhaTblV2Dao;
+    @Mock
+    private DbaApiService dbaApiService;
 
     @Before
     public void setUp() throws Exception {
@@ -124,6 +130,17 @@ public class MhaDbMappingServiceTest {
         List<MhaDbMappingTbl> r3 = mhaDbMappingService.query(query);
         Assert.assertNotEquals(0,r3.size());
 
+    }
+
+    @Test
+    public void testConfigEmailGroupForDb() throws Exception {
+        Mockito.when(dbaApiService.getDatabaseClusterInfoList(Mockito.anyString())).thenReturn(Lists.newArrayList(new DbClusterInfoDto("db", new ArrayList<>())));
+        Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
+        Mockito.when(dbTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        ConfigDbView result = mhaDbMappingService.configEmailGroupForDb("db_dalcluster", "email");
+        Assert.assertEquals(result.getSize(), 2);
+        result = mhaDbMappingService.configEmailGroupForDb("db", "email");
+        Assert.assertEquals(result.getSize(), 2);
     }
 
     private static List<MhaDbMappingTbl> getMhaDbMappingTbls() {

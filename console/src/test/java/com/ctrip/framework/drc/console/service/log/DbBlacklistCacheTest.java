@@ -29,8 +29,10 @@ public class DbBlacklistCacheTest {
     }
 
     @Test
-    public void testGetDbBlacklistInCache() {
+    public void testGetDbBlacklistInCache() throws Exception {
         Mockito.when(conflictLogService.queryBlackList()).thenReturn(Lists.newArrayList(new AviatorRegexFilter("test")));
+        dbBlacklistCache.afterPropertiesSet();
+
         List<AviatorRegexFilter> res = dbBlacklistCache.getDbBlacklistInCache();
 //        System.out.println(res);
         Assert.assertEquals(res.get(0).toString(), new AviatorRegexFilter("test").toString());

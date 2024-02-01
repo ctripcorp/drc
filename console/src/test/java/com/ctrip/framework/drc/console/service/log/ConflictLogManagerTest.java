@@ -144,6 +144,7 @@ public class ConflictLogManagerTest {
     private List<DbTbl> getDbTbls() {
         DbTbl dbTbl = new DbTbl();
         dbTbl.setDbOwner("dbOwner1");
+        dbTbl.setEmailGroup("test@trip.com");
         return Lists.newArrayList(dbTbl);
     }
     
