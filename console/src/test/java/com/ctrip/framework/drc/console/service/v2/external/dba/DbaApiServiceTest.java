@@ -1,17 +1,19 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockStatic;
+
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.google.common.collect.Maps;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -21,14 +23,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
 
 public class DbaApiServiceTest {
 
