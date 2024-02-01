@@ -137,7 +137,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 logger.info("[[task=ConflictAlarm]]table:{} alarm too many times:{},add to blacklist", table, count);
                 try {
                     conflictLogService.addDbBlacklist(table, LogBlackListType.ALARM_HOTSPOT);
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     logger.error("[[task=ConflictAlarm]]{},add ALARM_HOTSPOT Blacklist error", table,e);
                 }
             }

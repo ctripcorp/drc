@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.service.log.DbBlacklistCache;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -35,6 +36,8 @@ public class ConflictLogController {
 
     @Autowired
     private ConflictLogService conflictLogService;
+    @Autowired
+    private DbBlacklistCache dbBlacklistCache;
 
     @GetMapping("trx")
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.QUERY,
@@ -249,6 +252,17 @@ public class ConflictLogController {
     public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
         try {
             conflictLogService.addDbBlacklist(dbFilter, LogBlackListType.USER);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("addDbBlacklist error, {}", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("/blacklist/refresh")
+    public ApiResult<Boolean> refreshDbBlacklist() {
+        try {
+            dbBlacklistCache.refresh(false);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addDbBlacklist error, {}", e);

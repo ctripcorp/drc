@@ -143,6 +143,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return regionConfig.getRegion2dcsMapping();
     }
 
+    public Set<String> getCenterRegionDcs() {
+        return getRegion2dcsMapping().getOrDefault(getCenterRegion(), new HashSet<>());
+    }
+
     public Map<String,String> getDc2regionMap (){
         Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         Map<String,String> dc2regionMap = Maps.newHashMap();
