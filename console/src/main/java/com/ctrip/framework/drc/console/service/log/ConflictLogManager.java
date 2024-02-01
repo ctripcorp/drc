@@ -267,10 +267,10 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 if (isTriggerAlarmTooManyTimesAnHour(db,table) || !domainConfig.getConflictAlarmSendEmailSwitch()) {
                     continue;
                 }
-                long currentTimeMillis = System.currentTimeMillis();
-                long pastTime = currentTimeMillis - 1000 * 60 * 60 * 24 * 7; // one week
-                boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
-                Email email = generateEmail(everUserTraffic,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
+//                long currentTimeMillis = System.currentTimeMillis();
+//                long pastTime = currentTimeMillis - 1000 * 60 * 60 * 24 * 7; // one week
+//                boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
+                Email email = generateEmail(true,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
 //                if (!everUserTraffic) {
 //                    conflictLogService.addDbBlacklist(table, CflBlacklistType.NO_USER_TRAFFIC,null);
 //                    dbBlacklistCache.refresh();
