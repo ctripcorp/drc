@@ -272,13 +272,12 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 }
                 long currentTimeMillis = System.currentTimeMillis();
                 long pastTime = currentTimeMillis - 1000 * 60 * 60 * 24 * 7; // one week
-//                boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
-                boolean everUserTraffic = false; // todo hdpan for test ,add blacklist when no user traffic 3 days
+                boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
                 Email email = generateEmail(everUserTraffic,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
-                if (!everUserTraffic) {
-                    conflictLogService.addDbBlacklist(table, CflBlacklistType.NO_USER_TRAFFIC,null);
-                    dbBlacklistCache.refresh();
-                }
+//                if (!everUserTraffic) {
+//                    conflictLogService.addDbBlacklist(table, CflBlacklistType.NO_USER_TRAFFIC,null);
+//                    dbBlacklistCache.refresh();
+//                }
                 EmailResponse emailResponse = emailService.sendEmail(email);
                 if (emailResponse.isSuccess()) {
                     logger.info("[[task=ConflictAlarm]]send email success, db:{}, table:{}, count:{}", db, table, count);
@@ -319,7 +318,6 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         email.addContentKeyValue("监控", domainConfig.getConflictAlarmHickwallUrl() + "&var-mha=" + srcMha);
         email.addContentKeyValue("冲突查询", domainConfig.getConflictAlarmDrcUrl());
         email.addContentKeyValue("冲突用户文档", domainConfig.getCflUserDocumentUrl());
-
         String dbFilter = db + "\\." + table;
         email.addContentKeyValue("加入黑名单", domainConfig.getCflAddBlacklistUrl() + "&dbFilter=" + dbFilter + "\n");
         return email;

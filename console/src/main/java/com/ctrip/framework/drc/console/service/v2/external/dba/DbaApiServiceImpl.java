@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,6 +157,8 @@ public class DbaApiServiceImpl implements DbaApiService {
      *   "end_time":"2024-01-29 14:05"
      * }
      * }
+     * 
+     * center region
      * {
      *     "success": true,
      *     "content": {
@@ -171,6 +174,9 @@ public class DbaApiServiceImpl implements DbaApiService {
     
     @Override
     public boolean everUserTraffic(String region, String dbName, String tableName, long startTime, long endTime, boolean includeRead) {
+        if ("fraaws".equalsIgnoreCase(region)) { // dba api not support fraaws temporarily
+            return true;
+        }
         String token;
         String url;
         boolean isOverSea = consoleConfig.getCenterRegion().equalsIgnoreCase(region);
@@ -188,30 +194,37 @@ public class DbaApiServiceImpl implements DbaApiService {
         requestBody.put("db_name", dbName);
         requestBody.put("table_name", tableName);
         requestBody.put("begin_time", DateUtils.longToString(startTime, "yyyy-MM-dd HH:mm"));
-        requestBody.put("endTime", DateUtils.longToString(endTime, "yyyy-MM-dd HH:mm"));
+        requestBody.put("end_time", DateUtils.longToString(endTime, "yyyy-MM-dd HH:mm"));
 
         String responseString = HttpUtils.post(url, request, String.class);
         JsonObject jsonObject = JsonUtils.parseObject(responseString);
         boolean success = jsonObject.get("success").getAsBoolean();
-        if (success) {
-            if (isOverSea) {
-                return jsonObject.get("data").getAsBoolean(); // todo hdpan  
+        if (isOverSea) {
+            if (!success) { // success means has write or read in overSea api
+                jsonObject.get("content");
+                logger.info("no user traffic, db:{}, table:{}, response: {}", dbName, tableName, responseString);
+                return false;
             }
+            SQLDigestInfo sqlDigestInfo = JsonUtils.fromJson(responseString, SQLDigestInfo.class);
+            String digest_sql = sqlDigestInfo.getContent().getWrite().getDigest_sql();
+            boolean hasWrite = StringUtils.isNotBlank(digest_sql);
+            return includeRead || hasWrite;
+        } 
+        
+        if (success) { // success means api execute success or not in center region
             JsonObject content = jsonObject.get("content").getAsJsonObject();
             int seeks = content.get("seeks").getAsInt();
-            int scans = content.get("scans").getAsInt();
             int insert = content.get("insert").getAsInt();
             int update = content.get("update").getAsInt();
             int delete = content.get("delete").getAsInt();
-            if (includeRead) {
-                return seeks > 0 || scans > 0 || insert > 0 || update > 0 || delete > 0;
-            } else {
-                return insert > 0 || update > 0 || delete > 0;
-            }
+            return includeRead ? seeks > 0 : insert > 0 || update > 0 || delete > 0;
         } else {
+            logger.error("everUserTraffic failed, db:{}, table:{}, response: {}", dbName, tableName, responseString);
             return false;
         }
+        
     }
+    
     
     
 }

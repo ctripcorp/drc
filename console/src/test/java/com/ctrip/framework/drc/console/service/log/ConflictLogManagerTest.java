@@ -61,7 +61,7 @@ public class ConflictLogManagerTest {
     }
     
     @Test
-    public void testScheduleWi() throws Throwable {
+    public void testSchedule() throws Throwable {
         // mock check conflictCount
         Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://hickwall.com");
         Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("opsAccessToken");
