@@ -217,12 +217,13 @@ public class DbaApiServiceImpl implements DbaApiService {
             int insert = content.get("insert").getAsInt();
             int update = content.get("update").getAsInt();
             int delete = content.get("delete").getAsInt();
-            return includeRead ? seeks > 0 : insert > 0 || update > 0 || delete > 0;
+            boolean hasWrite = (insert > 0) || (update > 0) || (delete > 0);
+            boolean hasRead = seeks > 0;
+            return includeRead ? hasRead || hasWrite : hasWrite;
         } else {
             logger.error("everUserTraffic failed, db:{}, table:{}, response: {}", dbName, tableName, responseString);
-            return false;
+            return true;
         }
-        
     }
     
     

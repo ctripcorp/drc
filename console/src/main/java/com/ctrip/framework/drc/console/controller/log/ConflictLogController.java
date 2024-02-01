@@ -250,7 +250,7 @@ public class ConflictLogController {
     @PostMapping("/db/blacklist")
     public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter,@RequestParam long expirationTime) {
         try {
-            conflictLogService.addDbBlacklist(dbFilter, CflBlacklistType.USER,new Timestamp(expirationTime));
+            conflictLogService.addDbBlacklist(dbFilter, CflBlacklistType.USER, expirationTime);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addDbBlacklist error, {}", e);
