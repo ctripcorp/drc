@@ -88,14 +88,9 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     public void scheduledTask() {
         try {
             periodCalculate();
-            // todo hdpan  临时关闭
-//            if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
-//                logger.info("[[task=ConflictLogManager]]not a leader do nothing");
-//                return; 
-//            }
-            boolean test = false;
-            if (test) {
-                return;
+            if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
+                logger.info("[[task=ConflictLogManager]]not a leader do nothing");
+                return; 
             }
             logger.info("[[task=ConflictLogManager]] leader,scheduledTask");
             catMonitor.logTransaction("ConflictLogManager", "checkConflict", this::checkConflictCount);
