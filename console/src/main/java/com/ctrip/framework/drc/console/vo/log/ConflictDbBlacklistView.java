@@ -9,6 +9,7 @@ public class ConflictDbBlacklistView {
     private String dbFilter;
     private Integer type;
     private String createTime;
+    private String expirationTime;
 
     public Long getId() {
         return id;
@@ -40,5 +41,13 @@ public class ConflictDbBlacklistView {
 
     public void setCreateTime(String createTime) {
         this.createTime = createTime;
+    }
+
+    public String getExpirationTime() {
+        return expirationTime;
+    }
+
+    public void setExpirationTime(String expirationTime) {
+        this.expirationTime = expirationTime;
     }
 }

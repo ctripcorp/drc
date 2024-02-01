@@ -110,7 +110,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_REALTIME_SWITCH = "meta.realtime";
 
     private static final String CONFLICT_LOG_RECORD_SWITCH = "conflict.log.record.switch";
-    private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
+    private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.blacklist.new.config.clear.switch"; // auto add must auto clear
     private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
     private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conflict.log.query.time.interval";
     private static String TABLE_STRUCTURE_CHECK_SWITCH = "table.structure.check.switch";

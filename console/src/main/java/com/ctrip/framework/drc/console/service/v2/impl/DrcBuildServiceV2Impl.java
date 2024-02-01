@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
@@ -315,7 +315,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private void addConflictBlackList(String nameFilter) {
         executorService.submit(() -> {
             try {
-                conflictLogService.addDbBlacklist(nameFilter, LogBlackListType.NEW_CONFIG);
+                conflictLogService.addDbBlacklist(nameFilter, CflBlacklistType.NEW_CONFIG,null);
             } catch (Exception e) {
                 logger.error("addDbBlacklist error", e);
             }

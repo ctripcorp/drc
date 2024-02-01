@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
@@ -18,8 +19,9 @@ import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistDto;
 import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -39,12 +41,11 @@ import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.sql.Timestamp;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -91,6 +92,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DomainConfig domainConfig;
     @Autowired
     private DbBlacklistCache dbBlacklistCache;
 
@@ -540,17 +543,47 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, LogBlackListType type) throws Exception {
+    public void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
             return;
         }
-
         ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        if (expirationTime == null) {
+            int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(type);
+            tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
+        } else {
+            if (expirationTime < System.currentTimeMillis()) {
+                throw ConsoleExceptionUtils.message("expirationTime must be greater than current time");
+            }
+            tbl.setExpirationTime(new Timestamp(expirationTime));
+        }
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
+        dbBlacklistCache.refresh(true);
+    }
+
+    @Override
+    public void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception {
+        if (dto.getId() == null || dto.getId() == 0) {
+            throw ConsoleExceptionUtils.message("db blacklist id is null");
+        }
+        ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        if (dto.getExpirationTime() == null) {
+            int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(CflBlacklistType.getByCode(dto.getType()));
+            tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
+        } else {
+            if (dto.getExpirationTime() < System.currentTimeMillis()) {
+                throw ConsoleExceptionUtils.message("expirationTime must be greater than current time");
+            }
+            tbl.setExpirationTime(new Timestamp(dto.getExpirationTime()));
+        }
+        tbl.setId(dto.getId());
+        tbl.setDbFilter(dto.getDbFilter());
+        tbl.setType(dto.getType());
+        conflictDbBlackListTblDao.update(tbl);
         dbBlacklistCache.refresh(true);
     }
 
@@ -574,6 +607,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setDbFilter(source.getDbFilter());
             target.setType(source.getType());
             target.setCreateTime(DateUtils.longToString(source.getCreateTime().getTime()));
+            target.setExpirationTime(source.getExpirationTime() == null ? "" : DateUtils.longToString(source.getExpirationTime().getTime()));
 
             return target;
         }).collect(Collectors.toList());

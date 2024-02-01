@@ -270,7 +270,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
         AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
         List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
-        Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(mySqlEndpoint, tablesAfterRegexFilter, true);
+        Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(mySqlEndpoint, tablesAfterRegexFilter, false);
         for (Map.Entry<String, Set<String>> entry : allColumnsByTable.entrySet()) {
             String tableName = entry.getKey();
             if (!entry.getValue().contains(column)) {

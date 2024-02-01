@@ -17,6 +17,10 @@ public class DateUtils {
     public static String longToString(long time) {
         return fdf.format(time);
     }
+    
+    public static String longToString(long time, String format) {
+        return FastDateFormat.getInstance(format).format(time);
+    }
 
     /**
      * 获取当天零点时间
