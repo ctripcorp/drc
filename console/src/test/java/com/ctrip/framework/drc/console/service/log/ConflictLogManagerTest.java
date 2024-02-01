@@ -72,7 +72,6 @@ public class ConflictLogManagerTest {
         Mockito.when(domainConfig.getConflictAlarmThresholdRollbackTrx()).thenReturn(100L);
         Mockito.when(domainConfig.getConflictAlarmThresholdRollbackRow()).thenReturn(100L);
         Mockito.when(domainConfig.getConflictAlarmSendEmailSwitch()).thenReturn(true);
-        Mockito.when(dbaApiService.everUserTraffic(Mockito.anyString(),Mockito.anyString(),Mockito.anyString(),Mockito.anyLong(),Mockito.anyLong(),Mockito.anyBoolean())).thenReturn(false);
         Mockito.when(domainConfig.getConflictAlarmSendDBOwnerSwitch()).thenReturn(true);
         Mockito.when(domainConfig.getConflictAlarmCCEmails()).thenReturn(Lists.newArrayList("ccEmail1","ccEmail2"));
         Mockito.when(domainConfig.getConflictAlarmHickwallUrl()).thenReturn("http://drc.hickwall.com");

@@ -18,5 +18,4 @@ public interface DbaApiService {
     
     List<String> getDBsWithQueryPermission();
     
-    boolean everUserTraffic(String region,String dbName,String tableName,long startTime,long endTime,boolean includeRead);
 }
