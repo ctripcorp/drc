@@ -28,6 +28,7 @@ import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -120,6 +121,7 @@ public class MySqlUtils {
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
+    private static final String GET_TABLE_COLUMN_SQL = "select table_schema, table_name, column_name from information_schema.columns where table_schema in (%s)";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
     private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like '%on update%';";
@@ -431,6 +433,36 @@ public class MySqlUtils {
         return table2ColumnsMap;
     }
 
+    // column use lowerCase
+    public static Map<String, Set<String>> getAllColumns(Endpoint endpoint, List<String> dbNames, Boolean removeSqlOperator) {
+        List<String> dbList = dbNames.stream().map(e -> toStringVal(e)).collect(Collectors.toList());
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(GET_TABLE_COLUMN_SQL, Joiner.on(",").join(dbList));
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while (rs.next()) {
+                String tableName = rs.getString(1) + "." + rs.getString(2);
+                String column = rs.getString(3).toLowerCase();
+                table2ColumnsMap.computeIfAbsent(tableName, k -> new HashSet<>()).add(column);
+            }
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+        if (removeSqlOperator) {
+            removeSqlOperator(endpoint);
+        }
+        return table2ColumnsMap;
+    }
+
     public static Set<String> getAllCommonColumns(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint, aviatorRegexFilter);
         Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, false);
@@ -453,8 +485,10 @@ public class MySqlUtils {
      */
     public static Map<String, Set<String>> getTableColumns(Endpoint endpoint, String dbFilter) {
         List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(dbFilter));
-        Map<String, Set<String>> tableColumns = getAllColumnsByTable(endpoint, tablesAfterFilter, false);
-        return tableColumns;
+        List<String> dbNames = tablesAfterFilter.stream().map(TableSchemaName::getSchema).collect(Collectors.toList());
+        List<String> tableNames = tablesAfterFilter.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList());
+        Map<String, Set<String>> tableColumns = getAllColumns(endpoint, dbNames, false);
+        return tableColumns.entrySet().stream().filter(entry -> tableNames.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     protected static String filterStmt(String roughStmt, Endpoint endpoint, String table) {
@@ -601,7 +635,7 @@ public class MySqlUtils {
     public static String getUuid(Endpoint endpoint, boolean master) throws SQLException {
         return getUuid(endpoint.getHost(), endpoint.getPort(), endpoint.getUser(), endpoint.getPassword(), master);
     }
-    
+
     public static String getUuid(String ip, int port, String user, String password, boolean master) throws SQLException {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
@@ -1045,14 +1079,14 @@ public class MySqlUtils {
      */
     public static Set<String> getDbHasDrcMonitorTables(Endpoint endpoint) {
         List<String> tablesFromDb = getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
-        if(tablesFromDb == null){
+        if (tablesFromDb == null) {
             return null;
         }
         return getDbHasDrcMonitorTables(tablesFromDb);
     }
 
     public static Set<String> getDbHasDrcMonitorTables(List<String> tablesFromDb) {
-        if(CollectionUtils.isEmpty(tablesFromDb)){
+        if (CollectionUtils.isEmpty(tablesFromDb)) {
             return Collections.emptySet();
         }
         Set<String> db1 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX))
@@ -1135,7 +1169,7 @@ public class MySqlUtils {
 
     public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
         if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
-            return writeV2(endpoint,sql, true);
+            return writeV2(endpoint, sql, true);
         } else {
             return write(endpoint, sql);
         }
@@ -1189,7 +1223,6 @@ public class MySqlUtils {
             }
         }
     }
-
 
 
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
