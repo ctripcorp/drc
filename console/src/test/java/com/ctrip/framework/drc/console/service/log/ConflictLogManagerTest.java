@@ -102,7 +102,7 @@ public class ConflictLogManagerTest {
         
         when(domainConfig.getBlacklistClearSwitch(any())).thenReturn(true);
         when(cflLogBlackListTblDao.batchDelete(anyList())).thenReturn(null);
-        doNothing().when(dbBlacklistCache).refresh();
+        doNothing().when(dbBlacklistCache).refresh(true);
         
         // mock add alarm hotspot table to blacklist
         Mockito.when(domainConfig.getBlacklistAlarmHotspotThreshold()).thenReturn(1L);

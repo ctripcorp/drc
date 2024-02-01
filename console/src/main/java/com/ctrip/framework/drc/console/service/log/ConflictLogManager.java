@@ -125,7 +125,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         // doNothing
     }
 
-    private void clearBlacklist() throws SQLException {
+    private void clearBlacklist() throws Exception {
         List<ConflictDbBlackListTbl> cflBlackLists = cflLogBlackListTblDao.queryAllExist();
         if (cflBlackLists == null || cflBlackLists.isEmpty()) {
             return;
@@ -147,7 +147,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             everClear |= clearExpiredBlackList(list, type);
         }
         if (everClear) {
-            dbBlacklistCache.refresh();
+            dbBlacklistCache.refresh(true);
         }
     }
 

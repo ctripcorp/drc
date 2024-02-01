@@ -49,8 +49,8 @@ public class DbBlacklistCache implements InitializingBean {
         return blacklist;
     }
 
-
     public void refresh(boolean notify) throws Exception {
+        logger.info("refresh dbBlacklist, notify: {}", notify);
         blacklist = conflictLogService.queryBlackList();
         if (notify) {
             List<AppNode> appNodes = ssoService.getAppNodes();
