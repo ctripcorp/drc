@@ -3,10 +3,11 @@ package com.ctrip.framework.drc.console.controller.log;
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.aop.permission.AccessToken;
 import com.ctrip.framework.drc.console.enums.TokenType;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistDto;
 import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -14,6 +15,7 @@ import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import java.sql.Timestamp;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,9 +248,9 @@ public class ConflictLogController {
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
             success = "addDbBlacklist with dbFilter: {#dbFilter}")
     @PostMapping("/db/blacklist")
-    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter) {
+    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter,@RequestParam long expirationTime) {
         try {
-            conflictLogService.addDbBlacklist(dbFilter, LogBlackListType.USER);
+            conflictLogService.addDbBlacklist(dbFilter, CflBlacklistType.USER, expirationTime);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addDbBlacklist error, {}", e);
@@ -256,6 +258,20 @@ public class ConflictLogController {
         }
     }
 
+
+    @PutMapping("/db/blacklist")
+    @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.UPDATE,
+            success = "updateDbBlacklist with ConflictDbBlacklistDto: {#dto.toString()}")
+    public ApiResult<Boolean> updateDbBlacklist(@RequestBody ConflictDbBlacklistDto dto) {
+        try {
+            conflictLogService.updateDbBlacklist(dto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("updateDbBlacklist error, {}", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.DELETE,
             success = "deleteBlacklist with dbFilter : {#dbFilter}")
     @DeleteMapping("/db/blacklist")
@@ -287,7 +303,7 @@ public class ConflictLogController {
             success = "addBlackListForTouchJob with db : {#db} and table : {#table}")
     public ApiResult<Boolean> addBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
         try {
-            conflictLogService.addDbBlacklist(db + "\\." + table, LogBlackListType.DBA_JOB);
+            conflictLogService.addDbBlacklist(db + "\\." + table, CflBlacklistType.DBA_JOB,null);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addBlackListForTouchJob error", e);

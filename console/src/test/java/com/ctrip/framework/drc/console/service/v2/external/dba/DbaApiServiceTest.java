@@ -1,11 +1,19 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockStatic;
+
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
+import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,14 +23,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
 
 public class DbaApiServiceTest {
 
@@ -83,4 +83,13 @@ public class DbaApiServiceTest {
             Assert.assertEquals(2, size);
         }
     }
+    
+    @Test
+    public void test() {
+        long endTime = System.currentTimeMillis();
+        long startTime = endTime - 1000 * 60 * 60 * 24 * 7;
+        System.out.println(DateUtils.longToString(startTime, "yyyy-MM-dd HH:mm"));
+        System.out.println(DateUtils.longToString(endTime,  "yyyy-MM-dd HH:mm"));
+    }
+    
 }
