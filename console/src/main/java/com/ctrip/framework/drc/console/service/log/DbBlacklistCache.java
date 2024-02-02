@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -55,9 +56,9 @@ public class DbBlacklistCache implements InitializingBean {
         if (notify) {
             List<AppNode> appNodes = ssoService.getAppNodes();
             InetAddress localHost = InetAddress.getLocalHost();
-            Set<String> centerRegionDcs = defaultConsoleConfig.getCenterRegionDcs();
+            List<String> centerRegionDcs = defaultConsoleConfig.getCenterRegionDcs().stream().map(String::toLowerCase).collect(Collectors.toList());
             for (AppNode appNode : appNodes) {
-                if (appNode.getIp().equals(localHost.getHostAddress()) || !appNode.isLegal() || !centerRegionDcs.contains(appNode.getIdc())) {
+                if (appNode.getIp().equals(localHost.getHostAddress()) || !appNode.isLegal() || !centerRegionDcs.contains(appNode.getIdc().toLowerCase())) {
                     continue;
                 }
                 String url = String.format(REFRESH_URL, appNode.getIp(), appNode.getPort());
