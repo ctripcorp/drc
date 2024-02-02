@@ -143,13 +143,13 @@ public class ConflictLogServiceTest {
 //    }
 
     @Test
-    public void testAddDbBlacklist() throws SQLException {
+    public void testAddDbBlacklist() throws Exception {
         when(conflictDbBlackListTblDao.queryBy(anyString(),anyInt())).thenReturn(null);
         when(conflictDbBlackListTblDao.insert(any(ConflictDbBlackListTbl.class))).thenReturn(1);
         when(domainConfig.getBlacklistExpirationHour(Mockito.any())).thenReturn(1);
-        doNothing().when(dbBlacklistCache).refresh();
+        doNothing().when(dbBlacklistCache).refresh(true);
         
-        conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis());
+        conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis() + Constants.ONE_DAY);
         conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.DBA_JOB,null);
         verify(conflictDbBlackListTblDao,times(2)).insert(any(ConflictDbBlackListTbl.class));
     }

@@ -543,7 +543,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws SQLException {
+    public void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
@@ -554,7 +554,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(type);
             tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
         } else {
-            if (expirationTime > System.currentTimeMillis()) {
+            if (expirationTime < System.currentTimeMillis()) {
                 throw ConsoleExceptionUtils.message("expirationTime must be greater than current time");
             }
             tbl.setExpirationTime(new Timestamp(expirationTime));
@@ -562,11 +562,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
-        dbBlacklistCache.refresh();
+        dbBlacklistCache.refresh(true);
     }
 
     @Override
-    public void updateDbBlacklist(ConflictDbBlacklistDto dto) throws SQLException {
+    public void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception {
         if (dto.getId() == null || dto.getId() == 0) {
             throw ConsoleExceptionUtils.message("db blacklist id is null");
         }
@@ -575,7 +575,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(CflBlacklistType.getByCode(dto.getType()));
             tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
         } else {
-            if (dto.getExpirationTime() > System.currentTimeMillis()) {
+            if (dto.getExpirationTime() < System.currentTimeMillis()) {
                 throw ConsoleExceptionUtils.message("expirationTime must be greater than current time");
             }
             tbl.setExpirationTime(new Timestamp(dto.getExpirationTime()));
@@ -584,7 +584,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         tbl.setDbFilter(dto.getDbFilter());
         tbl.setType(dto.getType());
         conflictDbBlackListTblDao.update(tbl);
-        dbBlacklistCache.refresh();
+        dbBlacklistCache.refresh(true);
     }
 
     @Override
@@ -595,7 +595,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
         conflictDbBlackListTblDao.delete(tbls);
-        dbBlacklistCache.refresh();
+        dbBlacklistCache.refresh(true);
     }
 
     @Override
@@ -1390,6 +1390,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<AviatorRegexFilter> queryBlackList() throws SQLException {
+        if (!consoleConfig.isCenterRegion()) {
+            return new ArrayList<>();
+        }
         List<AviatorRegexFilter> blackList = new ArrayList<>();
         List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
         for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {

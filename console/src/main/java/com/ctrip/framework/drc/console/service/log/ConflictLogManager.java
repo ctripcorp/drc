@@ -85,14 +85,14 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         setPeriod(PERIOD);
         setTimeUnit(TimeUnit.SECONDS);
     }
-    
+
     @Override
     public void scheduledTask() {
         try {
             periodCalculate();
             if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
                 logger.info("[[task=ConflictLogManager]]not a leader do nothing");
-                return; 
+                return;
             }
             logger.info("[[task=ConflictLogManager]] leader,scheduledTask");
             catMonitor.logTransaction("ConflictLogManager", "checkConflict", this::checkConflictCount);
@@ -114,7 +114,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             minuteCount = 0;
         }
     }
-    
+
     @Override
     public void switchToLeader() throws Throwable {
         // doNothing
@@ -125,12 +125,12 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         // doNothing
     }
 
-    private void clearBlacklist() throws SQLException {
+    private void clearBlacklist() throws Exception {
         List<ConflictDbBlackListTbl> cflBlackLists = cflLogBlackListTblDao.queryAllExist();
         if (cflBlackLists == null || cflBlackLists.isEmpty()) {
             return;
         }
-       
+
         Map<CflBlacklistType, List<ConflictDbBlackListTbl>> typeListMap = Maps.newHashMap();
         for (ConflictDbBlackListTbl cflBlackList : cflBlackLists) {
             CflBlacklistType type = CflBlacklistType.getByCode(cflBlackList.getType());
@@ -138,7 +138,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             list.add(cflBlackList);
             typeListMap.put(type, list);
         }
-        
+
         boolean everClear = false;
         for (Map.Entry<CflBlacklistType, List<ConflictDbBlackListTbl>> entry : typeListMap.entrySet()) {
             CflBlacklistType type = entry.getKey();
@@ -147,10 +147,10 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             everClear |= clearExpiredBlackList(list, type);
         }
         if (everClear) {
-            dbBlacklistCache.refresh();
+            dbBlacklistCache.refresh(true);
         }
     }
-    
+
     // for init data with no expirationTime
     private void initBlackListWithOutExpirationTime(List<ConflictDbBlackListTbl> blackLists, CflBlacklistType type) throws SQLException {
         for (ConflictDbBlackListTbl blackListTbl : blackLists) {
@@ -167,7 +167,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             cflLogBlackListTblDao.update(blackListTbl);
         }
     }
-    
+
     private boolean clearExpiredBlackList(List<ConflictDbBlackListTbl> allBlackList, CflBlacklistType type) throws SQLException {
         List<ConflictDbBlackListTbl> toBeDelete = Lists.newArrayList();
         for (ConflictDbBlackListTbl cflBlackList : allBlackList) {
@@ -186,7 +186,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         }
         return false;
     }
-    
+
     private void deleteBlackListByBatch(List<ConflictDbBlackListTbl> toBeDelete) throws SQLException {
         if (toBeDelete.isEmpty()) {
             return;
@@ -221,7 +221,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 logger.info("[[task=ConflictAlarm]]table:{} alarm too many times:{},add to blacklist", table, count);
                 try {
                     conflictLogService.addDbBlacklist(table, CflBlacklistType.ALARM_HOTSPOT,null);
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     logger.error("[[task=ConflictAlarm]]{},add ALARM_HOTSPOT Blacklist error", table,e);
                 }
             }

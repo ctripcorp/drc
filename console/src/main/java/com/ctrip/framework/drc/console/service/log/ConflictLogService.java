@@ -53,9 +53,9 @@ public interface ConflictLogService {
 
     List<ConflictAutoHandleView> createHandleSql(ConflictAutoHandleParam param) throws Exception;
 
-    void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws SQLException;
-    
-    void updateDbBlacklist(ConflictDbBlacklistDto dto) throws SQLException;
+    void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception;
+
+    void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception;
 
     void deleteBlacklist(String dbFilter) throws Exception;
 
