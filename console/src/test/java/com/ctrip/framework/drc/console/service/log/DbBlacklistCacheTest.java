@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -64,8 +65,17 @@ public class DbBlacklistCacheTest {
             theMock.when(() -> HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn(ApiResult.getSuccessInstance(true));
             dbBlacklistCache.refresh(true);
             res = dbBlacklistCache.getDbBlacklistInCache();
-//        System.out.println(res);
+
             Assert.assertEquals(res.get(0).toString(), new AviatorRegexFilter("test1").toString());
+            Mockito.when(ssoService.getAppNodes()).thenReturn(new ArrayList<>());
+            dbBlacklistCache.refresh(true);
+
+            theMock.when(() -> HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn(ApiResult.getFailInstance(false));
+            Mockito.when(ssoService.getAppNodes()).thenReturn(appNodes);
+            dbBlacklistCache.refresh(true);
+
+            theMock.when(() -> HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any())).thenThrow(new ConsoleException());
+            dbBlacklistCache.refresh(true);
         }
 
 
