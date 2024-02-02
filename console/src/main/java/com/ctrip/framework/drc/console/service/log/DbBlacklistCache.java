@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -38,7 +39,7 @@ public class DbBlacklistCache implements InitializingBean {
     @Autowired
     private DefaultConsoleConfig defaultConsoleConfig;
 
-    private static final String REFRESH_URL = "http://%s:%s/api/drc/v2/log/blacklist/refresh";
+    private static final String REFRESH_URL = "http://%s:%s/api/drc/v2/log/conflict/blacklist/refresh";
     private static List<AviatorRegexFilter> blacklist;
 
     @Override
@@ -55,6 +56,10 @@ public class DbBlacklistCache implements InitializingBean {
         blacklist = conflictLogService.queryBlackList();
         if (notify) {
             List<AppNode> appNodes = ssoService.getAppNodes();
+            if (CollectionUtils.isEmpty(appNodes)) {
+                logger.warn("refresh dbBlacklist getAppNodes empty");
+                return;
+            }
             InetAddress localHost = InetAddress.getLocalHost();
             List<String> centerRegionDcs = defaultConsoleConfig.getCenterRegionDcs().stream().map(String::toLowerCase).collect(Collectors.toList());
             for (AppNode appNode : appNodes) {

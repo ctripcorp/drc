@@ -39,7 +39,7 @@ public class DbBlacklistCacheTest {
 
     @Test
     public void testGetDbBlacklistInCache() throws Exception {
-        Mockito.when(defaultConsoleConfig.getCenterRegionDcs()).thenReturn(Sets.newHashSet("shaxy", "sharb"));
+        Mockito.when(defaultConsoleConfig.getCenterRegionDcs()).thenReturn(Lists.newArrayList("shaxy", "sharb"));
 
         AppNode appNode = new AppNode();
         appNode.setIp("ip1");

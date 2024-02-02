@@ -84,7 +84,7 @@ public class OPSApiServiceImpl implements OPSApiService {
     @Override
     public List<AppNode> getAppNodes(String cmsGetServerUrl,String accessToken,List<String> appIds,String env) {
         Map<String, Object> body = Maps.newHashMap();
-        body.put("app.appId", appIds);
+        body.put("app.appId", appIds.get(0));
         Map<String, Object> requestBody = Maps.newHashMap();
         requestBody.put("request_body", body);
         requestBody.put("access_token", accessToken);

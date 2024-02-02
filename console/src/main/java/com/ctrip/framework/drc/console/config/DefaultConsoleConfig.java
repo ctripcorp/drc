@@ -81,6 +81,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sin,ali";
     private static String CENTER_REGION = "console.center.region";
     private static String DEFAULT_CENTER_REGION = "sha";
+    private static String DRC_CENTER_IDC = "drc.center.idc";
 
     private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
     private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
@@ -143,8 +144,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return regionConfig.getRegion2dcsMapping();
     }
 
-    public Set<String> getCenterRegionDcs() {
-        return getRegion2dcsMapping().getOrDefault(getCenterRegion(), new HashSet<>());
+    public List<String> getCenterRegionDcs() {
+        String idcStr = getProperty(DRC_CENTER_IDC, "");
+        if (StringUtils.isBlank(idcStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(idcStr.split(","));
     }
 
     public Map<String,String> getDc2regionMap (){
