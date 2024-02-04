@@ -8,6 +8,7 @@ public enum ApprovalResultEnum {
     UNDER_APPROVAL(0),
     APPROVED(1),
     REJECTED(2),
+    NOT_APPROVED(3)
     ;
 
     private int code;

@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
@@ -102,9 +103,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private DcTblDao dcTblDao;
     @Autowired
-    private ProxyTblDao proxyTblDao;
-    @Autowired
-    private RouteTblDao routeTblDao;
+    private ReplicationTableTblDao replicationTableTblDao;
     @Autowired
     private CacheMetaService cacheMetaService;
     @Autowired
@@ -131,6 +130,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private ConflictLogService conflictLogService;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
 
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
@@ -307,8 +308,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         Pair<List<String>, List<String>> dbTablePair = mhaDbMappingService.initMhaDbMappings(srcMha, dstMha, nameFilter);
-        List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(srcMha, dstMha.getId(), dbTablePair, nameFilter);
+        Pair<List<DbReplicationTbl>, Map<String, Long>> pair = insertDbReplications(srcMha, dstMha.getId(), dbTablePair, nameFilter);
+        List<DbReplicationTbl> dbReplicationTbls = pair.getLeft();
         List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+
+        Map<String, Long> mhaDbNameMap = pair.getRight();
+        //insert replicationTables
+        configReplicationTables(param, dbReplicationTbls, mhaDbNameMap, dbTablePair.getRight(), false);
         return dbReplicationIds;
     }
 
@@ -341,7 +347,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         String nameFilter = param.getDbName() + "\\." + param.getTableName();
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), nameFilter);
-        checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
+        Map<String, Long> mhaDbNameMap = checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
 
         if (!param.getTableName().equals(srcLogicTableNames.get(0))) {
             dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
@@ -375,7 +381,56 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (!commonColumns.containsAll(filterColumns)) {
             throw ConsoleExceptionUtils.message("rowsFilter or columnsFilter columns not match");
         }
+
+        //insert replicationTables
+        configReplicationTables(param, dbReplicationTbls, mhaDbNameMap, tableList, true);
         return dbReplicationIds;
+    }
+
+    private void configReplicationTables(DbReplicationBuildParam param, List<DbReplicationTbl> dbReplicationTbls, Map<String, Long> mhaDbNameMap, List<String> tableList, boolean update) throws SQLException {
+        String srcMhaName = param.getSrcMhaName();
+        String dstMhaName = param.getDstMhaName();
+        Map<Long, Long> dbReplicationMappingMap = dbReplicationTbls.stream().collect(Collectors.toMap(DbReplicationTbl::getSrcMhaDbMappingId, DbReplicationTbl::getId));
+        String srcRegion = mhaServiceV2.getRegion(srcMhaName);
+        String dstRegion = mhaServiceV2.getRegion(dstMhaName);
+        List<ReplicationTableTbl> replicationTableTbls = new ArrayList<>();
+        for (String table : tableList) {
+            String[] tables = table.split("\\.");
+            String dbName = tables[0];
+            String tableName = tables[1];
+            long dbReplicationId = dbReplicationMappingMap.get(mhaDbNameMap.get(dbName));
+
+            ReplicationTableTbl replicationTableTbl = new ReplicationTableTbl();
+            replicationTableTbl.setDbReplicationId(dbReplicationId);
+            replicationTableTbl.setDbName(dbName);
+            replicationTableTbl.setTableName(tableName);
+            replicationTableTbl.setSrcMha(srcMhaName);
+            replicationTableTbl.setDstMha(dstMhaName);
+            replicationTableTbl.setSrcRegion(srcRegion);
+            replicationTableTbl.setDstRegion(dstRegion);
+            replicationTableTbl.setEffectiveStatus(BooleanEnum.FALSE.getCode());
+            replicationTableTbl.setExistingDataStatus(param.isFlushExistingData() ?
+                    ExistingDataStatusEnum.NOT_PROCESSED.getCode() : ExistingDataStatusEnum.NO_NEED_TO_PROCESSING.getCode());
+            replicationTableTbls.add(replicationTableTbl);
+        }
+
+        List<ReplicationTableTbl> existReplicationTables = new ArrayList<>();
+        if (update) {
+            existReplicationTables = replicationTableTblDao.query(param.getDbReplicationIds());
+        }
+        List<ReplicationTableTbl> finalExistReplicationTables = existReplicationTables;
+        List<ReplicationTableTbl> insertReplicationTables = replicationTableTbls.stream().filter(e -> !finalExistReplicationTables.contains(e)).collect(Collectors.toList());
+        List<ReplicationTableTbl> deleteReplicationTables = existReplicationTables.stream().filter(e -> !replicationTableTbls.contains(e)).collect(Collectors.toList());
+        deleteReplicationTables.stream().forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        if (!CollectionUtils.isEmpty(insertReplicationTables)) {
+            logger.info("{} -> {} insert replicationTables", srcMhaName, dstMhaName);
+            replicationTableTblDao.insert(insertReplicationTables);
+        }
+        if (!CollectionUtils.isEmpty(deleteReplicationTables)) {
+            logger.info("{} -> {} delete replicationTables", srcMhaName, dstMhaName);
+            replicationTableTblDao.update(deleteReplicationTables);
+        }
     }
 
     @Override
@@ -440,6 +495,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+
+        //config replicationTables
+        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.query(dbReplicationIds);
+        replicationTableTbls.stream().forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        replicationTableTblDao.update(replicationTableTbls);
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
@@ -1104,7 +1164,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return columnsFilterId;
     }
 
-    private List<DbReplicationTbl> insertDbReplications(MhaTblV2 srcMha, long dstMhaId, Pair<List<String>, List<String>> dbTablePair, String nameFilter) throws Exception {
+    private Pair<List<DbReplicationTbl>, Map<String, Long>> insertDbReplications(MhaTblV2 srcMha, long dstMhaId, Pair<List<String>, List<String>> dbTablePair, String nameFilter) throws Exception {
         List<String> dbList = dbTablePair.getLeft();
         List<String> tableList = dbTablePair.getRight();
 
@@ -1128,15 +1188,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             dbReplicationTbls.addAll(buildDbReplications(dbNames, dbMap, srcMhaDbMappingMap, dstMhaDbMappingMap, srcTableName));
         }
 
-        checkExistDbReplication(tableList, new ArrayList<>(), srcMhaDbMappings, dstMhaDbMappings);
+        Map<String, Long> mhaDbNameMap = checkExistDbReplication(tableList, new ArrayList<>(), srcMhaDbMappings, dstMhaDbMappings);
 
         dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
         mhaDbReplicationService.maintainMhaDbReplication(dbReplicationTbls);
         logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
-        return dbReplicationTbls;
+        
+        return Pair.of(dbReplicationTbls, mhaDbNameMap);
     }
 
-    private void checkExistDbReplication(List<String> tableList,
+    private Map<String, Long> checkExistDbReplication(List<String> tableList,
                                          List<Long> excludeDbReplicationIds,
                                          List<MhaDbMappingTbl> srcMhaDbMappings,
                                          List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
@@ -1161,6 +1222,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 throw ConsoleExceptionUtils.message(String.format("tables: %s has already been configured", existTableList));
             }
         }
+
+        Map<String, Long> mhaDbNameMap = new HashMap<>();
+        srcDbMappingMap.forEach((srcMhaDbMappingId, dbId) -> {
+            String dbName = srcDbMap.get(dbId);
+            mhaDbNameMap.put(dbName, srcMhaDbMappingId);
+        });
+        return mhaDbNameMap;
     }
 
     private String buildNameFilterByDbReplications(List<DbReplicationTbl> dbReplicationTbls, Map<Long, Long> mhaDbMappingMap, Map<Long, String> dbMap) {
