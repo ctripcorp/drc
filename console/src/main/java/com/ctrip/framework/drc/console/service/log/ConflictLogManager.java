@@ -182,7 +182,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         }
         if (domainConfig.getBlacklistClearSwitch(type)) {
             deleteBlackListByBatch(toBeDelete);
-            return true;
+            return toBeDelete.size() > 0;
         }
         return false;
     }
