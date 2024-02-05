@@ -18,4 +18,6 @@ public interface DrcAutoBuildService {
     List<String> getCommonColumn(DrcAutoBuildReq req);
 
     void autoBuildDrc(DrcAutoBuildReq req) ;
+
+    List<String> getAllRegions() throws Exception;
 }

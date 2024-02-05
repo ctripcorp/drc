@@ -25,7 +25,7 @@ public class DrcApplicationController {
     @Autowired
     private DrcApplicationService drcApplicationService;
 
-    @GetMapping("/list")
+    @GetMapping("list")
     public ApiResult<List<ApplicationFormView>> getApplicationForms(ApplicationFormQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(drcApplicationService.getApplicationForms(param));

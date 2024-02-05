@@ -85,6 +85,17 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("region/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<String>> getAllRegions() {
+        try {
+            List<String> list = drcAutoBuildService.getAllRegions();
+            return ApiResult.getSuccessInstance(list);
+        } catch (Throwable e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("commonColumns")
     @SuppressWarnings("unchecked")
     public ApiResult<List<String>> getCommonColumns(DrcAutoBuildReq req) {

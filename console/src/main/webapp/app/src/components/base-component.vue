@@ -62,6 +62,9 @@
               <Icon type="ios-paper"></Icon>
               审批管理
             </template>
+            <MenuItem name="/applicationForm" to="/applicationForm">
+              <span>DRC审批</span>
+            </MenuItem>
             <MenuItem name="/conflictApproval" to="/conflictApproval">
               <span>冲突处理审批</span>
             </MenuItem>
@@ -171,6 +174,7 @@ export default {
         this.openNames = ['2']
         break
       case '/conflictApproval':
+      case '/applicationForm':
         this.openNames = ['3']
         break
     }

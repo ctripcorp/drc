@@ -4,9 +4,11 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -63,6 +65,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     @Autowired
     private ApplierGroupTblV2Dao applierGroupTblDao;
     @Autowired
+    private RegionTblDao regionTblDao;
+    @Autowired
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private DbaApiService dbaApiService;
@@ -70,6 +74,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private DrcBuildServiceV2 drcBuildService;
+
+    private static final List<String> IBU_REGIONS = Lists.newArrayList("sinibuaws", "sinibualiyun");
 
 
     @Override
@@ -235,6 +241,12 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             logger.error("auto build error", e);
             throw new ConsoleException("auto build error:" + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<String> getAllRegions() throws Exception {
+        List<RegionTbl> regionTbls = regionTblDao.queryAllExist();
+        return regionTbls.stream().map(RegionTbl::getRegionName).filter(e -> !IBU_REGIONS.contains(e)).collect(Collectors.toList());
     }
 
     @Override
