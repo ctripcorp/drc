@@ -180,16 +180,9 @@ public class DbaApiServiceImpl implements DbaApiService {
         if ("fra".equalsIgnoreCase(region)) { // dba api not support fraaws temporarily
             return true;
         }
-        String token;
-        String url;
         boolean isOverSea = !consoleConfig.getCenterRegion().equalsIgnoreCase(region);
-        if (isOverSea) {
-            token = domainConfig.getOverSeaUserDMLQueryToken();
-            url = domainConfig.getOverSeaUserDMLQueryUrl();
-        } else {
-            token = domainConfig.getCenterRegionUserDMLCountQueryToken();
-            url = domainConfig.getCenterRegionUserDMLCountQueryUrl();
-        }
+        String token = domainConfig.getOpsAccessToken();
+        String url = isOverSea ? domainConfig.getOverSeaUserDMLQueryUrl() : domainConfig.getCenterRegionUserDMLCountQueryUrl();
         LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
         LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
         request.put("access_token", token);

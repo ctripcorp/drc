@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.service.v2.external.dba;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +29,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.stubbing.OngoingStubbing;
 
 public class DbaApiServiceTest {
 
@@ -105,9 +103,8 @@ public class DbaApiServiceTest {
     @Test
     public void testEverUserTraffic() {
         when(consoleConfig.getCenterRegion()).thenReturn("sha");
-        when(domainConfig.getOverSeaUserDMLQueryToken()).thenReturn("token1");
+        when(domainConfig.getOpsAccessToken()).thenReturn("token1");
         when(domainConfig.getOverSeaUserDMLQueryUrl()).thenReturn("http://url1");
-        when(domainConfig.getCenterRegionUserDMLCountQueryToken()).thenReturn("token2");
         when(domainConfig.getCenterRegionUserDMLCountQueryUrl()).thenReturn("http://url2");
         try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
             theMock.when(() ->HttpUtils.post(eq("http://url1"), any(), any())).thenReturn("{\n"
