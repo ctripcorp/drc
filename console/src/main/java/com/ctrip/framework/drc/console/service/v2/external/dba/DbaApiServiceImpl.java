@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Digest;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -204,7 +205,8 @@ public class DbaApiServiceImpl implements DbaApiService {
                 return false;
             }
             SQLDigestInfo sqlDigestInfo = JsonUtils.fromJson(responseString, SQLDigestInfo.class);
-            String digest_sql = sqlDigestInfo.getContent().getWrite().getDigest_sql();
+            Digest write = sqlDigestInfo.getContent().getWrite();
+            String digest_sql = write == null ? "" : write.getDigest_sql();
             logger.info("region:{} db:{}, table:{},has user traffic,write digest_sql: {}", region,dbName,tableName,digest_sql);
             boolean hasWrite = StringUtils.isNotBlank(digest_sql);
             return includeRead || hasWrite;

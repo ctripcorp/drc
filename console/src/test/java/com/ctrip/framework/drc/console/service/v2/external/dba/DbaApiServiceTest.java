@@ -120,7 +120,7 @@ public class DbaApiServiceTest {
                     + "}");
 
             boolean shaEver = dbaApiService.everUserTraffic("sin", "db1", "table1",
-                    System.currentTimeMillis() - 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+                    System.currentTimeMillis() -1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
             Assert.assertTrue(shaEver);
 
             theMock.when(() ->HttpUtils.post(eq("http://url1"), any(), any())).thenReturn("{\n"
@@ -128,7 +128,7 @@ public class DbaApiServiceTest {
                     + "    \"content\": \"no sql\"\n"
                     + "}");
             shaEver = dbaApiService.everUserTraffic("sin", "db1", "table1",
-                    System.currentTimeMillis() - 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+                    System.currentTimeMillis() -1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
             Assert.assertFalse(shaEver);
 
             theMock.when(() ->HttpUtils.post(eq("http://url1"), any(), any())).thenReturn("{\n"
@@ -144,7 +144,7 @@ public class DbaApiServiceTest {
                     + "}");
 
             shaEver = dbaApiService.everUserTraffic("sin", "db1", "table1",
-                    System.currentTimeMillis() - 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
             Assert.assertFalse(shaEver);
             
             
@@ -163,7 +163,7 @@ public class DbaApiServiceTest {
                     + "}");
 
             boolean shaEver = dbaApiService.everUserTraffic("sha", "db1", "table1",
-                    System.currentTimeMillis() - 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
             Assert.assertTrue(shaEver);
 
             theMock.when(() ->HttpUtils.post(eq("http://url2"), any(), any())).thenReturn("{\n"
@@ -177,7 +177,7 @@ public class DbaApiServiceTest {
                     + "    }\n"
                     + "}");
             shaEver = dbaApiService.everUserTraffic("sha", "db1", "table1",
-                    System.currentTimeMillis() - 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
             Assert.assertFalse(shaEver);
 
             theMock.when(() ->HttpUtils.post(eq("http://url2"), any(), any())).thenReturn("{\n"
@@ -185,7 +185,7 @@ public class DbaApiServiceTest {
                     + "    \"content\": \"error\"\n"
                     + "}");
             shaEver = dbaApiService.everUserTraffic("sha", "db1", "table1",
-                    System.currentTimeMillis() - 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
             Assert.assertTrue(shaEver);
 
             SQLDigestInfo sqlDigestInfo = new SQLDigestInfo();
