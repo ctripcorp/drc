@@ -89,17 +89,30 @@
         </Modal>
         <Modal
           v-model="showMha"
-          title="关联mha">
+          title="关联mha"
+          width="900px" :scrollable="true" :draggable="true">
           <List>
-            <ListItem v-for="item in mhaInfo" :value="item" :key="item">{{ item }}</ListItem>
+            <ListItem v-for="item in mhaInfo" :value="item" :key="item">
+              <a v-on:click="toMhaReplicationByR(item)">{{ item }}</a></ListItem>
           </List>
         </Modal>
         <Modal
           v-model="showMhaReplication"
-          title="关联mha复制链路">
+          title="关联复制链路"
+          width="900px" :scrollable="true" :draggable="true">
           <List>
             <ListItem v-for="item in mhaReplicationInfo" :value="item" :key="item">
-              {{item.srcMhaName}}({{item.srcDcName}}) ==> {{item.dstMhaName}}({{item.dstDcName}})
+              <a v-on:click="toMhaReplication(item)">{{item.srcMhaName}}({{item.srcDcName}}) ==> {{item.dstMhaName}}({{item.dstDcName}})</a>
+            </ListItem>
+          </List>
+          <List>
+            <ListItem v-for="item in mhaDbReplicationInfo" :value="item" :key="item">
+              <a v-on:click="toMhaDbReplication(item)">{{item.dbName}}: {{item.srcMhaName}}({{item.srcDcName}}) ==> {{item.dstMhaName}}({{item.dstDcName}})</a>
+            </ListItem>
+          </List>
+          <List>
+            <ListItem v-for="item in mhaInfoByMessenger" :value="item" :key="item">
+              <a v-on:click="toMessenger(item)">{{ item }}</a>
             </ListItem>
           </List>
         </Modal>
@@ -240,7 +253,9 @@ export default {
       showMha: false,
       showMhaReplication: false,
       mhaInfo: [],
+      mhaInfoByMessenger: [],
       mhaReplicationInfo: [],
+      mhaDbReplicationInfo: [],
       deleteResourceInfo: {
         resourceId: null,
         ip: '',
@@ -272,6 +287,44 @@ export default {
   },
   computed: {},
   methods: {
+    toMessenger (row) {
+      this.$router.push({
+        path: '/v2/messengersV2',
+        query: {
+          mhaName: row
+        }
+      })
+    },
+    toMhaReplication (row) {
+      this.$router.push({
+        path: '/v2/mhaReplications',
+        query: {
+          srcMhaName: row.srcMhaName,
+          dstMhaName: row.dstMhaName,
+          preciseSearchMode: true
+        }
+      })
+    },
+    toMhaDbReplication (row) {
+      this.$router.push({
+        path: '/v2/mhaDbReplications',
+        query: {
+          srcMhaName: row.srcMhaName,
+          dstMhaName: row.dstMhaName,
+          preciseSearchMode: true,
+          relatedDbName: row.dbName
+        }
+      })
+    },
+    toMhaReplicationByR (row) {
+      this.$router.push({
+        path: '/v2/mhaReplications',
+        query: {
+          mhaName: row,
+          preciseSearchMode: false
+        }
+      })
+    },
     showModal (row) {
       if (row.type === 0) {
         this.getRelatedMha(row)
@@ -313,6 +366,20 @@ export default {
       this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
         if (res.data.status === 0) {
           this.mhaReplicationInfo = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+      this.axios.get('/api/drc/v2/resource/mhaDbReplication?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.mhaDbReplicationInfo = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+      this.axios.get('/api/drc/v2/resource/mha/messenger?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.mhaInfoByMessenger = res.data.data
         } else {
           this.$Message.warning('查询异常')
         }

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
@@ -45,6 +46,8 @@ public interface ResourceService {
     List<String> queryMhaByReplicator(long resourceId) throws Exception;
 
     List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception;
+
+    List<MhaDbReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception;
 
     List<String> queryMhaByMessenger(long resourceId) throws Exception;
     

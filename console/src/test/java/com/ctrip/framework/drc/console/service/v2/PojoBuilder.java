@@ -2,6 +2,9 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -64,12 +67,37 @@ public class PojoBuilder {
         return applierTbls;
     }
 
+    public static List<ApplierTblV3> getApplierTblV3s() {
+        List<ApplierTblV3> applierTbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            ApplierTblV3 applierTbl = new ApplierTblV3();
+            applierTbl.setApplierGroupId(200L);
+            applierTbl.setDeleted(0);
+            applierTbl.setId(Long.valueOf(i));
+            applierTbl.setMaster(1);
+            applierTbls.add(applierTbl);
+            applierTbl.setMaster(1);
+            applierTbl.setPort(80);
+            applierTbl.setResourceId(200L);
+        }
+        return applierTbls;
+    }
+
     public static List<MhaReplicationTbl> getMhaReplicationTbls() {
         MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
         mhaReplicationTbl.setDeleted(0);
         mhaReplicationTbl.setId(200L);
         mhaReplicationTbl.setSrcMhaId(200L);
         mhaReplicationTbl.setDstMhaId(201L);
+        return Lists.newArrayList(mhaReplicationTbl);
+    }
+
+    public static List<MhaDbReplicationTbl> getMhaDbReplicationTbls() {
+        MhaDbReplicationTbl mhaReplicationTbl = new MhaDbReplicationTbl();
+        mhaReplicationTbl.setDeleted(0);
+        mhaReplicationTbl.setId(200L);
+        mhaReplicationTbl.setSrcMhaDbMappingId(200L);
+        mhaReplicationTbl.setDstMhaDbMappingId(201L);
         return Lists.newArrayList(mhaReplicationTbl);
     }
 
@@ -245,6 +273,15 @@ public class PojoBuilder {
         applierGroupTbl.setId(200L);
         applierGroupTbl.setGtidInit("applierGtId");
         applierGroupTbl.setMhaReplicationId(200L);
+        return Lists.newArrayList(applierGroupTbl);
+    }
+
+    public static List<ApplierGroupTblV3> getApplierGroupTblV3s() {
+        ApplierGroupTblV3 applierGroupTbl = new ApplierGroupTblV3();
+        applierGroupTbl.setDeleted(0);
+        applierGroupTbl.setId(200L);
+        applierGroupTbl.setGtidInit("applierGtId");
+        applierGroupTbl.setMhaDbReplicationId(200L);
         return Lists.newArrayList(applierGroupTbl);
     }
 

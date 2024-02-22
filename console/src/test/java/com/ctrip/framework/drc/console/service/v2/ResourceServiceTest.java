@@ -5,15 +5,16 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
+import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
@@ -25,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +63,17 @@ public class ResourceServiceTest {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private MessengerGroupTblDao messengerGroupTblDao;
-    
+    @Mock
+    private ApplierGroupTblV3Dao dbApplierGroupTblDao;
+    @Mock
+    private MhaDbReplicationTblDao mhaDbReplicationTblDao;
+    @Mock
+    private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Mock
+    private DbTblDao dbTblDao;
+    @Mock
+    private ApplierTblV3Dao dbApplierTblDao;
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -241,6 +253,20 @@ public class ResourceServiceTest {
 
         List<MhaReplicationView> result = resourceService.queryMhaReplicationByApplier(1L);
         Assert.assertEquals(result.size(), getMhaReplicationTbls().size());
+    }
+
+    @Test
+    public void testQueryMhaDbReplicationByApplier() throws Exception {
+        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
+        Mockito.when(dbApplierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV3s());
+        Mockito.when(mhaDbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbReplicationTbls());
+        Mockito.when(mhaDbMappingTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbMappingTbls1());
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
+        Mockito.when(dbTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbTbls());
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
+
+        List<MhaDbReplicationView> result = resourceService.queryMhaDbReplicationByApplier(1L);
+        Assert.assertEquals(result.size(), 1);
     }
 
 }
