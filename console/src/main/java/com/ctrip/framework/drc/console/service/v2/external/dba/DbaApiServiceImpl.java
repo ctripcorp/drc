@@ -145,8 +145,92 @@ public class DbaApiServiceImpl implements DbaApiService {
         }
         return res;
     }
-    
-    
+
+    /**
+     * {
+     *     "access_token":"...",
+     *     "request_body":
+     *     {
+     *   "db_name":"db",
+     *   "table_name":"table",
+     *   "begin_time":"2024-01-22 14:05",
+     *   "end_time":"2024-01-29 14:05"
+     * }
+     * }
+     *
+     * center region
+     * {
+     *     "success": true,
+     *     "content": {
+     *         "seeks": 1,
+     *         "scans": 2,
+     *         "insert": 3,
+     *         "update": 0,
+     *         "delete": 0
+     *     }
+     * }
+     * 
+     * 
+     * @return
+     */
+
+    @Override
+    public boolean everUserTraffic(String region, String dbName, String tableName, long startTime, long endTime,
+            boolean includeRead) {
+        if ("fra".equalsIgnoreCase(region)) { // dba api not support fraaws temporarily
+            return true;
+        }
+        String token;
+        String url;
+        boolean isOverSea = !consoleConfig.getCenterRegion().equalsIgnoreCase(region);
+        if (isOverSea) {
+            token = domainConfig.getOverSeaUserDMLQueryToken();
+            url = domainConfig.getOverSeaUserDMLQueryUrl();
+        } else {
+            token = domainConfig.getCenterRegionUserDMLCountQueryToken();
+            url = domainConfig.getCenterRegionUserDMLCountQueryUrl();
+        }
+        LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
+        request.put("access_token", token);
+        request.put("request_body", requestBody);
+        requestBody.put("db_name", dbName);
+        requestBody.put("table_name", tableName);
+        if (!isOverSea && startTime < 1708257387000L) { // temporary,dba clear data in 2024-02-18 19:56:27
+            startTime = 1708257387000L;
+        }
+        requestBody.put("begin_time", DateUtils.longToString(startTime, "yyyy-MM-dd HH:mm"));
+        requestBody.put("end_time", DateUtils.longToString(endTime, "yyyy-MM-dd HH:mm"));
+
+        String responseString = HttpUtils.post(url, request, String.class);
+        JsonObject jsonObject = JsonUtils.parseObject(responseString);
+        boolean success = jsonObject.get("success").getAsBoolean();
+        if (isOverSea) {
+            if (!success) { // success means has write or read in overSea api
+                logger.info("{} no user traffic, db:{}, table:{}, response: {}", region,dbName, tableName, responseString);
+                return false;
+            }
+            SQLDigestInfo sqlDigestInfo = JsonUtils.fromJson(responseString, SQLDigestInfo.class);
+            String digest_sql = sqlDigestInfo.getContent().getWrite().getDigest_sql();
+            logger.info("region:{} db:{}, table:{},has user traffic,write digest_sql: {}", region,dbName,tableName,digest_sql);
+            boolean hasWrite = StringUtils.isNotBlank(digest_sql);
+            return includeRead || hasWrite;
+        }
+
+        if (success) { // success means api execute result in center region api
+            JsonObject content = jsonObject.get("content").getAsJsonObject();
+            int seeks = content.get("seeks").getAsInt();
+            int insert = content.get("insert").getAsInt();
+            int update = content.get("update").getAsInt();
+            int delete = content.get("delete").getAsInt();
+            boolean hasWrite = (insert > 0) || (update > 0) || (delete > 0);
+            boolean hasRead = seeks > 0;
+            return includeRead ? hasRead || hasWrite : hasWrite;
+        } else {
+            logger.error("everUserTraffic failed, db:{}, table:{}, response: {}", dbName, tableName, responseString);
+            return true;
+        }
+    }
     
     
 }
