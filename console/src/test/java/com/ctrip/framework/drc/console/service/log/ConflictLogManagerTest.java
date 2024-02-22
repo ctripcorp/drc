@@ -76,6 +76,7 @@ public class ConflictLogManagerTest {
         Mockito.when(domainConfig.getConflictAlarmCCEmails()).thenReturn(Lists.newArrayList("ccEmail1","ccEmail2"));
         Mockito.when(domainConfig.getConflictAlarmHickwallUrl()).thenReturn("http://drc.hickwall.com");
         Mockito.when(domainConfig.getConflictAlarmDrcUrl()).thenReturn("http://drc.trip.com");
+        Mockito.when(dbaApiService.everUserTraffic(Mockito.anyString(),anyString(),anyString(),anyLong(),anyLong(),anyBoolean())).thenReturn(true);
 
         Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("blackDb"), Mockito.anyString())).thenReturn(true);
         Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("notBlackDb"), Mockito.anyString())).thenReturn(false);
