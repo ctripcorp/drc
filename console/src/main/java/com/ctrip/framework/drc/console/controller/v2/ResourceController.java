@@ -134,6 +134,15 @@ public class ResourceController {
         }
     }
 
+    @GetMapping("mha/messenger")
+    public ApiResult<List<String>> queryMhaByMessenger(@RequestParam long resourceId) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.queryMhaByMessenger(resourceId));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("mhaReplication")
     public ApiResult<List<MhaReplicationView>> queryMhaReplicationByApplier(@RequestParam long resourceId) {
         try {

@@ -45,5 +45,7 @@ public interface ResourceService {
     List<String> queryMhaByReplicator(long resourceId) throws Exception;
 
     List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception;
+
+    List<String> queryMhaByMessenger(long resourceId) throws Exception;
     
 }

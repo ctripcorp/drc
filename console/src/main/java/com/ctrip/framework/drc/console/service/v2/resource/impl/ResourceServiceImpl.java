@@ -486,6 +486,20 @@ public class ResourceServiceImpl implements ResourceService {
         return views;
     }
 
+    @Override
+    public List<String> queryMhaByMessenger(long resourceId) throws Exception {
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> messengerGroupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).collect(Collectors.toList());
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryByIds(messengerGroupIds);
+        List<Long> mhaIds = messengerGroupTbls.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(mhaIds);
+        return mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
+    }
+
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
         if (CollectionUtils.isEmpty(resultViews)) {
             resultViews.add(resourceViews.get(0));

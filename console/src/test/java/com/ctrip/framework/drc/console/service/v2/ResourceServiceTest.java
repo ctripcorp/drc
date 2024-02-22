@@ -59,6 +59,8 @@ public class ResourceServiceTest {
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private MessengerGroupTblDao messengerGroupTblDao;
     
     @Before
     public void setUp() {
@@ -217,6 +219,16 @@ public class ResourceServiceTest {
 
         List<String> result = resourceService.queryMhaByReplicator(1L);
         Assert.assertEquals(result.size(), getMhaTblV2s().size());
+    }
+
+    @Test
+    public void testQueryMhaByMessenger () throws Exception {
+        Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessenger()));
+        Mockito.when(messengerGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessengerGroup()));
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMhaTblV2()));
+
+        List<String> result = resourceService.queryMhaByMessenger(1L);
+        Assert.assertEquals(result.size(), 1);
     }
 
     @Test
