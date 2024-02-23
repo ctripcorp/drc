@@ -85,7 +85,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     public void initialize() {
         reset();
         setInitialDelay(1);
-        setPeriod(1);
+        setPeriod(5);
         setTimeUnit(TimeUnit.MINUTES);
         super.initialize();
     }
