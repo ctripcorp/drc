@@ -92,6 +92,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
+        CONSOLE_MONITOR_LOGGER.info("local region: " + consoleConfig.getRegion());
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
