@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
+import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
@@ -90,12 +91,12 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
+        CONSOLE_MONITOR_LOGGER.info("local region: " + consoleConfig.getRegion());
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
-            removeRegister();
             checkCount();
             alarm();
             if (nextDay) {
@@ -112,7 +113,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     public void switchToLeader() {
         reset();
-        scheduledTask();
+    }
+
+    public void switchToSlave() {
+        removeRegister();
     }
 
     private void reset() {
@@ -126,6 +130,8 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     }
 
     private void removeRegister() {
+        reporter.removeRegister(ROW_LOG_COUNT_MEASUREMENT);
+        reporter.removeRegister(ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT);
         reporter.removeRegister(ROW_LOG_DB_COUNT_MEASUREMENT);
         reporter.removeRegister(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }

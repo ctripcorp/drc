@@ -377,7 +377,7 @@ export default {
         buCode: null,
         regionId: null
       },
-      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
+      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : null,
       preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend

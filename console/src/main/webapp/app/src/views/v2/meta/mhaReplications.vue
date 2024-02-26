@@ -468,8 +468,8 @@ export default {
         regionId: null
       },
       dbNames: null,
-      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
-      dbDrcStatus: this.$route.query.dbDrcStatus ? Number(this.$route.query.dbDrcStatus) : 0,
+      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : null,
+      dbDrcStatus: this.$route.query.dbDrcStatus ? Number(this.$route.query.dbDrcStatus) : null,
       preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend

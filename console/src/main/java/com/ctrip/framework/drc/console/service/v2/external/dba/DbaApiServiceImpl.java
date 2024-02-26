@@ -207,7 +207,7 @@ public class DbaApiServiceImpl implements DbaApiService {
             SQLDigestInfo sqlDigestInfo = JsonUtils.fromJson(responseString, SQLDigestInfo.class);
             Digest write = sqlDigestInfo.getContent().getWrite();
             String digest_sql = write == null ? "" : write.getDigest_sql();
-            logger.info("region:{} db:{}, table:{},has user traffic,write digest_sql: {}", region,dbName,tableName,digest_sql);
+            logger.info("region:{} db:{}, table:{},has user traffic,response: {}", region,dbName,tableName,responseString);
             boolean hasWrite = StringUtils.isNotBlank(digest_sql);
             return includeRead || hasWrite;
         }
