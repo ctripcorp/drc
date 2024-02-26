@@ -288,15 +288,16 @@ export default {
   computed: {},
   methods: {
     toMessenger (row) {
-      this.$router.push({
+      const detail = this.$router.resolve({
         path: '/v2/messengersV2',
         query: {
           mhaName: row
         }
       })
+      window.open(detail.href, '_blank')
     },
     toMhaReplication (row) {
-      this.$router.push({
+      const detail = this.$router.resolve({
         path: '/v2/mhaReplications',
         query: {
           srcMhaName: row.srcMhaName,
@@ -304,9 +305,10 @@ export default {
           preciseSearchMode: true
         }
       })
+      window.open(detail.href, '_blank')
     },
     toMhaDbReplication (row) {
-      this.$router.push({
+      const detail = this.$router.resolve({
         path: '/v2/mhaDbReplications',
         query: {
           srcMhaName: row.srcMhaName,
@@ -315,15 +317,17 @@ export default {
           relatedDbName: row.dbName
         }
       })
+      window.open(detail.href, '_blank')
     },
     toMhaReplicationByR (row) {
-      this.$router.push({
+      const detail = this.$router.resolve({
         path: '/v2/mhaReplications',
         query: {
           mhaName: row,
           preciseSearchMode: false
         }
       })
+      window.open(detail.href, '_blank')
     },
     showModal (row) {
       if (row.type === 0) {

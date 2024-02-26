@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
@@ -23,6 +24,8 @@ import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -33,6 +36,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -61,6 +65,8 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     private DbBlacklistCache dbBlacklistCache;
     @Autowired
     private DbaApiService dbaApiService;
+
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(4, "ConflictLogManager"));
 
     private static final int INITIAL_DELAY = 30;
     private static final int PERIOD = 60;
@@ -242,11 +248,25 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         List<HickWallConflictCount> rollbackTrxCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, true, false, 1);
         List<HickWallConflictCount> commitRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, true, 1);
         List<HickWallConflictCount> rollbackRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, false, 1);
-        checkConflictCountAndAlarm(commitTrxCounts, ConflictCountType.CONFLICT_COMMIT_TRX);
-        checkConflictCountAndAlarm(rollbackTrxCounts,ConflictCountType.CONFLICT_ROLLBACK_TRX);
-        checkConflictCountAndAlarm(commitRowsCounts,ConflictCountType.CONFLICT_COMMIT_ROW);
-        checkConflictCountAndAlarm(rollbackRowsCounts,ConflictCountType.CONFLICT_ROLLBACK_ROW);
+
+        asyncCheckConflictCountAndAlarm(commitTrxCounts, ConflictCountType.CONFLICT_COMMIT_TRX);
+        asyncCheckConflictCountAndAlarm(rollbackTrxCounts,ConflictCountType.CONFLICT_ROLLBACK_TRX);
+        asyncCheckConflictCountAndAlarm(commitRowsCounts,ConflictCountType.CONFLICT_COMMIT_ROW);
+        asyncCheckConflictCountAndAlarm(rollbackRowsCounts,ConflictCountType.CONFLICT_ROLLBACK_ROW);
     }
+
+
+    private void asyncCheckConflictCountAndAlarm(List<HickWallConflictCount> cflRowCounts, ConflictCountType type) {
+        executorService.submit(() -> {
+            try {
+                checkConflictCountAndAlarm(cflRowCounts, type);
+            } catch (Exception e) {
+                logger.error("checkConflictCountAndAlarm error", e);
+            }
+        });
+    }
+
+
     
     
     private void checkConflictCountAndAlarm(List<HickWallConflictCount> cflRowCounts,ConflictCountType type) throws Exception{
@@ -272,7 +292,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
                 Email email = generateEmail(everUserTraffic,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
                 if (!everUserTraffic) {
-                    conflictLogService.addDbBlacklist(table, CflBlacklistType.NO_USER_TRAFFIC,null);
+                    conflictLogService.addDbBlacklist(db + "\\." + table, CflBlacklistType.NO_USER_TRAFFIC,null);
                 }
                 EmailResponse emailResponse = emailService.sendEmail(email);
                 if (emailResponse.isSuccess()) {
