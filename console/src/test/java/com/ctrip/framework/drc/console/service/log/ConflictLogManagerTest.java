@@ -18,6 +18,8 @@ import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictC
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -115,6 +117,7 @@ public class ConflictLogManagerTest {
         conflictLogManager.minuteCount = 60 * 24 -1;
         
         conflictLogManager.scheduledTask();
+        Thread.sleep(500);
         verify(emailService, Mockito.times(2)).sendEmail(Mockito.any(Email.class));
         verify(cflLogBlackListTblDao, Mockito.times(3)).batchDelete(Mockito.anyList());
         Assert.assertEquals(0,conflictLogManager.minuteCount);
