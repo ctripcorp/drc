@@ -233,7 +233,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException {
         if (type != ModuleEnum.APPLIER.getCode()) {
-            logger.info("resource type: {} can only be replicator or applier", type);
+            logger.info("resource type: {} can only be applier", type);
             return new ArrayList<>();
         }
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
@@ -431,10 +431,15 @@ public class ResourceServiceImpl implements ResourceService {
             return autoConfigureResource(param);
         }
 
+        List<ResourceView> mhaAvailableResource = getMhaAvailableResource(param.getMhaName(), param.getType());
+        return handOffResource(param.getSelectedIps(), mhaAvailableResource);
+    }
+
+    @Override
+    public List<ResourceView> handOffResource(List<String> selectedIps, List<ResourceView> availableResource) {
         List<ResourceView> resultViews = new ArrayList<>();
-        List<ResourceView> resourceViews = getMhaAvailableResource(param.getMhaName(), param.getType())
-                .stream()
-                .filter(e -> !param.getSelectedIps().contains(e.getIp()))
+        List<ResourceView> resourceViews = availableResource.stream()
+                .filter(e -> !selectedIps.contains(e.getIp()))
                 .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resourceViews)) {
             return resultViews;

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -64,7 +65,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
-    
+
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
@@ -215,6 +216,33 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
         List<String> replicatorIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
         return replicatorIps;
+    }
+
+    @Override
+    public List<ReplicatorInfoDto> getMhaReplicatorsV2(String mhaName) {
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+            if (mhaTblV2 == null) {
+                logger.info("replicatorGroupTbl not exist, mhaName: {}", mhaName);
+                return Collections.emptyList();
+            }
+
+            ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+            if (replicatorGroupTbl == null) {
+                logger.info("replicatorGroupTbl not exist, mhaName: {}", mhaName);
+                return Collections.emptyList();
+            }
+            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+            if (CollectionUtils.isEmpty(replicatorTbls)) {
+                return Collections.emptyList();
+            }
+            List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
+            List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+            Map<Long, String> resourceIdToIpMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
+            return replicatorTbls.stream().map(e -> new ReplicatorInfoDto(resourceIdToIpMap.get(e.getResourceId()), e.getGtidInit())).collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
     }
 
     @Override
@@ -490,5 +518,4 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         int update = mhaTblV2Dao.update(mhaTblV2);
         return update == 1;
     }
-    
 }

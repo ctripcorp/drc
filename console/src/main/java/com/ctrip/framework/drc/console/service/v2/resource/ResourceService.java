@@ -31,7 +31,7 @@ public interface ResourceService {
 
     List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
 
-    List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws Exception;
+    List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException;
 
 
     List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception;
@@ -42,6 +42,8 @@ public interface ResourceService {
     List<ResourceView> autoConfigureMhaDbResource(DbResourceSelectParam param) throws SQLException;
 
     List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException;
+
+    List<ResourceView> handOffResource(List<String> selectedIps, List<ResourceView> availableResource);
 
     List<String> queryMhaByReplicator(long resourceId) throws Exception;
 

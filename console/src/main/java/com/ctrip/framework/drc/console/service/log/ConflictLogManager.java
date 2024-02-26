@@ -249,10 +249,10 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         List<HickWallConflictCount> commitRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, true, 1);
         List<HickWallConflictCount> rollbackRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, false, 1);
 
-        asyncCheckConflictCountAndAlarm(commitTrxCounts, ConflictCountType.CONFLICT_COMMIT_TRX);
-        asyncCheckConflictCountAndAlarm(rollbackTrxCounts,ConflictCountType.CONFLICT_ROLLBACK_TRX);
-        asyncCheckConflictCountAndAlarm(commitRowsCounts,ConflictCountType.CONFLICT_COMMIT_ROW);
-        asyncCheckConflictCountAndAlarm(rollbackRowsCounts,ConflictCountType.CONFLICT_ROLLBACK_ROW);
+        checkConflictCountAndAlarm(commitTrxCounts, ConflictCountType.CONFLICT_COMMIT_TRX);
+        checkConflictCountAndAlarm(rollbackTrxCounts,ConflictCountType.CONFLICT_ROLLBACK_TRX);
+        checkConflictCountAndAlarm(commitRowsCounts,ConflictCountType.CONFLICT_COMMIT_ROW);
+        checkConflictCountAndAlarm(rollbackRowsCounts,ConflictCountType.CONFLICT_ROLLBACK_ROW);
     }
 
 

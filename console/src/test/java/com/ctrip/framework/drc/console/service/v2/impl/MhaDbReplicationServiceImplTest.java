@@ -106,6 +106,33 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         Assert.assertEquals(2, updates.size());
     }
 
+    @Test
+    public void testQueryByDbNames(){
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList("db1", "db2"), ReplicationTypeEnum.DB_TO_DB);
+        Assert.assertEquals(2, replicationDtos.size());
+        System.out.println(replicationDtos);
+    }
+
+
+    @Test
+    public void testMaintainDbReplication() throws Exception {
+        org.apache.commons.lang3.tuple.Pair<List<MhaDbMappingTbl>, List<MhaDbMappingTbl>> of = org.apache.commons.lang3.tuple.Pair.of(
+                Lists.newArrayList(getMappingTbl(1001L, 1L, 3L)),
+                Lists.newArrayList(getMappingTbl(1000L, 2L, 3L))
+        );
+        when(mhaDbMappingService.initMhaDbMappings(any(), any(), anyList())).thenReturn(of);
+
+        mhaDbReplicationService.maintainMhaDbReplication("mha1", "mha2", Lists.newArrayList("db3"));
+    }
+
+    MhaDbMappingTbl getMappingTbl(Long id, Long mhaId, Long dbId) {
+        MhaDbMappingTbl mappingTbl = new MhaDbMappingTbl();
+        mappingTbl.setId(id);
+        mappingTbl.setDbId(dbId);
+        mappingTbl.setMhaId(mhaId);
+        return mappingTbl;
+    }
+
     private static DbReplicationTbl getDbReplicationTbl(Long srcId, Long dstId, int type) {
         DbReplicationTbl replication1 = new DbReplicationTbl();
         replication1.setSrcMhaDbMappingId(srcId);

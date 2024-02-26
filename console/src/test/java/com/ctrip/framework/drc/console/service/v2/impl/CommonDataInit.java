@@ -526,6 +526,13 @@ public class CommonDataInit {
                                     && replicationType.equals(e.getReplicationType()))
                     .collect(Collectors.toList());
         });
+        when(dbReplicationTblDao.queryBySamples(anyList())).thenAnswer(i -> {
+            List<DbReplicationTbl> samples = i.getArgument(0, List.class);
+            List<MultiKey> keys = samples.stream().map(StreamUtils::getKey).collect(Collectors.toList());
+            return dbReplicationTbls.stream().filter(e -> {
+                return keys.contains(getKey(e));
+            }).collect(Collectors.toList());
+        });
 
         doAnswer(invocation -> {
             Object[] args = invocation.getArguments();

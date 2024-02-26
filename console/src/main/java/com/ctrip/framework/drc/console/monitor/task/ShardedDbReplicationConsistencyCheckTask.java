@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
+import com.ctrip.framework.drc.console.utils.DalclusterUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +48,6 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
     private DbTblDao dbTblDao;
     @Autowired
     private DcTblDao dcTblDao;
-    private static final Pattern pattern = Pattern.compile("shard\\d+db");
     private static final String DRC_SHARDED_CONFIG_CONSISTENCY_FAIL = "drc.sharded.config.consistency.fail";
 
     @Override
@@ -88,7 +88,7 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
         Map<Long, String> mappingIdToDbNameMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> dbIdToNameMap.get(e.getDbId())));
 
 
-        Map<String, Long> dalClusterToDbCount = dbTbls.stream().filter(e -> !e.getDbName().toLowerCase().contains(SHARDBASEDB)).collect(Collectors.groupingBy(e -> getDalClusterName(e.getDbName()), Collectors.counting()));
+        Map<String, Long> dalClusterToDbCount = dbTbls.stream().filter(e -> !e.getDbName().toLowerCase().contains(SHARDBASEDB)).collect(Collectors.groupingBy(e -> DalclusterUtils.getDalClusterName(e.getDbName()), Collectors.counting()));
         // db to db
         Map<RouteDo, List<DbReplicationTbl>> dbToDbReplications = dbReplicationTbls.stream().filter(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType())).collect(
                 Collectors.groupingBy(e -> new RouteDo(mappingIdToRegionNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToRegionNameMap.get(e.getDstMhaDbMappingId())))
@@ -139,13 +139,7 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
         return legal;
     }
 
-    public static String getDalClusterName(String dbName) {
-        if (pattern.matcher(dbName).find()) {
-            return dbName.replaceAll("shard\\d+db", "shardbasedb_dalcluster");
-        } else {
-            return dbName + "_dalcluster";
-        }
-    }
+
 
     public static boolean isConsistent(List<DbReplicationDo> dbReplicationDos) {
         long count = dbReplicationDos.stream().map(DbReplicationDo::getLogicTables).distinct().count();
@@ -163,7 +157,7 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
         }
 
         public String getDalClusterName() {
-            return ShardedDbReplicationConsistencyCheckTask.getDalClusterName(dbName);
+            return DalclusterUtils.getDalClusterName(dbName);
         }
 
         public String getDbName() {

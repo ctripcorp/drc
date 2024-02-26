@@ -146,7 +146,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 long curTime = System.currentTimeMillis();
                 long timeDiff = curTime - receiveTime;
                 if (timeDiff > TOLERANCE_TIME) {
-                    logger.error("[[monitor=delay]] mha:{}, delayMessageLoss, report Huge to trigger alarm",mhaInfo.getMhaName());
+                    logger.error("[[monitor=delay]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
                     DefaultReporterHolder.getInstance()
                             .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
                 }
