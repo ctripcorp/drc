@@ -122,6 +122,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     }
 
     public void switchToSlave() {
+        removeRegister();
     }
 
     private void reset() {
