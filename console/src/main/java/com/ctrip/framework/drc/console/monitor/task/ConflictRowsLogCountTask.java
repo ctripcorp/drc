@@ -74,7 +74,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     private static int rollBackTotalCount;
     private static boolean nextDay = false;
     private static boolean alarmIsSent = true;
-    private static boolean swichToLeader = false;
     private static Map<String, ConflictRowsLogCount> tableCountMap;
     private static Map<String, ConflictRowsLogCount> rollBackCountMap;
     private static List<ConflictRowsLogCount> yesterdayTopLogTables;
@@ -98,11 +97,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
-            if (swichToLeader) {
-                reset();
-                swichToLeader = false;
-            }
-            removeRegister();
             checkCount();
             alarm();
             if (nextDay) {
@@ -118,7 +112,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     }
 
     public void switchToLeader() {
-        swichToLeader = true;
+        reset();
     }
 
     public void switchToSlave() {
