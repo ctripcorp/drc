@@ -22,6 +22,8 @@ public interface MhaDbMappingService {
 
     void buildMhaDbMappings(String mhaName,List<String> dbList) throws SQLException;
 
+    Pair<List<MhaDbMappingTbl>, List<MhaDbMappingTbl>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> dbNames) throws SQLException;
+
     void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException;
 
     List<MhaDbMappingTbl> query(MhaDbQueryDto mhaDbQueryDto);

@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq.TblsFilterDetail;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -66,6 +67,8 @@ public class DrcAutoBuildServiceImplTest {
     DrcBuildServiceV2 drcBuildService;
     @InjectMocks
     DrcAutoBuildServiceImpl drcAutoBuildServiceImpl;
+    @Mock
+    DbDrcBuildService dbDrcBuildService;
 
     public static final String TEST_DB_NAME = "testDb";
     public static final String TEST_DB_NAME2 = "testDb_2";

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import org.apache.commons.lang3.StringUtils;
 
 public class DrcAutoBuildReq {
@@ -199,6 +200,16 @@ public class DrcAutoBuildReq {
 
     public void setTag(String tag) {
         this.tag = tag;
+    }
+
+    public void autoSetTag() {
+        if (ResourceTagEnum.FLT.getName().equals(buName)) {
+            tag = ResourceTagEnum.FLT.getName();
+        } else if (ResourceTagEnum.HTL.getName().equals(buName)) {
+            tag = ResourceTagEnum.HTL.getName();
+        } else {
+            tag = ResourceTagEnum.COMMON.getName();
+        }
     }
 
     @Override

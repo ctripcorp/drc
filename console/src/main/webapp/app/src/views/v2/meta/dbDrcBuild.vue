@@ -362,6 +362,16 @@ export default {
           colsFilter: false
         },
         constants: {
+          drcStatus: {
+            NOT_EXIST: -1,
+            STOP: 0,
+            STARTED: 1,
+            PARTIAL_STARTED: 2
+          },
+          drcApplyMode: {
+            MHA_APPLY: 0,
+            DB_APPLY: 1
+          },
           rowsFilter: {
             configInTripUid: {
               regionsChosen: []
@@ -460,6 +470,7 @@ export default {
         bus: [],
         regions: [],
         regionOptions: [],
+        existReplicationRegionOptions: [],
         dbOptions: [],
         tags: this.constant.tagList,
         selectedDb: {}
@@ -474,17 +485,40 @@ export default {
             align: 'center',
             render: (h, params) => {
               const row = params.row
+              const applyMode = row.viewOnlyInfo.drcApplyMode
               const status = row.viewOnlyInfo.drcStatus
               const disabled = status === -1
-              let type, text
-              if (status === 1) {
-                text = '已接入'
-                type = 'primary'
+              let type, text, tagText, tagColor
+              if (applyMode === this.formItem.constants.drcApplyMode.DB_APPLY) {
+                tagText = 'DB 粒度同步'
+                tagColor = 'success'
+                if (status === this.formItem.constants.drcStatus.STARTED) {
+                  text = '已接入'
+                  type = 'primary'
+                } else if (status === this.formItem.constants.drcStatus.PARTIAL_STARTED) {
+                  text = '部分接入'
+                  type = 'primary'
+                  tagColor = 'error'
+                } else {
+                  text = '未接入'
+                  type = 'default'
+                }
               } else {
-                text = '未接入'
-                type = 'default'
+                if (status === this.formItem.constants.drcStatus.STARTED) {
+                  text = '已接入'
+                  type = 'primary'
+                } else {
+                  text = '未接入'
+                  type = 'default'
+                }
               }
+
               return h('div', [
+                applyMode === this.formItem.constants.drcApplyMode.DB_APPLY && h('Tag', {
+                  props: {
+                    color: tagColor
+                  }
+                }, tagText),
                 h('Button', {
                   on: {
                     click: async () => {
@@ -1154,8 +1188,7 @@ export default {
       return this.hasUidColumn
     },
     gtidConfigurable () {
-      return this.previewDataList !== null && this.previewDataList.length === 1 &&
-        this.formItem.buildMode === 0 && this.previewDataList[0].drcStatus !== 1
+      return this.previewDataList !== null && this.previewDataList.length === 1 && [this.formItem.constants.drcStatus.NOT_EXIST, this.formItem.constants.drcStatus.STOP].includes(this.previewDataList[0].drcStatus)
     },
     preCheckTablePage () {
       const data = this.checkTableDataList

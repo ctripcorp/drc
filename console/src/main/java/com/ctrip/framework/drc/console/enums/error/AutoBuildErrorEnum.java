@@ -9,6 +9,11 @@ public enum AutoBuildErrorEnum implements IErrorDef {
     GTID_PURGED("GTID_PURGED", "given gtid is purged, cannot config replicator!"),
     GTID_ONLY_FOR_SINGLE_MHA_REPLICATION("GTID_ONLY_FOR_SINGLE_MHA_REPLICATION", "gtid is allowed to config if only [1] mha replication is related"),
     GTID_NOT_CONFIGURABLE_FOR_EXIST_REPLICATION("GTID_NOT_CONFIGURABLE_FOR_EXIST_REPLICATION", "should not configure gtid for exist replication!"),
+    DB_APPLIERS_NOT_CONSISTENT("DB_APPLIERS_NOT_CONSISTENT", "exist db replication applier configuration not consistent, could not auto-build, please manually check and build!"),
+    DB_REPLICATION_NOT_CONSISTENT("DB_REPLICATION_NOT_CONSISTENT", "exist db replication configuration not consistent, please manually check and fix."),
+    ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST("ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST", "original configuration is missing. maybe it's modified or deleted. please fresh the page and try again"),
+    CREATE_MHA_DB_REPLICATION_FAIL_CONFIG_EXIST("CREATE_MHA_DB_REPLICATION_FAIL_CONFIG_EXIST", "replication already exists. please fresh the page and try again"),
+    GET_BU_CODE_FOR_DB_FAIL("GET_BU_CODE_FOR_DB_FAIL", "get bu code fail. different bu code found for dbs"),
     ;
 
 

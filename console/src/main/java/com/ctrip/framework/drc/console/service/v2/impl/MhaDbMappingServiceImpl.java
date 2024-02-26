@@ -109,6 +109,34 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         return Pair.of(srcDbList, srcTableList);
     }
 
+    @Override
+    public Pair<List<MhaDbMappingTbl>, List<MhaDbMappingTbl>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> dbNames) throws SQLException {
+        String nameFilter = String.join(",", dbNames);
+        List<String> srcDbList = mysqlServiceV2.queryDbsWithNameFilter(srcMha.getMhaName(), nameFilter);
+        List<String> dstDbList = mysqlServiceV2.queryDbsWithNameFilter(dstMha.getMhaName(), nameFilter);
+        if (CollectionUtils.isEmpty(srcDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for srcMha: "+srcMha.getMhaName());
+        }
+        if (CollectionUtils.isEmpty(dstDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for dstMha: "+dstMha.getMhaName());
+        }
+        if (!CommonUtils.isSameList(srcDbList, dbNames)) {
+            logger.error("insertMhaDbMappings srcDb, givenDbs is not same, srcDbList: {}, given dbs: {}", srcDbList, dbNames);
+            throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");
+        }
+        if (!CommonUtils.isSameList(srcDbList, dstDbList)) {
+            logger.error("insertMhaDbMappings srcDb dstDb is not same, srcDbList: {}, dstDbList: {}", srcDbList, dstDbList);
+            throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");
+        }
+
+        this.insertDbs(srcDbList);
+
+        //insertMhaDbMappings
+        List<MhaDbMappingTbl> srcMappingTbl = this.insertOrRecoverMhaDbMappings(srcMha.getId(), srcDbList);
+        List<MhaDbMappingTbl> dstMappingTbl = this.insertOrRecoverMhaDbMappings(dstMha.getId(), dstDbList);
+        return Pair.of(srcMappingTbl,dstMappingTbl);
+    }
+
     private Pair<List<String>, List<String>> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
         String mhaName = vpcMhaNames.contains(srcMha.getMhaName()) ? dstMha.getMhaName() : srcMha.getMhaName();
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
@@ -189,6 +217,47 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
 
         logger.info("insertDbMappingTbls: {}", insertDbMappingTbls);
         mhaDbMappingTblDao.batchInsert(insertDbMappingTbls);
+    }
+
+    private List<MhaDbMappingTbl> insertOrRecoverMhaDbMappings(long mhaId, List<String> dbList) throws SQLException {
+        if (CollectionUtils.isEmpty(dbList)) {
+            logger.warn("dbList is empty, mhaId: {}", mhaId);
+            return Collections.emptyList();
+        }
+        List<DbTbl> dbTblList = dbTblDao.queryByDbNames(dbList);
+        Map<String, Long> dbNameToIdMap = dbTblList.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+        List<MhaDbMappingTbl> existTbls = mhaDbMappingTblDao.queryByMhaIdAndDbIds(mhaId, Lists.newArrayList(dbNameToIdMap.values()), null);
+        Map<Long, MhaDbMappingTbl> dbIdToExistMappingTblMap = existTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, e -> e));
+
+        List<MhaDbMappingTbl> insertDbMappingTbls = new ArrayList<>();
+        List<MhaDbMappingTbl> updateDbMappingTbls = new ArrayList<>();
+        List<MhaDbMappingTbl> finalDbMappingTbls = new ArrayList<>();
+        for (String dbName : dbList) {
+            long dbId = dbNameToIdMap.get(dbName);
+            if (dbIdToExistMappingTblMap.containsKey(dbId)) {
+                MhaDbMappingTbl existMhaDbMappingTbl = dbIdToExistMappingTblMap.get(dbId);
+                if (BooleanEnum.TRUE.getCode().equals(existMhaDbMappingTbl.getDeleted())) {
+                    existMhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                    updateDbMappingTbls.add(existMhaDbMappingTbl);
+                }
+                finalDbMappingTbls.add(existMhaDbMappingTbl);
+            } else {
+                MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
+                mhaDbMappingTbl.setMhaId(mhaId);
+                mhaDbMappingTbl.setDbId(dbId);
+                mhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                insertDbMappingTbls.add(mhaDbMappingTbl);
+                finalDbMappingTbls.add(mhaDbMappingTbl);
+            }
+        }
+
+
+
+        logger.info("insertDbMappingTbls: {}", insertDbMappingTbls);
+        mhaDbMappingTblDao.batchInsertWithReturnId(insertDbMappingTbls);
+        logger.info("batchUpdate: {}", updateDbMappingTbls);
+        mhaDbMappingTblDao.batchUpdate(updateDbMappingTbls);
+        return finalDbMappingTbls;
     }
 
     @Override

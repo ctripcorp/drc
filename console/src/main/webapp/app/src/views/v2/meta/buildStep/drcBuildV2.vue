@@ -618,12 +618,11 @@ export default {
       return false
     },
     showMhaApplierConfig (isSrc) {
-      return true
-      // if (isSrc) {
-      //   return !this.hasAppliers(this.srcBuildData.dbApplierDtos)
-      // } else {
-      //   return !this.hasAppliers(this.dstBuildData.dbApplierDtos)
-      // }
+      if (isSrc) {
+        return !this.hasAppliers(this.srcBuildData.dbApplierDtos)
+      } else {
+        return !this.hasAppliers(this.dstBuildData.dbApplierDtos)
+      }
     },
     showDbMhaApplierConfig (isSrc) {
       if (isSrc) {

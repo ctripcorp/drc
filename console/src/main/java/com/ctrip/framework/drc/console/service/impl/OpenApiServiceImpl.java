@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.OpenApiService;
+import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.core.entity.*;
@@ -77,17 +78,19 @@ public class OpenApiServiceImpl implements OpenApiService {
             for (Entry<String, DbCluster> dbClusterInfo : dcMeta.getDbClusters().entrySet()) {
                 DbCluster dbClusterMeta = dbClusterInfo.getValue();
                 String destMha = dbClusterMeta.getMhaName();
-
-                Set<String> srcMhaNames = Sets.newHashSet();
+                Set<MultiKey> seenAppliers = Sets.newHashSet();
                 List<Applier> appliers = dbClusterMeta.getAppliers();
                 for (Applier applier : appliers) {
                     try {
                         String srcRegion = applier.getTargetRegion();
                         String srcMha = applier.getTargetMhaName();
-                        if (srcMhaNames.contains(srcMha)) {
+                        Integer applyMode = applier.getApplyMode();
+                        String includedDbs = applier.getIncludedDbs();
+                        MultiKey applierKey = new MultiKey(srcMha, includedDbs, applyMode);
+                        if (seenAppliers.contains(applierKey)) {
                             continue;
                         } else {
-                            srcMhaNames.add(srcMha);
+                            seenAppliers.add(applierKey);
                         }
 
                         String nameFilter = applier.getNameFilter();
