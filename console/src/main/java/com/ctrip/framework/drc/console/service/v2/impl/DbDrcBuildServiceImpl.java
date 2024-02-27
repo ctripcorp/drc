@@ -514,7 +514,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
 
         // 1. logic table config consistency check
-        long count = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(e.getLogicTableDtoConfigs())).distinct().count();
+        long count = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().count();
         if (count > 1) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT);
         }

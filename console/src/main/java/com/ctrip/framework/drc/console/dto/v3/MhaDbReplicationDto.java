@@ -69,10 +69,6 @@ public class MhaDbReplicationDto {
         return dbReplicationDtos;
     }
 
-    public List<LogicTableConfig> getLogicTableDtoConfigs() {
-        return dbReplicationDtos.stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList());
-    }
-
     public void setDbReplicationDtos(List<DbReplicationDto> dbReplicationDtos) {
         this.dbReplicationDtos = dbReplicationDtos;
     }
