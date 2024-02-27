@@ -18,6 +18,7 @@ public class Email {
     private String sender;
     private String subject;
     private String bodyContent;
+    private String header;
     
     private Map<String,String> contentKeyValues;
 
@@ -97,6 +98,14 @@ public class Email {
         return contentKeyValues;
     }
 
+    public String getHeader() {
+        return header;
+    }
+
+    public void setHeader(String header) {
+        this.header = header;
+    }
+
     @Override
     public String toString() {
         return "Email{" +
@@ -106,6 +115,8 @@ public class Email {
                 ", sender='" + sender + '\'' +
                 ", subject='" + subject + '\'' +
                 ", bodyContent='" + bodyContent + '\'' +
+                ", header='" + header + '\'' +
+                ", contentKeyValues=" + contentKeyValues +
                 '}';
     }
 }

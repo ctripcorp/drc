@@ -252,4 +252,15 @@ public class DrcBuildControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @PostMapping("initReplicationTables")
+    public ApiResult<Boolean> initReplicationTables() {
+        try {
+            drcBuildServiceV2.initReplicationTables();
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("initReplicationTables fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
 }

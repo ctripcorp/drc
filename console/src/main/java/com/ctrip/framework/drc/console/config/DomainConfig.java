@@ -132,6 +132,11 @@ public class DomainConfig extends AbstractConfigBean {
     private static String CFL_ALARM_ROLLBACK_TOP_NUM = "cfl.alarm.rollback.top.num";
     private static String CFL_ALARM_SEND_TIME_HOUR = "cfl.alarm.send.time.hour";
 
+    private static final String DRC_CONFIG_EMAIL_SEND_SWITCH = "drc.config.send.email.switch";
+    private static final String DRC_CONFIG_SENDER_EMAIL = "drc.config.sender.email";
+    private static final String DRC_CONFIG_CC_EMAIL = "drc.config.cc.email";
+    private static final String DRC_CONFIG_DBA_EMAIL = "drc.config.dba.email";
+
 
     public String getDbaApprovers() {
         return getProperty(DBA_APPROVERS);
@@ -421,5 +426,26 @@ public class DomainConfig extends AbstractConfigBean {
     
     public long getBlacklistAlarmHotspotThreshold() {
         return getLongProperty(CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD, 6 * 60L);
+    }
+
+    public boolean getDrcConfigEmailSendSwitch() {
+        return getBooleanProperty(DRC_CONFIG_EMAIL_SEND_SWITCH, false);
+    }
+
+    public String getDrcConfigSenderEmail() {
+        return getProperty(DRC_CONFIG_SENDER_EMAIL, "");
+    }
+
+    public String getDrcConfigDbaEmail() {
+        return getProperty(DRC_CONFIG_DBA_EMAIL, "");
+    }
+
+    public List<String> getDrcConfigCcEmail() {
+        String ccEmails = getProperty(DRC_CONFIG_CC_EMAIL, "");
+        if (StringUtils.isBlank(ccEmails)) {
+            return new ArrayList<>();
+        } else {
+            return Arrays.stream(ccEmails.split(",")).collect(Collectors.toList());
+        }
     }
 }

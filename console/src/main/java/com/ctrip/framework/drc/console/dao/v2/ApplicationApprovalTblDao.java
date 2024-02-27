@@ -32,4 +32,10 @@ public class ApplicationApprovalTblDao extends AbstractDao<ApplicationApprovalTb
         sqlBuilder.and().in(APPLICATION_FORM_ID, applicationFormIds, Types.BIGINT);
         return queryList(sqlBuilder);
     }
+
+    public ApplicationApprovalTbl queryByApplicationFormId(Long applicationFormId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(APPLICATION_FORM_ID, applicationFormId, Types.BIGINT);
+        return queryOne(sqlBuilder);
+    }
 }

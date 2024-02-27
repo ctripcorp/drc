@@ -22,21 +22,44 @@ public class ReplicationTableTblDao extends AbstractDao<ReplicationTableTbl> {
     private static final String DST_MHA = "dst_mha";
     private static final String DB_REPLICATION_ID = "db_replication_id";
     private static final String EFFECTIVE_STATUS = "effective_status";
+    private static final String DELETED = "deleted";
 
     public ReplicationTableTblDao() throws SQLException {
         super(ReplicationTableTbl.class);
     }
 
-    public List<ReplicationTableTbl> query(List<Long> dbReplicationIds) throws SQLException {
+    // include deleted
+    public List<ReplicationTableTbl> queryByDbReplicationIds(List<Long> dbReplicationIds) throws SQLException {
         if (CollectionUtils.isEmpty(dbReplicationIds)) {
             return new ArrayList<>();
         }
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 
-    public List<ReplicationTableTbl> query(String srcMha, String dstMha, int effectiveStatus) throws SQLException {
+    public List<ReplicationTableTbl> queryByDbReplicationIds(List<Long> dbReplicationIds, Integer deleted) throws SQLException {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT)
+                .and().equal(DELETED, deleted, Types.TINYINT);
+        return queryList(sqlBuilder);
+    }
+
+    // include deleted
+    public List<ReplicationTableTbl> queryByDbReplicationIds(List<Long> dbReplicationIds, int effectiveStatus) throws SQLException {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT)
+                .and().equal(EFFECTIVE_STATUS, effectiveStatus, Types.TINYINT);
+        return queryList(sqlBuilder);
+    }
+
+    public List<ReplicationTableTbl> queryByDbReplicationIds(String srcMha, String dstMha, int effectiveStatus) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(SRC_MHA, srcMha, Types.VARCHAR)
                 .and().equal(DST_MHA, dstMha, Types.VARCHAR)

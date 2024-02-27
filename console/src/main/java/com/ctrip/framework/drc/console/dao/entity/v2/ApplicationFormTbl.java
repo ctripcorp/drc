@@ -157,6 +157,36 @@ public class ApplicationFormTbl {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+    /**
+     * 是否已发送过邮件, 0-否; 1-是
+     */
+    @Column(name = "is_sent_email")
+    @Type(value = Types.TINYINT)
+    private Integer isSentEmail;
+
+    /**
+     * 是否使用给定位点, 0-否; 1-是
+     */
+    @Column(name = "use_given_gtid")
+    @Type(value = Types.TINYINT)
+    private Integer useGivenGtid;
+
+    public Integer getUseGivenGtid() {
+        return useGivenGtid;
+    }
+
+    public void setUseGivenGtid(Integer useGivenGtid) {
+        this.useGivenGtid = useGivenGtid;
+    }
+
+    public Integer getIsSentEmail() {
+        return isSentEmail;
+    }
+
+    public void setIsSentEmail(Integer isSentEmail) {
+        this.isSentEmail = isSentEmail;
+    }
+
     public String getTag() {
         return tag;
     }

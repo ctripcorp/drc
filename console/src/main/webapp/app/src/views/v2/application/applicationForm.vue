@@ -67,6 +67,9 @@
             <Button type="primary" size="small" @click="getDetail(row, index)" style="margin-right: 5px">
               详情
             </Button>
+            <Button type="success" size="small" @click="copy(row, index)" style="margin-right: 5px">
+              复制
+            </Button>
           </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
@@ -171,10 +174,10 @@ export default {
             let text = ''
             if (result === 0) {
               color = 'blue'
-              text = '是'
+              text = '否'
             } else if (result === 1) {
               color = 'volcano'
-              text = '否'
+              text = '是'
             }
             return h('Tag', {
               props: {
@@ -197,7 +200,7 @@ export default {
           render: (h, params) => {
             const result = params.row.approvalResult
             let color = 'cyan'
-            let text = '审批中'
+            let text = ''
             if (result === 1) {
               color = 'green'
               text = '通过'
@@ -206,6 +209,8 @@ export default {
               text = '未通过'
             } else if (result === 3) {
               color = 'blue'
+              text = '未审批'
+            } else if (result === 0) {
               text = '审批中'
             }
             return h('Tag', {
@@ -315,15 +320,52 @@ export default {
       }
     },
     getDetail (row, index) {
-      const disabled = row.approvalResult !== 1 || row.executedStatus !== 0
       const detail = this.$router.resolve({
-        path: '/conflictLogDetail',
+        path: '/applicationBuild',
         query: {
-          approvalId: row.approvalId,
-          approvalDetailUrl: row.approvalDetailUrl,
-          queryType: '2',
-          showExecute: true,
-          disabled: disabled
+          applicationFormId: row.applicationFormId,
+          showDetail: true,
+          dbName: row.dbName,
+          tableName: row.tableName,
+          srcRegion: row.srcRegion,
+          dstRegion: row.dstRegion,
+          replicationType: row.replicationType,
+          filterType: row.filterType,
+          buName: row.buName,
+          tps: row.tps,
+          description: row.description,
+          disruptionImpact: row.disruptionImpact,
+          tag: row.tag,
+          flushExistingData: row.flushExistingData,
+          orderRelated: row.orderRelated,
+          gtidInit: row.gtidInit,
+          remark: row.remark,
+          applicant: row.applicant
+        }
+      })
+      window.open(detail.href, '_blank')
+    },
+    copy (row, index) {
+      const detail = this.$router.resolve({
+        path: '/applicationBuild',
+        query: {
+          dbName: row.dbName,
+          tableName: row.tableName,
+          srcRegion: row.srcRegion,
+          dstRegion: row.dstRegion,
+          replicationType: row.replicationType,
+          filterType: row.filterType,
+          buName: row.buName,
+          tps: row.tps,
+          description: row.description,
+          disruptionImpact: row.disruptionImpact,
+          tag: row.tag,
+          flushExistingData: row.flushExistingData,
+          orderRelated: row.orderRelated,
+          // gtidInit: row.gtidInit,
+          remark: row.remark,
+          applicant: row.applicant,
+          applicationFormId: row.applicationFormId
         }
       })
       window.open(detail.href, '_blank')

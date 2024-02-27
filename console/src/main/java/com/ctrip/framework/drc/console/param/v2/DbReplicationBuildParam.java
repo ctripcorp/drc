@@ -13,6 +13,7 @@ public class DbReplicationBuildParam {
     private String dbName;
     private String tableName;
     private boolean flushExistingData;
+    private boolean autoBuild;
     private RowsFilterCreateParam rowsFilterCreateParam;
     private ColumnsFilterCreateParam columnsFilterCreateParam;
 
@@ -21,6 +22,14 @@ public class DbReplicationBuildParam {
         this.dstMhaName = dstMhaName;
         this.dbName = dbName;
         this.tableName = tableName;
+    }
+
+    public boolean isAutoBuild() {
+        return autoBuild;
+    }
+
+    public void setAutoBuild(boolean autoBuild) {
+        this.autoBuild = autoBuild;
     }
 
     public DbReplicationBuildParam() {
@@ -100,6 +109,7 @@ public class DbReplicationBuildParam {
                 ", dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +
                 ", flushExistingData=" + flushExistingData +
+                ", autoBuild=" + autoBuild +
                 ", rowsFilterCreateParam=" + rowsFilterCreateParam +
                 ", columnsFilterCreateParam=" + columnsFilterCreateParam +
                 '}';

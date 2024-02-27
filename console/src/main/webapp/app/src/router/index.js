@@ -244,6 +244,11 @@ const routes = [
     component: () => import('../views/v2/application/applicationBuild.vue')
   },
   {
+    path: '/drcBuild',
+    name: 'applicationBuild',
+    component: () => import('../views/v2/application/drcBuild.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

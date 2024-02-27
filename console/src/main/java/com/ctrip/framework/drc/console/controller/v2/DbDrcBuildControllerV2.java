@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
 import com.ctrip.framework.drc.console.service.v2.DrcAutoBuildService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -96,6 +97,16 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("preCheckMysqlConfig")
+    @SuppressWarnings("unchecked")
+    public ApiResult<MhaPreCheckVo> preCheckMysqlConfig(@RequestParam List<String> mhaList) {
+        try {
+            return ApiResult.getSuccessInstance(drcAutoBuildService.preCheckMysqlConfig(mhaList));
+        } catch (Throwable e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("commonColumns")
     @SuppressWarnings("unchecked")
     public ApiResult<List<String>> getCommonColumns(DrcAutoBuildReq req) {
@@ -131,6 +142,21 @@ public class DbDrcBuildControllerV2 {
         logger.info("[meta] auto build drc, req: {}", req);
         try {
             drcAutoBuildService.autoBuildDrc(req);
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("[meta] auto build drc, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("applicationForm/submit")
+    @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "DbDrcBuildControllerV2 submitApplicationForm with DrcAutoBuildReq: {#req.toString()}")
+    public ApiResult<Void> submitApplicationForm(@RequestBody DrcAutoBuildReq req) {
+        logger.info("[meta] auto build drc, req: {}", req);
+        try {
+            drcAutoBuildService.autoBuildDrcFromApplication(req);
             return ApiResult.getSuccessInstance(null);
         } catch (Throwable e) {
             logger.error("[meta] auto build drc, req {}", req, e);

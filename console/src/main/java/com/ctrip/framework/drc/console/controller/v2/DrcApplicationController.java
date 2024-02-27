@@ -48,4 +48,25 @@ public class DrcApplicationController {
         }
     }
 
+    @PostMapping("email")
+    public ApiResult<Boolean> sendEmail(@RequestParam Long applicationFormId) {
+        try {
+            return ApiResult.getSuccessInstance(drcApplicationService.sendEmail(applicationFormId));
+        } catch (Exception e) {
+            logger.error("createApplicationForm fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("approve")
+    public ApiResult<Boolean> approveForm(@RequestParam Long applicationFormId) {
+        try {
+            drcApplicationService.approveForm(applicationFormId);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("createApplicationForm fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
 }

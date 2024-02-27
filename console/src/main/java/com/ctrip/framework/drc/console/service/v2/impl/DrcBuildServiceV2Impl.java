@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -39,7 +40,11 @@ import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -51,6 +56,7 @@ import org.springframework.util.CollectionUtils;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -133,8 +139,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MhaServiceV2 mhaServiceV2;
 
-
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
+    private final ListeningExecutorService replicationExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "replicationExecutorService"));
+
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
 
@@ -224,8 +231,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<DbReplicationTbl> srcDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
         List<DbReplicationTbl> dstDbReplications = getExistDbReplications(dstMhaDbMappings, srcMhaDbMappings);
 
-        configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps(), resourceTbls, srcDbReplications);
-        configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps(), resourceTbls, dstDbReplications);
+        boolean srcApplierChanged = configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps(), resourceTbls, srcDbReplications);
+        boolean dstApplierChanged = configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps(), resourceTbls, dstDbReplications);
+        if (srcApplierChanged) {
+            changeReplicationTableStatus(srcDbReplications);
+        }
+        if (dstApplierChanged) {
+            changeReplicationTableStatus(dstDbReplications);
+        }
 
         if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
             dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
@@ -241,6 +254,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             srcMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
             mhaReplicationTblDao.update(srcMhaReplication);
         }
+    }
+
+    private void changeReplicationTableStatus(List<DbReplicationTbl> dbReplications) throws SQLException {
+        List<Long> dbReplicationIds = dbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
+        if (CollectionUtils.isEmpty(replicationTableTbls)) {
+            return;
+        }
+        replicationTableTbls.forEach(e -> e.setEffectiveStatus(EffectiveStatusEnum.IN_EFFECT.getCode()));
+        replicationTableTblDao.update(replicationTableTbls);
     }
 
     @Override
@@ -312,9 +335,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<DbReplicationTbl> dbReplicationTbls = pair.getLeft();
         List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
 
-        Map<String, Long> mhaDbNameMap = pair.getRight();
+        Map<String, Long> dbNameToSrcMhaDbMappingId = pair.getRight();
         //insert replicationTables
-        configReplicationTables(param, dbReplicationTbls, mhaDbNameMap, dbTablePair.getRight(), false);
+        configReplicationTables(param, dbReplicationTbls, dbNameToSrcMhaDbMappingId, dbTablePair.getRight(), false);
         return dbReplicationIds;
     }
 
@@ -347,7 +370,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         String nameFilter = param.getDbName() + "\\." + param.getTableName();
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), nameFilter);
-        Map<String, Long> mhaDbNameMap = checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
+        Map<String, Long> dbNameToSrcMhaDbMappingId = checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
 
         if (!param.getTableName().equals(srcLogicTableNames.get(0))) {
             dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
@@ -383,11 +406,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         //insert replicationTables
-        configReplicationTables(param, dbReplicationTbls, mhaDbNameMap, tableList, true);
+        configReplicationTables(param, dbReplicationTbls, dbNameToSrcMhaDbMappingId, tableList, true);
         return dbReplicationIds;
     }
 
-    private void configReplicationTables(DbReplicationBuildParam param, List<DbReplicationTbl> dbReplicationTbls, Map<String, Long> mhaDbNameMap, List<String> tableList, boolean update) throws SQLException {
+    private void configReplicationTables(DbReplicationBuildParam param, List<DbReplicationTbl> dbReplicationTbls, Map<String, Long> dbNameToSrcMhaDbMappingId, List<String> tableList, boolean update) throws SQLException {
         String srcMhaName = param.getSrcMhaName();
         String dstMhaName = param.getDstMhaName();
         Map<Long, Long> dbReplicationMappingMap = dbReplicationTbls.stream().collect(Collectors.toMap(DbReplicationTbl::getSrcMhaDbMappingId, DbReplicationTbl::getId));
@@ -398,7 +421,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             String[] tables = table.split("\\.");
             String dbName = tables[0];
             String tableName = tables[1];
-            long dbReplicationId = dbReplicationMappingMap.get(mhaDbNameMap.get(dbName));
+            long dbReplicationId = dbReplicationMappingMap.get(dbNameToSrcMhaDbMappingId.get(dbName));
 
             ReplicationTableTbl replicationTableTbl = new ReplicationTableTbl();
             replicationTableTbl.setDbReplicationId(dbReplicationId);
@@ -408,7 +431,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             replicationTableTbl.setDstMha(dstMhaName);
             replicationTableTbl.setSrcRegion(srcRegion);
             replicationTableTbl.setDstRegion(dstRegion);
-            replicationTableTbl.setEffectiveStatus(BooleanEnum.FALSE.getCode());
+            replicationTableTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            if (param.isAutoBuild()) {
+                replicationTableTbl.setEffectiveStatus(EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
+            } else {
+                replicationTableTbl.setEffectiveStatus(EffectiveStatusEnum.IN_EFFECT.getCode());
+            }
+
             replicationTableTbl.setExistingDataStatus(param.isFlushExistingData() ?
                     ExistingDataStatusEnum.NOT_PROCESSED.getCode() : ExistingDataStatusEnum.NO_NEED_TO_PROCESSING.getCode());
             replicationTableTbls.add(replicationTableTbl);
@@ -416,12 +445,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         List<ReplicationTableTbl> existReplicationTables = new ArrayList<>();
         if (update) {
-            existReplicationTables = replicationTableTblDao.query(param.getDbReplicationIds());
+            existReplicationTables = replicationTableTblDao.queryByDbReplicationIds(param.getDbReplicationIds(), BooleanEnum.FALSE.getCode());
         }
         List<ReplicationTableTbl> finalExistReplicationTables = existReplicationTables;
         List<ReplicationTableTbl> insertReplicationTables = replicationTableTbls.stream().filter(e -> !finalExistReplicationTables.contains(e)).collect(Collectors.toList());
         List<ReplicationTableTbl> deleteReplicationTables = existReplicationTables.stream().filter(e -> !replicationTableTbls.contains(e)).collect(Collectors.toList());
-        deleteReplicationTables.stream().forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        deleteReplicationTables.stream().forEach(e -> {
+            e.setDeleted(BooleanEnum.TRUE.getCode());
+            e.setEffectiveStatus(EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
+        });
 
         if (!CollectionUtils.isEmpty(insertReplicationTables)) {
             logger.info("{} -> {} insert replicationTables", srcMhaName, dstMhaName);
@@ -497,8 +529,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
 
         //config replicationTables
-        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.query(dbReplicationIds);
-        replicationTableTbls.stream().forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, BooleanEnum.FALSE.getCode());
+        replicationTableTbls.stream().forEach(e -> {
+            e.setDeleted(BooleanEnum.TRUE.getCode());
+            e.setEffectiveStatus(EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
+        });
         replicationTableTblDao.update(replicationTableTbls);
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
@@ -870,6 +905,125 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     }
 
+    @Override
+    public void sendEmailAfterConfigChanged(List<MhaReplicationTbl> mhaReplicationTbls) throws Exception {
+        List<ReplicationTableTbl> replicationTableTbls = getReplicationTablesByMhaReplications(mhaReplicationTbls);
+
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void initReplicationTables() throws Exception {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllExist().stream().filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+        List<MhaTblV2> mhaTblV2s = mhaTblDao.queryAllExist();
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+        List<DbTbl> dbTbls = dbTblDao.queryAllExist();
+        Map<Long, String> dbNameMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        Map<Long, List<MhaDbMappingTbl>> mhaIdToMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
+        Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
+        Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getRegionName));
+        Map<Long, MhaTblV2> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
+
+        List<ListenableFuture<List<ReplicationTableTbl>>> futures = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            ListenableFuture<List<ReplicationTableTbl>> future = replicationExecutorService.submit(() -> buildReplicationTables(dbNameMap, mhaIdToMappingMap, mhaDbMappingTblMap, dcMap, mhaMap, mhaReplicationTbl));
+            futures.add(future);
+        }
+
+        List<ReplicationTableTbl> replicationTableTbls = new ArrayList<>();
+        for (ListenableFuture<List<ReplicationTableTbl>> future : futures) {
+            try {
+                List<ReplicationTableTbl> result = future.get(10, TimeUnit.SECONDS);
+                replicationTableTbls.addAll(result);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message("initReplicationTables fail, " + e);
+            }
+        }
+        insertReplicationTables(replicationTableTbls);
+    }
+
+    private void insertReplicationTables(List<ReplicationTableTbl> replicationTableTbls) throws Exception {
+        int period = 2000;
+        int fromIndex = 0;
+        int size = replicationTableTbls.size();
+        while (fromIndex < size) {
+            int endIndex = Math.min(size, fromIndex + period);
+            List<ReplicationTableTbl> subList = replicationTableTbls.subList(fromIndex, endIndex);
+            replicationTableTblDao.insert(subList);
+            fromIndex = endIndex;
+        }
+    }
+
+    private List<ReplicationTableTbl> buildReplicationTables(Map<Long, String> dbNameMap, Map<Long, List<MhaDbMappingTbl>> mhaIdToMappingMap, Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap, Map<Long, String> dcMap, Map<Long, MhaTblV2> mhaMap, MhaReplicationTbl mhaReplicationTbl) throws Exception {
+        MhaTblV2 srcMha = mhaMap.get(mhaReplicationTbl.getSrcMhaId());
+        MhaTblV2 dstMha = mhaMap.get(mhaReplicationTbl.getDstMhaId());
+        List<MhaDbMappingTbl> srcMhaMappings = mhaIdToMappingMap.get(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaMappings = mhaIdToMappingMap.get(dstMha.getId());
+        List<DbReplicationTbl> dbReplicationTbls = getExistDbReplications(srcMhaMappings, dstMhaMappings);
+
+        List<String> tableFilters = dbReplicationTbls.stream().map(dbReplicationTbl -> {
+            String dbName = dbNameMap.get(mhaDbMappingTblMap.get(dbReplicationTbl.getSrcMhaDbMappingId()).getDbId());
+            return dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
+        }).collect(Collectors.toList());
+        List<String> tableLists = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), Joiner.on(",").join(tableFilters));
+
+        List<ReplicationTableTbl> replicationTableTbls = tableLists.stream().map(source -> {
+            String[] tableStr = source.split("\\.");
+            String dbName = tableStr[0];
+            String tableName = tableStr[1];
+
+            ReplicationTableTbl target = new ReplicationTableTbl();
+            target.setDbName(dbName);
+            target.setTableName(tableName);
+            target.setSrcMha(srcMha.getMhaName());
+            target.setDstMha(dstMha.getMhaName());
+            target.setSrcRegion(dcMap.get(srcMha.getDcId()));
+            target.setDstRegion(dcMap.get(dstMha.getDcId()));
+            target.setExistingDataStatus(ExistingDataStatusEnum.PROCESSING_COMPLETED.getCode());
+            target.setEffectiveStatus(EffectiveStatusEnum.EFFECTIVE.getCode());
+
+            target.setDbReplicationId(getDbReplicationIdByTable(dbReplicationTbls, dbNameMap, mhaDbMappingTblMap, dbName, tableName));
+            return target;
+        }).collect(Collectors.toList());
+        return replicationTableTbls;
+    }
+
+    private long getDbReplicationIdByTable(List<DbReplicationTbl> dbReplicationTbls, Map<Long, String> dbNameMap, Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap, String dbName, String tableName) {
+        for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
+            String db = dbNameMap.get(mhaDbMappingTblMap.get(dbReplicationTbl.getSrcMhaDbMappingId()).getDbId());
+            if (!db.equalsIgnoreCase(dbName)) {
+                continue;
+            }
+            AviatorRegexFilter filter = new AviatorRegexFilter(dbReplicationTbl.getSrcLogicTableName());
+            if (filter.filter(tableName)) {
+                return dbReplicationTbl.getId();
+            }
+        }
+        throw ConsoleExceptionUtils.message("not find dbReplication tableName: " + dbName + "." + tableName);
+    }
+
+    private List<ReplicationTableTbl> getReplicationTablesByMhaReplications(List<MhaReplicationTbl> mhaReplicationTbls) throws Exception {
+        List<Long> mhaIds = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplication : mhaReplicationTbls) {
+            mhaIds.add(mhaReplication.getSrcMhaId());
+            mhaIds.add(mhaReplication.getDstMhaId());
+        }
+        mhaIds = mhaIds.stream().distinct().collect(Collectors.toList());
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(mhaIds);
+        Map<Long, List<MhaDbMappingTbl>> mhaIdToMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
+
+        List<DbReplicationTbl> allDbReplicationTbls = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplication : mhaReplicationTbls) {
+            List<MhaDbMappingTbl> srcMappings = mhaIdToMappingMap.get(mhaReplication.getSrcMhaId());
+            List<MhaDbMappingTbl> dstMappings = mhaIdToMappingMap.get(mhaReplication.getDstMhaId());
+            List<DbReplicationTbl> dbReplicationTbls = getExistDbReplications(srcMappings, dstMappings);
+            allDbReplicationTbls.addAll(dbReplicationTbls);
+        }
+        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(allDbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList()));
+        return replicationTableTbls;
+    }
+
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void doBuildMessengerDrc(MessengerMetaDto dto) throws Exception {
 
@@ -1223,12 +1377,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             }
         }
 
-        Map<String, Long> mhaDbNameMap = new HashMap<>();
+        Map<String, Long> dbNameToSrcMhaDbMappingId = new HashMap<>();
         srcDbMappingMap.forEach((srcMhaDbMappingId, dbId) -> {
             String dbName = srcDbMap.get(dbId);
-            mhaDbNameMap.put(dbName, srcMhaDbMappingId);
+            dbNameToSrcMhaDbMappingId.put(dbName, srcMhaDbMappingId);
         });
-        return mhaDbNameMap;
+        return dbNameToSrcMhaDbMappingId;
     }
 
     private String buildNameFilterByDbReplications(List<DbReplicationTbl> dbReplicationTbls, Map<Long, Long> mhaDbMappingMap, Map<Long, String> dbMap) {
@@ -1283,12 +1437,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationTbl;
     }
 
-    private void configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
+    private boolean configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
         long applierGroupId = insertOrUpdateApplierGroup(mhaReplicationId, applierInitGtid);
-        configureAppliers(applierGroupId, applierIps, resourceTbls, dbReplications);
+        return configureAppliers(applierGroupId, applierIps, resourceTbls, dbReplications);
     }
 
-    private void configureAppliers(long applierGroupId, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
+    private boolean configureAppliers(long applierGroupId, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
         if (CollectionUtils.isEmpty(dbReplications) && !CollectionUtils.isEmpty(applierIps)) {
             throw ConsoleExceptionUtils.message("dbReplication not config yet, cannot config applier");
         }
@@ -1329,6 +1483,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             }
             applierTblDao.update(deleteAppliers);
         }
+
+        return !CollectionUtils.isEmpty(insertIps) || !CollectionUtils.isEmpty(deleteIps);
     }
 
     private long insertOrUpdateApplierGroup(long mhaReplicationId, String applierInitGtid) throws Exception {

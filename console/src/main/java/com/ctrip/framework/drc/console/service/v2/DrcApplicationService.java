@@ -16,4 +16,8 @@ public interface DrcApplicationService {
     void createApplicationForm(ApplicationFormBuildParam param) throws SQLException;
 
     List<ApplicationFormView> getApplicationForms(ApplicationFormQueryParam param) throws SQLException;
+
+    void approveForm(long applicationFormId) throws Exception;
+
+    boolean sendEmail(long applicationFormId) throws Exception;
 }

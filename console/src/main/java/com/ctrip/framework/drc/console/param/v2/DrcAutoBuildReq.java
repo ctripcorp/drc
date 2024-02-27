@@ -20,6 +20,7 @@ public class DrcAutoBuildReq {
     private RowsFilterCreateParam rowsFilterDetail;
     private Boolean openColsFilterConfig;
     private ColumnsFilterCreateParam colsFilterDetail;
+    private Long applicationFormId;
 
     public void validAndTrim() {
         BuildMode modeEnum = getModeEnum();
@@ -201,6 +202,14 @@ public class DrcAutoBuildReq {
         this.tag = tag;
     }
 
+    public Long getApplicationFormId() {
+        return applicationFormId;
+    }
+
+    public void setApplicationFormId(Long applicationFormId) {
+        this.applicationFormId = applicationFormId;
+    }
+
     @Override
     public String toString() {
         return "DrcAutoBuildReq{" +
@@ -217,6 +226,7 @@ public class DrcAutoBuildReq {
                 ", rowsFilterDetail=" + rowsFilterDetail +
                 ", openColsFilterConfig=" + openColsFilterConfig +
                 ", colsFilterDetail=" + colsFilterDetail +
+                ", applicationFormId=" + applicationFormId +
                 '}';
     }
 

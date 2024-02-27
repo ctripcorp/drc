@@ -7,7 +7,7 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
-        <Form ref="buildParam" :model="buildParam" :rules="ruleValidate" :label-width="140">
+        <Form ref="buildParam" :model="buildParam" :rules="ruleValidate" :label-width="140" :disabled="showDetail">
           <FormItem label="同步DB" prop="dbName">
             <Input v-model="buildParam.dbName" placeholder="输入同步DB"></Input>
           </FormItem>
@@ -32,7 +32,7 @@
                 </Card>
               </Col>
               <Col span="2" style="text-align: center">
-                <Button size="middle" shape="circle" type="default" :loading="dataLoading">
+                <Button size="middle" shape="circle" type="default" @click="reverseRegion()">
                   ->
                 </Button>
               </Col>
@@ -101,11 +101,12 @@
           <FormItem label="备注" prop="remark">
             <Input v-model="buildParam.remark" type="textarea" :autosize="{minRows: 2,maxRows: 5}" placeholder="备注"></Input>
           </FormItem>
-          <FormItem>
+          <FormItem v-if="!showDetail">
             <Button type="primary" @click="handleSubmit('buildParam')">提交</Button>
             <Button @click="handleReset('buildParam')" style="margin-left: 20px">重置</Button>
           </FormItem>
         </Form>
+        <Button v-if="showDetail" style="margin-left: 80px" type="primary" @click="toDrcBuild()">审批</Button>
       </div>
     </Content>
   </base-component>
@@ -117,7 +118,9 @@ export default {
   name: 'applicationBuild',
   data () {
     return {
+      applicationFormId: null,
       buildLoading: false,
+      showDetail: false,
       bus: [],
       tags: this.constant.tagList,
       regionOptions: [],
@@ -154,9 +157,9 @@ export default {
         dbName: [
           { required: true, message: '请输入同步DB', trigger: 'blur' }
         ],
-        tableName: [
-          { required: true, message: '请输入同步表', trigger: 'blur' }
-        ],
+        // tableName: [
+        //   { required: true, message: '请输入同步表', trigger: 'blur' }
+        // ],
         applicant: [
           { required: true, message: '请输入申请人', trigger: 'blur' }
         ],
@@ -188,6 +191,11 @@ export default {
     }
   },
   methods: {
+    reverseRegion () {
+      const srcRegion = this.buildParam.srcRegion
+      this.buildParam.srcRegion = this.buildParam.dstRegion
+      this.buildParam.dstRegion = srcRegion
+    },
     getRegions () {
       this.axios.get('/api/drc/v2/autoconfig/region/all')
         .then(response => {
@@ -208,6 +216,42 @@ export default {
         .then(response => {
           this.bus = response.data.data
         })
+    },
+    toDrcBuild () {
+      this.axios.post('/api/drc/v2/application/approve?applicationFormId=' + this.applicationFormId)
+        .then(res => {
+          if (res.data.status === 1) {
+            this.$Message.error(res.data.message)
+          } else {
+            this.$router.push({
+              path: '/drcBuild',
+              query: {
+                dalClusterName: this.buildParam.dbName + '_dalcluster',
+                tableName: this.changeTableName(this.buildParam.tableName),
+                srcRegion: this.buildParam.srcRegion,
+                dstRegion: this.buildParam.dstRegion,
+                replicationType: this.buildParam.replicationType,
+                filterType: this.buildParam.filterType,
+                buName: this.buildParam.buName,
+                tag: this.buildParam.tag,
+                flushExistingData: this.buildParam.flushExistingData,
+                gtidInit: this.buildParam.gtidInit,
+                applicationFormId: this.applicationFormId
+              }
+            })
+          }
+        })
+    },
+    changeTableName (name) {
+      if (name === null || name === '') {
+        return '.*'
+      } else {
+        if (name.contains(',')) {
+          return '(' + name.replace(',', '|') + ')'
+        } else {
+          return name
+        }
+      }
     },
     handleSubmit (name) {
       this.validate(name)
@@ -256,11 +300,34 @@ export default {
     },
     handleReset (name) {
       this.$refs[name].resetFields()
+    },
+    init () {
+      this.showDetail = this.$route.query.showDetail
+      this.buildParam = {
+        dbName: this.$route.query.dbName,
+        tableName: this.$route.query.tableName,
+        srcRegion: this.$route.query.srcRegion,
+        dstRegion: this.$route.query.dstRegion,
+        replicationType: this.$route.query.replicationType,
+        filterType: this.$route.query.filterType,
+        buName: this.$route.query.buName,
+        tps: this.$route.query.tps,
+        description: this.$route.query.description,
+        disruptionImpact: this.$route.query.disruptionImpact,
+        tag: this.$route.query.tag,
+        flushExistingData: this.$route.query.flushExistingData,
+        orderRelated: this.$route.query.orderRelated,
+        gtidInit: this.$route.query.gtidInit,
+        remark: this.$route.query.remark,
+        applicant: this.$route.query.applicant
+      }
+      this.applicationFormId = this.$route.query.applicationFormId
     }
   },
   created () {
     this.getBus()
     this.getRegions()
+    this.init()
   }
 }
 </script>
