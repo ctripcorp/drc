@@ -262,6 +262,9 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         checkApplicationForm(applicationForm, applicationApproval);
 
         List<DrcAutoBuildParam> params = this.getDrcBuildParam(req);
+        boolean flushExistingData = applicationForm.getFlushExistingData().equals(BooleanEnum.TRUE.getCode());
+        params.forEach(e -> e.setFlushExistingData(flushExistingData));
+
         autoBuildDrc(params);
         insertApplicationRelation(req.getApplicationFormId(), params);
 
@@ -269,6 +272,10 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         applicationApproval.setOperator(username);
         applicationApproval.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
         applicationApprovalTblDao.update(applicationApproval);
+
+        int useGivenGtid = StringUtils.isBlank(req.getGtidInit()) ? 0 : 1;
+        applicationForm.setUseGivenGtid(useGivenGtid);
+        applicationFormTblDao.update(applicationForm);
     }
 
     private void insertApplicationRelation(long applicationFormId, List<DrcAutoBuildParam> params) throws Exception {
@@ -533,6 +540,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         // 3.1 base
         DbReplicationBuildParam dbReplicationBuildParam = new DbReplicationBuildParam();
         dbReplicationBuildParam.setAutoBuild(true);
+        dbReplicationBuildParam.setFlushExistingData(param.isFlushExistingData());
         dbReplicationBuildParam.setSrcMhaName(srcMhaTbl.getMhaName());
         dbReplicationBuildParam.setDstMhaName(dstMhaTbl.getMhaName());
         dbReplicationBuildParam.setDbName(param.getDbNameFilter());

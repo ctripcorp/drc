@@ -422,7 +422,7 @@ export default {
         } else {
           this.$Message.warning('停用失败')
         }
-        this.getResources()
+        // this.getResources()
       })
     },
     activeResource (resourceId) {
@@ -432,7 +432,7 @@ export default {
         } else {
           this.$Message.warning('启用失败')
         }
-        this.getResources()
+        // this.getResources()
       })
     },
     flattenObj (ob) {

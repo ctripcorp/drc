@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.ReplicationTableTbl;
+import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
@@ -26,6 +27,10 @@ public class ReplicationTableTblDao extends AbstractDao<ReplicationTableTbl> {
 
     public ReplicationTableTblDao() throws SQLException {
         super(ReplicationTableTbl.class);
+    }
+
+    public void deleteAll() throws SQLException {
+        client.delete("id >= ?", new DalHints(), 1L);
     }
 
     // include deleted

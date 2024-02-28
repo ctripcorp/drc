@@ -26,6 +26,15 @@ public class ApplicationFormView {
     private String operator;
     private String createTime;
     private String updateTime;
+    private Integer useGivenGtid;
+
+    public Integer getUseGivenGtid() {
+        return useGivenGtid;
+    }
+
+    public void setUseGivenGtid(Integer useGivenGtid) {
+        this.useGivenGtid = useGivenGtid;
+    }
 
     public String getOperator() {
         return operator;

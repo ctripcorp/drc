@@ -68,12 +68,6 @@
               <Option v-for="item in tags" :value="item" :key="item">{{item}}</Option>
             </Select>
           </FormItem>
-          <FormItem label="同步类型" prop="replicationType">
-            <RadioGroup v-model="buildParam.replicationType">
-              <Radio label='0'>单向同步</Radio>
-              <Radio label='1'>双向同步</Radio>
-            </RadioGroup>
-          </FormItem>
           <FormItem label="是否刷存量数据" prop="flushExistingData">
             <RadioGroup v-model="buildParam.flushExistingData">
               <Radio label='0'>否</Radio>
@@ -140,7 +134,6 @@ export default {
         tableName: '',
         srcRegion: '',
         dstRegion: '',
-        replicationType: '0',
         filterType: 'ALL',
         buName: '',
         tps: '',
@@ -162,9 +155,6 @@ export default {
         // ],
         applicant: [
           { required: true, message: '请输入申请人', trigger: 'blur' }
-        ],
-        replicationType: [
-          { required: true, message: '请选择同步类型', trigger: 'change' }
         ],
         filterType: [
           { required: true, message: '请选择过滤类型', trigger: 'change' }
@@ -230,7 +220,6 @@ export default {
                 tableName: this.changeTableName(this.buildParam.tableName),
                 srcRegion: this.buildParam.srcRegion,
                 dstRegion: this.buildParam.dstRegion,
-                replicationType: this.buildParam.replicationType,
                 filterType: this.buildParam.filterType,
                 buName: this.buildParam.buName,
                 tag: this.buildParam.tag,
@@ -246,7 +235,7 @@ export default {
       if (name === null || name === '') {
         return '.*'
       } else {
-        if (name.contains(',')) {
+        if (name.includes(',')) {
           return '(' + name.replace(',', '|') + ')'
         } else {
           return name
@@ -264,7 +253,6 @@ export default {
         tableName: this.buildParam.tableName,
         srcRegion: this.buildParam.srcRegion,
         dstRegion: this.buildParam.dstRegion,
-        replicationType: this.buildParam.replicationType,
         filterType: this.buildParam.filterType,
         buName: this.buildParam.buName,
         tps: this.buildParam.tps,
@@ -308,7 +296,6 @@ export default {
         tableName: this.$route.query.tableName,
         srcRegion: this.$route.query.srcRegion,
         dstRegion: this.$route.query.dstRegion,
-        replicationType: this.$route.query.replicationType,
         filterType: this.$route.query.filterType,
         buName: this.$route.query.buName,
         tps: this.$route.query.tps,

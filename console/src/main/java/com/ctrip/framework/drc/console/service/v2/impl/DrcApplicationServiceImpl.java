@@ -20,7 +20,9 @@ import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormQuery
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.DrcApplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
+import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ApplicationFormView;
 import com.ctrip.framework.drc.core.service.email.Email;
@@ -29,6 +31,7 @@ import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -76,6 +79,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         checkApplicationFormBuildParam(param);
         ApplicationFormTbl formTbl = new ApplicationFormTbl();
         BeanUtils.copyProperties(param, formTbl);
+        formTbl.setUseGivenGtid(-1);
         Long applicationFormId = applicationFormTblDao.insertWithReturnId(formTbl);
 
         ApplicationApprovalTbl approvalTbl = new ApplicationApprovalTbl();
@@ -86,7 +90,31 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void deleteApplicationForm(long applicationFormId) throws Exception {
+        ApplicationFormTbl applicationFormTbl = applicationFormTblDao.queryById(applicationFormId);
+        ApplicationApprovalTbl approvalTbl = applicationApprovalTblDao.queryByApplicationFormId(applicationFormId);
+        if (approvalTbl.getApprovalResult() != ApprovalResultEnum.NOT_APPROVED.getCode()
+                && approvalTbl.getApprovalResult() != ApprovalResultEnum.UNDER_APPROVAL.getCode()) {
+            throw ConsoleExceptionUtils.message("applicationForm already approved");
+        }
+        applicationFormTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        approvalTbl.setApprovalResult(ApprovalResultEnum.CLOSED.getCode());
+
+        applicationFormTblDao.update(applicationFormTbl);
+        applicationApprovalTblDao.update(approvalTbl);
+    }
+
+    @Override
     public List<ApplicationFormView> getApplicationForms(ApplicationFormQueryParam param) throws SQLException {
+        if (param.getApprovalResult() != null) {
+            List<ApplicationApprovalTbl> applicationApprovalTbls = applicationApprovalTblDao.queryByApprovalResult(param.getApprovalResult());
+            if (CollectionUtils.isEmpty(applicationApprovalTbls)) {
+                return new ArrayList<>();
+            }
+            param.setApplicationFormIds(applicationApprovalTbls.stream().map(ApplicationApprovalTbl::getApplicationFormId).collect(Collectors.toList()));
+        }
+
         List<ApplicationFormTbl> applicationForms = applicationFormTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(applicationForms)) {
             return new ArrayList<>();
@@ -114,6 +142,9 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     @Override
     public void approveForm(long applicationFormId) throws Exception {
         ApplicationApprovalTbl approvalTbl = applicationApprovalTblDao.queryByApplicationFormId(applicationFormId);
+        if (approvalTbl.getApprovalResult() == ApprovalResultEnum.UNDER_APPROVAL.getCode()) {
+            return;
+        }
         approvalTbl.setApprovalResult(ApprovalResultEnum.UNDER_APPROVAL.getCode());
 
         String username = userService.getInfo();
@@ -137,24 +168,17 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
             return false;
         }
 
-        List<MhaReplicationDto> mhaReplicationDtos = replicationTableTbls.stream().map(source -> {
-            MhaReplicationDto target = new MhaReplicationDto();
-            MhaDto srcMha = new MhaDto();
-            MhaDto dstMha = new MhaDto();
-            srcMha.setName(source.getSrcMha());
-            srcMha.setRegionName(source.getSrcRegion());
-            dstMha.setName(source.getDstMha());
-            dstMha.setRegionName(source.getDstRegion());
 
-            target.setSrcMha(srcMha);
-            target.setDstMha(dstMha);
-            return target;
-        }).distinct().collect(Collectors.toList());
-        boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
-        if (!delayCorrect) {
-            logger.info("applicationFormId: {} delay not ready", applicationFormId);
-            return false;
-        }
+        Map<MultiKey, MhaReplicationDto> mhaReplicationDtoMap = replicationTableTbls.stream().collect(
+                Collectors.toMap(e -> new MultiKey(e.getSrcMha(), e.getDstMha()), this::buildMhaReplicationDto, (k1, k2) ->k1));
+        List<MhaReplicationDto> mhaReplicationDtos = Lists.newArrayList(mhaReplicationDtoMap.values());
+
+        //ql_deng TODO 2024/2/28:
+//        boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
+//        if (!delayCorrect) {
+//            logger.info("applicationFormId: {} delay not ready", applicationFormId);
+//            return false;
+//        }
 
         List<String> dbNames = replicationTableTbls.stream().map(ReplicationTableTbl::getDbName).distinct().collect(Collectors.toList());
         List<ReplicationTableTbl> newAddTables = replicationTableTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -171,6 +195,21 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         return result;
     }
 
+    private MhaReplicationDto buildMhaReplicationDto(ReplicationTableTbl replicationTableTbl) {
+        MhaReplicationDto target = new MhaReplicationDto();
+        MhaDto srcMha = new MhaDto();
+        MhaDto dstMha = new MhaDto();
+        srcMha.setName(replicationTableTbl.getSrcMha());
+        srcMha.setRegionName(replicationTableTbl.getSrcRegion());
+        dstMha.setName(replicationTableTbl.getDstMha());
+        dstMha.setRegionName(replicationTableTbl.getDstRegion());
+
+        target.setSrcMha(srcMha);
+        target.setDstMha(dstMha);
+        return target;
+    }
+
+
     private boolean sendEmail(ApplicationFormTbl applicationForm, ApplicationApprovalTbl approvalTbl, List<MhaReplicationDto> mhaReplicationDtos, List<String> dbNames, List<ReplicationTableTbl> newAddTables, List<ReplicationTableTbl> deletedTables) {
         Email email = new Email();
         email.setSubject("DRC同步配置变更");
@@ -183,9 +222,9 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
             domainConfig.getDrcConfigCcEmail().forEach(email::addRecipient);
         }
         if (applicationForm.getFlushExistingData().equals(BooleanEnum.TRUE.getCode())) {
-            email.setHeader("DRC同步已配置，请DBA处理存量数据!");
+            email.setHeader("DRC同步已配置，请DBA处理存量数据!</br>");
         } else {
-            email.setHeader("DRC同步已配置，请业务验证!");
+            email.setHeader("DRC同步已配置，请业务验证!</br>");
         }
         email.addContentKeyValue("延迟监控", buildMhaDelayUrl(mhaReplicationDtos));
         email.addContentKeyValue("同步DB", Joiner.on(",").join(dbNames));

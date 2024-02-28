@@ -8,6 +8,7 @@ import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
@@ -20,6 +21,7 @@ import java.util.List;
 @Repository
 public class ApplicationFormTblDao extends AbstractDao<ApplicationFormTbl> {
 
+    private static final String ID = "id";
     private static final String DB_NAME = "db_name";
     private static final String TABLE_NAME = "table_name";
     private static final String SRC_REGION = "src_region";
@@ -27,9 +29,16 @@ public class ApplicationFormTblDao extends AbstractDao<ApplicationFormTbl> {
     private static final String REPLICATION_TYPE = "replication_type";
     private static final String FILTER_TYPE = "filter_type";
     private static final String DATACHANGE_LASTTIME = "datachange_lasttime";
+    private static final String IS_SENT_EMAIL = "is_sent_email";
 
     public ApplicationFormTblDao() throws SQLException {
         super(ApplicationFormTbl.class);
+    }
+
+    public List<ApplicationFormTbl> queryByIsSentEmail(int isSentEmail) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(IS_SENT_EMAIL, isSentEmail, Types.TINYINT);
+        return queryList(sqlBuilder);
     }
 
     public List<ApplicationFormTbl> queryByParam(ApplicationFormQueryParam param) throws SQLException {
@@ -45,6 +54,9 @@ public class ApplicationFormTblDao extends AbstractDao<ApplicationFormTbl> {
 
     public SelectSqlBuilder buildSqlBuilder(ApplicationFormQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        if (!CollectionUtils.isEmpty(param.getApplicationFormIds())) {
+            sqlBuilder.and().in(ID, param.getApplicationFormIds(), Types.BIGINT);
+        }
         if (StringUtils.isNotBlank(param.getDbName())) {
             sqlBuilder.and().like(DB_NAME, param.getDbName(), MatchPattern.CONTAINS, Types.VARCHAR);
         }

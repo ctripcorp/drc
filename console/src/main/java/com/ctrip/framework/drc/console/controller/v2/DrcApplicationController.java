@@ -37,6 +37,17 @@ public class DrcApplicationController {
         }
     }
 
+    @DeleteMapping()
+    public ApiResult<Boolean> deleteApplicationForm(@RequestParam long applicationFormId) {
+        try {
+            drcApplicationService.deleteApplicationForm(applicationFormId);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("deleteApplicationForm fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @PostMapping("")
     public ApiResult<Boolean> createApplicationForm(@RequestBody ApplicationFormBuildParam param) {
         try {

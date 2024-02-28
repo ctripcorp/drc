@@ -263,4 +263,15 @@ public class DrcBuildControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
+
+    @DeleteMapping("replicationTables")
+    public ApiResult<Boolean> deleteReplicationTables() {
+        try {
+            drcBuildServiceV2.deleteAllReplicationTables();
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("deleteReplicationTables fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
 }

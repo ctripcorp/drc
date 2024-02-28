@@ -34,15 +34,15 @@
                          @on-enter="getData"></Input>
                 </Col>
                 <Col span="3">
-                  <Select filterable clearable v-model="queryParam.replicationType" placeholder="同步类型"
-                          @on-change="getData">
-                    <Option v-for="item in replicationTypeOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
-                  </Select>
-                </Col>
-                <Col span="3">
                   <Select filterable clearable v-model="queryParam.filterType" placeholder="过滤类型"
                           @on-change="getData">
                     <Option v-for="item in filterTypeOpts" :value="item.val" :key="item.val">{{ item.val }}</Option>
+                  </Select>
+                </Col>
+                <Col span="3">
+                  <Select filterable clearable v-model="queryParam.approvalResult" placeholder="审批结果"
+                          @on-change="getData">
+                    <Option v-for="item in approvalResultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
                   </Select>
                 </Col>
               </Row>
@@ -64,12 +64,36 @@
         </Row>
         <Table stripe border :columns="columns" :data="tableData">
           <template slot-scope="{ row, index }" slot="action">
-            <Button type="primary" size="small" @click="getDetail(row, index)" style="margin-right: 5px">
-              详情
-            </Button>
-            <Button type="success" size="small" @click="copy(row, index)" style="margin-right: 5px">
-              复制
-            </Button>
+            <Dropdown placement="bottom-start">
+              <Button type="default" icon="ios-hammer">
+                操作
+                <Icon type="ios-arrow-down"></Icon>
+              </Button>
+              <template #list>
+                <DropdownMenu>
+                  <DropdownItem>
+                    <Button type="primary" size="small" @click="getDetail(row, index)" style="margin-right: 5px">
+                      详情
+                    </Button>
+                  </DropdownItem>
+                  <DropdownItem>
+                    <Button type="success" size="small" @click="copy(row, index)" style="margin-right: 5px">
+                      复制
+                    </Button>
+                  </DropdownItem>
+                  <DropdownItem>
+                    <Button type="error" size="small" @click="preDelete(row, index)" style="margin-right: 5px">
+                      废弃
+                    </Button>
+                  </DropdownItem>
+                  <DropdownItem>
+                    <Button type="warning" size="small" @click="sendEmail(row, index)" style="margin-right: 5px">
+                      发送邮件
+                    </Button>
+                  </DropdownItem>
+                </DropdownMenu>
+              </template>
+            </Dropdown>
           </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
@@ -85,6 +109,16 @@
             @on-change="getData"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
+        <Modal
+          v-model="deleteInfo.deleteModal"
+          title="确认删除以下申请单"
+          width="800px"
+          @on-ok="deleteForm"
+          @on-cancel="clearDeleteInfo">
+          <p>同步DB: {{deleteInfo.dbName}}</p>
+          <p>同步表: {{deleteInfo.tableName}}</p>
+          <p>同步方向: {{deleteInfo.srcRegion}} => {{deleteInfo.dstRegion}}</p>
+        </Modal>
       </div>
     </Content>
   </base-component>
@@ -96,6 +130,14 @@ export default {
   name: 'applicationForm',
   data () {
     return {
+      deleteInfo: {
+        deleteModal: false,
+        dbName: null,
+        tableName: null,
+        srcRegion: null,
+        dstRegion: null,
+        applicationFormId: null
+      },
       editable: false,
       clearable: false,
       dataLoading: false,
@@ -105,7 +147,7 @@ export default {
         tableName: null,
         srcRegion: null,
         dstRegion: null,
-        replicationType: null,
+        approvalResult: null,
         filterType: null
       },
       tableData: [],
@@ -114,7 +156,7 @@ export default {
           title: '同步DB',
           key: 'dbName',
           tooltip: true,
-          width: 300
+          width: 200
         },
         {
           title: '同步表',
@@ -134,8 +176,7 @@ export default {
           align: 'center',
           render: (h, params) => {
             const row = params.row
-            const a = row.replicationType === 1 ? '<->' : '->'
-            const text = row.srcRegion + a + row.dstRegion
+            const text = row.srcRegion + '->' + row.dstRegion
             return h('Tag', {
               props: {
                 color: 'blue'
@@ -171,6 +212,29 @@ export default {
           render: (h, params) => {
             const result = params.row.flushExistingData
             let color = 'blue'
+            let text = ''
+            if (result === 0) {
+              color = 'blue'
+              text = '否'
+            } else if (result === 1) {
+              color = 'volcano'
+              text = '是'
+            }
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
+          title: '是否使用给定位点',
+          key: 'useGivenGtid',
+          width: 150,
+          align: 'center',
+          render: (h, params) => {
+            const result = params.row.useGivenGtid
+            let color = ''
             let text = ''
             if (result === 0) {
               color = 'blue'
@@ -223,7 +287,7 @@ export default {
         {
           title: '操作',
           slot: 'action',
-          width: 150,
+          width: 200,
           align: 'center'
         }
       ],
@@ -231,14 +295,22 @@ export default {
       current: 1,
       size: 10,
       pageSizeOpts: [10, 20, 50, 100],
-      replicationTypeOpts: [
+      approvalResultOpts: [
         {
-          name: '单向',
+          name: '审批中',
           val: 0
         },
         {
-          name: '双向',
+          name: '通过',
           val: 1
+        },
+        {
+          name: '未通过',
+          val: 2
+        },
+        {
+          name: '未审批',
+          val: 3
         }
       ],
       filterTypeOpts: [
@@ -252,6 +324,46 @@ export default {
     }
   },
   methods: {
+    sendEmail (row, index) {
+      this.axios.post('/api/drc/v2/application/email?applicationFormId=' + row.applicationFormId).then(res => {
+        const data = res.data
+        if (data.data === false) {
+          this.$Message.error('发送邮件失败！')
+        } else {
+          this.$Message.success('发送邮件成功')
+        }
+      })
+    },
+    preDelete (row, index) {
+      this.deleteInfo = {
+        deleteModal: true,
+        dbName: row.dbName,
+        tableName: row.tableName,
+        srcRegion: row.srcRegion,
+        dstRegion: row.dstRegion,
+        applicationFormId: row.applicationFormId
+      }
+    },
+    clearDeleteInfo () {
+      this.deleteInfo = {
+        deleteModal: false,
+        dbName: null,
+        tableName: null,
+        srcRegion: null,
+        dstRegion: null,
+        applicationFormId: null
+      }
+    },
+    deleteForm () {
+      this.axios.delete('/api/drc/v2/application/?applicationFormId=' + this.deleteInfo.applicationFormId).then(res => {
+        const data = res.data
+        if (data.status === 1) {
+          this.$Message.error('操作失败！' + data.message)
+        } else {
+          this.getData()
+        }
+      })
+    },
     applicationBuild () {
       const detail = this.$router.resolve({
         path: '/applicationBuild'
@@ -264,7 +376,7 @@ export default {
         tableName: this.queryParam.tableName,
         srcRegion: this.queryParam.srcRegion,
         dstRegion: this.queryParam.dstRegion,
-        replicationType: this.queryParam.replicationType,
+        approvalResult: this.queryParam.approvalResult,
         filterType: this.queryParam.filterType,
         pageReq: {
           pageSize: this.size,
@@ -315,7 +427,7 @@ export default {
         tableName: null,
         srcRegion: null,
         dstRegion: null,
-        replicationType: null,
+        approvalResult: null,
         filterType: null
       }
     },
@@ -329,7 +441,6 @@ export default {
           tableName: row.tableName,
           srcRegion: row.srcRegion,
           dstRegion: row.dstRegion,
-          replicationType: row.replicationType,
           filterType: row.filterType,
           buName: row.buName,
           tps: row.tps,
@@ -353,7 +464,6 @@ export default {
           tableName: row.tableName,
           srcRegion: row.srcRegion,
           dstRegion: row.dstRegion,
-          replicationType: row.replicationType,
           filterType: row.filterType,
           buName: row.buName,
           tps: row.tps,

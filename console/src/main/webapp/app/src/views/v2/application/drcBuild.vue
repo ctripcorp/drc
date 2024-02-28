@@ -1093,7 +1093,7 @@ export default {
     async beforeSubmit () {
       await this.preCheckBuildParam()
     },
-    getCommonColumns () {
+    getCommonColumns (name) {
       const params = this.getParams()
       if (params.rowsFilterDetail) {
         params.rowsFilterDetail.columns = []
@@ -1114,6 +1114,15 @@ export default {
           console.log(response.data.data)
           this.formItem.constants.columnsForChose = response.data.data
           this.$Message.info('查询公共列名数：' + response.data.data.length)
+          if (name === 'UDL') {
+            if (this.formItem.constants.columnsForChose.includes('userdata_location')) {
+              this.formItem.rowsFilterDetail.udlColumns = ['userdata_location']
+              this.formItem.constants.rowsFilter.configInTripUid.regionsChosen = 'SIN'
+              this.formItem.rowsFilterDetail.drcStrategyId = this.formItem.constants.rowsFilter.drcStrategyIdsForChose[0]
+            } else {
+              this.$Message.warning('公共列不包含userdata_location字段')
+            }
+          }
         }
       }).catch(message => {
         this.$Message.error('查询公共列名异常: ' + message)
@@ -1248,7 +1257,7 @@ export default {
       this.formItem.switch.rowsFilter = this.$route.query.filterType === 'UDL'
       this.getTableInfo()
       if (this.formItem.switch.rowsFilter) {
-        this.getCommonColumns()
+        this.getCommonColumns('UDL')
       }
     },
     initMha () {

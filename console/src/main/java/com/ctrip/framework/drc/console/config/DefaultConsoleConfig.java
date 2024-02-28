@@ -125,6 +125,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final long DEFAULT_REPLICATOR_SIZE = 20;
     private static final String REPLICATOR_MAX_SIZE = "replicator.max.size";
 
+    private static final String DRC_CONFIG_APPLICATION_SWITCH = "drc.config.application.swtich";
+
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -547,5 +549,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getConflictLogRecordSwitch() {
         return getBooleanProperty(CONFLICT_LOG_RECORD_SWITCH, true);
+    }
+
+    public boolean getDrcConfigApplicationSwitch() {
+        return getBooleanProperty(DRC_CONFIG_APPLICATION_SWITCH, true);
     }
 }

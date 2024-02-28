@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.param.v2.application;
 
 import com.ctrip.framework.drc.core.http.PageReq;
 
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2024/1/31 19:35
@@ -13,7 +15,25 @@ public class ApplicationFormQueryParam {
     private String dstRegion;
     private Integer replicationType;
     private String filterType;
+    private Integer approvalResult;
+    private List<Long> applicationFormIds;
     private PageReq pageReq;
+
+    public List<Long> getApplicationFormIds() {
+        return applicationFormIds;
+    }
+
+    public void setApplicationFormIds(List<Long> applicationFormIds) {
+        this.applicationFormIds = applicationFormIds;
+    }
+
+    public Integer getApprovalResult() {
+        return approvalResult;
+    }
+
+    public void setApprovalResult(Integer approvalResult) {
+        this.approvalResult = approvalResult;
+    }
 
     public PageReq getPageReq() {
         return pageReq;

@@ -19,6 +19,7 @@ import java.util.List;
 public class ApplicationApprovalTblDao extends AbstractDao<ApplicationApprovalTbl> {
 
     private static final String APPLICATION_FORM_ID = "application_form_id";
+    private static final String APPROVAL_RESULT = "approval_result";
 
     public ApplicationApprovalTblDao() throws SQLException {
         super(ApplicationApprovalTbl.class);
@@ -37,5 +38,11 @@ public class ApplicationApprovalTblDao extends AbstractDao<ApplicationApprovalTb
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(APPLICATION_FORM_ID, applicationFormId, Types.BIGINT);
         return queryOne(sqlBuilder);
+    }
+
+    public List<ApplicationApprovalTbl> queryByApprovalResult(Integer approvalResult) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(APPROVAL_RESULT, approvalResult, Types.TINYINT);
+        return queryList(sqlBuilder);
     }
 }

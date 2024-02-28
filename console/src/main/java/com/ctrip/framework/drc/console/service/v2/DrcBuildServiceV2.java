@@ -68,8 +68,8 @@ public interface DrcBuildServiceV2 {
     
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 
-    void sendEmailAfterConfigChanged(List<MhaReplicationTbl> mhaReplicationTbls) throws Exception;
-
     void initReplicationTables() throws Exception;
+
+    void deleteAllReplicationTables() throws Exception;
 
 }
