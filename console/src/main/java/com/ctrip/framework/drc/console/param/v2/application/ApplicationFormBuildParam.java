@@ -10,10 +10,6 @@ public class ApplicationFormBuildParam {
     private String tableName;
     private String srcRegion;
     private String dstRegion;
-    /**
-     * 同步方式 0-单向 1-双向
-     */
-    private Integer replicationType;
     private String tps;
     private String description;
     private String disruptionImpact;
@@ -71,14 +67,6 @@ public class ApplicationFormBuildParam {
 
     public void setDstRegion(String dstRegion) {
         this.dstRegion = dstRegion;
-    }
-
-    public Integer getReplicationType() {
-        return replicationType;
-    }
-
-    public void setReplicationType(Integer replicationType) {
-        this.replicationType = replicationType;
     }
 
     public String getTps() {
@@ -161,7 +149,6 @@ public class ApplicationFormBuildParam {
                 ", tableName='" + tableName + '\'' +
                 ", srcRegion='" + srcRegion + '\'' +
                 ", dstRegion='" + dstRegion + '\'' +
-                ", replicationType=" + replicationType +
                 ", tps='" + tps + '\'' +
                 ", description='" + description + '\'' +
                 ", disruptionImpact='" + disruptionImpact + '\'' +

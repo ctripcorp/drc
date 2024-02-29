@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.ReplicationTableTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
@@ -16,9 +17,11 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
@@ -91,6 +94,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private ReplicationTableTblDao replicationTableTblDao;
 
     @Autowired
     private DbaApiService dbaApiService;
@@ -551,6 +556,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
+
+        if (type == LogBlackListType.DBA_JOB) {
+            String[] dbFilters = dbFilter.split("\\\\.");
+            List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbName(dbFilters[0], dbFilters[1], ExistingDataStatusEnum.NOT_PROCESSED.getCode());
+            if (!CollectionUtils.isEmpty(replicationTableTbls)) {
+                replicationTableTbls.forEach(e -> e.setExistingDataStatus(ExistingDataStatusEnum.PROCESSING.getCode()));
+                replicationTableTblDao.update(replicationTableTbls);
+            }
+        }
     }
 
     @Override
@@ -561,6 +575,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
         conflictDbBlackListTblDao.delete(tbls);
+    }
+
+    @Override
+    public void deleteBlacklistForTouchJob(String dbFilter) throws Exception {
+        deleteBlacklist(dbFilter);
+        String[] dbFilters = dbFilter.split("\\\\.");
+        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbName(dbFilters[0], dbFilters[1], ExistingDataStatusEnum.PROCESSING.getCode());
+        if (!CollectionUtils.isEmpty(replicationTableTbls)) {
+            replicationTableTbls.forEach(e -> e.setExistingDataStatus(ExistingDataStatusEnum.PROCESSING_COMPLETED.getCode()));
+            replicationTableTblDao.update(replicationTableTbls);
+        }
     }
 
     @Override

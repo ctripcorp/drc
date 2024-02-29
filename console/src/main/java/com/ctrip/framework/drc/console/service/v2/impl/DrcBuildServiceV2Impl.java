@@ -257,16 +257,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-    private void changeReplicationTableStatus(List<DbReplicationTbl> dbReplications) throws SQLException {
-        List<Long> dbReplicationIds = dbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
-        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
-        if (CollectionUtils.isEmpty(replicationTableTbls)) {
-            return;
-        }
-        replicationTableTbls.forEach(e -> e.setEffectiveStatus(EffectiveStatusEnum.IN_EFFECT.getCode()));
-        replicationTableTblDao.update(replicationTableTbls);
-    }
-
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildDbReplicationConfig(DbReplicationBuildParam param) throws Exception {
@@ -433,7 +423,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             replicationTableTbl.setSrcRegion(srcRegion);
             replicationTableTbl.setDstRegion(dstRegion);
             replicationTableTbl.setDeleted(BooleanEnum.FALSE.getCode());
-            //ql_deng TODO 2024/2/28:
+            //ql_deng TODO 2024/2/28: EFFECTIVE -> NOT_IN_EFFECT
             if (param.isAutoBuild()) {
                 replicationTableTbl.setEffectiveStatus(EffectiveStatusEnum.IN_EFFECT.getCode());
             } else {
@@ -452,9 +442,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<ReplicationTableTbl> finalExistReplicationTables = existReplicationTables;
         List<ReplicationTableTbl> insertReplicationTables = replicationTableTbls.stream().filter(e -> !finalExistReplicationTables.contains(e)).collect(Collectors.toList());
         List<ReplicationTableTbl> deleteReplicationTables = existReplicationTables.stream().filter(e -> !replicationTableTbls.contains(e)).collect(Collectors.toList());
+        //ql_deng TODO 2024/2/29: EFFECTIVE -> NOT_IN_EFFECT
         deleteReplicationTables.stream().forEach(e -> {
             e.setDeleted(BooleanEnum.TRUE.getCode());
-            e.setEffectiveStatus(EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
+            e.setEffectiveStatus(EffectiveStatusEnum.EFFECTIVE.getCode());
         });
 
         if (!CollectionUtils.isEmpty(insertReplicationTables)) {
@@ -1322,11 +1313,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         Map<String, Long> mhaDbNameMap = checkExistDbReplication(tableList, new ArrayList<>(), srcMhaDbMappings, dstMhaDbMappings);
 
-        dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
+        List<DbReplicationTbl> insertDbReplicationTbls = dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
         mhaDbReplicationService.maintainMhaDbReplication(dbReplicationTbls);
         logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
 
-        return Pair.of(dbReplicationTbls, mhaDbNameMap);
+        return Pair.of(insertDbReplicationTbls, mhaDbNameMap);
     }
 
     private Map<String, Long> checkExistDbReplication(List<String> tableList,

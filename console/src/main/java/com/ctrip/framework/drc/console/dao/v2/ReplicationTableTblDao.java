@@ -24,6 +24,9 @@ public class ReplicationTableTblDao extends AbstractDao<ReplicationTableTbl> {
     private static final String DB_REPLICATION_ID = "db_replication_id";
     private static final String EFFECTIVE_STATUS = "effective_status";
     private static final String DELETED = "deleted";
+    private static final String DB_NAME = "db_name";
+    private static final String TABLE_NAME = "table_name";
+    private static final String EXISTING_DATA_STATUS = "existing_data_status";
 
     public ReplicationTableTblDao() throws SQLException {
         super(ReplicationTableTbl.class);
@@ -64,11 +67,30 @@ public class ReplicationTableTblDao extends AbstractDao<ReplicationTableTbl> {
         return queryList(sqlBuilder);
     }
 
+
+    public List<ReplicationTableTbl> queryExistByDbReplicationIds(List<Long> dbReplicationIds, int effectiveStatus) throws SQLException {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT)
+                .and().equal(EFFECTIVE_STATUS, effectiveStatus, Types.TINYINT);
+        return queryList(sqlBuilder);
+    }
+
     public List<ReplicationTableTbl> queryByDbReplicationIds(String srcMha, String dstMha, int effectiveStatus) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(SRC_MHA, srcMha, Types.VARCHAR)
                 .and().equal(DST_MHA, dstMha, Types.VARCHAR)
                 .and().equal(EFFECTIVE_STATUS, effectiveStatus, Types.TINYINT);
+        return queryList(sqlBuilder);
+    }
+
+    public List<ReplicationTableTbl> queryByDbName(String dbName, String tableName, int existingDataStatus) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(DB_NAME, dbName, Types.VARCHAR)
+                .and().equal(TABLE_NAME, tableName, Types.VARCHAR)
+                .and().equal(EXISTING_DATA_STATUS, existingDataStatus, Types.TINYINT);
         return queryList(sqlBuilder);
     }
 

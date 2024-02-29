@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ApplicationFormView;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
@@ -160,9 +161,13 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
             return false;
         }
         ApplicationApprovalTbl approvalTbl = applicationApprovalTblDao.queryByApplicationFormId(applicationFormId);
+        if (!approvalTbl.getApprovalResult().equals(ApprovalResultEnum.APPROVED.getCode())) {
+            logger.info("applicationFormId: {} not approved", applicationFormId);
+            return false;
+        }
         List<ApplicationRelationTbl> applicationRelationTbls = applicationRelationTblDao.queryByApplicationFormId(applicationFormId);
         List<Long> dbReplicationIds = applicationRelationTbls.stream().map(ApplicationRelationTbl::getDbReplicationId).collect(Collectors.toList());
-        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, EffectiveStatusEnum.IN_EFFECT.getCode());
+        List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryExistByDbReplicationIds(dbReplicationIds, EffectiveStatusEnum.IN_EFFECT.getCode());
         if (CollectionUtils.isEmpty(replicationTableTbls)) {
             logger.info("applicationFormId: {} replicationTableTbls not in effect", applicationFormId);
             return false;
@@ -173,24 +178,26 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
                 Collectors.toMap(e -> new MultiKey(e.getSrcMha(), e.getDstMha()), this::buildMhaReplicationDto, (k1, k2) ->k1));
         List<MhaReplicationDto> mhaReplicationDtos = Lists.newArrayList(mhaReplicationDtoMap.values());
 
-        //ql_deng TODO 2024/2/28:
-//        boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
-//        if (!delayCorrect) {
-//            logger.info("applicationFormId: {} delay not ready", applicationFormId);
-//            return false;
-//        }
+        boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
+        if (!delayCorrect) {
+            logger.info("applicationFormId: {} delay not ready", applicationFormId);
+            return false;
+        }
 
         List<String> dbNames = replicationTableTbls.stream().map(ReplicationTableTbl::getDbName).distinct().collect(Collectors.toList());
-        List<ReplicationTableTbl> newAddTables = replicationTableTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        List<ReplicationTableTbl> deletedTables = replicationTableTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
 
-        boolean result = sendEmail(applicationForm, approvalTbl, mhaReplicationDtos, dbNames, newAddTables, deletedTables);
+        boolean result = sendEmail(applicationForm, approvalTbl, mhaReplicationDtos, dbNames, replicationTableTbls);
 
-        applicationForm.setIsSentEmail(BooleanEnum.TRUE.getCode());
-        applicationFormTblDao.update(applicationForm);
+        if (result) {
+            applicationForm.setIsSentEmail(BooleanEnum.TRUE.getCode());
+            applicationFormTblDao.update(applicationForm);
 
-        replicationTableTbls.forEach(e -> e.setEffectiveStatus(EffectiveStatusEnum.EFFECTIVE.getCode()));
-        replicationTableTblDao.update(replicationTableTbls);
+            replicationTableTbls.forEach(e -> e.setEffectiveStatus(EffectiveStatusEnum.EFFECTIVE.getCode()));
+            replicationTableTblDao.update(replicationTableTbls);
+        } else {
+            logger.error("sendEmail fail, applicationFormId: {}", applicationFormId);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.CONFIG.EMAIL.FAIL", String.valueOf(applicationFormId));
+        }
 
         return result;
     }
@@ -210,7 +217,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     }
 
 
-    private boolean sendEmail(ApplicationFormTbl applicationForm, ApplicationApprovalTbl approvalTbl, List<MhaReplicationDto> mhaReplicationDtos, List<String> dbNames, List<ReplicationTableTbl> newAddTables, List<ReplicationTableTbl> deletedTables) {
+    private boolean sendEmail(ApplicationFormTbl applicationForm, ApplicationApprovalTbl approvalTbl, List<MhaReplicationDto> mhaReplicationDtos, List<String> dbNames, List<ReplicationTableTbl> newAddTables) {
         Email email = new Email();
         email.setSubject("DRC同步配置变更");
         email.setSender(domainConfig.getDrcConfigSenderEmail());
@@ -228,14 +235,11 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         }
         email.addContentKeyValue("延迟监控", buildMhaDelayUrl(mhaReplicationDtos));
         email.addContentKeyValue("同步DB", Joiner.on(",").join(dbNames));
-        if (!CollectionUtils.isEmpty(newAddTables)) {
-            List<String> tableNames = newAddTables.stream().map(ReplicationTableTbl::getTableName).collect(Collectors.toList());
-            email.addContentKeyValue("新增表", Joiner.on(",").join(tableNames) + "共" + tableNames.size() + "张表");
-        }
-        if (!CollectionUtils.isEmpty(deletedTables)) {
-            List<String> tableNames = deletedTables.stream().map(ReplicationTableTbl::getTableName).collect(Collectors.toList());
-            email.addContentKeyValue("删除表", Joiner.on(",").join(tableNames) + "共" + tableNames.size() + "张表");
-        }
+
+        List<String> tableNames = newAddTables.stream().map(ReplicationTableTbl::getTableName).collect(Collectors.toList());
+        email.addContentKeyValue("新增表", Joiner.on(",").join(tableNames) + "共" + tableNames.size() + "张表");
+        email.addContentKeyValue("其他", applicationForm.getFilterType());
+
         EmailResponse emailResponse = emailService.sendEmail(email);
         if (emailResponse.isSuccess()) {
             logger.info("[[task=drcConfigSendEmail]] send email success, applicationFormId: {}", applicationForm);
@@ -282,6 +286,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     }
 
     private void checkApplicationFormBuildParam(ApplicationFormBuildParam param) {
+        PreconditionUtils.checkString(param.getDbName(), "dbName is empty");
         PreconditionUtils.checkString(param.getBuName(), "BU is empty");
         PreconditionUtils.checkString(param.getSrcRegion(), "srcRegion is empty");
         PreconditionUtils.checkString(param.getDstRegion(), "dstRegion is empty");

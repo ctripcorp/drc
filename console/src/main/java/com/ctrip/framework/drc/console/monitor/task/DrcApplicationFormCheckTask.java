@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplicationApprovalTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplicationFormTbl;
+import com.ctrip.framework.drc.console.dao.v2.ApplicationApprovalTblDao;
 import com.ctrip.framework.drc.console.dao.v2.ApplicationFormTblDao;
+import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.v2.DrcApplicationService;
@@ -17,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MONITOR_LOGGER;
 
@@ -30,6 +34,8 @@ public class DrcApplicationFormCheckTask extends AbstractLeaderAwareMonitor {
 
     @Autowired
     private ApplicationFormTblDao applicationFormTblDao;
+    @Autowired
+    private ApplicationApprovalTblDao applicationApprovalTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
@@ -48,7 +54,7 @@ public class DrcApplicationFormCheckTask extends AbstractLeaderAwareMonitor {
     }
 
     @Override
-    public void scheduledTask() {
+    public void scheduledTask() throws Exception {
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
@@ -57,6 +63,7 @@ public class DrcApplicationFormCheckTask extends AbstractLeaderAwareMonitor {
             return;
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=DrcApplicationFormCheckTask]] is leader, going to check");
+        check();
     }
 
     protected void check() throws Exception {
@@ -64,6 +71,12 @@ public class DrcApplicationFormCheckTask extends AbstractLeaderAwareMonitor {
         if (CollectionUtils.isEmpty(applicationFormTbls)) {
             return;
         }
+        List<ApplicationApprovalTbl> applicationApprovalTbls = applicationApprovalTblDao.queryByApplicationFormIds(applicationFormTbls.stream().map(ApplicationFormTbl::getId).collect(Collectors.toList()), ApprovalResultEnum.APPROVED.getCode());
+        if (CollectionUtils.isEmpty(applicationApprovalTbls)) {
+            return;
+        }
+        List<Long> applicationFormIds = applicationApprovalTbls.stream().map(ApplicationApprovalTbl::getApplicationFormId).collect(Collectors.toList());
+        applicationFormTbls = applicationFormTbls.stream().filter(e -> applicationFormIds.contains(e.getId())).collect(Collectors.toList());
 
         for (ApplicationFormTbl applicationFormTbl : applicationFormTbls) {
             CONSOLE_MONITOR_LOGGER.info("[[monitor=DrcApplicationFormCheckTask]] check applicationFormId: {}", applicationFormTbl.getId());

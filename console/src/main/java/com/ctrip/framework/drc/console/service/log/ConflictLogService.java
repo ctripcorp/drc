@@ -55,6 +55,8 @@ public interface ConflictLogService {
 
     void deleteBlacklist(String dbFilter) throws Exception;
 
+    void deleteBlacklistForTouchJob(String dbFilter) throws Exception;
+
     List<ConflictDbBlacklistView> getConflictDbBlacklistView(ConflictDbBlacklistQueryParam param) throws Exception;
     
     boolean isInBlackListWithCache(String db,String table);
