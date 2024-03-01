@@ -35,10 +35,7 @@ import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckDbGtidTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
-import com.ctrip.framework.drc.console.monitor.task.AutoIncrementCheckTaskTest;
-import com.ctrip.framework.drc.console.monitor.task.ConflictRowsLogCountTaskTest;
-import com.ctrip.framework.drc.console.monitor.task.ShardedDbReplicationConsistencyCheckTaskTest;
-import com.ctrip.framework.drc.console.monitor.task.TableStructureCheckTaskTest;
+import com.ctrip.framework.drc.console.monitor.task.*;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParamTest;
 import com.ctrip.framework.drc.console.pojo.CreatePojoTest;
@@ -156,6 +153,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MysqlServiceV2ImplTest.class,
         CentralServiceImplTest.class,
         DbBlacklistCacheTest.class,
+        DrcApplicationServiceTest.class,
 //
         // controller
         OperationLogControllerTest.class,
@@ -189,6 +187,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ShardedDbReplicationConsistencyCheckTaskTest.class,
         MultiTruncateMonitorTest.class,
         ConflictRowsLogCountTaskTest.class,
+        DrcApplicationFormCheckTaskTest.class,
 
         // config
         DefaultConsoleConfigTest.class,
