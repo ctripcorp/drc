@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -81,6 +83,14 @@ public class DbReplicationBuildParam {
 
     public void setDbName(String dbName) {
         this.dbName = dbName;
+    }
+
+    public void setDbNames(Collection<String> dbNames) {
+        if (dbNames == null || dbNames.isEmpty()) {
+            this.dbName = "";
+        }else {
+            this.dbName = "(" + String.join("|", dbNames) + ")";
+        }
     }
 
     public String getTableName() {

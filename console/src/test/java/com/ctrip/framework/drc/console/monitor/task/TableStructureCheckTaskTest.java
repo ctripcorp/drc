@@ -74,7 +74,7 @@ public class TableStructureCheckTaskTest {
         Mockito.when(mhaDbMappingTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaDbMappingTbls2());
 
         Map<String, Set<String>> map = new HashMap<>();
-        map.put("db.table", Sets.newHashSet("col1"));
+        map.put("db.table", Sets.newHashSet("col1", "col2"));
         Mockito.when(mysqlServiceV2.getTableColumns(Mockito.any())).thenReturn(map);
         Mockito.doNothing().when(reporter).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
 
@@ -83,7 +83,7 @@ public class TableStructureCheckTaskTest {
         Mockito.verify(reporter, Mockito.never()).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
 
         Map<String, Set<String>> map1 = new HashMap<>();
-        map1.put("db.table", Sets.newHashSet("col1", "col2"));
+        map1.put("db.table", Sets.newHashSet("col1"));
         Mockito.when(mysqlServiceV2.getTableColumns(new DbFilterReq("mha200", "db200\\.table1"))).thenReturn(map1);
 
         task.checkTableStructure();

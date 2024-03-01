@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.utils;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
@@ -13,6 +14,8 @@ import java.util.List;
 public class CommonUtils {
 
     public static final String HEX_PREFIX = "0x";
+    public static final String EMAIL_DELIMITER = "@";
+    public static final String EMAIL_SUFFIX = "trip.com";
 
     public static boolean isSameList(List<String> firstList, List<String> secondList) {
         if (CollectionUtils.isEmpty(firstList) || CollectionUtils.isEmpty(secondList)) {

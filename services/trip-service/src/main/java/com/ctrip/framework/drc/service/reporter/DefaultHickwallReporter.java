@@ -46,8 +46,10 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     private static final String DB_NAME = "FX";
 
     private static final String GTID_GAP_COUNT_MEASUREMENT = "fx.drc.gtid.gap.count";
+    public static final String DB_GTID_GAP_COUNT_MEASUREMENT = "fx.drc.db.gtid.gap.count";
 
     private static final String GTID_GAP_REPEAT_MEASUREMENT = "fx.drc.gtid.gap.repeat";
+    public static final String DB_GTID_GAP_REPEAT_MEASUREMENT = "fx.drc.db.gtid.gap.repeat";
 
     private static final String ROWS_FILTER_TOTAL_MEASUREMENT = "fx.drc.rows.filter.total";
 
@@ -248,6 +250,16 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     public void reportConsistencyBasic(@Valid ConsistencyEntity consistencyEntity, ConsistencyEnum consistencyEnum, String measurement) {
         reportResetCounter(consistencyEntity.getTags(), consistencyEnum.getCode(), measurement);
+    }
+
+    @Override
+    public void reportDbGtidGapCount(GtidGapEntity gtidGapEntity, Long gap) {
+        reportGtid(gtidGapEntity, gap, DB_GTID_GAP_COUNT_MEASUREMENT);
+    }
+
+    @Override
+    public void reportDbGtidGapRepeat(GtidGapEntity gtidGapEntity, Long repeatGapCount) {
+        reportGtid(gtidGapEntity, repeatGapCount, DB_GTID_GAP_REPEAT_MEASUREMENT);
     }
 
     /**

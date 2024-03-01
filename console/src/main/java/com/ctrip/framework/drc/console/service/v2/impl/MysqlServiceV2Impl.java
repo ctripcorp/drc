@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVoApiResult;
 import com.ctrip.framework.drc.console.vo.check.v2.StatementExecutorApResult;
+import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
@@ -249,15 +250,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
      * key: tableName, values: columns
      */
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/tableColumns", httpType = HttpRequestEnum.POST, requestClass = DbFilterReq.class)
+    @PossibleRemote(path = "/api/drc/v2/mysql/tableColumns", httpType = HttpRequestEnum.POST, requestClass = DbFilterReq.class, responseType = TableColumnsApiResult.class)
     public Map<String, Set<String>> getTableColumns(DbFilterReq requestBody) {
+        Map<String, Set<String>> result = null;
         logger.info("getTableColumns requestBody: {}", requestBody);
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
         if (endpoint == null) {
             logger.error("getTableColumns from mha: {}, db not exit", requestBody.getMha());
-            return null;
+        } else {
+            result = MySqlUtils.getTableColumns(endpoint, requestBody.getDbFilter());
         }
-        return MySqlUtils.getTableColumns(endpoint, requestBody.getDbFilter());
+        return result;
     }
 
     @Override
@@ -267,7 +270,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
         AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
         List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
-        Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(mySqlEndpoint, tablesAfterRegexFilter, true);
+        Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(mySqlEndpoint, tablesAfterRegexFilter, false);
         for (Map.Entry<String, Set<String>> entry : allColumnsByTable.entrySet()) {
             String tableName = entry.getKey();
             if (!entry.getValue().contains(column)) {

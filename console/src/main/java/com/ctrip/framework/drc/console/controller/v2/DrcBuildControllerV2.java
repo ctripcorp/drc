@@ -8,7 +8,9 @@ import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -35,6 +37,8 @@ public class DrcBuildControllerV2 {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
     private DbDrcBuildService dbDrcBuildService;
+    @Autowired
+    private MhaDbMappingService mhaDbMappingService;
 
     @PostMapping("mha")
     @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.ADD,
@@ -272,6 +276,16 @@ public class DrcBuildControllerV2 {
         } catch (Throwable e) {
             logger.error("deleteReplicationTables fail, ", e);
             return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("db/emailGroup")
+    public ApiResult<ConfigDbView> configEmailGroupForDb(@RequestParam String dalCluster, @RequestParam String emailGroup) {
+        try {
+            return ApiResult.getSuccessInstance(mhaDbMappingService.configEmailGroupForDb(dalCluster, emailGroup));
+        } catch (Exception e) {
+            logger.error("configEmailGroupForDb dalCluster: {}, emailGroup: {}", dalCluster, emailGroup);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

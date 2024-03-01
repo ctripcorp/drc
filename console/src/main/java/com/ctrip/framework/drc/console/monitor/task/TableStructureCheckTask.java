@@ -200,8 +200,8 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
             if (diffTables.contains(tableName)) {
                 continue;
             }
-            Set<String> srcColumns = entry.getValue();
-            Set<String> dstColumns = dstTableColumns.get(tableName);
+            Set<String> srcColumns = Sets.newHashSet(entry.getValue());
+            Set<String> dstColumns = Sets.newHashSet(dstTableColumns.get(tableName));
             List<String> diffColumns = getDiff(srcColumns, dstColumns);
             if (!CollectionUtils.isEmpty(diffColumns)) {
                 CONSOLE_MONITOR_LOGGER.info("report diffColumns between mha: {} -> {}, tableName: {}, diffColumns: {}", srcMhaName, dstMhaName, tableName, diffColumns);

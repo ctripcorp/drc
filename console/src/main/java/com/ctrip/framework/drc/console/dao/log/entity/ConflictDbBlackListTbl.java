@@ -54,6 +54,13 @@ public class ConflictDbBlackListTbl {
     private Integer deleted;
 
     /**
+     * 过期时间
+     */
+    @Column(name = "expiration_time")
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp expirationTime;
+    
+    /**
      * 创建时间
      */
     @Column(name = "create_time")
@@ -106,5 +113,13 @@ public class ConflictDbBlackListTbl {
 
     public void setCreateTime(Timestamp createTime) {
         this.createTime = createTime;
+    }
+
+    public Timestamp getExpirationTime() {
+        return expirationTime;
+    }
+
+    public void setExpirationTime(Timestamp expirationTime) {
+        this.expirationTime = expirationTime;
     }
 }

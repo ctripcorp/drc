@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.vo.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+
 import java.util.List;
 
 /**
@@ -24,5 +27,12 @@ public class ColumnsConfigView {
 
     public void setColumns(List<String> columns) {
         this.columns = columns;
+    }
+
+    public static ColumnsConfigView from(ColumnsFilterTblV2 columnsFilterTblV2) {
+        ColumnsConfigView columnsConfigView = new ColumnsConfigView();
+        columnsConfigView.setColumns(JsonUtils.fromJsonToList(columnsFilterTblV2.getColumns(), String.class));
+        columnsConfigView.setMode(columnsFilterTblV2.getMode());
+        return columnsConfigView;
     }
 }

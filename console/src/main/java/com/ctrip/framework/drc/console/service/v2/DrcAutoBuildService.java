@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
@@ -17,6 +18,8 @@ public interface DrcAutoBuildService {
 
     List<String> getRegionOptions(DrcAutoBuildReq req);
     List<String> getCommonColumn(DrcAutoBuildReq req);
+
+    List<MhaReplicationPreviewDto> getMhaReplicationPreviewDtos(String srcRegionName, String dstRegionName, List<DbClusterInfoDto> databaseClusterInfoList);
 
     void autoBuildDrc(DrcAutoBuildReq req) ;
 

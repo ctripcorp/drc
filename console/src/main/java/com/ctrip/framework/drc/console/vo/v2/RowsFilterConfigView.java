@@ -1,5 +1,11 @@
 package com.ctrip.framework.drc.console.vo.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
+import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+
 import java.util.List;
 
 /**
@@ -85,5 +91,40 @@ public class RowsFilterConfigView {
 
     public void setFetchMode(Integer fetchMode) {
         this.fetchMode = fetchMode;
+    }
+
+    public static RowsFilterConfigView from(RowsFilterTblV2 rowsFilterTblV2) {
+        RowsFilterConfigView rowsFilterConfigView = new RowsFilterConfigView();
+        rowsFilterConfigView.setMode(rowsFilterTblV2.getMode());
+
+        RowsFilterConfig.Configs configs = JsonUtils.fromJson(rowsFilterTblV2.getConfigs(), RowsFilterConfig.Configs.class);
+        rowsFilterConfigView.setDrcStrategyId(configs.getDrcStrategyId());
+        rowsFilterConfigView.setRouteStrategyId(configs.getRouteStrategyId());
+
+        List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
+        RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
+        if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode()) || rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL_UID.getCode())) {
+            setColumnsView(rowsFilterConfigView, firstParameters);
+            if (parametersList.size() > 1) {
+                RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
+                setColumnsView(rowsFilterConfigView, secondParameters);
+            }
+        } else {
+            rowsFilterConfigView.setColumns(firstParameters.getColumns());
+        }
+
+        rowsFilterConfigView.setContext(firstParameters.getContext());
+        rowsFilterConfigView.setIllegalArgument(firstParameters.getIllegalArgument());
+        rowsFilterConfigView.setFetchMode(firstParameters.getFetchMode());
+
+        return rowsFilterConfigView;
+    }
+
+    private static void setColumnsView(RowsFilterConfigView rowsFilterConfigView, RowsFilterConfig.Parameters secondParameters) {
+        if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+            rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
+        } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
+            rowsFilterConfigView.setColumns(secondParameters.getColumns());
+        }
     }
 }

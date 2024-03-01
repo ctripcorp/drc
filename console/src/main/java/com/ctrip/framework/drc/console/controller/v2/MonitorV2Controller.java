@@ -36,6 +36,18 @@ public class MonitorV2Controller {
         }
     }
 
+    @GetMapping("dstMhaNames")
+    public ApiResult queryDstMhaNamesToBeMonitored() {
+        try {
+            logger.info("[[monitor=mhaNames]] queryDstMhaNamesToBeMonitored");
+            List<String> mhaNames = monitorServiceV2.getDestMhaNamesToBeMonitored();
+            return ApiResult.getSuccessInstance(mhaNames);
+        } catch (Exception e) {
+            logger.error("[[monitor=mhaNames]] queryDstMhaNamesToBeMonitored fail",e);
+            return ApiResult.getFailInstance(null,"queryDstMhaNamesToBeMonitored fail");
+        }
+    }
+
     @PostMapping("switch/{mhaName}/{status}")
     @SuppressWarnings("unchecked")
     public ApiResult<Boolean> switchMonitors(@PathVariable String mhaName, @PathVariable String status) {

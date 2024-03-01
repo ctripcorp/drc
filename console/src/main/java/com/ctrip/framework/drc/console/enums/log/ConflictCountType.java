@@ -15,6 +15,10 @@ public enum ConflictCountType {
         this.isRowCount = isRowCount;
         this.code = code;
     }
+    
+    public boolean isRollback() {
+        return this == CONFLICT_ROLLBACK_TRX || this == CONFLICT_ROLLBACK_ROW;
+    }
 
     public boolean isRowCount() {
         return isRowCount;

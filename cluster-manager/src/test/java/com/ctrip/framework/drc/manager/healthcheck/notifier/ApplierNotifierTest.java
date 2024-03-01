@@ -44,4 +44,16 @@ public class ApplierNotifierTest extends AbstractNotifierTest {
         }
     }
 
+    @Test
+    public void testGetDelayMonitorRegex(){
+        //
+        String db1 = applierNotifier.getDelayMonitorRegex(ApplyMode.db_transaction_table.getType(), "db1");
+        Assert.assertEquals("drcmonitordb\\.(dly_db1)", db1);
+        System.out.println(db1);
+        //
+        String db2 = applierNotifier.getDelayMonitorRegex(ApplyMode.transaction_table.getType(), null);
+        Assert.assertEquals("drcmonitordb\\.(delaymonitor)", db2);
+        System.out.println(db2);
+    }
+
 }

@@ -136,18 +136,18 @@
                 <template #list>
                   <DropdownMenu >
                     <DropdownItem @click.native="() => {$router.push({path: '/drcV2'})}">新建DRC配置（MHA）</DropdownItem>
-                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbDrcBuild'})}">新建DRC配置（DB维度）</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbDrcBuildV2'})}">新建DRC配置（DB维度）</DropdownItem>
                   </DropdownMenu>
                 </template>
               </Dropdown>
           </Col>
         </Row>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
-          <template slot-scope="{ row, index }" slot="action">
+          <template slot-scope="{ row }" slot="action">
             <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.src.mhaName,row.dst.mhaName,false)">
               查看
             </Button>
-            <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
+            <Button type="primary" size="small" style="margin-right: 5px" @click="goToMhaDbReplicationDetails(row)">
               编辑
             </Button>
           </template>
@@ -338,11 +338,20 @@ export default {
           key: 'replicationText',
           render: (h, params) => {
             const row = params.row
-            const color = 'blue'
             const text = `${row.src.mhaName} -> ${row.dst.mhaName}`
-            return h('Tag', {
+            return h('Button', {
               props: {
-                color: color
+                type: 'default',
+                size: 'small',
+                icon: 'ios-build'
+              },
+              style: {
+                marginRight: '5px'
+              },
+              on: {
+                click: () => {
+                  this.goToMhaReplicationDetails(row)
+                }
               }
             }, text)
           }
@@ -377,7 +386,7 @@ export default {
         buCode: null,
         regionId: null
       },
-      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
+      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : null,
       preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend
@@ -606,7 +615,18 @@ export default {
         this.dataLoading = false
       })
     },
-    goToLink (row, index) {
+    goToMhaDbReplicationDetails (row) {
+      this.$router.push({
+        path: '/v2/dbDrcBuildV2',
+        query: {
+          fixDb: true,
+          dbName: row.src.dbName,
+          srcRegionName: row.src.regionName,
+          dstRegionName: row.dst.regionName
+        }
+      })
+    },
+    goToMhaReplicationDetails (row) {
       this.$router.push({
         path: '/drcV2',
         query: {

@@ -32,7 +32,7 @@ public class DrcInfoAnalysisUtils {
     @Test
     public void test() throws IOException {
         // get json from api :/api/drc/v1/openapi/info/dbs
-        URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
+        URL resource = this.getClass().getClassLoader().getResource("analysis/drccout.json");
         List<DrcDbInfo> dbInfos = readFromFile(resource.getPath());
 //        countRegion(dbInfos,"sha","sin");
 //        countRegion(dbInfos,"sha","fra");
@@ -58,7 +58,7 @@ public class DrcInfoAnalysisUtils {
         res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
         res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
 
-        URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
+        URL resource = this.getClass().getClassLoader().getResource("analysis/drccout.json");
         File file = new File( resource.getPath() +"/../vpc"  + ".txt");
         if (!file.exists()) {
             file.createNewFile();
@@ -79,7 +79,7 @@ public class DrcInfoAnalysisUtils {
         res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
         res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
 
-        URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
+        URL resource = this.getClass().getClassLoader().getResource("analysis/drccout.json");
         File file = new File( resource.getPath() +"/../" + srcRegion + "2" + destRegion + ".txt");
         if (!file.exists()) {
             file.createNewFile();
@@ -109,7 +109,7 @@ public class DrcInfoAnalysisUtils {
         res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
 
 
-        URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
+        URL resource = this.getClass().getClassLoader().getResource("analysis/drccout.json");
         
         File file = new File(resource.getPath() + "/../" + "allDrcCount.txt");
         if (!file.exists()) {

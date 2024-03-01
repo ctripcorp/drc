@@ -34,10 +34,13 @@ public interface MhaDbReplicationService {
     void refreshMhaReplication();
 
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
+    void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException;
 
     boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
 
     List<MhaTblV2> getReplicationRelatedMha(String db, String table) throws SQLException;
 
     List<MhaDbDelayInfoDto> getReplicationDelays(List<Long> replicationIds);
+
+    List<MhaDbReplicationDto> queryByDbNames(List<String> dbNames, ReplicationTypeEnum typeEnum);
 }

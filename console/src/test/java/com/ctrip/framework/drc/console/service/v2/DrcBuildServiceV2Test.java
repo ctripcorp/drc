@@ -14,7 +14,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
@@ -213,7 +213,8 @@ public class DrcBuildServiceV2Test {
         Mockito.when(dbReplicationTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(getDbReplicationTbls1());
         Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
         try {
-            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(LogBlackListType.NEW_CONFIG));
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(
+                    CflBlacklistType.NEW_CONFIG),Mockito.any());
         } catch (SQLException e) {
             e.printStackTrace();
         }

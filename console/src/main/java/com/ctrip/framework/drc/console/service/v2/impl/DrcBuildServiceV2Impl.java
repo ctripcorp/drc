@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -30,9 +30,7 @@ import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
-import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -335,8 +333,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private void addConflictBlackList(String nameFilter) {
         executorService.submit(() -> {
             try {
-                conflictLogService.addDbBlacklist(nameFilter, LogBlackListType.NEW_CONFIG);
-            } catch (SQLException e) {
+                conflictLogService.addDbBlacklist(nameFilter, CflBlacklistType.NEW_CONFIG,null);
+            } catch (Exception e) {
                 logger.error("addDbBlacklist error", e);
             }
         });
@@ -376,7 +374,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Set<String> filterColumns = new HashSet<>();
         if (rowsFilterId != -1L) {
             RowsFilterTblV2 rowsFilterTblV2 = rowsFilterTblV2Dao.queryById(rowsFilterId);
-            RowsFilterConfigView rowsConfigView = buildRowsFilterConfigView(rowsFilterTblV2);
+            RowsFilterConfigView rowsConfigView = RowsFilterConfigView.from(rowsFilterTblV2);
             if (!CollectionUtils.isEmpty(rowsConfigView.getColumns())) {
                 filterColumns.addAll(rowsConfigView.getColumns());
             }
@@ -387,7 +385,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         if (columnsFilterId != -1L) {
             ColumnsFilterTblV2 columnsFilterTblV2 = columnFilterTblV2Dao.queryById(columnsFilterId);
-            ColumnsConfigView columnsConfigView = buildColumnsConfigView(columnsFilterTblV2);
+            ColumnsConfigView columnsConfigView = ColumnsConfigView.from(columnsFilterTblV2);
             filterColumns.addAll(columnsConfigView.getColumns());
         }
 
@@ -562,7 +560,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         ColumnsFilterTblV2 columnsFilterTblV2 = columnFilterTblV2Dao.queryById(columnsFilterId);
-        return buildColumnsConfigView(columnsFilterTblV2);
+        return ColumnsConfigView.from(columnsFilterTblV2);
     }
 
     @Override
@@ -595,7 +593,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             return null;
         }
         RowsFilterTblV2 rowsFilterTblV2 = rowsFilterTblV2Dao.queryById(rowsFilterId);
-        return buildRowsFilterConfigView(rowsFilterTblV2);
+        return RowsFilterConfigView.from(rowsFilterTblV2);
     }
 
     public void buildRowsFilter(RowsFilterCreateParam param) throws Exception {
@@ -1158,48 +1156,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         machineTbl.setPort(dnsPort);
         machineTbl.setUuid(uuid);
         return machineTbl;
-    }
-
-    private RowsFilterConfigView buildRowsFilterConfigView(RowsFilterTblV2 rowsFilterTblV2) {
-        RowsFilterConfigView rowsFilterConfigView = new RowsFilterConfigView();
-        rowsFilterConfigView.setMode(rowsFilterTblV2.getMode());
-
-        RowsFilterConfig.Configs configs = JsonUtils.fromJson(rowsFilterTblV2.getConfigs(), RowsFilterConfig.Configs.class);
-        rowsFilterConfigView.setDrcStrategyId(configs.getDrcStrategyId());
-        rowsFilterConfigView.setRouteStrategyId(configs.getRouteStrategyId());
-
-        List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
-        RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
-        if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode()) || rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL_UID.getCode())) {
-            setColumnsView(rowsFilterConfigView, firstParameters);
-            if (parametersList.size() > 1) {
-                RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
-                setColumnsView(rowsFilterConfigView, secondParameters);
-            }
-        } else {
-            rowsFilterConfigView.setColumns(firstParameters.getColumns());
-        }
-
-        rowsFilterConfigView.setContext(firstParameters.getContext());
-        rowsFilterConfigView.setIllegalArgument(firstParameters.getIllegalArgument());
-        rowsFilterConfigView.setFetchMode(firstParameters.getFetchMode());
-
-        return rowsFilterConfigView;
-    }
-
-    private void setColumnsView(RowsFilterConfigView rowsFilterConfigView, RowsFilterConfig.Parameters secondParameters) {
-        if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
-            rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
-        } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
-            rowsFilterConfigView.setColumns(secondParameters.getColumns());
-        }
-    }
-
-    private ColumnsConfigView buildColumnsConfigView(ColumnsFilterTblV2 columnsFilterTblV2) {
-        ColumnsConfigView columnsConfigView = new ColumnsConfigView();
-        columnsConfigView.setColumns(JsonUtils.fromJsonToList(columnsFilterTblV2.getColumns(), String.class));
-        columnsConfigView.setMode(columnsFilterTblV2.getMode());
-        return columnsConfigView;
     }
 
     private List<DbReplicationFilterMappingTbl> getDbReplicationFilterMappings(List<Long> dbReplicationIds) throws Exception {

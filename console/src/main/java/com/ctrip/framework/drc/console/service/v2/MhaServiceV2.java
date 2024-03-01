@@ -2,10 +2,11 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
-
 import com.ctrip.xpipe.tuple.Pair;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ public interface MhaServiceV2 {
     Map<Long, MhaTblV2> queryMhaByIds(List<Long> mhaIds);
     List<MhaTblV2> queryRelatedMhaByDbName(List<String> dbNames) throws SQLException;
     List<String> getMhaReplicators(String mhaName) throws Exception;
+    List<ReplicatorInfoDto> getMhaReplicatorsV2(String mhaName);
     List<String> getMhaMessengers(String mhaName);
 
     List<String> getMhaAvailableResource(String mhaName, int type) throws Exception;

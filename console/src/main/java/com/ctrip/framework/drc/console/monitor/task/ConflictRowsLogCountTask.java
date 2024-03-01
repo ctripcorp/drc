@@ -13,7 +13,9 @@ import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
+import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
@@ -21,6 +23,7 @@ import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -88,12 +91,12 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void scheduledTask() {
+        CONSOLE_MONITOR_LOGGER.info("local region: " + consoleConfig.getRegion());
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
         }
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ConflictRowsLogCountTask]] is leader, going to check");
         try {
-            removeRegister();
             checkCount();
             alarm();
             if (nextDay) {
@@ -110,7 +113,10 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
 
     public void switchToLeader() {
         reset();
-        scheduledTask();
+    }
+
+    public void switchToSlave() {
+        removeRegister();
     }
 
     private void reset() {
@@ -124,6 +130,8 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     }
 
     private void removeRegister() {
+        reporter.removeRegister(ROW_LOG_COUNT_MEASUREMENT);
+        reporter.removeRegister(ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT);
         reporter.removeRegister(ROW_LOG_DB_COUNT_MEASUREMENT);
         reporter.removeRegister(ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT);
     }
@@ -242,12 +250,17 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             CONSOLE_MONITOR_LOGGER.error("[[monitor=ConflictRowsLogCountTask]] db: {} not exist", dbName);
             return null;
         }
+        DbTbl dbTbl = dbTbls.get(0);
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
-        if (domainConfig.getConflictAlarmSendDBOwnerSwitch()) {
-            email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
+        boolean inBlacklist = conflictLogService.isInBlackListWithCache(dbName, tableName);
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && !inBlacklist) {
+            email.addRecipient(dbTbl.getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
+            if (StringUtils.isNotBlank(dbTbl.getEmailGroup())) {
+                email.addCc(dbTbl.getEmailGroup());
+            }
         } else {
             domainConfig.getConflictAlarmCCEmails().forEach(email::addRecipient);
         }
@@ -262,7 +275,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         String dbFilter = dbName + "\\." + tableName;
         email.addContentKeyValue("加入黑名单", domainConfig.getCflAddBlacklistUrl() + "&dbFilter=" + dbFilter + "\n");
         return email;
-
     }
 
     private void reportTotalCount() {

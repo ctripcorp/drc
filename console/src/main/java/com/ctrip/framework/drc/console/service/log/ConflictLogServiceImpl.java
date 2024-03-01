@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
@@ -20,12 +21,9 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
-import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
-import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.param.log.*;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -42,8 +40,6 @@ import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -59,6 +55,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -96,21 +93,22 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private ReplicationTableTblDao replicationTableTblDao;
+    @Autowired
+    private DomainConfig domainConfig;
+    @Autowired
+    private DbBlacklistCache dbBlacklistCache;
 
     @Autowired
     private DbaApiService dbaApiService;
 
-    private final Supplier<List<AviatorRegexFilter>> blackList = Suppliers.memoizeWithExpiration(this::queryBlackList, 30, TimeUnit.SECONDS);
-
     private IAMService iamService = ServicesUtil.getIAMService();
 
-    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
-    private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictLog"));
+    private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newThreadExecutor(10, 50, 10000, "cflExecutorService"));
 
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
     private static final int TWELVE = 12;
-    private static final int INTERVAL_SIZE = 10;
     private static final int Time_OUT = 60;
     private static final String ROW_LOG_ID = "drc_row_log_id";
     private static final String UPDATE_SQL = "UPDATE %s SET %s WHERE %s";
@@ -244,7 +242,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         List<ListenableFuture<Pair<Long, ConflictCurrentRecordView>>> futures = new ArrayList<>();
         for (long conflictRowLogId : conflictRowLogIds) {
-            ListenableFuture<Pair<Long, ConflictCurrentRecordView>> future = compareExecutorService.submit(() -> getConflictRowRecordView(conflictRowLogId));
+            ListenableFuture<Pair<Long, ConflictCurrentRecordView>> future = executorService.submit(() -> getConflictRowRecordView(conflictRowLogId));
             futures.add(future);
         }
 
@@ -292,12 +290,21 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
+        cflExecutorService.submit(() -> {
+            try {
+                insertConflictLog(trxLogs);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.of(e);
+            }
+        });
+    }
+
+    public void insertConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
         if (!consoleConfig.getConflictLogRecordSwitch()) {
             return;
         }
         trxLogs = filterTransactionLogs(trxLogs);
         if (CollectionUtils.isEmpty(trxLogs)) {
-            logger.info("trxLogs are empty");
             return;
         }
 
@@ -361,18 +368,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
-        List<String> conflictDbBlacklist = conflictDbBlackListTblDao.queryAllExist().stream().map(ConflictDbBlackListTbl::getDbFilter).collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(conflictDbBlacklist)) {
-            return trxLogs;
-        }
-
-        String dbFilter = Joiner.on(",").join(conflictDbBlacklist);
-        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
         trxLogs.stream().forEach(trxLog -> {
-            List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream().filter(cflLog -> {
-                String tableName = cflLog.getDb() + "." + cflLog.getTable();
-                return !regexFilter.filter(tableName);
-            }).collect(Collectors.toList());
+            List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream()
+                    .filter(cflLog -> !isInBlackListWithCache(cflLog.getDb(), cflLog.getTable()))
+                    .collect(Collectors.toList());
             trxLog.setCflLogs(cflLogs);
         });
         return trxLogs.stream().filter(trxLog -> !CollectionUtils.isEmpty(trxLog.getCflLogs())).collect(Collectors.toList());
@@ -545,19 +544,27 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, LogBlackListType type) throws SQLException {
+    public void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception {
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         if (!CollectionUtils.isEmpty(tbls)) {
             logger.info("db blacklist already exist");
             return;
         }
-
         ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        if (expirationTime == null) {
+            int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(type);
+            tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
+        } else {
+            if (expirationTime < System.currentTimeMillis()) {
+                throw ConsoleExceptionUtils.message("expirationTime must be greater than current time");
+            }
+            tbl.setExpirationTime(new Timestamp(expirationTime));
+        }
         tbl.setDbFilter(dbFilter);
         tbl.setType(type.getCode());
         conflictDbBlackListTblDao.insert(tbl);
 
-        if (type == LogBlackListType.DBA_JOB) {
+        if (type == CflBlacklistType.DBA_JOB) {
             String[] dbFilters = dbFilter.split("\\\\.");
             List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbName(dbFilters[0], dbFilters[1], ExistingDataStatusEnum.NOT_PROCESSED.getCode());
             if (!CollectionUtils.isEmpty(replicationTableTbls)) {
@@ -565,6 +572,29 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 replicationTableTblDao.update(replicationTableTbls);
             }
         }
+        dbBlacklistCache.refresh(true);
+    }
+
+    @Override
+    public void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception {
+        if (dto.getId() == null || dto.getId() == 0) {
+            throw ConsoleExceptionUtils.message("db blacklist id is null");
+        }
+        ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        if (dto.getExpirationTime() == null) {
+            int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(CflBlacklistType.getByCode(dto.getType()));
+            tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
+        } else {
+            if (dto.getExpirationTime() < System.currentTimeMillis()) {
+                throw ConsoleExceptionUtils.message("expirationTime must be greater than current time");
+            }
+            tbl.setExpirationTime(new Timestamp(dto.getExpirationTime()));
+        }
+        tbl.setId(dto.getId());
+        tbl.setDbFilter(dto.getDbFilter());
+        tbl.setType(dto.getType());
+        conflictDbBlackListTblDao.update(tbl);
+        dbBlacklistCache.refresh(true);
     }
 
     @Override
@@ -575,6 +605,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
         conflictDbBlackListTblDao.delete(tbls);
+        dbBlacklistCache.refresh(true);
     }
 
     @Override
@@ -597,6 +628,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setDbFilter(source.getDbFilter());
             target.setType(source.getType());
             target.setCreateTime(DateUtils.longToString(source.getCreateTime().getTime()));
+            target.setExpirationTime(source.getExpirationTime() == null ? "" : DateUtils.longToString(source.getExpirationTime().getTime()));
 
             return target;
         }).collect(Collectors.toList());
@@ -626,10 +658,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public boolean isInBlackListWithCache(String db, String table) {
-        String fullname = db + "." + table;
-        List<AviatorRegexFilter> filters = blackList.get();
+        String fullName = db + "." + table;
+        List<AviatorRegexFilter> filters = dbBlacklistCache.getDbBlacklistInCache();
         for (AviatorRegexFilter filter : filters) {
-            if (filter.filter(fullname)) {
+            if (filter.filter(fullName)) {
                 return true;
             }
         }
@@ -660,7 +692,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             });
 
             ListenableFuture<ColumnsFilterAndIndexColumn> future =
-                    compareExecutorService.submit(() -> getColumnsFilterAndIndexColumn(multiKey, rowsLogTbls));
+                    executorService.submit(() -> getColumnsFilterAndIndexColumn(multiKey, rowsLogTbls));
             futures.add(future);
         }
 
@@ -711,10 +743,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception {
-        Future<List<ConflictRowsLogCount>> dbCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime));
-        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
-        Future<Integer> totalCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime));
-        Future<Integer> rollBackCountFuture = compareExecutorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
+        Future<List<ConflictRowsLogCount>> dbCountFuture = executorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime));
+        Future<List<ConflictRowsLogCount>> rollBackDbCountsFuture = executorService.submit(() -> conflictRowsLogTblDao.queryTopNDb(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
+        Future<Integer> totalCountFuture = executorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime));
+        Future<Integer> rollBackCountFuture = executorService.submit(() -> conflictRowsLogTblDao.queryCount(beginHandleTime, endHandlerTime, BooleanEnum.TRUE.getCode()));
 
         ConflictRowsLogCountView view = new ConflictRowsLogCountView();
         Integer totalCount = null;
@@ -1377,18 +1409,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return Pair.of(dbReplicationViews, columnsFieldMap);
     }
 
-    private List<AviatorRegexFilter> queryBlackList() {
-        try {
-            List<AviatorRegexFilter> blackList = new ArrayList<>();
-            List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
-            for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
-                blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
-            }
-            return blackList;
-        } catch (Exception e) {
-            logger.error("queryBlackList error", e);
-            return Collections.emptyList();
+    @Override
+    public List<AviatorRegexFilter> queryBlackList() throws SQLException {
+        if (!consoleConfig.isCenterRegion()) {
+            return new ArrayList<>();
         }
+        List<AviatorRegexFilter> blackList = new ArrayList<>();
+        List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
+        for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
+            blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
+        }
+        return blackList;
     }
 
     private class ColumnsFilterAndIndexColumn {

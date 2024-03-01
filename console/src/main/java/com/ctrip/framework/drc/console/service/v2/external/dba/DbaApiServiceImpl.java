@@ -1,15 +1,19 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Digest;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +41,8 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Autowired
     private DomainConfig domainConfig;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
     private UserService userService = ApiContainer.getUserServiceImpl();
 
 
@@ -140,4 +146,86 @@ public class DbaApiServiceImpl implements DbaApiService {
         }
         return res;
     }
+
+    /**
+     * {
+     *     "access_token":"...",
+     *     "request_body":
+     *     {
+     *   "db_name":"db",
+     *   "table_name":"table",
+     *   "begin_time":"2024-01-22 14:05",
+     *   "end_time":"2024-01-29 14:05"
+     * }
+     * }
+     *
+     * center region
+     * {
+     *     "success": true,
+     *     "content": {
+     *         "seeks": 1,
+     *         "scans": 2,
+     *         "insert": 3,
+     *         "update": 0,
+     *         "delete": 0
+     *     }
+     * }
+     * 
+     * 
+     * @return
+     */
+
+    @Override
+    public boolean everUserTraffic(String region, String dbName, String tableName, long startTime, long endTime,
+            boolean includeRead) {
+        if ("fra".equalsIgnoreCase(region)) { // dba api not support fraaws temporarily
+            return true;
+        }
+        boolean isOverSea = !consoleConfig.getCenterRegion().equalsIgnoreCase(region);
+        String token = domainConfig.getOpsAccessToken();
+        String url = isOverSea ? domainConfig.getOverSeaUserDMLQueryUrl() : domainConfig.getCenterRegionUserDMLCountQueryUrl();
+        LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
+        request.put("access_token", token);
+        request.put("request_body", requestBody);
+        requestBody.put("db_name", dbName);
+        requestBody.put("table_name", tableName);
+        if (!isOverSea && startTime < 1708257387000L) { // temporary,dba clear data in 2024-02-18 19:56:27
+            startTime = 1708257387000L;
+        }
+        requestBody.put("begin_time", DateUtils.longToString(startTime, "yyyy-MM-dd HH:mm"));
+        requestBody.put("end_time", DateUtils.longToString(endTime, "yyyy-MM-dd HH:mm"));
+
+        String responseString = HttpUtils.post(url, request, String.class);
+        JsonObject jsonObject = JsonUtils.parseObject(responseString);
+        boolean success = jsonObject.get("success").getAsBoolean();
+        if (isOverSea) {
+            if (!success) { // success means has write or read in overSea api
+                logger.info("{} no user traffic, db:{}, table:{}, response: {}", region,dbName, tableName, responseString);
+                return false;
+            }
+            SQLDigestInfo sqlDigestInfo = JsonUtils.fromJson(responseString, SQLDigestInfo.class);
+            Digest write = sqlDigestInfo.getContent().getWrite();
+            String digest_sql = write == null ? "" : write.getDigest_sql();
+            logger.info("region:{} db:{}, table:{},has user traffic,response: {}", region,dbName,tableName,responseString);
+            boolean hasWrite = StringUtils.isNotBlank(digest_sql);
+            return includeRead || hasWrite;
+        }
+
+        if (success) { // success means api execute result in center region api
+            JsonObject content = jsonObject.get("content").getAsJsonObject();
+            int seeks = content.get("seeks").getAsInt();
+            int insert = content.get("insert").getAsInt();
+            int update = content.get("update").getAsInt();
+            int delete = content.get("delete").getAsInt();
+            boolean hasWrite = (insert > 0) || (update > 0) || (delete > 0);
+            boolean hasRead = seeks > 0;
+            return includeRead ? hasRead || hasWrite : hasWrite;
+        } else {
+            logger.error("everUserTraffic failed, db:{}, table:{}, response: {}", dbName, tableName, responseString);
+            return true;
+        }
+    }
+    
+    
 }
