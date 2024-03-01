@@ -924,8 +924,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 List<ReplicationTableTbl> result = future.get(10, TimeUnit.SECONDS);
                 replicationTableTbls.addAll(result);
             } catch (Exception e) {
-                continue;
-//                throw ConsoleExceptionUtils.message("initReplicationTables fail, " + e);
+                throw ConsoleExceptionUtils.message("initReplicationTables fail, " + e);
             }
         }
     }

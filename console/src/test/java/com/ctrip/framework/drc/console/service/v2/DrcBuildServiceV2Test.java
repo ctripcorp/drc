@@ -458,4 +458,19 @@ public class DrcBuildServiceV2Test {
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
     }
 
+    @Test
+    public void testInitReplicationTables() throws Exception {
+        Mockito.when(mhaReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaReplicationTbls1());
+        Mockito.when(mhaTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaTblV2s());
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(PojoBuilder.getDcTbls());
+        Mockito.when(mhaDbMappingTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaDbMappingTbls2());
+        Mockito.when(dbTblDao.queryAllExist()).thenReturn(PojoBuilder.getDbTbls());
+        Mockito.when(dbReplicationTblDao.queryByMappingIds(Mockito.anyList(), Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getDbReplicationTbls());
+        Mockito.when(mysqlServiceV2.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("db200.table1"));
+
+        Mockito.when(replicationTableTblDao.insert(Mockito.anyList())).thenReturn(new int[0]);
+        drcBuildServiceV2.initReplicationTables();
+        Mockito.verify(replicationTableTblDao, Mockito.times(2)).insert(Mockito.anyList());
+    }
+
 }
