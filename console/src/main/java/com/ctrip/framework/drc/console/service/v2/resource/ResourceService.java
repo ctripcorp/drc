@@ -1,9 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.resource;
 
-import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
@@ -52,5 +49,9 @@ public interface ResourceService {
     List<MhaDbReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception;
 
     List<String> queryMhaByMessenger(long resourceId) throws Exception;
-    
+
+    int migrateResource(String newIp, String oldIp, int type) throws Exception;
+
+    void migrateResource(ResourceMigrateParam param) throws Exception;
+
 }

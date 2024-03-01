@@ -3,15 +3,13 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
-import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -158,6 +156,37 @@ public class ResourceController {
         try {
             return ApiResult.getSuccessInstance(resourceService.queryMhaDbReplicationByApplier(resourceId));
         } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/replicator")
+    public ApiResult<Integer> migrateReplicator(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.REPLICATOR.getCode()));
+        } catch (Exception e) {
+            logger.error("migrateReplicator fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/applier")
+    public ApiResult<Integer> migrateApplier(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.APPLIER.getCode()));
+        } catch (Exception e) {
+            logger.error("migrateApplier fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/resource")
+    public ApiResult<Boolean> migrateResource(@RequestBody ResourceMigrateParam param) {
+        try {
+            resourceService.migrateResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("migrateResource fail, ", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
