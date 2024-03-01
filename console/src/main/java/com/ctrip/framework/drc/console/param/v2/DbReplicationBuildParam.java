@@ -14,7 +14,7 @@ public class DbReplicationBuildParam {
     private String dstMhaName;
     private String dbName;
     private String tableName;
-    private boolean flushExistingData;
+    private boolean flushExistingData = true;
     private boolean autoBuild;
     private RowsFilterCreateParam rowsFilterCreateParam;
     private ColumnsFilterCreateParam columnsFilterCreateParam;

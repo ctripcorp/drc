@@ -428,6 +428,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 replicationTableTbl.setEffectiveStatus(EffectiveStatusEnum.EFFECTIVE.getCode());
             }
 
+
             replicationTableTbl.setExistingDataStatus(param.isFlushExistingData() ?
                     ExistingDataStatusEnum.NOT_PROCESSED.getCode() : ExistingDataStatusEnum.NO_NEED_TO_PROCESSING.getCode());
             replicationTableTbls.add(replicationTableTbl);
@@ -521,9 +522,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         //config replicationTables
         List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, BooleanEnum.FALSE.getCode());
+        //ql_deng TODO 2024/3/1:EFFECTIVE -> NOT_IN_EFFECT
         replicationTableTbls.stream().forEach(e -> {
             e.setDeleted(BooleanEnum.TRUE.getCode());
-            e.setEffectiveStatus(EffectiveStatusEnum.NOT_IN_EFFECT.getCode());
+            e.setEffectiveStatus(EffectiveStatusEnum.EFFECTIVE.getCode());
         });
         replicationTableTblDao.update(replicationTableTbls);
 
