@@ -138,14 +138,14 @@ then
     #GB
     USED_MEM=`getSafeXmx`
     XMN=`getSafeXmn $USED_MEM`
-    MAX_DIRECT=2
+    MAX_DIRECT=3
     #JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -Xmn${XMN}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
     JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
 elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ] || [ $ENV = "UAT" ];then
     #GB
     USED_MEM=`getSafeXmx`
     XMN=`getSafeXmn $USED_MEM`
-    MAX_DIRECT=2
+    MAX_DIRECT=3
     FILE_SIZE=`getSafeFileSize`
     #JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -Xmn${XMN}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
     JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g -Ddrc.replicator.binlog.scaleout=${FILE_SIZE} -Ddrc.replicator.binlog.firstfile=true -Xdebug -Xrunjdwp:transport=dt_socket,address=*:8787,suspend=n,server=y"
