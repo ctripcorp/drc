@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObse
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -120,7 +121,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         private DelayMonitorCommandPacket monitorCommandPacket;
 
-        private ArrayBlockingQueue<LogEvent> delayBlockingQueue = new ArrayBlockingQueue<>(10);
+        private ArrayBlockingQueue<LogEvent> delayBlockingQueue = new ArrayBlockingQueue<>(100);
 
         private volatile boolean channelClosed = false;
 
@@ -226,9 +227,14 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
             nettyClient.channel().close();
         }
 
-        private void release(LogEvent logEvent) {
+        @VisibleForTesting
+        public void release(LogEvent logEvent) {
             try {
-                logEvent.release();
+                if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
+                    ((ReferenceCountedDelayMonitorLogEvent) logEvent).release(1);
+                } else {
+                    logEvent.release();
+                }
             } catch (Exception e) {
                 logger.error("[Release] logEvent error", e);
             }
