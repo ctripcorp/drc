@@ -44,7 +44,7 @@ public class DbMigrationController {
     @DeleteMapping("abandon")
     @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE,operator = "admin",
             success = "abandonMigrationTask with taskId:{#taskId}")
-    private ApiResult abandonMigrationTask(@RequestParam(name = "taskId") Long taskId) {
+    public ApiResult abandonMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.abandonTask(taskId)) {
                 return ApiResult.getInstance(null,0,"abandonMigrationTask: " + taskId + " success!");
