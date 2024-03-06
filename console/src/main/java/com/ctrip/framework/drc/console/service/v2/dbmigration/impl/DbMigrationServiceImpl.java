@@ -117,6 +117,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private MessengerServiceV2 messengerServiceV2;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+    @Autowired
+    private CacheMetaService cacheMetaService;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -157,6 +159,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
+        cacheMetaService.refreshMetaCache();
+        
         StringBuilder tips = new StringBuilder();
         StringBuilder errorInfo = new StringBuilder();
 

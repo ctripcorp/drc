@@ -151,7 +151,14 @@ public class ConflictLogServiceTest {
         
         conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis() + Constants.ONE_DAY);
         conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.DBA_JOB,null);
+
+        ConflictDbBlackListTbl db2table2 = new ConflictDbBlackListTbl();
+        db2table2.setId(1L);
+        when(conflictDbBlackListTblDao.queryBy(eq("db2\\.table2"),anyInt())).thenReturn(Lists.newArrayList(db2table2));
+        conflictLogService.addDbBlacklist("db2\\.table2", CflBlacklistType.DBA_JOB,null);
         verify(conflictDbBlackListTblDao,times(2)).insert(any(ConflictDbBlackListTbl.class));
+        verify(dbBlacklistCache,times(3)).refresh(true);
+        verify(conflictDbBlackListTblDao,times(1)).update(any(ConflictDbBlackListTbl.class));
     }
     
     

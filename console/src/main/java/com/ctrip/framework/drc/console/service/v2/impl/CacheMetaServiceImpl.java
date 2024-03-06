@@ -286,6 +286,12 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         return res;
     }
 
+    @Override
+    public boolean refreshMetaCache() {
+        metaProviderV2.scheduledTask();
+        return true;
+    }
+
     public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {
         Dbs dbs = dbCluster.getDbs();
         List<Db> dbList = dbs.getDbs();

@@ -53,6 +53,7 @@ public interface ConflictLogService {
 
     List<ConflictAutoHandleView> createHandleSql(ConflictAutoHandleParam param) throws Exception;
 
+    // addDbBlacklist ,refresh expire time when exist 
     void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception;
 
     void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception;
