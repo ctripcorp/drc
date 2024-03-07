@@ -143,7 +143,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     protected List<GtidReader> getExecutedGtidReaders(Endpoint endpoint) {
         List<GtidReader> gtidReaders;
         if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
-            gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new DbTransactionTableGtidReader(endpoint, Objects.requireNonNull(includedDbs)));
+            gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(endpoint), new DbTransactionTableGtidReader(endpoint, Objects.requireNonNull(includedDbs)));
         } else {
             gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(endpoint));
         }
