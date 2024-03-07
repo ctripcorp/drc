@@ -33,8 +33,8 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
         this.destImage = image;
     }
 
-    private String srcImage = "mysql:5.7";
-    private String destImage = "mysql:5.7";
+    private String srcImage = "mysql:8.0";
+    private String destImage = "mysql:8.0";
 
     public String getSrcImage() {
         return srcImage;

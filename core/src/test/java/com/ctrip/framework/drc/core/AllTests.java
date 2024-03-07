@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtid
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.json.BinaryJsonTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManagerTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.CommentQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.DatabaseCreateTaskTest;
@@ -267,6 +268,9 @@ import org.junit.runners.Suite;
         WriteFieldDateTypeTest.class,
         WriteFieldEnumMeta1TypeTest.class,
         WriteFieldEnumMeta2TypeTest.class,
+
+        // write row filed with json type
+        BinaryJsonTest.class,
 
         //mq
         MessengerPropertiesTest.class,
