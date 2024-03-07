@@ -136,9 +136,11 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         res.addAll(initTransactionTable());
         res.addAll(initDDL());
         res.addAll(initConfigDb());
-
+        res.addAll(initDrc1dbJsonCase());
+        System.out.println("json table created");
         return res;
     }
+
 
     private List<String> initSceneOne() {
         return Lists.newArrayList(
@@ -186,6 +188,16 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                         "                        UNIQUE KEY `uniq_one_date` (`one`, `datachange_lasttime`)\n" +
                         "                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 
+        );
+    }
+
+    public List<String> initDrc1dbJsonCase() {
+        return Lists.newArrayList(
+                "CREATE TABLE if not exists `drc1`.`json` (\n" +
+                        "`id` int(11) AUTO_INCREMENT PRIMARY KEY,\n" +
+                        "`json_data` JSON,\n" +
+                        "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"
         );
     }
 
