@@ -77,6 +77,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
     @Override
     protected void doStart() throws Exception {
         replicatorServer.start();
+        Thread.sleep(10*1000);
         localApplierServer.start();
     }
 

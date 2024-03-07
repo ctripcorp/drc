@@ -73,7 +73,6 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
             namedCallable.afterException(e);
         }
     }
-
     protected void doWithSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, DumpCallBack callBack, RECONNECTION_CODE reconnectionCode) {
         envSettingAndRegister(simpleObjectPool);
 
