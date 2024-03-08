@@ -271,6 +271,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoBuildDrcFromApplication(DrcAutoBuildReq req) throws Exception {
         ApplicationFormTbl applicationForm = applicationFormTblDao.queryById(req.getApplicationFormId());
         ApplicationApprovalTbl applicationApproval = applicationApprovalTblDao.queryByApplicationFormId(applicationForm.getId());
@@ -317,9 +318,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(dbIds, Lists.newArrayList(dstMha.getId()));
         List<Long> srcMhaDbMappingIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<Long> dstMhaDbMappingIds = dstMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByMappingIds(srcMhaDbMappingIds, dstMhaDbMappingIds, ReplicationTypeEnum.DB_TO_DB.getType());
-        return dbReplicationTbls;
+        return dbReplicationTbls.stream().filter(e -> e.getSrcLogicTableName().equals(param.getTableFilter())).collect(Collectors.toList());
     }
 
     private void autoBuildDrc(List<DrcAutoBuildParam> params) {

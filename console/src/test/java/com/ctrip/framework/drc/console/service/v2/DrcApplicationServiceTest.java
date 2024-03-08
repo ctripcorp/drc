@@ -51,6 +51,8 @@ public class DrcApplicationServiceTest {
     private EmailService emailService;
     @Mock
     private UserService userService;
+    @Mock
+    private DbDrcBuildService dbDrcBuildService;
 
 
     @Before

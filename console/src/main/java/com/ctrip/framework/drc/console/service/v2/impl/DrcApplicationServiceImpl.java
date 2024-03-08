@@ -12,12 +12,14 @@ import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
+import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormBuildParam;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormQueryParam;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcApplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -68,6 +70,8 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
     @Autowired
     private DomainConfig domainConfig;
+    @Autowired
+    private DbDrcBuildService dbDrcBuildService;
 
     private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
@@ -178,10 +182,14 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
                 Collectors.toMap(e -> new MultiKey(e.getSrcMha(), e.getDstMha()), this::buildMhaReplicationDto, (k1, k2) ->k1));
         List<MhaReplicationDto> mhaReplicationDtos = Lists.newArrayList(mhaReplicationDtoMap.values());
 
-        boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
-        if (!delayCorrect) {
-            logger.info("applicationFormId: {} delay not ready", applicationFormId);
-            return false;
+        List<DbApplierDto> mhaDbAppliers = dbDrcBuildService.getMhaDbAppliers(replicationTableTbls.get(0).getSrcMha(), replicationTableTbls.get(0).getDstMha());
+        boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+        if (!dbApplyMode) {
+            boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
+            if (!delayCorrect) {
+                logger.info("applicationFormId: {} delay not ready", applicationFormId);
+                return false;
+            }
         }
 
         List<String> dbNames = replicationTableTbls.stream().map(ReplicationTableTbl::getDbName).distinct().collect(Collectors.toList());
@@ -221,6 +229,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         Email email = new Email();
         email.setSubject("DRC同步配置变更");
         email.setSender(domainConfig.getDrcConfigSenderEmail());
+        email.addCc(domainConfig.getDrcConfigSenderEmail());
         if (domainConfig.getDrcConfigEmailSendSwitch()) {
             email.addRecipient(approvalTbl.getApplicant() + "@trip.com");
             domainConfig.getDrcConfigCcEmail().forEach(email::addCc);

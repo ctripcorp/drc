@@ -40,6 +40,7 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -438,9 +439,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (update) {
             existReplicationTables = replicationTableTblDao.queryByDbReplicationIds(param.getDbReplicationIds(), BooleanEnum.FALSE.getCode());
         }
-        List<ReplicationTableTbl> finalExistReplicationTables = existReplicationTables;
-        List<ReplicationTableTbl> insertReplicationTables = replicationTableTbls.stream().filter(e -> !finalExistReplicationTables.contains(e)).collect(Collectors.toList());
-        List<ReplicationTableTbl> deleteReplicationTables = existReplicationTables.stream().filter(e -> !replicationTableTbls.contains(e)).collect(Collectors.toList());
+        Set<ReplicationTableTbl> existReplicationTableSet = Sets.newHashSet(existReplicationTables);
+        Set<ReplicationTableTbl> newReplicationTableTblSet = Sets.newHashSet(replicationTableTbls);
+        List<ReplicationTableTbl> insertReplicationTables = replicationTableTbls.stream().filter(e -> !existReplicationTableSet.contains(e)).collect(Collectors.toList());
+        List<ReplicationTableTbl> deleteReplicationTables = existReplicationTables.stream().filter(e -> !newReplicationTableTblSet.contains(e)).collect(Collectors.toList());
         //ql_deng TODO 2024/2/29: EFFECTIVE -> NOT_IN_EFFECT
         deleteReplicationTables.stream().forEach(e -> {
             e.setDeleted(BooleanEnum.TRUE.getCode());
@@ -929,6 +931,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
+    /**
+     * 灰度阶段使用
+     * 物理删除，谨慎操作
+     * @throws Exception
+     */
     @Override
     public void deleteAllReplicationTables() throws Exception {
         replicationTableTblDao.deleteAll();
