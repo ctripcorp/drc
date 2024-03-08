@@ -257,6 +257,28 @@ public class DrcBuildControllerV2 {
         }
     }
 
+    @PostMapping("initReplicationTables")
+    public ApiResult<Boolean> initReplicationTables() {
+        try {
+            drcBuildServiceV2.initReplicationTables();
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("initReplicationTables fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("replicationTables")
+    public ApiResult<Boolean> deleteReplicationTables() {
+        try {
+            drcBuildServiceV2.deleteAllReplicationTables();
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("deleteReplicationTables fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @PostMapping("db/emailGroup")
     public ApiResult<ConfigDbView> configEmailGroupForDb(@RequestParam String dalCluster, @RequestParam String emailGroup) {
         try {

@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Component
 public class DomainConfig extends AbstractConfigBean {
 
-    
+
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
@@ -137,6 +137,11 @@ public class DomainConfig extends AbstractConfigBean {
     private static String CFL_ALARM_TOP_NUM = "cfl.alarm.top.num";
     private static String CFL_ALARM_ROLLBACK_TOP_NUM = "cfl.alarm.rollback.top.num";
     private static String CFL_ALARM_SEND_TIME_HOUR = "cfl.alarm.send.time.hour";
+
+    private static final String DRC_CONFIG_EMAIL_SEND_SWITCH = "drc.config.send.email.switch";
+    private static final String DRC_CONFIG_SENDER_EMAIL = "drc.config.sender.email";
+    private static final String DRC_CONFIG_CC_EMAIL = "drc.config.cc.email";
+    private static final String DRC_CONFIG_DBA_EMAIL = "drc.config.dba.email";
 
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_TOKEN = "center.region.user.dml.count.query.token";
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_URL = "center.region.user.dml.count.query.url";
@@ -405,16 +410,37 @@ public class DomainConfig extends AbstractConfigBean {
     public int getConflictAlarmLimitPerHour() {
         return getIntProperty(CFL_ALARM_LIMIT_PER_HOUR, 4);
     }
-    
+
     public long getBlacklistAlarmHotspotThreshold() {
         return getLongProperty(CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD, 6 * 60L);
     }
-    
+
+    public boolean getDrcConfigEmailSendSwitch() {
+        return getBooleanProperty(DRC_CONFIG_EMAIL_SEND_SWITCH, false);
+    }
+
+    public String getDrcConfigSenderEmail() {
+        return getProperty(DRC_CONFIG_SENDER_EMAIL, "");
+    }
+
+    public String getDrcConfigDbaEmail() {
+        return getProperty(DRC_CONFIG_DBA_EMAIL, "");
+    }
+
+    public List<String> getDrcConfigCcEmail() {
+        String ccEmails = getProperty(DRC_CONFIG_CC_EMAIL, "");
+        if (StringUtils.isBlank(ccEmails)) {
+            return new ArrayList<>();
+        } else {
+            return Arrays.stream(ccEmails.split(",")).collect(Collectors.toList());
+        }
+    }
+
     public boolean getBlacklistClearSwitch(CflBlacklistType type) {
         String key = type.name().toLowerCase().replaceAll("_", ".");
         return getBooleanProperty(String.format(CFL_BLACKLIST_SWITCH_FORMATTER,key), false);
     }
-    
+
     public int getBlacklistExpirationHour(CflBlacklistType type) {
         String key = type.name().toLowerCase().replaceAll("_", ".");
         return getIntProperty(String.format(CFL_BLACKLIST_EXPIRATION_HOUR_FORMATTER,key), 24);
@@ -431,10 +457,10 @@ public class DomainConfig extends AbstractConfigBean {
     public String getOverSeaUserDMLQueryToken() {
         return getProperty(OVERSEA_USER_DML_QUERY_TOKEN, "");
     }
-    
+
     public String getOverSeaUserDMLQueryUrl() {
         return getProperty(OVERSEA_USER_DML_QUERY_URL, "");
     }
 
-    
+
 }

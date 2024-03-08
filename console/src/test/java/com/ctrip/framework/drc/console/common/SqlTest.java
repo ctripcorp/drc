@@ -132,14 +132,6 @@ public class SqlTest {
         return parseResult;
     }
 
-    @Test
-    public void test() {
-        String db = "db";
-        String table = "table";
-        String sql = String.format(GET_ON_UPDATE_COLUMNS, db, table);
-        System.out.println(sql);
-    }
-
     private String toSqlValue(String val) {
         return "'" + val + "'";
     }

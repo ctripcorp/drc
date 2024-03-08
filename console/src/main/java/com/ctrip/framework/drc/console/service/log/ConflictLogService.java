@@ -1,11 +1,7 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
-import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
-import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistDto;
-import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.param.log.*;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -58,6 +54,8 @@ public interface ConflictLogService {
     void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception;
 
     void deleteBlacklist(String dbFilter) throws Exception;
+
+    void deleteBlacklistForTouchJob(String dbFilter) throws Exception;
 
     List<ConflictDbBlacklistView> getConflictDbBlacklistView(ConflictDbBlacklistQueryParam param) throws Exception;
 

@@ -5,7 +5,10 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
+import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
+import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
+import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
@@ -19,6 +22,71 @@ import java.util.List;
  * 2023/6/15 11:35
  */
 public class PojoBuilder {
+
+    public static ReplicationTableTbl buildReplicationTableTbl() {
+        ReplicationTableTbl tbl = new ReplicationTableTbl();
+        tbl.setId(1L);
+        tbl.setDbReplicationId(1L);
+        tbl.setDbName("dbName");
+        tbl.setTableName("tableName");
+        tbl.setSrcMha("srcMha");
+        tbl.setSrcRegion("srcRegion");
+        tbl.setDstMha("dstMha");
+        tbl.setDstRegion("dstRegion");
+        tbl.setEffectiveStatus(EffectiveStatusEnum.IN_EFFECT.getCode());
+        tbl.setExistingDataStatus(ExistingDataStatusEnum.NOT_PROCESSED.getCode());
+        tbl.setDeleted(0);
+        return tbl;
+    }
+
+    public static ApplicationRelationTbl buildApplicationRelationTbl() {
+        ApplicationRelationTbl tbl = new ApplicationRelationTbl();
+        tbl.setId(1L);
+        tbl.setApplicationFormId(1L);
+        tbl.setDbReplicationId(1L);
+
+        return tbl;
+    }
+
+    public static ApplicationFormTbl buildApplicationFormTbl() {
+        ApplicationFormTbl tbl = new ApplicationFormTbl();
+        tbl.setId(1L);
+        tbl.setBuName("buName");
+        tbl.setDbName("db");
+        tbl.setTableName("table");
+        tbl.setSrcRegion("srcRegion");
+        tbl.setDstRegion("dstRegion");
+        tbl.setTps("tps");
+        tbl.setDescription("desc");
+        tbl.setDisruptionImpact("impact");
+        tbl.setFilterType("ALL");
+        tbl.setTag("tag");
+        tbl.setFlushExistingData(1);
+        tbl.setOrderRelated(1);
+        tbl.setGtidInit("gtid");
+        tbl.setRemark("remark");
+        tbl.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        tbl.setDatachangeLasttime(new Timestamp(System.currentTimeMillis() - 600000L));
+        tbl.setIsSentEmail(0);
+
+        return tbl;
+    }
+
+    public static ApplicationApprovalTbl buildApplicationApprovalTbl() {
+        ApplicationApprovalTbl tbl = new ApplicationApprovalTbl();
+        tbl.setId(1L);
+        tbl.setApplicationFormId(1L);
+        tbl.setApprovalResult(ApprovalResultEnum.NOT_APPROVED.getCode());
+        return tbl;
+    }
+
+    public static ApplicationApprovalTbl buildApplicationApprovalTbl1() {
+        ApplicationApprovalTbl tbl = new ApplicationApprovalTbl();
+        tbl.setId(1L);
+        tbl.setApplicationFormId(1L);
+        tbl.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
+        return tbl;
+    }
 
     public static List<ReplicatorGroupTbl> getReplicatorGroupTbls() {
         List<ReplicatorGroupTbl> replicatorGroupTbls = new ArrayList<>();
@@ -265,6 +333,21 @@ public class PojoBuilder {
         tbl2.setCreateTime(new Timestamp(System.currentTimeMillis()));
         tbl2.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
         return Lists.newArrayList(tbl1, tbl2);
+    }
+
+    public static List<DbReplicationTbl> getDbReplicationTbls1() {
+        DbReplicationTbl tbl1 = new DbReplicationTbl();
+        tbl1.setDeleted(0);
+        tbl1.setReplicationType(0);
+        tbl1.setSrcLogicTableName("table1");
+        tbl1.setSrcMhaDbMappingId(200L);
+        tbl1.setDstLogicTableName("table2");
+        tbl1.setDstMhaDbMappingId(201L);
+        tbl1.setId(200L);
+        tbl1.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        tbl1.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
+
+        return Lists.newArrayList(tbl1);
     }
 
     public static List<ApplierGroupTblV2> getApplierGroupTblV2s() {

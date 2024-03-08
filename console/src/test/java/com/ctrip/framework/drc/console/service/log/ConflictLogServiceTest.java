@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
@@ -96,6 +97,8 @@ public class ConflictLogServiceTest {
     private DbBlacklistCache dbBlacklistCache;
     @Mock
     private DomainConfig domainConfig;
+    @Mock
+    private ReplicationTableTblDao replicationTableTblDao;
 
     @Before
     public void setUp() {
