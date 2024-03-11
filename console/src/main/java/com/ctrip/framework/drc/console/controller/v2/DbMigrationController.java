@@ -9,22 +9,27 @@ import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
-import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
 import com.ctrip.framework.drc.console.vo.display.MigrationTaskVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * @ClassName DbMigrationController
@@ -96,6 +101,28 @@ public class DbMigrationController {
         } catch (ConsoleException e) {
             logger.warn("exStartDbMigrationTask forbidden", e);
             return ApiResult.getInstance(null,1, e.getMessage());
+        }
+    }
+    
+    @PostMapping("beforeDalSwtich/cancel")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "DBA",
+            success = "cancelDbMigrationTask with taskId:{#taskId}")
+    public ApiResult cancelDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            if (dbMigrationService.cancelTask(taskId)) {
+                return ApiResult.getInstance(null,0,"cancelDbMigrationTask: " + taskId + " success!");
+            } else {
+                return ApiResult.getInstance(null,1,"cancelDbMigrationTask: " + taskId + " fail!");
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in cancelDbMigrationTask", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("cancelDbMigrationTask forbidden", e);
+            return ApiResult.getInstance(null,1, e.getMessage());
+        } catch (Exception e) {
+            logger.error("cancelDbMigrationTask unExcepted error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
     

@@ -119,6 +119,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private MhaDbReplicationService mhaDbReplicationService;
     @Autowired
     private CacheMetaService cacheMetaService;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -138,7 +140,34 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTblDao.update(migrationTaskTbl);
         return true;
     }
-
+    
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public boolean cancelTask(Long taskId) throws Exception {
+        MigrationTaskTbl taskTbl = migrationTaskTblDao.queryById(taskId);
+        if (taskTbl == null) {
+            throw ConsoleExceptionUtils.message("task not exist");
+        }
+        if (MigrationStatusEnum.PRE_STARTING.getStatus().equalsIgnoreCase(taskTbl.getStatus()) ||
+            MigrationStatusEnum.PRE_STARTED.getStatus().equalsIgnoreCase(taskTbl.getStatus())) {
+            deleteDrcConfig(taskTbl.getId(),false,true);
+        } else if (MigrationStatusEnum.INIT.getStatus().equalsIgnoreCase(taskTbl.getStatus())) {
+            // do nothing
+        } else {
+            throw ConsoleExceptionUtils.message("Not support cancel,task status is" + taskTbl.getStatus());
+        }
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(taskTbl.getNewMha(),BooleanEnum.FALSE.getCode());
+        if(!existMhaReplication(mhaTblV2.getId())) {
+            logger.info("task {} newMha:{} Replication not exist,offline Replicator & mha", taskId,taskTbl.getNewMha());
+            deleteReplicator(taskTbl.getNewMha());
+            mhaServiceV2.offlineMha(taskTbl.getNewMha());
+        }
+        taskTbl.setStatus(MigrationStatusEnum.CANCELED.getStatus());
+        taskTbl.setLog(appendLog(taskTbl.getLog(), "Task canceled",taskTbl.getOperator(), LocalDateTime.now()));
+        migrationTaskTblDao.update(taskTbl);
+        return true;
+    }
+    
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
@@ -159,7 +188,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
-        cacheMetaService.refreshMetaCache();
+        cacheMetaService.refreshMetaCache(); 
         
         StringBuilder tips = new StringBuilder();
         StringBuilder errorInfo = new StringBuilder();
@@ -451,7 +480,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     
     private boolean taskInProcessing(MigrationTaskTbl migrationTaskTbl) {
         return  (!migrationTaskTbl.getStatus().equals(MigrationStatusEnum.SUCCESS.getStatus())
-                && !migrationTaskTbl.getStatus().equals(MigrationStatusEnum.FAIL.getStatus()));
+                && !migrationTaskTbl.getStatus().equals(MigrationStatusEnum.FAIL.getStatus()))
+                && !migrationTaskTbl.getStatus().equals(MigrationStatusEnum.CANCELED.getStatus());
     }
     
     // contain all dbs in migration related mhaReplications
@@ -572,6 +602,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                     replicatorGroupId,mGroupId);
             
         }
+    }
+    
+    private String appendLog(String curLog,String operation, String operator,LocalDateTime time) {
+        return curLog + SEMICOLON + String.format(OPERATE_LOG, operation, operator, time);
     }
 
     private void initMhaReplicationsAndApplierGroups(MhaTblV2 newMhaTbl, List<MhaTblV2> otherMhaTblsInSrc, List<MhaTblV2> otherMhaTblsInDest) throws SQLException {
@@ -710,13 +744,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Override
     public void offlineOldDrcConfig(long taskId) throws Exception {
         DefaultEventMonitorHolder.getInstance().logEvent("offlineOldDrcConfig", String.valueOf(taskId));
-        deleteDrcConfig(taskId, false);
+        deleteDrcConfig(taskId, false, false);
     }
 
     @Override
     public void rollBackNewDrcConfig(long taskId) throws Exception {
         DefaultEventMonitorHolder.getInstance().logEvent("rollBackNewDrcConfig", String.valueOf(taskId));
-        deleteDrcConfig(taskId, true);
+        deleteDrcConfig(taskId, true, false);
     }
 
     @Override
@@ -745,21 +779,25 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             replicatorTblDao.update(replicatorTbls);
         }
     }
-
+    
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDrcConfig(long taskId, boolean rollBack) throws Exception {
+    public void deleteDrcConfig(long taskId, boolean rollBack,boolean cancel) throws Exception {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
         if (migrationTaskTbl == null) {
             throw ConsoleExceptionUtils.message("taskId: " + taskId + " not exist!");
         }
-
-        if (!migrationTaskTbl.getStatus().equals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus())) {
-            throw ConsoleExceptionUtils.message("task status is: " + migrationTaskTbl.getStatus() + ", not ready to continue");
+        
+        String currentStatus = migrationTaskTbl.getStatus();
+        if (cancel) {
+            rollBack = true;
+        } else {
+            if (!currentStatus.equals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus())) {
+                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to continue");
+            }
+            String status = rollBack ? MigrationStatusEnum.FAIL.getStatus() : MigrationStatusEnum.SUCCESS.getStatus();
+            migrationTaskTbl.setStatus(status);
+            migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG, rollBack ? "RollBack" : "Commit", migrationTaskTbl.getOperator(), LocalDateTime.now()));
         }
-
-        String status = rollBack ? MigrationStatusEnum.FAIL.getStatus() : MigrationStatusEnum.SUCCESS.getStatus();
-        migrationTaskTbl.setStatus(status);
-        migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG, rollBack ? "RollBack" : "Commit", migrationTaskTbl.getOperator(), LocalDateTime.now()));
         migrationTaskTblDao.update(migrationTaskTbl);
 
         String oldMhaName = migrationTaskTbl.getOldMha();
@@ -1178,10 +1216,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             Long mhaId = mhaMaterNode.getMhaId();
             mhaTblV2 = mhaTblV2Dao.queryByPk(mhaId);
             String newMhaNameInDrc = mhaTblV2.getMhaName();
-            if (mhaTblV2.getMonitorSwitch().equals(0)) {
+            if (mhaTblV2.getMonitorSwitch().equals(0) || mhaTblV2.getDeleted().equals(1)) {
                 mhaTblV2.setMonitorSwitch(1);
+                mhaTblV2.setDeleted(0);
                 mhaTblV2Dao.update(mhaTblV2);
-                logger.info("mha:{} monitorSwitch is 0,update to 1", mhaTblV2.getMhaName());
+                logger.info("mha:{} recover and monitor switch turn on", mhaTblV2.getMhaName());
             }
             if (!newMhaNameInDrc.equals(mhaInfo.getName())) {
                 logger.warn("drcMha:{},dbRequestMha:{},mhaName not match....", newMhaNameInDrc, mhaInfo.getName());

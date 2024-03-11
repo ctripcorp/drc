@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaReplicationServiceV2Impl;
@@ -76,6 +77,8 @@ public class DbMigrationServiceTest {
     private ResourceTblDao resourceTblDao;
     @Mock
     private ResourceService resourceService;
+    @Mock
+    private MhaServiceV2 mhaServiceV2;
 
     @Before
     public void setUp() throws Exception {
@@ -122,6 +125,49 @@ public class DbMigrationServiceTest {
 
         }
 
+    }
+    
+    @Test
+    public void testCancelMigrationTask() throws Exception {
+        try (MockedStatic<HttpUtils> mockedStatic = Mockito.mockStatic(HttpUtils.class)) {
+            mockedStatic.when(() -> {
+                HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(Map.class));
+            }).thenReturn(ApiResult.getSuccessInstance(null));
+            initMock();
+            Mockito.when(mhaServiceV2.offlineMha(Mockito.anyString())).thenReturn(true);
+            
+            // case1
+            MigrationTaskTbl migrationTaskTbl = getMigrationTaskTbl();
+            migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
+            Mockito.when(migrationTaskTblDao.queryById(Mockito.anyLong())).thenReturn(migrationTaskTbl);
+            try {
+                dbMigrateService.cancelTask(1L);
+            } catch (ConsoleException e) {
+                Assert.assertTrue(e.getMessage().contains("Not support cancel,task status is"));
+            }
+            // case2
+            migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
+            dbMigrateService.cancelTask(1L);
+            Mockito.verify(dbReplicationTblDao, Mockito.times(0)).update(Mockito.anyList());
+            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(0)).update(Mockito.anyList());
+            Mockito.verify(messengerGroupTblDao, Mockito.times(0)).update(Mockito.any(MessengerGroupTbl.class));
+            Mockito.verify(messengerTblDao, Mockito.times(0)).update(Mockito.anyList());
+            Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));
+            Mockito.verify(applierGroupTblV2Dao, Mockito.never()).update(Mockito.any(ApplierGroupTblV2.class));
+            Mockito.verify(applierTblV2Dao, Mockito.never()).update(Mockito.anyList());
+            // case3
+            migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+            dbMigrateService.cancelTask(1L);
+            Mockito.verify(dbReplicationTblDao, Mockito.times(2)).update(Mockito.anyList());
+            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(2)).update(Mockito.anyList());
+            Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
+            Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
+            Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));
+            Mockito.verify(applierGroupTblV2Dao, Mockito.never()).update(Mockito.any(ApplierGroupTblV2.class));
+            Mockito.verify(applierTblV2Dao, Mockito.never()).update(Mockito.anyList());
+            // case4
+            
+        }
     }
 
     private void initMock() throws Exception {
@@ -196,6 +242,7 @@ public class DbMigrationServiceTest {
 
     private MigrationTaskTbl getMigrationTaskTbl() {
         MigrationTaskTbl tbl = new MigrationTaskTbl();
+        tbl.setId(1L);
         tbl.setOperator("operator");
         tbl.setNewMha("newMha");
         tbl.setOldMha("oldMha");
