@@ -322,7 +322,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         return dbReplicationTbls.stream().filter(e -> e.getSrcLogicTableName().equals(param.getTableFilter())).collect(Collectors.toList());
     }
 
-    private void autoBuildDrc(List<DrcAutoBuildParam> params) {
+    public void autoBuildDrc(List<DrcAutoBuildParam> params) {
         logger.info("autoBuildDrc params: {}", params);
         try {
             for (DrcAutoBuildParam param : params) {
@@ -572,7 +572,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         return sb.toString();
     }
 
-    private void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
+    public void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
         // 1.(if needed) build mha, mha replication
         DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(param.getSrcMhaName(), param.getDstMhaName(), param.getSrcDcName(), param.getDstDcName(), param.getBuName(), param.getTag(), param.getTag());
         drcBuildService.buildMha(mhaBuildParam);
@@ -582,13 +582,13 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMhaTbl = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
 
-        srcMhaTbl.setMonitorSwitch(BooleanEnum.TRUE.getCode());
-        mhaTblDao.update(srcMhaTbl);
-
         // check result
         if (srcMhaTbl == null || dstMhaTbl == null) {
             throw ConsoleExceptionUtils.message("init mha fail");
         }
+        srcMhaTbl.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+        mhaTblDao.update(srcMhaTbl);
+
         MhaReplicationTbl srcToDstMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), dstMhaTbl.getId(), BooleanEnum.FALSE.getCode());
         MhaReplicationTbl dstToSrcMhaReplication = mhaReplicationTblDao.queryByMhaId(dstMhaTbl.getId(), srcMhaTbl.getId(), BooleanEnum.FALSE.getCode());
         if (srcToDstMhaReplication == null || dstToSrcMhaReplication == null) {
