@@ -64,13 +64,13 @@
         </Row>
         <Table stripe border :columns="columns" :data="tableData">
           <template slot-scope="{ row, index }" slot="action">
-            <Dropdown placement="bottom-start">
+            <Dropdown :transfer="true" placement="bottom-start">
               <Button type="default" icon="ios-hammer">
                 操作
                 <Icon type="ios-arrow-down"></Icon>
               </Button>
               <template #list>
-                <DropdownMenu>
+                <DropdownMenu >
                   <DropdownItem>
                     <Button type="primary" size="small" @click="getDetail(row, index)" style="margin-right: 5px">
                       详情
