@@ -1,14 +1,12 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
-import com.google.common.cache.LoadingCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -17,10 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**

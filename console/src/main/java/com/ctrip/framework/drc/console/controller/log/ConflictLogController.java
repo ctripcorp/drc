@@ -331,7 +331,7 @@ public class ConflictLogController {
             success = "deleteBlackListForTouchJob with db : {#db} and table : {#table}")
     public ApiResult<Boolean> deleteBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
         try {
-            conflictLogService.deleteBlacklist(db + "\\." + table);
+            conflictLogService.deleteBlacklistForTouchJob(db + "\\." + table);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("deleteBlackListForTouchJob error", e);

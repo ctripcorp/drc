@@ -25,6 +25,16 @@ public class DrcAutoBuildParam {
 
     private ViewOnlyInfo viewOnlyInfo;
 
+    private boolean flushExistingData = true;
+
+    public boolean isFlushExistingData() {
+        return flushExistingData;
+    }
+
+    public void setFlushExistingData(boolean flushExistingData) {
+        this.flushExistingData = flushExistingData;
+    }
+
     public String getGtidInit() {
         return gtidInit;
     }

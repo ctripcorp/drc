@@ -114,7 +114,7 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         return queryList(sqlBuilder);
     }
 
-    public void batchInsertWithReturnId(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
+    public List<DbReplicationTbl> batchInsertWithReturnId(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
         insertWithKeyHolder(keyHolder, dbReplicationTbls);
         List<Number> idList = keyHolder.getIdList();
@@ -122,6 +122,7 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         for (int i = 0; i < size; i++) {
             dbReplicationTbls.get(i).setId((Long) idList.get(i));
         }
+        return dbReplicationTbls;
     }
 
     public List<DbReplicationTbl> queryByDstLogicTableName(String dstLogicTableName, int replicationType) throws SQLException {

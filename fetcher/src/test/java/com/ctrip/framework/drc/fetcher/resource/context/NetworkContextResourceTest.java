@@ -67,11 +67,13 @@ public class NetworkContextResourceTest {
         networkContextResource1.applyMode = ApplyMode.transaction_table.getType();
         List<GtidReader> executedGtidReaders = networkContextResource1.getExecutedGtidReaders(null);
         Assert.assertTrue(executedGtidReaders.stream().anyMatch(e -> e instanceof TransactionTableGtidReader));
+        Assert.assertFalse(executedGtidReaders.stream().anyMatch(e -> e instanceof DbTransactionTableGtidReader));
 
         networkContextResource1.applyMode = ApplyMode.db_transaction_table.getType();
         networkContextResource1.includedDbs = "somedb";
         executedGtidReaders = networkContextResource1.getExecutedGtidReaders(null);
         Assert.assertTrue(executedGtidReaders.stream().anyMatch(e -> e instanceof DbTransactionTableGtidReader));
+        Assert.assertTrue(executedGtidReaders.stream().anyMatch(e -> e instanceof TransactionTableGtidReader));
     }
 
     @Test(expected = Exception.class)
