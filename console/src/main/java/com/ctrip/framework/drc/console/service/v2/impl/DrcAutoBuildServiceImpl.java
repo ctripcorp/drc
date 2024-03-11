@@ -582,6 +582,9 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMhaTbl = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
 
+        srcMhaTbl.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+        mhaTblDao.update(srcMhaTbl);
+
         // check result
         if (srcMhaTbl == null || dstMhaTbl == null) {
             throw ConsoleExceptionUtils.message("init mha fail");
