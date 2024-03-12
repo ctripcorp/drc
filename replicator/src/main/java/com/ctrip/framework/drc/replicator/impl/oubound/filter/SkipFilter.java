@@ -82,7 +82,7 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
             value.setSkipEvent(true);
             long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
             if (nextTransactionOffset > 0) {
-                value.skipPosition(nextTransactionOffset);
+                value.skipPositionAfterReadEvent(nextTransactionOffset);
                 inExcludeGroup = false;
             }
             return;

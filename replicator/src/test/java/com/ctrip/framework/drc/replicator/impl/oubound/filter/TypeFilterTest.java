@@ -20,21 +20,21 @@ public class TypeFilterTest {
         Assert.assertFalse(typeFilter.doFilter(context));
 
         typeFilter = new TypeFilter(ConsumeType.Applier);
-        context.reset(0);
+        context.reset(0,0);
         context.setEventType(LogEventType.gtid_log_event);
         Assert.assertFalse(typeFilter.doFilter(context));
 
         context.setEventType(LogEventType.rows_query_log_event);
-        context.reset(0);
+        context.reset(0,0);
         Assert.assertTrue(typeFilter.doFilter(context));
 
         typeFilter = new TypeFilter(ConsumeType.Messenger);
-        context.reset(0);
+        context.reset(0,0);
         context.setEventType(LogEventType.gtid_log_event);
         Assert.assertFalse(typeFilter.doFilter(context));
 
         context.setEventType(LogEventType.rows_query_log_event);
-        context.reset(0);
+        context.reset(0,0);
         Assert.assertTrue(typeFilter.doFilter(context));
     }
 }
