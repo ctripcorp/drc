@@ -37,7 +37,7 @@ public class SchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext
             if (!schemas.contains(schema.toLowerCase())) {
                 long nextTransactionOffset = filterLogEvent.getNextTransactionOffset();
                 if (nextTransactionOffset > 0) {
-                    value.skipPosition(nextTransactionOffset);
+                    value.skipPositionAfterReadEvent(nextTransactionOffset);
                     GTID_LOGGER.debug("[S][{}] filter schema, {}", registerKey, schema);
                 }
             }

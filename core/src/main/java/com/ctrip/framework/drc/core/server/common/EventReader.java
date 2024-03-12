@@ -82,11 +82,11 @@ public class EventReader {
         return doRead(fileChannel, eventHeaderLengthVersionGt1);
     }
 
-    public static void readHeader(FileChannel fileChannel, ByteBuffer headBuffer, ByteBuf headByteBuf) {
+    public static boolean readHeader(FileChannel fileChannel, ByteBuffer headBuffer, ByteBuf headByteBuf) {
         try {
             headBuffer.clear();
             headByteBuf.readerIndex(0);
-            readFixSize(fileChannel, headBuffer, eventHeaderLengthVersionGt1);
+            return readFixSize(fileChannel, headBuffer, eventHeaderLengthVersionGt1);
         } catch (Throwable t) {
             logger.error("doRead error and readSize for header {}", eventHeaderLengthVersionGt1, t);
             throw t;

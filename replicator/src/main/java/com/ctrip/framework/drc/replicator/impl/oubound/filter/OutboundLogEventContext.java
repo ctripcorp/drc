@@ -26,7 +26,15 @@ public class OutboundLogEventContext {
 
     private FileChannel fileChannel;
 
+    /**
+     * cached initial fileChannel position
+     */
     private long fileChannelPos;
+
+    /**
+     * cached initial fileChannel size
+     */
+    private long fileChannelSize;
 
     private LogEventType eventType;
 
@@ -59,9 +67,10 @@ public class OutboundLogEventContext {
     public OutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos) {
+    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, long fileChannelSize) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
+        this.fileChannelSize = fileChannelSize;
     }
 
     public FileChannel getFileChannel() {
@@ -74,6 +83,10 @@ public class OutboundLogEventContext {
 
     public void setFileChannelPos(long fileChannelPos) {
         this.fileChannelPos = fileChannelPos;
+    }
+
+    public long getFileChannelSize() {
+        return fileChannelSize;
     }
 
     public LogEventType getEventType() {
@@ -221,9 +234,10 @@ public class OutboundLogEventContext {
         this.everSeeGtid = everSeeGtid;
     }
 
-    public void reset(long fileChannelPos) {
+    public void reset(long fileChannelPos, long fileChannelSize) {
         this.cause = null;
         this.fileChannelPos = fileChannelPos;
+        this.fileChannelSize = fileChannelSize;
         this.skipEvent = false;
         this.rewrite = false;
         this.logEvent = null;
@@ -296,6 +310,21 @@ public class OutboundLogEventContext {
     public void skipPosition(Long skipSize) {
         try {
             fileChannel.position(fileChannel.position() + skipSize);
+        } catch (IOException e) {
+            logger.error("skip position error:", e);
+            setCause(e);
+            setSkipEvent(true);
+        }
+    }
+
+    /**
+     * To save extra fileChannel.position() call
+     * @see OutboundLogEventContext#skipPosition(Long)
+     */
+    public void skipPositionAfterReadEvent(Long skipSize) {
+        try {
+            // After read event body, fileChannelPos + eventSize == fileChannel.position()
+            fileChannel.position(fileChannelPos + eventSize + skipSize);
         } catch (IOException e) {
             logger.error("skip position error:", e);
             setCause(e);
