@@ -697,7 +697,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException {
         MhaTblV2 existMha = mhaTblDao.queryByMhaName(mhaName);
-        if (existMha != null) {
+        if (existMha != null && existMha.getDeleted().equals(0)) {
             throw ConsoleExceptionUtils.message("mhaName already exist!");
         }
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
@@ -708,9 +708,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
         MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
-        Long mhaId = mhaTblDao.insertWithReturnId(mhaTblV2);
+        Long mhaId = insertOrRecoverMha(mhaTblV2, existMha);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
-
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
             machinesToBeInsert.add(extractFrom(memberInfo, mhaId));
@@ -721,7 +720,17 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setId(mhaId);
         return mhaTblV2;
     }
-
+    
+    private Long insertOrRecoverMha(MhaTblV2 mhaTblV2, MhaTblV2 existMha) throws SQLException {
+        if (existMha != null) {
+            mhaTblV2.setId(existMha.getId());
+            mhaTblDao.update(mhaTblV2);
+            return existMha.getId();
+        } else {
+            return mhaTblDao.insertWithReturnId(mhaTblV2);
+        }
+    }
+     
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
