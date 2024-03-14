@@ -188,7 +188,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
-        cacheMetaService.refreshMetaCache(); 
         
         StringBuilder tips = new StringBuilder();
         StringBuilder errorInfo = new StringBuilder();
@@ -287,6 +286,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<DbTbl> migrateDbTbls = dbTblDao.queryByDbNames(migrateDbs);
 
         // check mha config newMhaConfig should equal newMhaTbl
+        cacheMetaService.refreshMetaCache();
         Map<String, Object> configInOldMha = mysqlServiceV2.preCheckMySqlConfig(oldMha);
         Map<String, Object> configInNewMha = mysqlServiceV2.preCheckMySqlConfig(newMha);
 
