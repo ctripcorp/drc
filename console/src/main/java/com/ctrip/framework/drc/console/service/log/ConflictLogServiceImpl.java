@@ -545,12 +545,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception {
+        logger.info("addDbBlacklist dbFilter: {}, type: {}, expirationTime: {}", dbFilter, type, expirationTime);
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
-        if (!CollectionUtils.isEmpty(tbls)) {
-            logger.info("db blacklist already exist");
-            return;
-        }
-        ConflictDbBlackListTbl tbl = new ConflictDbBlackListTbl();
+        ConflictDbBlackListTbl tbl;
+        tbl =  CollectionUtils.isEmpty(tbls) ? new ConflictDbBlackListTbl() : tbls.get(0);
         if (expirationTime == null) {
             int blacklistExpirationHour = domainConfig.getBlacklistExpirationHour(type);
             tbl.setExpirationTime(new Timestamp(System.currentTimeMillis() + (long) blacklistExpirationHour * 60 * 60 * 1000));
@@ -560,10 +558,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             }
             tbl.setExpirationTime(new Timestamp(expirationTime));
         }
-        tbl.setDbFilter(dbFilter);
-        tbl.setType(type.getCode());
-        conflictDbBlackListTblDao.insert(tbl);
-
+        
+        if (tbl.getId() == null || tbl.getId() == 0L) {
+            tbl.setDbFilter(dbFilter);
+            tbl.setType(type.getCode());
+            conflictDbBlackListTblDao.insert(tbl);
+        } else {
+            conflictDbBlackListTblDao.update(tbl);
+        }
+        
         if (type == CflBlacklistType.DBA_JOB) {
             String[] dbFilters = dbFilter.split("\\\\.");
             List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbName(dbFilters[0], dbFilters[1], ExistingDataStatusEnum.NOT_PROCESSED.getCode());
