@@ -104,7 +104,7 @@ public class DbMigrationController {
         }
     }
     
-    @PostMapping("beforeDalSwtich/cancel")
+    @PostMapping("beforeDrcStart/cancel")
     @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "DBA",
             success = "cancelDbMigrationTask with taskId:{#taskId}")
     public ApiResult cancelDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
