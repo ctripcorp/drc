@@ -39,7 +39,13 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     public boolean doFilter(OutboundLogEventContext value) {
         FileChannel fileChannel = value.getFileChannel();
 
-        EventReader.readHeader(fileChannel, headBuffer, headByteBuf);
+        // if read header fail, restore position
+        boolean readHeaderComplete = EventReader.readHeader(fileChannel, headBuffer, headByteBuf);
+        if (!readHeaderComplete) {
+            this.restore(value, fileChannel);
+            return doNext(value, value.isSkipEvent());
+        }
+
         value.setCompositeByteBuf(compositeByteBuf);
 
         LogEventType eventType = LogEventUtils.parseNextLogEventType(headByteBuf);
@@ -48,26 +54,29 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         long eventSize = LogEventUtils.parseNextLogEventSize(headByteBuf);
         value.setEventSize(eventSize);
 
+        // if event not complete yet, restore position
+        if (!checkEventSize(value)) {
+            this.restore(value, fileChannel);
+        }
+        return doNext(value, value.isSkipEvent());
+    }
+
+    private void restore(OutboundLogEventContext value, FileChannel fileChannel) {
         try {
-            //TODO: can remove by optimizing
-            if (!checkEventSize(fileChannel, eventSize)) {
-                value.setCause(new SizeNotEnoughException("check event size error"));
-                value.setSkipEvent(true);
-            }
+            fileChannel.position(value.getFileChannelPos());
+            value.setCause(new SizeNotEnoughException("check event size error"));
+            value.setSkipEvent(true);
         } catch (IOException e) {
             logger.error("check event size error:", e);
             value.setCause(e);
             value.setSkipEvent(true);
         }
-
-        return doNext(value, value.isSkipEvent());
     }
 
-    private boolean checkEventSize(FileChannel fileChannel, long eventSize) throws IOException {
-        if (fileChannel.position() + eventSize - eventHeaderLengthVersionGt1 > fileChannel.size()) {
-            fileChannel.position(fileChannel.position() - eventHeaderLengthVersionGt1);
+    private boolean checkEventSize(OutboundLogEventContext value) {
+        if (value.getFileChannelPos() + value.getEventSize() > value.getFileChannelSize()) {
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.size", registerKey);
-            logger.warn("check event size false, size: {}", eventSize);
+            logger.warn("check event size false, size: {}", value.getEventSize());
             return false;
         }
         return true;

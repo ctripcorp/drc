@@ -31,7 +31,7 @@ import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.Gate;
-import com.ctrip.xpipe.utils.OffsetNotifier;
+import com.ctrip.framework.drc.core.utils.OffsetNotifier;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
@@ -184,7 +184,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private OffsetNotifier offsetNotifier = new OffsetNotifier(LOG_EVENT_START);
 
-        private long waitEndPosition;
+        private volatile long waitEndPosition;
 
         private volatile boolean channelClosed = false;
 
@@ -375,7 +375,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.serve.binlog", applierName);
                 // 3、open file，send every file
                 while (loop()) {
-                    if (sendBinlog(file, excludedSet) == 1) {
+                    if (sendBinlog(file) == 1) {
                         if (channelClosed) {
                             logger.info("[Inactive] for {}", applierName);
                             return;
@@ -420,18 +420,21 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             logger.info("[Remove] observer of DumpTask {}:{} from fileManager", applierName, ip);
         }
 
-        private boolean sendEvents(FileChannel fileChannel, GtidSet excludedSet, long endPos) throws Exception {
+        private boolean sendEvents(FileChannel fileChannel, long position, long endPos) throws Exception {
             outboundContext.setFileChannel(fileChannel);
-            while (endPos > fileChannel.position() && !channelClosed) {  //read event in while
+            while (endPos > position && !channelClosed) {  //read event in while
                 gate.tryPass();
                 if (channelClosed) {
                     logger.info("channelClosed and return sendEvents");
                     return false;
                 }
 
-                outboundContext.reset(fileChannel.position());
+                outboundContext.reset(position, endPos);
 
                 filterChain.doFilter(outboundContext);
+
+                position = fileChannel.position();
+                endPos = fileChannel.size();
 
                 Exception sendException = outboundContext.getCause();
                 if (sendException != null) {
@@ -441,8 +444,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                         throw sendException;
                     }
                 }
-
-                endPos = fileChannel.size();
             }
 
             return true;
@@ -456,13 +457,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
          * @return
          * @throws IOException
          */
-        private long getBinlogEndPos(FileChannel fileChannel, File file) throws IOException {
+        private long getBinlogEndPos(FileChannel fileChannel, File file, long logPos) throws IOException {
+            String fileName = file.getName();
+            long endPos = fileChannel.size();
             do {
-                long logPos = fileChannel.position();
-                long endPos = fileChannel.size();
-                String fileName = file.getName();
-                File currentFile = fileManager.getCurrentLogFile();
-                if (fileName != null && currentFile != null && !fileName.equalsIgnoreCase(currentFile.getName())) {  //file rolled
+                String currentFileName = fileManager.getCurrentLogFileName();
+                if (!fileName.equals(currentFileName)) {  //file rolled
+                    endPos = fileChannel.size();
                     if (logPos == endPos) {  //read to the tail
                         logger.info("[Reaching] {} end position and write empty msg to close fileChannel", fileName);
                         channel.writeAndFlush(new BinlogFileRegion(fileChannel, endPos, 0, applierName, fileName));
@@ -476,7 +477,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     return endPos;
                 }
 
-                if (!waitNewEvents(endPos)) {  //== to wait
+                endPos = waitNewEvents(logPos); //== to wait
+                if (endPos <= 0) {
                     return 1;
                 }
             } while (loop());
@@ -484,25 +486,25 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return 1;
         }
 
-        private boolean waitNewEvents(long endPos) {
+        private long waitNewEvents(long endPos) {
             waitEndPosition = endPos + 1;
-            boolean acquired = false;
+            long acquiredOffset = -1;
             do {
                 try {
-                    acquired = offsetNotifier.await(waitEndPosition, 500);
-                    if (acquired) {
+                    acquiredOffset = offsetNotifier.await(waitEndPosition, 500);
+                    if (acquiredOffset > 0) {
                         logger.debug("offsetNotifier acquired for {}", waitEndPosition);
-                        return acquired;
+                        return acquiredOffset;
                     }
                 } catch (InterruptedException e) {
                     logger.error("[Read] error", e);
                     Thread.currentThread().interrupt();
                 }
             } while (loop());
-            return acquired;
+            return acquiredOffset;
         }
 
-        private long sendBinlog(File file, GtidSet excludedSet) throws Exception {
+        private long sendBinlog(File file) throws Exception {
             RandomAccessFile raf = new RandomAccessFile(file, "r");
             FileChannel fileChannel = raf.getChannel();
             if (fileChannel.position() == 0) {
@@ -510,11 +512,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
 
             while (loop()) {
-                long endPosition = getBinlogEndPos(fileChannel, file);
+                long position = fileChannel.position();
+                long endPosition = getBinlogEndPos(fileChannel, file, position);
                 if (endPosition <= 1) {
                     return endPosition;
                 }
-                if (!sendEvents(fileChannel, excludedSet, endPosition)) {
+                if (!sendEvents(fileChannel, position, endPosition)) {
                     return 1;
                 }
             }
@@ -531,10 +534,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (logger.isDebugEnabled()) {
                 logger.debug("[OffsetNotifier] update position {}, waitEndPosition {}", position, waitEndPosition);
             }
-            if ((Long) args < waitEndPosition) {  //file rolled
-                offsetNotifier.offsetIncreased(waitEndPosition + (Long) args);
+            if (position < waitEndPosition) {  //file rolled
+                offsetNotifier.offsetIncreased(waitEndPosition + position);
             } else {
-                offsetNotifier.offsetIncreased((Long) args);
+                offsetNotifier.offsetIncreased(position);
             }
         }
 

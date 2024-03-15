@@ -53,7 +53,7 @@ public class DbaApiServiceTest {
     public void releaseMocks() throws Exception {
         closeable.close();
     }
-
+    
     @Test
     public void testGetDatabaseClusterInfoList() {
         String clusterName = "xxxdb_dalcluster";

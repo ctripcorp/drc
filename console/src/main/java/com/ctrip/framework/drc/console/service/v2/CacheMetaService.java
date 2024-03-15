@@ -31,4 +31,6 @@ public interface CacheMetaService {
     List<Endpoint> getMasterEndpointsInAllAccounts(String mha);
 
     Set<String> getSrcMhasShouldMonitor(String dstMha,String srcRegion);
+    
+    boolean refreshMetaCache();
 }

@@ -147,7 +147,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     @Override
     public void approveForm(long applicationFormId) throws Exception {
         ApplicationApprovalTbl approvalTbl = applicationApprovalTblDao.queryByApplicationFormId(applicationFormId);
-        if (approvalTbl.getApprovalResult() == ApprovalResultEnum.UNDER_APPROVAL.getCode()) {
+        if (approvalTbl.getApprovalResult() != ApprovalResultEnum.NOT_APPROVED.getCode()) {
             return;
         }
         approvalTbl.setApprovalResult(ApprovalResultEnum.UNDER_APPROVAL.getCode());

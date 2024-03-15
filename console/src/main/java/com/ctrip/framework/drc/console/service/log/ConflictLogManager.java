@@ -262,9 +262,6 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             }
         });
     }
-
-
-    
     
     private void checkConflictCountAndAlarm(List<HickWallConflictCount> cflRowCounts,ConflictCountType type) throws Exception{
         for (HickWallConflictCount cflTableRowCount : cflRowCounts) {
@@ -320,7 +317,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
-        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && everUserTraffic && type.isRollback()) {
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && (everUserTraffic || type.isRollback())) {
             email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
             if (StringUtils.isNotBlank(dbTbl.getEmailGroup())) {

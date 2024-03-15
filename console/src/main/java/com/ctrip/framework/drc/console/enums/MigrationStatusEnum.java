@@ -8,6 +8,7 @@ public enum MigrationStatusEnum {
     READY_TO_SWITCH_DAL("ReadyToSwitchDal"),
     SUCCESS("Success"),
     FAIL("Fail"),
+    CANCELED("Canceled"),
     ;
     private String status;
     
