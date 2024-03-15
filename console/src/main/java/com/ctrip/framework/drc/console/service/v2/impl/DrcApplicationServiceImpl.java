@@ -247,7 +247,8 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
 
         List<String> tableNames = newAddTables.stream().map(ReplicationTableTbl::getTableName).collect(Collectors.toList());
         email.addContentKeyValue("新增表", Joiner.on(",").join(tableNames) + "共" + tableNames.size() + "张表");
-        email.addContentKeyValue("其他", applicationForm.getFilterType());
+        String filterType = applicationForm.getFilterType().equalsIgnoreCase("ALL") ? "无" : applicationForm.getFilterType();
+        email.addContentKeyValue("过滤方式", filterType);
 
         EmailResponse emailResponse = emailService.sendEmail(email);
         if (emailResponse.isSuccess()) {
