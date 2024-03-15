@@ -42,8 +42,7 @@ public class PackagePaths implements IPackageResolver {
                 return format("%s-x86%s.tar.gz", downloadPath, bs == B32 ? "" : "_64");
             case Linux:
                 String gzOrXz = version.archiveType() == TXZ ? "xz" : "gz";
-                if (System.getProperty("os.arch").equals("aarch64")) {
-                    // arm64
+                if (Version.isArm64()) {
                     return format("%s-%s.tar.%s", downloadPath, "aarch64", gzOrXz);
                 }
                 return format("%s-%s.tar.%s", downloadPath, bs == B32 ? "i686" : "x86_64", gzOrXz);
