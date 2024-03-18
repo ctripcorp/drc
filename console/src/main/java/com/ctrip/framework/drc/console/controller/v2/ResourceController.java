@@ -180,9 +180,22 @@ public class ResourceController {
         }
     }
 
-    @PostMapping("migrate/resource")
-    public ApiResult<Boolean> migrateResource(@RequestBody ResourceMigrateParam param) {
+    @PostMapping("migrate/resource/replicator")
+    public ApiResult<Boolean> batchMigrateReplicator(@RequestBody ResourceMigrateParam param) {
         try {
+            param.setType(ModuleEnum.REPLICATOR.getCode());
+            resourceService.migrateResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("migrateResource fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/resource/applier")
+    public ApiResult<Boolean> batchMigrateApplier(@RequestBody ResourceMigrateParam param) {
+        try {
+            param.setType(ModuleEnum.APPLIER.getCode());
             resourceService.migrateResource(param);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {

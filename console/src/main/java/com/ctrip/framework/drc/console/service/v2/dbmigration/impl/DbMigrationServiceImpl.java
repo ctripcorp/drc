@@ -186,6 +186,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         // check case1:migrate dbs effect multi mha-Replication in same region is not allowed;
         Map<String, List<MhaTblV2>> mhaTblsByRegion = groupByRegion(Lists.newArrayList(otherMhaTbls));
+
+        //ql_deng TODO 2024/3/4:取消限制, 允许批量搬迁多条链路
         mhaTblsByRegion.forEach((region, mhaTbls) -> {
             if (mhaTbls.size() > 1) {
                 String mhasInSameRegion = mhaTbls.stream().map(MhaTblV2::getMhaName).collect(Collectors.joining(","));

@@ -16,9 +16,9 @@ import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
-import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
@@ -26,8 +26,14 @@ import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +42,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -85,6 +92,10 @@ public class ResourceServiceImpl implements ResourceService {
     private DbDrcBuildService dbDrcBuildService;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DrcBuildServiceV2 drcBuildServiceV2;
+
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -553,6 +564,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int migrateResource(String newIp, String oldIp, int type) throws Exception {
         if (type == ModuleEnum.REPLICATOR.getCode()) {
             return migrateReplicator(newIp, oldIp);
@@ -563,6 +575,25 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public int migrateSlaveReplicator(String newIp, String oldIp) throws Exception {
+        ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
+        ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
+        if (newResource == null || oldResource == null) {
+            throw ConsoleExceptionUtils.message("newIp or oldIp not exist");
+        }
+        if (newResource.getActive().equals(BooleanEnum.FALSE.getCode())) {
+            throw ConsoleExceptionUtils.message("newIp is active");
+        }
+        if (!newResource.getType().equals(oldResource.getType()) || !newResource.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
+            throw ConsoleExceptionUtils.message("newIp is not replicator");
+        }
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+        List<ReplicatorTbl> slaveReplicatorTbls = replicatorTbls.stream().filter(e -> e.getMaster().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        return migrateReplicator(newResource, slaveReplicatorTbls);
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void migrateResource(ResourceMigrateParam param) throws Exception {
         if (CollectionUtils.isEmpty(param.getResourceMigrateDtoList())) {
             return;
@@ -571,6 +602,7 @@ public class ResourceServiceImpl implements ResourceService {
             migrateResource(dto.getNewIp(), dto.getOldIp(), param.getType());
         }
     }
+
 
     private int migrateReplicator(String newIp, String oldIp) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
@@ -585,13 +617,48 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp is not replicator");
         }
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+        return migrateReplicator(newResource, replicatorTbls);
+    }
+
+    private int migrateReplicator(ResourceTbl newResource, List<ReplicatorTbl> replicatorTbls) throws SQLException {
         if (CollectionUtils.isEmpty(replicatorTbls)) {
             return 0;
         }
+        List<ListenableFuture<Pair<Long, String>>> futures = new ArrayList<>();
+        for (ReplicatorTbl replicatorTbl : replicatorTbls) {
+            ListenableFuture<Pair<Long, String>> future = executorService.submit(() -> getInitGtid(replicatorTbl));
+            futures.add(future);
+        }
 
-        replicatorTbls.forEach(e -> e.setResourceId(newResource.getId()));
+        Map<Long, String> gtidInitMap = new HashMap<>();
+        for (ListenableFuture<Pair<Long, String>> future : futures) {
+            try {
+                Pair<Long, String> result = future.get(5, TimeUnit.SECONDS);
+                gtidInitMap.put(result.getLeft(), result.getRight());
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message("migrateReplicator fail");
+            }
+
+        }
+
+        for (ReplicatorTbl replicatorTbl : replicatorTbls) {
+            replicatorTbl.setResourceId(newResource.getId());
+            String gtidInit = gtidInitMap.get(replicatorTbl.getId());
+            if (StringUtils.isBlank(gtidInit)) {
+                throw ConsoleExceptionUtils.message("query gtidInit fail, replicatorId: " + replicatorTbl.getId());
+            }
+            replicatorTbl.setGtidInit(gtidInit);
+        }
         replicatorTblDao.update(replicatorTbls);
         return replicatorTbls.size();
+    }
+
+
+    private Pair<Long, String> getInitGtid(ReplicatorTbl replicatorTbl) throws SQLException {
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryById(replicatorTbl.getRelicatorGroupId());
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(replicatorGroupTbl.getMhaId());
+        String gtidInit = drcBuildServiceV2.getNativeGtid(mhaTblV2.getMhaName());
+        return Pair.of(replicatorTbl.getId(), gtidInit);
     }
 
     private int migrateApplier(String newIp, String oldIp) throws Exception {
@@ -604,7 +671,7 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp is active");
         }
         if (!newResource.getType().equals(oldResource.getType()) || !newResource.getType().equals(ModuleEnum.APPLIER.getCode())) {
-            throw ConsoleExceptionUtils.message("newIp is not replicator");
+            throw ConsoleExceptionUtils.message("newIp is not applier");
         }
 
         List<ApplierTblV2> applierTblV2s = applierTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
@@ -645,30 +712,6 @@ public class ResourceServiceImpl implements ResourceService {
         if (secondResource != null) {
             resultViews.add(secondResource);
         }
-    }
-
-    private List<ResourceView> getResourceViewsForDb(List<Long> dcIds, String region, int type, String tag) throws SQLException {
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
-        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
-
-        Map<Long, Long> replicatorMap = new HashMap<>();
-        Map<Long, Long> applierMap;
-        Map<Long, Long> messengerMap;
-        if (type == ModuleEnum.APPLIER.getCode()) {
-            List<ApplierTblV3> applierTbls = dbApplierTblDao.queryByResourceIds(resourceIds);
-            List<MessengerTblV3> messengerTbls = dbMessengerTblDao.queryByResourceIds(resourceIds);
-            applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getResourceId, Collectors.counting()));
-            messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTblV3::getResourceId, Collectors.counting()));
-        } else {
-            throw new ConsoleException("not supported type: " + type);
-        }
-
-        List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap, messengerMap);
-        if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
-            return getResourceViews(dcIds, region, type, ResourceTagEnum.COMMON.getName());
-        }
-        Collections.sort(resourceViews);
-        return resourceViews;
     }
 
     private List<ResourceView> getResourceViews(List<Long> dcIds, String region, int type, String tag) throws SQLException {
