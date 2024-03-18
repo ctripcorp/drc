@@ -159,6 +159,18 @@ public class MetaControllerV2 {
         }
     }
 
+    @PostMapping("region")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createRegion(@RequestParam String regionName) {
+        try {
+            metaInfoServiceV2.createRegion(regionName);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("createRegion fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("dcs/all")
     @SuppressWarnings("unchecked")
     public ApiResult<List<DcDo>> getAllDcs() {

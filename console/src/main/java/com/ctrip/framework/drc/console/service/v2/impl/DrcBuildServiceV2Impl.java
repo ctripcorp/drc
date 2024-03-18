@@ -1451,9 +1451,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return applierGroupId;
     }
 
-    private void configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
+    @Override
+    public Long configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTblV2.getId());
         configureReplicators(mhaTblV2.getMhaName(), replicatorGroupId, replicatorInitGtid, replicatorIps, resourceTbls);
+        return replicatorGroupId;
     }
 
     private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {

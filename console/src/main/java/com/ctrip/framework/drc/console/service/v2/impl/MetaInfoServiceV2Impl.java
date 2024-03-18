@@ -107,6 +107,8 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
 
 
     @Override
@@ -163,6 +165,37 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
         return drc;
+    }
+
+    @Override
+    public Drc getDrcMhaConfig(String mhaName) throws Exception {
+        Drc drc = new Drc();
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message("mha not exist");
+        }
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mhaTblV2.getId()));
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            if (mhaReplicationTbl.getSrcMhaId().equals(mhaTblV2.getId())) {
+                MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryById(mhaReplicationTbl.getDstMhaId());
+                this.appendReplicationConfig(drc, mhaTblV2, dstMhaTbl);
+            } else {
+                MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryById(mhaReplicationTbl.getSrcMhaId());
+                this.appendReplicationConfig(drc, srcMhaTbl, mhaTblV2);
+            }
+        }
+
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+        if (messengerGroupTbl != null) {
+            this.appendMessengerConfig(drc, mhaTblV2);
+        }
+
+        return drc;
+    }
+
+    @Override
+    public void createRegion(String regionName) throws SQLException {
+        regionTblDao.upsert(regionName);
     }
 
     private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {

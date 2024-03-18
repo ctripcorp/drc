@@ -35,4 +35,8 @@ public interface MetaInfoServiceV2 {
 
     Drc getDrcMessengerConfig(String mhaName);
 
+    Drc getDrcMhaConfig(String mhaName) throws Exception;
+
+    void createRegion(String regionName) throws SQLException;
+
 }

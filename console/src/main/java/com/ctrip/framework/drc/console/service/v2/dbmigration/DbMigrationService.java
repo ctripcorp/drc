@@ -42,4 +42,6 @@ public interface DbMigrationService {
 
     void deleteReplicator(String mhaName) throws Exception;
 
+    void migrateMhaReplication(String newMha, String oldMha) throws Exception;
+
 }

@@ -5,7 +5,13 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
@@ -22,13 +28,16 @@ import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.config.RegionConfig;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
@@ -121,6 +130,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private CacheMetaService cacheMetaService;
     @Autowired
     private MhaServiceV2 mhaServiceV2;
+    @Autowired
+    private MhaDbReplicationTblDao mhaDbReplicationTblDao;
+    @Autowired
+    private ApplierGroupTblV3Dao dbApplierGroupTblDao;
+    @Autowired
+    private ApplierTblV3Dao dbApplierTblDao;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -779,7 +794,151 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             replicatorTblDao.update(replicatorTbls);
         }
     }
-    
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void migrateMhaReplication(String newMhaName, String oldMhaName) throws Exception {
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.MHA.MIGRATE", oldMhaName);
+        Drc drc = metaInfoServiceV2.getDrcMhaConfig(oldMhaName);
+        String drcStr = XmlUtils.formatXML(drc.toString());
+        logger.info("migrateMha oldMha: {}, newMha: {}, oldDrc: {}", oldMhaName, newMhaName, drcStr);
+
+
+        MhaTblV2 oldMha = mhaTblV2Dao.queryByMhaName(oldMhaName);
+        if (oldMha == null || oldMha.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
+            throw ConsoleExceptionUtils.message("oldMha not exit");
+        }
+        MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi(newMhaName);
+        newMha.setTag(oldMha.getTag());
+        newMha.setBuId(oldMha.getBuId());
+        newMha.setMonitorSwitch(oldMha.getMonitorSwitch());
+        mhaTblV2Dao.update(newMha);
+
+        long oldMhaId = oldMha.getId();
+        long newMhaId = newMha.getId();
+
+        //update mhaDbMhaMapping
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(oldMhaId);
+        for (MhaDbMappingTbl mhaDbMappingTbl : mhaDbMappingTbls) {
+            mhaDbMappingTbl.setMhaId(newMhaId);
+        }
+        mhaDbMappingTblDao.update(mhaDbMappingTbls);
+
+        //update mhaReplication
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(oldMhaId));
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            if (mhaReplicationTbl.getSrcMhaId() == oldMhaId) {
+                mhaReplicationTbl.setSrcMhaId(newMhaId);
+            } else if (mhaReplicationTbl.getDstMhaId() == oldMhaId) {
+                mhaReplicationTbl.setDstMhaId(newMhaId);
+            }
+        }
+        mhaReplicationTblDao.update(mhaReplicationTbls);
+
+        String gtidInit = mysqlServiceV2.getMhaExecutedGtid(newMhaName);
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        Long replicatorGroupId = configReplicators(newMha, gtidInit, resourceTbls);
+        configAppliers(newMha, mhaReplicationTbls, gtidInit);
+        configDbAppliers(newMha, mhaDbMappingTbls, gtidInit);
+        configMessenger(oldMha, newMha, replicatorGroupId, gtidInit);
+
+        //delete oldMha
+        oldMha.setDeleted(BooleanEnum.TRUE.getCode());
+        mhaTblV2Dao.update(oldMha);
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(oldMhaId);
+        replicatorGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        replicatorGroupTblDao.update(replicatorGroupTbl);
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        for (ReplicatorTbl replicatorTbl : replicatorTbls) {
+            replicatorTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        }
+        replicatorTblDao.update(replicatorTbls);
+    }
+
+    private void configMessenger(MhaTblV2 oldMha, MhaTblV2 newMha, Long replicatorGroupId, String gtidInit) throws SQLException {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(oldMha.getId(), BooleanEnum.FALSE.getCode());
+        if (messengerGroupTbl == null) {
+            return;
+        }
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(Lists.newArrayList(messengerGroupTbl.getId()));
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return;
+        }
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.APPLIER.getCode(), new ArrayList<>()));
+        messengerGroupTbl.setGtidExecuted(gtidInit);
+        messengerGroupTbl.setMhaId(newMha.getId());
+        messengerGroupTbl.setReplicatorGroupId(replicatorGroupId);
+
+        messengerTbls.get(0).setResourceId(resourceViews.get(0).getResourceId());
+        messengerTbls.get(1).setResourceId(resourceViews.get(1).getResourceId());
+        messengerGroupTblDao.update(messengerGroupTbl);
+        messengerTblDao.update(messengerTbls);
+
+    }
+
+    private void configDbAppliers(MhaTblV2 newMha, List<MhaDbMappingTbl> mhaDbMappingTbls, String gtidInit) throws SQLException {
+        List<ResourceView> dbApplierResourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.APPLIER.getCode(), new ArrayList<>()));
+        List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryByMhaDbMappingIds(mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()));
+        for (MhaDbReplicationTbl mhaDbReplicationTbl : mhaDbReplicationTbls) {
+            List<ApplierGroupTblV3> applierGroupTblV3s = dbApplierGroupTblDao.queryByMhaDbReplicationIds(Lists.newArrayList(mhaDbReplicationTbl.getId()));
+            if (CollectionUtils.isEmpty(applierGroupTblV3s)) {
+                continue;
+            }
+            List<ApplierTblV3> applierTblV3s = dbApplierTblDao.queryByApplierGroupId(applierGroupTblV3s.get(0).getId(), BooleanEnum.FALSE.getCode());
+            if (CollectionUtils.isEmpty(applierTblV3s)) {
+                continue;
+            }
+            if (mhaDbMappingIds.contains(mhaDbReplicationTbl.getSrcMhaDbMappingId())) {
+                applierGroupTblV3s.get(0).setGtidInit(gtidInit);
+                dbApplierGroupTblDao.update(applierGroupTblV3s);
+            }
+
+            applierTblV3s.get(0).setResourceId(dbApplierResourceViews.get(0).getResourceId());
+            applierTblV3s.get(1).setResourceId(dbApplierResourceViews.get(1).getResourceId());
+            dbApplierTblDao.update(applierTblV3s);
+        }
+    }
+
+    private void configAppliers(MhaTblV2 newMha, List<MhaReplicationTbl> mhaReplicationTbls, String gtidInit) throws SQLException {
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.APPLIER.getCode(), new ArrayList<>()));
+        if (resourceViews.size() != 2) {
+            throw ConsoleExceptionUtils.message("cannot select two appliers");
+        }
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
+            if (applierGroupTblV2 == null) {
+                continue;
+            }
+            List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(), BooleanEnum.FALSE.getCode());
+            if (CollectionUtils.isEmpty(applierTblV2s)) {
+                continue;
+            }
+
+            if (mhaReplicationTbl.getSrcMhaId().equals(newMha.getId())) {
+                applierGroupTblV2.setGtidInit(gtidInit);
+                applierGroupTblV2Dao.update(applierGroupTblV2);
+            }
+
+            applierTblV2s.get(0).setResourceId(resourceViews.get(0).getResourceId());
+            applierTblV2s.get(1).setResourceId(resourceViews.get(1).getResourceId());
+            applierTblV2Dao.update(applierTblV2s);
+        }
+    }
+
+    private Long configReplicators(MhaTblV2 newMha, String gtidInit, List<ResourceTbl> resourceTbls) throws Exception {
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.REPLICATOR.getCode(), new ArrayList<>()));
+        if (resourceViews.size() != 2) {
+            throw ConsoleExceptionUtils.message("cannot select two replicators");
+        }
+        List<String> replicatorIps = resourceViews.stream().map(ResourceView::getIp).collect(Collectors.toList());
+        return drcBuildServiceV2.configureReplicatorGroup(newMha, gtidInit, replicatorIps, resourceTbls);
+    }
+
+
+
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void deleteDrcConfig(long taskId, boolean rollBack,boolean cancel) throws Exception {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
