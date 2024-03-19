@@ -145,9 +145,11 @@ public class ResourceServiceImpl implements ResourceService {
             }
         } else if (resourceTbl.getType().equals(ModuleEnum.APPLIER.getCode())) {
             List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+            List<ApplierTblV3> dbAppliers = dbApplierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
             List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            if (!CollectionUtils.isEmpty(applierTbls) || !CollectionUtils.isEmpty(messengerTbls) || !CollectionUtils.isEmpty(messengerTblsV3)) {
+            if (!CollectionUtils.isEmpty(applierTbls) || !CollectionUtils.isEmpty(dbAppliers)
+                    || !CollectionUtils.isEmpty(messengerTbls) || !CollectionUtils.isEmpty(messengerTblsV3)) {
                 throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
             }
         }
