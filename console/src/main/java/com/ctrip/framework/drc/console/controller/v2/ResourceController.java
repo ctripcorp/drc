@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -190,7 +191,7 @@ public class ResourceController {
         }
     }
 
-    @PostMapping("migrate/resource/replicator")
+    @PostMapping("batchMigrate/replicator")
     public ApiResult<Boolean> batchMigrateReplicator(@RequestBody ResourceMigrateParam param) {
         try {
             param.setType(ModuleEnum.REPLICATOR.getCode());
@@ -202,7 +203,7 @@ public class ResourceController {
         }
     }
 
-    @PostMapping("migrate/resource/applier")
+    @PostMapping("batchMigrate/applier")
     public ApiResult<Boolean> batchMigrateApplier(@RequestBody ResourceMigrateParam param) {
         try {
             param.setType(ModuleEnum.APPLIER.getCode());
@@ -211,6 +212,16 @@ public class ResourceController {
         } catch (Exception e) {
             logger.error("migrateResource fail, ", e);
             return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("checkAz")
+    public ApiResult<ResourceSameAzView> checkResourceAz() {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.checkResourceAz());
+        } catch (Exception e) {
+            logger.error("checkResourceAz fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

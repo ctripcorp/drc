@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -566,6 +567,9 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int migrateResource(String newIp, String oldIp, int type) throws Exception {
+        if (newIp.equals(oldIp)) {
+            throw ConsoleExceptionUtils.message("newIp and oldIp cannot be the same");
+        }
         if (type == ModuleEnum.REPLICATOR.getCode()) {
             return migrateReplicator(newIp, oldIp);
         } else if (type == ModuleEnum.APPLIER.getCode()) {
@@ -604,6 +608,127 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
+    @Override
+    public ResourceSameAzView checkResourceAz() throws Exception {
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
+        Map<Long, String> resourceIdToAzMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
+
+        ResourceSameAzView view = new ResourceSameAzView();
+        view.setReplicatorMhaList(checkReplicators(resourceIdToAzMap));
+        view.setApplierMhaReplicationList(checkAppliers(resourceIdToAzMap));
+        view.setApplierDbList(checkDbAppliers(resourceIdToAzMap));
+        view.setMessengerMhaList(checkMessengers(resourceIdToAzMap));
+        return view;
+    }
+
+    private List<String> checkDbAppliers(Map<Long, String> resourceIdToAzMap) throws Exception {
+        List<String> dbNames = new ArrayList<>();
+        List<ApplierTblV3> dbApplierTbls = dbApplierTblDao.queryAllExist();
+        Map<Long, List<ApplierTblV3>> dbApplierMap = dbApplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getApplierGroupId));
+        for (Map.Entry<Long, List<ApplierTblV3>> entry : dbApplierMap.entrySet()) {
+            long applierGroupId = entry.getKey();
+            List<ApplierTblV3> dbAppliers = entry.getValue();
+            if (checkDbAppliers(dbAppliers, resourceIdToAzMap)) {
+                continue;
+            }
+            ApplierGroupTblV3 applierGroupTblV3 = dbApplierGroupTblDao.queryById(applierGroupId);
+            MhaDbReplicationTbl mhaDbReplicationTbl = mhaDbReplicationTblDao.queryById(applierGroupTblV3.getMhaDbReplicationId());
+            MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblDao.queryById(mhaDbReplicationTbl.getSrcMhaDbMappingId());
+            DbTbl dbTbl = dbTblDao.queryById(mhaDbMappingTbl.getDbId());
+            dbNames.add(dbTbl.getDbName());
+        }
+        return dbNames;
+    }
+
+    private List<MhaReplicationView> checkAppliers(Map<Long, String> resourceIdToAzMap) throws Exception {
+        List<MhaReplicationView> mhaReplicationViews = new ArrayList<>();
+        List<ApplierTblV2> applierTblV2s = applierTblDao.queryAllExist();
+        Map<Long, List<ApplierTblV2>> applierMap = applierTblV2s.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+        for (Map.Entry<Long, List<ApplierTblV2>> entry : applierMap.entrySet()) {
+            long applierGroupId = entry.getKey();
+            List<ApplierTblV2> appliers = entry.getValue();
+            if (checkAppliers(appliers, resourceIdToAzMap)) {
+                continue;
+            }
+            ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblDao.queryById(applierGroupId);
+            MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryById(applierGroupTblV2.getMhaReplicationId());
+            MhaTblV2 srcMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getSrcMhaId());
+            MhaTblV2 dstMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getDstMhaId());
+            mhaReplicationViews.add(new MhaReplicationView(srcMha.getMhaName(), dstMha.getMhaName()));
+        }
+        return mhaReplicationViews;
+    }
+
+    private List<String> checkMessengers(Map<Long, String> resourceIdToAzMap) throws Exception {
+        List<String> mhaNames = new ArrayList<>();
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllExist();
+        Map<Long, List<MessengerTbl>> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+        for (Map.Entry<Long, List<MessengerTbl>> entry : messengerMap.entrySet()) {
+            long messengerGroupId = entry.getKey();
+            List<MessengerTbl> messengers = entry.getValue();
+            if (checkMessengers(messengers, resourceIdToAzMap)) {
+                continue;
+            }
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryById(messengerGroupId);
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(messengerGroupTbl.getMhaId());
+            mhaNames.add(mhaTblV2.getMhaName());
+        }
+        return mhaNames;
+    }
+
+    private List<String> checkReplicators(Map<Long, String> resourceIdToAzMap) throws Exception {
+        List<String> mhaNames = new ArrayList<>();
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllExist();
+        Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+        for (Map.Entry<Long, List<ReplicatorTbl>> entry : replicatorMap.entrySet()) {
+            long replicatorGroupId = entry.getKey();
+            List<ReplicatorTbl> replicators = entry.getValue();
+            if (checkReplicators(replicators, resourceIdToAzMap)) {
+                continue;
+            }
+            ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryById(replicatorGroupId);
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(replicatorGroupTbl.getMhaId());
+            mhaNames.add(mhaTblV2.getMhaName());
+        }
+        return mhaNames;
+    }
+
+    private boolean checkReplicators(List<ReplicatorTbl> replicatorTbls, Map<Long, String> resourceIdToAzMap) {
+        if (replicatorTbls.size() != 2) {
+            return false;
+        }
+        String firstAz = resourceIdToAzMap.get(replicatorTbls.get(0).getResourceId());
+        String secondAz = resourceIdToAzMap.get(replicatorTbls.get(1).getResourceId());
+        return !firstAz.equals(secondAz);
+    }
+
+    private boolean checkMessengers(List<MessengerTbl> messengerTbls, Map<Long, String> resourceIdToAzMap) {
+        if (messengerTbls.size() != 2) {
+            return false;
+        }
+        String firstAz = resourceIdToAzMap.get(messengerTbls.get(0).getResourceId());
+        String secondAz = resourceIdToAzMap.get(messengerTbls.get(1).getResourceId());
+        return !firstAz.equals(secondAz);
+    }
+
+    private boolean checkAppliers(List<ApplierTblV2> applierTblV2s, Map<Long, String> resourceIdToAzMap) {
+        if (applierTblV2s.size() != 2) {
+            return false;
+        }
+        String firstAz = resourceIdToAzMap.get(applierTblV2s.get(0).getResourceId());
+        String secondAz = resourceIdToAzMap.get(applierTblV2s.get(1).getResourceId());
+        return !firstAz.equals(secondAz);
+    }
+
+    private boolean checkDbAppliers(List<ApplierTblV3> dbAppliers, Map<Long, String> resourceIdToAzMap) {
+        if (dbAppliers.size() != 2) {
+            return false;
+        }
+        String firstAz = resourceIdToAzMap.get(dbAppliers.get(0).getResourceId());
+        String secondAz = resourceIdToAzMap.get(dbAppliers.get(1).getResourceId());
+        return !firstAz.equals(secondAz);
+    }
+
 
     private int migrateReplicator(String newIp, String oldIp) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
@@ -612,7 +737,7 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp or oldIp not exist");
         }
         if (newResource.getActive().equals(BooleanEnum.FALSE.getCode())) {
-            throw ConsoleExceptionUtils.message("newIp is active");
+            throw ConsoleExceptionUtils.message("newIp is not active");
         }
         if (!newResource.getType().equals(oldResource.getType()) || !newResource.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
             throw ConsoleExceptionUtils.message("newIp is not replicator");

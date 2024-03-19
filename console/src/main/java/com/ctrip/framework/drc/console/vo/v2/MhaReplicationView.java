@@ -10,6 +10,14 @@ public class MhaReplicationView {
     private String srcDcName;
     private String dstDcName;
 
+    public MhaReplicationView() {
+    }
+
+    public MhaReplicationView(String srcMhaName, String dstMhaName) {
+        this.srcMhaName = srcMhaName;
+        this.dstMhaName = dstMhaName;
+    }
+
     public String getSrcMhaName() {
         return srcMhaName;
     }

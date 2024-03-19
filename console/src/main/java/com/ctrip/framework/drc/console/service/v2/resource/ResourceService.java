@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.resource;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
 import java.sql.SQLException;
@@ -56,5 +57,6 @@ public interface ResourceService {
 
     void migrateResource(ResourceMigrateParam param) throws Exception;
 
+    ResourceSameAzView checkResourceAz() throws Exception;
 
 }
