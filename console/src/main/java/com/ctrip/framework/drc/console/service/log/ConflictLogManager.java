@@ -6,13 +6,12 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
-import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
+import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
-import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
@@ -31,12 +30,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -265,9 +262,6 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             }
         });
     }
-
-
-    
     
     private void checkConflictCountAndAlarm(List<HickWallConflictCount> cflRowCounts,ConflictCountType type) throws Exception{
         for (HickWallConflictCount cflTableRowCount : cflRowCounts) {
@@ -323,7 +317,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
-        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && everUserTraffic && type.isRollback()) {
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && (everUserTraffic || type.isRollback())) {
             email.addRecipient(dbTbls.get(0).getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
             if (StringUtils.isNotBlank(dbTbl.getEmailGroup())) {

@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
+import com.ctrip.framework.drc.core.driver.binlog.json.BinaryJson;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
 import com.google.common.collect.Lists;
@@ -99,6 +100,10 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         throw new UnsupportedOperationException("rows event must implement this method");
     }
 
+    public boolean shouldDecodeBinaryJson() { // replicator no need to at most time, unless use json filed rowsFilter
+        return false;
+    }
+
     @Override
     public LogEvent read(ByteBuf byteBuf) {
         // this logEvent only include header or null right now
@@ -126,6 +131,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         System.out.println("bytes string: " + str);
         return str;
     }
+
 
     public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, int eventType) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -208,6 +214,40 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
     }
 
+    public static BigDecimal readAsBigDecimal(byte[] decimalBytes, int precision, int scale) {
+        final boolean positive = (decimalBytes[0] & 0x80) == 0x80;
+        decimalBytes[0] ^= 0x80;
+        if (!positive) {
+            for (int i = 0; i < decimalBytes.length; i++) {
+                decimalBytes[i] ^= 0xFF;
+            }
+        }
+        
+        final int x = precision - scale;
+        final int ipDigits = x / DIGITS_PER_4BYTES;
+        final int ipDigitsX = x - ipDigits * DIGITS_PER_4BYTES;
+        final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
+        int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
+        BigDecimal ip = offset > 0 ? BigDecimal.valueOf(toInt(decimalBytes, 0, offset)) : BigDecimal.ZERO;
+        for (; offset < ipSize; offset += 4) {
+            final int i = toInt(decimalBytes, offset, 4);
+            ip = ip.movePointRight(DIGITS_PER_4BYTES).add(BigDecimal.valueOf(i));
+        }
+
+        int shift = 0;
+        BigDecimal fp = BigDecimal.ZERO;
+        for (; shift + DIGITS_PER_4BYTES <= scale; shift += DIGITS_PER_4BYTES, offset += 4) {
+            final int i = toInt(decimalBytes, offset, 4);
+            fp = fp.add(BigDecimal.valueOf(i).movePointLeft(shift + DIGITS_PER_4BYTES));
+        }
+        if (shift < scale) {
+            final int i = toInt(decimalBytes, offset, DECIMAL_BINARY_SIZE[scale - shift]);
+            fp = fp.add(BigDecimal.valueOf(i).movePointLeft(scale));
+        }
+
+        return positive ? POSITIVE_ONE.multiply(ip.add(fp)) : NEGATIVE_ONE.multiply(ip.add(fp));
+    } 
+    
     public List<List<Object>> getBeforePresentRowsValues() {
         return getRows().stream().map(Row::getBeforeValues)
                 .collect(Collectors.toList());
@@ -642,6 +682,36 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 return;
             }
 
+            case mysql_type_json: {
+                if (shouldDecodeBinaryJson()) {
+                    throw new RuntimeException("mysql_type_json value encode not support");
+                }
+                // include all blob and text
+                byte[] bytes = (byte[]) value;
+                int valueLength = bytes.length;
+                switch (column.getMeta()) {
+                    case 1: {
+                        ByteHelper.writeUnsignedByte(valueLength, out);
+                        break;
+                    }
+                    case 2: {
+                        ByteHelper.writeUnsignedShortLittleEndian(valueLength, out);
+                        break;
+                    }
+                    case 3: {
+                        ByteHelper.writeUnsignedMediumLittleEndian(valueLength, out);
+                        break;
+                    }
+
+                    case 4: {
+                        ByteHelper.writeUnsignedIntLittleEndian(valueLength, out);
+                        break;
+                    }
+                }
+                ByteHelper.writeFixedLengthBytes(bytes, 0, valueLength, out);
+                return;
+            }
+
             case mysql_type_date: {
                 // document show range : '1000-01-01' to '9999-12-31'
                 // real range : '0000-01-01' to '9999-12-31'
@@ -927,38 +997,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 final byte[] decimalBytes = new byte[decimalLength];
                 byteBuf.readBytes(decimalBytes, 0, decimalLength);
 
-                final boolean positive = (decimalBytes[0] & 0x80) == 0x80;
-                decimalBytes[0] ^= 0x80;
-                if (!positive) {
-                    for (int i = 0; i < decimalBytes.length; i++) {
-                        decimalBytes[i] ^= 0xFF;
-                    }
-                }
-
-                //
-                final int x = precision - scale;
-                final int ipDigits = x / DIGITS_PER_4BYTES;
-                final int ipDigitsX = x - ipDigits * DIGITS_PER_4BYTES;
-                final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
-                int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
-                BigDecimal ip = offset > 0 ? BigDecimal.valueOf(toInt(decimalBytes, 0, offset)) : BigDecimal.ZERO;
-                for (; offset < ipSize; offset += 4) {
-                    final int i = toInt(decimalBytes, offset, 4);
-                    ip = ip.movePointRight(DIGITS_PER_4BYTES).add(BigDecimal.valueOf(i));
-                }
-
-                int shift = 0;
-                BigDecimal fp = BigDecimal.ZERO;
-                for (; shift + DIGITS_PER_4BYTES <= scale; shift += DIGITS_PER_4BYTES, offset += 4) {
-                    final int i = toInt(decimalBytes, offset, 4);
-                    fp = fp.add(BigDecimal.valueOf(i).movePointLeft(shift + DIGITS_PER_4BYTES));
-                }
-                if (shift < scale) {
-                    final int i = toInt(decimalBytes, offset, DECIMAL_BINARY_SIZE[scale - shift]);
-                    fp = fp.add(BigDecimal.valueOf(i).movePointLeft(scale));
-                }
-
-                return positive ? POSITIVE_ONE.multiply(ip.add(fp)) : NEGATIVE_ONE.multiply(ip.add(fp));
+                return readAsBigDecimal(decimalBytes, precision, scale);
             }
 
             case mysql_type_float: {
@@ -1056,38 +1095,77 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
             case mysql_type_blob: {
                 // include all blob and text
-                switch (column.getMeta()) {
-                    case 1: {
-                        final short valueLength = byteBuf.readUnsignedByte();
-                        final byte[] values = new byte[valueLength];
-                        byteBuf.readBytes(values, 0, valueLength);
-                        return values;
-                    }
+                    switch (column.getMeta()) {
+                        case 1: {
+                            final short valueLength = byteBuf.readUnsignedByte();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return values;
+                        }
 
-                    case 2: {
-                        final int valueLength = byteBuf.readUnsignedShortLE();
-                        final byte[] values = new byte[valueLength];
-                        byteBuf.readBytes(values, 0, valueLength);
-                        return values;
-                    }
+                        case 2: {
+                            final int valueLength = byteBuf.readUnsignedShortLE();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return values;
+                        }
 
-                    case 3: {
-                        final int valueLength = byteBuf.readUnsignedMediumLE();
-                        final byte[] values = new byte[valueLength];
-                        byteBuf.readBytes(values, 0, valueLength);
-                        return values;
-                    }
+                        case 3: {
+                            final int valueLength = byteBuf.readUnsignedMediumLE();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return values;
+                        }
 
-                    case 4: {
-                        // TODO: 2019/10/16 int problem
-                        final int valueLength = (int) byteBuf.readUnsignedIntLE();
-                        final byte[] values = new byte[valueLength];
-                        byteBuf.readBytes(values, 0, valueLength);
-                        return values;
+                        case 4: {
+                            // TODO: 2019/10/16 int problem
+                            final int valueLength = (int) byteBuf.readUnsignedIntLE();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return values;
+                        }
                     }
-                }
             }
 
+            case mysql_type_json: {
+                try {
+                    boolean decoded = shouldDecodeBinaryJson();
+                    switch (column.getMeta()) {
+                        case 1: {
+                            final short valueLength = byteBuf.readUnsignedByte();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return decoded? BinaryJson.parseAsString(values) : values;
+                        }
+
+                        case 2: {
+                            final int valueLength = byteBuf.readUnsignedShortLE();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return decoded? BinaryJson.parseAsString(values) : values;
+                        }
+
+                        case 3: {
+                            final int valueLength = byteBuf.readUnsignedMediumLE();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return decoded? BinaryJson.parseAsString(values) : values;
+                        }
+
+                        case 4: {
+                            final int valueLength = (int) byteBuf.readUnsignedIntLE();
+                            final byte[] values = new byte[valueLength];
+                            byteBuf.readBytes(values, 0, valueLength);
+                            return decoded? BinaryJson.parseAsString(values)  : values;
+                        }
+                        default:
+                            throw new IllegalArgumentException("!! Unknown JSON packlen = " + column.getMeta());
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            
             case mysql_type_date: {
                 // document show range : '1000-01-01' to '9999-12-31'
                 // real range : '0000-01-01' to '9999-12-31'
@@ -1454,8 +1532,9 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         final int fpDigitsX = scale - fpDigits * DIGITS_PER_4BYTES;
         return (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX] + (fpDigits << 2) + DECIMAL_BINARY_SIZE[fpDigitsX];
     }
-
-    private int toInt(byte[] data, int offset, int length) {
+    
+   
+    private static int toInt(byte[] data, int offset, int length) {
         int r = 0;
         for (int i = offset; i < (offset + length); i++) {
             final byte b = data[i];

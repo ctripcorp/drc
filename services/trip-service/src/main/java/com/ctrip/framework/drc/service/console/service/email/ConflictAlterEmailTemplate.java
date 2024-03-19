@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.service.console.service.email;
 
 import com.ctrip.framework.drc.core.service.email.Email;
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,6 +47,9 @@ public class ConflictAlterEmailTemplate implements TripEmailTemplate {
         if (contentKeyValues == null || contentKeyValues.isEmpty()) return;
         Iterator<Entry<String, String>> iterator = contentKeyValues.entrySet().iterator();
         StringBuilder content = new StringBuilder();
+        if (StringUtils.isNotBlank(email.getHeader())) {
+            content.append(email.getHeader() + "</br>");
+        }
         while (iterator.hasNext()) {
             Entry<String, String> next = iterator.next();
             String key = next.getKey();

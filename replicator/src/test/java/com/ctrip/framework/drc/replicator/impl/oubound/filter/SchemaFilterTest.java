@@ -10,6 +10,7 @@ import java.nio.channels.FileChannel;
 import java.util.Set;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 
 /**
@@ -41,6 +42,6 @@ public class SchemaFilterTest {
 
         filterLogEvent.encode("drc3", 1);
         schemaFilter.doFilter(value);
-        Mockito.verify(fileChannel, times(1)).position();
+        Mockito.verify(fileChannel, times(1)).position(anyLong());
     }
 }

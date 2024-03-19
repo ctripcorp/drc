@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
@@ -96,6 +97,8 @@ public class ConflictLogServiceTest {
     private DbBlacklistCache dbBlacklistCache;
     @Mock
     private DomainConfig domainConfig;
+    @Mock
+    private ReplicationTableTblDao replicationTableTblDao;
 
     @Before
     public void setUp() {
@@ -151,7 +154,14 @@ public class ConflictLogServiceTest {
         
         conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis() + Constants.ONE_DAY);
         conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.DBA_JOB,null);
+
+        ConflictDbBlackListTbl db2table2 = new ConflictDbBlackListTbl();
+        db2table2.setId(1L);
+        when(conflictDbBlackListTblDao.queryBy(eq("db2\\.table2"),anyInt())).thenReturn(Lists.newArrayList(db2table2));
+        conflictLogService.addDbBlacklist("db2\\.table2", CflBlacklistType.DBA_JOB,null);
         verify(conflictDbBlackListTblDao,times(2)).insert(any(ConflictDbBlackListTbl.class));
+        verify(dbBlacklistCache,times(3)).refresh(true);
+        verify(conflictDbBlackListTblDao,times(1)).update(any(ConflictDbBlackListTbl.class));
     }
     
     

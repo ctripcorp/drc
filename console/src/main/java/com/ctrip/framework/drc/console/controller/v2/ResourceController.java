@@ -170,6 +170,16 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("migrate/slaveReplicator")
+    public ApiResult<Integer> migrateSlaveReplicator(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateSlaveReplicator(newIp, oldIp));
+        } catch (Exception e) {
+            logger.error("migrateReplicator fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
     @PostMapping("migrate/applier")
     public ApiResult<Integer> migrateApplier(@RequestParam String newIp, @RequestParam String oldIp) {
         try {

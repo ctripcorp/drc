@@ -239,6 +239,21 @@ const routes = [
     component: () => import('../views/nopermission.vue')
   },
   {
+    path: '/applicationForm',
+    name: 'applicationForm',
+    component: () => import('../views/v2/application/applicationForm.vue')
+  },
+  {
+    path: '/applicationBuild',
+    name: 'applicationBuild',
+    component: () => import('../views/v2/application/applicationBuild.vue')
+  },
+  {
+    path: '/drcBuild',
+    name: 'applicationBuild',
+    component: () => import('../views/v2/application/drcBuild.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

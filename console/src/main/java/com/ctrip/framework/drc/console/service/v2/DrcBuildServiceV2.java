@@ -68,5 +68,10 @@ public interface DrcBuildServiceV2 {
     
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 
+    void initReplicationTables() throws Exception;
+
+    void deleteAllReplicationTables() throws Exception;
+
+
     String getNativeGtid(String mhaName);
 }

@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.sql.SQLException;
@@ -44,4 +45,7 @@ public interface MhaServiceV2 {
     List<String> queryMhasWithOutDrc();
 
     Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException;
+
+    // should check no use first
+    boolean offlineMha(String mhaName) throws SQLException;
 }

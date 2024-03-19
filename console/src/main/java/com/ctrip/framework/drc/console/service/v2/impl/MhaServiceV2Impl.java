@@ -499,7 +499,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         return res;
     }
 
-    // should check no use first
+    @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public boolean offlineMha(String mhaName) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
@@ -507,6 +507,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             logger.info("mha: {} not exist", mhaName);
             return false;
         }
+        mhaTblV2.setMonitorSwitch(BooleanEnum.FALSE.getCode());
         mhaTblV2.setDeleted(BooleanEnum.TRUE.getCode());
         List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(machineTbls)) {

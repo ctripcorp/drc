@@ -35,6 +35,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
@@ -105,6 +106,8 @@ public class DbMigrationServiceImplTest {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private MhaDbReplicationService mhaDbReplicationService;
+    @Mock
+    private CacheMetaService cacheMetaService;
 
 
     // init tblEntity  mhaTbls & mhaReplicationTbls & dbTbls & mhaDbMappingTbls & dbReplicationTbls & filterMapping
@@ -159,6 +162,7 @@ public class DbMigrationServiceImplTest {
         MockitoAnnotations.openMocks(this);
         Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
         Mockito.when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
+        Mockito.when(cacheMetaService.refreshMetaCache()).thenReturn(true);
     }
 
     @Test

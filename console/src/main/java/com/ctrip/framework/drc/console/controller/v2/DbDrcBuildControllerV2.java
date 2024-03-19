@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.service.v2.DrcAutoBuildService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
@@ -96,6 +97,27 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("region/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<String>> getAllRegions() {
+        try {
+            List<String> list = drcAutoBuildService.getAllRegions();
+            return ApiResult.getSuccessInstance(list);
+        } catch (Throwable e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("preCheckMysqlConfig")
+    @SuppressWarnings("unchecked")
+    public ApiResult<MhaPreCheckVo> preCheckMysqlConfig(@RequestParam List<String> mhaList) {
+        try {
+            return ApiResult.getSuccessInstance(drcAutoBuildService.preCheckMysqlConfig(mhaList));
+        } catch (Throwable e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("commonColumns")
     @SuppressWarnings("unchecked")
     public ApiResult<List<String>> getCommonColumns(DrcAutoBuildReq req) {
@@ -131,6 +153,21 @@ public class DbDrcBuildControllerV2 {
         logger.info("[meta] auto build drc, req: {}", req);
         try {
             drcAutoBuildService.autoBuildDrc(req);
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("[meta] auto build drc, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("applicationForm/submit")
+    @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
+            success = "DbDrcBuildControllerV2 submitApplicationForm with DrcAutoBuildReq: {#req.toString()}")
+    public ApiResult<Void> submitApplicationForm(@RequestBody DrcAutoBuildReq req) {
+        logger.info("[meta] auto build drc, req: {}", req);
+        try {
+            drcAutoBuildService.autoBuildDrcFromApplication(req);
             return ApiResult.getSuccessInstance(null);
         } catch (Throwable e) {
             logger.error("[meta] auto build drc, req {}", req, e);

@@ -575,6 +575,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int migrateSlaveReplicator(String newIp, String oldIp) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
@@ -624,6 +625,13 @@ public class ResourceServiceImpl implements ResourceService {
         if (CollectionUtils.isEmpty(replicatorTbls)) {
             return 0;
         }
+        List<Long> replicatorGroupIds = replicatorTbls.stream().map(ReplicatorTbl::getRelicatorGroupId).distinct().collect(Collectors.toList());
+        List<ReplicatorTbl> allReplicatorTbls = replicatorTblDao.queryByRGroupIds(replicatorGroupIds, BooleanEnum.FALSE.getCode());
+        List<Long> allResourceIds = allReplicatorTbls.stream().map(ReplicatorTbl::getResourceId).distinct().collect(Collectors.toList());
+        if (allResourceIds.contains(newResource.getId())) {
+            throw ConsoleExceptionUtils.message("replicator requires different master and slave");
+        }
+
         List<ListenableFuture<Pair<Long, String>>> futures = new ArrayList<>();
         for (ReplicatorTbl replicatorTbl : replicatorTbls) {
             ListenableFuture<Pair<Long, String>> future = executorService.submit(() -> getInitGtid(replicatorTbl));
@@ -678,6 +686,22 @@ public class ResourceServiceImpl implements ResourceService {
         List<ApplierTblV3> applierTblV3s = dbApplierTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
         List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+
+        List<ApplierTblV2> allApplierTblV2s = applierTblDao.queryByApplierGroupIds(
+                applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+        List<ApplierTblV3> allApplierTblV3s = dbApplierTblDao.queryByApplierGroupIds(
+                applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).distinct().collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+        List<MessengerTbl> allMessengerTbls = messengerTblDao.queryByGroupIds(messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList()));
+        List<MessengerTblV3> allMessengerTblV3s = dbMessengerTblDao.queryByGroupIds(messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList()));
+
+        Set<Long> allResourceIds = new HashSet<>();
+        allResourceIds.addAll(allApplierTblV2s.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList()));
+        allResourceIds.addAll(allApplierTblV3s.stream().map(ApplierTblV3::getResourceId).collect(Collectors.toList()));
+        allResourceIds.addAll(allMessengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList()));
+        allResourceIds.addAll(allMessengerTblV3s.stream().map(MessengerTblV3::getResourceId).collect(Collectors.toList()));
+        if (allResourceIds.contains(newResource.getId())) {
+            throw ConsoleExceptionUtils.message("applier requires different master and slave");
+        }
 
         int result =  0;
         if (!CollectionUtils.isEmpty(applierTblV2s)) {

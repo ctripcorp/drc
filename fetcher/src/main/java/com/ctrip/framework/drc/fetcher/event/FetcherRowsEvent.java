@@ -54,6 +54,11 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
         transformMetaAndType(originColumns, columns);
     }
 
+    @Override
+    public boolean shouldDecodeBinaryJson() {
+        return true;
+    }
+
     private Lock lock = new ReentrantLock();
     private boolean isLoaded = false;
 
