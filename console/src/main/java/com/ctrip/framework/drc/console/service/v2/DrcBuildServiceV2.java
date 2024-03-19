@@ -72,4 +72,6 @@ public interface DrcBuildServiceV2 {
 
     void deleteAllReplicationTables() throws Exception;
 
+
+    String getNativeGtid(String mhaName);
 }
