@@ -40,6 +40,14 @@ public class NameUtils {
         return ApplyMode.db_mq == ApplyMode.getApplyMode(messenger.getApplyMode()) ? messenger.getIncludedDbs() : DRC_MQ;
     }
 
+    public static String getMessengerDbName(String registryKey) {
+        String[] split = registryKey.split("\\.");
+        if (split.length < 3) {
+            return null;
+        }
+        return split[split.length - 1];
+    }
+
     public static String dotSchemaIfNeed(String name, int applyMode, String includedDbs) {
         String finalName = name;
         switch (ApplyMode.getApplyMode(applyMode)) {

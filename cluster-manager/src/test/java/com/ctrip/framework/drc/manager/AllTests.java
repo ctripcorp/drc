@@ -125,7 +125,7 @@ public class AllTests {
 
     public static final String XML_FILE = "test.xml";
 
-    public static String DRC_XML;
+    public static String DRC_XML = readFileContent(ClassUtils.getDefaultClassLoader().getResource(XML_FILE).getPath());
 
     public static final String DAL_CLUSTER_NAME = "integration-test";
 
@@ -177,8 +177,6 @@ public class AllTests {
             InputStream inputStream = new FileInputStream(envFile);
             Foundation.server().initialize(inputStream);
 
-            String file = ClassUtils.getDefaultClassLoader().getResource(XML_FILE).getPath();
-            DRC_XML = readFileContent(file);
             System.out.println(DRC_XML);
 
             //for zookeeper

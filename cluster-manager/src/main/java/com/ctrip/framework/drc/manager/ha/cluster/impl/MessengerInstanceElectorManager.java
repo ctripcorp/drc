@@ -111,7 +111,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
 
         InstanceActiveElectAlgorithm klea = instanceActiveElectAlgorithmManager.get(clusterId);
         Messenger activeMessenger = (Messenger) klea.select(clusterId, survivalMessengers);  //set master
-        currentMetaManager.setSurviveMessengers(clusterId, survivalMessengers, activeMessenger);
+        currentMetaManager.setSurviveMessengers(clusterId, registryKey, survivalMessengers, activeMessenger);
     }
 
     private Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {

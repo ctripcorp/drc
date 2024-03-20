@@ -108,7 +108,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
 
         InstanceActiveElectAlgorithm klea = instanceActiveElectAlgorithmManager.get(clusterId);
         Applier activeApplier = (Applier) klea.select(clusterId, survivalAppliers);  //set master
-        currentMetaManager.setSurviveAppliers(clusterId, survivalAppliers, activeApplier);
+        currentMetaManager.setSurviveAppliers(clusterId, registryKey, survivalAppliers, activeApplier);
     }
 
     private Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
