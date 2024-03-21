@@ -98,41 +98,42 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     @Override
     public List<MhaDbReplicationDto> queryByMha(String srcMhaName, String dstMhaName, List<String> dbNames) {
         try {
-            // 1. query mhaDbMapping by conditions
-            MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
-            MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryByMhaName(dstMhaName, 0);
-            if (srcMhaTbl == null || dstMhaTbl == null) {
-                return Collections.emptyList();
-            }
-
-            List<MhaDbMappingTbl> mhaDbMappingTbls;
-            List<DbTbl> dbTbls;
-            if (CollectionUtils.isEmpty(dbNames)) {
-                mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
-                List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).distinct().collect(Collectors.toList());
-                dbTbls = dbTblDao.queryByIds(dbIds);
-            } else {
-                dbTbls = dbTblDao.queryByDbNames(dbNames);
-                List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).distinct().collect(Collectors.toList());
-                mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(dbIds, Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
-            }
-            List<Long> srcMappingIds = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhaTbl.getId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-            List<Long> dstMappingIds = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(dstMhaTbl.getId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-            if (CollectionUtils.isEmpty(srcMappingIds) || CollectionUtils.isEmpty(dstMappingIds)) {
-                return Collections.emptyList();
-            }
-
-            // 2 query dbReplications/mhaDbReplication by (src -> dst) mapping id
-            MhaDbReplicationQuery mhaDbReplicationQuery = new MhaDbReplicationQuery();
-            mhaDbReplicationQuery.setSrcMappingIdList(srcMappingIds);
-            mhaDbReplicationQuery.setDstMappingIdList(dstMappingIds);
-            mhaDbReplicationQuery.setType(ReplicationTypeEnum.DB_TO_DB.getType());
-            List<MhaDbReplicationTbl> replicationTbls = mhaDbReplicationTblDao.query(mhaDbReplicationQuery);
-
+            List<MhaDbReplicationTbl> replicationTbls = this.getMhaDbReplicationTbls(srcMhaName, dstMhaName, dbNames);
             return this.convert(replicationTbls);
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    private List<MhaDbReplicationTbl> getMhaDbReplicationTbls(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException {
+        // 1. query mhaDbMapping by conditions
+        MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
+        MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryByMhaName(dstMhaName, 0);
+        if (srcMhaTbl == null || dstMhaTbl == null) {
+            return Collections.emptyList();
+        }
+
+        List<MhaDbMappingTbl> mhaDbMappingTbls;
+        List<DbTbl> dbTbls;
+        if (CollectionUtils.isEmpty(dbNames)) {
+            mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
+        } else {
+            dbTbls = dbTblDao.queryByDbNames(dbNames);
+            List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).distinct().collect(Collectors.toList());
+            mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(dbIds, Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
+        }
+        List<Long> srcMappingIds = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhaTbl.getId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+        List<Long> dstMappingIds = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(dstMhaTbl.getId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(srcMappingIds) || CollectionUtils.isEmpty(dstMappingIds)) {
+            return Collections.emptyList();
+        }
+
+        // 2 query dbReplications/mhaDbReplication by (src -> dst) mapping id
+        MhaDbReplicationQuery mhaDbReplicationQuery = new MhaDbReplicationQuery();
+        mhaDbReplicationQuery.setSrcMappingIdList(srcMappingIds);
+        mhaDbReplicationQuery.setDstMappingIdList(dstMappingIds);
+        mhaDbReplicationQuery.setType(ReplicationTypeEnum.DB_TO_DB.getType());
+        return mhaDbReplicationTblDao.query(mhaDbReplicationQuery);
     }
 
     private List<DbReplicationTbl> getDbReplicationTbls(List<MhaDbReplicationTbl> replicationTbls) throws SQLException {
@@ -571,6 +572,17 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         }).collect(Collectors.toList());
 
         this.insertAndUpdate(this.getInsertsAndUpdatesBySample(samples));
+    }
+
+    @Override
+    public void offlineMhaDbReplication(String mhaName, String mhaName1) {
+        try {
+            List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.getMhaDbReplicationTbls(mhaName, mhaName1, null);
+            mhaDbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            mhaDbReplicationTblDao.batchUpdate(mhaDbReplicationTbls);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION, e);
+        }
     }
 
     private void insertAndUpdate(Pair<List<MhaDbReplicationTbl>, List<MhaDbReplicationTbl>> insertsAndUpdates) throws SQLException {
