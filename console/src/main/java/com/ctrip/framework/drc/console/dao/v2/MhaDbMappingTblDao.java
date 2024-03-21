@@ -3,7 +3,9 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
@@ -60,6 +62,17 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         return CollectionUtils.isEmpty(query) ? null : query.get(0);
     }
 
+    public List<MhaDbMappingTbl> queryByMhaIdAndDbIds(Long mhaId, List<Long> dbIds, Integer deleted) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds) || dbIds.stream().anyMatch(e -> !NumberUtils.isPositive(e)) || mhaId == null || mhaId == 0L) {
+            throw new IllegalArgumentException("dbId,mhaId is null or 0");
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(DB_ID, dbIds, Types.BIGINT).
+                and().equal(MHA_ID, mhaId, Types.BIGINT).
+                and().equalNullable(DELETED, deleted, Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
     public List<MhaDbMappingTbl> queryByDbIdsAndMhaIds(List<Long> dbIds, List<Long> mhaIds) throws SQLException {
         if (CollectionUtils.isEmpty(dbIds) || CollectionUtils.isEmpty(mhaIds)) {
             return Collections.emptyList();
@@ -68,6 +81,17 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         sqlBuilder.and().
                 and().in(MHA_ID, mhaIds, Types.BIGINT).
                 and().in(DB_ID, dbIds, Types.BIGINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<MhaDbMappingTbl> queryByDbIdsOrMhaIds(List<Long> dbIds, List<Long> mhaIds) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds) && CollectionUtils.isEmpty(mhaIds)) {
+            return Collections.emptyList();
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().
+                and().inNullable(MHA_ID, mhaIds, Types.BIGINT).
+                and().inNullable(DB_ID, dbIds, Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
     }
 
@@ -96,5 +120,15 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(DB_ID, dbIds, Types.BIGINT);
         return queryList(sqlBuilder);
+    }
+
+    public void batchInsertWithReturnId(List<MhaDbMappingTbl> mhaDbMappingTbls) throws SQLException {
+        KeyHolder keyHolder = new KeyHolder();
+        insertWithKeyHolder(keyHolder, mhaDbMappingTbls);
+        List<Number> idList = keyHolder.getIdList();
+        int size = mhaDbMappingTbls.size();
+        for (int i = 0; i < size; i++) {
+            mhaDbMappingTbls.get(i).setId((Long) idList.get(i));
+        }
     }
 }

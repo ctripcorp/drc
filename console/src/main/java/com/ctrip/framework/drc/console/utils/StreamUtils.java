@@ -27,5 +27,7 @@ public class StreamUtils {
     public static MultiKey getKey(MhaDbReplicationDto e) {
         return new MultiKey(e.getSrc().getMhaDbMappingId(), e.getDst().getMhaDbMappingId(), e.getReplicationType());
     }
-
+    public static MultiKey getReverseKey(MhaDbReplicationTbl e) {
+        return new MultiKey(e.getDstMhaDbMappingId(), e.getSrcMhaDbMappingId(), e.getReplicationType());
+    }
 }

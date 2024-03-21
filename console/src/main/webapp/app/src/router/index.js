@@ -130,6 +130,10 @@ const routes = [
     component: () => import('../views/v2/meta/mhaReplications.vue')
   },
   {
+    path: '/v2/mhaDbReplications',
+    component: () => import('../views/v2/meta/mhaDbReplications.vue')
+  },
+  {
     path: '/v2/mhaReplicationDetails',
     component: () => import('../views/v2/meta/mhaReplicationDetails.vue')
   },
@@ -195,6 +199,11 @@ const routes = [
     component: () => import('../views/v2/meta/dbDrcBuild.vue')
   },
   {
+    path: '/v2/dbDrcBuildV2',
+    name: 'v2/dbDrcBuildV2',
+    component: () => import('../views/v2/meta/dbDrcBuildV2.vue')
+  },
+  {
     path: '/conflictLog',
     name: 'conflictLog',
     component: () => import('../views/log/conflictLog.vue')
@@ -215,6 +224,11 @@ const routes = [
     component: () => import('../views/log/conflictApproval.vue')
   },
   {
+    path: '/dbBlacklist',
+    name: 'dbBlacklist',
+    component: () => import('../views/log/dbBlacklist.vue')
+  },
+  {
     path: '/conflictRowsLogDetail',
     name: 'conflictRowsLogDetail',
     component: () => import('../views/log/conflictRowsLogDetail.vue')
@@ -223,6 +237,21 @@ const routes = [
     path: '/nopermission',
     name: 'nopermission',
     component: () => import('../views/nopermission.vue')
+  },
+  {
+    path: '/applicationForm',
+    name: 'applicationForm',
+    component: () => import('../views/v2/application/applicationForm.vue')
+  },
+  {
+    path: '/applicationBuild',
+    name: 'applicationBuild',
+    component: () => import('../views/v2/application/applicationBuild.vue')
+  },
+  {
+    path: '/drcBuild',
+    name: 'applicationBuild',
+    component: () => import('../views/v2/application/drcBuild.vue')
   },
   {
     path: '/',

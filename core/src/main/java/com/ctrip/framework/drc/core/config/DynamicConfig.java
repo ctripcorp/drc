@@ -104,4 +104,5 @@ public class DynamicConfig extends AbstractConfigBean {
     public int getCmNotifyThread() {
         return getIntProperty(CM_NOTIFY_THREAD, 50);
     }
+    
 }

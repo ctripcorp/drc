@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.console.monitor.gtid.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
-import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
+import com.ctrip.framework.drc.console.monitor.CurrentDstMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtid;
@@ -41,7 +41,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
 
     @Autowired private CacheMetaService cacheMetaService;
 
-    @Autowired private DefaultCurrentMetaManager currentMetaManager;
+    @Autowired private CurrentDstMetaManager currentDstMetaManager;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -55,7 +55,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     @Override
     public void initialize() {
         super.initialize();
-        currentMetaManager.addObserver(this);
+        currentDstMetaManager.addObserver(this);
     }
 
     @Override

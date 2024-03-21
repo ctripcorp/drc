@@ -13,24 +13,28 @@ import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapperV2;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTxTableIntersectionGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.Date;
@@ -43,7 +47,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.*;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_TRANSACTION_TABLE_NAME_PREFIX;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 import static com.ctrip.framework.drc.core.service.utils.Constants.DRC_MONITOR_SCHEMA_TABLE;
 
 /**
@@ -58,7 +62,7 @@ public class MySqlUtils {
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
-    private static Map<Endpoint, WriteSqlOperatorWrapper> writeSqlOperatorMapper = new HashMap<>();
+    private static Map<Endpoint, WriteSqlOperatorWrapperV2> writeSqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
@@ -112,10 +116,12 @@ public class MySqlUtils {
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
+    private static final String SELECT_DB_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "select * from drcmonitordb.dly_${dbName} WHERE (CASE JSON_VALID(delay_info) WHEN TRUE THEN JSON_EXTRACT(delay_info, \"$.m\") ELSE NULL END) = ? order by datachange_lasttime desc limit 1";
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = '%s' AND `table_name` = '%s' and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
+    private static final String GET_TABLE_COLUMN_SQL = "select table_schema, table_name, column_name from information_schema.columns where table_schema in (%s)";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
     private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like '%on update%';";
@@ -274,6 +280,44 @@ public class MySqlUtils {
         return null;
     }
 
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public static Map<String, Long> getDbDelayUpdateTime(Endpoint endpoint, String mha, List<String> dbNames) {
+        Set<String> dbs = getDbHasDrcMonitorTables(endpoint);
+        if (dbs == null) {
+            return null;
+        }
+        // param filter for sql injection
+        List<String> dbsToQuery = dbNames.stream().filter(dbs::contains).collect(Collectors.toList());
+        List<String> list = Lists.newArrayList();
+        for (String s : dbsToQuery) {
+            list.add("(" + SELECT_DB_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL.replace("${dbName}", s) + ")");
+        }
+        String join = String.join("union", list);
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(join)) {
+                for (int i = 1; i <= list.size(); i++) {
+                    statement.setString(i, mha);
+                }
+                Map<String, Long> ret = new HashMap<>();
+                try (ResultSet rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        String delayInfoJson = rs.getString(2);
+                        String datachangeLasttimeStr = rs.getString(3);
+                        DbDelayDto.DelayInfo delayInfo = DbDelayDto.DelayInfo.parse(delayInfoJson);
+                        String dbName = delayInfo.getB();
+                        ret.put(dbName, dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime());
+                    }
+                    return ret;
+                }
+            }
+        } catch (SQLException | ParseException e) {
+            logger.error("[[endpoint={}:{}]] getDelay({}) error: {}", endpoint.getHost(), endpoint.getPort(), mha, e);
+            removeSqlOperator(endpoint);
+        }
+        return null;
+    }
+
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public static Long getCurrentTime(Endpoint endpoint) {
@@ -389,6 +433,36 @@ public class MySqlUtils {
         return table2ColumnsMap;
     }
 
+    // column use lowerCase
+    public static Map<String, Set<String>> getAllColumns(Endpoint endpoint, List<String> dbNames, Boolean removeSqlOperator) {
+        List<String> dbList = dbNames.stream().map(e -> toStringVal(e)).collect(Collectors.toList());
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(GET_TABLE_COLUMN_SQL, Joiner.on(",").join(dbList));
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while (rs.next()) {
+                String tableName = rs.getString(1) + "." + rs.getString(2);
+                String column = rs.getString(3).toLowerCase();
+                table2ColumnsMap.computeIfAbsent(tableName, k -> new HashSet<>()).add(column);
+            }
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+        if (removeSqlOperator) {
+            removeSqlOperator(endpoint);
+        }
+        return table2ColumnsMap;
+    }
+
     public static Set<String> getAllCommonColumns(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint, aviatorRegexFilter);
         Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, false);
@@ -404,6 +478,17 @@ public class MySqlUtils {
             }
         }
         return commonColumns;
+    }
+
+    /**
+     * key: db.table, values: columns
+     */
+    public static Map<String, Set<String>> getTableColumns(Endpoint endpoint, String dbFilter) {
+        List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(dbFilter));
+        List<String> dbNames = tablesAfterFilter.stream().map(TableSchemaName::getSchema).collect(Collectors.toList());
+        List<String> tableNames = tablesAfterFilter.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList());
+        Map<String, Set<String>> tableColumns = getAllColumns(endpoint, dbNames, false);
+        return tableColumns.entrySet().stream().filter(entry -> tableNames.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     protected static String filterStmt(String roughStmt, Endpoint endpoint, String table) {
@@ -550,7 +635,7 @@ public class MySqlUtils {
     public static String getUuid(Endpoint endpoint, boolean master) throws SQLException {
         return getUuid(endpoint.getHost(), endpoint.getPort(), endpoint.getUser(), endpoint.getPassword(), master);
     }
-    
+
     public static String getUuid(String ip, int port, String user, String password, boolean master) throws SQLException {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
@@ -623,29 +708,35 @@ public class MySqlUtils {
         }
     }
 
-    public static void removeWriteSqlOperator(Endpoint endpoint, int accountType) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
-        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
-            writeSqlOperatorWrapper = writeSqlOperatorMapper.remove(endpoint);
-        } else {
-            writeSqlOperatorWrapper = sqlOperatorMapper.remove(endpoint);
-        }
-
-        if (writeSqlOperatorWrapper != null) {
+    public static void removeWriteSqlOperator(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperator = sqlOperatorMapper.remove(endpoint);
+        if (sqlOperator != null) {
             try {
-                writeSqlOperatorWrapper.stop();
-                writeSqlOperatorWrapper.dispose();
+                sqlOperator.stop();
+                sqlOperator.dispose();
             } catch (Exception e) {
                 logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
             }
         }
     }
 
-    private static WriteSqlOperatorWrapper getWriteSqlOperatorWrapper(Endpoint endpoint) {
+    public static void removeWriteSqlOperatorV2(Endpoint endpoint) {
+        WriteSqlOperatorWrapperV2 sqlOperator = writeSqlOperatorMapper.remove(endpoint);
+        if (sqlOperator != null) {
+            try {
+                sqlOperator.stop();
+                sqlOperator.dispose();
+            } catch (Exception e) {
+                logger.error("[[monitor=tableConsistency,endpoint={}:{}]] MySqlUtils writeSqlOperatorWrapper stop and dispose: ", endpoint.getHost(), endpoint.getPort(), e);
+            }
+        }
+    }
+
+    private static WriteSqlOperatorWrapperV2 getWriteSqlOperatorWrapper(Endpoint endpoint) {
         if (writeSqlOperatorMapper.containsKey(endpoint)) {
             return writeSqlOperatorMapper.get(endpoint);
         } else {
-            WriteSqlOperatorWrapper sqlOperatorWrapper = new WriteSqlOperatorWrapper(endpoint);
+            WriteSqlOperatorWrapperV2 sqlOperatorWrapper = new WriteSqlOperatorWrapperV2(endpoint);
             try {
                 sqlOperatorWrapper.initialize();
                 sqlOperatorWrapper.start();
@@ -708,7 +799,7 @@ public class MySqlUtils {
             List<String> dbNamesInDrcTxTable = getDbNamesInDrcTxTable(endpoint);
             HashMap<String, String> map = Maps.newHashMap();
             for (String dbName : dbNamesInDrcTxTable) {
-                String gtid = new DbTxTableIntersectionGtidReader(endpoint, dbName).getExecutedGtids(connection);
+                String gtid = new DbTransactionTableGtidReader(endpoint, dbName).getExecutedGtids(connection);
                 map.put(dbName, gtid);
             }
             return map;
@@ -982,29 +1073,46 @@ public class MySqlUtils {
         return dbs;
     }
 
+
+    /**
+     * @return null if error
+     */
+    public static Set<String> getDbHasDrcMonitorTables(Endpoint endpoint) {
+        List<String> tablesFromDb = getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
+        if (tablesFromDb == null) {
+            return null;
+        }
+        return getDbHasDrcMonitorTables(tablesFromDb);
+    }
+
+    public static Set<String> getDbHasDrcMonitorTables(List<String> tablesFromDb) {
+        if (CollectionUtils.isEmpty(tablesFromDb)) {
+            return Collections.emptySet();
+        }
+        Set<String> db1 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX))
+                .map(e -> e.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
+        Set<String> db2 = tablesFromDb.stream().filter(e -> e.startsWith(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX))
+                .map(e -> e.substring(DRC_DB_TRANSACTION_TABLE_NAME_PREFIX.length()).toLowerCase()).collect(Collectors.toSet());
+        // intersection
+        db1.retainAll(db2);
+        return db1;
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public static List<String> getTablesFromDb(Endpoint endpoint, String dbName) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        ReadResource readResource = null;
-        try {
-
-            String sql = String.format("show tables from %s", dbName);
-            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-            readResource = sqlOperatorWrapper.select(execution);
-            ResultSet resultSet = readResource.getResultSet();
+        String sql = String.format("show tables from %s", dbName);
+        try (ReadResource readResource = sqlOperatorWrapper.select(new GeneralSingleExecution(sql));
+             ResultSet resultSet = readResource.getResultSet();) {
             List<String> tables = Lists.newArrayList();
-
             while (resultSet.next()) {
                 tables.add(resultSet.getString(1));
             }
             return tables;
-        } catch(Throwable t) {
-            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTablesFromDb error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
-            throw ConsoleExceptionUtils.message(t.getMessage());
-        } finally {
-            if(readResource != null) {
-                readResource.close();
-            }
+            return null;
         }
     }
 
@@ -1058,23 +1166,64 @@ public class MySqlUtils {
         }
     }
 
-    public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper;
-        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
-            writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
-        } else {
-            writeSqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        }
 
+    public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
+        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+            return writeV2(endpoint, sql, true);
+        } else {
+            return write(endpoint, sql);
+        }
+    }
+
+    /**
+     * drc_console
+     */
+    public static StatementExecutorResult write(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return sqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperator(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        }
+    }
+
+    /**
+     * drc_write
+     */
+    public static StatementExecutorResult writeV2(Endpoint endpoint, String sql) {
+        WriteSqlOperatorWrapperV2 writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
         try {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             return writeSqlOperatorWrapper.writeWithResult(execution);
         } catch (Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
-            removeWriteSqlOperator(endpoint, accountType);
+            removeWriteSqlOperatorV2(endpoint);
             return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
         }
     }
+
+    /**
+     * drc_write
+     */
+    public static StatementExecutorResult writeV2(Endpoint endpoint, String sql, boolean remove) {
+        WriteSqlOperatorWrapperV2 writeSqlOperatorWrapper = getWriteSqlOperatorWrapper(endpoint);
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            return writeSqlOperatorWrapper.writeWithResult(execution);
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] write error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeWriteSqlOperatorV2(endpoint);
+            return new StatementExecutorResult(SqlResultEnum.FAIL.getCode(), t.getMessage());
+        } finally {
+            if (remove) {
+                removeWriteSqlOperatorV2(endpoint);
+            }
+        }
+    }
+
 
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();

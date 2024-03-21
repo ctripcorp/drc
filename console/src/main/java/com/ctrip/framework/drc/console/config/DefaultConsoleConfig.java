@@ -81,6 +81,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sin,ali";
     private static String CENTER_REGION = "console.center.region";
     private static String DEFAULT_CENTER_REGION = "sha";
+    private static String DRC_CENTER_IDC = "drc.center.idc";
 
     private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
     private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
@@ -108,17 +109,26 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_DB_APPLIER_CONFIG_SWITCH = "meta.db.applier.config.switch";
     private static String META_DB_APPLIER_CONFIG_SWITCH_KEY = META_DB_APPLIER_CONFIG_SWITCH + ".%s";
     private static String META_REALTIME_SWITCH = "meta.realtime";
-    
-    private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.black.list.auto.add.switch";
-    private static String DBA_CFL_BLACK_LIST_CLEAR_SWITCH = "dba.cfl.black.list.clear.switch";
+
+    private static final String CONFLICT_LOG_RECORD_SWITCH = "conflict.log.record.switch";
+    private static String CFL_BLACK_LIST_AUTO_ADD_SWITCH = "cfl.blacklist.new.config.clear.switch"; // auto add must auto clear
     private static String CONFLICT_DB_OWNER_APPROVAL_SWITCH = "conflict.db.owner.approval.switch";
-    private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conlict.log.query.time.interval";
+    private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conflict.log.query.time.interval";
+    private static String TABLE_STRUCTURE_CHECK_SWITCH = "table.structure.check.switch";
+    private static String DB_REPLICATION_CONSISTENCY_CHECK_SWITCH = "db.replication.consistency.check.switch";
+
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
     
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
     private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
+
+    private static final long DEFAULT_REPLICATOR_SIZE = 20;
+    private static final String REPLICATOR_MAX_SIZE = "replicator.max.size";
+
+    private static final String DRC_CONFIG_APPLICATION_SWITCH = "drc.config.application.swtich";
+
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -134,6 +144,14 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public Map<String,Set<String>> getRegion2dcsMapping(){
         return regionConfig.getRegion2dcsMapping();
+    }
+
+    public List<String> getCenterRegionDcs() {
+        String idcStr = getProperty(DRC_CENTER_IDC, "");
+        if (StringUtils.isBlank(idcStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(idcStr.split(","));
     }
 
     public Map<String,String> getDc2regionMap (){
@@ -511,14 +529,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getBooleanProperty("config.check.switch", true);
     }
 
-    public boolean getCflBlackListAutoAddSwitch() {
-        return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
-    }
-
-    public boolean getDBACflBlackListClearSwitch() {
-        return getBooleanProperty(DBA_CFL_BLACK_LIST_CLEAR_SWITCH, false);
-    }
-
     public boolean getConflictDbOwnerApprovalSwitch() {
         return getBooleanProperty(CONFLICT_DB_OWNER_APPROVAL_SWITCH, false);
     }
@@ -534,5 +544,28 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getOperationLogSwitch() {
         return getBooleanProperty(OPERATION_LOG_SWITCH,false);
     }
+
+    public long getReplicatorMaxSize() {
+        return getLongProperty(REPLICATOR_MAX_SIZE, DEFAULT_REPLICATOR_SIZE);
+    }
     
+    public boolean getCflBlackListAutoAddSwitch() {
+        return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
+    }
+
+    public boolean getTableStructureCheckSwitch() {
+        return getBooleanProperty(TABLE_STRUCTURE_CHECK_SWITCH, true);
+    }
+
+    public boolean getConflictLogRecordSwitch() {
+        return getBooleanProperty(CONFLICT_LOG_RECORD_SWITCH, true);
+    }
+
+    public boolean getDrcConfigApplicationSwitch() {
+        return getBooleanProperty(DRC_CONFIG_APPLICATION_SWITCH, true);
+    }
+
+    public boolean getDbReplicationConsistencyCheckSwitch() {
+        return getBooleanProperty(DB_REPLICATION_CONSISTENCY_CHECK_SWITCH, true);
+    }
 }

@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -29,6 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,11 +93,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
             for(DbCluster dbCluster :  localDbClusters) {
                 String localMhaName = dbCluster.getMhaName();
                 for (Applier applier : dbCluster.getAppliers()) {
-                    String remoteDc = applier.getTargetIdc();
-                    String remoteCluster = applier.getTargetName();
-                    String remoteMha = applier.getTargetMhaName();
-                    String remoteDbClusterId = remoteCluster + "." + remoteMha;
-                    DbCluster remoteDbCluster = drc.findDc(remoteDc).findDbCluster(remoteDbClusterId);
+                    DbCluster remoteDbCluster = getRemoteDbCluster(drc, applier);
                     List<Db> dbList = remoteDbCluster.getDbs().getDbs();
                     for (Db db : dbList) {
                         // ali dc uuid is not only
@@ -114,9 +113,62 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         return uuidMap;
     }
 
+
+    /**
+     * dcNames: dcs in local region
+     * key: local Mha
+     * value: master db's uuid set which are not in local dc, i.e. all potential uuids which will be copied into local mha
+     */
+    @Override
+    public Map<String, Map<String, Set<String>>> getMhaDbUuidsMap(Set<String> dcNames, Drc drc) {
+        Map<String, Map<String, Set<String>>> MhaDbUUidMap = Maps.newHashMap();
+        for (String localDcName : dcNames) {
+            List<DbCluster> localDbClusters = Lists.newArrayList(drc.findDc(localDcName).getDbClusters().values());
+
+            for (DbCluster dbCluster : localDbClusters) {
+                String localMhaName = dbCluster.getMhaName();
+                List<Applier> appliers = dbCluster.getAppliers().stream()
+                        .filter(e -> e.getApplyMode() != null && e.getApplyMode() == ApplyMode.db_transaction_table.getType())
+                        .collect(Collectors.toList());
+                for (Applier applier : appliers) {
+                    DbCluster remoteDbCluster = getRemoteDbCluster(drc, applier);
+                    List<Db> remoteDbs = remoteDbCluster.getDbs().getDbs();
+                    String dbName = applier.getIncludedDbs();
+                    Map<String, Set<String>> dbUuidMap = MhaDbUUidMap.computeIfAbsent(localMhaName, k -> Maps.newHashMap());
+                    for (Db db : remoteDbs) {
+                        // ali dc uuid is not only
+                        String[] uuids = db.getUuid().split(",");
+                        for (String uuid : uuids) {
+                            dbUuidMap.computeIfAbsent(dbName, k -> Sets.newHashSet()).add(uuid);
+                        }
+                    }
+                }
+            }
+        }
+        return MhaDbUUidMap;
+    }
+
+    private static DbCluster getRemoteDbCluster(Drc drc, Applier applier) {
+        String remoteDc = applier.getTargetIdc();
+        String remoteCluster = applier.getTargetName();
+        String remoteMha = applier.getTargetMhaName();
+        String remoteDbClusterId = remoteCluster + "." + remoteMha;
+        return drc.findDc(remoteDc).findDbCluster(remoteDbClusterId);
+    }
+
     @Override
     public MonitorMetaInfo getMonitorMetaInfo() throws SQLException {
         List<String> mhaNamesToBeMonitored = monitorServiceV2.getMhaNamesToBeMonitored();
+        return getMonitorMetaInfo(Sets.newHashSet(mhaNamesToBeMonitored));
+    }
+
+    @Override
+    public MonitorMetaInfo getDstMonitorMetaInfo() throws SQLException {
+        List<String> mhaNamesToBeMonitored = monitorServiceV2.getDestMhaNamesToBeMonitored();
+        return getMonitorMetaInfo(Sets.newHashSet(mhaNamesToBeMonitored));
+    }
+
+    private MonitorMetaInfo getMonitorMetaInfo(Set<String> mhaNamesToBeMonitored) {
         MonitorMetaInfo monitorMetaInfo = new MonitorMetaInfo();
         Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint = Maps.newConcurrentMap();
         Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint= Maps.newConcurrentMap();
@@ -129,7 +181,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
             Drc drc = metaProviderV2.getDrc();
             if(drc == null) {
                 logger.info("[getMonitorMetaInfo] return drc null");
-                return null;
+                throw new RuntimeException("get drc fail");
             }
             for(Dc dc : drc.getDcs().values()) {
                 for(DbCluster dbCluster : dc.getDbClusters().values()) {
@@ -177,7 +229,8 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                 }
             }
         } catch (Exception e) {
-            logger.error("Fail get master replicator endpoint, ", e);
+            logger.error("getMonitorMetaInfo fail:{} ", e.getMessage());
+            throw e;
         }
         return monitorMetaInfo;
     }
@@ -219,6 +272,24 @@ public class CacheMetaServiceImpl implements CacheMetaService {
             }
         }
         return null;
+    }
+    
+    @Override
+    public Set<String> getSrcMhasShouldMonitor(String dbClusterId, String srcRegion) {
+        Set<String> res = Sets.newHashSet();
+        DbCluster dbCluster = metaProviderV2.getDcBy(dbClusterId).findDbCluster(dbClusterId);
+        dbCluster.getAppliers().forEach(applier -> {
+            if(applier.getTargetRegion().equalsIgnoreCase(srcRegion)) {
+                res.add(applier.getTargetMhaName());
+            }
+        });
+        return res;
+    }
+
+    @Override
+    public boolean refreshMetaCache() {
+        metaProviderV2.scheduledTask();
+        return true;
     }
 
     public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {

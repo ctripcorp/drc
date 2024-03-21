@@ -67,10 +67,10 @@
                 </dbs>
                 <replicator ip="10.1.3.3" port="8080" applierPort="8383" gtidSkip="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true"/>
                 <replicator ip="10.1.3.4" port="8080" applierPort="8383" gtidSkip="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false"/>
-                <applier ip="10.1.4.3" port="8080" targetIdc="dc1" targetMhaName="mha3dc1" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="" applyMode="0"/>
-                <applier ip="10.1.4.4" port="8080" targetIdc="dc1" targetMhaName="mha3dc1" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false" includedDbs="" applyMode="0"/>
-                <applier ip="10.1.4.3" port="8080" targetIdc="dc3" targetMhaName="mha3dc3" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="" applyMode="0"/>
-                <applier ip="10.1.4.4" port="8080" targetIdc="dc3" targetMhaName="mha3dc3" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false" includedDbs="" applyMode="0"/>
+                <applier ip="10.1.4.3" port="8080" targetIdc="dc1" targetRegion="region1" targetMhaName="mha3dc1" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="" applyMode="0"/>
+                <applier ip="10.1.4.4" port="8080" targetIdc="dc1" targetRegion="region1" targetMhaName="mha3dc1" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false" includedDbs="" applyMode="0"/>
+                <applier ip="10.1.4.3" port="8080" targetIdc="dc3" targetRegion="region1" targetMhaName="mha3dc3" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="" applyMode="0"/>
+                <applier ip="10.1.4.4" port="8080" targetIdc="dc3" targetRegion="region1" targetMhaName="mha3dc3" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false" includedDbs="" applyMode="0"/>
             </dbCluster>
         </dbClusters>
     </dc>
@@ -87,6 +87,8 @@
                 <replicator ip="10.2.3.4" port="8080" applierPort="8383" gtidSkip="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false"/>
                 <applier ip="10.2.4.3" port="8080" targetIdc="dc2" targetMhaName="mha3dc2" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="" applyMode="0"/>
                 <applier ip="10.2.4.4" port="8080" targetIdc="dc2" targetMhaName="mha3dc2" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="false" includedDbs="" applyMode="0"/>
+                <applier ip="10.2.4.3" port="8080" targetIdc="dc1" targetMhaName="mha3dc1" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="db1" applyMode="3"/>
+                <applier ip="10.2.4.4" port="8080" targetIdc="dc1" targetMhaName="mha3dc1" targetName="dbcluster2" gtidExecuted="12345678-1234-abcd-abcd-123456789abc:1-100,22345678-1234-abcd-abcd-123456789abc:1-50" master="true" includedDbs="db2" applyMode="3"/>
             </dbCluster>
         </dbClusters>
     </dc>

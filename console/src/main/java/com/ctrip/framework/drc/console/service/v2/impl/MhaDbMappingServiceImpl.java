@@ -8,13 +8,20 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaQuery;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.framework.drc.console.utils.NumberUtils;
+import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.google.common.collect.Lists;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +31,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 /**
@@ -45,8 +53,13 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private MetaInfoServiceV2 metaInfoServiceV2;
+    @Autowired
+    private DbaApiService dbaApiService;
 
     private static final String DRC = "drc";
+    private static final String DAL_CLUSTER = "_dalcluster";
 
     @Override
     public Pair<List<String>, List<String>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
@@ -64,7 +77,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     }
 
     @Override
-    public void buildMhaDbMappings(String mhaName,List<String> dbList) throws SQLException {
+    public void buildMhaDbMappings(String mhaName, List<String> dbList) throws SQLException {
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         insertDbs(dbList);
 
@@ -94,6 +107,34 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         insertMhaDbMappings(dstMha.getId(), dstDbList);
 
         return Pair.of(srcDbList, srcTableList);
+    }
+
+    @Override
+    public Pair<List<MhaDbMappingTbl>, List<MhaDbMappingTbl>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> dbNames) throws SQLException {
+        String nameFilter = String.join(",", dbNames);
+        List<String> srcDbList = mysqlServiceV2.queryDbsWithNameFilter(srcMha.getMhaName(), nameFilter);
+        List<String> dstDbList = mysqlServiceV2.queryDbsWithNameFilter(dstMha.getMhaName(), nameFilter);
+        if (CollectionUtils.isEmpty(srcDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for srcMha: "+srcMha.getMhaName());
+        }
+        if (CollectionUtils.isEmpty(dstDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for dstMha: "+dstMha.getMhaName());
+        }
+        if (!CommonUtils.isSameList(srcDbList, dbNames)) {
+            logger.error("insertMhaDbMappings srcDb, givenDbs is not same, srcDbList: {}, given dbs: {}", srcDbList, dbNames);
+            throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");
+        }
+        if (!CommonUtils.isSameList(srcDbList, dstDbList)) {
+            logger.error("insertMhaDbMappings srcDb dstDb is not same, srcDbList: {}, dstDbList: {}", srcDbList, dstDbList);
+            throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");
+        }
+
+        this.insertDbs(srcDbList);
+
+        //insertMhaDbMappings
+        List<MhaDbMappingTbl> srcMappingTbl = this.insertOrRecoverMhaDbMappings(srcMha.getId(), srcDbList);
+        List<MhaDbMappingTbl> dstMappingTbl = this.insertOrRecoverMhaDbMappings(dstMha.getId(), dstDbList);
+        return Pair.of(srcMappingTbl,dstMappingTbl);
     }
 
     private Pair<List<String>, List<String>> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
@@ -178,6 +219,47 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         mhaDbMappingTblDao.batchInsert(insertDbMappingTbls);
     }
 
+    private List<MhaDbMappingTbl> insertOrRecoverMhaDbMappings(long mhaId, List<String> dbList) throws SQLException {
+        if (CollectionUtils.isEmpty(dbList)) {
+            logger.warn("dbList is empty, mhaId: {}", mhaId);
+            return Collections.emptyList();
+        }
+        List<DbTbl> dbTblList = dbTblDao.queryByDbNames(dbList);
+        Map<String, Long> dbNameToIdMap = dbTblList.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+        List<MhaDbMappingTbl> existTbls = mhaDbMappingTblDao.queryByMhaIdAndDbIds(mhaId, Lists.newArrayList(dbNameToIdMap.values()), null);
+        Map<Long, MhaDbMappingTbl> dbIdToExistMappingTblMap = existTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, e -> e));
+
+        List<MhaDbMappingTbl> insertDbMappingTbls = new ArrayList<>();
+        List<MhaDbMappingTbl> updateDbMappingTbls = new ArrayList<>();
+        List<MhaDbMappingTbl> finalDbMappingTbls = new ArrayList<>();
+        for (String dbName : dbList) {
+            long dbId = dbNameToIdMap.get(dbName);
+            if (dbIdToExistMappingTblMap.containsKey(dbId)) {
+                MhaDbMappingTbl existMhaDbMappingTbl = dbIdToExistMappingTblMap.get(dbId);
+                if (BooleanEnum.TRUE.getCode().equals(existMhaDbMappingTbl.getDeleted())) {
+                    existMhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                    updateDbMappingTbls.add(existMhaDbMappingTbl);
+                }
+                finalDbMappingTbls.add(existMhaDbMappingTbl);
+            } else {
+                MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
+                mhaDbMappingTbl.setMhaId(mhaId);
+                mhaDbMappingTbl.setDbId(dbId);
+                mhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                insertDbMappingTbls.add(mhaDbMappingTbl);
+                finalDbMappingTbls.add(mhaDbMappingTbl);
+            }
+        }
+
+
+
+        logger.info("insertDbMappingTbls: {}", insertDbMappingTbls);
+        mhaDbMappingTblDao.batchInsertWithReturnId(insertDbMappingTbls);
+        logger.info("batchUpdate: {}", updateDbMappingTbls);
+        mhaDbMappingTblDao.batchUpdate(updateDbMappingTbls);
+        return finalDbMappingTbls;
+    }
+
     @Override
     public void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException {
         List<MhaDbMappingTbl> exist = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
@@ -193,6 +275,51 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
             int[] ints = mhaDbMappingTblDao.batchInsert(toBeInsert);
             logger.info("copyMhaDbMappings from :{},expected size: {} ,res:{}",
                     newMhaTbl.getMhaName(), toBeInsert.size(), Arrays.stream(ints).sum());
+        }
+    }
+
+
+    @Override
+    public List<MhaDbMappingTbl> query(MhaDbQueryDto query) {
+        try {
+            // mha id
+            List<Long> mhaIds = Lists.newArrayList();
+            List<Long> dbIds = Lists.newArrayList();
+            if (query.hasMhaCondition()) {
+                MhaQuery mhaQuery = new MhaQuery();
+                mhaQuery.setContainMhaName(query.getMhaName());
+                if (NumberUtils.isPositive(query.getRegionId())) {
+                    List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
+                    List<Long> dcIdList = dcDos.stream()
+                            .filter(e -> query.getRegionId().equals(e.getRegionId()))
+                            .map(DcDo::getDcId)
+                            .collect(Collectors.toList());
+                    if (CollectionUtils.isEmpty(dcIdList)) {
+                        return Collections.emptyList();
+                    }
+                    mhaQuery.setDcIdList(dcIdList);
+                }
+
+                if (mhaQuery.emptyQueryCondition()) {
+                    return Collections.emptyList();
+                }
+                mhaIds = mhaTblV2Dao.query(mhaQuery)
+                        .stream().map(MhaTblV2::getId).collect(Collectors.toList());
+                if(CollectionUtils.isEmpty(mhaIds)){
+                    return Collections.emptyList();
+                }
+            }
+            if (query.hasDbCondition()) {
+                dbIds = dbTblDao.queryByLikeDbNamesOrBuCode(query.getDbName(), query.getBuCode())
+                        .stream().map(DbTbl::getId).collect(Collectors.toList());
+                if(CollectionUtils.isEmpty(dbIds)){
+                    return Collections.emptyList();
+                }
+            }
+            return mhaDbMappingTblDao.queryByDbIdsOrMhaIds(dbIds, mhaIds);
+        } catch (SQLException e) {
+            logger.error("queryMhaByName exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
 
@@ -245,6 +372,26 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
             return Pair.of(dbTblsTobeDeleted.size(), 0);
         }
         return Pair.of(0, 0);
+    }
+
+    @Override
+    public ConfigDbView configEmailGroupForDb(String dalCluster, String emailGroup) throws Exception {
+        List<String> dbNames;
+        if (dalCluster.endsWith(DAL_CLUSTER)) {
+            List<DbClusterInfoDto> list = dbaApiService.getDatabaseClusterInfoList(dalCluster);
+            if (CollectionUtils.isEmpty(list)) {
+                return new ConfigDbView();
+            }
+            dbNames = list.stream().map(DbClusterInfoDto::getDbName).distinct().collect(Collectors.toList());
+        } else {
+            dbNames = Lists.newArrayList(dalCluster);
+        }
+
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
+        dbTbls.stream().forEach(tbl -> tbl.setEmailGroup(emailGroup));
+        dbTblDao.update(dbTbls);
+        List<String> dbList = dbTbls.stream().map(DbTbl::getDbName).collect(Collectors.toList());
+        return new ConfigDbView(dbList, dbList.size());
     }
 
     private List<MhaDbMappingTbl> copyFrom(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) {

@@ -13,10 +13,14 @@ import java.sql.SQLException;
  * @Author haodongPan
  * @Date 2023/8/14 11:48
  * @Version: $
+ * optimize to do:support db replication migrate;import status machine;
  */
 public interface DbMigrationService {
 
     boolean abandonTask(Long taskId) throws SQLException;
+
+    // cancel task in init / preStarted / preStarting status
+    boolean cancelTask(Long taskId) throws Exception;
 
     // return null when no dbDrcRelated
     // return taskId when task create; 

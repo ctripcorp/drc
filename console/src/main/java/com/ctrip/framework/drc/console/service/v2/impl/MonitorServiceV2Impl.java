@@ -7,11 +7,15 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.response.MhaNamesResponseVo;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +43,8 @@ public class MonitorServiceV2Impl implements MonitorServiceV2 {
 
     @Autowired private DefaultConsoleConfig consoleConfig;
 
+    @Autowired private MetaProviderV2 metaProviderV2;
+
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/monitor/mhaNames",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaNamesResponseVo.class)
@@ -56,6 +62,22 @@ public class MonitorServiceV2Impl implements MonitorServiceV2 {
         sample.setMonitorSwitch(1);
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryBy(sample);
         return mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/monitor/dstMhaNames",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaNamesResponseVo.class)
+    public List<String> getDestMhaNamesToBeMonitored() throws SQLException {
+        Set<String> mhaNamesToBeMonitored = Sets.newHashSet(this.getMhaNamesToBeMonitored());
+        Drc drc = metaProviderV2.getDrc();
+        if (drc == null) {
+            logger.info("[getMonitorMetaInfo] return drc null");
+            throw new RuntimeException("get drc fail");
+        }
+        return drc.getDcs().values().stream()
+                .flatMap(dc -> dc.getDbClusters().values().stream())
+                .filter(e -> e.getAppliers().stream().anyMatch(k -> mhaNamesToBeMonitored.contains(k.getTargetMhaName())))// src is monitored
+                .map(DbCluster::getMhaName) // get dest mha name
+                .distinct().collect(Collectors.toList());
     }
 
     @Override

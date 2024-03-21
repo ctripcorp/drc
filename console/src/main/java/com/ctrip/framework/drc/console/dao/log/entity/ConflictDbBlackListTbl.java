@@ -32,7 +32,7 @@ public class ConflictDbBlackListTbl {
     private String dbFilter;
 
     /**
-     * 黑名单类型，0-用户添加,1-DRC系统自动田间
+     * 黑名单类型，0-用户添加,1-DRC系统自动添加
      * default: 0
      */
     @Column(name = "type")
@@ -53,6 +53,13 @@ public class ConflictDbBlackListTbl {
     @Type(value = Types.TINYINT)
     private Integer deleted;
 
+    /**
+     * 过期时间
+     */
+    @Column(name = "expiration_time")
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp expirationTime;
+    
     /**
      * 创建时间
      */
@@ -106,5 +113,13 @@ public class ConflictDbBlackListTbl {
 
     public void setCreateTime(Timestamp createTime) {
         this.createTime = createTime;
+    }
+
+    public Timestamp getExpirationTime() {
+        return expirationTime;
+    }
+
+    public void setExpirationTime(Timestamp expirationTime) {
+        this.expirationTime = expirationTime;
     }
 }

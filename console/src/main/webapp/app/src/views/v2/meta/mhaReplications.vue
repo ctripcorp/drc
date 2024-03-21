@@ -14,7 +14,7 @@
               </Input>
             </Card>
           </Col>
-          <Col span="16">
+          <Col span="14">
             <Row :gutter=10 align="middle" v-show="preciseSearchMode">
               <Col span="12">
                 <Card :padding=5>
@@ -106,6 +106,19 @@
             <Card :padding=5>
               <template #title>同步状态</template>
               <Select filterable prefix="ios-pin" clearable v-model="drcStatus"
+                      placeholder="状态"
+                      @on-change="getReplications(1)">
+                <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
+                    item.status
+                  }}
+                </Option>
+              </Select>
+            </Card>
+          </Col>
+          <Col span="2">
+            <Card :padding=5>
+              <template #title>库粒度</template>
+              <Select filterable prefix="ios-pin" clearable v-model="dbDrcStatus"
                       placeholder="状态"
                       @on-change="getReplications(1)">
                 <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
@@ -304,6 +317,9 @@ export default {
                 text = '已接入'
                 color = 'blue'
               }
+            } else if (row.status === 2) {
+              text = '库粒度'
+              color = 'volcano'
             } else {
               text = '未接入'
               color = 'default'
@@ -453,6 +469,7 @@ export default {
       },
       dbNames: null,
       drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : null,
+      dbDrcStatus: this.$route.query.dbDrcStatus ? Number(this.$route.query.dbDrcStatus) : null,
       preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend
@@ -528,6 +545,7 @@ export default {
         regionId: null
       }
       this.drcStatus = null
+      this.dbDrcStatus = null
       this.dbNames = null
       this.getReplications(1)
     },
@@ -545,6 +563,7 @@ export default {
         params.relatedMha = this.relatedMha
       }
       params.drcStatus = this.drcStatus
+      params.dbDrcStatus = this.dbDrcStatus
       params.dbNames = this.dbNames
       const reqParam = this.flattenObj(params)
       that.dataLoading = true
@@ -819,6 +838,7 @@ export default {
             srcMhaName: this.srcMha.name,
             dstMhaName: this.dstMha.name,
             drcStatus: this.drcStatus,
+            dbDrcStatus: this.dbDrcStatus,
             preciseSearchMode: true
           }
           // eslint-disable-next-line handle-callback-err
@@ -828,6 +848,7 @@ export default {
           query: {
             mhaName: this.relatedMha.name,
             drcStatus: this.drcStatus,
+            dbDrcStatus: this.dbDrcStatus,
             preciseSearchMode: false
           }
           // eslint-disable-next-line handle-callback-err

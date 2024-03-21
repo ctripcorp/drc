@@ -18,11 +18,13 @@ public class BaseEndpointEntity extends BaseEntity {
 
     @NotNull(message = "port cannot be null")
     private int port;
+    private String dbName;
 
     public BaseEndpointEntity(Builder builder) {
         super(builder.clusterAppId, builder.buName, builder.dcName, builder.clusterName, builder.mhaName, builder.registryKey);
         this.ip = builder.ip;
         this.port = builder.port;
+        this.dbName = builder.dbName;
     }
 
     public static final class Builder {
@@ -34,6 +36,7 @@ public class BaseEndpointEntity extends BaseEntity {
         private String registryKey;
         private String ip;
         private int port;
+        private String dbName;
 
         public Builder() {}
 
@@ -77,6 +80,11 @@ public class BaseEndpointEntity extends BaseEntity {
             return this;
         }
 
+        public Builder dbName(String val) {
+            this.dbName = val;
+            return this;
+        }
+
         public BaseEndpointEntity build() {
             return new BaseEndpointEntity(this);
         }
@@ -88,6 +96,10 @@ public class BaseEndpointEntity extends BaseEntity {
 
     public int getPort() {
         return port;
+    }
+
+    public String getDbName() {
+        return dbName;
     }
 
     @Override

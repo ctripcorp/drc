@@ -102,7 +102,7 @@
 
 <script>
 import conflictRowsLogDetail from './conflictRowsLogDetail.vue'
-import { codemirror } from 'vue-codemirror'
+import codemirror from 'vue-codemirror'
 import 'codemirror/theme/ambiance.css'
 import 'codemirror/mode/sql/sql.js'
 
@@ -410,6 +410,16 @@ export default {
           this.logTableLoading = false
         })
     },
+    getWriteSide () {
+      this.axios.get('/api/drc/v2/log/approval/writeSide?approvalId=' + this.approvalId)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询写入region失败!')
+          } else {
+            this.writeSide = response.data.data
+          }
+        })
+    },
     getTrxRecords () {
       this.recordLoading = true
       this.axios.get('/api/drc/v2/log/conflict/records?conflictTrxLogId=' + this.conflictTrxLogId + '&columnSize=12')
@@ -503,6 +513,7 @@ export default {
     } else if (this.queryType === '2') {
       this.showExecute = this.$route.query.showExecute
       this.disabled = this.$route.query.disabled
+      this.getWriteSide()
       this.getTrxLogDetail2()
       this.getTrxRecords2()
       this.getHandleSql()

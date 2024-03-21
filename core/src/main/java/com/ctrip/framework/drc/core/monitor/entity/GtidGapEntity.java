@@ -23,6 +23,7 @@ public class GtidGapEntity extends BaseEndpointEntity {
                 .dcName(builder.dcName)
                 .clusterName(builder.clusterName)
                 .mhaName(builder.mha)
+                .dbName(builder.db)
                 .registryKey(builder.registryKey)
                 .ip(builder.mysqlIp)
                 .port(builder.mysqlPort)
@@ -40,6 +41,7 @@ public class GtidGapEntity extends BaseEndpointEntity {
         private String uuid;
         private String mha;
         private String registryKey;
+        private String db;
 
         public Builder() {}
 
@@ -85,6 +87,10 @@ public class GtidGapEntity extends BaseEndpointEntity {
 
         public Builder registryKey(String val) {
             this.registryKey = val;
+            return this;
+        }
+        public Builder db(String val) {
+            this.db = val;
             return this;
         }
 
@@ -136,6 +142,10 @@ public class GtidGapEntity extends BaseEndpointEntity {
             String uuid = getUuid();
             if(null != uuid) {
                 tags.put("uuid", uuid);
+            }
+            String db = getDbName();
+            if(null != db) {
+                tags.put("db", db);
             }
         }
         return tags;

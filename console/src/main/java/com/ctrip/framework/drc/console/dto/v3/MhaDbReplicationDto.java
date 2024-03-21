@@ -1,11 +1,19 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class MhaDbReplicationDto {
     private Long id;
     private MhaDbDto src;
     private MhaDbDto dst;
     private Integer replicationType;
     private Boolean drcStatus;
+    /**
+     * @see com.ctrip.framework.drc.console.enums.TransmissionTypeEnum
+     */
+    private String transmissionType;
+    private List<DbReplicationDto> dbReplicationDtos;
 
     public static final MhaDbDto MQ_DTO = new MhaDbDto(-1L, null, null);
 
@@ -47,6 +55,22 @@ public class MhaDbReplicationDto {
 
     public void setDrcStatus(Boolean drcStatus) {
         this.drcStatus = drcStatus;
+    }
+
+    public String getTransmissionType() {
+        return transmissionType;
+    }
+
+    public void setTransmissionType(String transmissionType) {
+        this.transmissionType = transmissionType;
+    }
+
+    public List<DbReplicationDto> getDbReplicationDtos() {
+        return dbReplicationDtos;
+    }
+
+    public void setDbReplicationDtos(List<DbReplicationDto> dbReplicationDtos) {
+        this.dbReplicationDtos = dbReplicationDtos;
     }
 
     @Override

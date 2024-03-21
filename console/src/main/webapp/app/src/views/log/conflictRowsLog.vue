@@ -105,6 +105,11 @@
           </template>
         </Dropdown>
       </Col>
+      <Col span="2" style="display: flex;float: left;margin: 5px">
+            <Button type="default" @click="dbBlacklist" icon="md-create">
+              冲突黑名单
+            </Button>
+      </Col>
     </Row>
     <Table border :columns="columns" :data="tableData" ref="multipleTable"
            @on-selection-change="changeSelection">
@@ -265,16 +270,16 @@ export default {
       dataLoading: false,
       countLoading: false,
       queryParam: {
-        srcRegion: null,
-        dstRegion: null,
-        dbName: null,
-        tableName: null,
+        srcRegion: this.$route.query.srcRegion,
+        dstRegion: this.$route.query.dstRegion,
+        dbName: this.$route.query.dbName,
+        tableName: this.$route.query.tableName,
+        rowResult: this.$route.query.rowResult ? Number(this.$route.query.rowResult) : null,
+        brief: this.$route.query.brief ? Number(this.$route.query.brief) : null,
         gtid: this.gtid,
-        beginHandleTime: this.beginHandleTime,
-        endHandleTime: this.endHandleTime,
-        likeSearch: false,
-        rowResult: null,
-        brief: null
+        likeSearch: this.$route.query.likeSearch === true || this.$route.query.likeSearch === 'true',
+        beginHandleTime: this.$route.query.beginTime ? new Date(Number(this.$route.query.beginTime)) : this.beginHandleTime,
+        endHandleTime: this.$route.query.endTime ? new Date(Number(this.$route.query.endTime)) : this.endHandleTime
       },
       tableData: [],
       columns: [
@@ -425,6 +430,32 @@ export default {
     }
   },
   methods: {
+    resetPath () {
+      if (!this.searchMode) {
+        this.$router.replace({
+          query: {
+            srcRegion: this.queryParam.srcRegion,
+            dstRegion: this.queryParam.dstRegion,
+            dbName: this.queryParam.dbName,
+            tableName: this.queryParam.tableName,
+            rowResult: this.queryParam.rowResult,
+            brief: this.queryParam.brief,
+            likeSearch: this.queryParam.likeSearch,
+            beginTime: new Date(this.queryParam.beginHandleTime).getTime(),
+            endTime: new Date(this.queryParam.endHandleTime).getTime()
+          }
+        })
+      } else {
+        this.$router.replace({
+          query: {
+            gtid: this.queryParam.gtid,
+            rowResult: this.queryParam.rowResult,
+            beginTime: new Date(this.queryParam.beginHandleTime).getTime(),
+            endTime: new Date(this.queryParam.endHandleTime).getTime()
+          }
+        })
+      }
+    },
     searchModeChange () {
       this.queryParam.gtid = null
     },
@@ -509,6 +540,12 @@ export default {
             window.open(detail.href, '_blank')
           }
         })
+    },
+    dbBlacklist () {
+      const detail = this.$router.resolve({
+        path: '/dbBlacklist'
+      })
+      window.open(detail.href, '_blank')
     },
     changeSelection (val) {
       this.multiData = val
@@ -633,6 +670,7 @@ export default {
         })
     },
     getData () {
+      this.resetPath()
       this.multiData = []
       this.compareData.compareRowRecords = []
       this.rowLogIds = []

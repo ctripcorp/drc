@@ -87,6 +87,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     private volatile RandomAccessFile raf;
 
     private volatile File logFileWrite;
+    private volatile String logFileWriteName;
 
     private AtomicLong logFileSize = new AtomicLong(0);
 
@@ -152,7 +153,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
             indicesEventManager.setEverSeeDdl(true);
         }
-        checkIndices(false, context.getEventSize() == EventTransactionCache.bufferSize);
+        boolean isOverflowed = context.getEventSize() >= EventTransactionCache.bufferSize;
+        checkIndices(false, isOverflowed || this.inBigTransaction);
 
         int totalSize = 0;
 
@@ -169,11 +171,18 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
         logFileSize.addAndGet(totalSize);
         if (totalSize > eventHeaderLengthVersionGt1) {
+            long position = logChannel.position();
             for (Observer observer : observers) {
                 if (observer instanceof GtidObserver) {
-                    observer.update(logChannel.position(), this);
+                    observer.update(position, this);
                 }
             }
+        }
+
+        // reset in the end of big transaction
+        if (this.inBigTransaction && !isOverflowed) {
+            this.inBigTransaction = false;
+            logger.info("[inBigTransaction] reset to false for {} of file {}", registryKey, logFileWrite.getName());
         }
 
         return true;
@@ -194,9 +203,28 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (logFileWrite != null) {
             return logFileWrite;
         }
+        File latestLogFile = getLatestLogFile();
+        if (latestLogFile != null) {
+            return latestLogFile;
+        }
+        throw new IllegalStateException("[Blank] binlog file");
+    }
+    private File getLatestLogFile() {
         List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
         if (files != null && !files.isEmpty()) {
             return files.get(0);
+        }
+        return null;
+    }
+
+    @Override
+    public String getCurrentLogFileName() {
+        if (!StringUtils.isEmpty(logFileWriteName)) {
+            return logFileWriteName;
+        }
+        File latestLogFile = getLatestLogFile();
+        if (latestLogFile != null) {
+            return latestLogFile.getName();
         }
         throw new IllegalStateException("[Blank] binlog file");
     }
@@ -534,8 +562,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      */
 
     private void doCreateFile(long fileNum) throws IOException {
-        String fileName = String.format(LOG_FILE_FORMAT, LOG_FILE_PREFIX, fileNum);
-        logFileWrite = new File(logDir, fileName);
+        logFileWriteName = String.format(LOG_FILE_FORMAT, LOG_FILE_PREFIX, fileNum);
+        logFileWrite = new File(logDir, logFileWriteName);
         raf = new RandomAccessFile(logFileWrite, "rw");
         logChannel = raf.getChannel();
         FileHeader fileHeader = new FileHeader(DRC_LOG_MAGIC);
@@ -553,8 +581,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     }
 
     private void doCreateFileForTest(long fileNum) throws IOException {
-        String fileName = String.format(LOG_FILE_FORMAT, LOG_FILE_PREFIX, fileNum);
-        logFileWrite = new File(logDir, fileName);
+        logFileWriteName = String.format(LOG_FILE_FORMAT, LOG_FILE_PREFIX, fileNum);
+        logFileWrite = new File(logDir, logFileWriteName);
         raf = new RandomAccessFile(logFileWrite, "rw");
         logFileSize.set(0);
         logChannel = raf.getChannel();

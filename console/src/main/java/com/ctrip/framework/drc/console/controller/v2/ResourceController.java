@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -134,10 +135,28 @@ public class ResourceController {
         }
     }
 
+    @GetMapping("mha/messenger")
+    public ApiResult<List<String>> queryMhaByMessenger(@RequestParam long resourceId) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.queryMhaByMessenger(resourceId));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("mhaReplication")
     public ApiResult<List<MhaReplicationView>> queryMhaReplicationByApplier(@RequestParam long resourceId) {
         try {
             return ApiResult.getSuccessInstance(resourceService.queryMhaReplicationByApplier(resourceId));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("mhaDbReplication")
+    public ApiResult<List<MhaDbReplicationView>> queryMhaDbReplicationByApplier(@RequestParam long resourceId) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.queryMhaDbReplicationByApplier(resourceId));
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }

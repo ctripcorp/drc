@@ -113,65 +113,72 @@
                   </Option>
                 </Select>
               </FormItem>
-              <FormItem label="规则内容"
-                        v-if="formItem.rowsFilterDetail.mode !== 1 || formItem.rowsFilterDetail.fetchMode === 0">
-                <Input v-if="formItem.rowsFilterDetail.mode !== 1" type="textarea"
-                       v-model="formItem.rowsFilterDetail.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                <Select v-if="formItem.rowsFilterDetail.mode === 1 && formItem.rowsFilterDetail.fetchMode === 0"
-                        v-model="formItem.constants.rowsFilter.configInTripUid.regionsChosen" multiple
-                        style="width: 200px" placeholder="Region 选择">
-                  <Option v-for="item in formItem.constants.rowsFilter.regionsForChose" :value="item" :key="item">
-                    {{ item }}
-                  </Option>
-                </Select>
-              </FormItem>
-              <FormItem v-if="formItem.rowsFilterDetail.mode === 1" label="空处理">
-                <Checkbox v-model="formItem.rowsFilterDetail.illegalArgument">【字段为空时】同步</Checkbox>
-              </FormItem>
-              <Divider v-if="formItem.rowsFilterDetail.mode === 1">UDL配置</Divider>
-              <FormItem label="UDL字段" v-if="formItem.rowsFilterDetail.mode === 1">
-                <Select v-model="formItem.rowsFilterDetail.udlColumns" filterable allow-create multiple
-                        style="width: 200px" placeholder="不选默认则无UDL配置">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
-                      item
-                    }}
-                  </Option>
-                </Select>
-              </FormItem>
-              <FormItem label="DRC UDL策略id"
-                        v-if="formItem.rowsFilterDetail.mode === 1 && formItem.rowsFilterDetail.udlColumns.length !== 0">
-                <Select v-model="formItem.rowsFilterDetail.drcStrategyId" filterable allow-create style="width: 200px"
-                        placeholder="请选择ucs策略id">
-                  <Option v-for="item in formItem.constants.rowsFilter.drcStrategyIdsForChose" :value="item"
-                          :key="item">{{ item }}
-                  </Option>
-                </Select>
-              </FormItem>
-              <Divider v-if="formItem.rowsFilterDetail.mode === 1">UID配置</Divider>
-              <FormItem label="相关字段" v-if="formItem.rowsFilterDetail.mode !== 1">
-                <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple
-                        style="width: 200px" placeholder="选择相关字段">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item"
-                          :lable="item"></Option>
-                </Select>
-              </FormItem>
-              <FormItem label="UID字段" v-if="formItem.rowsFilterDetail.mode === 1">
-                <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple
-                        style="width: 200px" placeholder="不选默认则无UID配置">
-                  <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
-                      item
-                    }}
-                  </Option>
-                </Select>
-              </FormItem>
-              <FormItem label="fetchMode" v-if="formItem.rowsFilterDetail.mode === 1">
-                <Select v-model="formItem.rowsFilterDetail.fetchMode" style="width: 200px" placeholder="选择"
-                        @on-change="fetchModeChange()">
-                  <Option v-for="item in formItem.constants.rowsFilter.fetchModeForChose" :value="item.v" :key="item.k">
-                    {{ item.k }}
-                  </Option>
-                </Select>
-              </FormItem>
+              <div v-if="useTripUdlOrUidMode">
+                <FormItem label="规则内容" v-if="fillContextByRegion">
+                  <Select v-model="formItem.constants.rowsFilter.configInTripUid.regionsChosen" multiple
+                          style="width: 200px" placeholder="Region 选择">
+                    <Option v-for="item in formItem.constants.rowsFilter.regionsForChose" :value="item" :key="item">
+                      {{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+                <div v-if="showUdlConfigDetail">
+                  <Divider>UDL配置</Divider>
+                  <FormItem label="UDL字段" >
+                    <Select v-model="formItem.rowsFilterDetail.udlColumns" filterable allow-create multiple
+                            style="width: 200px" placeholder="不选默认则无UDL配置">
+                      <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
+                          item
+                        }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                  <FormItem label="DRC UDL策略id" v-if="hasUdlColumn">
+                    <Select v-model="formItem.rowsFilterDetail.drcStrategyId" filterable allow-create style="width: 200px"
+                            placeholder="请选择ucs策略id">
+                      <Option v-for="item in formItem.constants.rowsFilter.drcStrategyIdsForChose" :value="item"
+                              :key="item">{{ item }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                </div>
+                <div v-if="showUidConfigDetail">
+                  <Divider>UID配置</Divider>
+                  <FormItem label="UID字段">
+                    <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple
+                            style="width: 200px" placeholder="不选默认则无UID配置">
+                      <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{
+                          item
+                        }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                  <FormItem label="fetchMode" v-if="hasUidColumn">
+                    <Select v-model="formItem.rowsFilterDetail.fetchMode" style="width: 200px" placeholder="选择"
+                            @on-change="fetchModeChange()">
+                      <Option v-for="item in formItem.constants.rowsFilter.fetchModeForChose" :value="item.v" :key="item.k">
+                        {{ item.k }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                  <FormItem v-if="hasUidColumn" label="空处理">
+                    <Checkbox v-model="formItem.rowsFilterDetail.illegalArgument">【字段为空时】同步</Checkbox>
+                  </FormItem>
+                </div>
+              </div>
+              <div v-else>
+                <FormItem label="规则内容">
+                  <Input type="textarea"
+                         v-model="formItem.rowsFilterDetail.context" style="width: 250px" placeholder="请输入行过滤内容"/>
+                </FormItem>
+                <FormItem label="相关字段">
+                  <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple
+                          style="width: 200px" placeholder="选择相关字段">
+                    <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item"
+                            :lable="item"></Option>
+                  </Select>
+                </FormItem>
+              </div>
             </Card>
 
             <FormItem label="列过滤">
@@ -355,9 +362,32 @@ export default {
           colsFilter: false
         },
         constants: {
+          drcStatus: {
+            NOT_EXIST: -1,
+            STOP: 0,
+            STARTED: 1,
+            PARTIAL_STARTED: 2
+          },
+          drcApplyMode: {
+            MHA_APPLY: 0,
+            DB_APPLY: 1
+          },
           rowsFilter: {
             configInTripUid: {
               regionsChosen: []
+            },
+            filterMode: {
+              JAVA_REGEX: 0,
+              TRIP_UDL: 1,
+              AVIATOR_REGEX: 3,
+              CUSTOM: 4,
+              TRIP_UDL_UID: 5
+            },
+            fetchMode: {
+              RPC: 0,
+              BlackList: 1,
+              WhiteList: 2,
+              BlackList_Global: 3
             },
             modes: [
               {
@@ -375,6 +405,10 @@ export default {
               {
                 name: 'custom',
                 mode: 4
+              },
+              {
+                name: 'trip_udl_uid',
+                mode: 5
               }
             ],
             regionsForChose: [
@@ -436,6 +470,7 @@ export default {
         bus: [],
         regions: [],
         regionOptions: [],
+        existReplicationRegionOptions: [],
         dbOptions: [],
         tags: this.constant.tagList,
         selectedDb: {}
@@ -450,17 +485,40 @@ export default {
             align: 'center',
             render: (h, params) => {
               const row = params.row
+              const applyMode = row.viewOnlyInfo.drcApplyMode
               const status = row.viewOnlyInfo.drcStatus
               const disabled = status === -1
-              let type, text
-              if (status === 1) {
-                text = '已接入'
-                type = 'primary'
+              let type, text, tagText, tagColor
+              if (applyMode === this.formItem.constants.drcApplyMode.DB_APPLY) {
+                tagText = 'DB 粒度同步'
+                tagColor = 'success'
+                if (status === this.formItem.constants.drcStatus.STARTED) {
+                  text = '已接入'
+                  type = 'primary'
+                } else if (status === this.formItem.constants.drcStatus.PARTIAL_STARTED) {
+                  text = '部分接入'
+                  type = 'primary'
+                  tagColor = 'error'
+                } else {
+                  text = '未接入'
+                  type = 'default'
+                }
               } else {
-                text = '未接入'
-                type = 'default'
+                if (status === this.formItem.constants.drcStatus.STARTED) {
+                  text = '已接入'
+                  type = 'primary'
+                } else {
+                  text = '未接入'
+                  type = 'default'
+                }
               }
+
               return h('div', [
+                applyMode === this.formItem.constants.drcApplyMode.DB_APPLY && h('Tag', {
+                  props: {
+                    color: tagColor
+                  }
+                }, tagText),
                 h('Button', {
                   on: {
                     click: async () => {
@@ -699,8 +757,8 @@ export default {
         param.dbName = this.formItem.dbName
       }
       if (this.formItem.switch.rowsFilter) {
-        if (this.formItem.rowsFilterDetail.mode === 1) {
-          if (this.formItem.rowsFilterDetail.fetchMode === 0) {
+        if (this.useTripUdlOrUidMode) {
+          if (this.fillContextByRegion) {
             this.formItem.rowsFilterDetail.context = this.formItem.constants.rowsFilter.configInTripUid.regionsChosen.join(',')
           } else {
             this.formItem.rowsFilterDetail.context = '//filter by config'
@@ -1075,7 +1133,7 @@ export default {
         const rowsFilterConfig = params.rowsFilterDetail
         console.log('rowsFilterConfig', rowsFilterConfig)
         // check rows filter
-        if (rowsFilterConfig.mode === 1) {
+        if ([this.formItem.constants.rowsFilter.filterMode.TRIP_UDL, this.formItem.constants.rowsFilter.filterMode.TRIP_UDL_UID].includes(rowsFilterConfig.mode)) {
           if (rowsFilterConfig.columns.length === 0 && rowsFilterConfig.udlColumns.length === 0) {
             this.$Message.warning('行过滤检测失败：uid 与 uld字段不能同时为空！')
             return false
@@ -1105,9 +1163,32 @@ export default {
     }
   },
   computed: {
+    useTripUdlOrUidMode () {
+      return [this.formItem.constants.rowsFilter.filterMode.TRIP_UDL, this.formItem.constants.rowsFilter.filterMode.TRIP_UDL_UID].includes(this.formItem.rowsFilterDetail.mode)
+    },
+    hasUdlColumn () {
+      return this.formItem.rowsFilterDetail.udlColumns.length !== 0
+    },
+    fillContextByRegion () {
+      return this.formItem.rowsFilterDetail.fetchMode === this.formItem.constants.rowsFilter.fetchMode.RPC
+    },
+    hasUidColumn () {
+      return this.formItem.rowsFilterDetail.columns.length !== 0
+    },
+    showUdlConfigDetail () {
+      return this.formItem.rowsFilterDetail.mode === this.formItem.constants.rowsFilter.filterMode.TRIP_UDL_UID || this.hasUdlLegalConfig || !this.hasUidLegalConfig
+    },
+    showUidConfigDetail () {
+      return this.formItem.rowsFilterDetail.mode === this.formItem.constants.rowsFilter.filterMode.TRIP_UDL_UID || this.hasUidLegalConfig || !this.hasUdlLegalConfig
+    },
+    hasUdlLegalConfig () {
+      return this.formItem.rowsFilterDetail.udlColumns.length !== 0 && this.formItem.rowsFilterDetail.drcStrategyId != null && this.formItem.rowsFilterDetail.drcStrategyId > 0
+    },
+    hasUidLegalConfig () {
+      return this.hasUidColumn
+    },
     gtidConfigurable () {
-      return this.previewDataList !== null && this.previewDataList.length === 1 &&
-        this.formItem.buildMode === 0 && this.previewDataList[0].drcStatus !== 1
+      return this.previewDataList !== null && this.previewDataList.length === 1 && [this.formItem.constants.drcStatus.NOT_EXIST, this.formItem.constants.drcStatus.STOP].includes(this.previewDataList[0].drcStatus)
     },
     preCheckTablePage () {
       const data = this.checkTableDataList

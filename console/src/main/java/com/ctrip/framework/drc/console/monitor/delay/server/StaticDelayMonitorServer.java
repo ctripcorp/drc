@@ -30,19 +30,19 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
@@ -350,7 +350,15 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     protected void doStart() throws Exception {
         super.doStart();
         Long rTime = System.currentTimeMillis();
-        receiveTimeMap.put(config.getMha(), rTime);
+        if (isReplicatorMaster) {
+            Set<String> mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getCluster(),config.getDestMha(), config.getDc());
+            logger.info("dstClusterId:{},srcMhasShouldMonitor:{}", config.getCluster() + "." + config.getDestMha(), mhasShouldMonitor);
+            mhasShouldMonitor.forEach(mha -> {
+                receiveTimeMap.put(mha, rTime);
+            });
+        } else {
+            receiveTimeMap.put(config.getMha(), rTime);
+        }
         log("init receiveTime: " + rTime + '(' + dateFormatThreadLocal.get().format(rTime) + ')', INFO, null);
 
         checkScheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
@@ -361,12 +369,14 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log(" CLOSE DEBUG, version" + '(' + formatter.format(System.currentTimeMillis()) + ')', DEBUG, null);
                     long curTime = System.currentTimeMillis();
 
+                    Set<String> mhasRelated = periodicalUpdateDbTask.getMhaDbRelatedByDestMha(config.getDestMha());
                     Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
                     while (iterator.hasNext()) {
                         Entry<String, Long> entry = iterator.next();
                         String mhaName = entry.getKey();
-                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
+                        if (!mhasRelated.contains(mhaName)) {
                             if (isReplicatorMaster) {
+                                logger.info("remove check delay loss {}->{}",mhaName,config.getDestMha());
                                 iterator.remove();
                             }
                             continue;
@@ -392,20 +402,39 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             }
         }, INITIAL_DELAY, PERIOD, TimeUnit.SECONDS);
 
+        Map<String, Map<String, Long>> initMap = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(config.getDestMha())
+                .entrySet().stream().collect(Collectors.toMap(
+                        Entry::getKey,
+                        e -> e.getValue().stream().distinct().collect(Collectors.toMap(t -> t, t -> rTime))
+                ));
+        receiveTimeMapV2.putAll(initMap);
+        log("init receiveTime: " + rTime + '(' + dateFormatThreadLocal.get().format(rTime) + ')', INFO, null);
         checkScheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 SimpleDateFormat formatter = dateFormatThreadLocal.get();
                 long curTime = System.currentTimeMillis();
-
-                for (Map.Entry<String, Map<String, Long>> entry : receiveTimeMapV2.entrySet()) {
+                Map<String, List<String>> relatedMhaDb = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(config.getDestMha());
+                for (Iterator<Entry<String, Map<String, Long>>> mhaIterator = receiveTimeMapV2.entrySet().iterator(); mhaIterator.hasNext(); ) {
+                    Entry<String, Map<String, Long>> entry = mhaIterator.next();
                     String mhaName = entry.getKey();
-                    if (!periodicalUpdateDbTaskV2.getMhasRelated().contains(mhaName)) {
+                    List<String> relatedDbs = relatedMhaDb.get(mhaName);
+
+                    if (CollectionUtils.isEmpty(relatedDbs)) {
+                        if (isReplicatorMaster) {
+                            mhaIterator.remove();
+                        }
                         continue;
                     }
-                    for (Map.Entry<String, Long> dbEntry : entry.getValue().entrySet()) {
+                    for (Iterator<Entry<String, Long>> dbIterator = entry.getValue().entrySet().iterator(); dbIterator.hasNext(); ) {
+                        Entry<String, Long> dbEntry = dbIterator.next();
                         String dbName = dbEntry.getKey();
+                        if (!relatedDbs.contains(dbName)) {
+                            if (isReplicatorMaster) {
+                                dbIterator.remove();
+                            }
+                            continue;
+                        }
                         Long receiveTime = dbEntry.getValue();
-
                         long timeDiff = curTime - receiveTime;
                         if (timeDiff > toleranceTime) {
                             UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName, dbName);

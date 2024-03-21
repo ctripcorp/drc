@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -19,6 +20,7 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.google.common.collect.Sets;
+import java.util.Set;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.assertj.core.util.Lists;
 import org.junit.After;
@@ -36,11 +38,13 @@ import org.unidal.tuple.Triple;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Arrays;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
  * @author shenhaibo
@@ -62,6 +66,10 @@ public class PeriodicalUpdateDbTaskTest {
     @Mock private DefaultConsoleConfig consoleConfig;
 
     @Mock private CentralService centralService;
+
+    @Mock private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
+    
+    @Mock private CacheMetaService cacheMetaService;
     
 
 
@@ -135,13 +143,13 @@ public class PeriodicalUpdateDbTaskTest {
 
         MockitoAnnotations.openMocks(this);
         task.setLocalDcName(DC1);
-        Mockito.when(dataCenterService.getDc()).thenReturn(DC1);
-        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet("dc-readMhaFromConfig"));
-        Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
-        Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
-        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList(DC1)));
+        when(dataCenterService.getDc()).thenReturn(DC1);
+        when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet("dc-readMhaFromConfig"));
+        when(consoleConfig.getRegion()).thenReturn("sha");
+        when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
+        when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList(DC1)));
         Mockito.doNothing().when(currentMetaManager).addObserver(Mockito.any());
-        Mockito.when(monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch()).thenReturn(SWITCH_STATUS_ON);
+        when(monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch()).thenReturn(SWITCH_STATUS_ON);
 
         MhaTblV2 mhaTbl1 = new MhaTblV2();
         mhaTbl1.setMhaName(MHA1DC1);
@@ -209,6 +217,34 @@ public class PeriodicalUpdateDbTaskTest {
 
         task.update(triple4, new LocalMasterMySQLEndpointObservable());
         Assert.assertEquals(0, task.getMasterMySQLEndpointMap().size());
+    }
+
+    @Test
+    public void testGetSrcMhasShouldMonitor() {
+        Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
+        Mockito.when(cacheMetaService.getSrcMhasShouldMonitor(Mockito.anyString(),Mockito.anyString())).thenReturn(Sets.newHashSet("mha1"));
+        Set<String> mhasShouldMonitor = task.getSrcMhasShouldMonitor("dstCluster","dstMha", "shary");
+        Assert.assertEquals(1, mhasShouldMonitor.size());
+    }
+
+    @Test
+    public void testGetMhaDbRelatedByDestMha() {
+        Map<MetaKey, MySqlEndpoint> origin = task.getMasterMySQLEndpointMap();
+
+        Map<MetaKey, MySqlEndpoint> mock = new HashMap<>();
+        mock.put(new MetaKey(null, null, null, "mha1"), null);
+        mock.put(new MetaKey(null, null, null, "mha2"), null);
+        mock.put(new MetaKey(null, null, null, "mha_db_1_src"), null);
+        task.setMasterMySQLEndpointMap(mock);
+
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("mha_db_1_src", Lists.newArrayList("mha_db_1_dst"));
+        when(periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(anyString())).thenReturn(map);
+        Set<String> test = task.getMhaDbRelatedByDestMha("test");
+        Assert.assertEquals(2, test.size());
+        Assert.assertFalse(test.contains("mha_db_1_src"));
+
+        task.setMasterMySQLEndpointMap(origin);
     }
 
     private void createDb() throws InterruptedException {

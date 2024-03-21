@@ -33,6 +33,10 @@ public class RowsFilterTypeTest {
 
         clazz = RowsFilterType.TripUid.filterRuleClass();
         Assert.assertTrue(clazz == UserRowsFilterRule.class);
+
+
+        clazz = RowsFilterType.TripUdlThenUid.filterRuleClass();
+        Assert.assertSame(UserRowsUdlThenUidFilterRule.class, clazz);
     }
 
     @Test(expected = UnsupportedOperationException.class)

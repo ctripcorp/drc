@@ -59,6 +59,13 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     private final Supplier<List<DcDo>> dcCache = Suppliers.memoizeWithExpiration(this::queryAllDc, 10, TimeUnit.SECONDS);
     private final Supplier<List<RegionTbl>> regionCache = Suppliers.memoizeWithExpiration(this::queryAllRegion, 10, TimeUnit.SECONDS);
     private final Supplier<List<BuTbl>> buCache = Suppliers.memoizeWithExpiration(this::queryAllBu, 10, TimeUnit.SECONDS);
+    private final Supplier<List<String>> dbBuCodeCache = Suppliers.memoizeWithExpiration(() -> {
+        try {
+            return this.dbTblDao.queryAllExist().stream().map(DbTbl::getBuCode).distinct().collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }, 1, TimeUnit.MINUTES);
 
     @Autowired
     private DcTblDao dcTblDao;
@@ -252,10 +259,13 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
                 continue;
             }
             List<ApplierTblV3> dbAppliers = applierMapByGroupId.get(groupTblV3.getId());
-            if(CollectionUtils.isEmpty(dbAppliers)){
+            if (CollectionUtils.isEmpty(dbAppliers)) {
                 continue;
             }
             List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblGroupingBy.get(Pair.from(replicationDto.getSrc().getMhaDbMappingId(), replicationDto.getDst().getMhaDbMappingId()));
+            if (CollectionUtils.isEmpty(dbReplicationTbls)) {
+                continue;
+            }
             for (ApplierTblV3 applierTbl : dbAppliers) {
                 String resourceIp = Optional.ofNullable(resourceTblMap.get(applierTbl.getResourceId())).map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
                 Applier applier = new Applier();
@@ -265,7 +275,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
                         .setTargetRegion(srcDcTbl.getRegionName())
                         .setTargetMhaName(srcMhaTbl.getMhaName())
                         .setGtidExecuted(groupTblV3.getGtidInit())
-                        .setIncludedDbs(replicationDto.getSrc().getDbName())
+                        .setIncludedDbs(replicationDto.getSrc().getDbName().toLowerCase())
                         .setNameFilter(TableNameBuilder.buildNameFilter(mhaDbMappingMap, dbReplicationTbls))
                         .setNameMapping(TableNameBuilder.buildNameMapping(mhaDbMappingMap, dbReplicationTbls))
                         .setTargetName(srcMhaTbl.getClusterName())
@@ -275,6 +285,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             }
         }
     }
+
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
         // db mappings
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
@@ -447,6 +458,10 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         }
     }
 
+    @Override
+    public List<String> queryAllDbBuCode() {
+        return dbBuCodeCache.get();
+    }
 
     @Override
     public List<RegionTbl> queryAllRegion() {

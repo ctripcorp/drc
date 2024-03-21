@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import org.apache.commons.lang3.StringUtils;
 
 public class DrcAutoBuildReq {
@@ -20,6 +21,7 @@ public class DrcAutoBuildReq {
     private RowsFilterCreateParam rowsFilterDetail;
     private Boolean openColsFilterConfig;
     private ColumnsFilterCreateParam colsFilterDetail;
+    private Long applicationFormId;
 
     public void validAndTrim() {
         BuildMode modeEnum = getModeEnum();
@@ -201,6 +203,24 @@ public class DrcAutoBuildReq {
         this.tag = tag;
     }
 
+    public Long getApplicationFormId() {
+        return applicationFormId;
+    }
+
+    public void setApplicationFormId(Long applicationFormId) {
+        this.applicationFormId = applicationFormId;
+    }
+
+    public void autoSetTag() {
+        if (ResourceTagEnum.FLT.getName().equals(buName)) {
+            tag = ResourceTagEnum.FLT.getName();
+        } else if (ResourceTagEnum.HTL.getName().equals(buName)) {
+            tag = ResourceTagEnum.HTL.getName();
+        } else {
+            tag = ResourceTagEnum.COMMON.getName();
+        }
+    }
+
     @Override
     public String toString() {
         return "DrcAutoBuildReq{" +
@@ -217,6 +237,7 @@ public class DrcAutoBuildReq {
                 ", rowsFilterDetail=" + rowsFilterDetail +
                 ", openColsFilterConfig=" + openColsFilterConfig +
                 ", colsFilterDetail=" + colsFilterDetail +
+                ", applicationFormId=" + applicationFormId +
                 '}';
     }
 

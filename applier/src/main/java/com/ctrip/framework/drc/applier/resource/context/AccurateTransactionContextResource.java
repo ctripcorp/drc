@@ -80,12 +80,16 @@ public class AccurateTransactionContextResource extends TransactionContextResour
     }
 
     public TransactionData.ApplyResult deadlock() {
-        loggerED.info("FAIL" + gtidDesc() + delayDesc());
+        String title = "Deadlock R" + contextDesc() + gtidDesc() + delayDesc();
+        loggerED.info(title);
+        loggerSC.info(conflictSummary(title));
         return TransactionData.ApplyResult.DEADLOCK;
     }
 
     public TransactionData.ApplyResult error() {
-        loggerED.info("ERR" + gtidDesc() + delayDesc());
+        String title = "ERR R" + contextDesc() + gtidDesc() + delayDesc();
+        loggerED.info(title);
+        loggerSC.info(conflictSummary(title));
         return TransactionData.ApplyResult.UNKNOWN;
     }
 

@@ -29,10 +29,7 @@ import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.utils.StreamUtils.getKey;
@@ -153,6 +150,10 @@ public class CommonDataInit {
         // MhaDbReplicationTbl
         List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.getData("MhaDbReplicationTbl.json", MhaDbReplicationTbl.class);
         when(mhaDbReplicationTblDao.queryAll()).thenReturn(mhaDbReplicationTbls);
+        when(mhaDbReplicationTblDao.queryByIds(anyList())).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+            return mhaDbReplicationTbls.stream().filter(e -> ids.contains(e.getId())).collect(Collectors.toList());
+        });
         when(mhaDbReplicationTblDao.queryBySamples(anyList())).thenAnswer(i -> {
             List<MhaDbReplicationTbl> samples = i.getArgument(0, List.class);
             List<MultiKey> keys = samples.stream().map(StreamUtils::getKey).collect(Collectors.toList());
@@ -166,6 +167,8 @@ public class CommonDataInit {
             List<Long> srcMappingIdList = query.getSrcMappingIdList();
             List<Long> dstMappingIdList = query.getDstMappingIdList();
             List<Long> relatedMappingList = query.getRelatedMappingList();
+            List<Long> idList = query.getIdList();
+            List<Long> excludeIdList = query.getExcludeIdList();
             Integer type = query.getType();
             return mhaDbReplicationTbls.stream().filter(e -> {
                         if (!CollectionUtils.isEmpty(srcMappingIdList) && !srcMappingIdList.contains(e.getSrcMhaDbMappingId())) {
@@ -176,6 +179,51 @@ public class CommonDataInit {
                         }
                         if (!CollectionUtils.isEmpty(relatedMappingList) && !relatedMappingList.contains(e.getSrcMhaDbMappingId())
                                 && !relatedMappingList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(idList) && !idList.contains(e.getSrcMhaDbMappingId())
+                                && !idList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(excludeIdList) && !excludeIdList.contains(e.getSrcMhaDbMappingId())
+                                && excludeIdList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (type != null && !type.equals(e.getReplicationType())) {
+                            return false;
+                        }
+                        if(Objects.equals(e.getDeleted(), BooleanEnum.TRUE.getCode())){
+                            return false;
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toList());
+        });
+        when(mhaDbReplicationTblDao.queryByPage(any(MhaDbReplicationQuery.class))).thenAnswer(i -> {
+            MhaDbReplicationQuery query = i.getArgument(0, MhaDbReplicationQuery.class);
+            List<Long> srcMappingIdList = query.getSrcMappingIdList();
+            List<Long> dstMappingIdList = query.getDstMappingIdList();
+            List<Long> relatedMappingList = query.getRelatedMappingList();
+            List<Long> idList = query.getIdList();
+            List<Long> excludeIdList = query.getExcludeIdList();
+            Integer type = query.getType();
+            return mhaDbReplicationTbls.stream().filter(e -> {
+                        if (!CollectionUtils.isEmpty(srcMappingIdList) && !srcMappingIdList.contains(e.getSrcMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(dstMappingIdList) && !dstMappingIdList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(relatedMappingList) && !relatedMappingList.contains(e.getSrcMhaDbMappingId())
+                                && !relatedMappingList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(idList) && !idList.contains(e.getSrcMhaDbMappingId())
+                                && !idList.contains(e.getDstMhaDbMappingId())) {
+                            return false;
+                        }
+                        if (!CollectionUtils.isEmpty(excludeIdList) && !excludeIdList.contains(e.getSrcMhaDbMappingId())
+                                && excludeIdList.contains(e.getDstMhaDbMappingId())) {
                             return false;
                         }
                         if (type != null && !type.equals(e.getReplicationType())) {
@@ -189,7 +237,6 @@ public class CommonDataInit {
                     .collect(Collectors.toList());
         });
 
-
         // ApplierGroupTblV3
         List<ApplierGroupTblV3> applierGroupTblV3s = this.getData("ApplierGroupTblV3.json", ApplierGroupTblV3.class);
         when(applierGroupTblV3Dao.queryAll()).thenReturn(applierGroupTblV3s);
@@ -199,6 +246,10 @@ public class CommonDataInit {
             return applierGroupTblV3s.stream()
                     .filter(e -> ids.contains(e.getMhaDbReplicationId()))
                     .collect(Collectors.toList());
+        });
+        when(applierGroupTblV3Dao.queryByIds(anyList())).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+            return applierGroupTblV3s.stream().filter(e -> ids.contains(e.getId())).collect(Collectors.toList());
         });
 
 
@@ -337,6 +388,19 @@ public class CommonDataInit {
             }).collect(Collectors.toList());
         });
 
+        when(mhaReplicationTblDao.queryBySamples(anyList())).thenAnswer(i -> {
+            List<MhaReplicationTbl> samples = i.getArgument(0, List.class);
+            Set<MultiKey> keys = samples.stream().map(e -> new MultiKey(e.getSrcMhaId(), e.getDstMhaId())).collect(Collectors.toSet());
+            return mhaReplicationTbls.stream().filter(e -> {
+                if (CollectionUtils.isEmpty(keys)) {
+                    return false;
+                }
+                return !BooleanEnum.TRUE.getCode().equals(e.getDeleted()) && keys.contains(new MultiKey(e.getSrcMhaId(), e.getDstMhaId()));
+            }).collect(Collectors.toList());
+        });
+
+
+
 
         // messengerGroupTbl
         List<MessengerGroupTbl> messengerGroupTbls = this.getData("MessengerGroupTbl.json", MessengerGroupTbl.class);
@@ -461,6 +525,13 @@ public class CommonDataInit {
                                     && dstMhaDbMappingIds.contains(e.getDstMhaDbMappingId())
                                     && replicationType.equals(e.getReplicationType()))
                     .collect(Collectors.toList());
+        });
+        when(dbReplicationTblDao.queryBySamples(anyList())).thenAnswer(i -> {
+            List<DbReplicationTbl> samples = i.getArgument(0, List.class);
+            List<MultiKey> keys = samples.stream().map(StreamUtils::getKey).collect(Collectors.toList());
+            return dbReplicationTbls.stream().filter(e -> {
+                return keys.contains(getKey(e));
+            }).collect(Collectors.toList());
         });
 
         doAnswer(invocation -> {

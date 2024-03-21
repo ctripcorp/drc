@@ -120,7 +120,7 @@ public class RemoteHttpAspect {
             case POST:
                 String paramValue = JsonUtils.toJson(args.get("requestBody"));
                 Object requestBody = JsonUtils.fromJson(paramValue, possibleRemote.requestClass());
-                apiResult = HttpUtils.post(regionUrl.toString(), requestBody);
+                apiResult = HttpUtils.post(regionUrl.toString(), requestBody, possibleRemote.responseType());
                 break;
             case DELETE:
                 apiResult = HttpUtils.delete(regionUrl.toString(), possibleRemote.responseType());

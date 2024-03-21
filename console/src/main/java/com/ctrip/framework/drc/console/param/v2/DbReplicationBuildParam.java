@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -12,6 +14,8 @@ public class DbReplicationBuildParam {
     private String dstMhaName;
     private String dbName;
     private String tableName;
+    private boolean flushExistingData;
+    private boolean autoBuild;
     private RowsFilterCreateParam rowsFilterCreateParam;
     private ColumnsFilterCreateParam columnsFilterCreateParam;
 
@@ -20,6 +24,14 @@ public class DbReplicationBuildParam {
         this.dstMhaName = dstMhaName;
         this.dbName = dbName;
         this.tableName = tableName;
+    }
+
+    public boolean isAutoBuild() {
+        return autoBuild;
+    }
+
+    public void setAutoBuild(boolean autoBuild) {
+        this.autoBuild = autoBuild;
     }
 
     public DbReplicationBuildParam() {
@@ -73,6 +85,14 @@ public class DbReplicationBuildParam {
         this.dbName = dbName;
     }
 
+    public void setDbNames(Collection<String> dbNames) {
+        if (dbNames == null || dbNames.isEmpty()) {
+            this.dbName = "";
+        }else {
+            this.dbName = "(" + String.join("|", dbNames) + ")";
+        }
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -80,6 +100,15 @@ public class DbReplicationBuildParam {
     public void setTableName(String tableName) {
         this.tableName = tableName;
     }
+
+    public boolean isFlushExistingData() {
+        return flushExistingData;
+    }
+
+    public void setFlushExistingData(boolean flushExistingData) {
+        this.flushExistingData = flushExistingData;
+    }
+
 
     @Override
     public String toString() {
@@ -89,6 +118,10 @@ public class DbReplicationBuildParam {
                 ", dstMhaName='" + dstMhaName + '\'' +
                 ", dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +
+                ", flushExistingData=" + flushExistingData +
+                ", autoBuild=" + autoBuild +
+                ", rowsFilterCreateParam=" + rowsFilterCreateParam +
+                ", columnsFilterCreateParam=" + columnsFilterCreateParam +
                 '}';
     }
 }

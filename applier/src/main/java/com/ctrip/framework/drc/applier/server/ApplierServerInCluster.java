@@ -30,8 +30,7 @@ public class ApplierServerInCluster extends ApplierServer {
 
     private void parseConfig(ApplierConfigDto config) throws Exception {
         String properties = config.getProperties();
-        DataMediaConfig dataMediaConfig = DataMediaConfig.from(config.getRegistryKey(), properties);
-        Integer concurrency = dataMediaConfig.getConcurrency();
+        Integer concurrency = DataMediaConfig.getConcurrency(properties);
 
         int applyConcurrency;
         switch (ApplyMode.getApplyMode(config.getApplyMode())) {

@@ -8,9 +8,11 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
@@ -23,6 +25,12 @@ import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
+import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
+import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -30,7 +38,9 @@ import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplic
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
+import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +65,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
-    
+
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
@@ -82,6 +92,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private DbTblDao dbTblDao;
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
 
 
     @Override
@@ -204,6 +216,33 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
         List<String> replicatorIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
         return replicatorIps;
+    }
+
+    @Override
+    public List<ReplicatorInfoDto> getMhaReplicatorsV2(String mhaName) {
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+            if (mhaTblV2 == null) {
+                logger.info("replicatorGroupTbl not exist, mhaName: {}", mhaName);
+                return Collections.emptyList();
+            }
+
+            ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+            if (replicatorGroupTbl == null) {
+                logger.info("replicatorGroupTbl not exist, mhaName: {}", mhaName);
+                return Collections.emptyList();
+            }
+            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+            if (CollectionUtils.isEmpty(replicatorTbls)) {
+                return Collections.emptyList();
+            }
+            List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
+            List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+            Map<Long, String> resourceIdToIpMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
+            return replicatorTbls.stream().map(e -> new ReplicatorInfoDto(resourceIdToIpMap.get(e.getResourceId()), e.getGtidInit())).collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
     }
 
     @Override
@@ -422,4 +461,62 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                         HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay,(e1, e2) -> e1));
     }
 
+    @Override
+    public List<String> queryMhasWithOutDrc() {
+        List<String> mhas = Lists.newArrayList();
+        Drc drc = metaProviderV2.getDrc();
+        for (Entry<String, Dc> dcEntry : drc.getDcs().entrySet()) {
+            Dc dc = dcEntry.getValue();
+            for (Entry<String, DbCluster> dbClusterEntry : dc.getDbClusters().entrySet()) {
+                DbCluster dbCluster = dbClusterEntry.getValue();
+                List<Replicator> replicators = dbCluster.getReplicators();
+                List<Applier> appliers = dbCluster.getAppliers();
+                List<Messenger> messengers = dbCluster.getMessengers();
+                if (replicators.isEmpty() && appliers.isEmpty() && messengers.isEmpty()) {
+                    mhas.add(dbCluster.getMhaName());
+                }
+            }
+        }
+        return mhas;
+    }
+
+    @Override
+    public Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException {
+        List<String> mhaWithOutDrc = queryMhasWithOutDrc();
+        mhas.retainAll(mhaWithOutDrc);
+        if (CollectionUtils.isEmpty(mhas)) {
+            return new Pair<>(Boolean.FALSE,0);
+        }
+        Pair<Boolean, Integer> res = Pair.of(Boolean.TRUE, 0);
+        for (String mha : mhas) {
+            if (offlineMha(mha)) {
+                res.setValue(res.getValue() + 1);
+            } else {
+                logger.error("offline mha: {} failed", mha);
+                res.setKey(Boolean.FALSE);
+            }
+        }
+        return res;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public boolean offlineMha(String mhaName) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+        if (mhaTblV2 == null) {
+            logger.info("mha: {} not exist", mhaName);
+            return false;
+        }
+        mhaTblV2.setMonitorSwitch(BooleanEnum.FALSE.getCode());
+        mhaTblV2.setDeleted(BooleanEnum.TRUE.getCode());
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(machineTbls)) {
+            for (MachineTbl machineTbl : machineTbls) {
+                machineTbl.setDeleted(BooleanEnum.TRUE.getCode());
+            }
+        }
+        machineTblDao.batchUpdate(machineTbls);
+        int update = mhaTblV2Dao.update(mhaTblV2);
+        return update == 1;
+    }
 }

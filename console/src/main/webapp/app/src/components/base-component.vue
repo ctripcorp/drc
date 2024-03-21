@@ -17,6 +17,9 @@
             <MenuItem name="/v2/mhaReplications" to="/v2/mhaReplications">
               <span>MHA 同步</span>
             </MenuItem>
+            <MenuItem name="/v2/mhaDbReplications" to="/v2/mhaDbReplications">
+              <span>DB 粒度同步</span>
+            </MenuItem>
             <MenuItem name="/v2/messengersV2" to="/v2/messengersV2">
               <span>Messenger 同步</span>
             </MenuItem>
@@ -38,18 +41,6 @@
             <MenuItem name="/v2/operationlog" to="/v2/operationlog">
               <span>操作日志</span>
             </MenuItem>
-<!--            <MenuItem name="/monitor" to="/monitor">-->
-<!--              <span>冲突处理</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/incrementDataConsistencyResult" to="/incrementDataConsistencyResult">-->
-<!--              <span>实时数据一致性校验</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/fullDataConsistencyCluster" to="/fullDataConsistencyCluster">-->
-<!--              <span>手工数据一致性校验</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/unitRouteVerificationCluster" to="/unitRouteVerificationCluster">-->
-<!--              <span>单元化路由校验</span>-->
-<!--            </MenuItem>-->
           </Submenu>
           <Submenu name="2">
             <template slot="title">
@@ -71,6 +62,9 @@
               <Icon type="ios-paper"></Icon>
               审批管理
             </template>
+            <MenuItem name="/applicationForm" to="/applicationForm">
+              <span>DRC审批</span>
+            </MenuItem>
             <MenuItem name="/conflictApproval" to="/conflictApproval">
               <span>冲突处理审批</span>
             </MenuItem>
@@ -86,7 +80,8 @@
                   <template slot="title">
                     帮助
                   </template>
-                  <MenuItem name="help1">帮助1</MenuItem>
+                  <MenuItem name="help1">
+                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=2130543490'>冲突自助处理</a></MenuItem>
                   <MenuItem name="help2">帮助2</MenuItem>
                 </Submenu>
                 <Submenu name="3">
@@ -143,10 +138,12 @@ export default {
         this.openNames = ['']
         break
       case '/v2/mhaReplications':
+      case '/v2/mhaDbReplications':
       case '/drcV2':
       case '/v2/buildMessengerV2':
       case '/v2/messengersV2':
       case '/v2/dbDrcBuild':
+      case '/v2/dbDrcBuildV2':
       case '/metaMessage':
         this.openNames = ['v2-0']
         break
@@ -167,6 +164,7 @@ export default {
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
       case '/conflictLog':
+      case '/dbBlacklist':
       case '/v2/operationlog':
       case '/monitor':
         this.openNames = ['1']
@@ -178,12 +176,15 @@ export default {
         this.openNames = ['2']
         break
       case '/conflictApproval':
+      case '/applicationForm':
         this.openNames = ['3']
         break
     }
     let activeName = this.$route.path
     if (['/drcV2', '/v2/dbDrcBuild'].includes(this.$route.path)) {
       activeName = '/v2/mhaReplications'
+    } else if (['/v2/dbDrcBuildV2'].includes(this.$route.path)) {
+      activeName = '/v2/mhaDbReplications'
     } else if (['/v2/buildMessengerV2'].includes(this.$route.path)) {
       activeName = '/v2/messengersV2'
     } else if (['/drcResource'].includes(this.$route.path)) {

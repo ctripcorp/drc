@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Objects;
 
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.*;
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getBuTbl;
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getDcTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getBuTbl;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDcTbls;
 
 /**
  * Created by dengquanliang

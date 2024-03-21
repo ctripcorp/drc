@@ -802,6 +802,37 @@
                 </Delete>
             </DefaultRolloverStrategy>
         </RollingFile>
+        <!--Console Monitor appenders-->
+        <RollingFile name="ConsoleMonitorRollingFileInfo" fileName="${baseDir}/console-monitor_info.log"
+                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.console-monitor_info.log.gz">
+            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
+            <ThresholdFilter level="INFO"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="${appName}*.console-monitor_info.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        <RollingFile name="ConsoleMonitorRollingFileError" fileName="${baseDir}/console-monitor_error.log"
+                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.console-monitor_error.log.gz">
+            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
+            <ThresholdFilter level="ERROR"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="${appName}*.console-monitor_error.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
 
     </Appenders>
     <Loggers>
@@ -891,6 +922,11 @@
         </Logger>
         <Logger name="OPERATION" additivity="false">
             <AppenderRef ref="operation"/>
+        </Logger>
+        <Logger name="consoleMonitorLogger" additivity="false" level="info">
+            <AppenderRef ref="Cat" />
+            <AppenderRef ref="ConsoleMonitorRollingFileInfo"/>
+            <AppenderRef ref="ConsoleMonitorRollingFileError"/>
         </Logger>
     </Loggers>
 </Configuration>

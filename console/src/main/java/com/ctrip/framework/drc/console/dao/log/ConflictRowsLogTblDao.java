@@ -1,9 +1,12 @@
 package com.ctrip.framework.drc.console.dao.log;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
+import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.base.SQLResult;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -31,11 +34,52 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String CREATE_TIME = "create_time";
     private static final String ID = "id";
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
+    private static final String DB_QUERY_SQL = "select min(id) as row_log_id, min(conflict_trx_log_id) as trx_log_id, db_name, table_name, count(1) as count from conflict_rows_log_tbl where #CONDITDION# group by db_name, table_name order by count desc limit 100";
+    private static final String COUNT_SQL = "select count(1) as count from conflict_rows_log_tbl where #CONDITDION#";
+    private static final String CREATE_TIME_CONDITION = "handle_time >= ? and handle_time < ? and create_time >= ? and create_time < ?";
 
 
     public ConflictRowsLogTblDao() throws SQLException {
         super(ConflictRowsLogTbl.class);
     }
+
+    public List<ConflictRowsLogCount> queryTopNDb(long beginHandTime, long endHandTime) throws SQLException {
+        String createStartTime = DateUtils.getStartDateOfDay(beginHandTime);
+        String createEndTime = DateUtils.getEndDateOfDay(endHandTime);
+        String querySql = DB_QUERY_SQL.replace("#CONDITDION#", CREATE_TIME_CONDITION);
+        return query(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), beginHandTime, endHandTime, createStartTime, createEndTime);
+    }
+
+
+    public List<ConflictRowsLogCount> queryTopNDb(long beginHandTime, long endHandTime, int rowResult) throws SQLException {
+        long currentTime = System.currentTimeMillis();
+        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
+        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
+        String condition = CREATE_TIME_CONDITION + " AND row_result = ?";
+        String querySql = DB_QUERY_SQL.replace("#CONDITDION#", condition);
+        return query(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), beginHandTime, endHandTime, createStartTime, createEndTime, rowResult);
+    }
+
+    public int queryCount(long beginHandTime, long endHandTime) throws SQLException {
+        long currentTime = System.currentTimeMillis();
+        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
+        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
+        String querySql = COUNT_SQL.replace("#CONDITDION#", CREATE_TIME_CONDITION);
+        ConflictRowsLogCount count = queryObject(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), beginHandTime, endHandTime, createStartTime, createEndTime);
+        return count.getCount();
+    }
+
+
+    public int queryCount(long beginHandTime, long endHandTime, int rowResult) throws SQLException {
+        long currentTime = System.currentTimeMillis();
+        String createStartTime = DateUtils.getStartDateOfDay(currentTime);
+        String createEndTime = DateUtils.getEndDateOfDay(currentTime);
+        String condition = CREATE_TIME_CONDITION + " AND row_result = ?";
+        String querySql = COUNT_SQL.replace("#CONDITDION#", condition);
+        ConflictRowsLogCount count = queryObject(querySql, new DalHints(), SQLResult.type(ConflictRowsLogCount.class), beginHandTime, endHandTime, createStartTime, createEndTime, rowResult);
+        return count.getCount();
+    }
+
 
     public List<ConflictRowsLogTbl> queryByParam(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);

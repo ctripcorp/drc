@@ -137,7 +137,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         long currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition);
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition, fileChannel.size());
         boolean skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
 
@@ -150,7 +150,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
 
@@ -163,7 +163,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
 
@@ -176,7 +176,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
         Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
@@ -190,7 +190,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
         Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
@@ -205,7 +205,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
         Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
@@ -220,7 +220,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
         Assert.assertNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
@@ -269,7 +269,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         long currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition);
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition, fileChannel.size());
         boolean skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
 
@@ -282,7 +282,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
 
@@ -295,7 +295,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
 
@@ -308,7 +308,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
         Assert.assertNotNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));
@@ -332,7 +332,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         currentPosition = fileChannel.position();
         fileChannel.position(previousPosition);
 
-        outboundLogEventContext.reset(previousPosition);
+        outboundLogEventContext.reset(previousPosition, fileChannel.size());
         skipEvent = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(skipEvent);
         Assert.assertNull(outboundLogEventContext.getRowsRelatedTableMap().get(table_id));

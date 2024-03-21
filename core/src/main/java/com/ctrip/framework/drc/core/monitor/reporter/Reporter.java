@@ -39,6 +39,11 @@ public interface Reporter extends Ordered {
 
     void reportGtidGapRepeat(@Valid GtidGapEntity gtidGapEntity, Long repeatGapCount);
 
+    void reportDbGtidGapCount(@Valid GtidGapEntity gtidGapEntity, Long gap);
+
+    void reportDbGtidGapRepeat(@Valid GtidGapEntity gtidGapEntity, Long repeatGapCount);
+
+
     void reportTableConsistency(@Valid ConsistencyEntity consistencyEntity, ConsistencyEnum consistencyEnum);
 
     void reportAutoIncrementId(BaseEntity baseEntity, AutoIncrementEnum autoIncrementEnum);

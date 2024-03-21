@@ -3,17 +3,15 @@ package com.ctrip.framework.drc.console.controller.v1;
 import com.ctrip.framework.drc.console.schedule.SyncDbInfoTask;
 import com.ctrip.framework.drc.console.service.OpenApiService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
-import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.xpipe.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @ClassName OpenApiController
@@ -33,6 +31,8 @@ public class OpenApiController {
     private MhaDbMappingService mhaDbMappingService;
     @Autowired
     private SyncDbInfoTask syncDbInfoTask;
+    @Autowired
+    private MhaReplicationServiceV2 mhaReplicationServiceV2;
     
 
     @GetMapping("info/messengers")
@@ -74,6 +74,46 @@ public class OpenApiController {
             return ApiResult.getFailInstance(e,"error");
         }
     }
-    
-    
+    @PostMapping("/tmp/parseConfigFileGtidContent")
+    public ApiResult parseConfigFileGtidContent(@RequestBody ConfigReq req) {
+        try {
+            return ApiResult.getSuccessInstance(mhaReplicationServiceV2.parseConfigFileGtidContent(req.getConfigText()));
+        } catch (Exception e) {
+            logger.error("error in syncDbInfo",e);
+            return ApiResult.getFailInstance(e,"error");
+        }
+    }
+
+
+    @PostMapping("/tmp/synApplierGtidInfoFromQConfig")
+    public ApiResult synApplierGtidInfoFromQConfig(@RequestBody ConfigReq req) {
+        try {
+            Pair<Integer, List<String>> data = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(req.getConfigText(), Boolean.TRUE.equals(req.getUpdate()));
+            return ApiResult.getSuccessInstance(data.getKey(), data.getValue().toString());
+        } catch (Exception e) {
+            logger.error("error in syncDbInfo", e);
+            return ApiResult.getFailInstance(null,e.getMessage());
+        }
+    }
+
+    static class ConfigReq {
+        private String configText;
+        private Boolean update;
+
+        public Boolean getUpdate() {
+            return update;
+        }
+
+        public void setUpdate(Boolean update) {
+            this.update = update;
+        }
+
+        public String getConfigText() {
+            return configText;
+        }
+
+        public void setConfigText(String configText) {
+            this.configText = configText;
+        }
+    }
 }

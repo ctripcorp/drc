@@ -6,10 +6,28 @@ import java.util.List;
 import java.util.Objects;
 
 public class MhaDbReplicationQuery extends PageReq {
+    private List<Long> idList;
+    private List<Long> excludeIdList;
     private List<Long> srcMappingIdList;
     private List<Long> dstMappingIdList;
     private List<Long> relatedMappingList;
     private Integer type;
+
+    public List<Long> getIdList() {
+        return idList;
+    }
+
+    public void setIdList(List<Long> idList) {
+        this.idList = idList;
+    }
+
+    public List<Long> getExcludeIdList() {
+        return excludeIdList;
+    }
+
+    public void setExcludeIdList(List<Long> excludeIdList) {
+        this.excludeIdList = excludeIdList;
+    }
 
     public Integer getType() {
         return type;

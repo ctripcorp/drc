@@ -25,6 +25,16 @@ public class DrcAutoBuildParam {
 
     private ViewOnlyInfo viewOnlyInfo;
 
+    private boolean flushExistingData = true;
+
+    public boolean isFlushExistingData() {
+        return flushExistingData;
+    }
+
+    public void setFlushExistingData(boolean flushExistingData) {
+        this.flushExistingData = flushExistingData;
+    }
+
     public String getGtidInit() {
         return gtidInit;
     }
@@ -164,14 +174,29 @@ public class DrcAutoBuildParam {
     }
 
     public static class ViewOnlyInfo {
+        /**
+         * @see com.ctrip.framework.drc.console.enums.DrcStatusEnum
+         */
         private Integer drcStatus;
 
+        /**
+         * @see com.ctrip.framework.drc.console.enums.DrcApplyModeEnum
+         */
+        private Integer drcApplyMode;
         public Integer getDrcStatus() {
             return drcStatus;
         }
 
         public void setDrcStatus(Integer drcStatus) {
             this.drcStatus = drcStatus;
+        }
+
+        public Integer getDrcApplyMode() {
+            return drcApplyMode;
+        }
+
+        public void setDrcApplyMode(Integer drcApplyMode) {
+            this.drcApplyMode = drcApplyMode;
         }
     }
 }

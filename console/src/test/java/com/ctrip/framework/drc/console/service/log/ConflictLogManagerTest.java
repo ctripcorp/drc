@@ -7,27 +7,29 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
-import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
-import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
-import com.ctrip.framework.drc.console.enums.log.LogBlackListType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.assertj.core.util.Lists;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import static org.mockito.Mockito.*;
 
 public class ConflictLogManagerTest {
     
@@ -50,6 +52,10 @@ public class ConflictLogManagerTest {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private ConflictDbBlackListTblDao cflLogBlackListTblDao;
+    @Mock
+    private DbaApiService dbaApiService;
+    @Mock
+    private DbBlacklistCache dbBlacklistCache;
 
     @Before
     public void setUp() throws Exception {
@@ -57,78 +63,79 @@ public class ConflictLogManagerTest {
     }
     
     @Test
-    public void test() {
-        DbMigrationParam dbMigrationParam = new DbMigrationParam();
-        MigrateMhaInfo oldMha = new MigrateMhaInfo();
-        oldMha.setName("fat-bbz-pub-13");
-        oldMha.setMasterIp("10.21.6.216");
-        oldMha.setMasterPort(55111);
-        dbMigrationParam.setOldMha(oldMha);
-        
-        MigrateMhaInfo newMha = new MigrateMhaInfo();
-        newMha.setName("fat-bbz-pub-14");
-        newMha.setMasterIp("testip");
-        newMha.setMasterPort(55111);
-        dbMigrationParam.setNewMha(newMha);
-        
-        dbMigrationParam.setDbs(Lists.newArrayList("bbzsoftivrdb"));
-        dbMigrationParam.setOperator("test");
-        String s = JsonUtils.toJson(dbMigrationParam);
-        System.out.println(s);
-    }
-    
-
-    @Test
-    public void testCheckConflict() throws IOException, SQLException {
+    public void testSchedule() throws Throwable {
+        // mock check conflictCount
         Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://hickwall.com");
         Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("opsAccessToken");
         Mockito.when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://fat.hickwall.com");
         Mockito.when(domainConfig.getOpsAccessTokenFat()).thenReturn("fatOpsAccessToken");
-        Mockito.when(domainConfig.getConflictCommitTrxThreshold()).thenReturn(100L);
-        Mockito.when(domainConfig.getConflictCommitRowThreshold()).thenReturn(100L);
-        Mockito.when(domainConfig.getConflictRollbackTrxThreshold()).thenReturn(100L);
-        Mockito.when(domainConfig.getConflictRollbackRowThreshold()).thenReturn(100L);
-        Mockito.when(domainConfig.getSendConflictAlarmEmailSwitch()).thenReturn(true);
-        Mockito.when(domainConfig.getSendDbOwnerConflictEmailToSwitch()).thenReturn(true);
+        Mockito.when(domainConfig.getConflictAlarmThresholdCommitTrx()).thenReturn(100L);
+        Mockito.when(domainConfig.getConflictAlarmThresholdCommitRow()).thenReturn(100L);
+        Mockito.when(domainConfig.getConflictAlarmThresholdRollbackTrx()).thenReturn(100L);
+        Mockito.when(domainConfig.getConflictAlarmThresholdRollbackRow()).thenReturn(100L);
+        Mockito.when(domainConfig.getConflictAlarmSendEmailSwitch()).thenReturn(true);
+        Mockito.when(domainConfig.getConflictAlarmSendDBOwnerSwitch()).thenReturn(true);
         Mockito.when(domainConfig.getConflictAlarmCCEmails()).thenReturn(Lists.newArrayList("ccEmail1","ccEmail2"));
-        Mockito.when(domainConfig.getDrcHickwallMonitorUrl()).thenReturn("http://drc.hickwall.com");
-        Mockito.when(domainConfig.getDrcConflictHandleUrl()).thenReturn("http://drc.trip.com");
-        
-        Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("blackDb"), Mockito.anyString())).thenReturn(false);
-        Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("notBlackDb"), Mockito.anyString())).thenReturn(true);
+        Mockito.when(domainConfig.getConflictAlarmHickwallUrl()).thenReturn("http://drc.hickwall.com");
+        Mockito.when(domainConfig.getConflictAlarmDrcUrl()).thenReturn("http://drc.trip.com");
+        Mockito.when(dbaApiService.everUserTraffic(Mockito.anyString(),anyString(),anyString(),anyLong(),anyLong(),anyBoolean())).thenReturn(true);
+
+        Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("blackDb"), Mockito.anyString())).thenReturn(true);
+        Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("notBlackDb"), Mockito.anyString())).thenReturn(false);
         Mockito.when(mhaServiceV2.getRegion(Mockito.anyString())).thenReturn("region");
         Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
         Mockito.when(emailService.sendEmail(Mockito.any(Email.class))).thenReturn(new EmailResponse());
-        
-        Mockito.when(opsApiService.getConflictCount(Mockito.anyString(), Mockito.anyString(), 
-                Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.anyInt()))
+
+        Mockito.when(opsApiService.getConflictCount(Mockito.anyString(), Mockito.anyString(),
+                        Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.anyInt()))
                 .thenReturn(getConflictCounts());
-        Mockito.when(domainConfig.getSendConflictAlarmEmailSwitch()).thenReturn(true);
-        Mockito.when(domainConfig.getConflictAlarmTimesPerHour()).thenReturn(2);
+        Mockito.when(domainConfig.getConflictAlarmLimitPerHour()).thenReturn(2);
+
+        // mock clear blacklist
+        List<ConflictDbBlackListTbl> cflBlackLists = Lists.newArrayList();
+        cflBlackLists.addAll(getCflLogBlackListTbls(CflBlacklistType.USER));
+        cflBlackLists.addAll(getCflLogBlackListTbls(CflBlacklistType.NEW_CONFIG,true));
+        cflBlackLists.addAll(getCflLogBlackListTbls(CflBlacklistType.DBA_JOB,true));
+        cflBlackLists.addAll(getCflLogBlackListTbls(CflBlacklistType.ALARM_HOTSPOT,true));
+        cflBlackLists.addAll(getCflLogBlackListTbls(CflBlacklistType.NO_USER_TRAFFIC,false)); // not expired
         
-        conflictLogManager.checkConflict();
-        Mockito.verify(emailService, Mockito.times(4)).sendEmail(Mockito.any(Email.class));
+        when(cflLogBlackListTblDao.queryAllExist()).thenReturn(cflBlackLists);
+        when(domainConfig.getBlacklistExpirationHour(any())).thenReturn(5);
+        when(cflLogBlackListTblDao.update(any(ConflictDbBlackListTbl.class))).thenReturn(1);
+        
+        when(domainConfig.getBlacklistClearSwitch(any())).thenReturn(true);
+        when(cflLogBlackListTblDao.batchDelete(anyList())).thenReturn(null);
+        doNothing().when(dbBlacklistCache).refresh(true);
+        
+        // mock add alarm hotspot table to blacklist
+        Mockito.when(domainConfig.getBlacklistAlarmHotspotThreshold()).thenReturn(1L);
+        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.any(CflBlacklistType.class),Mockito.any());
+        
+        // mock schedule status
+        Mockito.when(consoleConfig.isCenterRegion()).thenReturn(true);
+        conflictLogManager.setRegionLeader(true);
+        conflictLogManager.minuteCount = 60 * 24 -1;
+        
+        conflictLogManager.scheduledTask();
+        Thread.sleep(500);
+        verify(emailService, Mockito.times(2)).sendEmail(Mockito.any(Email.class));
+        verify(cflLogBlackListTblDao, Mockito.times(3)).batchDelete(Mockito.anyList());
+        Assert.assertEquals(0,conflictLogManager.minuteCount);
+        Assert.assertEquals(0,conflictLogManager.tableAlarmCountMap.size());
+        Assert.assertEquals(0,conflictLogManager.tableAlarmCountHourlyMap.size());
+    }
+    
+
+    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls(CflBlacklistType type,boolean isExpired) {
+        ConflictDbBlackListTbl blackListTbl = new ConflictDbBlackListTbl();
+        blackListTbl.setType(type.getCode());
+        blackListTbl.setDbFilter("db1\\..*");
+        blackListTbl.setExpirationTime(isExpired ? new Timestamp(System.currentTimeMillis()) : new Timestamp(System.currentTimeMillis() + 1000 * 60 * 60));
+        blackListTbl.setDatachangeLasttime(new Timestamp(System.currentTimeMillis() - 1000 * 60 * 60 * 5));
+        return Lists.newArrayList(blackListTbl);
     }
 
-    @Test
-    public void testClearBlackListAddedAutomatically() throws SQLException {
-        Mockito.when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
-        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.AUTO.getCode())).thenReturn(getCflLogBlackListTbls(LogBlackListType.AUTO));
-        Mockito.when(domainConfig.getCflBlackListExpirationHour()).thenReturn(5);
-        Mockito.when(cflLogBlackListTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[]{1});
-        conflictLogManager.clearBlackListAddedAutomatically(LogBlackListType.AUTO);
-        Mockito.verify(cflLogBlackListTblDao, Mockito.times(1)).batchDelete(Mockito.anyList());
-
-        Mockito.when(consoleConfig.getDBACflBlackListClearSwitch()).thenReturn(true);
-        Mockito.when(cflLogBlackListTblDao.queryByType(LogBlackListType.DBA.getCode())).thenReturn(getCflLogBlackListTbls(LogBlackListType.DBA));
-        Mockito.when(domainConfig.getDBACflBlackListExpirationHour()).thenReturn(5);
-        Mockito.when(cflLogBlackListTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[]{1});
-        conflictLogManager.clearBlackListAddedAutomatically(LogBlackListType.DBA);
-        Mockito.verify(cflLogBlackListTblDao, Mockito.times(2)).batchDelete(Mockito.anyList());
-        
-    }
-
-    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls(LogBlackListType type) {
+    private List<ConflictDbBlackListTbl> getCflLogBlackListTbls(CflBlacklistType type) {
         ConflictDbBlackListTbl blackListTbl = new ConflictDbBlackListTbl();
         blackListTbl.setType(type.getCode());
         blackListTbl.setDbFilter("db1\\..*");
@@ -140,6 +147,7 @@ public class ConflictLogManagerTest {
     private List<DbTbl> getDbTbls() {
         DbTbl dbTbl = new DbTbl();
         dbTbl.setDbOwner("dbOwner1");
+        dbTbl.setEmailGroup("test@trip.com");
         return Lists.newArrayList(dbTbl);
     }
     

@@ -55,6 +55,8 @@ public class MhaDbReplicationTblDao extends AbstractDao<MhaDbReplicationTbl> {
 
     private void buildQueryCondition(SelectSqlBuilder sqlBuilder, MhaDbReplicationQuery query) throws SQLException {
         sqlBuilder.and()
+                .inNullable(ID, query.getIdList(), Types.BIGINT).and()
+                .notInNullable(ID, query.getExcludeIdList(), Types.BIGINT).and()
                 .inNullable(SRC_MHA_DB_MAPPING_ID, query.getSrcMappingIdList(), Types.BIGINT).and()
                 .inNullable(DST_MHA_DB_MAPPING_ID, query.getDstMappingIdList(), Types.BIGINT).and()
                 .equalNullable(REPLICATION_TYPE, query.getType(), Types.TINYINT).and()

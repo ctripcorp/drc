@@ -25,6 +25,9 @@
                 <Col span="3">
                   <Input prefix="ios-search" v-model="queryParam.operator" placeholder="操作人"></Input>
                 </Col>
+                <Col span="3">
+                  <Input prefix="ios-search" v-model="queryParam.operationKeyword" placeholder="日志内容"></Input>
+                </Col>
                 <Col span="4">
                   <DatePicker type="datetime" :editable="false" v-model="queryParam.beginCreateTime"
                               :clearable="false" placeholder="起始日期"></DatePicker>
@@ -235,6 +238,7 @@ export default {
         attr: null,
         fail: null,
         operator: null,
+        operationKeyword: null,
         beginCreateTime: null,
         endCreatTime: null
       },
@@ -263,6 +267,7 @@ export default {
         type: this.queryParam.type,
         attr: this.queryParam.attr,
         operator: this.queryParam.operator,
+        operationKeyword: this.queryParam.operationKeyword,
         fail: this.queryParam.fail,
         beginCreateTime: isNaN(beginCreateTime) ? null : beginCreateTime,
         endCreatTime: isNaN(endCreatTime) ? null : endCreatTime,
@@ -305,6 +310,7 @@ export default {
       const params = {
         type: this.queryParam.type,
         operator: this.queryParam.operator,
+        operationKeyword: this.queryParam.operationKeyword,
         fail: this.queryParam.fail,
         beginCreateTime: isNaN(beginCreateTime) ? null : beginCreateTime === 0 ? null
           : beginCreateTime,

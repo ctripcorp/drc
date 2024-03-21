@@ -1,19 +1,24 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
+import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
@@ -24,10 +29,16 @@ import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.sql.SQLException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -40,13 +51,16 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.util.StopWatch;
 
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
-
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
+import static org.mockito.Mockito.*;
 /**
  * Created by dengquanliang
  * 2023/10/16 14:39
@@ -79,37 +93,23 @@ public class ConflictLogServiceTest {
     private IAMService iamService;
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private DbBlacklistCache dbBlacklistCache;
+    @Mock
+    private DomainConfig domainConfig;
+    @Mock
+    private ReplicationTableTblDao replicationTableTblDao;
 
     @Before
     public void setUp() {
-        System.setProperty("iam.config.enable","off"); // skip the constructor of IAMServiceImpl
+        System.setProperty("iam.config.enable", "off"); // skip the constructor of IAMServiceImpl
         MockitoAnnotations.openMocks(this);
         Mockito.when(consoleConfig.getConflictLogQueryTimeInterval()).thenReturn(Constants.ONE_DAY);
     }
     
 //    @Test
-//    public void testMatch() throws IOException {
-//        List<String> dbFilters = Lists.newArrayList();
-//        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/resources/blacklist.txt"))) {
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                dbFilters.add(line);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        String dbFilter = Joiner.on(",").join(dbFilters);
-//        System.out.println(dbFilter);
-//        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
-//        List<AviatorRegexFilter> regexFilterList = dbFilters.stream().map(AviatorRegexFilter::new).collect(Collectors.toList());
-//        System.out.println(regexFilter.filter("pkgpricedb"+"."+ "res_price_1"));
-//        System.out.println(regexFilterList.stream().anyMatch(filter -> filter.filter("pkgpricedb"+"."+ "res_price_1")));
-//        
-//    }
-//    
-//    @Test
 //    public void testCflBlacklist() throws IOException {
-//        
+//
 //        List<String> dbFilters = Lists.newArrayList();
 //        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/resources/blacklist.txt"))) {
 //            String line;
@@ -125,24 +125,46 @@ public class ConflictLogServiceTest {
 //
 //        StopWatch stopWatch = new StopWatch();
 //        stopWatch.start("task1");
-//        for (int i = 0; i < 100 * 10000; i++) {
-//            regexFilter.filter("pkgpricedb"+"."+ "res_price_602");
-//        }
+//        
+////        regexFilter.filter("fltfullskilldb"+"."+ "asproductorder");
+//        
 //        stopWatch.stop();
 //        System.out.println(stopWatch.getLastTaskTimeMillis());
-//        
+//
 //        stopWatch.start("task2");
-//        for (int i = 0; i < 100 * 10000; i++) {
+//        for (int i = 0; i < 10; i++) {
 //            for (AviatorRegexFilter filter : regexFilterList) {
-//                if (filter.filter("pkgpricedb"+"."+ "res_price_602")) {
+//                if (filter.filter("fltfullskilldb"+"."+ "asproductorder")) {
+//                    System.out.println("match");
 //                    break;
 //                }
 //            }
 //        }
+//        System.out.println("no match");
 //        stopWatch.stop();
 //        System.out.println(stopWatch.getLastTaskTimeMillis());
 //    }
 
+    @Test
+    public void testAddDbBlacklist() throws Exception {
+        when(conflictDbBlackListTblDao.queryBy(anyString(),anyInt())).thenReturn(null);
+        when(conflictDbBlackListTblDao.insert(any(ConflictDbBlackListTbl.class))).thenReturn(1);
+        when(domainConfig.getBlacklistExpirationHour(Mockito.any())).thenReturn(1);
+        doNothing().when(dbBlacklistCache).refresh(true);
+        
+        conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis() + Constants.ONE_DAY);
+        conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.DBA_JOB,null);
+
+        ConflictDbBlackListTbl db2table2 = new ConflictDbBlackListTbl();
+        db2table2.setId(1L);
+        when(conflictDbBlackListTblDao.queryBy(eq("db2\\.table2"),anyInt())).thenReturn(Lists.newArrayList(db2table2));
+        conflictLogService.addDbBlacklist("db2\\.table2", CflBlacklistType.DBA_JOB,null);
+        verify(conflictDbBlackListTblDao,times(2)).insert(any(ConflictDbBlackListTbl.class));
+        verify(dbBlacklistCache,times(3)).refresh(true);
+        verify(conflictDbBlackListTblDao,times(1)).update(any(ConflictDbBlackListTbl.class));
+    }
+    
+    
     @Test
     public void testGetConflictTrxLogView() throws Exception {
         ConflictTrxLogQueryParam param = new ConflictTrxLogQueryParam();
@@ -232,7 +254,7 @@ public class ConflictLogServiceTest {
     @Test
     public void testGetConflictRowRecordView() throws Exception {
         QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", new ArrayList<>(), new ArrayList<>(), 12);
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(),  new ArrayList<>(),12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", new ArrayList<>(), new ArrayList<>(), 12);
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
@@ -281,11 +303,17 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateConflict() throws Exception {
+        List<AviatorRegexFilter> filters = getConflictDbBlackListTbls().stream().map(tbl -> new AviatorRegexFilter(tbl.getDbFilter())).collect(Collectors.toList());
+        Mockito.when(dbBlacklistCache.getDbBlacklistInCache()).thenReturn(filters);
+        Mockito.when(consoleConfig.getConflictLogRecordSwitch()).thenReturn(false);
+        ConflictTransactionLog trxLog = buildConflictTransactionLog();
+        conflictLogService.insertConflictLog(Lists.newArrayList(trxLog));
+        Mockito.verify(conflictTrxLogTblDao, Mockito.times(0)).batchInsertWithReturnId(Mockito.anyList());
+
+        Mockito.when(consoleConfig.getConflictLogRecordSwitch()).thenReturn(true);
         Mockito.when(conflictTrxLogTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(conflictRowsLogTblDao.insert(Mockito.anyList())).thenReturn(new int[1]);
-
-        ConflictTransactionLog trxLog = buildConflictTransactionLog();
-        conflictLogService.createConflictLog(Lists.newArrayList(trxLog));
+        conflictLogService.insertConflictLog(Lists.newArrayList(trxLog));
     }
 
     @Test
@@ -355,7 +383,7 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateHandleSql() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"),12);
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"), 12);
         QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "handleSql", Lists.newArrayList("datachange_lasttime"), Lists.newArrayList("id"), 12);
 
         Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
@@ -385,7 +413,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testIsInBlackListWithCache() throws Exception {
-        Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(getConflictDbBlackListTbls());
+        List<AviatorRegexFilter> filters = getConflictDbBlackListTbls().stream().map(tbl -> new AviatorRegexFilter(tbl.getDbFilter())).collect(Collectors.toList());
+        Mockito.when(dbBlacklistCache.getDbBlacklistInCache()).thenReturn(filters);
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
         Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));
@@ -406,17 +435,44 @@ public class ConflictLogServiceTest {
         Assert.assertTrue(result.get(0).getRecordIsEqual());
     }
 
+    @Test
+    public void testGetRowsLogCountView() throws Exception {
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1L, 1L, 1)));
+        Mockito.when(conflictRowsLogTblDao.queryTopNDb(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(Lists.newArrayList(new ConflictRowsLogCount("db", "table", 1L, 1L, 1)));
+        Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyLong(), Mockito.anyLong())).thenReturn(1);
+        Mockito.when(conflictRowsLogTblDao.queryCount(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt())).thenReturn(1);
+
+        ConflictRowsLogCountView result = conflictLogService.getRowsLogCountView(1L, 2L);
+        Assert.assertEquals(result.getDbCounts().size(), 1);
+        Assert.assertEquals(result.getRollBackDbCounts().size(), 1);
+        Assert.assertTrue(result.getTotalCount() == 1);
+        Assert.assertTrue(result.getRollBackTotalCount() == 1);
+    }
+
+    @Test
+    public void testGetConflictDbBlacklistView() throws Exception {
+        Mockito.when(conflictDbBlackListTblDao.query(Mockito.any())).thenReturn(getConflictDbBlackListTbls());
+        List<ConflictDbBlacklistView> result = conflictLogService.getConflictDbBlacklistView(new ConflictDbBlacklistQueryParam());
+        Assert.assertEquals(result.size(), getConflictDbBlackListTbls().size());
+    }
+
     private Map<String, Object> getEmptyRecord() {
         Map<String, Object> record = getSrcResMap();
-        record.put("record", new ArrayList<>() );
+        record.put("record", new ArrayList<>());
         return record;
     }
 
     private List<ConflictDbBlackListTbl> getConflictDbBlackListTbls() {
         ConflictDbBlackListTbl black1 = new ConflictDbBlackListTbl();
         black1.setDbFilter("db1\\..*");
+        black1.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        black1.setType(0);
+        black1.setId(1L);
         ConflictDbBlackListTbl black2 = new ConflictDbBlackListTbl();
         black2.setDbFilter("db2\\..*");
+        black2.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        black2.setType(0);
+        black2.setId(1L);
         return Lists.newArrayList(black1, black2);
     }
 

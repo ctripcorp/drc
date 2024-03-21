@@ -576,7 +576,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                         .setNameFilter(messengerProperties.getNameFilter())
                         .setGtidExecuted(messengerGroupTblV3.getGtidExecuted())
                         .setProperties(propertiesJson)
-                        .setIncludedDbs(mhaDbReplicationDto.getSrc().getDbName())
+                        .setIncludedDbs(mhaDbReplicationDto.getSrc().getDbName().toLowerCase())
                         .setApplyMode(ApplyMode.db_mq.getType());
                 messengers.add(messenger);
             }

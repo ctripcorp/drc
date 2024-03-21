@@ -1,16 +1,20 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import static org.mockito.Mockito.when;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaDbMappingServiceImpl;
+import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.google.common.collect.Lists;
-import java.sql.Timestamp;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -20,8 +24,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 /**
  * Created by dengquanliang
@@ -39,6 +49,12 @@ public class MhaDbMappingServiceTest {
     private DbTblDao dbTblDao;
     @Mock
     private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Mock
+    private MetaInfoServiceV2 metaInfoServiceV2;
+    @Mock
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Mock
+    private DbaApiService dbaApiService;
 
     @Before
     public void setUp() throws Exception {
@@ -84,6 +100,56 @@ public class MhaDbMappingServiceTest {
 
     }
 
+    @Test
+    public void testQuery() throws SQLException {
+        // empty condition
+        MhaDbQueryDto query = new MhaDbQueryDto();
+        List<MhaDbMappingTbl> lists = getMhaDbMappingTbls();
+        when(mhaDbMappingTblDao.queryByDbIdsOrMhaIds(null,null)).thenReturn(Collections.emptyList());
+        List<MhaDbMappingTbl> r1 = mhaDbMappingService.query(query);
+        Assert.assertEquals(0,r1.size());
+
+        // mha condition
+        when(mhaDbMappingTblDao.queryByDbIdsOrMhaIds(anyList(), anyList())).thenReturn(lists);
+
+        query = new MhaDbQueryDto();
+        query.setRegionId(1L);
+        DcDo dcDo = new DcDo();
+        dcDo.setRegionId(1L);
+        when(metaInfoServiceV2.queryAllDcWithCache()).thenReturn(Lists.newArrayList(dcDo));
+        MhaTblV2 mhaTblV2 = new MhaTblV2();
+        mhaTblV2.setId(1L);
+        when(mhaTblV2Dao.query(any())).thenReturn(Lists.newArrayList(mhaTblV2));
+
+        // db condition
+        DbTbl dbTbl = new DbTbl();
+        dbTbl.setId(111L);
+        when(dbTblDao.queryByLikeDbNamesOrBuCode(anyString(),anyString())).thenReturn(Lists.newArrayList(dbTbl));
+        query.setBuCode("buCode1");
+        query.setDbName("db1");
+        List<MhaDbMappingTbl> r3 = mhaDbMappingService.query(query);
+        Assert.assertNotEquals(0,r3.size());
+
+    }
+
+    @Test
+    public void testConfigEmailGroupForDb() throws Exception {
+        Mockito.when(dbaApiService.getDatabaseClusterInfoList(Mockito.anyString())).thenReturn(Lists.newArrayList(new DbClusterInfoDto("db", new ArrayList<>())));
+        Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
+        Mockito.when(dbTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        ConfigDbView result = mhaDbMappingService.configEmailGroupForDb("db_dalcluster", "email");
+        Assert.assertEquals(result.getSize(), 2);
+        result = mhaDbMappingService.configEmailGroupForDb("db", "email");
+        Assert.assertEquals(result.getSize(), 2);
+    }
+
+    private static List<MhaDbMappingTbl> getMhaDbMappingTbls() {
+        List<MhaDbMappingTbl> lists = new ArrayList<>();
+        MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
+        mhaDbMappingTbl.setDbId(111L);
+        lists.add(mhaDbMappingTbl);
+        return lists;
+    }
 
     private static List<DbTbl> getDbTblsWithDuplicate() {
         List<DbTbl> tbls = new ArrayList<>();

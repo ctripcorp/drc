@@ -9,7 +9,13 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
@@ -20,10 +26,13 @@ import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -32,12 +41,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -76,6 +83,12 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private ReplicatorTblDao replicatorTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private ApplierTblV3Dao applierTblV3Dao;
+    @Autowired
+    private ApplierGroupTblV3Dao applierGroupTblV3Dao;
+    @Autowired
+    private MhaDbReplicationTblDao mhaDbReplicationTblDao;
 
 
     @Override
@@ -354,6 +367,125 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                 mha.setDeleted(BooleanEnum.TRUE.getCode());
                 mhasToBeDelete.add(mha);
             }
+        }
+    }
+
+    @Override
+    public Map<String, String> parseConfigFileGtidContent(String configText) {
+        String[] split = configText.split("\n");
+        Map<String, String> map = new HashMap<>();
+        for (String s : split) {
+            if (s.startsWith("#")) {
+                continue;
+            }
+            String[] keyAndValue = s.split("=");
+            if (keyAndValue.length != 2) {
+                continue;
+            }
+            String key = keyAndValue[0].trim();
+            String value = keyAndValue[1].trim();
+            if (StringUtils.isEmpty(key) || StringUtils.isEmpty(value)) {
+                continue;
+            }
+            // check key
+            if (!key.endsWith("purgedgtid") || key.split("\\.").length != 4) {
+                continue;
+            }
+            // value check
+            if (new GtidSet(value).getUUIDs().isEmpty()) {
+                continue;
+            }
+            map.put(key, value);
+        }
+        return map;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public Pair<Integer,List<String>> synApplierGtidInfoFromQConfig(String configText, boolean update) {
+        try {
+            Map<String, String> keyValueMap = this.parseConfigFileGtidContent(configText);
+
+            Map<MhaReplicationDto, String> replicationToGtidMap = new HashMap<>();
+            for (Map.Entry<String, String> entry : keyValueMap.entrySet()) {
+                String[] split = entry.getKey().split("\\.");
+                String srcMha = split[2];
+                String dstMha = split[1];
+                replicationToGtidMap.put(MhaReplicationDto.from(srcMha, dstMha), entry.getValue());
+            }
+
+            List<ApplierGroupTblV2> applierGroupUpdateList = Lists.newArrayList();
+            List<String> illegalMessages = Lists.newArrayList();
+
+            for (Map.Entry<MhaReplicationDto, String> entry : replicationToGtidMap.entrySet()) {
+                MhaReplicationDto replicationDto = entry.getKey();
+                String qConfigGtid = entry.getValue();
+                String targetGtid = qConfigGtid;
+                String srcName = replicationDto.getSrcMha().getName();
+                String dstName = replicationDto.getDstMha().getName();
+                String replication = srcName + "->" + dstName;
+
+                MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcName, BooleanEnum.FALSE.getCode());
+                MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryByMhaName(dstName, BooleanEnum.FALSE.getCode());
+                if (srcMhaTbl == null || dstMhaTbl == null) {
+                    illegalMessages.add(String.format("%s: mha not exit", replication));
+                    continue;
+                }
+                MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), dstMhaTbl.getId());
+                if (mhaReplicationTbl == null) {
+                    illegalMessages.add(String.format("%s: mha replication not exist", replication));
+                    continue;
+                }
+                ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
+                if (applierGroupTblV2 == null) {
+                    illegalMessages.add(String.format("%s: applierGroup not exist", replication));
+                    continue;
+                }
+                if (!StringUtils.isEmpty(applierGroupTblV2.getGtidInit())) {
+                    targetGtid = new GtidSet(applierGroupTblV2.getGtidInit()).union(new GtidSet(qConfigGtid)).toString();
+                    if (targetGtid.equals(applierGroupTblV2.getGtidInit())) {
+                        continue;
+                    }
+                    illegalMessages.add(String.format("%s: going to update gitd. origin:%s, target:%S", replication, applierGroupTblV2.getGtidInit(), targetGtid));
+                }
+                logger.info("update gitd: {} {}->{} (qconfig gtid:{})", replication, applierGroupTblV2.getGtidInit(), targetGtid, qConfigGtid);
+                applierGroupTblV2.setGtidInit(targetGtid);
+                applierGroupUpdateList.add(applierGroupTblV2);
+            }
+            if (update) {
+                int[] ints = applierGroupTblV2Dao.batchUpdate(applierGroupUpdateList);
+                return Pair.of(Arrays.stream(ints).sum(), illegalMessages);
+            }
+            return Pair.of(applierGroupUpdateList.size(), illegalMessages);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
+        }
+    }
+
+    @Override
+    public List<MhaReplicationTbl> queryAllHasActiveMhaDbReplications(){
+        try {
+            List<ApplierTblV3> applierTblV3s = applierTblV3Dao.queryAllExist();
+            List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryAllExist();
+            Set<Long> groupIds = applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).collect(Collectors.toSet());
+            List<Long> mhaReplicationIds = applierGroupTblV3s.stream().filter(e -> groupIds.contains(e.getId())).map(ApplierGroupTblV3::getMhaDbReplicationId).collect(Collectors.toList());
+            List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryByIds(mhaReplicationIds);
+            List<Long> mappingIds = mhaDbReplicationTbls.stream().flatMap(e -> Stream.of(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId())).distinct().collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(mappingIds);
+            Map<Long, Long> map = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getMhaId));
+            // (src mha id , dst mha id)
+            List<MhaReplicationTbl> samples = mhaDbReplicationTbls.stream().map(e -> new MultiKey(map.get(e.getSrcMhaDbMappingId()), map.get(e.getDstMhaDbMappingId())))
+                    .distinct()
+                    .map(e -> {
+                        MhaReplicationTbl tbl = new MhaReplicationTbl();
+                        tbl.setSrcMhaId((Long) e.getKey(0));
+                        tbl.setDstMhaId((Long) e.getKey(1));
+                        return tbl;
+                    })
+                    .collect(Collectors.toList());
+            return mhaReplicationTblDao.queryBySamples(samples);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
         }
     }
 

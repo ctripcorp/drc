@@ -4,6 +4,7 @@ package com.ctrip.framework.drc.console.aop.permission;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.controller.log.ConflictLogController;
 import com.ctrip.framework.drc.console.enums.TokenType;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +23,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.DigestUtils;
+
+import java.sql.SQLException;
 
 public class AccessTokenAspectTest {
     
@@ -56,7 +59,12 @@ public class AccessTokenAspectTest {
     
     @Test
     public void testAccessTokenCheck() throws Exception {
-        Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any());
+        try {
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any(
+                    CflBlacklistType.class),Mockito.any());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v2/log/conflict/blacklist/dba/touchjob?db=db1&table=table1")
                         .header("DRC-Access-Token", "a2cf09da41f37ea6ec7be2b9a3d650b2")
                         .accept(MediaType.APPLICATION_JSON))

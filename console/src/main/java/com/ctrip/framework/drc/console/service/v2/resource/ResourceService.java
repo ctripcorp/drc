@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
@@ -30,7 +31,7 @@ public interface ResourceService {
 
     List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
 
-    List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws Exception;
+    List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException;
 
 
     List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception;
@@ -42,8 +43,14 @@ public interface ResourceService {
 
     List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException;
 
+    List<ResourceView> handOffResource(List<String> selectedIps, List<ResourceView> availableResource);
+
     List<String> queryMhaByReplicator(long resourceId) throws Exception;
 
     List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception;
+
+    List<MhaDbReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception;
+
+    List<String> queryMhaByMessenger(long resourceId) throws Exception;
     
 }

@@ -1,11 +1,25 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Content;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Digest;
+import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,14 +29,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
 
 public class DbaApiServiceTest {
 
@@ -34,6 +40,8 @@ public class DbaApiServiceTest {
     private DomainConfig domainConfig;
     @Mock
     private UserService userService;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
 
     @Before
@@ -45,7 +53,7 @@ public class DbaApiServiceTest {
     public void releaseMocks() throws Exception {
         closeable.close();
     }
-
+    
     @Test
     public void testGetDatabaseClusterInfoList() {
         String clusterName = "xxxdb_dalcluster";
@@ -83,4 +91,120 @@ public class DbaApiServiceTest {
             Assert.assertEquals(2, size);
         }
     }
+    
+    @Test
+    public void test() {
+        long endTime = System.currentTimeMillis();
+        long startTime = endTime - 1000 * 60 * 60 * 24 * 7;
+        System.out.println(DateUtils.longToString(startTime, "yyyy-MM-dd HH:mm"));
+        System.out.println(DateUtils.longToString(endTime,  "yyyy-MM-dd HH:mm"));
+    }
+    
+    @Test
+    public void testEverUserTraffic() {
+        when(consoleConfig.getCenterRegion()).thenReturn("sha");
+        when(domainConfig.getOpsAccessToken()).thenReturn("token1");
+        when(domainConfig.getOverSeaUserDMLQueryUrl()).thenReturn("http://url1");
+        when(domainConfig.getCenterRegionUserDMLCountQueryUrl()).thenReturn("http://url2");
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() ->HttpUtils.post(eq("http://url1"), any(), any())).thenReturn("{\n"
+                    + "    \"success\": true,\n"
+                    + "    \"content\": {\n"
+                    + "        \"select\": {},\n"
+                    + "        \"write\": {\n"
+                    + "            \"digest\": \"9f8d1da2a33fdb83616827b2a8398261391a3b8b4c9b56a4b531b97451150446\",\n"
+                    + "            \"digest_sql\": \"UPDATE `table` SET `badge` = ? WHERE `uid` = ? AND `cid` = ? AND `type` = ?\",\n"
+                    + "            \"datachange_lasttime\": \"2024-02-22 14:45:10\"\n"
+                    + "        }\n"
+                    + "    }\n"
+                    + "}");
+
+            boolean shaEver = dbaApiService.everUserTraffic("sin", "db1", "table1",
+                    System.currentTimeMillis() -1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+            Assert.assertTrue(shaEver);
+
+            theMock.when(() ->HttpUtils.post(eq("http://url1"), any(), any())).thenReturn("{\n"
+                    + "    \"success\": false,\n"
+                    + "    \"content\": \"no sql\"\n"
+                    + "}");
+            shaEver = dbaApiService.everUserTraffic("sin", "db1", "table1",
+                    System.currentTimeMillis() -1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+            Assert.assertFalse(shaEver);
+
+            theMock.when(() ->HttpUtils.post(eq("http://url1"), any(), any())).thenReturn("{\n"
+                    + "    \"success\": true,\n"
+                    + "    \"content\": {\n"
+                    + "        \"select\": {"
+                    + "            \"digest\": \"9f8d1da2a33fdb83616827b2a8398261391a3b8b4c9b56a4b531b97451150446\",\n"
+                    + "            \"digest_sql\": \"select `table` SET `badge` = ? WHERE `uid` = ? AND `cid` = ? AND `type` = ?\",\n"
+                    + "            \"datachange_lasttime\": \"2024-02-22 14:45:10\"\n"
+                    + "         },\n"
+                    + "        \"write\": {}\n"
+                    + "    }\n"
+                    + "}");
+
+            shaEver = dbaApiService.everUserTraffic("sin", "db1", "table1",
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+            Assert.assertFalse(shaEver);
+            
+            
+        }
+
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() ->HttpUtils.post(eq("http://url2"), any(), any())).thenReturn("{\n"
+                    + "    \"success\": true,\n"
+                    + "    \"content\": {\n"
+                    + "        \"seeks\": 5,\n"
+                    + "        \"scans\": 5,\n"
+                    + "        \"insert\": 5,\n"
+                    + "        \"update\": 5,\n"
+                    + "        \"delete\": 5\n"
+                    + "    }\n"
+                    + "}");
+
+            boolean shaEver = dbaApiService.everUserTraffic("sha", "db1", "table1",
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+            Assert.assertTrue(shaEver);
+
+            theMock.when(() ->HttpUtils.post(eq("http://url2"), any(), any())).thenReturn("{\n"
+                    + "    \"success\": true,\n"
+                    + "    \"content\": {\n"
+                    + "        \"seeks\": 5,\n"
+                    + "        \"scans\": 5,\n"
+                    + "        \"insert\": 0,\n"
+                    + "        \"update\": 0,\n"
+                    + "        \"delete\": 0\n"
+                    + "    }\n"
+                    + "}");
+            shaEver = dbaApiService.everUserTraffic("sha", "db1", "table1",
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+            Assert.assertFalse(shaEver);
+
+            theMock.when(() ->HttpUtils.post(eq("http://url2"), any(), any())).thenReturn("{\n"
+                    + "    \"success\": false,\n"
+                    + "    \"content\": \"error\"\n"
+                    + "}");
+            shaEver = dbaApiService.everUserTraffic("sha", "db1", "table1",
+                    System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7, System.currentTimeMillis(), false);
+            Assert.assertTrue(shaEver);
+
+            SQLDigestInfo sqlDigestInfo = new SQLDigestInfo();
+            Content content = new Content();
+            Digest digest = new Digest();
+            sqlDigestInfo.setSuccess(true);
+            sqlDigestInfo.setContent(content);
+            content.setSelect(digest);
+            digest.setDigest("digest");
+            digest.setDigest_sql("sql");
+            digest.setDatachange_lasttime("2024-02-22 14:45:10");
+            
+            sqlDigestInfo.getContent();
+            sqlDigestInfo.getContent().getSelect();
+            sqlDigestInfo.getContent().getSelect().getDigest();
+            sqlDigestInfo.getContent().getSelect().getDigest_sql();
+            sqlDigestInfo.getContent().getSelect().getDatachange_lasttime();
+
+        }
+    }
+
 }

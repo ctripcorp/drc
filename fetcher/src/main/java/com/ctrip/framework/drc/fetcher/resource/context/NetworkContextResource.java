@@ -1,16 +1,24 @@
 package com.ctrip.framework.drc.fetcher.resource.context;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.GtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.system.qconfig.ConfigKey;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.List;
+import java.util.Objects;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DEFAULT_CONFIG_FILE_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.isIntegrityTest;
@@ -29,6 +37,9 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
 
     @InstanceConfig(path = "applyMode")
     public int applyMode;
+
+    @InstanceConfig(path = "includedDbs")
+    public String includedDbs;
 
     @InstanceResource
     public MqPosition mqPosition;
@@ -122,9 +133,20 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @VisibleForTesting
     protected GtidSet queryPositionFromDb() {
         Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
-        ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
+        List<GtidReader> gtidReaders = this.getExecutedGtidReaders(endpoint);
+        ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint, gtidReaders);
         String gtidSet = queryTask.doQuery();
         emptyPositionFromDb = StringUtils.isBlank(gtidSet);
         return new GtidSet(gtidSet);
+    }
+    @VisibleForTesting
+    protected List<GtidReader> getExecutedGtidReaders(Endpoint endpoint) {
+        List<GtidReader> gtidReaders;
+        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
+            gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(endpoint), new DbTransactionTableGtidReader(endpoint, Objects.requireNonNull(includedDbs)));
+        } else {
+            gtidReaders = Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(endpoint));
+        }
+        return gtidReaders;
     }
 }

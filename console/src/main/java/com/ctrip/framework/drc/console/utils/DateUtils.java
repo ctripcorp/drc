@@ -17,6 +17,10 @@ public class DateUtils {
     public static String longToString(long time) {
         return fdf.format(time);
     }
+    
+    public static String longToString(long time, String format) {
+        return FastDateFormat.getInstance(format).format(time);
+    }
 
     /**
      * 获取当天零点时间
@@ -45,6 +49,20 @@ public class DateUtils {
         calendar.set(Calendar.MILLISECOND, 0);
 
         return calendar.getTimeInMillis();
+    }
+
+    /**
+     * 获取当天某个整点时间
+     */
+    public static long getTimeOfHour(int hour) {
+        long curTime = System.currentTimeMillis();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(curTime);
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime().getTime();
     }
 
     /**

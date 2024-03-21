@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.log.entity.OperationLogTbl;
 import com.ctrip.framework.drc.console.param.log.OperationLogQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -25,6 +26,7 @@ public class OperationLogTblDao extends AbstractDao<OperationLogTbl> {
     public static final String TYPE = "type";
     public static final String ATTR = "attr";
     public static final String OPERATOR = "operator";
+    public static final String OPERATION = "operation";
     public static final String FAIL = "fail";
     public static final String CREATE_TIME = "create_time";
     
@@ -56,6 +58,9 @@ public class OperationLogTblDao extends AbstractDao<OperationLogTbl> {
         }
         if (StringUtils.isNotEmpty(param.getOperator())) {
             sqlBuilder.and().equal(OPERATOR, param.getOperator(), Types.VARCHAR);
+        }
+        if (StringUtils.isNotEmpty(param.getOperationKeyword())) {
+            sqlBuilder.and().likeNullable(OPERATION, param.getOperationKeyword(), MatchPattern.CONTAINS, Types.VARCHAR);
         }
         if (param.getFail() != null) {
             sqlBuilder.and().equal(FAIL, param.getFail(), Types.INTEGER);
