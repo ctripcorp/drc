@@ -51,6 +51,10 @@ const dcList = [
   {
     value: 'sinaws',
     label: 'sinaws'
+  },
+  {
+    value: 'sgpali',
+    label: 'sgpali'
   }
 ]
 const tagList = [
@@ -72,7 +76,9 @@ const azList = [
   'SHA-ALI-B',
   'SHA-ALI-G',
   'ALI-VPC',
-  'NTGXH'
+  'NTGXH',
+  'SGP-ALI-B',
+  'SGP-ALI-C'
 ]
 export default {
   name: 'constant',

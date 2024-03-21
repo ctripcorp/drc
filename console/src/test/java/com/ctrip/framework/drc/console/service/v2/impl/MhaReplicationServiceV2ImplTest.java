@@ -5,12 +5,14 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.xpipe.tuple.Pair;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
@@ -27,6 +29,10 @@ import static org.mockito.Mockito.when;
 
 
 public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
+
+
+    @Mock
+    MhaDbReplicationService mhaDbReplicationService;
 
 
     @Before
