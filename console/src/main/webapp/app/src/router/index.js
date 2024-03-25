@@ -254,6 +254,11 @@ const routes = [
     component: () => import('../views/v2/application/drcBuild.vue')
   },
   {
+    path: '/mha',
+    name: 'applicationBuild',
+    component: () => import('../views/v2/meta/mha.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

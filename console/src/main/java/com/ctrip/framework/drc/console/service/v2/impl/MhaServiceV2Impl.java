@@ -5,8 +5,10 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -14,6 +16,7 @@ import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
+import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -518,5 +521,22 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         machineTblDao.batchUpdate(machineTbls);
         int update = mhaTblV2Dao.update(mhaTblV2);
         return update == 1;
+    }
+
+    @Override
+    public List<MhaTblV2> queryMhas(MhaQueryParam param) throws Exception {
+        if (StringUtils.isNotBlank(param.getDbName())) {
+            List<MhaTblV2> mhaTblV2s = queryRelatedMhaByDbName(Lists.newArrayList(param.getDbName()));
+            if (CollectionUtils.isEmpty(mhaTblV2s)) {
+                return new ArrayList<>();
+            }
+            param.setMhaIds(mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
+        }
+        if (StringUtils.isNotBlank(param.getRegionName())) {
+            List<DcTbl> dcTbls = dcTblDao.queryByRegionName(param.getRegionName());
+            param.setDcIds(dcTbls.stream().map(DcTbl::getId).collect(Collectors.toList()));
+        }
+
+        return mhaTblV2Dao.queryByParam(param);
     }
 }
