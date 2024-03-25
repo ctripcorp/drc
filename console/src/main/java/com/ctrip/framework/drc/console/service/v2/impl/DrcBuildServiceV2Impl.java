@@ -1529,8 +1529,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return XmlUtils.replaceBlank(gtid);
     }
 
-    @Override
-    public String getNativeGtid(String mhaName) {
+    private String getNativeGtid(String mhaName) {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaName);
         return MySqlUtils.getExecutedGtid(endpoint);
     }
