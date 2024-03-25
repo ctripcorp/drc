@@ -73,6 +73,8 @@ public interface DrcBuildServiceV2 {
 
     void deleteAllReplicationTables() throws Exception;
 
+
+    String getNativeGtid(String mhaName);
     Long configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception;
 
 }

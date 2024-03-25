@@ -85,6 +85,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         }
         listenerHolder.stopListen();
         receiveTimeMap.clear();
+        DefaultReporterHolder.getInstance().removeRegister("fx.drc.messenger.delay");
         return true;
     }
 

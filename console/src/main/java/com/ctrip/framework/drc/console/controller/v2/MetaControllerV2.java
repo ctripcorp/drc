@@ -188,6 +188,19 @@ public class MetaControllerV2 {
         }
     }
 
+
+    @PostMapping("dc")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDc(@RequestParam String dcName, @RequestParam String regionName) {
+        try {
+            metaInfoServiceV2.createDc(dcName, regionName);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("createDc fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("dcs/all")
     @SuppressWarnings("unchecked")
     public ApiResult<List<DcDo>> getAllDcs() {

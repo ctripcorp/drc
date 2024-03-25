@@ -324,14 +324,14 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public void setSurviveMessengers(String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger) {
-        currentMeta.setSurviveMessengers(registryKey, surviveMessengers, activeMessenger);
-        notifyMessengerActiveElected(registryKey, activeMessenger);
+    public void setSurviveMessengers(String clusterId, String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger) {
+        currentMeta.setSurviveMessengers(clusterId, registryKey, surviveMessengers, activeMessenger);
+        notifyMessengerActiveElected(clusterId, activeMessenger);
     }
 
     @Override
-    public void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier) {
-        currentMeta.setSurviveAppliers(clusterId, surviveAppliers, activeApplier);
+    public void setSurviveAppliers(String clusterId, String registryKey,List<Applier> surviveAppliers, Applier activeApplier) {
+        currentMeta.setSurviveAppliers(clusterId, registryKey, surviveAppliers, activeApplier);
         notifyApplierActiveElected(clusterId, activeApplier);
     }
 

@@ -198,6 +198,11 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         regionTblDao.upsert(regionName);
     }
 
+    @Override
+    public void createDc(String dcName, String regionName) throws SQLException {
+        dcTblDao.upsert(dcName, regionName);
+    }
+
     private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
         DcDo dcDo = this.queryAllDc()
                 .stream()

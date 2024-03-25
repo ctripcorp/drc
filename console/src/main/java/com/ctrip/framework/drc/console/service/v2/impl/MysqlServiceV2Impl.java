@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTask;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -386,7 +387,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         logger.info("start create table for {} {}", mha, dbList);
         Map<String, Map<String, String>> ddlSchemas = getDDLSchemas(dbList);
-        Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
+        Boolean res = new RetryTask<>(new TablesCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
         return Boolean.TRUE.equals(res);
     }
 

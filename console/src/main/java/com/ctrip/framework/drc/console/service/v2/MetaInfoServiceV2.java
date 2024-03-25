@@ -39,4 +39,6 @@ public interface MetaInfoServiceV2 {
 
     void createRegion(String regionName) throws SQLException;
 
+    void createDc(String dcName, String regionName) throws SQLException;
+
 }

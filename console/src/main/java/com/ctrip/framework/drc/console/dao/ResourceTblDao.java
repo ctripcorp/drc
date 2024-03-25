@@ -7,15 +7,12 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
-import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.List;
-import java.sql.Types;
 import java.util.List;
 
 /**
@@ -71,6 +68,12 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
     public ResourceTbl queryByIp(String ip) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.equal(IP, ip, Types.VARCHAR);
+        return queryOne(sqlBuilder);
+    }
+
+    public ResourceTbl queryByIp(String ip, Integer deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.equal(IP, ip, Types.VARCHAR).and().equal(DELETED, deleted, Types.TINYINT);;
         return queryOne(sqlBuilder);
     }
 
