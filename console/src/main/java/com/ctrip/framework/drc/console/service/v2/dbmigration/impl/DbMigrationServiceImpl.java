@@ -798,10 +798,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void migrateMhaReplication(String newMhaName, String oldMhaName) throws Exception {
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.MHA.MIGRATE", oldMhaName);
-        Drc drc = metaInfoServiceV2.getDrcMhaConfig(oldMhaName);
-        String drcStr = XmlUtils.formatXML(drc.toString());
-        logger.info("migrateMha oldMha: {}, newMha: {}, oldDrc: {}", oldMhaName, newMhaName, drcStr);
-
 
         MhaTblV2 oldMha = mhaTblV2Dao.queryByMhaName(oldMhaName, BooleanEnum.FALSE.getCode());
         MhaTblV2 newMha = mhaTblV2Dao.queryByMhaName(newMhaName, BooleanEnum.FALSE.getCode());
@@ -833,6 +829,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         mhaReplicationTblDao.update(mhaReplicationTbls);
 
         String gtidInit = mysqlServiceV2.getMhaExecutedGtid(newMhaName);
+        if (StringUtils.isEmpty(gtidInit)) {
+            throw ConsoleExceptionUtils.message(newMhaName + " query gtid fail");
+        }
 
         configAppliers(newMha, mhaReplicationTbls, gtidInit);
         configDbAppliers(newMha, mhaDbMappingTbls, gtidInit);
@@ -846,20 +845,19 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (oldMha == null) {
             throw ConsoleExceptionUtils.message("oldMha not exist");
         }
-        //ql_deng TODO 2024/3/25: for test
-//        MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi(newMhaName);
-//        newMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
-//        newMha.setTag(oldMha.getTag());
-//        newMha.setBuId(oldMha.getBuId());
-//        mhaTblV2Dao.update(newMha);
+        MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi(newMhaName);
+        newMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+        newMha.setTag(oldMha.getTag());
+        newMha.setBuId(oldMha.getBuId());
+        mhaTblV2Dao.update(newMha);
 
-        MhaTblV2 newMha = mhaTblV2Dao.queryByMhaName(newMhaName, BooleanEnum.FALSE.getCode());
+//        MhaTblV2 newMha = mhaTblV2Dao.queryByMhaName(newMhaName, BooleanEnum.FALSE.getCode());
 
         String gtidInit = mysqlServiceV2.getMhaExecutedGtid(newMhaName);
         if (StringUtils.isEmpty(gtidInit)) {
             throw ConsoleExceptionUtils.message(newMhaName + " query gtid fail");
         }
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
         configReplicators(newMha, gtidInit, resourceTbls);
     }

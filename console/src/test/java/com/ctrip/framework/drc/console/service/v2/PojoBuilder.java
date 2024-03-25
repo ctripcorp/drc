@@ -169,6 +169,21 @@ public class PojoBuilder {
         return Lists.newArrayList(mhaReplicationTbl);
     }
 
+    public static List<MhaDbReplicationTbl> getMhaDbReplicationTbls01() {
+        MhaDbReplicationTbl mhaReplicationTbl = new MhaDbReplicationTbl();
+        mhaReplicationTbl.setDeleted(0);
+        mhaReplicationTbl.setId(200L);
+        mhaReplicationTbl.setSrcMhaDbMappingId(200L);
+        mhaReplicationTbl.setDstMhaDbMappingId(201L);
+
+        MhaDbReplicationTbl mhaReplicationTbl01 = new MhaDbReplicationTbl();
+        mhaReplicationTbl01.setDeleted(0);
+        mhaReplicationTbl01.setId(201L);
+        mhaReplicationTbl01.setSrcMhaDbMappingId(201L);
+        mhaReplicationTbl01.setDstMhaDbMappingId(200L);
+        return Lists.newArrayList(mhaReplicationTbl, mhaReplicationTbl01);
+    }
+
     public static List<MhaReplicationTbl> getMhaReplicationTbls1() {
         MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
         mhaReplicationTbl.setDeleted(0);
@@ -181,6 +196,23 @@ public class PojoBuilder {
         tbl1.setDeleted(0);
         tbl1.setId(201L);
         tbl1.setSrcMhaId(201L);
+        tbl1.setDstMhaId(200L);
+        tbl1.setDrcStatus(1);
+        return Lists.newArrayList(mhaReplicationTbl, tbl1);
+    }
+
+    public static List<MhaReplicationTbl> getMhaReplicationTbls2() {
+        MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
+        mhaReplicationTbl.setDeleted(0);
+        mhaReplicationTbl.setId(200L);
+        mhaReplicationTbl.setSrcMhaId(200L);
+        mhaReplicationTbl.setDstMhaId(300L);
+        mhaReplicationTbl.setDrcStatus(1);
+
+        MhaReplicationTbl tbl1 = new MhaReplicationTbl();
+        tbl1.setDeleted(0);
+        tbl1.setId(201L);
+        tbl1.setSrcMhaId(300L);
         tbl1.setDstMhaId(200L);
         tbl1.setDrcStatus(1);
         return Lists.newArrayList(mhaReplicationTbl, tbl1);
@@ -307,6 +339,19 @@ public class PojoBuilder {
         messengerTbl.setMessengerGroupId(200L);
         messengerTbl.setDeleted(0);
         return messengerTbl;
+    }
+
+    public static List<MessengerTbl> getMessengers() {
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setId(200L);
+        messengerTbl.setMessengerGroupId(200L);
+        messengerTbl.setDeleted(0);
+
+        MessengerTbl messengerTbl02 = new MessengerTbl();
+        messengerTbl02.setId(201L);
+        messengerTbl02.setMessengerGroupId(200L);
+        messengerTbl02.setDeleted(0);
+        return Lists.newArrayList(messengerTbl, messengerTbl02);
     }
 
     public static List<DbReplicationTbl> getDbReplicationTbls() {
@@ -445,6 +490,7 @@ public class PojoBuilder {
         resourceTbl.setAz("AZ");
         resourceTbl.setIp("ip");
         resourceTbl.setTag("tag");
+        resourceTbl.setDeleted(1);
         return Lists.newArrayList(resourceTbl);
     }
 
