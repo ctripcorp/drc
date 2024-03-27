@@ -302,19 +302,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         // check mha config newMhaConfig should equal newMhaTbl
         cacheMetaService.refreshMetaCache();
-        Map<String, Object> configInOldMha = mysqlServiceV2.preCheckMySqlConfig(oldMha);
-        Map<String, Object> configInNewMha = mysqlServiceV2.preCheckMySqlConfig(newMha);
-
-        MapDifference<String, Object> configsDiff = Maps.difference(configInOldMha, configInNewMha);
-        if (consoleConfig.getConfgiCheckSwitch() && !configsDiff.areEqual()) {
-            Map<String, ValueDifference<Object>> valueDiff = configsDiff.entriesDiffering();
-            String diff = valueDiff.entrySet().stream().map(
-                    entry -> "config:" + entry.getKey() +
-                            ",oldMha:" + entry.getValue().leftValue() +
-                            ",newMha:" + entry.getValue().rightValue()).collect(Collectors.joining(";"));
-            throw ConsoleExceptionUtils.message("MhaConfigs not equals!" + diff);
-        }
-
+        checkMhaConfig(oldMha,newMha,Sets.newHashSet());
+        
         ReplicationInfo replicationInfoInOldMha = getMigrateDbReplicationInfoInOldMha(migrateDbTbls, oldMhaTbl);
         List<DbTbl> migrateDbTblsDrcRelated  = replicationInfoInOldMha.migrateDbTblsDrcRelated;
         List<MhaTblV2> otherMhaTblsInSrc = replicationInfoInOldMha.otherMhaTblsInSrc;
@@ -851,6 +840,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         newMha.setTag(oldMha.getTag());
         newMha.setBuId(oldMha.getBuId());
         mhaTblV2Dao.update(newMha);
+
+        checkMhaConfig(oldMhaName, newMhaName,Sets.newHashSet("autoIncrementOffset"));
 
 //        MhaTblV2 newMha = mhaTblV2Dao.queryByMhaName(newMhaName, BooleanEnum.FALSE.getCode());
 
@@ -1489,6 +1480,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 throw ConsoleExceptionUtils.message("query delay fail[3]");
             }
             if (messengerDelays.stream().anyMatch(e -> e.getDelay() == null)) {
+                
                 throw ConsoleExceptionUtils.message("query delay fail[4]");
             }
 
@@ -1531,6 +1523,26 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         } catch (SQLException e) {
             logger.error("queryByPage error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+    
+    @Override
+    public void checkMhaConfig(String oldMha, String newMha, Set<String> ignoreConfigName) throws ConsoleException {
+        Map<String, Object> configInOldMha = mysqlServiceV2.preCheckMySqlConfig(oldMha);
+        Map<String, Object> configInNewMha = mysqlServiceV2.preCheckMySqlConfig(newMha);
+        if (!CollectionUtils.isEmpty(ignoreConfigName)) {
+            configInOldMha.keySet().removeAll(ignoreConfigName);
+            configInNewMha.keySet().removeAll(ignoreConfigName);
+        }
+
+        MapDifference<String, Object> configsDiff = Maps.difference(configInOldMha, configInNewMha);
+        if (consoleConfig.getConfgiCheckSwitch() && !configsDiff.areEqual()) {
+            Map<String, ValueDifference<Object>> valueDiff = configsDiff.entriesDiffering();
+            String diff = valueDiff.entrySet().stream().map(
+                    entry -> "config:" + entry.getKey() +
+                            ",oldMha:" + entry.getValue().leftValue() +
+                            ",newMha:" + entry.getValue().rightValue()).collect(Collectors.joining(";"));
+            throw ConsoleExceptionUtils.message("MhaConfigs not equals!" + diff);
         }
     }
 

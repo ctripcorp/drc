@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
@@ -26,6 +27,7 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,6 +100,8 @@ public class DbMigrationServiceTest {
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Mock
     private ReplicatorTblDao replicatorTblDao;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     @Before
     public void setUp() throws Exception {
@@ -342,9 +346,40 @@ public class DbMigrationServiceTest {
         List<ResourceView> resourceViews = MockEntityBuilder.buildResourceViews(2, ModuleEnum.REPLICATOR.getCode());
         Mockito.when(resourceService.autoConfigureResource(Mockito.any())).thenReturn(resourceViews);
         Mockito.when(drcBuildServiceV2.configureReplicatorGroup(Mockito.any(), Mockito.anyString(), Mockito.anyList(), Mockito.anyList())).thenReturn(1L);
+        Mockito.when(consoleConfig.getConfgiCheckSwitch()).thenReturn(true);
+        Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha200"))).thenReturn(new HashMap<>(){
+            {
+                put("gtid_mode", "ON");
+                put("autoIncrementOffset", 4);
+            }
+        });
+        Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha201"))).thenReturn(new HashMap<>(){
+            {
+                put("gtid_mode", "ON");
+                put("autoIncrementOffset", 3);
+            }
+        });
 
         dbMigrateService.preStartReplicator("mha201", "mha200");
         Mockito.verify(drcBuildServiceV2, Mockito.times(1)).configureReplicatorGroup(Mockito.any(), Mockito.anyString(), Mockito.anyList(), Mockito.anyList());
+        Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha200"))).thenReturn(new HashMap<>(){
+            {
+                put("gtid_mode", "OFF");
+                put("autoIncrementOffset", 4);
+            }
+        });
+        Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha201"))).thenReturn(new HashMap<>(){
+            {
+                put("gtid_mode", "ON");
+                put("autoIncrementOffset", 3);
+            }
+        });
+        try {
+            dbMigrateService.preStartReplicator("mha201", "mha200");
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("MhaConfigs not equals!"));
+        }
+
     }
 
     @Test

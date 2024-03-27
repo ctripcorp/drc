@@ -75,4 +75,5 @@ public interface DrcBuildServiceV2 {
 
     Long configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception;
 
+    String configReplicatorOnly(MessengerMetaDto dto) throws Exception;
 }

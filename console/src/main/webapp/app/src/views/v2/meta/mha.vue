@@ -287,9 +287,8 @@ export default {
     goToLink (row, index) {
       console.log('go to change messenger config for ' + row.mhaName)
       const detail = this.$router.resolve({
-        path: '/v2/buildMessengerV2',
+        path: '/mha/replicatorConfig',
         query: {
-          step: '3',
           mhaName: row.mhaName
         }
       })

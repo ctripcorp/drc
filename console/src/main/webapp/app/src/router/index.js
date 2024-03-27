@@ -259,6 +259,11 @@ const routes = [
     component: () => import('../views/v2/meta/mha.vue')
   },
   {
+    path: '/mha/replicatorConfig',
+    name: 'replicatorConfig',
+    component: () => import('../views/v2/meta/replicatorConfig.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }
