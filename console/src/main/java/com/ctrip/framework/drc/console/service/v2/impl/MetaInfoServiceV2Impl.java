@@ -107,8 +107,6 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
-    @Autowired
-    private MessengerGroupTblDao messengerGroupTblDao;
 
 
     @Override

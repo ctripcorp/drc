@@ -28,10 +28,8 @@ import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
-import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.config.RegionConfig;
-import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -1480,7 +1478,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 throw ConsoleExceptionUtils.message("query delay fail[3]");
             }
             if (messengerDelays.stream().anyMatch(e -> e.getDelay() == null)) {
-                
                 throw ConsoleExceptionUtils.message("query delay fail[4]");
             }
 
