@@ -1029,6 +1029,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
     }
 
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void doConfigMhaReplicator(MessengerMetaDto dto) throws Exception {
+        // 0. check
+        MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
+        if (mhaTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
+        }
+        // 1. configure and persistent in database
+        long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps(), resourceTbls);
+    }
+
     public Long configureMessengers(MhaTblV2 mhaTbl,
                                     Long replicatorGroupId,
                                     List<String> messengerIps,
@@ -1451,9 +1464,23 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return applierGroupId;
     }
 
-    private void configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
+    @Override
+    public Long configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTblV2.getId());
         configureReplicators(mhaTblV2.getMhaName(), replicatorGroupId, replicatorInitGtid, replicatorIps, resourceTbls);
+        return replicatorGroupId;
+    }
+
+    @Override
+    public String configReplicatorOnly(MessengerMetaDto dto) throws Exception {
+        this.doConfigMhaReplicator(dto);
+        Drc drcMessengerConfig = metaInfoService.getDrcMhaConfig(dto.getMhaName());
+        try {
+            executorService.submit(() -> metaProviderV2.scheduledTask());
+        } catch (Exception e) {
+            logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
+        }
+        return XmlUtils.formatXML(drcMessengerConfig.toString());
     }
 
     private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
@@ -1527,8 +1554,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return XmlUtils.replaceBlank(gtid);
     }
 
-    @Override
-    public String getNativeGtid(String mhaName) {
+    private String getNativeGtid(String mhaName) {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaName);
         return MySqlUtils.getExecutedGtid(endpoint);
     }

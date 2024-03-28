@@ -75,9 +75,9 @@ public class ResourceServiceTest {
     @Mock
     private ApplierTblV3Dao dbApplierTblDao;
     @Mock
-    private DrcBuildServiceV2 drcBuildServiceV2;
-    @Mock
     private MessengerTblV3Dao dbMessengerTblDao;
+    @Mock
+    private MysqlServiceV2 mysqlServiceV2;
 
     @Before
     public void setUp() {
@@ -284,7 +284,7 @@ public class ResourceServiceTest {
 
         Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
-        Mockito.when(drcBuildServiceV2.getNativeGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
         Mockito.when(replicatorTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         int result = resourceService.migrateResource("ip2", "ip1", 0);
         Assert.assertEquals(result, PojoBuilder.getReplicatorTbls().size());
@@ -303,7 +303,7 @@ public class ResourceServiceTest {
 
         Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
-        Mockito.when(drcBuildServiceV2.getNativeGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
         Mockito.when(replicatorTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         int result = resourceService.migrateSlaveReplicator("ip2", "ip1");
         Assert.assertEquals(result, 1);

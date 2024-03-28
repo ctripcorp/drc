@@ -65,6 +65,19 @@ public class DrcBuildControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
+    
+    @PostMapping("mha/replicator")
+    @LogRecord(type = OperateTypeEnum.MHA_MIGRATION, attr = OperateAttrEnum.UPDATE,
+            success = "configMhaReplicator with param: {#param.toString()}")
+    public ApiResult<String> configMhaReplicator(@RequestBody MessengerMetaDto param) {
+        logger.info("configMhaReplicator: {}", param);
+        try {
+            return ApiResult.getSuccessInstance(drcBuildServiceV2.configReplicatorOnly(param));
+        } catch (Throwable e) {
+            logger.error("configMhaReplicator exception. req: " + param, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 
     @PostMapping("")
     @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,

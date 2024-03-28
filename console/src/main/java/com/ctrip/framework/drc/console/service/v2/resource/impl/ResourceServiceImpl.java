@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
@@ -94,7 +95,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
-    private DrcBuildServiceV2 drcBuildServiceV2;
+    private MysqlServiceV2 mysqlServiceV2;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
@@ -792,7 +793,7 @@ public class ResourceServiceImpl implements ResourceService {
     private Pair<Long, String> getInitGtid(ReplicatorTbl replicatorTbl) throws SQLException {
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryById(replicatorTbl.getRelicatorGroupId());
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(replicatorGroupTbl.getMhaId());
-        String gtidInit = drcBuildServiceV2.getNativeGtid(mhaTblV2.getMhaName());
+        String gtidInit = mysqlServiceV2.getMhaExecutedGtid(mhaTblV2.getMhaName());
         return Pair.of(replicatorTbl.getId(), gtidInit);
     }
 
