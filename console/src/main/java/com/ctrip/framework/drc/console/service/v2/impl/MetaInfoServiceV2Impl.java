@@ -174,22 +174,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         if (mhaTblV2 == null) {
             throw ConsoleExceptionUtils.message("mha not exist");
         }
-        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mhaTblV2.getId()));
-        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
-            if (mhaReplicationTbl.getSrcMhaId().equals(mhaTblV2.getId())) {
-                MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryById(mhaReplicationTbl.getDstMhaId());
-                this.appendReplicationConfig(drc, mhaTblV2, dstMhaTbl);
-            } else {
-                MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryById(mhaReplicationTbl.getSrcMhaId());
-                this.appendReplicationConfig(drc, srcMhaTbl, mhaTblV2);
-            }
-        }
-
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
-        if (messengerGroupTbl != null) {
-            this.appendMessengerConfig(drc, mhaTblV2);
-        }
-
+        this.appendMhaReplicatorConfig(drc,mhaTblV2);
         return drc;
     }
 
@@ -201,6 +186,19 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     @Override
     public void createDc(String dcName, String regionName) throws SQLException {
         dcTblDao.upsert(dcName, regionName);
+    }
+
+    private void appendMhaReplicatorConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
+        DcDo dcDo = this.queryAllDc()
+                .stream()
+                .filter(e -> e.getDcId().equals(mhaTbl.getDcId()))
+                .findFirst()
+                .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "dc not exist: " + mhaTbl.getDcId()));
+
+        Dc dc = generateDcFrame(drc, dcDo);
+        DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
+        generateDbs(dbCluster, mhaTbl);
+        generateReplicators(dbCluster, mhaTbl);
     }
 
     private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
