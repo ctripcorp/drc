@@ -824,13 +824,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         configAppliers(newMha, mhaReplicationTbls, gtidInit);
         configDbAppliers(newMha, mhaDbMappingTbls, gtidInit);
         configMessenger(oldMha, newMha, gtidInit);
-
-        List<Long> mhaIds = Lists.newArrayList(newMhaId);
-        try {
-            pushConfigToCM(mhaIds, "admin", HttpRequestEnum.POST);
-        } catch (Exception e) {
-            logger.warn("pushConfigToCM failed, mhaIds: {}", mhaIds, e);
-        }
     }
 
     @Override
