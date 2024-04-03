@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.console.utils.config;
 
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,14 @@ public class NameFilterUtils {
 //        String nameFilter = combine(dbName, tables);
         String nameFilter = combine(dbName,tables,commonPrefix);
         logger.info("nameFilter as follows: \n{}",nameFilter);
+    }
+
+
+    @Test
+    public void testGetMessengerDbName() {
+        Assert.assertEquals("dstDB", NameUtils.getMessengerDbName("name.MhaName._drc_mq.dstDB"));
+        Assert.assertEquals("_drc_mq", NameUtils.getMessengerDbName("name.MhaName._drc_mq"));
+        Assert.assertNull(NameUtils.getMessengerDbName("somethingWrong.ehhe"));
     }
 
 

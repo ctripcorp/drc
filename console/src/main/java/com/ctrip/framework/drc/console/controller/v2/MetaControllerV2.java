@@ -137,6 +137,23 @@ public class MetaControllerV2 {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mha")
+    public ApiResult<String> queryMhaConfig(@RequestParam(name = "mhaName") String mhaName) {
+        logger.info("queryMhaConfig for {}", mhaName);
+        try {
+            if (StringUtils.isBlank(mhaName)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            Drc drc = metaInfoServiceV2.getDrcMhaConfig(mhaName.trim());
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (Throwable e) {
+            logger.error("queryMhaConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("bus/all")
     @SuppressWarnings("unchecked")
     public ApiResult<List<BuTbl>> getAllBuTbls() {
@@ -156,6 +173,30 @@ public class MetaControllerV2 {
         } catch (Throwable e) {
             logger.error("getAllRegionTbls exception", e);
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("region")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createRegion(@RequestParam String regionName) {
+        try {
+            metaInfoServiceV2.createRegion(regionName);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("createRegion fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("dc")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDc(@RequestParam String dcName, @RequestParam String regionName) {
+        try {
+            metaInfoServiceV2.createDc(dcName, regionName);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("createDc fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
 

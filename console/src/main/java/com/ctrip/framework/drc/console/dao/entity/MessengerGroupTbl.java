@@ -31,7 +31,6 @@ public class MessengerGroupTbl implements DalPojo{
     /**
      * mha_id
      */
-    @Id
     @Column(name = "mha_id")
     @Type(value = Types.BIGINT)
     private Long mhaId;

@@ -533,6 +533,13 @@ public class CommonDataInit {
                 return keys.contains(getKey(e));
             }).collect(Collectors.toList());
         });
+        when(dbReplicationTblDao.queryByDstLogicTableName(anyString(), anyInt())).thenAnswer(i -> {
+            String dstLogicName = i.getArgument(0, String.class);
+            Integer replicationType = i.getArgument(1, Integer.class);
+            return dbReplicationTbls.stream().filter(e -> {
+                return dstLogicName.equals(e.getDstLogicTableName()) && e.getReplicationType().equals(replicationType);
+            }).collect(Collectors.toList());
+        });
 
         doAnswer(invocation -> {
             Object[] args = invocation.getArguments();

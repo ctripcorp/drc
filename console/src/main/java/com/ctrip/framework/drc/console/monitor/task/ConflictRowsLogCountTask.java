@@ -13,9 +13,7 @@ import com.ctrip.framework.drc.console.enums.log.ConflictCountType;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
-import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
@@ -141,6 +139,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         rollBackTotalCount = 0;
         tableCountMap = new HashMap<>();
         rollBackCountMap = new HashMap<>();
+        removeRegister();
     }
 
     private void refreshAndReport(ConflictRowsLogCountView rowsLogCountView) {

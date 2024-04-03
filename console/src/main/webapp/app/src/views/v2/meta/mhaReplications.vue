@@ -157,6 +157,7 @@
                   <DropdownMenu >
                     <DropdownItem @click.native="() => {$router.push({path: '/drcV2'})}">新建DRC配置（MHA）</DropdownItem>
                     <DropdownItem @click.native="() => {$router.push({path: '/v2/dbDrcBuild'})}">新建DRC配置（DB维度）</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/mha'})}">MHA集群</DropdownItem>
                   </DropdownMenu>
                 </template>
               </Dropdown>
