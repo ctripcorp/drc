@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -97,6 +98,8 @@ public class ResourceServiceImpl implements ResourceService {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private MetaInfoServiceV2 metaInfoService;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
@@ -608,11 +611,16 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp and oldIp cannot be the same");
         }
         if (type == ModuleEnum.REPLICATOR.getCode()) {
-            return migrateReplicator(newIp, oldIp);
+            return migrateReplicator(newIp, oldIp, null);
         } else if (type == ModuleEnum.APPLIER.getCode()) {
             return migrateApplier(newIp, oldIp);
         }
         throw ConsoleExceptionUtils.message("type not supported!");
+    }
+
+    @Override
+    public int partialMigrateReplicator(String newIp, String oldIp, int size) throws Exception {
+        return migrateReplicator(newIp, oldIp, size);
     }
 
     @Override
@@ -767,7 +775,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
 
-    private int migrateReplicator(String newIp, String oldIp) throws Exception {
+    private int migrateReplicator(String newIp, String oldIp, Integer size) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
         if (newResource == null || oldResource == null) {
@@ -780,6 +788,9 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp is not replicator");
         }
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+        if (size != null) {
+            replicatorTbls = replicatorTbls.subList(0, Integer.min(replicatorTbls.size(), size));
+        }
         return migrateReplicator(newResource, replicatorTbls);
     }
 
@@ -813,13 +824,15 @@ public class ResourceServiceImpl implements ResourceService {
 
         for (ReplicatorTbl replicatorTbl : replicatorTbls) {
             replicatorTbl.setResourceId(newResource.getId());
+            replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(newResource.getIp()));
             String gtidInit = gtidInitMap.get(replicatorTbl.getId());
             if (StringUtils.isBlank(gtidInit)) {
                 throw ConsoleExceptionUtils.message("query gtidInit fail, replicatorId: " + replicatorTbl.getId());
             }
             replicatorTbl.setGtidInit(gtidInit);
+            replicatorTblDao.update(replicatorTbl);
         }
-        replicatorTblDao.update(replicatorTbls);
+
         return replicatorTbls.size();
     }
 

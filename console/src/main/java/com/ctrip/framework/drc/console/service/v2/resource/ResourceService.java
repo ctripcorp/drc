@@ -55,6 +55,8 @@ public interface ResourceService {
 
     int migrateResource(String newIp, String oldIp, int type) throws Exception;
 
+    int partialMigrateReplicator(String newIp, String oldIp, int size) throws Exception;
+
     int migrateSlaveReplicator(String newIp, String oldIp) throws Exception;
 
     void migrateResource(ResourceMigrateParam param) throws Exception;
