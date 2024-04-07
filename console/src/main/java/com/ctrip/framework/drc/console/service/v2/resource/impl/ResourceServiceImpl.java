@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -131,6 +132,39 @@ public class ResourceServiceImpl implements ResourceService {
 
         logger.info("insert resource: {}", resourceTbl);
         resourceTblDao.insert(resourceTbl);
+    }
+
+    @Override
+    public void batchConfigureResource(ResourceBuildParam param) throws Exception {
+        checkBatchResourceBuildParam(param);
+        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDcName());
+        if (dcTbl == null) {
+            throw ConsoleExceptionUtils.message("dc: " + param.getDcName() + " not exist");
+        }
+
+        List<ResourceTbl> existResourceTbls = resourceTblDao.queryByIps(param.getIps());
+        if (!CollectionUtils.isEmpty(existResourceTbls)) {
+            List<String> existIps = existResourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+            throw ConsoleExceptionUtils.message(String.format("ip :%s already exist!", Joiner.on(",").join(existIps)));
+        }
+
+        List<ResourceTbl> insertTbls = new ArrayList<>();
+        for (String ip : param.getIps()) {
+            ResourceTbl resourceTbl = new ResourceTbl();
+            resourceTbl.setIp(ip);
+            resourceTbl.setDcId(dcTbl.getId());
+            resourceTbl.setAz(param.getAz());
+            resourceTbl.setTag(param.getTag());
+            resourceTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            resourceTbl.setActive(BooleanEnum.TRUE.getCode());
+
+            ModuleEnum module = ModuleEnum.getModuleEnum(param.getType());
+            resourceTbl.setAppId(module.getAppId());
+            resourceTbl.setType(module.getCode());
+            insertTbls.add(resourceTbl);
+        }
+        logger.info("batchInsert resource: {}", insertTbls);
+        resourceTblDao.insert(insertTbls);
     }
 
     @Override
@@ -954,6 +988,13 @@ public class ResourceServiceImpl implements ResourceService {
 
     private void checkResourceBuildParam(ResourceBuildParam param) {
         PreconditionUtils.checkString(param.getIp(), "ip requires not empty!");
+        PreconditionUtils.checkString(param.getType(), "type requires not empty!");
+        PreconditionUtils.checkString(param.getDcName(), "dc requires not empty!");
+        PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");
+    }
+
+    private void checkBatchResourceBuildParam(ResourceBuildParam param) {
+        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getIps()), "ips requires not empty!");
         PreconditionUtils.checkString(param.getType(), "type requires not empty!");
         PreconditionUtils.checkString(param.getDcName(), "dc requires not empty!");
         PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");

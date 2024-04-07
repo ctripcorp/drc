@@ -17,6 +17,8 @@ public interface ResourceService {
 
     void configureResource(ResourceBuildParam param) throws Exception;
 
+    void batchConfigureResource(ResourceBuildParam param) throws Exception;
+
     void offlineResource(long resourceId) throws Exception;
 
     void onlineResource(long resourceId) throws Exception;

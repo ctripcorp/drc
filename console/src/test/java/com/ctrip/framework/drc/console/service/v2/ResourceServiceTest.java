@@ -104,6 +104,22 @@ public class ResourceServiceTest {
     }
 
     @Test
+    public void testBatchConfigureResource() throws Exception {
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(resourceTblDao.queryByIps(Mockito.anyList())).thenReturn(new ArrayList<>());
+        Mockito.when(resourceTblDao.insert(Mockito.any(ResourceTbl.class))).thenReturn(0);
+
+        ResourceBuildParam param = new ResourceBuildParam();
+        param.setAz("AZ");
+        param.setIps(Lists.newArrayList("127.0.0.1"));
+        param.setDcName("dc");
+        param.setType("R");
+        param.setTag("tag");
+        resourceService.batchConfigureResource(param);
+        Mockito.verify(resourceTblDao, Mockito.never()).update(Mockito.any(ResourceTbl.class));
+    }
+
+    @Test
     public void testOfflineResource() throws Exception {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());

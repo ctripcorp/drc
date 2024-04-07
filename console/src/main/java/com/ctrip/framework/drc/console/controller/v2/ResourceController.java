@@ -89,6 +89,19 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("batchInsert")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.ADD,
+            success = "batchConfigureResource with ResourceBuildParam {#param}")
+    public ApiResult<Boolean> batchConfigureResource(@RequestBody ResourceBuildParam param) {
+        try {
+            resourceService.batchConfigureResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("batchConfigureResource fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @DeleteMapping
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.DELETE,
     success = "offlineResource with resourceId {#resourceId}")
