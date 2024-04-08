@@ -89,6 +89,19 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("batchInsert")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.ADD,
+            success = "batchConfigureResource with ResourceBuildParam {#param}")
+    public ApiResult<Boolean> batchConfigureResource(@RequestBody ResourceBuildParam param) {
+        try {
+            resourceService.batchConfigureResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("batchConfigureResource fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @DeleteMapping
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.DELETE,
     success = "offlineResource with resourceId {#resourceId}")
@@ -165,6 +178,16 @@ public class ResourceController {
     public ApiResult<Integer> migrateReplicator(@RequestParam String newIp, @RequestParam String oldIp) {
         try {
             return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.REPLICATOR.getCode()));
+        } catch (Exception e) {
+            logger.error("migrateReplicator fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("partialMigrate/replicator")
+    public ApiResult<Integer> partialMigrateReplicator(@RequestBody ReplicatorMigrateParam param) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.partialMigrateReplicator(param));
         } catch (Exception e) {
             logger.error("migrateReplicator fail, ", e);
             return ApiResult.getFailInstance(0, e.getMessage());

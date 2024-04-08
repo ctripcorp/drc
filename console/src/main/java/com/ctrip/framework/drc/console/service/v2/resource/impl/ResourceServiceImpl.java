@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -30,6 +31,7 @@ import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -96,6 +98,8 @@ public class ResourceServiceImpl implements ResourceService {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private MetaInfoServiceV2 metaInfoService;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
@@ -131,6 +135,39 @@ public class ResourceServiceImpl implements ResourceService {
 
         logger.info("insert resource: {}", resourceTbl);
         resourceTblDao.insert(resourceTbl);
+    }
+
+    @Override
+    public void batchConfigureResource(ResourceBuildParam param) throws Exception {
+        checkBatchResourceBuildParam(param);
+        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDcName());
+        if (dcTbl == null) {
+            throw ConsoleExceptionUtils.message("dc: " + param.getDcName() + " not exist");
+        }
+
+        List<ResourceTbl> existResourceTbls = resourceTblDao.queryByIps(param.getIps());
+        if (!CollectionUtils.isEmpty(existResourceTbls)) {
+            List<String> existIps = existResourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+            throw ConsoleExceptionUtils.message(String.format("ip :%s already exist!", Joiner.on(",").join(existIps)));
+        }
+
+        List<ResourceTbl> insertTbls = new ArrayList<>();
+        for (String ip : param.getIps()) {
+            ResourceTbl resourceTbl = new ResourceTbl();
+            resourceTbl.setIp(ip);
+            resourceTbl.setDcId(dcTbl.getId());
+            resourceTbl.setAz(param.getAz());
+            resourceTbl.setTag(param.getTag());
+            resourceTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            resourceTbl.setActive(BooleanEnum.TRUE.getCode());
+
+            ModuleEnum module = ModuleEnum.getModuleEnum(param.getType());
+            resourceTbl.setAppId(module.getAppId());
+            resourceTbl.setType(module.getCode());
+            insertTbls.add(resourceTbl);
+        }
+        logger.info("batchInsert resource: {}", insertTbls);
+        resourceTblDao.insert(insertTbls);
     }
 
     @Override
@@ -574,11 +611,17 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp and oldIp cannot be the same");
         }
         if (type == ModuleEnum.REPLICATOR.getCode()) {
-            return migrateReplicator(newIp, oldIp);
+            return migrateReplicator(newIp, oldIp, null);
         } else if (type == ModuleEnum.APPLIER.getCode()) {
             return migrateApplier(newIp, oldIp);
         }
         throw ConsoleExceptionUtils.message("type not supported!");
+    }
+
+
+    @Override
+    public int partialMigrateReplicator(ReplicatorMigrateParam param) throws Exception {
+        return migrateReplicator(param.getNewIp(), param.getOldIp(), param.getMhaList());
     }
 
     @Override
@@ -733,7 +776,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
 
-    private int migrateReplicator(String newIp, String oldIp) throws Exception {
+    private int migrateReplicator(String newIp, String oldIp, List<String> mhaList) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
         if (newResource == null || oldResource == null) {
@@ -746,6 +789,12 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp is not replicator");
         }
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+        if (!CollectionUtils.isEmpty(mhaList)) {
+            List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(mhaList, BooleanEnum.FALSE.getCode());
+            List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryByMhaIds(mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+            List<Long> replicatorGroupIds = replicatorGroupTbls.stream().map(ReplicatorGroupTbl::getId).collect(Collectors.toList());
+            replicatorTbls = replicatorTbls.stream().filter(e -> replicatorGroupIds.contains(e.getRelicatorGroupId())).collect(Collectors.toList());
+        }
         return migrateReplicator(newResource, replicatorTbls);
     }
 
@@ -779,13 +828,15 @@ public class ResourceServiceImpl implements ResourceService {
 
         for (ReplicatorTbl replicatorTbl : replicatorTbls) {
             replicatorTbl.setResourceId(newResource.getId());
+            replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(newResource.getIp()));
             String gtidInit = gtidInitMap.get(replicatorTbl.getId());
             if (StringUtils.isBlank(gtidInit)) {
                 throw ConsoleExceptionUtils.message("query gtidInit fail, replicatorId: " + replicatorTbl.getId());
             }
             replicatorTbl.setGtidInit(gtidInit);
+            replicatorTblDao.update(replicatorTbl);
         }
-        replicatorTblDao.update(replicatorTbls);
+
         return replicatorTbls.size();
     }
 
@@ -954,6 +1005,13 @@ public class ResourceServiceImpl implements ResourceService {
 
     private void checkResourceBuildParam(ResourceBuildParam param) {
         PreconditionUtils.checkString(param.getIp(), "ip requires not empty!");
+        PreconditionUtils.checkString(param.getType(), "type requires not empty!");
+        PreconditionUtils.checkString(param.getDcName(), "dc requires not empty!");
+        PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");
+    }
+
+    private void checkBatchResourceBuildParam(ResourceBuildParam param) {
+        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getIps()), "ips requires not empty!");
         PreconditionUtils.checkString(param.getType(), "type requires not empty!");
         PreconditionUtils.checkString(param.getDcName(), "dc requires not empty!");
         PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");
