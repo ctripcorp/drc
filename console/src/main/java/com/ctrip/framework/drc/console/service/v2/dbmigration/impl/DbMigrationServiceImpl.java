@@ -827,6 +827,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void preStartReplicator(String newMhaName, String oldMhaName) throws Exception {
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.Replicator.PreStart", newMhaName);
         MhaTblV2 oldMha = mhaTblV2Dao.queryByMhaName(oldMhaName, BooleanEnum.FALSE.getCode());
@@ -834,12 +835,17 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             throw ConsoleExceptionUtils.message("oldMha not exist");
         }
         MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi(newMhaName);
+        DcTbl dcTbl = dcTblDao.queryById(newMha.getDcId());
+        if (dcTbl == null || !dcTbl.getRegionName().equals("sgp")) {
+            throw ConsoleExceptionUtils.message("only support mha from sgp");
+        }
+
         newMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         newMha.setTag(oldMha.getTag());
         newMha.setBuId(oldMha.getBuId());
         mhaTblV2Dao.update(newMha);
 
-        checkMhaConfig(oldMhaName, newMhaName,Sets.newHashSet("autoIncrementOffset"));
+        checkMhaConfig(oldMhaName, newMhaName,Sets.newHashSet("binlogTransactionDependencyHistorySize"));
 
 //        MhaTblV2 newMha = mhaTblV2Dao.queryByMhaName(newMhaName, BooleanEnum.FALSE.getCode());
 

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
@@ -339,6 +340,7 @@ public class DbMigrationServiceTest {
     @Test
     public void testPreStartReplicator() throws Exception {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha200"), Mockito.anyInt())).thenReturn(PojoBuilder.getMhaTblV2s().get(0));
+        Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbl());
         Mockito.when(drcBuildServiceV2.syncMhaInfoFormDbaApi(Mockito.eq("mha201"))).thenReturn(PojoBuilder.getMhaTblV2s().get(1));
         Mockito.when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
         Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.eq("mha201"))).thenReturn("gtid");
@@ -350,13 +352,13 @@ public class DbMigrationServiceTest {
         Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha200"))).thenReturn(new HashMap<>(){
             {
                 put("gtid_mode", "ON");
-                put("autoIncrementOffset", 4);
+                put("binlogTransactionDependencyHistorySize", 10000);
             }
         });
         Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha201"))).thenReturn(new HashMap<>(){
             {
                 put("gtid_mode", "ON");
-                put("autoIncrementOffset", 3);
+                put("binlogTransactionDependencyHistorySize", 5000);
             }
         });
 
@@ -447,5 +449,11 @@ public class DbMigrationServiceTest {
             dto.setSrcTime(dto.getDstTime() + delay);
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    private DcTbl getDcTbl() {
+        DcTbl dcTbl = new DcTbl();
+        dcTbl.setRegionName("sgp");
+        return dcTbl;
     }
 }

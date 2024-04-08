@@ -271,7 +271,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                 return getAllAccountsMaster(dbCluster);
             }
         }
-        return null;
+        return machineService.getMasterEndpointsInAllAccounts(mha);
     }
     
     @Override
