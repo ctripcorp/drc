@@ -20,15 +20,7 @@
             &nbsp;
             <Button type="success" @click="autoConfigSrcReplicator">自动录入</Button>
           </FormItem>
-<!--          <FormItem v-if="showMhaApplierConfig(true)" label="选择Applier" prop="applier">-->
-<!--            <Select v-model="srcBuildParam.applierIps" multiple style="width: 250px" placeholder="选择源集群Applier">-->
-<!--              <Option v-for="item in applierList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}-->
-<!--              </Option>-->
-<!--            </Select>-->
-<!--            &nbsp;-->
-<!--            <Button type="success" @click="autoConfigSrcApplier">自动录入</Button>-->
-<!--          </FormItem>-->
-          <FormItem label="选择Applier" prop="applier">
+          <FormItem v-if="showMhaApplierConfig(true)" label="选择Applier" prop="applier">
             <Select v-model="srcBuildParam.applierIps" multiple style="width: 250px" placeholder="选择源集群Applier">
               <Option v-for="item in applierList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
               </Option>
@@ -52,10 +44,7 @@
               </Col>
             </Row>
           </FormItem>
-<!--          <FormItem v-if="showMhaApplierConfig(true)" label="初始同步位点A" style="width: 600px">-->
-<!--            <Input v-model="srcBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>-->
-<!--          </FormItem>-->
-          <FormItem label="初始同步位点A" style="width: 600px">
+          <FormItem v-if="showMhaApplierConfig(true)" label="初始同步位点A" style="width: 600px">
             <Input v-model="srcBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="同步配置" style="width: 600px">
@@ -81,15 +70,7 @@
             &nbsp;
             <Button type="success" @click="autoConfigDstReplicator">自动录入</Button>
           </FormItem>
-<!--          <FormItem v-if="showMhaApplierConfig(false)" label="选择Applier" prop="applier">-->
-<!--            <Select v-model="dstBuildParam.applierIps" multiple style="width: 250px" placeholder="选择目标集群Applier">-->
-<!--              <Option v-for="item in applierList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}-->
-<!--              </Option>-->
-<!--            </Select>-->
-<!--            &nbsp;-->
-<!--            <Button type="success" @click="autoConfigDstApplier">自动录入</Button>-->
-<!--          </FormItem>-->
-          <FormItem  label="选择Applier" prop="applier">
+          <FormItem v-if="showMhaApplierConfig(false)" label="选择Applier" prop="applier">
             <Select v-model="dstBuildParam.applierIps" multiple style="width: 250px" placeholder="选择目标集群Applier">
               <Option v-for="item in applierList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
               </Option>
@@ -113,10 +94,7 @@
               </Col>
             </Row>
           </FormItem>
-<!--          <FormItem v-if="showMhaApplierConfig(false)" label="初始同步位点A" style="width: 600px">-->
-<!--            <Input v-model="dstBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>-->
-<!--          </FormItem>-->
-          <FormItem label="初始同步位点A" style="width: 600px">
+          <FormItem v-if="showMhaApplierConfig(false)" label="初始同步位点A" style="width: 600px">
             <Input v-model="dstBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="同步配置" style="width: 600px">
@@ -640,11 +618,12 @@ export default {
       return false
     },
     showMhaApplierConfig (isSrc) {
-      if (isSrc) {
-        return !this.hasAppliers(this.srcBuildData.dbApplierDtos)
-      } else {
-        return !this.hasAppliers(this.dstBuildData.dbApplierDtos)
-      }
+      return true
+      // if (isSrc) {
+      //   return !this.hasAppliers(this.srcBuildData.dbApplierDtos)
+      // } else {
+      //   return !this.hasAppliers(this.dstBuildData.dbApplierDtos)
+      // }
     },
     showDbMhaApplierConfig (isSrc) {
       if (isSrc) {

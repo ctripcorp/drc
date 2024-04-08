@@ -618,9 +618,10 @@ public class ResourceServiceImpl implements ResourceService {
         throw ConsoleExceptionUtils.message("type not supported!");
     }
 
+
     @Override
-    public int partialMigrateReplicator(String newIp, String oldIp, int size) throws Exception {
-        return migrateReplicator(newIp, oldIp, size);
+    public int partialMigrateReplicator(ReplicatorMigrateParam param) throws Exception {
+        return migrateReplicator(param.getNewIp(), param.getOldIp(), param.getMhaList());
     }
 
     @Override
@@ -775,7 +776,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
 
-    private int migrateReplicator(String newIp, String oldIp, Integer size) throws Exception {
+    private int migrateReplicator(String newIp, String oldIp, List<String> mhaList) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
         if (newResource == null || oldResource == null) {
@@ -788,8 +789,11 @@ public class ResourceServiceImpl implements ResourceService {
             throw ConsoleExceptionUtils.message("newIp is not replicator");
         }
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
-        if (size != null) {
-            replicatorTbls = replicatorTbls.subList(0, Integer.min(replicatorTbls.size(), size));
+        if (!CollectionUtils.isEmpty(mhaList)) {
+            List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(mhaList, BooleanEnum.FALSE.getCode());
+            List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryByMhaIds(mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+            List<Long> replicatorGroupIds = replicatorGroupTbls.stream().map(ReplicatorGroupTbl::getId).collect(Collectors.toList());
+            replicatorTbls = replicatorTbls.stream().filter(e -> replicatorGroupIds.contains(e.getRelicatorGroupId())).collect(Collectors.toList());
         }
         return migrateReplicator(newResource, replicatorTbls);
     }

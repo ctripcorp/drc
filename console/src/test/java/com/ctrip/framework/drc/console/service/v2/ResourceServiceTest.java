@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.param.v2.resource.ReplicatorMigrateParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
@@ -306,6 +307,25 @@ public class ResourceServiceTest {
         Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
         Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
         int result = resourceService.migrateResource("ip2", "ip1", 0);
+        Assert.assertEquals(result, PojoBuilder.getReplicatorTbls().size());
+    }
+
+    @Test
+    public void testPartialMigrateReplicator() throws Exception {
+        List<ResourceTbl> resourceTbls = getReplicatorResources();
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip1"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip2"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getReplicatorTbls());
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorTbls());
+
+        Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(PojoBuilder.getMhaTblV2()));
+        Mockito.when(replicatorGroupTblDao.queryByMhaIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorGroupTbls());
+        int result = resourceService.partialMigrateReplicator(new ReplicatorMigrateParam("ip1", "ip2", Lists.newArrayList("mha")));
         Assert.assertEquals(result, PojoBuilder.getReplicatorTbls().size());
     }
 

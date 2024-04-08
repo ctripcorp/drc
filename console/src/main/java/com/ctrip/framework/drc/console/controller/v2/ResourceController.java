@@ -185,9 +185,9 @@ public class ResourceController {
     }
 
     @PostMapping("partialMigrate/replicator")
-    public ApiResult<Integer> partialMigrateReplicator(@RequestParam String newIp, @RequestParam String oldIp, @RequestParam int size) {
+    public ApiResult<Integer> partialMigrateReplicator(@RequestBody ReplicatorMigrateParam param) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.partialMigrateReplicator(newIp, oldIp, size));
+            return ApiResult.getSuccessInstance(resourceService.partialMigrateReplicator(param));
         } catch (Exception e) {
             logger.error("migrateReplicator fail, ", e);
             return ApiResult.getFailInstance(0, e.getMessage());
