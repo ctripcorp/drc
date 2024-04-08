@@ -116,7 +116,7 @@
 <!--          <FormItem v-if="showMhaApplierConfig(false)" label="初始同步位点A" style="width: 600px">-->
 <!--            <Input v-model="dstBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>-->
 <!--          </FormItem>-->
-          <FormItem v-if="showMhaApplierConfig(false)" label="初始同步位点A" style="width: 600px">
+          <FormItem label="初始同步位点A" style="width: 600px">
             <Input v-model="dstBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="同步配置" style="width: 600px">
