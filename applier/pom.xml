@@ -30,8 +30,8 @@
             <version>${xpipe.proxy.client.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>com.alibaba.arthas</groupId>
-                    <artifactId>arthas-repackage-asm</artifactId>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>repackage-asm</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>com.alibaba.arthas</groupId>

@@ -142,7 +142,11 @@ public enum Version implements IVersion {
 
     private String gcLibVersion() {
         if (majorVersion.equals("8.0"))
-            return "linux-glibc2.12";
+            if (isArm64()) {
+                return "linux-glibc2.17"; // arm version
+            } else {
+                return "linux-glibc2.12";
+            }
         if (majorVersion.equals("5.7") && minorVersion > 18)
             return "linux-glibc2.12";
         if (majorVersion.equals("5.6") || (majorVersion.equals("5.7") && minorVersion <= 18))
@@ -150,6 +154,10 @@ public enum Version implements IVersion {
         if (majorVersion.equals("5.5"))
             return "linux2.6";
         throw new UnsupportedOperationException();
+    }
+
+    public static boolean isArm64() {
+        return System.getProperty("os.arch").equals("aarch64");
     }
 
     private Platform currentPlatform() {

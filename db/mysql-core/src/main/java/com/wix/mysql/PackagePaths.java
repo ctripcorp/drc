@@ -39,12 +39,12 @@ public class PackagePaths implements IPackageResolver {
                     // https://dev.mysql.com/get/Downloads//MySQL-8.0/mysql-8.0.32-macos13-arm64.tar.gz
                     return format("%s-arm64.tar.gz", downloadPath);
                 }
-                if (System.getProperty("os.arch").equals("aarch64")) {
-                    bs = B64;
-                }
                 return format("%s-x86%s.tar.gz", downloadPath, bs == B32 ? "" : "_64");
             case Linux:
                 String gzOrXz = version.archiveType() == TXZ ? "xz" : "gz";
+                if (Version.isArm64()) {
+                    return format("%s-%s.tar.%s", downloadPath, "aarch64", gzOrXz);
+                }
                 return format("%s-%s.tar.%s", downloadPath, bs == B32 ? "i686" : "x86_64", gzOrXz);
             case Windows:
                 return format("%s-win%s.zip", downloadPath, bs == B32 ? "32" : "x64");
