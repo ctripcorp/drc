@@ -823,7 +823,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         configAppliers(newMha, mhaReplicationTbls, gtidInit);
         configDbAppliers(newMha, mhaDbMappingTbls, gtidInit);
-        configMessenger(oldMha, newMha, gtidInit);
+
+        String messengerGtidInit = consoleConfig.getSgpMessengerGtidInit(newMhaName);
+        configMessenger(oldMha, newMha, messengerGtidInit);
     }
 
     @Override

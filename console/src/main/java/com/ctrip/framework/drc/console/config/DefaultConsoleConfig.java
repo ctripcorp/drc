@@ -129,6 +129,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static final String DRC_CONFIG_APPLICATION_SWITCH = "drc.config.application.swtich";
 
+    private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
+    private static final String SGP_MESSENGER_GTID_INIT_KEY = SGP_MESSENGER_GTID_INIT + ".%s";
+
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -136,6 +139,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
     public DefaultConsoleConfig() {
+    }
+
+    public String getSgpMessengerGtidInit(String mha) {
+        return getProperty(String.format(SGP_MESSENGER_GTID_INIT_KEY, mha), "");
     }
 
     public String getRegion(){
