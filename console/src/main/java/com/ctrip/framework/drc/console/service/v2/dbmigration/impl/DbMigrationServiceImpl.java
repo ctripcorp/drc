@@ -867,21 +867,15 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (messengerGroupTbl == null) {
             return;
         }
+        messengerGroupTbl.setMhaId(newMha.getId());
+        messengerGroupTbl.setReplicatorGroupId(newReplicatorGroupTbl.getId());
+        messengerGroupTblDao.update(messengerGroupTbl);
+
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(Lists.newArrayList(messengerGroupTbl.getId()));
         if (CollectionUtils.isEmpty(messengerTbls)) {
             return;
         }
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.APPLIER.getCode(), new ArrayList<>()));
-        if (resourceViews.size() != 2) {
-            throw ConsoleExceptionUtils.message("cannot select tow appliers for newMha");
-        }
-        messengerGroupTbl.setGtidExecuted(gtidInit);
-        messengerGroupTbl.setMhaId(newMha.getId());
-        messengerGroupTbl.setReplicatorGroupId(newReplicatorGroupTbl.getId());
-
-        messengerTbls.get(0).setResourceId(resourceViews.get(0).getResourceId());
-        messengerTbls.get(1).setResourceId(resourceViews.get(1).getResourceId());
-        messengerGroupTblDao.update(messengerGroupTbl);
+        messengerTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         messengerTblDao.update(messengerTbls);
 
     }
