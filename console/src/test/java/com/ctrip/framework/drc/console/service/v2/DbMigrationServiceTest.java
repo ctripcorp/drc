@@ -412,6 +412,7 @@ public class DbMigrationServiceTest {
         Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessengers()));
         Mockito.when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
         Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(consoleConfig.getSgpMessengerGtidInit(Mockito.eq("mha201"))).thenReturn("messengerGtidInit");
 
         dbMigrateService.migrateMhaReplication("mha201", "mha200");
         Mockito.verify(applierGroupTblV2Dao, Mockito.times(1)).update(Mockito.any(ApplierGroupTblV2.class));
