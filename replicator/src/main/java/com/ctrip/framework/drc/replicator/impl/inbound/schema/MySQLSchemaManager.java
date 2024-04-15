@@ -380,6 +380,8 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         boolean dbEmpty = isEmbeddedDbEmpty();
         if (!dbEmpty) {
             DDL_LOGGER.info("[Recovery Skip] due to already init for {} (Version: {})", registryKey, embeddedDbVersion);
+        } else {
+            DefaultEventMonitorHolder.getInstance().logEvent("drc.current.schema.empty", registryKey);
         }
         return dbEmpty;
     }
