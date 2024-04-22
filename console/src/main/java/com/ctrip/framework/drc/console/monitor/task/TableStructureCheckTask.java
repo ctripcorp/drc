@@ -92,6 +92,10 @@ public class TableStructureCheckTask extends AbstractLeaderAwareMonitor {
         }
     }
 
+    public void switchToSlave() {
+        removeRegister();
+    }
+
     private void removeRegister() {
         reporter.removeRegister(TABLE_STRUCTURE_MEASUREMENT);
         reporter.removeRegister(TABLE_COLUMN_STRUCTURE_MEASUREMENT);

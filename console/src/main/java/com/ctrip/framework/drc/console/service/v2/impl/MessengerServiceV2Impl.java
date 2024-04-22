@@ -520,6 +520,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
         return messengers;
     }
+
     @Override
     public List<Messenger> generateDbMessengers(Long mhaId) throws SQLException {
         List<Messenger> messengers = Lists.newArrayList();
@@ -584,6 +585,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
         return messengers;
     }
+
     @Override
     public MqConfigCheckVo checkMqConfig(MqConfigDto dto) {
         String mhaName = dto.getMhaName();
@@ -1091,8 +1093,13 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
 
         // all topic tables
-        List<String> sameTopicTableFilters = this.getTableNameFiltersWithSameTopic(topic);
-        List<MySqlUtils.TableSchemaName> allTables = mysqlServiceV2.getAnyMatchTable(mhaTblV2.getMhaName(), String.join(",", sameTopicTableFilters));
+        List<MySqlUtils.TableSchemaName> allTables = Lists.newArrayList();
+        Map<String, List<String>> tableNameFiltersWithSameTopicGroupByMha = this.getTableNameFiltersWithSameTopic(topic);
+        for (Map.Entry<String, List<String>> entry : tableNameFiltersWithSameTopicGroupByMha.entrySet()) {
+            String mhaName = entry.getKey();
+            List<String> sameTopicTableFilters = entry.getValue();
+            allTables.addAll(mysqlServiceV2.getAnyMatchTable(mhaName, String.join(",", sameTopicTableFilters)));
+        }
 
 
         // final remain = all - delete
@@ -1115,21 +1122,32 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         );
     }
 
-    private List<String> getTableNameFiltersWithSameTopic(String topic) throws SQLException {
+    private Map<String, List<String>> getTableNameFiltersWithSameTopic(String topic) throws SQLException {
         // query other table with same topic
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, ReplicationTypeEnum.DB_TO_MQ.getType());
         List<Long> srcMhaDbMapping = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(srcMhaDbMapping);
-        Map<Long, Long> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+        Map<Long, Long> mappingIdToDbIdMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+        Map<Long, Long> mappingIdToMhaIdMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getMhaId));
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(Lists.newArrayList(mappingIdToMhaIdMap.values()));
+        Map<Long, MhaTblV2> mhaTblV2Map = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
+
+
         List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
         Map<Long, String> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
 
-        return dbReplicationTbls.stream().map(e -> {
-            Long dbId = mhaDbMappingMap.get(e.getSrcMhaDbMappingId());
-            String db = dbMap.get(dbId);
-            return db + "\\." + e.getSrcLogicTableName();
-        }).collect(Collectors.toList());
+        return dbReplicationTbls.stream().collect(Collectors.groupingBy(e -> {
+                            Long mhaId = mappingIdToMhaIdMap.get(e.getSrcMhaDbMappingId());
+                            MhaTblV2 mhaTblV2 = mhaTblV2Map.get(mhaId);
+                            return mhaTblV2.getMhaName();
+                        }, Collectors.mapping(e -> {
+                            Long dbId = mappingIdToDbIdMap.get(e.getSrcMhaDbMappingId());
+                            String db = dbMap.get(dbId);
+                            return db + "\\." + e.getSrcLogicTableName();
+                        }, Collectors.toList())
+                )
+        );
     }
 
 

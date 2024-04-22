@@ -33,7 +33,7 @@ public class DbRestoreTask implements NamedCallable<MySQLInstance> {
     public DbRestoreTask(int port, String registryKey) {
         this.port = port;
         this.registryKey = registryKey;
-        this.version = DynamicConfig.getInstance().getEmbeddedMySQLUpgradeTo8Switch(registryKey) ? Version.v8_0_32 : Version.v5_7_23;
+        this.version = Version.v8_0_32;
     }
 
     public DbRestoreTask(int port, String registryKey, Version version) {

@@ -211,6 +211,7 @@ import 'codemirror/mode/xml/xml.js'
 import 'codemirror/addon/fold/foldgutter.css'
 import 'codemirror/addon/fold/foldgutter.js'
 import prettyMilliseconds from 'pretty-ms'
+import Vue from 'vue'
 
 export default {
   name: 'Application',
@@ -282,7 +283,6 @@ export default {
             let color, text
             if (row.drcStatus === true) {
               if (row.delay != null) {
-                console.log(row.delay)
                 text = prettyMilliseconds(row.delay, { compact: true })
                 if (row.delay > 10000) {
                   color = 'warning'
@@ -503,9 +503,6 @@ export default {
             that.total = pageResult.totalCount
             that.current = pageResult.pageIndex
             that.calTableSpan(pageResult.data)
-            pageResult.data.forEach(line => {
-              line.delay = null
-            })
             that.replications = pageResult.data
             that.$Message.success('查询成功')
             this.getDelay()
@@ -539,8 +536,9 @@ export default {
           }
           const dataMap = new Map(delays.map(e => [e.srcMha + '->' + e.dstMha + '->' + e.dbName, e.delay]))
           this.replications.forEach(line => {
-            line.delay = dataMap.get(line.src.mhaName + '->' + line.dst.mhaName + '->' + line.src.dbName)
+            Vue.set(line, 'delay', dataMap.get(line.src.mhaName + '->' + line.dst.mhaName + '->' + line.src.dbName))
           })
+
           console.log(this.replications)
         })
         .catch(message => {

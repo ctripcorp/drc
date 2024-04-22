@@ -1,11 +1,13 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -211,6 +213,18 @@ public class MhaControllerV2 {
             return ApiResult.getSuccessInstance(mhaServiceV2.offlineMhasWithOutDrc(mhas));
         } catch (Exception e) {
             logger.error("deleteMhasShuoldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping()
+    public ApiResult<List<MhaTblV2>> queryMhas(MhaQueryParam param) {
+        try {
+            ApiResult result = ApiResult.getSuccessInstance(mhaServiceV2.queryMhas(param));
+            result.setPageReq(param.getPageReq());
+            return result;
+        } catch (Exception e) {
+            logger.error("queryMhas error", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

@@ -103,7 +103,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
             poolProperties.setConnectionProperties(timeout);
             inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
-            embeddedDbVersion = DynamicConfig.getInstance().getEmbeddedMySQLUpgradeTo8Switch(registryKey) ? Version.v8_0_32 : Version.v5_7_23;
+            embeddedDbVersion = Version.v8_0_32;
 
             // kill existing mysql process if version not match
             Result result = new RetryTask<>(new DbDisposeTask(port, registryKey, embeddedDbVersion)).call();
@@ -380,6 +380,8 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         boolean dbEmpty = isEmbeddedDbEmpty();
         if (!dbEmpty) {
             DDL_LOGGER.info("[Recovery Skip] due to already init for {} (Version: {})", registryKey, embeddedDbVersion);
+        } else {
+            DefaultEventMonitorHolder.getInstance().logEvent("drc.current.schema.empty", registryKey);
         }
         return dbEmpty;
     }

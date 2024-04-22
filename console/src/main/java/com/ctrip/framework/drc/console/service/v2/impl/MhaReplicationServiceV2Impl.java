@@ -23,6 +23,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -89,6 +90,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Autowired
     private MhaDbReplicationTblDao mhaDbReplicationTblDao;
+    @Autowired
+    private MhaDbReplicationService mhaDbReplicationService;
 
 
     @Override
@@ -347,6 +350,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         if (!mhasToBeDelete.isEmpty()) {
             mhaTblV2Dao.update(mhasToBeDelete);
         }
+        // delete mha db replications as well
+        mhaDbReplicationService.offlineMhaDbReplication(srcMha.getMhaName(), dstMha.getMhaName());
         return true;
     }
 
