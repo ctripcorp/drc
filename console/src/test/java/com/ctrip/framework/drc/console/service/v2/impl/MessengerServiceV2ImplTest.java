@@ -173,6 +173,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         verify(mhaTblV2Dao).queryByMhaName(any(), anyInt());
         verify(mhaDbMappingTblDao).queryByIds(anyList());
         verify(dbReplicationFilterMappingTblDao).queryByDbReplicationIds(any());
+        verify(mhaDbReplicationService,times(1)).offlineMhaDbReplication(anyList());
     }
 
 
