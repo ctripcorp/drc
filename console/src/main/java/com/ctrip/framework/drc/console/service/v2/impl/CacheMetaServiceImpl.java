@@ -273,18 +273,6 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         }
         return machineService.getMasterEndpointsInAllAccounts(mha);
     }
-    
-    @Override
-    public Set<String> getSrcMhasShouldMonitor(String dbClusterId, String srcRegion) {
-        Set<String> res = Sets.newHashSet();
-        DbCluster dbCluster = metaProviderV2.getDcBy(dbClusterId).findDbCluster(dbClusterId);
-        dbCluster.getAppliers().forEach(applier -> {
-            if(applier.getTargetRegion().equalsIgnoreCase(srcRegion)) {
-                res.add(applier.getTargetMhaName());
-            }
-        });
-        return res;
-    }
 
     @Override
     public boolean refreshMetaCache() {
@@ -303,12 +291,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         });
         return res;
     }
-
-    @Override
-    public boolean refreshMetaCache() {
-        metaProviderV2.scheduledTask();
-        return true;
-    }
+    
 
     public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {
         Dbs dbs = dbCluster.getDbs();
