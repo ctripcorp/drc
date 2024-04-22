@@ -8,14 +8,17 @@ import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
+import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.param.v2.resource.ReplicatorMigrateParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.google.common.collect.Lists;
@@ -26,7 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +75,12 @@ public class ResourceServiceTest {
     private DbTblDao dbTblDao;
     @Mock
     private ApplierTblV3Dao dbApplierTblDao;
+    @Mock
+    private MessengerTblV3Dao dbMessengerTblDao;
+    @Mock
+    private MysqlServiceV2 mysqlServiceV2;
+    @Mock
+    private MetaInfoServiceV2 metaInfoService;
 
     @Before
     public void setUp() {
@@ -95,6 +103,22 @@ public class ResourceServiceTest {
         param.setTag("tag");
         resourceService.configureResource(param);
         Mockito.verify(resourceTblDao, Mockito.times(1)).insert(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.never()).update(Mockito.any(ResourceTbl.class));
+    }
+
+    @Test
+    public void testBatchConfigureResource() throws Exception {
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(resourceTblDao.queryByIps(Mockito.anyList())).thenReturn(new ArrayList<>());
+        Mockito.when(resourceTblDao.insert(Mockito.any(ResourceTbl.class))).thenReturn(0);
+
+        ResourceBuildParam param = new ResourceBuildParam();
+        param.setAz("AZ");
+        param.setIps(Lists.newArrayList("127.0.0.1"));
+        param.setDcName("dc");
+        param.setType("R");
+        param.setTag("tag");
+        resourceService.batchConfigureResource(param);
         Mockito.verify(resourceTblDao, Mockito.never()).update(Mockito.any(ResourceTbl.class));
     }
 
@@ -267,6 +291,114 @@ public class ResourceServiceTest {
 
         List<MhaDbReplicationView> result = resourceService.queryMhaDbReplicationByApplier(1L);
         Assert.assertEquals(result.size(), 1);
+    }
+
+    @Test
+    public void testMigrateReplicator() throws Exception {
+        List<ResourceTbl> resourceTbls = getReplicatorResources();
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip1"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip2"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getReplicatorTbls());
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorTbls());
+
+        Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        int result = resourceService.migrateResource("ip2", "ip1", 0);
+        Assert.assertEquals(result, PojoBuilder.getReplicatorTbls().size());
+    }
+
+    @Test
+    public void testPartialMigrateReplicator() throws Exception {
+        List<ResourceTbl> resourceTbls = getReplicatorResources();
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip1"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip2"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getReplicatorTbls());
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorTbls());
+
+        Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(PojoBuilder.getMhaTblV2()));
+        Mockito.when(replicatorGroupTblDao.queryByMhaIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorGroupTbls());
+        int result = resourceService.partialMigrateReplicator(new ReplicatorMigrateParam("ip1", "ip2", Lists.newArrayList("mha")));
+        Assert.assertEquals(result, PojoBuilder.getReplicatorTbls().size());
+    }
+
+    @Test
+    public void testMigrateSlaveReplicator() throws Exception {
+        List<ResourceTbl> resourceTbls = getReplicatorResources();
+        List<ReplicatorTbl> replicatorTbls = getReplicatorTbls();
+        replicatorTbls.stream().filter(e -> e.getId().equals(200L)).forEach(e -> e.setMaster(0));
+
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip1"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip2"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(replicatorTbls);
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorTbls());
+
+        Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        int result = resourceService.migrateSlaveReplicator("ip2", "ip1");
+        Assert.assertEquals(result, 1);
+    }
+
+    @Test
+    public void testMigrateApplier() throws Exception {
+        List<ResourceTbl> resourceTbls = getApplierResources();
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip1"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip2"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getApplierTblV2s());
+        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getApplierTblV3s());
+        Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
+        Mockito.when(dbMessengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+
+        Mockito.when(applierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV2s());
+        Mockito.when(dbApplierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV3s());
+        Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
+        Mockito.when(dbMessengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+
+        Mockito.when(applierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbApplierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbMessengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        int result = resourceService.migrateResource("ip2", "ip1", 1);
+        Assert.assertEquals(result, 5);
+    }
+
+    @Test
+    public void testCheckResourceAz() throws Exception {
+        Mockito.when(resourceTblDao.queryAllExist()).thenReturn(PojoBuilder.getResourceTbls());
+
+        Mockito.when(dbApplierTblDao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV3s());
+        Mockito.when(dbApplierGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getApplierGroupTblV3s().get(0));
+        Mockito.when(mhaDbReplicationTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaDbReplicationTbls().get(0));
+        Mockito.when(mhaDbMappingTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaDbMappingTbls1().get(0));
+        Mockito.when(dbTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getDbTbls().get(0));
+
+        Mockito.when(applierTblDao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV2s());
+        Mockito.when(applierGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getApplierGroupTblV2s().get(0));
+        Mockito.when(mhaReplicationTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaReplicationTbl());
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
+
+        Mockito.when(messengerTblDao.queryAllExist()).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
+        Mockito.when(messengerGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMessengerGroup());
+
+        Mockito.when(replicatorTblDao.queryAllExist()).thenReturn(PojoBuilder.getReplicatorTbls());
+        Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+
+        ResourceSameAzView result = resourceService.checkResourceAz();
+        Assert.assertEquals(result.getApplierDbList().size(), 1);
+        Assert.assertEquals(result.getApplierMhaReplicationList().size(), 1);
+        Assert.assertEquals(result.getMessengerMhaList().size(), 1);
+        Assert.assertEquals(result.getReplicatorMhaList().size(), 1);
     }
 
 }

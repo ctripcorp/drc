@@ -69,6 +69,10 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
     @Override
     public void messengerActiveElected(String clusterId, Messenger messenger) {
         STATE_LOGGER.info("[messengerActiveElected]{},{}", clusterId, messenger);
+        if (messenger == null) {
+            STATE_LOGGER.info("[messengerActiveElected][none messenger, do nothing], dbCluster: {}", clusterId);
+            return;
+        }
         String dbName = NameUtils.getMessengerDbName(messenger);
         List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId, dbName);
         if (messengers == null || messengers.size() == 0) {
@@ -93,7 +97,10 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
     @Override
     public void applierActiveElected(String clusterId, Applier applier) {
         STATE_LOGGER.info("[applierActiveElected]{},{}", clusterId, applier);
-
+        if (applier == null) {
+            STATE_LOGGER.info("[applierActiveElected][none applier, do nothing], dbCluster: {}", clusterId);
+            return;
+        }
         String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(applier);
         List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, backupRegistryKey);
         if (appliers == null || appliers.size() == 0) {

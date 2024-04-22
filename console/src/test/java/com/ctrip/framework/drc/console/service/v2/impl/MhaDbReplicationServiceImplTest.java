@@ -44,6 +44,13 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     }
 
     @Test
+    public void testOfflineMhaDbReplication() throws SQLException {
+        mhaDbReplicationService.offlineMhaDbReplication("mha1","mha2");
+        verify(mhaDbReplicationTblDao,times(1)).batchUpdate(anyList());
+
+    }
+
+    @Test
     public void testQueryDbReplication() {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha("mha1", "mha2", null);
         Assert.assertFalse(CollectionUtils.isEmpty(replicationDtos));

@@ -259,6 +259,9 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             mhaName = e.getSrc().getMhaName();
         } else {
             mhaName = e.getDst().getMhaName();
+            if ("sgpali".equalsIgnoreCase(e.getDst().getDcName())) {
+                return true;
+            }
         }
         return consoleConfig.getDbApplierConfigureSwitch(mhaName);
     }

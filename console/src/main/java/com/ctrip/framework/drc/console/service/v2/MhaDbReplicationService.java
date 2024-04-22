@@ -35,6 +35,7 @@ public interface MhaDbReplicationService {
 
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
     void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException;
+    void offlineMhaDbReplication(String mhaName, String mhaName1);
 
     boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
 

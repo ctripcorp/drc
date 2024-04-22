@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2.resource;
 
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/8/3 16:12
@@ -10,6 +12,15 @@ public class ResourceBuildParam {
     private String dcName;
     private String tag;
     private String az;
+    private List<String> ips;
+
+    public List<String> getIps() {
+        return ips;
+    }
+
+    public void setIps(List<String> ips) {
+        this.ips = ips;
+    }
 
     public String getIp() {
         return ip;
@@ -59,6 +70,7 @@ public class ResourceBuildParam {
                 ", dcName='" + dcName + '\'' +
                 ", tag='" + tag + '\'' +
                 ", az='" + az + '\'' +
+                ", ips=" + ips +
                 '}';
     }
 }

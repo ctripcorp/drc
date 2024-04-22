@@ -52,7 +52,7 @@ function getSafeXmx() {
     total=`getTotalMem`
     SAFE_PERCENT=70
     MAX_MEM=20
-    if [ $IDC = "SIN-AWS" ] || [ $IDC = "FRA-AWS" ] || [ $IDC = "SHA-ALI" ];then
+    if [ $IDC = "SIN-AWS" ] || [ $IDC = "FRA-AWS" ] || [ $IDC = "SHA-ALI" ] || [ $IDC = "SGP-ALI" ];then
         MAX_MEM=10
     fi
     result=`expr $total \* $SAFE_PERCENT / 100`
@@ -159,6 +159,7 @@ else
 fi
 export JAVA_OPTS="-server $JAVA_OPTS -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:MaxTenuringThreshold=1 -Dio.netty.maxDirectMemory=0 -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:+HeapDumpOnOutOfMemoryError -XX:+HeapDumpBeforeFullGC -XX:-OmitStackTraceInFastThrow -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xlog:safepoint,classhisto*=trace,age*,gc*=info:file=$LOG_DIR/gc-%t.log:time,tid,tags:filecount=5,filesize=50m -XX:HeapDumpPath=$LOG_DIR/HeapDumpOnOutOfMemoryError/  -Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${IP} -XX:+FlightRecorder -Djava.security.egd=file:/dev/./urandom"
 export JAVA_OPTS="$JAVA_OPTS -cp .:./META-INF/"
+export JAVA_OPTS="$JAVA_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/sun.net.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens jdk.attach/sun.tools.attach=ALL-UNNAMED"
 echo $JAVA_OPTS
 
 export LD_PRELOAD=/usr/local/lib/libjemalloc.so
@@ -168,9 +169,16 @@ PATH_TO_JAR=$SERVICE_NAME".jar"
 SERVER_URL="http://localhost:$SERVER_PORT/health"
 STARTUP_LOG=$LOG_DIR"/startup.logger"
 
-#set the jdk to 11 version
-if [[ -z "$JAVA_HOME" && -d /usr/java/jdk11/ ]]; then
-    export JAVA_HOME=/usr/java/jdk11
+ARCH=`uname -r`
+#set the jdk to 11/17 version
+if [[ -z "$JAVA_HOME" ]]; then
+    if [[ "$ARCH" == *"aarch64" && -d /usr/java/jdk17/ ]]; then
+      export JAVA_HOME=/usr/java/jdk17
+    elif [[ -d /usr/java/jdk11/ ]]; then
+      export JAVA_HOME=/usr/java/jdk11
+    else
+      export JAVA_HOME=/usr/java/latest/
+    fi
 elif [[ -z "$JAVA_HOME" && -d /usr/java/latest/ ]]; then
     export JAVA_HOME=/usr/java/latest/
 fi

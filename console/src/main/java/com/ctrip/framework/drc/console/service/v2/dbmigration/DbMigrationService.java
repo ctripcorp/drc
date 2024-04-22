@@ -25,7 +25,7 @@ public interface DbMigrationService {
     // return null when no dbDrcRelated
     // return taskId when task create; 
     // throw ConsoleException with reason when forbidden
-    Pair<String,Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException;
+    Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException;
     
     boolean preStartDbMigrationTask(Long taskId) throws SQLException;
 
@@ -41,5 +41,14 @@ public interface DbMigrationService {
     void rollBackNewDrcConfig(long taskId) throws Exception;
 
     void deleteReplicator(String mhaName) throws Exception;
+
+    void migrateMhaReplication(String newMhaName, String oldMhaName) throws Exception;
+
+    /**
+     * preStart replicator before migrate mhaReplication
+     */
+    void preStartReplicator(String newMhaName, String oldMhaName) throws Exception;
+    
+    void checkMhaConfig(String oldMha, String newMha, java.util.Set<String> ignoreConfigName) throws com.ctrip.framework.drc.console.exception.ConsoleException;
 
 }

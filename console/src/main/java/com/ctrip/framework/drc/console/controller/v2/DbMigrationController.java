@@ -234,4 +234,30 @@ public class DbMigrationController {
             return ApiResult.getFailInstance("fail", e.getMessage());
         }
     }
+
+    @PostMapping("mhaReplication")
+    @LogRecord(type = OperateTypeEnum.MHA_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "admin",
+            success = "migrateMhaReplication with newMha:{#newMha}, oldMha:{#oldMha}")
+    public ApiResult<Boolean> migrateMhaReplication(@RequestParam String newMha, @RequestParam String oldMha) {
+        try {
+            dbMigrationService.migrateMhaReplication(newMha, oldMha);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("migrateMhaReplication fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("mha/replicator/preStart")
+    @LogRecord(type = OperateTypeEnum.MHA_MIGRATION, attr = OperateAttrEnum.ADD,operator = "admin",
+            success = "preStartReplicator with newMha:{#newMha}, oldMha:{#oldMha}")
+    public ApiResult<Boolean> preStartReplicator(@RequestParam String newMha, @RequestParam String oldMha) {
+        try {
+            dbMigrationService.preStartReplicator(newMha, oldMha);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("preStartReplicator fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
 }

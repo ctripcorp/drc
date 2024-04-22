@@ -14,6 +14,7 @@ public enum OperateTypeEnum {
     DB_MIGRATION("DB迁移","db_migration"),
     CONFLICT_RESOLUTION("冲突处理","conflict_resolution"),
     DRC_RESOURCE("DRC资源","drc_resource"),
+    MHA_MIGRATION("MHA迁移","mha_migration"),
     ;
 
     private String name;

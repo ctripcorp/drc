@@ -481,6 +481,21 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         verify(replicatorTblDao, times(1)).batchInsert(any());
     }
 
+    @Test
+    public void testConfigReplicator() throws Exception {
+
+        MessengerMetaDto dto = new MessengerMetaDto();
+        dto.setMhaName("mha1");
+        dto.setReplicatorIps(com.google.common.collect.Lists.newArrayList("1.113.60.1"));
+        dto.setrGtidExecuted("testRGtidExecuted");
+
+
+        when(metaInfoService.getDrcMhaConfig(anyString())).thenReturn(new Drc());
+        drcBuildServiceV2.configReplicatorOnly(dto);
+
+        verify(replicatorTblDao, times(1)).batchInsert(any());
+    }
+
 
     @Test
     public void testGetRelatedMessengerDtos() {

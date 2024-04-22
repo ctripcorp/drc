@@ -83,7 +83,7 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
         persistentNode.start();
 
         Thread.sleep(1500);
-        verify(currentMetaManager, times(1)).setSurviveMessengers(anyString(), anyObject(), anyObject());
+        verify(currentMetaManager, times(1)).setSurviveMessengers(anyString(), anyString(), anyObject(), anyObject());
     }
 
     @Test
