@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManagerT
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.CommentQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.DatabaseCreateTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTaskTest;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.util.CharsetConversionTest;
 import com.ctrip.framework.drc.core.driver.command.handler.BinlogDumpGtidClientCommandHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
@@ -90,6 +91,7 @@ import org.junit.runners.Suite;
         TableOperationManagerTest.class,
         CommentQueryTaskTest.class,
         SchemeCloneTaskTest.class,
+        TablesCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
         //proxy
         DrcNettyClientPoolTest.class,

@@ -3,9 +3,11 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
+import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -82,5 +84,30 @@ public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().in(ID, ids, Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<MhaTblV2> queryByParam(MhaQueryParam param) throws SQLException {
+        SelectSqlBuilder sqlBuilder = buildSqlBuilder(param);
+        sqlBuilder.selectCount();
+        int count = client.count(sqlBuilder, new DalHints()).intValue();
+        param.getPageReq().setTotalCount(count);
+
+        sqlBuilder = buildSqlBuilder(param);
+        sqlBuilder.selectAll().atPage(param.getPageReq().getPageIndex(), param.getPageReq().getPageSize()).orderBy(ID, false);
+        return queryList(sqlBuilder);
+    }
+
+    private SelectSqlBuilder buildSqlBuilder(MhaQueryParam param) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        if (StringUtils.isNotBlank(param.getMhaName())) {
+            sqlBuilder.and().like(MHA_NAME, param.getMhaName(), MatchPattern.CONTAINS, Types.VARCHAR);
+        }
+        if (!CollectionUtils.isEmpty(param.getDcIds())) {
+            sqlBuilder.and().in(DC_ID, param.getDcIds(), Types.BIGINT);
+        }
+        if (!CollectionUtils.isEmpty(param.getMhaIds())) {
+            sqlBuilder.and().in(ID, param.getMhaIds(), Types.BIGINT);
+        }
+        return sqlBuilder;
     }
 }

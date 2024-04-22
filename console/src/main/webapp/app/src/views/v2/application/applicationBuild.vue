@@ -236,7 +236,7 @@ export default {
         return '.*'
       } else {
         if (name.includes(',')) {
-          return '(' + name.replace(',', '|') + ')'
+          return '(' + name.replaceAll(',', '|') + ')'
         } else {
           return name
         }

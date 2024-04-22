@@ -55,9 +55,9 @@ public interface CurrentMetaManager extends Observable {
 
     void setSurviveReplicators(String registryKey, List<Replicator> surviveReplicators, Replicator activeReplicator);
 
-    void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier);
+    void setSurviveAppliers(String clusterId, String registryKey, List<Applier> surviveAppliers, Applier activeApplier);
 
-    void setSurviveMessengers(String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger);
+    void setSurviveMessengers(String clusterId, String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger);
 
     boolean watchReplicatorIfNotWatched(String registryKey);
 

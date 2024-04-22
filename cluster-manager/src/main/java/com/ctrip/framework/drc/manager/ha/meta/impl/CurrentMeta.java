@@ -17,6 +17,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -50,14 +51,14 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.setSurviveReplicators(surviveReplicators, activeReplicator);
     }
 
-    public void setSurviveMessengers(String clusterId, List<Messenger> surviveMessengers, Messenger activeMessenger) {
+    public void setSurviveMessengers(String clusterId, String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        currentShardMeta.setSurviveMessengers(surviveMessengers, activeMessenger);
+        currentShardMeta.setSurviveMessengers(registryKey, surviveMessengers, activeMessenger);
     }
 
-    public void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier) {
+    public void setSurviveAppliers(String clusterId, String registryKey, List<Applier> surviveAppliers, Applier activeApplier) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        currentShardMeta.setSurviveAppliers(surviveAppliers, activeApplier);
+        currentShardMeta.setSurviveAppliers(registryKey, surviveAppliers, activeApplier);
 
     }
 
@@ -303,7 +304,7 @@ public class CurrentMeta implements Releasable {
             }
         }
 
-        public void setSurviveMessengers(List<Messenger> surviveMessengers, Messenger activeMessenger) {
+        public void setSurviveMessengers(String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger) {
             if (surviveMessengers.size() > 0) {
                 if (!checkIn(surviveMessengers, activeMessenger)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeMessenger + ", all:" + this.surviveMessengers);
@@ -316,12 +317,27 @@ public class CurrentMeta implements Releasable {
                 doSetActive(dbName, activeMessenger, messengers);
             } else {
                 logger.info("[setSurviveMessengers][survive messenger none, clear]{},{},{}", clusterId, surviveMessengers, activeMessenger);
-                //TODO: clear too much
-                this.surviveMessengers.clear();
+                this.clearSurvivedMessenger(registryKey);
             }
         }
 
-        public void setSurviveAppliers(List<Applier> surviveAppliers, Applier activeApplier) {
+        private void clearSurvivedMessenger(String registryKey) {
+            String dbName = NameUtils.getMessengerDbName(registryKey);
+            if (dbName == null) {
+                logger.error("[setSurviveMessengers] failRemove: illegal registry key: {}", registryKey);
+                return;
+            }
+            List<Messenger> messengersToClear = this.surviveMessengers.get(dbName);
+            if (CollectionUtils.isEmpty(messengersToClear)) {
+                logger.info("[setSurviveMessengers] remove none for: {},{}", registryKey, dbName);
+            } else {
+                logger.info("[setSurviveMessengers] remove for for: {},{},{}", registryKey, dbName, messengersToClear);
+                this.surviveMessengers.put(dbName, Lists.newArrayList());
+            }
+        }
+
+
+        public void setSurviveAppliers(String registryKey, List<Applier> surviveAppliers, Applier activeApplier) {
             if (surviveAppliers.size() > 0) {
                 if (!checkIn(surviveAppliers, activeApplier)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeApplier + ", all:" + this.surviveAppliers);
@@ -332,10 +348,25 @@ public class CurrentMeta implements Releasable {
                 logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupRegistryKey, surviveAppliers, activeApplier);
                 doSetActive(backupRegistryKey, activeApplier, appliers);
             } else {
-                logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{}", clusterId, surviveAppliers, activeApplier);
-                //TODO: clear too much
-                this.surviveAppliers.clear();
+                logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{},{}", clusterId, registryKey, surviveAppliers, activeApplier);
+                this.clearSurvivedApplier(registryKey);
             }
+        }
+
+        private void clearSurvivedApplier(String registryKey) {
+            String backupRegistryKeyEndStr = getBackupRegistryKeyEndStrFromRegistryKey(registryKey);
+            if (backupRegistryKeyEndStr == null) {
+                logger.error("[setSurviveAppliers] failRemove: illegal registry key: {}", registryKey);
+                return;
+            }
+            for (Map.Entry<String, List<Applier>> e : this.surviveAppliers.entrySet()) {
+                if (backupRegistryKeyEndStr.equals(getBackupRegistryKeyEndStr(e.getKey()))) {
+                    logger.info("[setSurviveAppliers] remove for {},{},{}: {}", registryKey, backupRegistryKeyEndStr, e.getKey(), e.getValue());
+                    e.setValue(Lists.newArrayList());
+                    return;
+                }
+            }
+            logger.info("[setSurviveAppliers] remove none for: {}, {}", registryKey, backupRegistryKeyEndStr);
         }
 
         public boolean setApplierMaster(String backupClusterId, Pair<String, Integer> applierMaster) {
@@ -508,6 +539,32 @@ public class CurrentMeta implements Releasable {
             getSurviveReplicators().stream().forEach(replicator -> dbCluster.addReplicator(replicator));
             return dbCluster;
         }
+    }
+
+    // name.mhaName.targetMhaName[.db] -> targetMhaName[.db]
+    private static String getBackupRegistryKeyEndStrFromRegistryKey(String registryKey) {
+        return subJoin(registryKey, "\\.", 2);
+    }
+
+    // targetName.targetMhaName[.db] -> targetMhaName[.db]
+    private static String getBackupRegistryKeyEndStr(String backupRegistry) {
+        return subJoin(backupRegistry, "\\.", 1);
+    }
+
+    /**
+     * split, and join the rest from given index
+     */
+    private static String subJoin(String registryKey, String regex, int start) {
+        String[] split = registryKey.split(regex);
+        if (split.length <= start) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(split[start]);
+        for (int i = start + 1; i < split.length; i++) {
+            sb.append(regex).append(split[i]);
+        }
+        return sb.toString();
     }
 
     @Override

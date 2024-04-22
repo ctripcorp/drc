@@ -102,6 +102,9 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
     }
 
     public List<MhaDbMappingTbl> queryByMhaIds(List<Long> mhaIds) throws SQLException {
+        if (CollectionUtils.isEmpty(mhaIds)) {
+            return Collections.emptyList();
+        }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(MHA_ID, mhaIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());

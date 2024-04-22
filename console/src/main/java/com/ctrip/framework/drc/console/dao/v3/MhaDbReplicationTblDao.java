@@ -11,6 +11,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,6 +33,19 @@ public class MhaDbReplicationTblDao extends AbstractDao<MhaDbReplicationTbl> {
         super(MhaDbReplicationTbl.class);
     }
 
+    public List<MhaDbReplicationTbl> queryByMhaDbMappingIds(List<Long> mhaDbMappingIds) throws SQLException {
+        if (CollectionUtils.isEmpty(mhaDbMappingIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and()
+                .leftBracket()
+                .in(SRC_MHA_DB_MAPPING_ID, mhaDbMappingIds, Types.BIGINT)
+                .or()
+                .in(DST_MHA_DB_MAPPING_ID, mhaDbMappingIds, Types.BIGINT)
+                .rightBracket();
+        return queryList(sqlBuilder);
+    }
 
     public List<MhaDbReplicationTbl> query(MhaDbReplicationQuery query) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();

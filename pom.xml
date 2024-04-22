@@ -33,11 +33,11 @@
         <framework.bom.version>5.42.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
-        <dal.version>2.4.35</dal.version>
+        <dal.version>2.4.50</dal.version>
         <vi.version>0.11.47</vi.version>
         <ucs.version>0.5.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
-        <xpipe.proxy.client.version>1.2.9</xpipe.proxy.client.version>
+        <xpipe.proxy.client.version>1.2.13</xpipe.proxy.client.version>
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
         <netty-all.version>4.1.68.Final</netty-all.version>

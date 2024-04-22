@@ -26,6 +26,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.validation.constraints.NotNull;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -113,6 +114,24 @@ public class MachineServiceImpl implements MachineService {
         return machineTblDao.update(machineTbl);
     }
 
+    @Override
+    public List<Endpoint> getMasterEndpointsInAllAccounts(String mha) {
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblDao.queryByMhaName(mha, 0);
+            if (mhaTblV2 == null) {
+                return getMasterEndpointsInAllAccountsFromDbaApi(mha);
+            }
+            List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaTblV2.getId(), 0);
+            if (CollectionUtils.isEmpty(machineTbls)) {
+                return getMasterEndpointsInAllAccountsFromDbaApi(mha);
+            }
+            return getMastersInAllAccounts(mhaTblV2, machineTbls);
+        } catch (SQLException e) {
+            logger.error("getMasterEndpointsInAllAccounts sql exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
     private Endpoint getMasterEndpointFromDbaApi(String mha) {
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mha);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
@@ -128,10 +147,38 @@ public class MachineServiceImpl implements MachineService {
                 .findFirst().orElse(null);
     }
 
+    private List<Endpoint> getMasterEndpointsInAllAccountsFromDbaApi(String mha) {
+        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mha);
+        List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
+        List<Endpoint> endpoints = new ArrayList<>();
+        for (MemberInfo memberInfo : memberlist) {
+            if (memberInfo.getRole().toLowerCase().contains("master")) {
+                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(), monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(), monitorTableSourceProvider.getReadUserVal(), monitorTableSourceProvider.getReadPasswordVal(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(), monitorTableSourceProvider.getWriteUserVal(), monitorTableSourceProvider.getWritePasswordVal(), BooleanEnum.TRUE.isValue()));
+                return endpoints;
+            }
+        }
+        return null;
+    }
+
     public Endpoint getMaster(MhaTblV2 mhaTblV2, List<MachineTbl> machineInfo) {
         for (MachineTbl machineTbl : machineInfo) {
             if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
                 return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), BooleanEnum.TRUE.isValue());
+            }
+        }
+        return null;
+    }
+
+    public List<Endpoint> getMastersInAllAccounts(MhaTblV2 mhaTblV2, List<MachineTbl> machineInfo) {
+        List<Endpoint> endpoints = new ArrayList<>();
+        for (MachineTbl machineTbl : machineInfo) {
+            if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getReadUser(), mhaTblV2.getReadPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getWriteUser(), mhaTblV2.getWritePassword(), BooleanEnum.TRUE.isValue()));
+                return endpoints;
             }
         }
         return null;

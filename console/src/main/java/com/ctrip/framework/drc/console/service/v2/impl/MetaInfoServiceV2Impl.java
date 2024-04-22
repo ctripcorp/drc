@@ -165,6 +165,40 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         return drc;
     }
 
+    @Override
+    public Drc getDrcMhaConfig(String mhaName) throws Exception {
+        Drc drc = new Drc();
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message("mha not exist");
+        }
+        this.appendMhaReplicatorConfig(drc,mhaTblV2);
+        return drc;
+    }
+
+    @Override
+    public void createRegion(String regionName) throws SQLException {
+        regionTblDao.upsert(regionName);
+    }
+
+    @Override
+    public void createDc(String dcName, String regionName) throws SQLException {
+        dcTblDao.upsert(dcName, regionName);
+    }
+
+    private void appendMhaReplicatorConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
+        DcDo dcDo = this.queryAllDc()
+                .stream()
+                .filter(e -> e.getDcId().equals(mhaTbl.getDcId()))
+                .findFirst()
+                .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "dc not exist: " + mhaTbl.getDcId()));
+
+        Dc dc = generateDcFrame(drc, dcDo);
+        DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
+        generateDbs(dbCluster, mhaTbl);
+        generateReplicators(dbCluster, mhaTbl);
+    }
+
     private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
         DcDo dcDo = this.queryAllDc()
                 .stream()

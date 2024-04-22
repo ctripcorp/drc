@@ -48,6 +48,27 @@ public class DcTblDao extends AbstractDao<DcTbl> {
 		return dcTbl.getId();
 	}
 
+	public Long upsert(String dc, String region) throws SQLException {
+		DcTbl dcTbl = queryAll().stream().filter(p -> p.getDcName().equalsIgnoreCase(dc)).findFirst().orElse(null);
+		if (null == dcTbl) {
+			return insertDc(dc, region);
+		} else if (BooleanEnum.TRUE.getCode().equals(dcTbl.getDeleted())){
+			dcTbl.setDeleted(BooleanEnum.FALSE.getCode());
+			update(dcTbl);
+		}
+		return dcTbl.getId();
+	}
+
+	public Long insertDc(String dcName, String region) throws SQLException {
+		DcTbl pojo = new DcTbl();
+		pojo.setDcName(dcName);
+		pojo.setRegionName(region);
+
+		KeyHolder keyHolder = new KeyHolder();
+		insert(new DalHints(), keyHolder, pojo);
+		return (Long) keyHolder.getKey();
+	}
+
 	public Long insertDc(String dcName) throws SQLException {
 		DcTbl pojo = DcTbl.createDcPojo(dcName);
 		KeyHolder keyHolder = new KeyHolder();

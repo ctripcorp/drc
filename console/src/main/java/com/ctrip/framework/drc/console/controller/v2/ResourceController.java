@@ -3,15 +3,14 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
-import com.ctrip.framework.drc.console.param.v2.resource.DbResourceSelectParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +89,19 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("batchInsert")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.ADD,
+            success = "batchConfigureResource with ResourceBuildParam {#param}")
+    public ApiResult<Boolean> batchConfigureResource(@RequestBody ResourceBuildParam param) {
+        try {
+            resourceService.batchConfigureResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("batchConfigureResource fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @DeleteMapping
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE,attr = OperateAttrEnum.DELETE,
     success = "offlineResource with resourceId {#resourceId}")
@@ -159,6 +171,80 @@ public class ResourceController {
             return ApiResult.getSuccessInstance(resourceService.queryMhaDbReplicationByApplier(resourceId));
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/replicator")
+    public ApiResult<Integer> migrateReplicator(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.REPLICATOR.getCode()));
+        } catch (Exception e) {
+            logger.error("migrateReplicator fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("partialMigrate/replicator")
+    public ApiResult<Integer> partialMigrateReplicator(@RequestBody ReplicatorMigrateParam param) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.partialMigrateReplicator(param));
+        } catch (Exception e) {
+            logger.error("migrateReplicator fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/slaveReplicator")
+    public ApiResult<Integer> migrateSlaveReplicator(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateSlaveReplicator(newIp, oldIp));
+        } catch (Exception e) {
+            logger.error("migrateReplicator fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrate/applier")
+    public ApiResult<Integer> migrateApplier(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.APPLIER.getCode()));
+        } catch (Exception e) {
+            logger.error("migrateApplier fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
+    @PostMapping("batchMigrate/replicator")
+    public ApiResult<Boolean> batchMigrateReplicator(@RequestBody ResourceMigrateParam param) {
+        try {
+            param.setType(ModuleEnum.REPLICATOR.getCode());
+            resourceService.migrateResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("migrateResource fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("batchMigrate/applier")
+    public ApiResult<Boolean> batchMigrateApplier(@RequestBody ResourceMigrateParam param) {
+        try {
+            param.setType(ModuleEnum.APPLIER.getCode());
+            resourceService.migrateResource(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("migrateResource fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("checkAz")
+    public ApiResult<ResourceSameAzView> checkResourceAz() {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.checkResourceAz());
+        } catch (Exception e) {
+            logger.error("checkResourceAz fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

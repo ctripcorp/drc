@@ -87,7 +87,8 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @Override
     public void doStart() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
-            ProxyRegistry.registerProxy(registryKey, replicatorIp, replicatorPort, routeInfo);
+            boolean b = ProxyRegistry.registerProxy(registryKey, replicatorIp, replicatorPort, routeInfo);
+            logger.info("register proxy {} key:{} ,ip:{}:{},route:{}", b,registryKey, replicatorIp, replicatorPort, routeInfo);
         }
         Endpoint endpoint = new DefaultEndPoint(replicatorIp, replicatorPort);
         config = new FetcherSlaveConfig();
