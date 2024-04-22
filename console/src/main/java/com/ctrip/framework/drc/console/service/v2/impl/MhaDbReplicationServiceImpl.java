@@ -525,8 +525,11 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void refreshMhaReplication() {
         try {
-            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist();
-            this.maintainMhaDbReplication(dbReplicationTbls);
+            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAll();
+            List<DbReplicationTbl> existDbReplications = dbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+            this.maintainMhaDbReplication(existDbReplications);
+            List<DbReplicationTbl> deletedDbReplications = dbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+            this.offlineMhaDbReplication(deletedDbReplications);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -760,6 +763,10 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             mhaDbReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
             return mhaDbReplicationTbl;
         }).filter(Objects::nonNull).collect(Collectors.toList());
+
+        // delete: deleted in dbReplication, and no other db replication related
+
+
         return Pair.from(insertTables, updateTables);
     }
 }
