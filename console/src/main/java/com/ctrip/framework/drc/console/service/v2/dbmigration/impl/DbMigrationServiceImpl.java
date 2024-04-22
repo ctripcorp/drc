@@ -1261,6 +1261,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         mqDbReplications.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         logger.info("delete mqDbReplicationTblIds: {}", mqDbReplicationIds);
         dbReplicationTblDao.update(mqDbReplications);
+        mhaDbReplicationService.offlineMhaDbReplication(mqDbReplications);
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(mqDbReplicationIds);
         if (!CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
@@ -1282,6 +1283,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         logger.info("delete dbReplicationTblIds: {}", dbReplicationIds);
         dbReplicationTblDao.update(dbReplicationTbls);
+        mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (!CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {

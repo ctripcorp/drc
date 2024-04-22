@@ -521,6 +521,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+        mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
 
         //config replicationTables
         List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, BooleanEnum.FALSE.getCode());
