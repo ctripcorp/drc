@@ -28,12 +28,10 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -293,7 +291,7 @@ public class DbMigrationServiceTest {
             tbl.setStatus(value.getStatus());
             Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
             if (!possibleUpdateStatus.contains(value.getStatus())) {
-                String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L).getRight();
+                String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L,true).getRight();
                 Assert.assertEquals(value.getStatus(), currentStatus);
             }
         }
@@ -316,12 +314,12 @@ public class DbMigrationServiceTest {
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelay(mhaReplication));
             Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
             Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
-            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L).getRight();
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L,true).getRight();
             Assert.assertEquals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), currentStatus);
         }
         Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
     }
-
+    
     @Test
     public void testGetAndUPdateTaskStatusUpdateToStartting() throws SQLException {
         MigrationTaskTbl tbl = new MigrationTaskTbl();
@@ -339,12 +337,60 @@ public class DbMigrationServiceTest {
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getLargeDelay(mhaReplication));
             Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
             Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
-            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L).getRight();
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L,true).getRight();
             Assert.assertEquals(MigrationStatusEnum.STARTING.getStatus(), currentStatus);
         }
         Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
     }
 
+    @Test
+    public void getAndUpdateTaskStatusUpdateToReadyToCommitTask() throws SQLException {
+        MigrationTaskTbl tbl = new MigrationTaskTbl();
+        tbl.setDbs(JsonUtils.toJson(Lists.newArrayList("db1")));
+        tbl.setNewMha("mha1");
+        tbl.setOldMha("mha2");
+
+
+        List<String> possibleUpdateStatus = Lists.newArrayList(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
+        for (String status : possibleUpdateStatus) {
+            tbl.setStatus(status);
+            Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
+            List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
+            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
+            Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelay(mhaReplication));
+            Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
+            Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L,false).getRight();
+            Assert.assertEquals(MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus(), currentStatus);
+        }
+        Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
+    }
+    
+    @Test
+    public void getAndUpdateTaskStatusUpdateBackToReadyToSwitchDal() throws SQLException {
+        MigrationTaskTbl tbl = new MigrationTaskTbl();
+        tbl.setDbs(JsonUtils.toJson(Lists.newArrayList("db1")));
+        tbl.setNewMha("mha1");
+        tbl.setOldMha("mha2");
+
+
+        List<String> possibleUpdateStatus = Lists.newArrayList(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
+        for (String status : possibleUpdateStatus) {
+            tbl.setStatus(status);
+            Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
+            List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
+            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
+            Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getLargeDelay(mhaReplication));
+            Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
+            Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L,false).getRight();
+            Assert.assertEquals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), currentStatus);
+        }
+        Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
+    }
+        
+    
+    
     @Test
     public void testPreStartReplicator() throws Exception {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha200"), Mockito.anyInt())).thenReturn(PojoBuilder.getMhaTblV2s().get(0));
