@@ -378,7 +378,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 }
                 MhaReplicationTbl mhaReplicationInNew = mhaReplicationTblDao.queryByMhaId(mhaInSrc.getId(), newMhaTbl.getId(), BooleanEnum.FALSE.getCode());
                 ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationInNew.getId(), BooleanEnum.FALSE.getCode());
-                drcBuildServiceV2.autoConfigAppliersWithRealTimeGtid(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl);
+                
+                // ->sha,use old applierGroup's gtidInit
+                ApplierGroupTblV2 applierGroupOld = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationInOld.getId(), BooleanEnum.FALSE.getCode());
+                String gtidInit = applierGroupOld.getGtidInit();
+                drcBuildServiceV2.autoConfigAppliers(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl,gtidInit);
             }
         }
 
@@ -1422,6 +1426,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    // todo 拆分
     public Pair<String, String> getAndUpdateTaskStatus(Long taskId) {
         try {
             MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
