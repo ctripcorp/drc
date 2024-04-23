@@ -435,9 +435,13 @@ public class MySqlUtils {
 
     // column use lowerCase
     public static Map<String, Set<String>> getAllColumns(Endpoint endpoint, List<String> dbNames, Boolean removeSqlOperator) {
+        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
+        if (CollectionUtils.isEmpty(dbNames)) {
+            logger.info("[[monitor=table,endpoint={}:{}]], getAllColumns dbName are empty: ", endpoint.getHost(), endpoint.getPort());
+            return table2ColumnsMap;
+        }
         List<String> dbList = dbNames.stream().map(e -> toStringVal(e)).collect(Collectors.toList());
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
         ReadResource readResource = null;
         try {
             String sql = String.format(GET_TABLE_COLUMN_SQL, Joiner.on(",").join(dbList));
@@ -450,7 +454,7 @@ public class MySqlUtils {
                 table2ColumnsMap.computeIfAbsent(tableName, k -> new HashSet<>()).add(column);
             }
         } catch (Throwable t) {
-            logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            logger.error("[[monitor=table,endpoint={}:{}]] dbNames: {}, getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), dbNames, t);
             removeSqlOperator(endpoint);
         } finally {
             if (readResource != null) {
