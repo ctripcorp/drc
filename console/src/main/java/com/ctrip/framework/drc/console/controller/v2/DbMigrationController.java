@@ -149,9 +149,9 @@ public class DbMigrationController {
 
     @GetMapping("status")
     @SuppressWarnings("unchecked")
-    public ApiResult<String> refreshAndGetTaskStatus(@RequestParam(name = "taskId") Long taskId,@RequestParam boolean careAllDelay) {
+    public ApiResult<String> refreshAndGetTaskStatus(@RequestParam(name = "taskId") Long taskId,@RequestParam boolean careNewMha) {
         try {
-            Pair<String, String> statusAndTips = dbMigrationService.getAndUpdateTaskStatus(taskId,careAllDelay);
+            Pair<String, String> statusAndTips = dbMigrationService.getAndUpdateTaskStatus(taskId,careNewMha);
             String tip = statusAndTips.getLeft();
             String status = statusAndTips.getRight();
             if (StringUtils.isEmpty(status)) {
