@@ -481,6 +481,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             logger.info("deleteMessengerDbReplications, size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
             dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+            mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
 
             // do delete: dbReplicationFilterMappingTbl
             dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));

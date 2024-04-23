@@ -47,7 +47,24 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     public void testOfflineMhaDbReplication() throws SQLException {
         mhaDbReplicationService.offlineMhaDbReplication("mha1","mha2");
         verify(mhaDbReplicationTblDao,times(1)).batchUpdate(anyList());
+    }
 
+    @Test
+    public void testOfflineMhaDbReplicationByDbReplication1() throws SQLException {
+        // still exist
+        List<DbReplicationTbl> dbReplicationTbls = Lists.newArrayList(getDbReplicationTbl(2L, 4L, 0));
+        mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
+        verify(mhaDbReplicationTblDao, times(1)).batchUpdate(anyList());
+        verify(mhaDbReplicationTblDao).queryBySamples(argThat(e -> e.size() == 0));
+    }
+
+    @Test
+    public void testOfflineMhaDbReplicationByDbReplication2() throws SQLException {
+        // not exist
+        List<DbReplicationTbl> dbReplicationTbls = Lists.newArrayList(getDbReplicationTbl(99L, 999L, 0));
+        mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
+        verify(mhaDbReplicationTblDao, times(1)).batchUpdate(anyList());
+        verify(mhaDbReplicationTblDao).queryBySamples(argThat(e -> e.size() == 1));
     }
 
     @Test

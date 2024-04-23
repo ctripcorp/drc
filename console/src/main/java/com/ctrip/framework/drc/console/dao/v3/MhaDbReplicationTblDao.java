@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao.v3;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
@@ -99,6 +100,6 @@ public class MhaDbReplicationTblDao extends AbstractDao<MhaDbReplicationTbl> {
     private String buildSQL(List<MhaDbReplicationTbl> sampleList) {
         // e.g: (src_mha_db_mapping_id, dst_mha_db_mapping_id, replication_type) IN ((13119, 13126, 0), (13161, 13189, 0));
         List<String> list = sampleList.stream().map(e -> String.format("(%d,%d,%d)", e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId(), e.getReplicationType())).collect(Collectors.toList());
-        return String.format("(%s, %s, %s) in (%s) and deleted = 0", SRC_MHA_DB_MAPPING_ID, DST_MHA_DB_MAPPING_ID, REPLICATION_TYPE, String.join(",", list));
+        return String.format("(%s, %s, %s) in (%s)", SRC_MHA_DB_MAPPING_ID, DST_MHA_DB_MAPPING_ID, REPLICATION_TYPE, String.join(",", list));
     }
 }

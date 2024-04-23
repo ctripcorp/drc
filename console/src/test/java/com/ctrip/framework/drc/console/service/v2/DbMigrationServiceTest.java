@@ -33,6 +33,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -94,6 +95,8 @@ public class DbMigrationServiceTest {
     @Mock
     private MhaDbReplicationTblDao mhaDbReplicationTblDao;
     @Mock
+    private MhaDbReplicationService mhaDbReplicationService;
+    @Mock
     private ApplierGroupTblV3Dao dbApplierGroupTblDao;
     @Mock
     private ApplierTblV3Dao dbApplierTblDao;
@@ -125,6 +128,7 @@ public class DbMigrationServiceTest {
             Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
             Mockito.verify(applierGroupTblV2Dao, Mockito.times(2)).update(Mockito.any(ApplierGroupTblV2.class));
             Mockito.verify(applierTblV2Dao, Mockito.times(2)).update(Mockito.anyList());
+            Mockito.verify(mhaDbReplicationService, Mockito.times(2)).offlineMhaDbReplication(Mockito.anyList());
         }
 
     }
@@ -146,6 +150,7 @@ public class DbMigrationServiceTest {
             Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));
             Mockito.verify(applierGroupTblV2Dao, Mockito.never()).update(Mockito.any(ApplierGroupTblV2.class));
             Mockito.verify(applierTblV2Dao, Mockito.never()).update(Mockito.anyList());
+            Mockito.verify(mhaDbReplicationService, Mockito.times(2)).offlineMhaDbReplication(Mockito.anyList());
 
         }
 
@@ -179,6 +184,8 @@ public class DbMigrationServiceTest {
             Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));
             Mockito.verify(applierGroupTblV2Dao, Mockito.never()).update(Mockito.any(ApplierGroupTblV2.class));
             Mockito.verify(applierTblV2Dao, Mockito.never()).update(Mockito.anyList());
+            Mockito.verify(mhaDbReplicationService, Mockito.times(0)).offlineMhaDbReplication(Mockito.anyList());
+
             // case3
             migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
             dbMigrateService.cancelTask(1L);
@@ -189,6 +196,7 @@ public class DbMigrationServiceTest {
             Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));
             Mockito.verify(applierGroupTblV2Dao, Mockito.never()).update(Mockito.any(ApplierGroupTblV2.class));
             Mockito.verify(applierTblV2Dao, Mockito.never()).update(Mockito.anyList());
+            Mockito.verify(mhaDbReplicationService, Mockito.times(2)).offlineMhaDbReplication(Mockito.anyList());
             // case4
             
         }
