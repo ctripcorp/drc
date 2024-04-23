@@ -1395,12 +1395,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             Long mhaId = mhaMaterNode.getMhaId();
             mhaTblV2 = mhaTblV2Dao.queryByPk(mhaId);
             String newMhaNameInDrc = mhaTblV2.getMhaName();
-            if (mhaTblV2.getMonitorSwitch().equals(0) ) {
-                mhaTblV2.setMonitorSwitch(1);
-                mhaTblV2Dao.update(mhaTblV2);
-                logger.info("mha:{} recover and monitor switch turn on", mhaTblV2.getMhaName());
-            }
-            if (!newMhaNameInDrc.equals(mhaInfo.getName())) {
+            mhaTblV2.setMonitorSwitch(1);
+            mhaTblV2.setDeleted(0);
+            mhaTblV2Dao.update(mhaTblV2);
+            logger.info("mha:{} recover and monitor switch turn on", mhaTblV2.getMhaName());
+            
+            if (!newMhaNameInDrc.equals(mhaInfo.getName())) { 
                 logger.warn("drcMha:{},dbRequestMha:{},mhaName not match....", newMhaNameInDrc, mhaInfo.getName());
             }
         }
