@@ -382,6 +382,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 // ->sha,use old applierGroup's gtidInit
                 ApplierGroupTblV2 applierGroupOld = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationInOld.getId(), BooleanEnum.FALSE.getCode());
                 String gtidInit = applierGroupOld.getGtidInit();
+                logger.info("[[migration=start]] task:{} autoConfigAppliers, {}->mhaInDest:{}, gtidInit:{}", taskId, mhaInSrc.getMhaName(), newMhaTbl.getMhaName(), gtidInit);
                 drcBuildServiceV2.autoConfigAppliers(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl,gtidInit);
             }
         }
@@ -963,13 +964,23 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (migrationTaskTbl == null) {
             throw ConsoleExceptionUtils.message("taskId: " + taskId + " not exist!");
         }
-        
-        String currentStatus = migrationTaskTbl.getStatus();
         if (cancel) {
             rollBack = true;
         } else {
-            if (!currentStatus.equals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus())) {
-                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to continue");
+            String currentStatus = migrationTaskTbl.getStatus();
+            List<String> statusCanRollback = Lists.newArrayList(
+                    MigrationStatusEnum.STARTING.getStatus(),
+                    MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(),
+                    MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus()
+                    );
+            List<String> statusCanCommit = Lists.newArrayList(
+                    MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus()
+            );
+            if (rollBack && !statusCanRollback.contains(currentStatus)) {
+                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to rollback");
+            }
+            if (!rollBack && !statusCanCommit.contains(currentStatus)) {
+                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to commit");
             }
             String status = rollBack ? MigrationStatusEnum.FAIL.getStatus() : MigrationStatusEnum.SUCCESS.getStatus();
             migrationTaskTbl.setStatus(status);
