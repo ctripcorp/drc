@@ -394,7 +394,9 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             return tbl;
         }));
         List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryBySamples(Lists.newArrayList(reverseMap.values()));
-        Set<MultiKey> keys = mhaDbReplicationTbls.stream().map(StreamUtils::getReverseKey).collect(Collectors.toSet());
+        Set<MultiKey> keys = mhaDbReplicationTbls.stream()
+                .filter(e -> BooleanEnum.FALSE.getCode().equals(e.getDeleted()))
+                .map(StreamUtils::getReverseKey).collect(Collectors.toSet());
         res.forEach(e -> {
             TransmissionTypeEnum type = keys.contains(getKey(e)) ? TransmissionTypeEnum.DUPLEX : TransmissionTypeEnum.SIMPLEX;
             e.setTransmissionType(type.getType());
@@ -523,8 +525,11 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void refreshMhaReplication() {
         try {
-            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist();
-            this.maintainMhaDbReplication(dbReplicationTbls);
+            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAll();
+            List<DbReplicationTbl> existDbReplications = dbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+            this.maintainMhaDbReplication(existDbReplications);
+            List<DbReplicationTbl> deletedDbReplications = dbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+            this.offlineMhaDbReplication(deletedDbReplications);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -583,6 +588,25 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION, e);
         }
+    }
+
+    @Override
+    public void offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
+        List<DbReplicationTbl> existDbReplicationTbl = dbReplicationTblDao.queryBySamples(dbReplicationTbls);
+        Set<MultiKey> existKey = existDbReplicationTbl.stream().map(StreamUtils::getKey).collect(Collectors.toSet());
+        List<MhaDbReplicationTbl> samples = dbReplicationTbls.stream()
+                .filter(e -> !existKey.contains(getKey(e)))
+                .map(e -> {
+                    MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+                    mhaDbReplicationTbl.setSrcMhaDbMappingId(e.getSrcMhaDbMappingId());
+                    mhaDbReplicationTbl.setDstMhaDbMappingId(e.getDstMhaDbMappingId());
+                    mhaDbReplicationTbl.setReplicationType(e.getReplicationType());
+                    return mhaDbReplicationTbl;
+                }).filter(StreamUtils.distinctByKey(StreamUtils::getKey)).collect(Collectors.toList());
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryBySamples(samples);
+        mhaDbReplicationTbls = mhaDbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        mhaDbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        mhaDbReplicationTblDao.batchUpdate(mhaDbReplicationTbls);
     }
 
     private void insertAndUpdate(Pair<List<MhaDbReplicationTbl>, List<MhaDbReplicationTbl>> insertsAndUpdates) throws SQLException {
@@ -739,6 +763,10 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             mhaDbReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
             return mhaDbReplicationTbl;
         }).filter(Objects::nonNull).collect(Collectors.toList());
+
+        // delete: deleted in dbReplication, and no other db replication related
+
+
         return Pair.from(insertTables, updateTables);
     }
 }

@@ -30,9 +30,14 @@ public interface DbMigrationService {
     boolean preStartDbMigrationTask(Long taskId) throws SQLException;
 
     boolean startDbMigrationTask(Long taskId) throws SQLException;
-
-    // pair(tip, status)
-    Pair<String, String> getAndUpdateTaskStatus(Long taskId);
+    
+    /**
+     * 
+     * @param taskId
+     * @param careNewMha true: care NewMha delay ; false: care OldMha delay
+     * @return pair(tip, status)
+     */
+    Pair<String, String> getAndUpdateTaskStatus(Long taskId,boolean careNewMha);
 
     PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query);
 

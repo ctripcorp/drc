@@ -320,6 +320,7 @@ public class DrcBuildServiceV2Test {
         drcBuildServiceV2.deleteDbReplications(Lists.newArrayList(200L, 201L));
         Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchUpdate(Mockito.any());
         Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.never()).batchUpdate(Mockito.any());
+        Mockito.verify(mhaDbReplicationService, Mockito.times(1)).offlineMhaDbReplication(Mockito.anyList());
     }
 
     @Test
