@@ -117,6 +117,9 @@ public class DbMigrationServiceTest {
                 HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(Map.class));
             }).thenReturn(ApiResult.getSuccessInstance(null));
             initMock();
+            MigrationTaskTbl migrationTaskTbl = getMigrationTaskTbl();
+            migrationTaskTbl.setStatus(MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
+            Mockito.when(migrationTaskTblDao.queryById(Mockito.anyLong())).thenReturn(migrationTaskTbl);
             dbMigrateService.offlineOldDrcConfig(1L);
 
             Mockito.verify(dbReplicationTblDao, Mockito.times(2)).update(Mockito.anyList());

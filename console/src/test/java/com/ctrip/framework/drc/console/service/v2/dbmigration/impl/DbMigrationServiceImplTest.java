@@ -249,13 +249,15 @@ public class DbMigrationServiceImplTest {
         Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(mha1MessengerGroup.getId()))).thenReturn(Lists.newArrayList(messengerTbl));
         
         Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
-        Mockito.verify(drcBuildServiceV2,Mockito.times(2)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any());
 
         migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         mockReplicationNotWork();
         Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
-        Mockito.verify(drcBuildServiceV2,Mockito.times(2)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any());
     }
     
