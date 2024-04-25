@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.xpipe.tuple.Pair;
 import org.assertj.core.util.Lists;
@@ -33,6 +34,8 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
 
     @Mock
     MhaDbReplicationService mhaDbReplicationService;
+    @Mock
+    MhaServiceV2 mhaServiceV2;
 
 
     @Before
@@ -177,9 +180,8 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         // mock update
         Mockito.when(mhaReplicationTblDao.update(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
         Mockito.when(mhaTblV2Dao.update(Mockito.anyList())).thenReturn(new int[]{1});
+        Mockito.when(mhaServiceV2.offlineMha(Mockito.anyString())).thenReturn(true);
         
-        
-        // todo hdpan  
         // case 1 dbReplication not empty 
         try {
             boolean b = mhaReplicationServiceV2.deleteMhaReplication(1L);
@@ -205,7 +207,7 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         
         boolean b = mhaReplicationServiceV2.deleteMhaReplication(4L);
         verify(mhaReplicationTblDao, Mockito.times(1)).update(Mockito.any(MhaReplicationTbl.class));
-        verify(mhaTblV2Dao, Mockito.times(1)).update(Mockito.anyList());
+        verify(mhaServiceV2, Mockito.times(1)).offlineMha(Mockito.eq("mha6"));
         
         releaseMockConfig();
     }
