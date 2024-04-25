@@ -1055,9 +1055,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (!existMhaReplication(targetMhaId)) {
             String mhaName = rollBack ? newMhaName : oldMhaName;
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.Empty.Replication", mhaName);
-            logger.info("task {} Mha:{} Replication not exist,offline Replicator & mha", taskId,mhaName);
-            deleteReplicator(mhaName);
-            mhaServiceV2.offlineMha(mhaName);
         }
 
         try {
