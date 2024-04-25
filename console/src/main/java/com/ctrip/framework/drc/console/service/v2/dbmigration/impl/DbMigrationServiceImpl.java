@@ -201,6 +201,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
         
+        forbidMhaExistAnyDbMode(oldMhaTblV2, newMhaTblV2);
+        
         StringBuilder tips = new StringBuilder();
         StringBuilder errorInfo = new StringBuilder();
 
@@ -1053,6 +1055,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (!existMhaReplication(targetMhaId)) {
             String mhaName = rollBack ? newMhaName : oldMhaName;
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.Empty.Replication", mhaName);
+            logger.info("task {} Mha:{} Replication not exist,offline Replicator & mha", taskId,mhaName);
+            deleteReplicator(mhaName);
+            mhaServiceV2.offlineMha(mhaName);
         }
 
         try {
@@ -1393,6 +1398,22 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
         boolean dbReplicationExist = mhaDbReplicationService.isDbReplicationExist(mhaMaterNode.getMhaId(), dbMigrationRequest.getDbs());
         return !dbReplicationExist;
+    }
+    
+    private void forbidMhaExistAnyDbMode(MhaTblV2 oldMhaTblV2, MhaTblV2 newMhaTblV2) {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications();
+        mhaReplicationTbls.forEach(mhaReplicationTbl -> {
+            if (oldMhaTblV2.getId().equals(mhaReplicationTbl.getSrcMhaId()) || 
+                    oldMhaTblV2.getId().equals(mhaReplicationTbl.getDstMhaId())) {
+                throw ConsoleExceptionUtils.message(
+                        oldMhaTblV2.getMhaName() + "Mha has db mode replication, please contact DRC team!");
+            }
+            if (newMhaTblV2.getId().equals(mhaReplicationTbl.getSrcMhaId()) || 
+                    newMhaTblV2.getId().equals(mhaReplicationTbl.getDstMhaId())) {
+                throw ConsoleExceptionUtils.message(
+                        newMhaTblV2.getMhaName() + "Mha has db mode replication, please contact DRC team!");
+            }
+        });
     }
     
     private MhaTblV2 checkAndInitMhaInfo(MigrateMhaInfo mhaInfo) throws SQLException {
