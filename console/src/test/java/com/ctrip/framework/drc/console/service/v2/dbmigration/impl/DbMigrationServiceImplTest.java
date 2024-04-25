@@ -212,9 +212,10 @@ public class DbMigrationServiceImplTest {
         try {
             mockMigrateDbsReplicationInfos();
             mockDbMigrationCheckForbiddenCase2();
+            Mockito.when(mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications()).thenReturn(getReplications());
             dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         } catch (ConsoleException e) {
-            Assert.assertEquals("newMha and oldMha have common mha in Replication, please check! commomMhas: mha3",e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("Mha has db mode replication, please contact DRC team!"));
         }
 
 
