@@ -40,6 +40,7 @@ import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
@@ -47,6 +48,7 @@ import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
@@ -106,6 +108,8 @@ public class DbMigrationServiceImplTest {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private MhaDbReplicationService mhaDbReplicationService;
+    @Mock
+    private MhaReplicationServiceV2 mhaReplicationServiceV2;
     @Mock
     private CacheMetaService cacheMetaService;
 
@@ -180,6 +184,7 @@ public class DbMigrationServiceImplTest {
 
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList());
         // normal case
+        Mockito.when(mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications()).thenReturn(Lists.newArrayList());
         mockMigrateDbsReplicationInfos();
         Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         Assert.assertEquals(1L,stringLongPair.getRight().longValue());
@@ -202,6 +207,23 @@ public class DbMigrationServiceImplTest {
         } catch (ConsoleException e) {
             Assert.assertEquals("newMha and oldMha have common mha in Replication, please check! commomMhas: mha3",e.getMessage());
         }
+
+        // check case has dbmode replication
+        try {
+            mockMigrateDbsReplicationInfos();
+            mockDbMigrationCheckForbiddenCase2();
+            Mockito.when(mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications()).thenReturn(getReplications());
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        } catch (ConsoleException e) {
+            Assert.assertTrue(e.getMessage().contains("Mha has db mode replication, please contact DRC team!"));
+        }
+
+
+    }
+
+    private List<MhaReplicationTbl> getReplications() {
+        MhaReplicationTbl mhaReplicationTbl1 = MockEntityBuilder.buildMhaReplicationTbl(1L, mha1, mha3);
+        return Lists.newArrayList(mhaReplicationTbl1);
     }
 
     @Test
