@@ -138,5 +138,11 @@ public class ApplierServerControllerTest {
         verify(serverContainer, atLeast(3)).registerServer(Mockito.eq(dto.getRegistryKey()));
         verify(serverContainer, times(1)).addServer(Mockito.eq(dto));
         verify(serverContainer, times(1)).removeServer(Mockito.eq(dto.getRegistryKey()), Mockito.eq(true));
+        
+        // todo hdpan mock lastLWMHashMap 
+        // WatchKeyedTask after DeleteKeyedTask
+        // WatchKeyedTask before DeleteKeyedTask
+        // test in fat-env
+        
     }
 }
