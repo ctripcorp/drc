@@ -99,6 +99,10 @@ public class MachineServiceImplTest {
         Assert.assertEquals("uuid1",machineServiceImpl.getUuid("ip1", 3306));
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
         Assert.assertNull(machineServiceImpl.getUuid("ip1", 3306));
+        
+        machineTbl.setUuid(null);
+        when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(machineTbl);
+        Assert.assertEquals("",machineServiceImpl.getUuid("ip1", 3306));
     }
 
     @Test
