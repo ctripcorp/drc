@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -351,7 +352,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         super.doStart();
         Long rTime = System.currentTimeMillis();
         if (isReplicatorMaster) {
-            Set<String> mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getCluster(),config.getDestMha(), config.getDc());
+            Set<String> mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getDestMha());
             logger.info("dstClusterId:{},srcMhasShouldMonitor:{}", config.getCluster() + "." + config.getDestMha(), mhasShouldMonitor);
             mhasShouldMonitor.forEach(mha -> {
                 receiveTimeMap.put(mha, rTime);
@@ -369,22 +370,29 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log(" CLOSE DEBUG, version" + '(' + formatter.format(System.currentTimeMillis()) + ')', DEBUG, null);
                     long curTime = System.currentTimeMillis();
 
-                    Set<String> mhasRelated = periodicalUpdateDbTask.getMhaDbRelatedByDestMha(config.getDestMha());
+                    Set<String> mhasShouldMonitor;
+                    if (isReplicatorMaster) {
+                        mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getDestMha());
+                    } else {
+                        periodicalUpdateDbTask.isMhaMonitorEnabled(config.getMha());
+                        mhasShouldMonitor = Sets.newHashSet(config.getMha());
+                    }
+                    
                     Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
                     while (iterator.hasNext()) {
                         Entry<String, Long> entry = iterator.next();
-                        String mhaName = entry.getKey();
-                        if (!mhasRelated.contains(mhaName)) {
-                            if (isReplicatorMaster) {
-                                logger.info("remove check delay loss {}->{}",mhaName,config.getDestMha());
-                                iterator.remove();
-                            }
+                        String srcMha = entry.getKey();
+                        if (!mhasShouldMonitor.contains(srcMha)) {
+                            LinkedHashMap<String, String> tags = Maps.newLinkedHashMap();
+                            tags.put("destMha", config.getDestMha());
+                            tags.put("srcMha", srcMha);
+                            DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(),tags);
                             continue;
                         }
                         Long receiveTime = entry.getValue();
                         long timeDiff = curTime - receiveTime;
                         if (timeDiff > toleranceTime) {
-                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName);
+                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(srcMha);
                             DefaultReporterHolder.getInstance()
                                     .reportDelay(unidirectionalEntity, HUGE_VAL, config.getMeasurement());
                             DefaultEventMonitorHolder.getInstance().logEvent(
@@ -393,6 +401,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                             log("[Report huge] Console not receive timestamp for " + timeDiff + "ms, "
                                     + "Last receive time : " + formatter.format(receiveTime) +
                                     " and current time: " + formatter.format(curTime) + ","
+                                    + srcMha + "->" + config.getDestMha()
                                     + " report a huge number to trigger the alert.", INFO, null);
                         }
                     }

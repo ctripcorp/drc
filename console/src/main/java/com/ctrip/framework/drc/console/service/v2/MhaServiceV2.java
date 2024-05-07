@@ -43,10 +43,14 @@ public interface MhaServiceV2 {
     // key:mhaName , value: replicator slave delay
     Map<String,Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception;
 
+    // process Legacy dirty mha data
     List<String> queryMhasWithOutDrc();
-
     Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException;
-
+    
+    // process Legacy dirty data
+    List<Long> queryMachineWithOutMha() throws SQLException;
+    Pair<Boolean,Integer> offlineMachineWithOutMha(List<Long> machineIds) throws SQLException;
+    
     // should check no use first
     boolean offlineMha(String mhaName) throws SQLException;
 

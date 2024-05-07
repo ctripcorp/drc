@@ -42,6 +42,7 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -497,6 +498,39 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                 res.setKey(Boolean.FALSE);
             }
         }
+        return res;
+    }
+
+    @Override
+    public List<Long> queryMachineWithOutMha() throws SQLException {
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        List<MachineTbl> machineTbls = machineTblDao.queryAllExist();
+        Set<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toSet());
+        return machineTbls.stream().filter(machineTbl -> !mhaIds.contains(machineTbl.getMhaId()))
+                .map(MachineTbl::getId).collect(Collectors.toList());
+    }
+
+    @Override
+    public Pair<Boolean, Integer> offlineMachineWithOutMha(List<Long> machineIds) throws SQLException {
+        if (CollectionUtils.isEmpty(machineIds)) {
+            return Pair.of(Boolean.FALSE, 0);
+        }
+        List<Long> machineIdCanOffline = this.queryMachineWithOutMha();
+        machineIds.retainAll(machineIdCanOffline);
+        if (CollectionUtils.isEmpty(machineIds)) {
+            return Pair.of(Boolean.FALSE, 0);
+        }
+        Pair<Boolean, Integer> res = Pair.of(Boolean.TRUE, 0);
+        machineTblDao.queryByPk(machineIds).forEach(machineTbl -> {
+            machineTbl.setDeleted(BooleanEnum.TRUE.getCode());
+            try {
+                machineTblDao.update(machineTbl);
+                res.setValue(res.getValue() + 1);
+            } catch (SQLException e) {
+                logger.error("offline machine: {} failed", machineTbl.getId(),e);
+                res.setKey(Boolean.FALSE);
+            }
+        });
         return res;
     }
 

@@ -387,4 +387,41 @@ public class MhaServiceV2ImplTest {
         Assert.assertTrue(res.getKey());
         Assert.assertEquals(1, res.getValue().intValue());
     }
+
+    @Test
+    public void testQueryMachineWithOutMha() throws Exception {
+        mockMachineOffline();
+        List<Long> res = mhaServiceV2.queryMachineWithOutMha();
+        Assert.assertEquals(1, res.size());
+    }
+
+    @Test
+    public void testOfflineMachineWithOutMha() throws SQLException {
+        mockMachineOffline();
+        
+        Pair<Boolean, Integer> res = mhaServiceV2.offlineMachineWithOutMha(Lists.newArrayList(1L, 2L));
+        Assert.assertEquals(1, res.getValue().intValue());
+        
+        res = mhaServiceV2.offlineMachineWithOutMha(Lists.newArrayList(2L));
+        Assert.assertEquals(1, res.getValue().intValue());
+    }
+    
+    private void mockMachineOffline() throws SQLException {
+        MhaTblV2 mhaTblV2 = new MhaTblV2();
+        mhaTblV2.setId(1L);
+
+        MachineTbl machineTbl1 = new MachineTbl();
+        machineTbl1.setId(1L);
+        machineTbl1.setMhaId(1L);
+        MachineTbl machineTbl2 = new MachineTbl();
+        machineTbl2.setId(2L);
+        machineTbl2.setMhaId(2L);
+
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(Lists.newArrayList(mhaTblV2));
+        Mockito.when(machineTblDao.queryAllExist()).thenReturn(Lists.newArrayList(machineTbl1, machineTbl2));
+
+        Mockito.when(machineTblDao.queryByPk(Mockito.anyList())).thenReturn(Lists.newArrayList(machineTbl2));
+        Mockito.when(machineTblDao.update(Mockito.any(MachineTbl.class))).thenReturn(1);
+    }
+    
 }

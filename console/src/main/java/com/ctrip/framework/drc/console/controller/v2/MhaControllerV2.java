@@ -216,6 +216,26 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
+    
+    @GetMapping("machine/shouldOffline")
+    public ApiResult getMachineShouldOffline() {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.queryMachineWithOutMha());
+        } catch (Exception e) {
+            logger.error("getMachineShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @DeleteMapping("machine/offline")
+    public ApiResult deleteMachineShouldOffline(@RequestBody List<Long> machineIds) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.offlineMachineWithOutMha(machineIds));
+        } catch (Exception e) {
+            logger.error("deleteMachineShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
 
     @GetMapping()
     public ApiResult<List<MhaTblV2>> queryMhas(MhaQueryParam param) {

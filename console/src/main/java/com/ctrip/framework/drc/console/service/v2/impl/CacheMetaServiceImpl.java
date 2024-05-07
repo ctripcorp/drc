@@ -22,14 +22,19 @@ import com.ctrip.framework.drc.core.entity.Route;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -55,6 +60,11 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     @Autowired private MonitorServiceV2 monitorServiceV2;
     @Autowired private MachineService machineService;
 
+    // key: dstMha value: srcMhasHasReplication
+    private final Supplier<Map<String,Set<String>>> mhaReplicationInfo = Suppliers.memoizeWithExpiration(this::refreshMhaReplicationInfo, 60, TimeUnit.SECONDS);
+    private Map<String,Set<String>> mhaReplicationInfoBackUp = Maps.newHashMap();
+    
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
@@ -274,22 +284,48 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         return machineService.getMasterEndpointsInAllAccounts(mha);
     }
     
-    @Override
-    public Set<String> getSrcMhasShouldMonitor(String dbClusterId, String srcRegion) {
-        Set<String> res = Sets.newHashSet();
-        DbCluster dbCluster = metaProviderV2.getDcBy(dbClusterId).findDbCluster(dbClusterId);
-        dbCluster.getAppliers().forEach(applier -> {
-            if(applier.getTargetRegion().equalsIgnoreCase(srcRegion)) {
-                res.add(applier.getTargetMhaName());
-            }
-        });
-        return res;
-    }
 
     @Override
     public boolean refreshMetaCache() {
         metaProviderV2.scheduledTask();
         return true;
+    }
+
+    @Override
+    public Set<String> getSrcMhasHasReplication(String dstMha) {
+        Map<String, Set<String>> stringSetMap = mhaReplicationInfo.get();
+        Set<String> srcMhas = stringSetMap.get(dstMha);
+        if (CollectionUtils.isEmpty(srcMhas)) {
+            logger.error("[getSrcMhasHasReplication] srcMhas is empty for dstMha:{}", dstMha);
+        }
+        return srcMhas;
+    }
+
+    protected Map<String,Set<String>> refreshMhaReplicationInfo() {
+        Drc drc = metaProviderV2.getDrc();
+        if(drc == null) {
+            logger.info("[getMonitorMetaInfo] return drc null");
+            return mhaReplicationInfoBackUp;
+        }
+        Map<String,Set<String>> currentMhaReplicationInfo = Maps.newHashMap();
+        for (Entry<String, Dc> dcEntry : drc.getDcs().entrySet()) {
+            for (Entry<String, DbCluster> dbClusterEntry : dcEntry.getValue().getDbClusters().entrySet()) {
+                DbCluster dbCluster = dbClusterEntry.getValue();
+                String dstMha = dbCluster.getMhaName();
+                for (Applier applier : dbCluster.getAppliers()) {
+                    String srcMha = applier.getTargetMhaName();
+                    if(currentMhaReplicationInfo.containsKey(dstMha)) {
+                        currentMhaReplicationInfo.get(dstMha).add(srcMha);
+                    } else {
+                        Set<String> srcMhas = Sets.newHashSet();
+                        srcMhas.add(srcMha);
+                        currentMhaReplicationInfo.put(dstMha, srcMhas);
+                    }
+                }
+            }
+        }
+        mhaReplicationInfoBackUp = currentMhaReplicationInfo;
+        return currentMhaReplicationInfo;
     }
 
     public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {

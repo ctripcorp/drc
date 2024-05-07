@@ -115,6 +115,24 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     }
 
     @Override
+    public boolean removeRegister(String measurement, Map<String, String> tagKvs) {
+        metrics.removeMatching(
+                (name, metric) ->  {
+                    if (name.getKey().equalsIgnoreCase(measurement)) {
+                        for (Map.Entry<String, String> entry : tagKvs.entrySet()) {
+                            if (!name.getTags().get(entry.getKey()).equalsIgnoreCase(entry.getValue())) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+        );
+        return true;
+    }
+
+    @Override
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getTotal(), ROWS_FILTER_TOTAL_MEASUREMENT);
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getSend(), ROWS_FILTER_SEND_MEASUREMENT);

@@ -98,7 +98,7 @@ export default {
         port: this.proxyResource.port
       }).then(response => {
         console.log('result: %s', response.data)
-        that.result = response.data.data.data
+        that.result = response.data.data
         that.proxyResource.reviewModal = false
         that.proxyResource.resultModal = true
       })

@@ -101,7 +101,11 @@ public class MachineServiceImpl implements MachineService {
         if (machineTbl == null) {
             return null;
         }
-        return machineTbl.getUuid();
+        String uuid = machineTbl.getUuid();
+        if (StringUtils.isEmpty(uuid)) {
+            return "";
+        }
+        return uuid;
     }
 
     @Override

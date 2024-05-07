@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
@@ -221,16 +222,9 @@ public class PeriodicalUpdateDbTaskTest {
 
     @Test
     public void testGetSrcMhasShouldMonitor() {
-        Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
-        Mockito.when(cacheMetaService.getSrcMhasShouldMonitor(Mockito.anyString(),Mockito.anyString())).thenReturn(Sets.newHashSet("mha1"));
-        Set<String> mhasShouldMonitor = task.getSrcMhasShouldMonitor("dstCluster","dstMha", "shary");
-        Assert.assertEquals(1, mhasShouldMonitor.size());
-    }
-
-    @Test
-    public void testGetMhaDbRelatedByDestMha() {
         Map<MetaKey, MySqlEndpoint> origin = task.getMasterMySQLEndpointMap();
 
+        // test getMhaInLocalRegionRelatedByDstMha
         Map<MetaKey, MySqlEndpoint> mock = new HashMap<>();
         mock.put(new MetaKey(null, null, null, "mha1"), null);
         mock.put(new MetaKey(null, null, null, "mha2"), null);
@@ -239,13 +233,19 @@ public class PeriodicalUpdateDbTaskTest {
 
         Map<String, List<String>> map = new HashMap<>();
         map.put("mha_db_1_src", Lists.newArrayList("mha_db_1_dst"));
-        when(periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(anyString())).thenReturn(map);
-        Set<String> test = task.getMhaDbRelatedByDestMha("test");
+        when(periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(eq("dstMha"))).thenReturn(map);
+        Set<String> test = task.getMhaInLocalRegionRelatedByDstMha("dstMha");
         Assert.assertEquals(2, test.size());
         Assert.assertFalse(test.contains("mha_db_1_src"));
+        
+        // test getSrcMhasShouldMonitor
+        when(cacheMetaService.getSrcMhasHasReplication(eq("dstMha"))).thenReturn(Sets.newHashSet("mha1","mha2","mha_db_1_src","mha3InOtherDc"));
+        test = task.getSrcMhasShouldMonitor("dstMha");
+        Assert.assertEquals(2, test.size());
 
         task.setMasterMySQLEndpointMap(origin);
     }
+    
 
     private void createDb() throws InterruptedException {
         try {
