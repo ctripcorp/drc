@@ -113,7 +113,6 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
 
     private void doRemoveServer(ApplierServer server) throws Exception {
         if (server != null && !server.isDisposed()) {
-            logger.info("remove server: {},status:{}", server.getName(),server.getStatus());
             server.stop();
             server.dispose();
         } else {
