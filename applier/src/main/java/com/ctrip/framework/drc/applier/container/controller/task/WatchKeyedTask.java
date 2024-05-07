@@ -21,15 +21,11 @@ public class WatchKeyedTask extends ApplierKeyedTask {
 
     private final Logger loggerP = LoggerFactory.getLogger("PROGRESS");
 
-    private final ConcurrentHashMap<String, ? extends ApplierServer> servers;
-    
-    private final ConcurrentHashMap<String, WatchActivity.LastLWM> lastLWMHashMap;
+    private ConcurrentHashMap<String, WatchActivity.LastLWM> lastLWMHashMap;
     
     public WatchKeyedTask(String registryKey, ApplierConfigDto applierConfig, ApplierServerContainer serverContainer,
-            ConcurrentHashMap<String, ? extends ApplierServer> servers,
             ConcurrentHashMap<String, WatchActivity.LastLWM> lastLWMHashMap) {
         super(registryKey, applierConfig, serverContainer);
-        this.servers = servers;
         this.lastLWMHashMap = lastLWMHashMap;
     }
 
@@ -37,14 +33,14 @@ public class WatchKeyedTask extends ApplierKeyedTask {
     @Override
     public void doExecute() throws Throwable {
         try {
-            if (!servers.containsKey(registryKey)) {
+            if (!serverContainer.containServer(registryKey)) {
                 logger.info("[watch] applier instance({}) already remove by last Task,no need patrol", registryKey);
                 future().setSuccess();
                 return;
             }
             
-            logger.info("[watch] applier instance({}) with {}", registryKey, applierConfig);
-            patrol(registryKey, servers.get(registryKey));
+            logger.info("[watch] applier instance({}) ", registryKey);
+            patrol(registryKey, serverContainer.getServer(registryKey));
             future().setSuccess();
         } catch (Throwable t) {
             logger.error("[watch] applier instance({}) error", registryKey, t);
@@ -54,7 +50,7 @@ public class WatchKeyedTask extends ApplierKeyedTask {
     }
 
     // catch throwable to avoid retry, wait next round
-    public void patrol(String key, ApplierServer server) {
+    protected void patrol(String key, ApplierServer server) {
         try {
             long currentLWM = server.getLWM();
             long currentProgress = server.getProgress();

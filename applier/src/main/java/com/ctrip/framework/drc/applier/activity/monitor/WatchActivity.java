@@ -25,7 +25,7 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
     @InstanceConfig(path = "container")
     public ApplierServerContainer container;
     
-    private final ConcurrentHashMap<String, LastLWM> lastLWMHashMap = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<String, LastLWM> lastLWMHashMap = new ConcurrentHashMap<>();
     
     @Override
     public void loop() {
@@ -34,7 +34,7 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
         while(keys.hasNext()) {
             String key = keys.next();
             try {
-                WatchKeyedTask watchKeyedTask = new WatchKeyedTask(key, null, container, servers, lastLWMHashMap);
+                WatchKeyedTask watchKeyedTask = new WatchKeyedTask(key, null, container, lastLWMHashMap);
                 ApplierServerController.keyedExecutor.execute(key,watchKeyedTask);
             } catch (Throwable t) {
                 logger.info("UNLIKELY - when patrol {}", servers.get(key).getName());

@@ -232,6 +232,14 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         }
     }
 
+    public boolean containServer(String registryKey) {
+        return servers.containsKey(registryKey);
+    }
+
+    public ApplierServer getServer(String registryKey) {
+        return servers.get(registryKey);
+    }
+
     class ResourceReleaseTask implements Runnable {
 
         private String registryKey;
