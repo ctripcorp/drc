@@ -23,6 +23,8 @@ public class DeleteKeyedTask extends ApplierKeyedTask {
     protected void doExecute() {
         try {
             logger.info("[Remove] applier instance with {},isDelete {}", registryKey,isDelete);
+            // todo hdpan waiting watch task submit 
+            Thread.sleep(1000);
             serverContainer.removeServer(registryKey, isDelete);
             future().setSuccess();
         } catch (Throwable t) {
