@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 import com.ctrip.framework.drc.applier.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableRepeatedUpdateException;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
@@ -44,6 +46,9 @@ public class BatchTransactionContextResourceTest {
 
     @Mock
     private Statement statement;
+
+    @Mock
+    private TransactionTable transactionTable;
 
     @Mock
     private DataSource dataSource;
@@ -88,6 +93,28 @@ public class BatchTransactionContextResourceTest {
         TransactionData.ApplyResult applyResult = context.complete();
         context.dispose();
         Assert.assertEquals(TransactionData.ApplyResult.WHATEVER_ROLLBACK, applyResult);
+    }
+
+    @Test
+    public void testCompleteTransactionTableConflict() throws Exception {
+        context.initialize();
+        context.setGtid(GTID);
+        Mockito.doThrow(new TransactionTableRepeatedUpdateException(new Exception())).when(transactionTable).record(Mockito.any(Connection.class), Mockito.anyString());
+        context.recordTransactionTable(GTID);
+        TransactionData.ApplyResult applyResult = context.complete();
+        context.dispose();
+        Assert.assertEquals(TransactionData.ApplyResult.TRANSACTION_TABLE_CONFLICT_ROLLBACK, applyResult);
+    }
+
+    @Test
+    public void testCompleteTransactionTableSqlException() throws Exception {
+        context.initialize();
+        context.setGtid(GTID);
+        Mockito.doThrow(new TransactionTableRepeatedUpdateException(new SQLException("mock"))).when(transactionTable).record(Mockito.any(Connection.class), Mockito.anyString());
+        context.recordTransactionTable(GTID);
+        TransactionData.ApplyResult applyResult = context.complete();
+        context.dispose();
+        Assert.assertEquals(TransactionData.ApplyResult.TRANSACTION_TABLE_CONFLICT_ROLLBACK, applyResult);
     }
 
 

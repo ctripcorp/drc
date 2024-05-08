@@ -97,8 +97,14 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             conflictAndRollback();
             if (getLastUnbearable() != null) {
                 return UNKNOWN;
+            }
+            if (SUCCESS != applyResult) {
+                return applyResult;
+            }
+            if (partialTransactionContextResource.isTransactionTableConflict()) {
+                return TRANSACTION_TABLE_CONFLICT_ROLLBACK;
             } else {
-                return SUCCESS != applyResult ? applyResult : WHATEVER_ROLLBACK;
+                return WHATEVER_ROLLBACK;
             }
         }
         commit();

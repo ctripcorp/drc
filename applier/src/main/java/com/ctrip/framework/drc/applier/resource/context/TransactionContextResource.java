@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.applier.resource.context.sql.*;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableRepeatedUpdateException;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
@@ -107,6 +108,7 @@ public class TransactionContextResource extends AbstractContext
     protected TableKey tableKey;
     protected Queue<String> logs;
     protected Throwable lastUnbearable;
+    protected boolean transactionTableConflict;
     public long costTimeNS = 0;
     
     public static int RECORD_SIZE = 100;
@@ -123,6 +125,14 @@ public class TransactionContextResource extends AbstractContext
     @Override
     public Throwable getLastUnbearable() {
         return lastUnbearable;
+    }
+
+    public boolean isTransactionTableConflict() {
+        return transactionTableConflict;
+    }
+
+    public void setTransactionTableConflict(boolean transactionTableConflict) {
+        this.transactionTableConflict = transactionTableConflict;
     }
 
     @Override
@@ -274,8 +284,12 @@ public class TransactionContextResource extends AbstractContext
         long start = System.nanoTime();
         try {
             transactionTable.record(connection, gtid);
+        } catch (TransactionTableRepeatedUpdateException e) {
+            lastUnbearable = e;
+            setTransactionTableConflict(true);
         } catch (Throwable e) {
             lastUnbearable = e;
+            setTransactionTableConflict(false);
             logger.error("update or insert transaction table failed: ", e);
         }
         costTimeNS = costTimeNS + (System.nanoTime() - start);
