@@ -46,5 +46,14 @@ public class DispatchActivity extends EventActivity<Transaction, Transaction> {
         public void onBegin() throws InterruptedException {
             func.onBegin(transaction);
         }
+
+        @Override
+        public void close() {
+            try {
+                transaction.close();
+            } catch (Exception e) {
+                loggerTL.warn("close transaction fail ", e);
+            }
+        }
     }
 }

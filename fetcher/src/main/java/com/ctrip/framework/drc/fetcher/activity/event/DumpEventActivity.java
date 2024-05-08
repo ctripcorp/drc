@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
 import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.Capacity;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemory;
@@ -206,6 +207,9 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
             latter.waitSubmit(logEvent);
             accumulationGW.add(System.currentTimeMillis() - start);
         } catch (InterruptedException e) {
+            if (logEvent instanceof TransactionEvent) {
+                ((TransactionEvent<?>) logEvent).release();
+            }
             logger.error("GAQ.put() - PROBABLY when dump event activity is disposing.", e);
         }
     }
