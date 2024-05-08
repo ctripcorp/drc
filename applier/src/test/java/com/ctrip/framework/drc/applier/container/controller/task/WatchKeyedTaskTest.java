@@ -52,8 +52,9 @@ public class WatchKeyedTaskTest {
         Assert.assertEquals(0,lastLWMHashMap.size());
 
         lastLWMHashMap.put("applier_key",lastLWM);
-        watchKeyedTask3.doExecute();
         Mockito.doThrow(new RuntimeException()).when(mockContainer).removeServer(Mockito.eq("applier_key"),Mockito.eq(true));
+
+        watchKeyedTask3.doExecute();
         Assert.assertEquals(null,watchKeyedTask3.future().get());
         Assert.assertEquals(1,lastLWMHashMap.size());
 
