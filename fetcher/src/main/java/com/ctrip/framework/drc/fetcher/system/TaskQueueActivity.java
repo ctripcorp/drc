@@ -125,10 +125,8 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
             } catch (InterruptedException e) {
                 //QUIT
                 finish(task);
-                while(!tasks.isEmpty()) {
-                    task = next();
-                    finish(task);
-                }
+                tasks.forEach(t -> finish(t.unwrap()));
+                tasks.clear();
                 throw e;
             } catch (Throwable e) {
                 //UNLIKELY
@@ -149,6 +147,25 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
             }
         }
         getMetricReporter().report(toString() + ".execute.delay", null, System.currentTimeMillis() - start);
+    }
+
+    @Override
+    protected void releaseAfterStop() {
+        int count = 0;
+        try {
+            while (hasNext()) {
+                T task = next();
+                finish(task);
+                count++;
+            }
+        } catch (InterruptedException e) {
+            tasks.forEach(t -> finish(t.unwrap()));
+            count += tasks.size();
+            tasks.clear();
+        }
+        if (count > 0) {
+            logger.info("{} release {} tasks after stop", getClass().getSimpleName(), count);
+        }
     }
 
     private final List<TaskActivity<U, ?>> alters = Lists.newArrayList();
