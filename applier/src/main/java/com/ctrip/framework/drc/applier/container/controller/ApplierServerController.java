@@ -91,16 +91,4 @@ public class ApplierServerController {
         }
     }
 
-    @RequestMapping(value = {"activeGc"}, method = RequestMethod.GET)
-    public ApiResult<Boolean> gc() {
-        try {
-            logger.info("[gc]");
-            System.gc();
-            return ApiResult.getSuccessInstance(true);
-        } catch (Exception e) {
-            logger.error("gc error", e);
-            return ApiResult.getFailInstance(false);
-        }
-    }
-
 }

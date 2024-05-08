@@ -36,7 +36,7 @@ public class DBInfo extends InstanceInfo {
     }
 
     public String getURL() {
-        return "jdbc:mysql://" + ip + ":" + port + "?allowMultiQueries=true&useLocalSessionState=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8";
+        return "jdbc:mysql://" + ip + ":" + port + "?allowMultiQueries=true&useLocalSessionState=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&useAffectedRows=true";
     }
 
     @Override

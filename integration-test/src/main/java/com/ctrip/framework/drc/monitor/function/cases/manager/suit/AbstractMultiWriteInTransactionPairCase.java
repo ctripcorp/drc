@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.monitor.function.cases.manager.suit;
 
+import com.ctrip.framework.drc.core.monitor.alarm.Alarm;
 import com.ctrip.framework.drc.core.monitor.cases.AbstractPairCase;
 import com.ctrip.framework.drc.core.monitor.cases.PairCase;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
@@ -124,6 +125,7 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
     }
 
     private boolean toCompare(ResultSet expected, ResultSet actual, Execution selectExecution) {
+        Alarm alarm = getAlarm();
         try {
             do {
                 boolean sourceHasNext = expected.next();
@@ -185,6 +187,10 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
             alarm.alarm(String.format("%s ResultSet next error %s", getClass().getSimpleName(), selectExecution.getStatements()));
         }
         return true;
+    }
+
+    protected Alarm getAlarm() {
+        return this.alarm;
     }
 
     protected void parkOneSecond() {

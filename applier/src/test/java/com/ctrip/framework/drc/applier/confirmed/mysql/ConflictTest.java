@@ -38,7 +38,7 @@ public class ConflictTest {
 
     public void connect() throws SQLException {
         PoolProperties properties = new PoolProperties();
-        properties.setUrl("jdbc:mysql://127.0.0.1:3306?allowMultiQueries=true&useLocalSessionState=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8");
+        properties.setUrl("jdbc:mysql://127.0.0.1:3306?allowMultiQueries=true&useLocalSessionState=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&useAffectedRows=true");
         properties.setDriverClassName("com.mysql.jdbc.Driver");
         properties.setUsername("root");
         properties.setPassword("123456");

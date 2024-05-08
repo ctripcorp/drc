@@ -250,6 +250,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     }
 
     protected void addPairCase() {
+        pairCaseManager.addPairCase(new TransactionTableConflictPairCase());
         pairCaseManager.addPairCase(new MultiDBWriteInTransactionPairCase());
         pairCaseManager.addPairCase(new MultiTableWriteInTransactionPairCase());
         pairCaseManager.addPairCase(new PromiscuousWritePairCase());
