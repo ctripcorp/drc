@@ -4,7 +4,11 @@ import com.ctrip.framework.drc.applier.activity.event.ApplierDumpEventActivity;
 import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
-import com.ctrip.framework.drc.applier.server.*;
+import com.ctrip.framework.drc.applier.server.ApplierServer;
+import com.ctrip.framework.drc.applier.server.ApplierServerInCluster;
+import com.ctrip.framework.drc.applier.server.ApplierWatcher;
+import com.ctrip.framework.drc.applier.server.MqServerInCluster;
+import com.ctrip.framework.drc.applier.server.TransactionTableApplierServerInCluster;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
@@ -14,6 +18,12 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.google.common.io.Files;
+import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -21,13 +31,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
-
-import java.io.File;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @Author Slight
@@ -227,6 +230,14 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         } catch (Throwable t) {
             logger.error("await error", t);
         }
+    }
+
+    public boolean containServer(String registryKey) {
+        return servers.containsKey(registryKey);
+    }
+
+    public ApplierServer getServer(String registryKey) {
+        return servers.get(registryKey);
     }
 
     class ResourceReleaseTask implements Runnable {

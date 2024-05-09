@@ -30,8 +30,8 @@ public class ApplierServerController {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private static final ApplierDynamicConfig config = ApplierDynamicConfig.getInstance();
-    private ExecutorService executorService = ThreadUtils.newThreadExecutor(PROCESSORS_SIZE,config.getApplierInstanceModifyThread(),"Applier-Task-Service");
-    private KeyedOneThreadTaskExecutor<String> keyedExecutor = new DrcKeyedOneThreadTaskExecutor(executorService);
+    private static final ExecutorService executorService = ThreadUtils.newThreadExecutor(PROCESSORS_SIZE,config.getApplierInstanceModifyThread(),"Applier-Task-Service");
+    public static final KeyedOneThreadTaskExecutor<String> keyedExecutor = new DrcKeyedOneThreadTaskExecutor(executorService);
 
     @Autowired
     private ApplierServerContainer serverContainer;
