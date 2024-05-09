@@ -190,7 +190,7 @@ public class MySQLHeartBeatImpl extends AbstractLifecycleObservable implements H
             public void onFailure(Throwable t) {
                 logger.error("[Ping] Master {} error", endpoint);
             }
-        });
+        }, MoreExecutors.directExecutor());
     }
 
     private void doPingDbCluster(Endpoint endpoint, DbCluster dbCluster) {
@@ -239,7 +239,7 @@ public class MySQLHeartBeatImpl extends AbstractLifecycleObservable implements H
             public void onFailure(Throwable t) {
                 logger.error("[Ping] DbCluster {} error", endpoint, t);
             }
-        });
+        }, MoreExecutors.directExecutor());
     }
 
     private void transferFromZoneToMaster(Endpoint oldMaster, Endpoint newMaster) {

@@ -374,8 +374,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     if (isReplicatorMaster) {
                         mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getDestMha());
                     } else {
-                        periodicalUpdateDbTask.isMhaMonitorEnabled(config.getMha());
-                        mhasShouldMonitor = Sets.newHashSet(config.getMha());
+                        boolean mhaMonitorEnabled = periodicalUpdateDbTask.isMhaMonitorEnabled(config.getMha());
+                        mhasShouldMonitor = mhaMonitorEnabled? Sets.newHashSet(config.getMha()) : Sets.newHashSet();
                     }
                     
                     Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
