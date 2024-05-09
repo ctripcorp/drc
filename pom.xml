@@ -30,7 +30,7 @@
     </modules>
 
     <properties>
-        <framework.bom.version>5.42.0</framework.bom.version>
+        <framework.bom.version>7.43.1</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.50</dal.version>
@@ -41,7 +41,7 @@
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
         <netty-all.version>4.1.68.Final</netty-all.version>
-        <guava.version>19.0</guava.version>
+        <guava.version>31.0.1-jre</guava.version>
         <fastjson.version>1.2.83</fastjson.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
@@ -54,7 +54,8 @@
         <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
         <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
         <maven-source-plugin.version>3.0.0</maven-source-plugin.version>
-        <curator.version>2.11.0</curator.version>
+        <curator.version>4.2.0</curator.version>
+        <curator-test.version>2.12.0</curator-test.version>
         <zookeeper.version>3.4.8</zookeeper.version>
         <log4j2.version>2.15.0</log4j2.version>
         <fastsql.version>2.0.0_preview_973</fastsql.version>
@@ -65,6 +66,7 @@
         <hickwall.version>0.1.13</hickwall.version>
         <!-- mysql connector -->
         <mysql-connector.version>5.1.48</mysql-connector.version>
+        <kafka-clients.version>2.0.1</kafka-clients.version>
     </properties>
 
     <dependencyManagement>
@@ -299,11 +301,16 @@
                 <artifactId>fastjson</artifactId>
                 <version>${fastjson.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-recipes</artifactId>
                 <version>${curator.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
@@ -314,6 +321,18 @@
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-client</artifactId>
                 <version>${curator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-test</artifactId>
+                <version>${curator-test.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                </exclusions>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
@@ -433,6 +452,11 @@
                 <artifactId>spring-boot-starter-test</artifactId>
                 <version>${spring-boot.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
