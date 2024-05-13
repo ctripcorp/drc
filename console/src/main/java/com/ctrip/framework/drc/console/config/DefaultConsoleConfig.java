@@ -131,6 +131,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
     private static final String SGP_MESSENGER_GTID_INIT_KEY = SGP_MESSENGER_GTID_INIT + ".%s";
+    private static final String BATCH_OFFLINE_ALLOW_REGION = "meta.batch.offline.allow.region";
+    private static String DEFAULT_BATCH_OFFLINE_ALLOW_REGION = "sin";
+
 
 
     // only for test
@@ -574,5 +577,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getDbReplicationConsistencyCheckSwitch() {
         return getBooleanProperty(DB_REPLICATION_CONSISTENCY_CHECK_SWITCH, true);
+    }
+
+    public List<String> getBatchOfflineRegion() {
+        String idcStr = getProperty(BATCH_OFFLINE_ALLOW_REGION, DEFAULT_BATCH_OFFLINE_ALLOW_REGION);
+        if (StringUtils.isBlank(idcStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(idcStr.split(","));
     }
 }

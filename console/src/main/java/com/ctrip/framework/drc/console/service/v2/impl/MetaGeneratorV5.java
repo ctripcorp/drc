@@ -29,6 +29,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -780,6 +781,7 @@ public class MetaGeneratorV5 {
         task.mhaReplicationGroupByDstMhaIdMap = task.mhaReplicationTbls.stream().collect(Collectors.groupingBy(MhaReplicationTbl::getDstMhaId));
 
         Map<Long, MhaTblV2> mhaDbMappingId2MhaTblMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> task.mhaTblIdMap.get(e.getMhaId())));
+        this.validate(mhaDbMappingId2MhaTblMap, task.mhaDbReplicationTbls);
         task.mhaDbReplicationGroupByDstToSrcMhaIdMap = task.mhaDbReplicationTbls.stream().filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType()))
                 .collect(Collectors.groupingBy(
                         e -> mhaDbMappingId2MhaTblMap.get(e.getDstMhaDbMappingId()).getId(),
@@ -793,5 +795,17 @@ public class MetaGeneratorV5 {
         task.dbReplicationFilterMappingTblsByDbRplicationIdMap = task.dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
         task.dbMessengerTblsByGroupIdMap = task.dbMessengerTbls.stream().collect(Collectors.groupingBy(MessengerTblV3::getMessengerGroupId));
         task.dbApplierTblsByGroupIdMap = task.dbApplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getApplierGroupId));
+    }
+
+    @VisibleForTesting
+    protected void validate(Map<Long, MhaTblV2> mhaDbMappingId2MhaTblMap, List<MhaDbReplicationTbl> mhaDbReplicationTbls) {
+        List<Long> invalidMhaDbReplicationId = mhaDbReplicationTbls.stream()
+                .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType()))
+                .filter(e -> !(mhaDbMappingId2MhaTblMap.containsKey(e.getSrcMhaDbMappingId()) && mhaDbMappingId2MhaTblMap.containsKey(e.getDstMhaDbMappingId())))
+                .map(MhaDbReplicationTbl::getId)
+                .collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(invalidMhaDbReplicationId)) {
+            throw new IllegalArgumentException("mha not found for mha db replications (id):  " + invalidMhaDbReplicationId);
+        }
     }
 }

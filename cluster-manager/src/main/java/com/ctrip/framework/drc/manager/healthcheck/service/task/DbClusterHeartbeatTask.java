@@ -33,6 +33,7 @@ public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
     }
 
     @Override
+    @SuppressWarnings("findbugs:NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     protected DbCluster doQuery() {
         Dbs dbs = dbCluster.getDbs();
         List<Db> dbList = dbs.getDbs();

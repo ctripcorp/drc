@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.sql.SQLException;
@@ -45,8 +44,14 @@ public interface MhaServiceV2 {
 
     // process Legacy dirty mha data
     List<String> queryMhasWithOutDrc();
+
+    // dc -> mha names
+    // without drc or db replication configs
+    Map<String, List<String>> getMhasWithoutDrcReplication(boolean checkDbReplication);
+
     Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException;
-    
+    Pair<Boolean,Integer> offlineMhasWithOutReplication(List<String> mhas) throws SQLException;
+
     // process Legacy dirty data
     List<Long> queryMachineWithOutMha() throws SQLException;
     Pair<Boolean,Integer> offlineMachineWithOutMha(List<Long> machineIds) throws SQLException;
