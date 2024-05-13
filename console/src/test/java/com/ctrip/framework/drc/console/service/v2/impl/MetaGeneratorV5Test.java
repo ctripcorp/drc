@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Applier;
@@ -17,7 +19,10 @@ import org.mockito.Spy;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MetaGeneratorV5Test extends CommonDataInit {
@@ -47,6 +52,27 @@ public class MetaGeneratorV5Test extends CommonDataInit {
         Assert.assertTrue(appliers.stream().anyMatch(e -> !e.getApplyMode().equals(ApplyMode.db_transaction_table.getType())));
         Assert.assertTrue(messengers.stream().anyMatch(e -> e.getApplyMode().equals(ApplyMode.db_mq.getType()) && !StringUtils.isEmpty(e.getIncludedDbs())));
         Assert.assertTrue(messengers.stream().anyMatch(e -> !e.getApplyMode().equals(ApplyMode.db_mq.getType())));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testValidate() {
+        Map<Long, MhaTblV2> mhaDbMappingId2MhaTblMap = new HashMap<>();
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = new ArrayList<>();
+        metaGeneratorV5.validate(mhaDbMappingId2MhaTblMap, mhaDbReplicationTbls);
+
+        mhaDbMappingId2MhaTblMap.put(1000L, new MhaTblV2());
+        mhaDbMappingId2MhaTblMap.put(2000L, new MhaTblV2());
+        metaGeneratorV5.validate(mhaDbMappingId2MhaTblMap, mhaDbReplicationTbls);
+        MhaDbReplicationTbl tbl = new MhaDbReplicationTbl();
+        tbl.setId(1L);
+        tbl.setSrcMhaDbMappingId(1000L);
+        tbl.setDstMhaDbMappingId(2000L);
+        tbl.setReplicationType(0);
+        mhaDbReplicationTbls.add(tbl);
+        metaGeneratorV5.validate(mhaDbMappingId2MhaTblMap, mhaDbReplicationTbls);
+
+        tbl.setDstMhaDbMappingId(2001L);
+        metaGeneratorV5.validate(mhaDbMappingId2MhaTblMap, mhaDbReplicationTbls);
     }
 }
 
