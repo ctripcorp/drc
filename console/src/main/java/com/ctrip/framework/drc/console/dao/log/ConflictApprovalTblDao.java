@@ -51,8 +51,10 @@ public class ConflictApprovalTblDao extends AbstractDao<ConflictApprovalTbl> {
 
     private SelectSqlBuilder buildSqlBuilder(ConflictApprovalQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().inNullable(BATCH_ID, param.getBatchIds(), Types.BIGINT)
-                .and().equalNullable(APPLICANT, param.getApplicant(), Types.VARCHAR)
+        if (!param.isAdmin() || StringUtils.isNotBlank(param.getDbName()) || StringUtils.isNotBlank(param.getTableName())) {
+            sqlBuilder.and().in(BATCH_ID, param.getBatchIds(), Types.BIGINT);
+        }
+        sqlBuilder.and().equalNullable(APPLICANT, param.getApplicant(), Types.VARCHAR)
                 .and().equalNullable(APPROVAL_RESULT, param.getApprovalResult(), Types.TINYINT);
 
         return sqlBuilder;

@@ -123,6 +123,18 @@ public class DrcApplicationServiceTest {
         boolean result = drcApplicationService.sendEmail(1L);
         Assert.assertTrue(result);
 
+        Mockito.when(applicationFormTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationFormTbl());
+        Mockito.when(applicationApprovalTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationApprovalTbl2());
+        result = drcApplicationService.sendEmail(1L);
+        Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testUpdateApplicant() throws Exception {
+        Mockito.when(applicationApprovalTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationApprovalTbl1());
+        Mockito.when(applicationApprovalTblDao.update(Mockito.any(ApplicationApprovalTbl.class))).thenReturn(1);
+        boolean result = drcApplicationService.updateApplicant(1L, "applicant");
+        Assert.assertTrue(result);
     }
 
     private List<MhaDelayInfoDto> buildMhaDelayInfoDtos() {
