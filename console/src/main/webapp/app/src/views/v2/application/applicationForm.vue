@@ -91,6 +91,11 @@
                       发送邮件
                     </Button>
                   </DropdownItem>
+                  <DropdownItem>
+                    <Button type="info" size="small" @click="preUpdateApplicant(row, index)" style="margin-right: 5px">
+                      修改申请人
+                    </Button>
+                  </DropdownItem>
                 </DropdownMenu>
               </template>
             </Dropdown>
@@ -119,6 +124,18 @@
           <p>同步表: {{deleteInfo.tableName}}</p>
           <p>同步方向: {{deleteInfo.srcRegion}} => {{deleteInfo.dstRegion}}</p>
         </Modal>
+        <Modal
+          v-model="updateInfo.updateModal"
+          title="修改申请人"
+          width="800px"
+          @on-cancel="clearUpdateInfo"
+          @on-ok="updateApplicant">
+          <Form style="width: 100%" label-position="right">
+            <FormItem label="申请人">
+              <Input v-model="updateInfo.applicant" style="width: 500px"/>
+            </FormItem>
+          </Form>
+        </Modal>
       </div>
     </Content>
   </base-component>
@@ -130,6 +147,11 @@ export default {
   name: 'applicationForm',
   data () {
     return {
+      updateInfo: {
+        updateModal: false,
+        applicant: '',
+        applicationFormId: null
+      },
       deleteInfo: {
         deleteModal: false,
         dbName: null,
@@ -324,6 +346,29 @@ export default {
     }
   },
   methods: {
+    preUpdateApplicant (row, index) {
+      this.updateInfo.applicant = row.applicant
+      this.updateInfo.applicationFormId = row.applicationFormId
+      this.updateInfo.updateModal = true
+    },
+    updateApplicant () {
+      this.axios.post('/api/drc/v2/application/applicant?applicationFormId=' + this.updateInfo.applicationFormId + '&applicant=' + this.updateInfo.applicant).then(res => {
+        const data = res.data
+        if (data.data === false) {
+          this.$Message.error('修改申请人失败！')
+        } else {
+          this.$Message.success('修改申请人成功')
+          this.getData()
+        }
+      })
+    },
+    clearUpdateInfo () {
+      this.updateInfo = {
+        updateModal: false,
+        applicant: '',
+        applicationFormId: null
+      }
+    },
     sendEmail (row, index) {
       this.axios.post('/api/drc/v2/application/email?applicationFormId=' + row.applicationFormId).then(res => {
         const data = res.data

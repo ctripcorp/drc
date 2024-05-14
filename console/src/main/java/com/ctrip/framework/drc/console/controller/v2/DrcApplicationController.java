@@ -80,4 +80,15 @@ public class DrcApplicationController {
         }
     }
 
+    @PostMapping("applicant")
+    public ApiResult<Boolean> updateApplicant(@RequestParam Long applicationFormId, @RequestParam String applicant) {
+        try {
+            drcApplicationService.updateApplicant(applicationFormId, applicant);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("updateApplicant fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
 }

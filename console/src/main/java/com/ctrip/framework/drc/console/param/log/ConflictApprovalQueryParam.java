@@ -14,6 +14,8 @@ public class ConflictApprovalQueryParam {
     private String applicant;
     private Integer approvalResult;
     private List<Long> batchIds;
+    private List<String> dbsWithPermission;
+    private boolean admin;
     private PageReq pageReq;
 
     public List<Long> getBatchIds() {
@@ -62,5 +64,21 @@ public class ConflictApprovalQueryParam {
 
     public void setPageReq(PageReq pageReq) {
         this.pageReq = pageReq;
+    }
+
+    public List<String> getDbsWithPermission() {
+        return dbsWithPermission;
+    }
+
+    public void setDbsWithPermission(List<String> dbsWithPermission) {
+        this.dbsWithPermission = dbsWithPermission;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
     }
 }

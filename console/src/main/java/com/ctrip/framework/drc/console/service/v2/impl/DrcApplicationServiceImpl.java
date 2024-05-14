@@ -77,6 +77,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final long MAX_DELAY = 10000;
+    private static final String EMAIL_SUFFIX = "@trip.com";
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -210,6 +211,14 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         return result;
     }
 
+    @Override
+    public boolean updateApplicant(long applicationFormId, String applicant) throws Exception {
+        ApplicationApprovalTbl approvalTbl = applicationApprovalTblDao.queryByApplicationFormId(applicationFormId);
+        approvalTbl.setApplicant(applicant);
+        applicationApprovalTblDao.update(approvalTbl);
+        return true;
+    }
+
     private MhaReplicationDto buildMhaReplicationDto(ReplicationTableTbl replicationTableTbl) {
         MhaReplicationDto target = new MhaReplicationDto();
         MhaDto srcMha = new MhaDto();
@@ -231,7 +240,12 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         email.setSender(domainConfig.getDrcConfigSenderEmail());
         email.addCc(domainConfig.getDrcConfigSenderEmail());
         if (domainConfig.getDrcConfigEmailSendSwitch()) {
-            email.addRecipient(approvalTbl.getApplicant() + "@trip.com");
+            if (approvalTbl.getApplicant().endsWith(EMAIL_SUFFIX)) {
+                email.addRecipient(approvalTbl.getApplicant());
+            } else {
+                email.addRecipient(approvalTbl.getApplicant() + EMAIL_SUFFIX);
+            }
+
             domainConfig.getDrcConfigCcEmail().forEach(email::addCc);
             email.addCc(domainConfig.getDrcConfigDbaEmail());
         } else {

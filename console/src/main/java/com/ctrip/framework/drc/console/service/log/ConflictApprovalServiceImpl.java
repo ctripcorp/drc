@@ -13,16 +13,20 @@ import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiRequest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -70,7 +74,10 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     private DbTblDao dbTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DbaApiService dbaApiService;
 
+    private IAMService iamService = ServicesUtil.getIAMService();
     private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
 
@@ -79,14 +86,12 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
 
     @Override
     public List<ConflictApprovalView> getConflictApprovalViews(ConflictApprovalQueryParam param) throws Exception {
-        if (StringUtils.isNotBlank(param.getDbName()) || StringUtils.isNotBlank(param.getTableName())) {
-            List<ConflictAutoHandleBatchTbl> batchTbls = conflictAutoHandleBatchTblDao.queryByDb(param.getDbName(), param.getTableName());
-            if (CollectionUtils.isEmpty(batchTbls)) {
-                return new ArrayList<>();
-            }
-            List<Long> batchIds = batchTbls.stream().map(ConflictAutoHandleBatchTbl::getId).collect(Collectors.toList());
-            param.setBatchIds(batchIds);
+        resetParam(param);
+        List<ConflictAutoHandleBatchTbl> autoHandleBatchTbls = conflictAutoHandleBatchTblDao.queryByParam(param);
+        if (CollectionUtils.isEmpty(autoHandleBatchTbls)) {
+            return new ArrayList<>();
         }
+        param.setBatchIds(autoHandleBatchTbls.stream().map(ConflictAutoHandleBatchTbl::getId).collect(Collectors.toList()));
 
         List<ConflictApprovalTbl> conflictApprovalTbls = conflictApprovalTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictApprovalTbls)) {
@@ -115,6 +120,24 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
             return target;
         }).collect(Collectors.toList());
         return views;
+    }
+
+    private void resetParam(ConflictApprovalQueryParam param) {
+        Pair<Boolean, List<String>> permissionAndDbsCanQuery = getPermissionAndDbsCanQuery();
+        param.setAdmin(permissionAndDbsCanQuery.getLeft());
+        param.setDbsWithPermission(permissionAndDbsCanQuery.getRight());
+    }
+
+    private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
+        if (!iamService.canQueryAllCflLog().getLeft()) {
+            List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
+            if (CollectionUtils.isEmpty(dbsCanQuery)) {
+                throw ConsoleExceptionUtils.message("no db with DOT permission!");
+            }
+            return Pair.of(false, dbsCanQuery);
+        } else {
+            return Pair.of(true, Lists.newArrayList());
+        }
     }
 
     @Override
@@ -179,6 +202,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
     public void createConflictApproval(ConflictApprovalCreateParam param) throws Exception {
         List<ConflictHandleSqlDto> handleSqlDtos = param.getHandleSqlDtos();
         if (CollectionUtils.isEmpty(handleSqlDtos)) {

@@ -85,6 +85,16 @@ public class PojoBuilder {
         tbl.setId(1L);
         tbl.setApplicationFormId(1L);
         tbl.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
+        tbl.setApplicant("applicant");
+        return tbl;
+    }
+
+    public static ApplicationApprovalTbl buildApplicationApprovalTbl2() {
+        ApplicationApprovalTbl tbl = new ApplicationApprovalTbl();
+        tbl.setId(1L);
+        tbl.setApplicationFormId(1L);
+        tbl.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
+        tbl.setApplicant("applicant@trip.com");
         return tbl;
     }
 
