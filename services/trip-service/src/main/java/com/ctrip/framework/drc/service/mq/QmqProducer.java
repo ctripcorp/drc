@@ -128,7 +128,5 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void destroy() {
-        provider.destroy();
-        loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
     }
 }
