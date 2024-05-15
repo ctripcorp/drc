@@ -5,15 +5,32 @@ import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.core.mq.ProducerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by jixinwang on 2022/10/17
  */
 public class TripProducerFactory implements ProducerFactory {
 
+    private Map<String, Producer> topicToProducer = new HashMap<>();
+
     @Override
     public Producer createProducer(MqConfig mqConfig) {
         if (MqType.qmq.name().equalsIgnoreCase(mqConfig.getMqType())) {
-            return new QmqProducer(mqConfig);
+            Producer producer = topicToProducer.get(mqConfig.getTopic());
+            if (producer == null) {
+                synchronized (this) {
+                    producer = topicToProducer.get(mqConfig.getTopic());
+                    if (producer != null) {
+                        return producer;
+                    }
+                    producer = new QmqProducer(mqConfig);
+                    topicToProducer.put(mqConfig.getTopic(), producer);
+                }
+            }
+            producer.increaseRefCount();
+            return producer;
         }
         throw new UnsupportedOperationException("unSupport mq type: " + mqConfig.getMqType());
     }

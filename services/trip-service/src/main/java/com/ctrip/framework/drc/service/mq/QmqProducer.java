@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by jixinwang on 2022/10/17
@@ -41,14 +42,22 @@ public class QmqProducer extends AbstractProducer {
 
     private String orderKey;
 
+    private AtomicInteger refCount;
+
     public QmqProducer(MqConfig mqConfig) {
         this.topic = mqConfig.getTopic();
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
+        this.refCount = new AtomicInteger(0);
         initProvider();
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
+    }
+
+    @Override
+    public void increaseRefCount() {
+        this.refCount.incrementAndGet();
     }
 
     private void initProvider() {
@@ -131,7 +140,9 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void destroy() {
-        provider.destroy();
-        loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
+        if (this.refCount.decrementAndGet() == 0) {
+            provider.destroy();
+            loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
+        }
     }
 }
