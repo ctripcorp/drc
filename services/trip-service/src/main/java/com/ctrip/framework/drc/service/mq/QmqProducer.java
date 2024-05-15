@@ -12,6 +12,8 @@ import muise.ctrip.canal.DataChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
+import qunar.tc.qmq.dal.DalTransactionProvider;
+import qunar.tc.qmq.producer.MessageProducerProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +32,8 @@ public class QmqProducer extends AbstractProducer {
 
     protected static final String DATA_CHANGE = "dataChange";
 
+    private MessageProducerProvider provider;
+
     private final boolean persist;
 
     private final String topic;
@@ -46,8 +50,17 @@ public class QmqProducer extends AbstractProducer {
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
+        init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
+    }
+
+    private void init(boolean persist, String dalClusterKey) {
+        provider = new MessageProducerProvider();
+        provider.init();
+        if (persist) {
+            provider.setTransactionProvider(new DalTransactionProvider(dalClusterKey));
+        }
     }
 
     @Override
@@ -55,7 +68,7 @@ public class QmqProducer extends AbstractProducer {
         for (EventData eventData : eventDatas) {
             Message message = generateMessage(eventData);
             long start = System.nanoTime();
-            MessageProducerProviderSingleton.getMessageProducerProvider().sendMessage(message);
+            provider.sendMessage(message);
             loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, message.getStringProperty(DATA_CHANGE));
         }
     }
@@ -66,7 +79,7 @@ public class QmqProducer extends AbstractProducer {
         String table = eventData.getTableName();
         DataChange dataChange = transfer(eventData);
         JSONObject jsonObject = JSON.parseObject(dataChange.toString());
-        Message message = MessageProducerProviderSingleton.getMessageProducerProvider().generateMessage(topic);
+        Message message = provider.generateMessage(topic);
 
         String dc = eventData.getDcTag().getName();
         message.addTag(dc);
@@ -128,5 +141,7 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void destroy() {
+        provider.destroy();
+        loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
     }
 }
