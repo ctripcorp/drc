@@ -12,4 +12,6 @@ public interface Producer {
     void destroy();
 
     void increaseRefCount();
+
+    int getRefCount();
 }

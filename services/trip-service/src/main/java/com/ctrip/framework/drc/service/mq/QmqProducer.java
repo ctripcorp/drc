@@ -49,7 +49,7 @@ public class QmqProducer extends AbstractProducer {
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
-        this.refCount = new AtomicInteger(0);
+        this.refCount = new AtomicInteger(1);
         initProvider();
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
@@ -58,6 +58,11 @@ public class QmqProducer extends AbstractProducer {
     @Override
     public void increaseRefCount() {
         this.refCount.incrementAndGet();
+    }
+
+    @Override
+    public int getRefCount() {
+        return this.refCount.get();
     }
 
     private void initProvider() {

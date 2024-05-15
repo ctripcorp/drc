@@ -19,12 +19,13 @@ public class TripProducerFactory implements ProducerFactory {
     public Producer createProducer(MqConfig mqConfig) {
         if (MqType.qmq.name().equalsIgnoreCase(mqConfig.getMqType())) {
             Producer producer = topicToProducer.get(mqConfig.getTopic());
-            if (producer == null) {
+            if (producer == null || producer.getRefCount() == 0) {
                 synchronized (this) {
                     producer = topicToProducer.get(mqConfig.getTopic());
-                    if (producer == null) {
+                    if (producer == null || producer.getRefCount() == 0) {
                         producer = new QmqProducer(mqConfig);
                         topicToProducer.put(mqConfig.getTopic(), producer);
+                        return producer;
                     }
                 }
             }
