@@ -22,11 +22,10 @@ public class TripProducerFactory implements ProducerFactory {
             if (producer == null) {
                 synchronized (this) {
                     producer = topicToProducer.get(mqConfig.getTopic());
-                    if (producer != null) {
-                        return producer;
+                    if (producer == null) {
+                        producer = new QmqProducer(mqConfig);
+                        topicToProducer.put(mqConfig.getTopic(), producer);
                     }
-                    producer = new QmqProducer(mqConfig);
-                    topicToProducer.put(mqConfig.getTopic(), producer);
                 }
             }
             producer.increaseRefCount();
