@@ -12,7 +12,6 @@ import muise.ctrip.canal.DataChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
-import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
 import java.util.ArrayList;
@@ -34,8 +33,6 @@ public class QmqProducer extends AbstractProducer {
 
     private MessageProducerProvider provider;
 
-    private final boolean persist;
-
     private final String topic;
 
     private long delayTime;
@@ -45,22 +42,18 @@ public class QmqProducer extends AbstractProducer {
     private String orderKey;
 
     public QmqProducer(MqConfig mqConfig) {
-        this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
-        init(persist, mqConfig.getPersistentDb());
+        initProvider();
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
     }
 
-    private void init(boolean persist, String dalClusterKey) {
+    private void initProvider() {
         provider = new MessageProducerProvider();
         provider.init();
-        if (persist) {
-            provider.setTransactionProvider(new DalTransactionProvider(dalClusterKey));
-        }
     }
 
     @Override
@@ -85,9 +78,6 @@ public class QmqProducer extends AbstractProducer {
         message.addTag(dc);
         jsonObject.put("dc", dc);
 
-        if (persist) {
-            message.setStoreAtFailed(true);
-        }
         if (delayTime > 0) {
             message.setDelayTime(delayTime, TimeUnit.SECONDS);
         }
