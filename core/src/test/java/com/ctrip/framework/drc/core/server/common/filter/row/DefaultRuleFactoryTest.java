@@ -16,7 +16,7 @@ public class DefaultRuleFactoryTest {
 
     private static final String registryKey = "ut_key";
 
-    private static final String location = "CN";
+    private static final String location = "SH";
 
     private RuleFactory ruleFactory = new DefaultRuleFactory();
 

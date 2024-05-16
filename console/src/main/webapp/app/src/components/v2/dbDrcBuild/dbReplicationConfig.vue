@@ -262,6 +262,7 @@ export default {
               }
             ],
             regionsForChose: [
+              'SGP',
               'SIN',
               'SH',
               'FRA'

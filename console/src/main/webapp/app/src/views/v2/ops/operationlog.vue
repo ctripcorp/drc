@@ -399,8 +399,14 @@ export default {
     }
   },
   created () {
-    this.getAllQueryOptions()
-    this.getTotalData()
+    this.axios.get('/api/drc/v2/permission/ops/operationLog').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.getAllQueryOptions()
+      this.getTotalData()
+    })
   }
 }
 </script>
