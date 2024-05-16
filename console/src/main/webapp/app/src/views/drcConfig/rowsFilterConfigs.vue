@@ -275,6 +275,7 @@ export default {
       ],
       columnsForChose: [],
       regionsForChose: [
+        'SGP',
         'SIN',
         'SH',
         'FRA'

@@ -36,7 +36,7 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
         if (parametersList != null && !parametersList.isEmpty() && StringUtils.isNotBlank(parametersList.get(0).getContext())) {
             String[] locations = parametersList.get(0).getContext().split(COMMA);
             for (String l : locations) {
-                dstLocation.add(l.trim().toUpperCase());
+                dstLocation.add(Region.nameFor(l.trim().toUpperCase()).name());
             }
         }
         drcStrategyId = rowsFilterConfig.getConfigs() != null ? rowsFilterConfig.getConfigs().getDrcStrategyId() : -1;

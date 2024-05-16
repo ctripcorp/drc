@@ -478,6 +478,7 @@ export default {
               }
             ],
             regionsForChose: [
+              'SGP',
               'SIN',
               'SH',
               'FRA'
@@ -1117,7 +1118,7 @@ export default {
           if (name === 'UDL') {
             if (this.formItem.constants.columnsForChose.includes('userdata_location')) {
               this.formItem.rowsFilterDetail.udlColumns = ['userdata_location']
-              this.formItem.constants.rowsFilter.configInTripUid.regionsChosen = 'SIN'
+              this.formItem.constants.rowsFilter.configInTripUid.regionsChosen = 'SGP'
               this.formItem.rowsFilterDetail.drcStrategyId = this.formItem.constants.rowsFilter.drcStrategyIdsForChose[0]
             } else {
               this.$Message.warning('公共列不包含userdata_location字段')

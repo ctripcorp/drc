@@ -29,7 +29,7 @@ public class DataMediaConfigTest {
             "          \"columnB\",\n" +
             "          \"cloumnC\"\n" +
             "        ],\n" +
-            "        \"context\": \"regre1\"\n" +
+            "        \"context\": \"SIN\"\n" +
             "      },\n" +
             "      \"configs\": {\n" +
             "        \"parameterList\": [\n" +
@@ -39,7 +39,7 @@ public class DataMediaConfigTest {
             "              \"columnB\",\n" +
             "              \"cloumnC\"\n" +
             "            ],\n" +
-            "            \"context\": \"regre1\"\n" +
+            "            \"context\": \"SIN\"\n" +
             "          }\n" +
             "        ]\n" +
             "      }\n" +

@@ -859,11 +859,17 @@ export default {
     }
   },
   created () {
-    this.getReplications(1)
-    this.getRegions()
-    this.getBus()
-    this.timerId = setInterval(() => this.getDelay(), 5000)
-    setTimeout(() => { clearInterval(this.timerId) }, 30 * 60 * 1000)
+    this.axios.get('/api/drc/v2/permission/meta/mhaReplication/query').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.getReplications(1)
+      this.getRegions()
+      this.getBus()
+      this.timerId = setInterval(() => this.getDelay(), 5000)
+      setTimeout(() => { clearInterval(this.timerId) }, 30 * 60 * 1000)
+    })
   },
   beforeDestroy () {
     if (this.timerId) {

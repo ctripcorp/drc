@@ -539,8 +539,14 @@ export default {
     }
   },
   created () {
-    this.getRegions()
-    this.getData()
+    this.axios.get('/api/drc/v2/permission/approval/drc').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.getRegions()
+      this.getData()
+    })
   }
 }
 </script>

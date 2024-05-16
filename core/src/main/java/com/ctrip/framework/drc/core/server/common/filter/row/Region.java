@@ -9,8 +9,8 @@ import java.util.Set;
  * @create 2022/9/26
  */
 public enum Region {
-
-    SIN(Sets.newHashSet("SIN")),
+    
+    SGP(Sets.newHashSet("SGP","SIN")), 
 
     FRA(Sets.newHashSet("FRA")),
 
@@ -21,7 +21,10 @@ public enum Region {
     Region(Set<String> names) {
         this.names = names;
     }
-
+    
+    public boolean isLegal(String region) {
+        return names.contains(region);
+    }
     public static Region nameFor(String name) {
         for (Region region : values()) {
             if (region.names.contains(name)) {

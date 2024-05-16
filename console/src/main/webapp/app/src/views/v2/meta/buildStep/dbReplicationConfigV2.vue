@@ -200,6 +200,7 @@ export default {
       submit: true,
       constants: {
         regionsForChose: [
+          'SGP',
           'SIN',
           'SH',
           'FRA'

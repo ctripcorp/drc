@@ -437,9 +437,15 @@ export default {
     }
   },
   created () {
-    this.getRegions()
-    this.getBus()
-    this.getAllMessengerVos()
+    this.axios.get('/api/drc/v2/permission/meta/mqReplication/query').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.getRegions()
+      this.getBus()
+      this.getAllMessengerVos()
+    })
   }
 }
 </script>
