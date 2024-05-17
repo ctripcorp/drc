@@ -1,9 +1,15 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
+import javax.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * @ClassName PermissionController
@@ -15,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/drc/v2/permission/")
 public class PermissionController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(PermissionController.class);
     
     @GetMapping("meta/mhaReplication/query")
     public ApiResult<Boolean> mhaReplicationQuery() {
@@ -33,6 +41,11 @@ public class PermissionController {
 
     @GetMapping("meta/dbReplication/modify")
     public ApiResult<Boolean> dbReplicationModify() {
+        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = requestAttributes.getRequest();
+        String sourceIp = request.getHeader("X-Forwarded-For");
+        String header = request.toString();
+        logger.info("sourceIp: {}, header: {}", sourceIp, header);
         return ApiResult.getSuccessInstance(true);
     }
     
