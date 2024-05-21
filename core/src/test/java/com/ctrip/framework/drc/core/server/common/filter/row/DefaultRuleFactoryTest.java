@@ -6,6 +6,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static com.ctrip.framework.drc.core.AllTests.ROW_FILTER_PROPERTIES;
+import static com.ctrip.framework.drc.core.AllTests.ROW_FILTER_PROPERTIES2;
 import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.ROWS_FILTER_RULE;
 
 /**
@@ -26,6 +27,22 @@ public class DefaultRuleFactoryTest {
         DataMediaConfig dataMediaConfig = DataMediaConfig.from(registryKey, properties);
         RowsFilterRule rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
         Assert.assertTrue(rowsFilterRule instanceof UserRowsFilterRule);
+
+        properties = String.format(ROW_FILTER_PROPERTIES2, RowsFilterType.TripUdl.getName(),FetchMode.BlackList.getCode(),"BlackList-Context" );
+        dataMediaConfig = DataMediaConfig.from(registryKey, properties);
+        rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+        Assert.assertTrue(rowsFilterRule instanceof UserRowsFilterRule);
+
+        properties = String.format(ROW_FILTER_PROPERTIES2, RowsFilterType.TripUdl.getName(),FetchMode.WhiteList.getCode(),"WhiteList-Context" );
+        dataMediaConfig = DataMediaConfig.from(registryKey, properties);
+        rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+        Assert.assertTrue(rowsFilterRule instanceof UserRowsFilterRule);
+
+        properties = String.format(ROW_FILTER_PROPERTIES2, RowsFilterType.TripUdl.getName(),FetchMode.BlackList_Global.getCode(),"BlackList_Global-Context" );
+        dataMediaConfig = DataMediaConfig.from(registryKey, properties);
+        rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+        Assert.assertTrue(rowsFilterRule instanceof UserRowsFilterRule);
+
 
         properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.None.getName(), location, location);
         dataMediaConfig = DataMediaConfig.from(registryKey, properties);
