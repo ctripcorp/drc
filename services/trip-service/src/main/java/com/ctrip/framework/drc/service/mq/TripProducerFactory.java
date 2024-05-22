@@ -4,8 +4,8 @@ import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.core.mq.ProducerFactory;
+import com.google.common.collect.Maps;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public class TripProducerFactory implements ProducerFactory {
 
-    private Map<String, Producer> topicToProducer = new HashMap<>();
+    private Map<String, Producer> topicToProducer = Maps.newConcurrentMap();
 
     @Override
     public Producer createProducer(MqConfig mqConfig) {
