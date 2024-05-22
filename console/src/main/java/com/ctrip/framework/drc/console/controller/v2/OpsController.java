@@ -7,6 +7,8 @@ package com.ctrip.framework.drc.console.controller.v2;
  * @Version: $
  */
 
+import com.ctrip.framework.drc.console.param.v2.GtidCompensateParam;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import java.util.List;
@@ -28,6 +30,8 @@ public class OpsController {
     
     @Autowired
     private RowsFilterServiceV2 rowsFilterServiceV2;
+    @Autowired
+    private DrcBuildServiceV2 drcBuildServiceV2;
     
     @GetMapping("migrate/sgp/rowsFilter")
     public ApiResult getRowsFilterIdsShouldMigrateToSGP(@RequestParam String srcRegion) {
@@ -47,6 +51,16 @@ public class OpsController {
             return ApiResult.getSuccessInstance(result, "migrate rows filter to SGP success");
         } catch (Exception e) {
             logger.error("migrateRowsFilterToSGP error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    
+    @PostMapping("gtid/gapCompensate")
+    public ApiResult gapCompensate(@RequestBody GtidCompensateParam gtidCompensateParam) {
+        try {
+            return  ApiResult.getSuccessInstance(drcBuildServiceV2.compensateGtidGap(gtidCompensateParam));
+        } catch (Exception e) {
+            logger.error("gapCompensate error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
