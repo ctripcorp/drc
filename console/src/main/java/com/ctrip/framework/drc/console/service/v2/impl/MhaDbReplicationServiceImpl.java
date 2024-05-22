@@ -104,6 +104,22 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
+    
+    @Override
+    public List<MhaDbReplicationTbl> queryBySrcMha(String srcMhaName) throws SQLException {
+        MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
+        if (srcMhaTbl == null) {
+            return Collections.emptyList();
+        }
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(srcMhaTbl.getId());
+        if(CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+            return Collections.emptyList();
+        }
+        MhaDbReplicationQuery mhaDbReplicationQuery = new MhaDbReplicationQuery();
+        mhaDbReplicationQuery.setSrcMappingIdList(mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()));
+        mhaDbReplicationQuery.setType(ReplicationTypeEnum.DB_TO_DB.getType());
+        return mhaDbReplicationTblDao.query(mhaDbReplicationQuery);
+    }
 
     private List<MhaDbReplicationTbl> getMhaDbReplicationTbls(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException {
         // 1. query mhaDbMapping by conditions
