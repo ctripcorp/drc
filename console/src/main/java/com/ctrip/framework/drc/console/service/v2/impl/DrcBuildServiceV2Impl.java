@@ -5,7 +5,10 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
@@ -29,6 +32,7 @@ import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -89,6 +93,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private ApplierGroupTblV2Dao applierGroupTblDao;
     @Autowired
     private ApplierTblV2Dao applierTblDao;
+    @Autowired
+    private ApplierGroupTblV3Dao dbApplierGroupTblDao;
     @Autowired
     private ResourceTblDao resourceTblDao;
     @Autowired
@@ -1484,6 +1490,72 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
         }
         return XmlUtils.formatXML(drcMessengerConfig.toString());
+    }
+
+    @Override
+    public int compensateGtidGap(GtidCompensateParam gtidCompensateParam) throws SQLException {
+        List<MhaTblV2> mhaTblV2s = mhaTblDao.queryByPk(gtidCompensateParam.getSrcMhaIds());
+        if (mhaTblV2s.size() != gtidCompensateParam.getSrcMhaIds().size()) {
+            throw new RuntimeException("srcMhaIds not exist");
+        }
+        Set<Long> dcIds = mhaTblV2s.stream().map(MhaTblV2::getDcId).collect(Collectors.toSet());
+        List<DcTbl> dcTbls = dcTblDao.queryByPk(Lists.newArrayList(dcIds));
+        Set<String> regions = dcTbls.stream().map(DcTbl::getRegionName).collect(Collectors.toSet());
+        if (regions.size() != 1 || !regions.contains(gtidCompensateParam.getSrcRegion())) {
+            throw new RuntimeException("srcMhaIds belong to different region");
+        }
+        int affectReplication = 0;
+        for (MhaTblV2 mha : mhaTblV2s) {
+            affectReplication += compensateGtidGap(mha, gtidCompensateParam.isExecute());
+        }
+        return affectReplication;
+    }
+    
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public int compensateGtidGap(MhaTblV2 srcMha,boolean execute) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMha.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            throw new RuntimeException("mhaExecutedGtid is empty," + srcMha.getMhaName());
+        }
+        logger.info("{{compensateGtidGap=start,mha={}}} mhaExecutedGtid: {}", srcMha.getMhaName(), mhaExecutedGtid);
+        // 1.Applier
+        List<MhaReplicationTbl> mhaReplication = mhaReplicationTblDao.queryBySrcMhaId(srcMha.getId());
+        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblDao.queryByMhaReplicationIds(
+                mhaReplication.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList()));
+        applierGroupTblV2s.forEach(applierGroup -> applierGroup.setGtidInit(unionGtid(applierGroup.getGtidInit(), mhaExecutedGtid)));
+        // 2.DbApplier
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationService.queryBySrcMha(srcMha.getMhaName());
+        List<ApplierGroupTblV3> dbApplierGroupTbls = dbApplierGroupTblDao.queryByMhaDbReplicationIds(
+                mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList()));
+        dbApplierGroupTbls.forEach(applierGroup -> applierGroup.setGtidInit(unionGtid(applierGroup.getGtidInit(), mhaExecutedGtid)));
+        // 3.Messenger
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(srcMha.getId(), 0);
+        boolean existMessenger = messengerGroupTbl != null;
+        if (existMessenger) {
+            messengerGroupTbl.setGtidExecuted(unionGtid(messengerGroupTbl.getGtidExecuted(), mhaExecutedGtid));
+        }
+        if (execute) {
+            if (applierGroupTblV2s.size() > 0) {
+                applierGroupTblDao.update(applierGroupTblV2s);
+            }
+            if (dbApplierGroupTbls.size() > 0) {
+                dbApplierGroupTblDao.update(dbApplierGroupTbls);
+            }
+            if (existMessenger) {
+                messengerGroupTblDao.update(messengerGroupTbl);
+            }
+        }
+        int replicationCount = applierGroupTblV2s.size() + dbApplierGroupTbls.size() + (existMessenger ? 1 : 0);
+        logger.info("{{compensateGtidGap=end,mha={}}} mhaExecutedGtid: {} ,affectReplication:{}", srcMha.getMhaName(), mhaExecutedGtid, replicationCount);
+        return replicationCount;
+    }
+    
+    private String unionGtid(String origin,String compensateGtid) {
+        GtidSet originSet = new GtidSet(origin);
+        GtidSet compensateSet = new GtidSet(compensateGtid);
+        GtidSet unionSet = originSet.union(compensateSet);
+        logger.info("unionGtid origin:{},compensate:{},union:{}",origin,compensateGtid,unionSet.toString());
+        return unionSet.toString();
     }
 
     private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {

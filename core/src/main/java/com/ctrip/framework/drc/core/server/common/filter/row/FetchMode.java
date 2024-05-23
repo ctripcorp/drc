@@ -33,4 +33,8 @@ public enum FetchMode {
 
         throw new UnsupportedOperationException("not support for code " + code);
     }
+    
+    public static boolean shouldConvertLocation(int code) {
+        return RPC.getCode() == code;
+    }
 }

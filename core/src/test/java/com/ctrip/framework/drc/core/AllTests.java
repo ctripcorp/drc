@@ -332,6 +332,30 @@ public class AllTests {
             "  ]\n" +
             "}";
 
+    public static final String ROW_FILTER_PROPERTIES2 = "{\n" + // custom mode ,context, fetchMode
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"%s\",\n" +
+            "      \"tables\": \"drc1.insert1\",\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"id\",\n" +
+            "              \"one\"\n" +
+            "            ],\n" +
+            "            \"fetchMode\": %s,\n" +
+            "            \"context\": \"%s\",\n" +
+            "            \"userFilterMode\": \"uid\",\n" +
+            "            \"drcStrategyId\" : 1,\n" +
+            "            \"routeStrategyId\" : 1\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    
     public static int ZK_PORT = 2182;
 
     public static int SRC_PORT = 3308;

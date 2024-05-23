@@ -8,7 +8,10 @@ import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
@@ -22,6 +25,7 @@ import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
@@ -69,6 +73,8 @@ public class DrcBuildServiceV2Test {
     private ApplierGroupTblV2Dao applierGroupTblDao;
     @Mock
     private ApplierTblV2Dao applierTblDao;
+    @Mock
+    private ApplierGroupTblV3Dao dbApplierGroupTblDao;
     @Mock
     private ResourceTblDao resourceTblDao;
     @Mock
@@ -474,5 +480,54 @@ public class DrcBuildServiceV2Test {
         drcBuildServiceV2.initReplicationTables();
         Mockito.verify(replicationTableTblDao, Mockito.times(2)).insert(Mockito.anyList());
     }
+
+    @Test
+    public void testCompensateGtidGap() throws Exception {
+        DcTbl dc1 = new DcTbl();
+        dc1.setId(1L);
+        dc1.setRegionName("region1");
+        
+        MhaTblV2 mha1 = MockEntityBuilder.buildMhaTblV2(1L, "mha1", 1L);
+        MhaTblV2 mha2 = MockEntityBuilder.buildMhaTblV2(2L, "mha2", 2L);
+        MhaReplicationTbl mha1_mha2 = MockEntityBuilder.buildMhaReplicationTbl(1L, mha1, mha2);
+        ApplierGroupTblV2 applierGroupTblV2 = MockEntityBuilder.buildApplierGroupTbl(1L, mha1_mha2);
+        MessengerGroupTbl messengerGroupTbl = MockEntityBuilder.buildMessengerGroupTbl(1L, mha1.getId());
+        MhaDbReplicationTbl mhaDbReplicationTbl = MockEntityBuilder.buildMhaDbReplicationTbl(1L);
+        ApplierGroupTblV3 applierGroupTblV3 = MockEntityBuilder.buildDbApplierGroup(1L,mhaDbReplicationTbl.getId());
+        
+        
+        Mockito.when(mhaTblDao.queryByPk(Mockito.anyList())).thenReturn(Lists.newArrayList(mha1));
+        Mockito.when(dcTblDao.queryByPk(Mockito.anyList())).thenReturn(Lists.newArrayList(dc1));
+        
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("u1:1-22,u2:1-22");
+        Mockito.when(mhaReplicationTblDao.queryBySrcMhaId(Mockito.anyLong())).thenReturn(Lists.newArrayList());
+        Mockito.when(applierGroupTblDao.queryByMhaReplicationIds(Mockito.anyList())).thenReturn(Lists.newArrayList(applierGroupTblV2));
+        Mockito.when(mhaDbReplicationService.queryBySrcMha(Mockito.anyString())).thenReturn(Lists.newArrayList(mhaDbReplicationTbl));
+        Mockito.when(dbApplierGroupTblDao.queryByMhaDbReplicationIds(Mockito.anyList())).thenReturn(Lists.newArrayList(applierGroupTblV3));
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(),Mockito.anyInt())).thenReturn(messengerGroupTbl);
+        
+        
+        Mockito.when(applierGroupTblDao.update(Mockito.anyList())).thenReturn(new int[]{1});
+        Mockito.when(dbApplierGroupTblDao.update(Mockito.anyList())).thenReturn(new int[]{1});
+        Mockito.when(messengerGroupTblDao.update(Mockito.anyList())).thenReturn(new int[]{1});
+
+        GtidCompensateParam gtidCompensateParam = new GtidCompensateParam();
+        gtidCompensateParam.setSrcMhaIds(Lists.newArrayList(mha1.getId()));
+        gtidCompensateParam.setSrcRegion("region1");
+        gtidCompensateParam.setExecute(false);
+        int affectReplication = drcBuildServiceV2.compensateGtidGap(gtidCompensateParam);
+        Assert.assertEquals(3, affectReplication);
+        
+        
+        gtidCompensateParam.setExecute(true);
+        affectReplication = drcBuildServiceV2.compensateGtidGap(gtidCompensateParam);
+        Assert.assertEquals(3, affectReplication);
+        Mockito.verify(applierGroupTblDao,Mockito.times(1)).update(Mockito.anyList());
+        Mockito.verify(dbApplierGroupTblDao,Mockito.times(1)).update(Mockito.anyList());
+        Mockito.verify(messengerGroupTblDao,Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
+        
+        
+    }
+    
 
 }

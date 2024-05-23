@@ -132,4 +132,10 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         List<String> list = samples.stream().map(e -> String.format("(%d,%d)", e.getSrcMhaId(), e.getDstMhaId())).collect(Collectors.toList());
         return String.format("(%s, %s) in (%s) and deleted = 0", SRC_MHA_ID, DST_MHA_ID, String.join(",", list));
     }
+
+    public List<MhaReplicationTbl> queryBySrcMhaId(Long srcMhaId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(SRC_MHA_ID, srcMhaId, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
 }
