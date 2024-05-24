@@ -754,9 +754,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     @Override
     public void processAddMqConfig(MqConfigDto dto) throws Exception {
         MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName());
-        //ql_deng TODO 2024/5/15:test
-//        this.initMqConfig(dto, mhaTblV2);
-//        this.addDalClusterMqConfig(dto, mhaTblV2);
+        this.initMqConfig(dto, mhaTblV2);
+        this.addDalClusterMqConfig(dto, mhaTblV2);
         this.addMqConfig(dto, mhaTblV2);
     }
 
