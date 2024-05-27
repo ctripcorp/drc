@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.service.mq;
 
+import com.ctrip.xpipe.utils.MapUtils;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,21 +21,20 @@ public class QmqProviderFactory {
     private static Map<String, AtomicInteger> refCountMap = Maps.newConcurrentMap();
 
     public static MessageProducerProvider createProvider(String topic) {
-        MessageProducerProvider provider = topicToProvide.get(topic);
-        if (provider == null) {
-            synchronized (QmqProviderFactory.class) {
-                provider = topicToProvide.get(topic);
-                if (provider == null) {
-                    provider = new MessageProducerProvider();
-                    provider.init();
-                    topicToProvide.put(topic, provider);
-                    refCountMap.put(topic, new AtomicInteger(0));
-                }
-            }
-        }
+        MessageProducerProvider provider = MapUtils.getOrCreate(topicToProvide, topic, () -> {
+            MessageProducerProvider value = new MessageProducerProvider();
+            value.init();
+            refCountMap.put(topic, new AtomicInteger(0));
+            return value;
+        });
+
         int refCount = refCountMap.get(topic).incrementAndGet();
         loggerMsg.info("[MQ] topic {}, refCount: {}", topic, refCount);
         return provider;
+    }
+
+    public void create() {
+
     }
 
     public static void destroy(String topic) {
