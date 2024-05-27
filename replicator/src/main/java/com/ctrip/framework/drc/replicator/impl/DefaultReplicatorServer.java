@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.impl.AbstractDrcServer;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
@@ -20,8 +21,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.ReplicatorSlaveServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.BackupReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupEventTransactionCache;
@@ -39,8 +40,6 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.ctrip.xpipe.utils.VisibleForTesting;
-
-import java.io.File;
 
 /**
  * @author wenchao.meng
@@ -89,7 +88,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         InboundFilterChainContext transactionContext = new InboundFilterChainContext.Builder().applyMode(applyMode).build();
         transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext))
-                                    : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
+                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
@@ -197,6 +196,16 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
     @Override
     public Endpoint getUpstreamMaster() {
         return replicatorConfig.getEndpoint();
+    }
+
+    public ReplicatorInfoDto info() {
+        ReplicatorInfoDto replicatorInfoDto = new ReplicatorInfoDto();
+        replicatorInfoDto.setRegistryKey(this.replicatorConfig.getRegistryKey());
+        replicatorInfoDto.setMaster(this.replicatorConfig.getMySQLSlaveConfig().isMaster());
+        replicatorInfoDto.setIp(this.replicatorConfig.getMySQLMasterConfig().getIp());
+        replicatorInfoDto.setPort(this.replicatorConfig.getApplierPort());
+        replicatorInfoDto.setUpstreamMasterIp(this.replicatorConfig.getMySQLSlaveConfig().getEndpoint().getHost());
+        return replicatorInfoDto;
     }
 
     @VisibleForTesting

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
@@ -43,6 +44,10 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
 
     @Autowired
     protected InstanceActiveElectAlgorithmManager instanceActiveElectAlgorithmManager;
+
+    @Autowired
+    protected ClusterManagerConfig clusterManagerConfig;
+
 
     private void observeLeader(final DbCluster cluster) {
 

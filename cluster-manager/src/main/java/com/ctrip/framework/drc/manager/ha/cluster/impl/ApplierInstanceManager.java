@@ -1,21 +1,23 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
+import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.utils.NameUtils;
-import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierPropertyComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
-import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
-import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.ObjectUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @Author limingdong
@@ -24,8 +26,6 @@ import java.util.Set;
 @Component
 public class ApplierInstanceManager extends AbstractInstanceManager implements TopElement {
 
-    @Autowired
-    private ClusterManagerConfig clusterManagerConfig;
 
     @Override
     protected void handleClusterModified(ClusterComparator comparator) {
@@ -116,5 +116,85 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
             logger.info("[visitRemoved][remove shard]{}", removed);
             removeApplier(clusterId, removed);
         }
+    }
+
+    protected class ApplierChecker extends InstancePeriodicallyChecker<Applier, ApplierInfoDto> {
+        @Override
+        protected Pair<List<String>, List<ApplierInfoDto>> fetchInstanceInfo(List<Instance> instances) {
+            return instanceStateController.getApplierInfo(instances);
+        }
+
+        @Override
+        protected List<Instance> getAllMeta() {
+            return Lists.newArrayList(currentMetaManager.getAllApplierOrMessengerInstances());
+        }
+
+        @Override
+        protected Map<String, List<Applier>> getMetaGroupByRegistryKeyMap() {
+            Map<String, Map<String, List<Applier>>> allSurviveAppliers = currentMetaManager.getAllMetaAppliers();
+            Map<String, List<Applier>> applierMetaGroupByRegistryKeyMap = new HashMap<>();
+            for (Map.Entry<String, Map<String, List<Applier>>> entry : allSurviveAppliers.entrySet()) {
+                String clusterId = entry.getKey();
+                Map<String, List<Applier>> applierGroupByBackupKey = entry.getValue();
+                for (Map.Entry<String, List<Applier>> en : applierGroupByBackupKey.entrySet()) {
+                    String backupRegistryKey = en.getKey();
+                    applierMetaGroupByRegistryKeyMap.put(NameUtils.getApplierRegisterKey(clusterId, backupRegistryKey), en.getValue());
+                }
+            }
+            return applierMetaGroupByRegistryKeyMap;
+        }
+
+        @Override
+        public String getName() {
+            return "applier";
+        }
+
+        @Override
+        protected Replicator getReplicatorMaster(String clusterId, List<Applier> applierMetas) {
+            String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(applierMetas.get(0));
+            Pair<String, Integer> applierMaster = currentMetaManager.getApplierMaster(clusterId, backupRegistryKey);
+            Replicator replicator = null;
+            if (applierMaster != null) {
+                replicator = new Replicator();
+                replicator.setIp(applierMaster.getKey()).setPort(applierMaster.getValue());
+            }
+            return replicator;
+        }
+
+
+        @Override
+        protected void removeRedundantInstance(String registryKey, String clusterId, Instance applier) {
+            String targetMha = RegistryKey.getTargetMha(registryKey);
+            String targetDB = RegistryKey.getTargetDB(registryKey);
+            ApplyMode applyMode = StringUtils.isEmpty(targetDB) ? ApplyMode.transaction_table : ApplyMode.db_transaction_table;
+
+            Applier applierToRemove = new Applier().setIp(applier.getIp()).setPort(applier.getPort()).setMaster(applier.getMaster())
+                    .setTargetMhaName(targetMha).setIncludedDbs(targetDB).setApplyMode(applyMode.getType());
+            removeApplier(clusterId, applierToRemove);
+        }
+
+        @Override
+        protected boolean isDownStreamIpMatch(Replicator replicatorMaster, Db dbMaster, List<ApplierInfoDto> instances) {
+            if (dbMaster == null) {
+                return true;
+            }
+
+            return instances.stream()
+                    .map(ApplierInfoDto::getDbInfo)
+                    .filter(Objects::nonNull)
+                    .allMatch(e -> dbMaster.getIp().equals(e.getIp())
+                            && dbMaster.getPort().equals(e.getPort())
+                            && dbMaster.getUuid().equals(e.getUuid())
+                    );
+        }
+
+        @Override
+        void refreshInstance(String clusterId, Applier master) {
+            instanceStateController.addApplier(clusterId, master);
+        }
+    }
+
+    public ApplierChecker getChecker() {
+        return new ApplierChecker();
     }
 }

@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.applier.container.controller;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
-
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.container.controller.task.AddKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.DeleteKeyedTask;
@@ -10,15 +8,19 @@ import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
-import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * @Author Slight
@@ -88,6 +90,16 @@ public class ApplierServerController {
         } catch (Exception e) {
             logger.error("remove error", e);
             return ApiResult.getFailInstance(false);
+        }
+    }
+
+    @RequestMapping(value = "/info/all", method = RequestMethod.GET)
+    public ApiResult<List<ApplierInfoDto>> info() {
+        try {
+            return ApiResult.getSuccessInstance(serverContainer.getInfo());
+        } catch (Throwable t) {
+            logger.error("get info error", t);
+            return ApiResult.getFailInstance(null);
         }
     }
 

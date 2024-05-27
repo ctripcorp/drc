@@ -1,7 +1,11 @@
 package com.ctrip.framework.drc.manager.ha.meta.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
+import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.utils.MetaClone;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
@@ -9,8 +13,6 @@ import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
-import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
-import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -29,11 +31,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @Author limingdong
@@ -293,6 +297,96 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
+    public Set<Instance> getAllApplierOrMessengerInstances() {
+        Set<Instance> set = new HashSet<>();
+        for (String clusterId : regionCache.getClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            cluster.getAppliers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
+            cluster.getMessengers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
+        }
+        return set;
+    }
+
+    @Override
+    public Set<Instance> getAllReplicatorInstances() {
+        Set<Instance> set = new HashSet<>();
+        for (String clusterId : regionCache.getClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            cluster.getReplicators().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
+        }
+        return set;
+    }
+
+    @Override
+    public Map<String, Map<String, List<Applier>>> getAllMetaAppliers() {
+        Map<String, Map<String, List<Applier>>> map = new HashMap<>();
+        for (String clusterId : allClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            List<Applier> applierList = (List<Applier>) MetaClone.clone(((Serializable) cluster.getAppliers()));
+            Map<String, List<Applier>> appliersGroupByBackupRegistryKey = applierList.stream().collect(Collectors.groupingBy(NameUtils::getApplierBackupRegisterKey));
+            for (Map.Entry<String, List<Applier>> entry : appliersGroupByBackupRegistryKey.entrySet()) {
+                String backupKey = entry.getKey();
+                Applier activeApplier = currentMeta.getActiveApplier(clusterId, backupKey);
+                if (activeApplier != null) {
+                    for (Applier e : entry.getValue()) {
+                        if (activeApplier.equalsWithIpPort(e)) {
+                            e.setMaster(true);
+                            break;
+                        }
+                    }
+                }
+            }
+            map.put(clusterId, appliersGroupByBackupRegistryKey);
+        }
+        return map;
+    }
+
+    @Override
+    public Map<String, Map<String, List<Messenger>>> getAllMetaMessengers() {
+        Map<String, Map<String, List<Messenger>>> map = new HashMap<>();
+        for (String clusterId : allClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            List<Messenger> messengerList = (List<Messenger>) MetaClone.clone(((Serializable) cluster.getMessengers()));
+            Map<String, List<Messenger>> messengersGroupByDbName = messengerList.stream().collect(Collectors.groupingBy(NameUtils::getMessengerDbName));
+            for (Map.Entry<String, List<Messenger>> entry : messengersGroupByDbName.entrySet()) {
+                String dbName = entry.getKey();
+                Messenger activeMessenger = currentMeta.getActiveMessenger(clusterId, dbName);
+                if (activeMessenger != null) {
+                    for (Messenger e : entry.getValue()) {
+                        if (activeMessenger.equalsWithIpPort(e)) {
+                            e.setMaster(true);
+                            break;
+                        }
+                    }
+                }
+            }
+            map.put(clusterId, messengersGroupByDbName);
+        }
+        return map;
+    }
+
+
+    @Override
+    public Map<String, List<Replicator>> getAllMetaReplicator() {
+        Map<String, List<Replicator>> map = new HashMap<>();
+        for (String clusterId : allClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            List<Replicator> replicatorList = (List<Replicator>) MetaClone.clone(((Serializable) cluster.getReplicators()));
+            Replicator activeReplicator = currentMeta.getActiveReplicator(clusterId);
+            if (activeReplicator != null) {
+                for (Replicator e : replicatorList) {
+                    if (activeReplicator.equalsWithIpPort(e)) {
+                        e.setMaster(true);
+                        break;
+                    }
+                }
+            }
+            map.put(clusterId, replicatorList);
+        }
+        return map;
+    }
+
+    @Override
     public List<Applier> getSurviveAppliers(String clusterId, String backupRegistryKey) {
         return currentMeta.getSurviveAppliers(clusterId, backupRegistryKey);
     }
@@ -539,5 +633,10 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
             stateHandlers = Lists.newArrayList();
         }
         stateHandlers.add(handler);
+    }
+
+    @VisibleForTesting
+    protected void setCurrentMeta(CurrentMeta currentMeta) {
+        this.currentMeta = currentMeta;
     }
 }
