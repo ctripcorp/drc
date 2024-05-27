@@ -33,13 +33,10 @@ public class QmqProviderFactory {
         return provider;
     }
 
-    public void create() {
-
-    }
-
     public static void destroy(String topic) {
         if (refCountMap.get(topic).decrementAndGet() == 0) {
             MessageProducerProvider provider = topicToProvide.remove(topic);
+            refCountMap.remove(topic);
             provider.destroy();
             loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
         }
