@@ -111,7 +111,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         ClusterComparatorTest.class,
         ReplicatorComparatorTest.class,
         MessengerComparatorTest.class,
-        ApplierInstanceManagerTest.class
+        ApplierInstanceManagerTest.class,
+        ReplicatorCheckerTest.class
 })
 public class AllTests {
 

@@ -1,11 +1,9 @@
 package com.ctrip.framework.drc.manager.ha.meta.impl;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dc;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
@@ -251,5 +249,88 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
             currentMetaManager.dispose();
         } catch (Exception e) {
         }
+    }
+
+    @Test
+    public void testGetAllApplier(){
+        currentMetaManager = spy(new DefaultCurrentMetaManager());
+        currentMetaManager.setRegionCache(regionMetaCache);
+        CurrentMeta currentMeta = new CurrentMeta();
+        currentMetaManager.setCurrentMeta(currentMeta);
+        String clusterId = CLUSTER_ID;
+
+        when(currentMetaManager.allClusters()).thenReturn(Sets.newHashSet(clusterId));
+        Assert.assertFalse(currentMetaManager.allClusters().isEmpty());
+
+        DbCluster cluster = getCluster("shaoy", clusterId);
+        cluster.getAppliers().get(0).setMaster(true);
+        currentMeta.addCluster(cluster);
+        String applierRegisterKey = NameUtils.getApplierRegisterKey(clusterId, cluster.getAppliers().get(0));
+        String applierBackupRegisterKey = NameUtils.getApplierBackupRegisterKey(cluster.getAppliers().get(0));
+        currentMeta.setSurviveAppliers(clusterId,
+                applierRegisterKey,
+                cluster.getAppliers(), cluster.getAppliers().stream().filter(Applier::getMaster).findFirst().get()
+        );
+        when(regionMetaCache.getCluster(clusterId)).thenReturn(cluster);
+
+        Map<String, Map<String, List<Applier>>> allMetaAppliers = currentMetaManager.getAllMetaAppliers();
+        Assert.assertFalse(allMetaAppliers.isEmpty());
+        List<Applier> appliers = allMetaAppliers.get(clusterId).get(applierBackupRegisterKey);
+        Assert.assertTrue(appliers.stream().anyMatch(Applier::getMaster));
+
+    }
+
+
+    @Test
+    public void testGetAllMessenger(){
+        currentMetaManager = spy(new DefaultCurrentMetaManager());
+        currentMetaManager.setRegionCache(regionMetaCache);
+        CurrentMeta currentMeta = new CurrentMeta();
+        currentMetaManager.setCurrentMeta(currentMeta);
+        String clusterId = CLUSTER_ID;
+
+        when(currentMetaManager.allClusters()).thenReturn(Sets.newHashSet(clusterId));
+        Assert.assertFalse(currentMetaManager.allClusters().isEmpty());
+
+        DbCluster cluster = getCluster("shaoy", clusterId);
+        cluster.getMessengers().get(0).setMaster(true);
+        currentMeta.addCluster(cluster);
+        String registerKey = NameUtils.getMessengerRegisterKey(clusterId, cluster.getMessengers().get(0));
+        currentMeta.setSurviveMessengers(clusterId,
+                registerKey,
+                cluster.getMessengers(), cluster.getMessengers().stream().filter(Messenger::getMaster).findFirst().get()
+        );
+        when(regionMetaCache.getCluster(clusterId)).thenReturn(cluster);
+
+        Map<String, Map<String, List<Messenger>>> allMetaMessengers = currentMetaManager.getAllMetaMessengers();
+        Assert.assertFalse(allMetaMessengers.isEmpty());
+        List<Messenger> messengers = allMetaMessengers.get(clusterId).get(NameUtils.getMessengerDbName(registerKey));
+        Assert.assertTrue(messengers.stream().anyMatch(Messenger::getMaster));
+    }
+    @Test
+    public void testGetAllReplicator(){
+        currentMetaManager = spy(new DefaultCurrentMetaManager());
+        currentMetaManager.setRegionCache(regionMetaCache);
+        CurrentMeta currentMeta = new CurrentMeta();
+        currentMetaManager.setCurrentMeta(currentMeta);
+        String clusterId = CLUSTER_ID;
+
+        when(currentMetaManager.allClusters()).thenReturn(Sets.newHashSet(clusterId));
+        Assert.assertFalse(currentMetaManager.allClusters().isEmpty());
+
+        DbCluster cluster = getCluster("shaoy", clusterId);
+        cluster.getReplicators().get(0).setMaster(true);
+        currentMeta.addCluster(cluster);
+        currentMeta.setSurviveReplicators(clusterId,
+                cluster.getReplicators(),
+                cluster.getReplicators().stream().filter(Replicator::getMaster).findFirst().get()
+        );
+        when(regionMetaCache.getCluster(clusterId)).thenReturn(cluster);
+
+        Map<String, List<Replicator>> allMetaReplicator = currentMetaManager.getAllMetaReplicator();
+        Assert.assertFalse(allMetaReplicator.isEmpty());
+        List<Replicator> replicators = allMetaReplicator.get(clusterId);
+        Assert.assertTrue(replicators.stream().anyMatch(Replicator::getMaster));
+
     }
 }

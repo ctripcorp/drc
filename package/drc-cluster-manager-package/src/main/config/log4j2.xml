@@ -89,6 +89,21 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="RollingFileInfoInquirer" fileName="${baseDir}/inquirer.log"
+                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}.inquirer.log.gz">
+            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="${appName}*.inquirer.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
         <!--META-->
         <RollingFile name="RollingFileMetaDebug" fileName="${baseDir}/meta_debug.log"
                      filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.meta_debug.log.gz">
@@ -170,6 +185,9 @@
         </Logger>
         <Logger name="com.ctrip.framework.drc.manager.healthcheck.notifier" level="info" additivity="false">
             <AppenderRef ref="RollingFileNotifyInfo"/>
+        </Logger>
+        <Logger name="com.ctrip.framework.drc.manager.healthcheck.inquirer" level="info" additivity="false">
+            <AppenderRef ref="RollingFileInfoInquirer"/>
         </Logger>
         <Logger name="com.ctrip.xpipe.concurrent.OneThreadTaskExecutor" level="info" additivity="false">
             <AppenderRef ref="RollingFileNotifyInfo"/>

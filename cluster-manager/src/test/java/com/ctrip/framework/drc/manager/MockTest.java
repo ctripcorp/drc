@@ -60,6 +60,11 @@ public abstract class MockTest {
         return Mockito.any(clazz);
     }
 
+
+    public static <T> T any() {
+        return Mockito.any();
+    }
+
     protected <T> T anyObject() {
         return Mockito.anyObject();
     }

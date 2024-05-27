@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.container.controller.task.AddKeyedTask;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
@@ -99,6 +101,16 @@ public class ReplicatorContainerController {
     public void destroy(@PathVariable String registryKey) {
         logger.info("[Receive][Remove] replicator registryKey {}", registryKey);
         notifyExecutor.execute(registryKey, new DeleteKeyedTask(registryKey, null, serverContainer));
+    }
+
+    @RequestMapping(value = "/info/all", method = RequestMethod.GET)
+    public ApiResult<List<ReplicatorInfoDto>> info() {
+        try {
+            return serverContainer.getInfo();
+        } catch (Throwable t) {
+            logger.error("get info error", t);
+            return ApiResult.getFailInstance(null);
+        }
     }
 
 }

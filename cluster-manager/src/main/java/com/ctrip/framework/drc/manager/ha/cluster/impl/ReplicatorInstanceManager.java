@@ -1,15 +1,21 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
+import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Instance;
 import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ReplicatorComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.tuple.Pair;
+import com.google.common.collect.Lists;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author limingdong
@@ -86,5 +92,68 @@ public class ReplicatorInstanceManager extends AbstractInstanceManager implement
             removeReplicator(clusterId, removed);
 
         }
+    }
+
+    protected class ReplicatorChecker extends InstancePeriodicallyChecker<Replicator, ReplicatorInfoDto> {
+
+        @Override
+        protected Pair<List<String>, List<ReplicatorInfoDto>> fetchInstanceInfo(List<Instance> instances) {
+            return instanceStateController.getReplicatorInfo(instances);
+        }
+
+        @Override
+        protected List<Instance> getAllMeta() {
+            return Lists.newArrayList(currentMetaManager.getAllReplicatorInstances());
+        }
+
+        @Override
+        protected Map<String, List<Replicator>> getMetaGroupByRegistryKeyMap() {
+            return currentMetaManager.getAllMetaReplicator();
+        }
+
+        @Override
+        protected boolean isUpstreamIpMatch(Replicator replicatorMaster, Db dbMaster, List<ReplicatorInfoDto> replicatorInfoDtos) {
+            boolean upstreamMasterMatch = true;
+            if (dbMaster == null || replicatorMaster == null) {
+                return true;
+            }
+            String dbMasterIp = dbMaster.getIp();
+            String replicatorMasterIp = replicatorMaster.getIp();
+            for (ReplicatorInfoDto replicatorInfoDto : replicatorInfoDtos) {
+                String expected = replicatorMasterIp;
+                if (Boolean.TRUE.equals(replicatorInfoDto.getMaster())) {
+                    expected = dbMasterIp;
+                }
+                if (!expected.equals(replicatorInfoDto.getUpstreamMasterIp())) {
+                    return false;
+                }
+            }
+            return upstreamMasterMatch;
+        }
+
+        @Override
+        public String getName() {
+            return "replicator";
+        }
+
+        @Override
+        protected Replicator getReplicatorMaster(String clusterId, List<Replicator> instanceMetas) {
+            return currentMetaManager.getActiveReplicator(clusterId);
+        }
+
+        @Override
+        protected void removeRedundantInstance(String registryKey, String clusterId, Instance replicator) {
+            Replicator replicatorToRemove = new Replicator().setIp(replicator.getIp()).setPort(replicator.getPort()).setMaster(replicator.getMaster());
+            removeReplicator(clusterId, replicatorToRemove);
+        }
+
+        @Override
+        void refreshInstance(String clusterId, Replicator master) {
+            instanceStateController.addReplicator(clusterId, master);
+        }
+    }
+
+    public ReplicatorChecker getChecker() {
+        return new ReplicatorChecker();
     }
 }

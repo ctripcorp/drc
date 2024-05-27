@@ -153,6 +153,9 @@ public class SystemConfig {
     public static final String NOTIFY_LOG = "com.ctrip.framework.drc.manager.healthcheck.notifier";
 
     public static final Logger NOTIFY_LOGGER = LoggerFactory.getLogger(NOTIFY_LOG);
+    public static final String QUERY_INFO_LOG = "com.ctrip.framework.drc.manager.healthcheck.inquirer";
+
+    public static final Logger QUERY_INFO_LOGGER = LoggerFactory.getLogger(QUERY_INFO_LOG);
 
     public static final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
