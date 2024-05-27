@@ -12,6 +12,7 @@ import muise.ctrip.canal.DataChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
+import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
 import java.util.ArrayList;
@@ -19,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by jixinwang on 2022/10/17
@@ -34,6 +34,8 @@ public class QmqProducer extends AbstractProducer {
 
     private MessageProducerProvider provider;
 
+    private final boolean persist;
+
     private final String topic;
 
     private long delayTime;
@@ -42,32 +44,22 @@ public class QmqProducer extends AbstractProducer {
 
     private String orderKey;
 
-    private AtomicInteger refCount;
-
     public QmqProducer(MqConfig mqConfig) {
+        this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
-        this.refCount = new AtomicInteger(1);
-        initProvider();
+        init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
     }
 
-    @Override
-    public void increaseRefCount() {
-        this.refCount.incrementAndGet();
-    }
-
-    @Override
-    public int getRefCount() {
-        return this.refCount.get();
-    }
-
-    private void initProvider() {
-        provider = new MessageProducerProvider();
-        provider.init();
+    private void init(boolean persist, String dalClusterKey) {
+        provider = QmqProviderFactory.createProvider(topic);
+        if (persist) {
+            provider.setTransactionProvider(new DalTransactionProvider(dalClusterKey));
+        }
     }
 
     @Override
@@ -92,6 +84,9 @@ public class QmqProducer extends AbstractProducer {
         message.addTag(dc);
         jsonObject.put("dc", dc);
 
+        if (persist) {
+            message.setStoreAtFailed(true);
+        }
         if (delayTime > 0) {
             message.setDelayTime(delayTime, TimeUnit.SECONDS);
         }
@@ -145,9 +140,6 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void destroy() {
-        if (this.refCount.decrementAndGet() == 0) {
-            provider.destroy();
-            loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
-        }
+        QmqProviderFactory.destroy(topic);
     }
 }

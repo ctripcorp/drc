@@ -10,8 +10,4 @@ public interface Producer {
     void send(List<EventData> eventDatas);
 
     void destroy();
-
-    void increaseRefCount();
-
-    int getRefCount();
 }

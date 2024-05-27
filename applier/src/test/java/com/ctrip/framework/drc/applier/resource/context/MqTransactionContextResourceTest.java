@@ -153,15 +153,5 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         public void destroy() {
 
         }
-
-        @Override
-        public void increaseRefCount() {
-
-        }
-
-        @Override
-        public int getRefCount() {
-            return 0;
-        }
     }
 }
