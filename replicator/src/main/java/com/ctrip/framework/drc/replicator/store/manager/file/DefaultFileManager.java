@@ -59,7 +59,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private static final int PURGE_FILE_PERIOD_MIN = 15;
 
-    private static long PREVIOUS_GTID_BULK = 50 * 1024 * 1024;
+    public static long PREVIOUS_GTID_BULK = 50 * 1024 * 1024;
 
     public static final String LOG_PATH = System.getProperty(SystemConfig.KEY_REPLICATOR_PATH, SystemConfig.REPLICATOR_PATH);
 
@@ -654,7 +654,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             if (append) {  //new file and append DrcIndexLogEvent
                 doWriteLogEvent(indicesEventManager.createIndexEvent(logChannel.position()));
             } else {
-                if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesEventManager.getIndicesSize() && !inBigTransaction) {
+                if (!bigTransaction && !inBigTransaction && indicesEventManager.shouldAddIndexEvent(position)) {
                     writePreviousGtid();
                     DrcIndexLogEvent indexLogEvent = indicesEventManager.updateIndexEvent(position);
 

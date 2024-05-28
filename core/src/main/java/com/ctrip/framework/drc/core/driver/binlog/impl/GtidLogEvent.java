@@ -67,7 +67,7 @@ public class GtidLogEvent extends AbstractLogEvent {
             nextTransactionOffset = payloadBuf.readUnsignedIntLE();
         }
 
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

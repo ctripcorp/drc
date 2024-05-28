@@ -54,7 +54,7 @@ public class FormatDescriptionLogEvent extends AbstractLogEvent {
             eventPostHeaderLengths[i] = payloadBuf.readUnsignedByte();
         }
 
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
 
         validate();
         return this;

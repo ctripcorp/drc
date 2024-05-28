@@ -211,7 +211,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             rows.add(row);
         }
         this.rows = rows;
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
     }
 
     public static BigDecimal readAsBigDecimal(byte[] decimalBytes, int precision, int scale) {

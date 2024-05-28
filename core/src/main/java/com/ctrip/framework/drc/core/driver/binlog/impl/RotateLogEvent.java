@@ -36,7 +36,7 @@ public class RotateLogEvent extends AbstractLogEvent {
         payloadBuf.readBytes(binlogNameBytes, 0, binlogNameLength);
         this.nextBinlogName = new String(binlogNameBytes, ISO_8859_1); // fix length
 
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

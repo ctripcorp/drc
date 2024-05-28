@@ -245,7 +245,7 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
             // extra data, include charset... mysql version 8.0.1+
         }
 
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

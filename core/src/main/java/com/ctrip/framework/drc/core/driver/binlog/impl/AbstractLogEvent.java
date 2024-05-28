@@ -17,6 +17,7 @@ import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.NULL_TERMINATED_STRING_DELIMITER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 /**
@@ -25,6 +26,9 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
  * Sep 01, 2019
  */
 public abstract class AbstractLogEvent implements LogEvent {
+
+
+    private static final int CHECKSUM_BYTE_LENGTH = 4;
 
     private LogEventHeader logEventHeader;
 
@@ -232,6 +236,23 @@ public abstract class AbstractLogEvent implements LogEvent {
     }
 
     protected boolean hasRemaining(final ByteBuf payloadBuf) {
-        return payloadBuf.readableBytes() > 4; // 4 is checksum length
+        return payloadBuf.readableBytes() > CHECKSUM_BYTE_LENGTH; // 4 is checksum length
+    }
+
+    /**
+     * why: ali rds binlog event MAY NOT have checksum
+     * <p>
+     * background: ali rds mysql introduces some feature to optimize writing binlog for large transaction commits,
+     * result in events with no checksum and an extra ignorable event
+     *
+     * @see <a href="https://help.aliyun.com/zh/rds/apsaradb-rds-for-mysql/binlog-cache-free-flush">Binlog Cache Free Flush</a>
+     */
+    protected long readChecksumIfPossible(ByteBuf payloadBuf) {
+        if (payloadBuf.readableBytes() >= CHECKSUM_BYTE_LENGTH) { // 4 is checksum length
+            return payloadBuf.readUnsignedIntLE();
+        } else {
+            HEARTBEAT_LOGGER.debug("event skip parse checksum: {}", getClass());
+            return 0;
+        }
     }
 }
