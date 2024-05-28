@@ -85,7 +85,7 @@ public class PreviousGtidsLogEvent extends AbstractLogEvent {
             uuidSets.put(uuid, new GtidSet.UUIDSet(uuid, intervals));
         }
         this.gtidSet = new GtidSet(uuidSets);
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

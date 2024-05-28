@@ -38,7 +38,7 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         FlagFilter flagFilter = new FlagFilter();
         transactionMonitorFilter.setSuccessor(flagFilter);
 
-        EventTypeFilter eventTypeFilter = new EventTypeFilter();
+        EventTypeFilter eventTypeFilter = new EventTypeFilter(context.getRegistryKey());
         flagFilter.setSuccessor(eventTypeFilter);
 
         Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode()

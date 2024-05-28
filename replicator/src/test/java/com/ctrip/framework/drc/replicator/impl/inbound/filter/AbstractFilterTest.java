@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
+import com.ctrip.framework.drc.core.driver.binlog.impl.DrcUnknownEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import com.ctrip.framework.drc.replicator.MockTest;
@@ -24,6 +25,9 @@ public abstract class AbstractFilterTest extends MockTest {
 
     @Mock
     protected XidLogEvent xidLogEvent;
+
+    @Mock
+    protected DrcUnknownEvent drcUnknownEvent;
 
     @Mock
     protected LogEventCallBack callBack;

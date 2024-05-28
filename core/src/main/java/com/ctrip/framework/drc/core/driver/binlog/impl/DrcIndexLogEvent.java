@@ -47,7 +47,7 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
         int padding = FIX_SIZE - (eventHeaderLengthVersionGt1 + payloadLength);
 
         if (padding < 0) {
-            throw new RuntimeException("indices overflow");
+            throw new RuntimeException("indices overflow. payloadLength: " + payloadLength);
         }
 
         setLogEventHeader(new LogEventHeader(drc_index_log_event.getType(), serverId, FIX_SIZE, currentEventStartPosition + FIX_SIZE, LOG_EVENT_IGNORABLE_F));

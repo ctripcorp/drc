@@ -71,7 +71,7 @@ public class QueryLogEvent extends AbstractLogEvent {
             this.query = readFixLengthStringDefaultCharset(payloadBuf, queryLength);
         }
 
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes;
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 
