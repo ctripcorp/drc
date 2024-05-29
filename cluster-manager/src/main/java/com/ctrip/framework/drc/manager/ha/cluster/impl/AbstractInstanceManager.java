@@ -124,20 +124,20 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
                     if (instanceMatch && downStreamIpMatch && upstreamIpMatch) {
                         continue;
                     }
-                    QUERY_INFO_LOGGER.info("{}: [refresh {}] masterMatch:{}, ipMatch:{}, \n" +
+                    QUERY_INFO_LOGGER.info("{}: [refresh {}] instanceMatch:{}, upstreamIpMatch:{}, downStreamIpMatch:{}, \n" +
                             "expected: {}, \n" +
-                            "current : {}", getName(), registryKey, upstreamIpMatch, instanceMatch, expected, current);
+                            "current : {}", getName(), registryKey, instanceMatch, upstreamIpMatch, downStreamIpMatch, expected, current);
                     // refresh instancesMetaList if not consistent
                     if (clusterManagerConfig.getPeriodCorrectSwitch()) {
                         // do refresh
-                        Optional<M> optionalMaster = metas.stream().filter(M::getMaster).findFirst();
-                        if (optionalMaster.isPresent()) {
-                            M instance = optionalMaster.get();
-                            refreshInstance(clusterId, instance);
-                            EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.refresh.%s", getName()), registryKey);
-                        } else {
+                        List<M> master = metas.stream().filter(M::getMaster).collect(Collectors.toList());
+                        if (CollectionUtils.isEmpty(master) || master.size() != 1) {
+                            QUERY_INFO_LOGGER.info("{}: [refresh {}] fail", getName(), registryKey);
                             EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.refresh.%s.fail", getName()), registryKey);
+                            continue;
                         }
+                        refreshInstance(clusterId, master.get(0));
+                        EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.refresh.%s", getName()), registryKey);
                     } else {
                         EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.refresh.%s.mock", getName()), registryKey);
                     }

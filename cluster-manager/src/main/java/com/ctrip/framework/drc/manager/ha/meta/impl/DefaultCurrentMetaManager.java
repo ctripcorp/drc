@@ -326,15 +326,9 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
             Map<String, List<Applier>> appliersGroupByBackupRegistryKey = applierList.stream().collect(Collectors.groupingBy(NameUtils::getApplierBackupRegisterKey));
             for (Map.Entry<String, List<Applier>> entry : appliersGroupByBackupRegistryKey.entrySet()) {
                 String backupKey = entry.getKey();
+                List<Applier> appliers = entry.getValue();
                 Applier activeApplier = currentMeta.getActiveApplier(clusterId, backupKey);
-                if (activeApplier != null) {
-                    for (Applier e : entry.getValue()) {
-                        if (activeApplier.equalsWithIpPort(e)) {
-                            e.setMaster(true);
-                            break;
-                        }
-                    }
-                }
+                setMaster(appliers, activeApplier);
             }
             map.put(clusterId, appliersGroupByBackupRegistryKey);
         }
@@ -350,15 +344,9 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
             Map<String, List<Messenger>> messengersGroupByDbName = messengerList.stream().collect(Collectors.groupingBy(NameUtils::getMessengerDbName));
             for (Map.Entry<String, List<Messenger>> entry : messengersGroupByDbName.entrySet()) {
                 String dbName = entry.getKey();
+                List<Messenger> messengers = entry.getValue();
                 Messenger activeMessenger = currentMeta.getActiveMessenger(clusterId, dbName);
-                if (activeMessenger != null) {
-                    for (Messenger e : entry.getValue()) {
-                        if (activeMessenger.equalsWithIpPort(e)) {
-                            e.setMaster(true);
-                            break;
-                        }
-                    }
-                }
+                setMaster(messengers, activeMessenger);
             }
             map.put(clusterId, messengersGroupByDbName);
         }
@@ -373,17 +361,18 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
             DbCluster cluster = regionCache.getCluster(clusterId);
             List<Replicator> replicatorList = (List<Replicator>) MetaClone.clone(((Serializable) cluster.getReplicators()));
             Replicator activeReplicator = currentMeta.getActiveReplicator(clusterId);
-            if (activeReplicator != null) {
-                for (Replicator e : replicatorList) {
-                    if (activeReplicator.equalsWithIpPort(e)) {
-                        e.setMaster(true);
-                        break;
-                    }
-                }
-            }
+            setMaster(replicatorList, activeReplicator);
             map.put(clusterId, replicatorList);
         }
         return map;
+    }
+
+    private void setMaster(List<? extends Instance> instances, Instance activeInstance) {
+        if (activeInstance != null) {
+            instances.forEach(e -> e.setMaster(activeInstance.equalsWithIpPort(e)));
+        } else {
+            instances.forEach(e -> e.setMaster(false));
+        }
     }
 
     @Override
