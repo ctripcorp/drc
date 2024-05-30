@@ -28,6 +28,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.util.Attribute;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -349,6 +350,20 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
+
+    @Test
+    public void test_14_replicatorSlaveRequestBinlog() throws Exception {
+        createMultiUuidsFiles_2();
+        // file 01->03->05,skip file 02,04
+        GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1500:1502-2020,c372080a-1804-11ea-8add-98039bbedfad:1-16000:16002-16500");
+        when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
+
+        applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
+        Thread.sleep(250);
+        verify(channel, Mockito.atLeast(3)).writeAndFlush(any(DefaultFileRegion.class)); // send 3 files
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
+    }
+
     // send 123(tableId) -> db1.table1(tableName), skip 124(tableId) -> db1.table2(tableName)
     @Test
     public void test_15_nameFilter() throws Exception {
@@ -480,6 +495,44 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         fileManager.rollLog();
         byteBuf.release();
     }
+
+
+
+    public void createMultiUuidsFiles_2() throws Exception {
+        File logDir = fileManager.getDataDir();
+        deleteFiles(logDir);
+        gtidManager.updateExecutedGtids(new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1500,c372080a-1804-11ea-8add-98039bbedfad:1-15000"));
+        ByteBuf byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        fileManager.rollLog();
+        byteBuf.release();
+
+        gtidManager.updateExecutedGtids(new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1550,c372080a-1804-11ea-8add-98039bbedfad:1-15000"));
+        byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        fileManager.rollLog();
+        byteBuf.release();
+
+        gtidManager.updateExecutedGtids(new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2020,c372080a-1804-11ea-8add-98039bbedfad:1-16000"));
+        byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        fileManager.rollLog();
+        byteBuf.release();
+
+        gtidManager.updateExecutedGtids(new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2020,c372080a-1804-11ea-8add-98039bbedfad:1-16500"));
+        byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        fileManager.rollLog();
+        byteBuf.release();
+
+        gtidManager.updateExecutedGtids(new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2020,c372080a-1804-11ea-8add-98039bbedfad:1-18000"));
+        byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        fileManager.rollLog();
+        byteBuf.release();
+    }
+    
+    
 
     public void createDrcTableMapLogEventFiles() throws Exception {
         File logDir = fileManager.getDataDir();

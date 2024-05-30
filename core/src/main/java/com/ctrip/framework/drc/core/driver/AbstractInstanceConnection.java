@@ -51,6 +51,7 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
             Futures.addCallback(listenableFuture, new FutureCallback<>() {
                 @Override
                 public void onSuccess(SimpleObjectPool<NettyClient> result) {
+                    afterReconnection(result);
                     doWithSimpleObjectPool(result, callBack, reconnection_code);
                 }
 

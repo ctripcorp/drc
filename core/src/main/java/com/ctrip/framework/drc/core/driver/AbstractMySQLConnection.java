@@ -3,8 +3,10 @@ package com.ctrip.framework.drc.core.driver;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
+import com.ctrip.xpipe.netty.commands.NettyClient;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -54,6 +56,10 @@ public abstract class AbstractMySQLConnection extends AbstractLifecycle implemen
 
     @Override
     public void preDump() throws Exception{
+
+    }
+
+    public void afterReconnection(SimpleObjectPool<NettyClient> result) {
 
     }
 

@@ -428,7 +428,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     private List<QmqBuEntity> getBuEntitiesFromQmq() throws Exception {
         String qmqBuListUrl = domainConfig.getQmqBuListUrl();
-        QmqBuList response = HttpUtils.post(qmqBuListUrl, null, QmqBuList.class);
+        QmqBuList response = HttpUtils.post(qmqBuListUrl, getQmqApiHeader(), null, QmqBuList.class);
         return response.getData();
     }
 
@@ -991,7 +991,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         requestBody.put("bu", dto.getBu());
         requestBody.put("creator", "drc");
         requestBody.put("emailGroup", "rdkjdrc@Ctrip.com");
-        QmqApiResponse response = HttpUtils.post(topicApplicationUrl, requestBody, QmqApiResponse.class);
+        QmqApiResponse response = HttpUtils.post(topicApplicationUrl, getQmqApiHeader(),requestBody, QmqApiResponse.class);
 
         if (response.getStatus() == 0) {
             logger.info("[[tag=qmqInit]] init qmq topic success,topic:{}", dto.getTopic());
@@ -1023,7 +1023,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         requestBody.put("creator", "drc");
         requestBody.put("remark", "binlog_dataChange_message");
 
-        QmqApiResponse response = HttpUtils.post(producerApplicationUrl, requestBody, QmqApiResponse.class);
+        QmqApiResponse response = HttpUtils.post(producerApplicationUrl, getQmqApiHeader(), requestBody, QmqApiResponse.class);
         if (response.getStatus() == 0) {
             logger.info("[[tag=qmqInit]] init qmq producer success,topic:{}", dto.getTopic());
         } else if (StringUtils.isNotBlank(response.getStatusMsg())
@@ -1034,6 +1034,12 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             return false;
         }
         return true;
+    }
+
+    private Map<String, String> getQmqApiHeader() {
+        Map<String,String> header = new HashMap<>();
+        header.put("ApiToken", domainConfig.getQmqApiToken());
+        return header;
     }
 
 
