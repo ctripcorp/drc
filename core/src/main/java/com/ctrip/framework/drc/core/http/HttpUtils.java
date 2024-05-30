@@ -52,11 +52,16 @@ public class HttpUtils {
                     DEFAULT_RETRY_TIMES,
                     RetryPolicyFactories.newRestOperationsRetryPolicyFactory(DEFAULT_RETRY_INTERVAL_MILLI));
         }
-        if(null == headers) {
-            headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        if (null == headers) {
+            headers = defaultHttpHeaders();
         }
+    }
+
+    private static HttpHeaders defaultHttpHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        return headers;
     }
 
     public static ApiResult get(String url) throws Exception {
@@ -99,6 +104,15 @@ public class HttpUtils {
     public static <T> T post(String url, Object body, Class<T> clazz) {
         init();
         HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz);
+        return response.getBody();
+    }
+
+    public static <T> T post(String url, Map<String, String> header, Object body, Class<T> clazz) {
+        init();
+        HttpHeaders httpHeaders = defaultHttpHeaders();
+        header.forEach(httpHeaders::add);
+        HttpEntity<Object> entity = new HttpEntity<Object>(body, httpHeaders);
         ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz);
         return response.getBody();
     }

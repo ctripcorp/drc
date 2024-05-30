@@ -35,6 +35,8 @@ public interface FileManager extends GtidReader, GtidObservable, Flushable, Dest
     File getFirstLogFile();
 
     File getNextLogFile(File current);
+    
+    GtidSet getPreviousGtids(File current);
 
     boolean gtidExecuted(File currentFile, GtidSet executedGtid);
 
