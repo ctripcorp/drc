@@ -71,7 +71,7 @@ public class ReplicatorByteBufConverter extends AbstractByteBufConverter {
                 logEvent =  new DrcDdlLogEvent();
                 break;
             default:
-                return null;
+                logEvent = new DrcUnknownEvent();
         }
 
         return logEvent;

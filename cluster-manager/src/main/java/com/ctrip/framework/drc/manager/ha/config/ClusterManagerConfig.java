@@ -49,4 +49,9 @@ public interface ClusterManagerConfig extends ZkConfig {
     boolean validateDomain();
 
     int getCheckInterval();
+
+    boolean getPeriodCheckSwitch();
+
+    boolean getPeriodCorrectSwitch();
+
 }

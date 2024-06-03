@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -67,6 +68,7 @@ public class ReplicatorInstanceElectorManager extends AbstractInstanceElectorMan
                         survivalReplicators.add(replicator);
                         logger.info("[Survive] replicator {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
                     } else {
+                        EventMonitor.DEFAULT.logEvent("drc.cm.replicator.redundant", clusterId + ":" + zookeeperValue.getIp());
                         logger.info("[Survive] replicator null for {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
                     }
                     break;

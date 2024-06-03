@@ -78,6 +78,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_FAT_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/19049";
 
     private static final String QMQ_APPLICATION_URL = "qmq.application.url";
+    private static final String QMQ_API_TOKEN_KEY = "qmq.http.api.token";
     private static final String TOPIC_SUFFIX = "/api/subject/save";
     private static final String PRODUCER_SUFFIX = "/api/producer/save";
     private static final String BU_SUFFIX = "/api/producer/getBuList";
@@ -281,6 +282,10 @@ public class DomainConfig extends AbstractConfigBean {
         String mapString = getProperty(DC_QCONFIG_SUBENV_MAP, "{}");
         return JsonCodec.INSTANCE.decode(mapString, new GenericTypeReference<Map<String, String>>() {
         });
+    }
+
+    public String getQmqApiToken(){
+        return getProperty(QMQ_API_TOKEN_KEY, "");
     }
 
     public String getQConfigRestApiUrl() {

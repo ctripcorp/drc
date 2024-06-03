@@ -201,6 +201,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private Filter<OutboundLogEventContext> filterChain;
 
         private OutboundLogEventContext outboundContext = new OutboundLogEventContext();
+        
+        private GtidSet gtidAlreadySent = new GtidSet("");
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
@@ -362,6 +364,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         public void run() {
             try {
                 GtidSet excludedSet = dumpCommandPacket.getGtidSet();
+                gtidAlreadySent = gtidAlreadySent.union(excludedSet);
                 addListener();
                 File file = firstFileToSend();
                 if (file == null) {
@@ -384,14 +387,15 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                         logger.info("[Send] binlog error for {}", applierName);
                         return;
                     }
-
+                    
                     // 4、get next file
                     do {
                         String previousFileName = file.getName();
                         file = fileManager.getNextLogFile(file);
+                        recordGtidSent(file);
                         String currentFileName = file.getName();
                         logger.info("[Transfer] binlog file from {} to {} for {}", previousFileName, currentFileName, applierName);
-                    } while (fileManager.gtidExecuted(file, excludedSet));
+                    } while (fileManager.gtidExecuted(file, gtidAlreadySent));
                 }
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
@@ -401,7 +405,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 filterChain.release();
             }
         }
-
+        
+        private void recordGtidSent(File nextFile) {
+            GtidSet nextFilepreviousGtids = fileManager.getPreviousGtids(nextFile);
+            gtidAlreadySent = gtidAlreadySent.union(nextFilepreviousGtids);
+            logger.info("[GtidSet] {} has been sent for {}", nextFilepreviousGtids, applierName);
+        }
+        
         private void checkFileGaps(File file) {
             try {
                 File currentFile = fileManager.getCurrentLogFile();

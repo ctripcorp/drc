@@ -125,7 +125,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         when(domainConfig.getQmqBuListUrl()).thenReturn("something");
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
-            mocked.when(() -> HttpUtils.post(anyString(), any(), any())).thenReturn(response);
+            mocked.when(() -> HttpUtils.post(any(), any(Map.class), any(), any(Class.class))).thenReturn(response);
             List<String> result = messengerServiceV2Impl.getBusFromQmq();
             Assert.assertEquals(buStrings, result);
         }
@@ -382,7 +382,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db1\\.(table1|table2)")).thenReturn(Lists.newArrayList("db1.table1", "db1.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
-            mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
+            mocked.when(() -> HttpUtils.post(any(), any(Map.class), any(), any(Class.class))).thenReturn(response);
             MqConfigDto dto = new MqConfigDto();
             dto.setMhaName("mha1");
             dto.setMqType("qmq");
@@ -406,7 +406,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3.table1", "db3.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
-            mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
+            mocked.when(() -> HttpUtils.post(any(), any(Map.class), any(), any(Class.class))).thenReturn(response);
             MqConfigDto dto = new MqConfigDto();
             dto.setMhaName("mha2");
             dto.setMqType("qmq");
@@ -430,7 +430,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db2\\.(table1|table2)")).thenReturn(Lists.newArrayList("db2.table1", "db2.table2"));
         when(dbClusterService.getDalClusterName(any(), any())).thenReturn("dalcluster");
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
-            mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
+            mocked.when(() -> HttpUtils.post(any(), any(Map.class), any(), any(Class.class))).thenReturn(response);
             MqConfigDto dto = new MqConfigDto();
             dto.setMhaName("mha2");
             dto.setTable("db2\\.(table1|table2)");

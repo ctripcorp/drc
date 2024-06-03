@@ -9,10 +9,12 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.DrcServer;
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.replicator.ReplicatorContainerApplication;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
+import com.ctrip.framework.drc.replicator.impl.DefaultReplicatorServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
@@ -30,9 +32,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.PORT_ALREADY_EXIST;
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.SERVER_ALREADY_EXIST;
@@ -177,11 +178,11 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
     @Override
     public synchronized ApiResult register(String registryKey, int port) {
         try {
-            if(zkLeaderElectors.get(registryKey) != null) {
+            if (zkLeaderElectors.get(registryKey) != null) {
                 logger.info("[zkLeaderElectors] {} error, already elect leader", registryKey);
                 return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
             }
-            if(drcServers.get(registryKey) != null){
+            if (drcServers.get(registryKey) != null) {
                 logger.info("[Register] {} error, already cached in drcServers", registryKey);
                 return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
             }
@@ -255,5 +256,15 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
         public Logger getLogger() {
             return logger;
         }
+    }
+
+    @Override
+    public ApiResult getInfo() {
+        List<ReplicatorInfoDto> ret = drcServers.values().stream()
+                .map(DefaultReplicatorServer.class::cast)
+                .map(DefaultReplicatorServer::info)
+                .collect(Collectors.toList());
+        return ApiResult.getSuccessInstance(ret);
+
     }
 }

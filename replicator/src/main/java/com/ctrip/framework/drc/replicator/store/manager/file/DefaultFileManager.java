@@ -31,6 +31,7 @@ import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,7 +60,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private static final int PURGE_FILE_PERIOD_MIN = 15;
 
-    private static long PREVIOUS_GTID_BULK = 50 * 1024 * 1024;
+    public static long PREVIOUS_GTID_BULK = 50 * 1024 * 1024;
 
     public static final String LOG_PATH = System.getProperty(SystemConfig.KEY_REPLICATOR_PATH, SystemConfig.REPLICATOR_PATH);
 
@@ -78,7 +79,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      */
     public static long BINLOG_SIZE_LIMIT = 1024 * 1024 * 512;
 
-    public static long BINLOG_PURGE_SCALE_OUT = 200;
+    public static long BINLOG_PURGE_SCALE_OUT = 80;
 
     private File logDir;
 
@@ -248,6 +249,12 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     }
 
     @Override
+    public GtidSet getPreviousGtids(File current) {
+        return doGetGtids(current, false);
+    }
+    
+
+    @Override
     public boolean gtidExecuted(File currentFile, GtidSet executedGtid) {
         try {
             File nextFile = getNextLogFile(currentFile);
@@ -257,10 +264,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             GtidSet currentExecutedGtidSet = doGetGtids(currentFile, false);
             GtidSet nextExecutedGtidSet = doGetGtids(nextFile, false);
             GtidSet executedGtidInCurrentFile = nextExecutedGtidSet.subtract(currentExecutedGtidSet);
-            logger.info("executedGtidInCurrentFile {}, executedGtid {} for current file {}", executedGtidInCurrentFile, executedGtid, currentFile.getName());
-            executedGtidInCurrentFile = executedGtidInCurrentFile.getIntersectionUUIDs(executedGtid);
-            logger.info("filtered executedGtidInCurrentFile {}, executedGtid {} for current file {}", executedGtidInCurrentFile, executedGtid, currentFile.getName());
-            return executedGtidInCurrentFile.isContainedWithin(executedGtid);
+            boolean skip = executedGtidInCurrentFile.isContainedWithin(executedGtid);
+            logger.info("skip:{},current file {}, executedGtidInCurrentFile {}, executedGtid {} for ",skip, currentFile.getName(), executedGtidInCurrentFile, executedGtid);
+            return skip;
         } catch (Throwable t) {
             logger.error("gtidExecuted error", t);
             return false;
@@ -573,7 +579,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         logChannel.write(ByteBuffer.wrap(fileHeaderBytes));
         writeFormatDescriptionLogEvent();
         indicesEventManager = new IndicesEventManager(logChannel.position(), registryKey, logFileWrite.getName());
-        writePreviousGtid();
+        writePreviousGtid(true);
         writeSchema();
         writeUuids();
         checkIndices(true, false);
@@ -600,14 +606,31 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         }
     }
 
-    private void writePreviousGtid() {
+    private void writePreviousGtid(boolean checkGap) {
         try {
             GtidSet gtidSet = gtidManager.getExecutedGtids();
             logger.info("[Generate] executed gtid {}", gtidSet.toString());
+            if (checkGap) {
+                checkGtidGap(gtidSet);
+            }
             PreviousGtidsLogEvent gtidsLogEvent = new PreviousGtidsLogEvent(0, logChannel.position(), gtidSet);
             doWriteLogEvent(gtidsLogEvent);
         } catch (Exception e) {
             logger.error("writePreviousGtid error", e);
+        }
+    }
+
+    // fail-safe
+    private void checkGtidGap(GtidSet gtidSet) {
+        try {
+            GtidSet gapSet = gtidSet.findFirstGap();
+            if (CollectionUtils.isEmpty(gapSet.getUUIDs())) {
+                return;
+            }
+            logger.warn("checkGtidGap for {},res:{}", registryKey, gapSet.toString());
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.Replicator.gtidGap", registryKey);
+        } catch (Throwable e) {
+            logger.warn("checkGtidGap error",e);
         }
     }
 
@@ -654,8 +677,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             if (append) {  //new file and append DrcIndexLogEvent
                 doWriteLogEvent(indicesEventManager.createIndexEvent(logChannel.position()));
             } else {
-                if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesEventManager.getIndicesSize() && !inBigTransaction) {
-                    writePreviousGtid();
+                if (!bigTransaction && !inBigTransaction && indicesEventManager.shouldAddIndexEvent(position)) {
+                    writePreviousGtid(false);
                     DrcIndexLogEvent indexLogEvent = indicesEventManager.updateIndexEvent(position);
 
                     long indexEventPosition = indicesEventManager.getIndexEventPosition();

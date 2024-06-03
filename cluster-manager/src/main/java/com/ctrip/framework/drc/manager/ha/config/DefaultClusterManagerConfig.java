@@ -34,6 +34,8 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_REALTIME_META_INFO = "drc.realtime.meta.info";
     public static String KEY_CHECK_APPLIER_PROPERTY = "check.applier.property";
     public static String KEY_REFRESH_WHEN_CONSOLE_INVOKE = "refresh.when.console.invoke";
+    public static String KEY_PERIOD_META_CHECK = "period.meta.consistency.check";
+    public static String KEY_PERIOD_META_CORRECT = "period.meta.consistency.correct";
 
 
 
@@ -189,6 +191,16 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public boolean validateDomain() {
         return getBooleanProperty(KEY_VALIDATE_DOMAIN, true);
+    }
+
+    @Override
+    public boolean getPeriodCheckSwitch() {
+        return getBooleanProperty(KEY_PERIOD_META_CHECK, false);
+    }
+
+    @Override
+    public boolean getPeriodCorrectSwitch() {
+        return getBooleanProperty(KEY_PERIOD_META_CORRECT, false);
     }
 
     @Override
