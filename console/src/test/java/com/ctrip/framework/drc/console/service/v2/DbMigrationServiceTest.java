@@ -1,21 +1,51 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getApplierGroupTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getApplierTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDbReplicationTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDbTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDcTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getFilterMappings;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMessenger;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMessengerGroup;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaDbMappingTbls2;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaDbMappingTbls3;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaReplicationTbl;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaTblV2s;
+
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.MigrationTaskTblDao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImpl;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaReplicationServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
@@ -28,17 +58,23 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
-
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 /**
  * Created by dengquanliang
@@ -68,8 +104,6 @@ public class DbMigrationServiceTest {
     private MessengerGroupTblDao messengerGroupTblDao;
     @Mock
     private MessengerTblDao messengerTblDao;
-    @Mock
-    private MetaGeneratorV3 metaGeneratorV3;
     @Mock
     private DcTblDao dcTblDao;
     @Mock
@@ -257,7 +291,6 @@ public class DbMigrationServiceTest {
 
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(mhaTblV2s.get(0));
         Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
-        Mockito.when(metaGeneratorV3.getDrc()).thenReturn(getDrc());
         Map<String, String> urlMap = new HashMap<>();
         urlMap.put("sha", "url");
         Mockito.when(regionConfig.getCMRegionUrls()).thenReturn(urlMap);

@@ -10,6 +10,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.param.v2.GtidCompensateParam;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,6 +33,8 @@ public class OpsController {
     private RowsFilterServiceV2 rowsFilterServiceV2;
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private AccountService accountService;
     
     @GetMapping("migrate/sgp/rowsFilter")
     public ApiResult getRowsFilterIdsShouldMigrateToSGP(@RequestParam String srcRegion) {
@@ -61,6 +64,17 @@ public class OpsController {
             return  ApiResult.getSuccessInstance(drcBuildServiceV2.compensateGtidGap(gtidCompensateParam));
         } catch (Exception e) {
             logger.error("gapCompensate error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    
+    @PostMapping("account/passwordToken")
+    public ApiResult initMhaPasswordToken(@RequestBody List<String> mhas) {
+        try {
+            Pair<Boolean, Integer> result = accountService.initMhaPasswordToken(mhas);
+            return ApiResult.getSuccessInstance(result, "init mha password token success");
+        } catch (Exception e) {
+            logger.error("initMhaPasswordToken error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

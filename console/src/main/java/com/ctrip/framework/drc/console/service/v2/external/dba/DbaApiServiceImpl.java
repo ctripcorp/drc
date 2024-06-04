@@ -226,6 +226,11 @@ public class DbaApiServiceImpl implements DbaApiService {
             return true;
         }
     }
-    
-    
+
+    @Override
+    public void changePassword(String mhaName, String userName, String newPassword) {
+    }
+
+
+
 }

@@ -1164,6 +1164,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     private MachineTbl extractFrom(MachineDto machineDto, Long mhaId) throws Exception {
         boolean isMaster = Boolean.TRUE.equals(machineDto.getMaster());
+        // todo hdpan acc 
         String uuid = MySqlUtils.getUuid(machineDto.getIp(), machineDto.getPort(),
                 monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(),
                 isMaster);
@@ -1183,6 +1184,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         boolean isMaster = memberInfo.getRole().toLowerCase().contains("master");
         String uuid = null;
         try {
+            // todo hdpan acc 
             uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorTableSourceProvider.getMonitorUserVal(),
                     monitorTableSourceProvider.getMonitorPasswordVal(), isMaster);
         } catch (Exception e) {
@@ -1713,6 +1715,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setDeleted(BooleanEnum.FALSE.getCode());
         mhaTblV2.setTag(tag);
 
+        // todo hdpan no acc info in meta db now,
+        // get default new account from kms
+        // change password
+        // set default account and new password
         mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
         mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
         mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());

@@ -66,6 +66,7 @@
         <!-- mysql connector -->
         <mysql-connector.version>5.1.48</mysql-connector.version>
         <kafka-clients.version>2.0.1</kafka-clients.version>
+        <herlder-token.version>1.5.0</herlder-token.version>
     </properties>
 
     <dependencyManagement>

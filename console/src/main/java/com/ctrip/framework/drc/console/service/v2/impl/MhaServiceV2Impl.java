@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -18,12 +19,14 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -111,6 +114,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private MessengerTblV3Dao messengerTblV3Dao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private AccountService accountService;
 
 
     @Override
@@ -287,7 +292,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         if (mhaTblV2 == null) {
             throw ConsoleExceptionUtils.message(String.format("mha: %s not exist", mhaName));
         }
-        String uuid = MySqlUtils.getUuid(ip, port, mhaTblV2.getReadUser(), mhaTblV2.getReadPassword(), master);
+        Account account = accountService.getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_CONSOLE);
+        String uuid = MySqlUtils.getUuid(ip, port, account.getUser(), account.getPassword(), master);
         return uuid;
     }
 
@@ -350,6 +356,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         String mhaName = mhaTblV2.getMhaName();
         long mhaId = mhaTblV2.getId();
         logger.info("[[mha={}]]no such master {}:{}, try insert", mhaTblV2.getMhaName(), ip, port);
+        // todo hdpan get default new account from kms,no acc info in metaDB 
         String uuid = StringUtils.isNotBlank(suppliedUuid) ? suppliedUuid : MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), true);
         if (null == uuid) {
             logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaTblV2.getMhaName(), ip, port);
@@ -365,6 +372,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         String mhaName = mhaTblV2.getMhaName();
         long mhaId = mhaTblV2.getId();
         logger.info("[[mha={}]]no such slave {}:{}, try insert", mhaName, ip, port);
+        // todo hdpan get default new account from kms,no acc info in metaDB
         String uuid = StringUtils.isNotBlank(suppliedUuid) ? suppliedUuid : MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), false);
         if (null == uuid) {
             logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);

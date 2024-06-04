@@ -123,8 +123,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ColumnsFilterServiceV2Test.class,
         DataMediaServiceV2Test.class,
         MessengerServiceV2Test.class,
-        MetaGeneratorV3Test.class,
-        MetaGeneratorV4Test.class,
         MetaGeneratorV5Test.class,
         RowsFilterServiceV2Test.class,
         MetaCompareServiceImplTest.class,

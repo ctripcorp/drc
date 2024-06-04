@@ -137,6 +137,11 @@
             <groupId>com.ctrip.framework.fx</groupId>
             <artifactId>ucs-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.ctrip.sysdev</groupId>
+            <artifactId>herald-token-lib</artifactId>
+            <version>${herlder-token.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.ctrip.muise.schema</groupId>
