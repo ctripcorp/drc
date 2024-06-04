@@ -71,29 +71,7 @@ public class KmsServiceImpl implements KmsService {
 
     @Override
     public Account getAccountInfo(String accessToken) {
-        // get keyValue from kms via https request, should be loaded before generate metaInfo
-        String envStr = EnvUtils.getEnvStr();
-        String kmsUrl = consoleConfig.getKmsUrl(envStr);
-        Map<String, Object> paramsMap = Maps.newHashMap();
-        paramsMap.put("token", accessToken);
-        paramsMap.put("appid", Foundation.app().getAppId());
-        paramsMap.put("herald-token", heraldService.getLocalHeraldToken());
-        String queryParam= "/query-pwd?token={token}&appid={appid}&herald-token={herald-token}";
-        String responseBody = HttpUtils.get(kmsUrl + queryParam, String.class, paramsMap);
-        JsonNode jsonNode = HttpUtils.deserialize(responseBody);
-        if (jsonNode.get("code").asInt() == 0) {
-            String usr = jsonNode.get("result").get("pwdAccount").asText();
-            String pwd = jsonNode.get("result").get("pwdValue").asText();
-            if (StringUtils.isEmpty(usr) || StringUtils.isEmpty(pwd)) {
-                throw ConsoleExceptionUtils.message("Empty usr or pwd value from KMS");
-            }
-            return new Account(usr, pwd);
-        } else {
-            logger.error(
-                    "Error getAccountInfo from KMS, url:{}, token:{}, response:{}", kmsUrl, accessToken, responseBody
-            );
-            throw ConsoleExceptionUtils.message("Error getAccountInfo from KMS");
-        }
+       return null; // todo hdpan  
     }
 
 

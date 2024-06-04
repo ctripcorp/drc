@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.monitor.datasource;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
@@ -29,7 +28,6 @@ public class DataSourceManager extends AbstractDataSource {
     public static final int MAX_ACTIVE = 50;
     private Map<Endpoint, Lock> cachedLocks = new ConcurrentHashMap<>();
     private Map<Endpoint, Lock> writeCachedLocks = new ConcurrentHashMap<>();
-    private Map<Endpoint, Lock> accValidateCachedLocks = new ConcurrentHashMap<>();
 
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
@@ -44,7 +42,6 @@ public class DataSourceManager extends AbstractDataSource {
 
     private Map<Endpoint, DataSource> dataSourceMap = Maps.newConcurrentMap();
     private Map<Endpoint, DataSource> writeDataSourceMap = Maps.newConcurrentMap();
-    private Map<Endpoint, DataSource> accValidateDataSourceMap = Maps.newConcurrentMap();
 
     public DataSource getDataSource(Endpoint endpoint) {
         return this.getDataSource(endpoint, null);
@@ -133,45 +130,6 @@ public class DataSourceManager extends AbstractDataSource {
         lock.lock();
         try {
             DataSource dataSource = writeDataSourceMap.remove(endpoint);
-            if (dataSource != null) {
-                dataSource.close(true);
-                logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-    
-    public DataSource getDataSourceForAccountValidate(AccountEndpoint endpoint, PoolProperties poolProperties) {
-        Lock lock = accValidateCachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
-        lock.lock();
-        try {
-            DataSource dataSource = accValidateDataSourceMap.get(endpoint);
-            if (dataSource == null) {
-                if (poolProperties == null) {
-                    poolProperties = getDefaultPoolProperties(endpoint);
-                }
-                logger.info(
-                        "[DataSource] create for {} with connection properties({})", 
-                        endpoint.getSocketAddress().toString() + endpoint.getUser()
-                        , poolProperties.getConnectionProperties()
-                );
-                setCommonProperty(poolProperties);
-                configAccountValidateProperties(endpoint, poolProperties);
-                dataSource = new DrcTomcatDataSource(poolProperties);
-                accValidateDataSourceMap.put(endpoint, dataSource);
-            }
-            return dataSource;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public void clearDataSourceForAccountValidate(AccountEndpoint endpoint) {
-        Lock lock = accValidateCachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
-        lock.lock();
-        try {
-            DataSource dataSource = accValidateDataSourceMap.remove(endpoint);
             if (dataSource != null) {
                 dataSource.close(true);
                 logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
