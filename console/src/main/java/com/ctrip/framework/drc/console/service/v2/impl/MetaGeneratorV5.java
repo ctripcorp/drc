@@ -10,8 +10,10 @@ import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.ColumnsFilterServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
@@ -118,6 +120,9 @@ public class MetaGeneratorV5 {
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
+    @Autowired
+    private AccountService accountService;
+    
     private static final ExecutorService executorService = ThreadUtils.newFixedThreadPool(50, "queryAllExist");
 
     public Drc getDrc() throws Exception {
@@ -126,7 +131,7 @@ public class MetaGeneratorV5 {
             return null;
         }
         // thread safe
-        SingleTask task = new SingleTask(rowsFilterServiceV2, columnsFilterServiceV2);
+        SingleTask task = new SingleTask(rowsFilterServiceV2, columnsFilterServiceV2, accountService);
         this.refreshMetaData(task);
         return task.getDrc();
     }
@@ -195,10 +200,13 @@ public class MetaGeneratorV5 {
 
         private final RowsFilterServiceV2 rowsFilterServiceV2;
         private final ColumnsFilterServiceV2 columnsFilterServiceV2;
+        private final AccountService accountService;
 
-        public SingleTask(RowsFilterServiceV2 rowsFilterServiceV2, ColumnsFilterServiceV2 columnsFilterServiceV2) {
+        public SingleTask(RowsFilterServiceV2 rowsFilterServiceV2, ColumnsFilterServiceV2 columnsFilterServiceV2,
+                AccountService accountService) {
             this.rowsFilterServiceV2 = rowsFilterServiceV2;
             this.columnsFilterServiceV2 = columnsFilterServiceV2;
+            this.accountService = accountService;
         }
 
         public Drc getDrc() throws Exception {
@@ -464,8 +472,24 @@ public class MetaGeneratorV5 {
         }
 
         private Dbs generateDbs(DbCluster dbCluster, MhaTblV2 mhaTbl) {
-            logger.debug("generate dbs for mha: {}", mhaTbl.getMhaName());
+            String mhaName = mhaTbl.getMhaName();
+            logger.debug("generate dbs for mha: {}",mhaName );
             Dbs dbs = new Dbs();
+            if (accountService.grayKmsToken(mhaName)) {
+                MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTbl);
+                if(checkAccounts(mhaAccounts,mhaTbl)){
+                    dbs.setReadUser(mhaAccounts.getReadAcc().getUser())
+                            .setReadPassword(mhaAccounts.getReadAcc().getPassword())
+                            .setWriteUser(mhaAccounts.getWriteAcc().getUser())
+                            .setWritePassword(mhaAccounts.getWriteAcc().getPassword())
+                            .setMonitorUser(mhaAccounts.getMonitorAcc().getUser())
+                            .setMonitorPassword(mhaAccounts.getMonitorAcc().getPassword());
+                    return dbs;
+                } else {
+                    logger.warn("kms mismatch, mhaName: {}", mhaName);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.kms.mismatch", mhaName);
+                }
+            }
             dbs.setReadUser(mhaTbl.getReadUser())
                     .setReadPassword(mhaTbl.getReadPassword())
                     .setWriteUser(mhaTbl.getWriteUser())
@@ -474,6 +498,15 @@ public class MetaGeneratorV5 {
                     .setMonitorPassword(mhaTbl.getMonitorPassword());
             dbCluster.setDbs(dbs);
             return dbs;
+        }
+        
+        private boolean checkAccounts(MhaAccounts mhaAccounts,MhaTblV2 mhaTbl) {
+            return mhaAccounts.getMonitorAcc().getUser().equals(mhaTbl.getMonitorUser())
+                    && mhaAccounts.getReadAcc().getUser().equals(mhaTbl.getReadUser())
+                    && mhaAccounts.getWriteAcc().getUser().equals(mhaTbl.getWriteUser())
+                    && mhaAccounts.getMonitorAcc().getPassword().equals(mhaTbl.getMonitorPassword())
+                    && mhaAccounts.getReadAcc().getPassword().equals(mhaTbl.getReadPassword())
+                    && mhaAccounts.getWriteAcc().getPassword().equals(mhaTbl.getWritePassword());
         }
 
         private void generateDb(Dbs dbs, MhaTblV2 mhaTbl) {

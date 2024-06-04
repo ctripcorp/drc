@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.monitor.datasource;
 
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
@@ -28,6 +29,13 @@ public abstract class AbstractDataSource {
             MySqlEndpoint mySqlEndpoint = (MySqlEndpoint) endpoint;
             poolProperties.setMaxActive(mySqlEndpoint.isMaster() ? 6 : 100);
             poolProperties.setMaxIdle(poolProperties.getMaxActive());
+        }
+    }
+    
+    public static void configAccountValidateProperties(Endpoint endpoint, PoolProperties poolProperties) {
+        if (endpoint instanceof AccountEndpoint ) {
+            poolProperties.setMaxActive(1);
+            poolProperties.setMaxIdle(1);
         }
     }
 }

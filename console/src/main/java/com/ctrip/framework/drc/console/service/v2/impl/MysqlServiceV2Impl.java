@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiRe
 import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
-import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
@@ -24,7 +24,6 @@ import com.ctrip.framework.drc.console.vo.check.v2.StatementExecutorApResult;
 import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTask;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
@@ -350,7 +349,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     public StatementExecutorResult write(MysqlWriteEntity requestBody) {
         logger.info("execute write sql, requestBody: {}", requestBody);
         Endpoint endpoint;
-        if (requestBody.getAccountType() == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+        if (requestBody.getAccountType() == DrcAccountTypeEnum.DRC_WRITE.getCode()) {
             endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
         } else {
             endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());

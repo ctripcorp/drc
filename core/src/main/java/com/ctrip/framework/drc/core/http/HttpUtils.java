@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.http;
 
 import com.ctrip.xpipe.retry.RetryPolicyFactories;
 import com.ctrip.xpipe.spring.RestTemplateFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
@@ -132,6 +133,15 @@ public class HttpUtils {
         return response.getBody();
     }
 
+    public static JsonNode deserialize(String json)  {
+        try {
+            return objectMapper.readTree(json);
+        } catch (JsonProcessingException e) {
+            logger.error("deserialize json error: {}", json,e);
+            throw new RuntimeException("deserialize json error");
+        }
+    }
+    
     /**
      * Deprecated
      */
