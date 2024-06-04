@@ -221,7 +221,7 @@ public class AccountServiceImpl implements AccountService {
         return null; // todo hdpan
     }
     
-    private String doEncrypt(String password) throws Exception {
+    private String doEncrypt(String password) throws Exception { // todo 
         return transactionMonitor.logTransaction(
                 "DRC.console.account.encrypt", 
                 "encrypt password",
