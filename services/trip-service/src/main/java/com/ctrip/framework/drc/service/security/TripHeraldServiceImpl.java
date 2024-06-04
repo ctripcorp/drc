@@ -18,6 +18,7 @@ public class TripHeraldServiceImpl implements HeraldService {
 
     @Override
     public boolean heraldValidate(String heraldToken) {
+        // todo hdpan
         return false;
     }
 

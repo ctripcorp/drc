@@ -167,13 +167,7 @@ public class AccountServiceImpl implements AccountService {
     
     @Override
     public Pair<Boolean,Integer> initMhaAccountV2(List<String> mhas) throws SQLException {
-        int successCount = 0;
-        for (String mha : mhas) {
-            if (initMhaNewAccount(mha)) {
-                successCount++; 
-            }
-        }
-        return Pair.of(successCount == mhas.size(), successCount);
+        return null;
     }
 
     @Override
@@ -186,7 +180,12 @@ public class AccountServiceImpl implements AccountService {
     public boolean grayAccountV2(String mhaName) {
         return false;
     }
-
+    
+    @Override
+    public boolean changePasswordInNewAccount(String mha, String user, String newPassword){
+        return true;
+    }
+    
     private boolean initMhaPasswordToken(String mha) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
         if (mhaTblV2 == null) {
@@ -208,74 +207,18 @@ public class AccountServiceImpl implements AccountService {
     
     
     private boolean accountV2Check(String mha) throws SQLException {
-        // test connection & authority 3 account
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
-        if (mhaTblV2 == null) {
-            throw ConsoleExceptionUtils.message(mha + "not exist");
-        }
-        Account monitorAcc = new Account(mhaTblV2.getMonitorUserV2(), decrypt(mhaTblV2.getMonitorPasswordToken()));
-        Account readAcc = new Account(mhaTblV2.getReadUserV2(), decrypt(mhaTblV2.getReadPasswordToken()));
-        Account writeAcc = new Account(mhaTblV2.getWriteUserV2(), decrypt(mhaTblV2.getWritePasswordToken()));
-        MhaAccounts mhaAccounts = new MhaAccounts(mha,monitorAcc, readAcc, writeAcc);
         return false; // todo hdpan  
 
     }
 
-    private boolean initMhaNewAccount(String mha) throws SQLException {
-        // transaction
-        // 1. init mha user_v2 if not exist
-        // 2. init mha user_v2 password(defaultPassword+mhaName)
-        // 3. init encrypt mha user_v2 passwordToken
-        // 4. dbaService.changePassword
-        // 5. record mha user_v2 & mha user_v2 passwordToken
-        // 6. test connection 
-        // 7. return res;
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
-        if (mhaTblV2 == null) {
-            throw ConsoleExceptionUtils.message(mha + "not exist");
-        }
-        
-        if (StringUtils.isEmpty(mhaTblV2.getMonitorUserV2()) || StringUtils.isEmpty(mhaTblV2.getMonitorPasswordToken())) {
-            Account monitorAccInKms = kmsService.getAccountInfo(consoleConfig.getDefaultMonitorAccountKmsToken());
-            String defaultMonitorPwd = monitorAccInKms.getPassword();
-            String monitorUserV2 = monitorAccInKms.getUser();
-            String monitorPwd = generateNewPassword(mhaTblV2.getMhaName(), defaultMonitorPwd);
-            String monitorPasswordToken = encrypt(monitorPwd);
-            mhaTblV2.setMonitorUserV2(monitorUserV2);
-            mhaTblV2.setMonitorPasswordToken(monitorPasswordToken);
-            dbaApiService.changePassword(mhaTblV2.getMhaName(), monitorUserV2, monitorPwd);
-        }
-        if (StringUtils.isEmpty(mhaTblV2.getReadUserV2()) || StringUtils.isEmpty(mhaTblV2.getReadPasswordToken())) {
-            Account readAccInKms = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
-            String defaultReadPwd = readAccInKms.getPassword();
-            String readUserV2 = readAccInKms.getUser();
-            String readPwd = generateNewPassword(mhaTblV2.getMhaName(), defaultReadPwd);
-            String readPasswordToken = encrypt(readPwd);
-            mhaTblV2.setReadUserV2(readUserV2);
-            mhaTblV2.setReadPasswordToken(readPasswordToken);
-            dbaApiService.changePassword(mhaTblV2.getMhaName(), readUserV2, readPwd);
-        }
-        if (StringUtils.isEmpty(mhaTblV2.getWriteUserV2()) || StringUtils.isEmpty(mhaTblV2.getWritePasswordToken())) {
-            Account writeAccInKms = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
-            String defaultWritePwd = writeAccInKms.getPassword();
-            String writeUserV2 = writeAccInKms.getUser();
-            String writePwd = generateNewPassword(mhaTblV2.getMhaName(), defaultWritePwd);
-            String writePasswordToken = encrypt(writePwd);
-            mhaTblV2.setWriteUserV2(writeUserV2);
-            mhaTblV2.setWritePasswordToken(writePasswordToken);
-            dbaApiService.changePassword(mhaTblV2.getMhaName(), writeUserV2, writePwd);
-        }
-        return mhaTblV2Dao.update(mhaTblV2) == 1;
-        
+    private boolean initMhaAccountV2(String mha) throws SQLException {
+        return false; // todo hdpan
     }
     
-    @Override
-    public boolean changePasswordInNewAccount(String mha, String user, String newPassword){
-        return true;
-    }
+    
 
     private String generateNewPassword(String mhaName,String defaultPassword) {
-        return defaultPassword + mhaName;
+        return null; // todo hdpan
     }
     
     private String doEncrypt(String password) throws Exception {
