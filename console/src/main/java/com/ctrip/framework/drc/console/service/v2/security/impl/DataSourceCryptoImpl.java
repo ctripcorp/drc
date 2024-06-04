@@ -9,8 +9,8 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.util.buf.HexUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -103,11 +103,11 @@ public class DataSourceCryptoImpl implements DataSourceCrypto {
     }
 
     static String parseByte2HexStr(byte buf[]) {
-        return DatatypeConverter.printHexBinary(buf);
+        return HexUtils.toHexString(buf);
     }
 
     static byte[] parseHexStr2Byte(String hexStr) {
-        return DatatypeConverter.parseHexBinary(hexStr);
+        return HexUtils.fromHexString(hexStr);
     }
 
 }
