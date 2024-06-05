@@ -69,6 +69,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public String decrypt(String passwordToken) {
+        if (StringUtils.isBlank(passwordToken)) {
+            throw ConsoleExceptionUtils.message("passwordToken is empty");
+        }
         if (decryptCache.containsKey(passwordToken)) {
             return decryptCache.get(passwordToken);
         }
@@ -82,6 +85,9 @@ public class AccountServiceImpl implements AccountService {
     
     @Override
     public String encrypt(String password) {
+        if(StringUtils.isBlank(password)) {
+            throw ConsoleExceptionUtils.message("password is empty");
+        }
         if (encryptCache.containsKey(password)) {
             return encryptCache.get(password);
         }
