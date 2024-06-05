@@ -37,8 +37,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class AccountServiceImpl implements AccountService {
     
-    private final Map<String,String> decryptCache = new ConcurrentHashMap<>();
-    private final Map<String,String> encryptCache = new ConcurrentHashMap<>();
+    protected final Map<String,String> decryptCache = new ConcurrentHashMap<>(1000);
+    protected final Map<String,String> encryptCache = new ConcurrentHashMap<>(1000);
     
     @Autowired
     private KmsService kmsService;
@@ -199,11 +199,12 @@ public class AccountServiceImpl implements AccountService {
     private boolean initMhaPasswordToken(String mha) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
         if (mhaTblV2 == null) {
-            throw ConsoleExceptionUtils.message(mha + "not exist");
+            throw ConsoleExceptionUtils.message(mha + " not exist");
         }
         if (!StringUtils.isBlank(mhaTblV2.getMonitorPasswordToken()) 
                 && !StringUtils.isBlank(mhaTblV2.getReadPasswordToken())
                 && !StringUtils.isBlank(mhaTblV2.getWritePasswordToken())) {
+            logger.info("mha:{} already init password token",mha);
             return true;
         }
         String monitorPasswordToken = encrypt(mhaTblV2.getMonitorPassword());
