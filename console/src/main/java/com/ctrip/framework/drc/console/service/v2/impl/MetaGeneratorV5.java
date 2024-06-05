@@ -484,6 +484,7 @@ public class MetaGeneratorV5 {
                             .setWritePassword(mhaAccounts.getWriteAcc().getPassword())
                             .setMonitorUser(mhaAccounts.getMonitorAcc().getUser())
                             .setMonitorPassword(mhaAccounts.getMonitorAcc().getPassword());
+                    dbCluster.setDbs(dbs);
                     return dbs;
                 } else {
                     logger.warn("kms mismatch, mhaName: {}", mhaName);
