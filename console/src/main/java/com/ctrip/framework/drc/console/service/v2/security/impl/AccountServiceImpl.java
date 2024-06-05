@@ -101,21 +101,25 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public MhaAccounts getMhaAccounts(MhaTblV2 mhaTblV2) {
-        Account monitorAcc = new Account(mhaTblV2.getMonitorUser(), decrypt(mhaTblV2.getMonitorPasswordToken()));
-        Account readAcc = new Account(mhaTblV2.getReadUser(), decrypt(mhaTblV2.getReadPasswordToken()));
-        Account writeAcc = new Account(mhaTblV2.getWriteUser(), decrypt(mhaTblV2.getWritePasswordToken()));
+        Account monitorAcc = getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_CONSOLE);
+        Account readAcc = getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_READ);
+        Account writeAcc = getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_WRITE);
         return new MhaAccounts(mhaTblV2.getMhaName(),monitorAcc,readAcc,writeAcc);
     }
 
     @Override
     public Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType) {
+        boolean gray = grayKmsToken(mhaTblV2.getMhaName());
         switch (accountType) {
             case DRC_CONSOLE:
-                return new Account(mhaTblV2.getMonitorUser(),decrypt(mhaTblV2.getMonitorPasswordToken()));
+                return gray ? new Account(mhaTblV2.getMonitorUser(),decrypt(mhaTblV2.getMonitorPasswordToken())) :
+                        new Account(mhaTblV2.getMonitorUser(),mhaTblV2.getMonitorPassword());
             case DRC_READ:
-                return new Account(mhaTblV2.getReadUser(),decrypt(mhaTblV2.getReadPasswordToken()));
+                return gray ? new Account(mhaTblV2.getReadUser(),decrypt(mhaTblV2.getReadPasswordToken())) :
+                        new Account(mhaTblV2.getReadUser(),mhaTblV2.getReadPassword());
             case DRC_WRITE:
-                return new Account(mhaTblV2.getWriteUser(),decrypt(mhaTblV2.getWritePasswordToken()));
+                return gray ? new Account(mhaTblV2.getWriteUser(),decrypt(mhaTblV2.getWritePasswordToken())) :
+                        new Account(mhaTblV2.getWriteUser(),mhaTblV2.getWritePassword());
             default:
                 throw ConsoleExceptionUtils.message("accountType not support");
         }
