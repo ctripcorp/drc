@@ -145,6 +145,7 @@ import org.junit.runners.Suite;
         TransactionEventTest.class,
         ParsedDdlLogEventTest.class,
         TransactionTableMarkedTableMapLogEventTest.class,
+        FilterLogEventTest.class,
 
         // command package
         ApplierDumpCommandPacketTest.class,
