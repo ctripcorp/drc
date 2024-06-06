@@ -41,11 +41,6 @@ public class PermissionController {
 
     @GetMapping("meta/dbReplication/modify")
     public ApiResult<Boolean> dbReplicationModify() {
-        ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        HttpServletRequest request = requestAttributes.getRequest();
-        String sourceIp = request.getHeader("X-Forwarded-For");
-        String header = request.toString();
-        logger.info("sourceIp: {}, header: {}", sourceIp, header);
         return ApiResult.getSuccessInstance(true);
     }
     

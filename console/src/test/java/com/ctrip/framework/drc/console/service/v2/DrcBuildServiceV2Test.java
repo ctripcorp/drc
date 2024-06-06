@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
@@ -126,10 +127,14 @@ public class DrcBuildServiceV2Test {
     private ReplicationTableTblDao replicationTableTblDao;
     @Mock
     private MhaServiceV2 mhaServiceV2;
-
+    @Mock
+    private AccountService accountService;
+    
+    
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(accountService.encrypt(Mockito.anyString())).thenReturn("encryptToken");
     }
 
     @Test
