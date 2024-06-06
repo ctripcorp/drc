@@ -12,6 +12,8 @@ import java.io.IOException;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 
 /**
  * Created by jixinwang on 2023/11/20
@@ -21,18 +23,28 @@ public class FilterLogEvent extends AbstractLogEvent {
     public static final String UNKNOWN = "unknown";
 
     private String schemaName = UNKNOWN;
-
+    private String lastTableName = UNKNOWN;
+    private int eventCount = 0;
     private long nextTransactionOffset = 0;
 
     public FilterLogEvent() {
     }
 
     public void encode(String schemaName, long nextTransactionOffset) {
+        encode(schemaName, UNKNOWN, 0, nextTransactionOffset);
+    }
+
+    public void encode(String schemaName, String lastTableName, int eventCount, long nextTransactionOffset) {
         if (schemaName == null) {
             schemaName = UNKNOWN;
         }
+        if (lastTableName == null) {
+            lastTableName = UNKNOWN;
+        }
         this.schemaName = schemaName;
         this.nextTransactionOffset = nextTransactionOffset;
+        this.lastTableName = lastTableName;
+        this.eventCount = eventCount;
         final byte[] payloadBytes = payloadToBytes();
         final int payloadLength = payloadBytes.length;
 
@@ -49,14 +61,15 @@ public class FilterLogEvent extends AbstractLogEvent {
     }
 
     private byte[] payloadToBytes() {
-        final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             ByteHelper.writeVariablesLengthStringDefaultCharset(schemaName, out);
+            ByteHelper.writeIntLittleEndian((int) nextTransactionOffset, out);
+            ByteHelper.writeVariablesLengthStringDefaultCharset(lastTableName, out);
+            ByteHelper.writeIntLittleEndian(eventCount, out);
+            return out.toByteArray();
         } catch (IOException e) {
-            throw new RuntimeException("FilterLogEvent payloadToByte error");
+            throw new RuntimeException("FilterLogEvent payloadToByte error", e);
         }
-        ByteHelper.writeIntLittleEndian((int) nextTransactionOffset, out);
-        return out.toByteArray();
     }
 
     @Override
@@ -74,6 +87,10 @@ public class FilterLogEvent extends AbstractLogEvent {
         final ByteBuf payloadBuf = getPayloadBuf();
         this.schemaName = readVariableLengthStringDefaultCharset(payloadBuf);
         this.nextTransactionOffset = payloadBuf.readUnsignedIntLE();
+        if (hasRemaining(payloadBuf)) {
+            this.lastTableName = readVariableLengthStringDefaultCharset(payloadBuf);
+            this.eventCount = (int) payloadBuf.readUnsignedIntLE();
+        }
         return this;
     }
 
@@ -83,5 +100,22 @@ public class FilterLogEvent extends AbstractLogEvent {
 
     public String getSchemaName() {
         return schemaName;
+    }
+
+    public String getSchemaNameV2() {
+        if (DRC_MONITOR_SCHEMA_NAME.equals(schemaName) && lastTableName.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX)) {
+            if (lastTableName.length() > DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()) {
+                return lastTableName.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length());
+            }
+        }
+        return schemaName;
+    }
+
+    public String getLastTableName() {
+        return lastTableName;
+    }
+
+    public int getEventCount() {
+        return eventCount;
     }
 }

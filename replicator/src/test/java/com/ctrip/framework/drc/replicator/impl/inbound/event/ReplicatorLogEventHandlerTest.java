@@ -209,7 +209,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        int filterLogEventSize = FILTER_LOG_EVENT_SIZE + (19 + 1 + "configdbs".length() + 4);
+        int filterLogEventSize = FILTER_LOG_EVENT_SIZE + (19 + 1 + "configdbs".length() + 4 + 1 + "unitest".length() + 4);
         Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + TABLE_MAP_EVENT_SIZE + 2 * ((GTID_ZISE + 4) + XID_ZISE) + filterLogEventSize);
 
         logDir = fileManager.getDataDir();

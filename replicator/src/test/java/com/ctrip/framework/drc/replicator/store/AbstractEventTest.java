@@ -41,7 +41,7 @@ public abstract class AbstractEventTest extends AbstractZkTest {
 
     protected int XID_ZISE;
 
-    protected int FILTER_LOG_EVENT_SIZE = 19 + 12;
+    protected int FILTER_LOG_EVENT_SIZE = 19 + 12 + 12;
 
     protected ByteBuf getPreviousGtidEvent() {
         String hexString =
