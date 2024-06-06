@@ -33,8 +33,8 @@ public class SchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext
         if (drc_filter_log_event == value.getEventType()) {
             FilterLogEvent filterLogEvent = value.readFilterEvent();
             value.setLogEvent(filterLogEvent);
-            String schema = filterLogEvent.getSchemaNameV2();
-            if (!schemas.contains(schema.toLowerCase())) {
+            String schema = filterLogEvent.getSchemaNameLowerCaseV2();
+            if (!schemas.contains(schema)) {
                 long nextTransactionOffset = filterLogEvent.getNextTransactionOffset();
                 if (nextTransactionOffset > 0) {
                     value.skipPositionAfterReadEvent(nextTransactionOffset);
