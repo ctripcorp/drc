@@ -56,6 +56,7 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  */
 public class DefaultFileManagerTest extends AbstractTransactionTest {
 
+    public static final int FILTER_LOG_EVENT_SIZE = 45;
     private int purgeSize = 5;
 
     private GtidManager gtidManager;
@@ -221,8 +222,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
 
-        int filterLogEventSize = 28;
-        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + filterLogEventSize));
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + FILTER_LOG_EVENT_SIZE));
         Assert.assertEquals(gtidSet.add(GTID), false);
         Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
     }
@@ -261,8 +261,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
 
-        int filterLogEventSize = 28;
-        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + filterLogEventSize));
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + FILTER_LOG_EVENT_SIZE));
         Assert.assertEquals(gtidSet.add(GTID), false);
         Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
     }
@@ -301,8 +300,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
 
-        int filterLogEventSize = 28;
-        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + filterLogEventSize));
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE + FILTER_LOG_EVENT_SIZE));
         Assert.assertEquals(gtidSet.add(GTID), false);
         Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
     }
