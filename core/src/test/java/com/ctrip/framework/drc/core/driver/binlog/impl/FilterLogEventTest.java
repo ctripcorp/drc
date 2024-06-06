@@ -65,40 +65,56 @@ public class FilterLogEventTest {
         FilterLogEvent filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drc1", 100);
         Assert.assertEquals("drc1", filterLogEvent.getSchemaName());
-        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameLowerCaseV2());
 
         filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drc1", "table1", 10, 100);
         Assert.assertEquals("drc1", filterLogEvent.getSchemaName());
-        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameLowerCaseV2());
 
         filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drc1", "dly_db1", 10, 100);
         Assert.assertEquals("drc1", filterLogEvent.getSchemaName());
-        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameLowerCaseV2());
 
 
         filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drcmonitordb", 100);
         Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaName());
-        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaNameLowerCaseV2());
 
 
         filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drcmonitordb", "dly_db1", 20, 100);
         Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaName());
-        Assert.assertEquals("db1", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("db1", filterLogEvent.getSchemaNameLowerCaseV2());
 
         filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drcmonitordb", "dly_", 20, 100);
         Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaName());
-        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaNameLowerCaseV2());
 
 
         filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("drcmonitordb", "delaymonitordb", 20, 100);
         Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaName());
-        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaNameV2());
+        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaNameLowerCaseV2());
+
+        filterLogEvent = new FilterLogEvent();
+        filterLogEvent.encode("drcmonitordb", "DLY_DB1", 20, 100);
+        Assert.assertEquals("drcmonitordb", filterLogEvent.getSchemaName());
+        Assert.assertEquals("db1", filterLogEvent.getSchemaNameLowerCaseV2());
+
+        filterLogEvent = new FilterLogEvent();
+        filterLogEvent.encode("DRCMONITORDB", "DLY_DB1", 20, 100);
+        Assert.assertEquals("DRCMONITORDB", filterLogEvent.getSchemaName());
+        Assert.assertEquals("db1", filterLogEvent.getSchemaNameLowerCaseV2());
+
+
+        filterLogEvent = new FilterLogEvent();
+        filterLogEvent.encode("DRC1", "TABLE1", 20, 100);
+        Assert.assertEquals("DRC1", filterLogEvent.getSchemaName());
+        Assert.assertEquals("drc1", filterLogEvent.getSchemaNameLowerCaseV2());
 
     }
 }

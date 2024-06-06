@@ -102,13 +102,16 @@ public class FilterLogEvent extends AbstractLogEvent {
         return schemaName;
     }
 
-    public String getSchemaNameV2() {
-        if (DRC_MONITOR_SCHEMA_NAME.equals(schemaName) && lastTableName.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX)) {
-            if (lastTableName.length() > DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()) {
-                return lastTableName.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length());
+    public String getSchemaNameLowerCaseV2() {
+        String schemaNameLowerCase = schemaName.toLowerCase();
+        if (DRC_MONITOR_SCHEMA_NAME.equals(schemaNameLowerCase)) {
+            String lastTableNameLowerCase = lastTableName.toLowerCase();
+            if (lastTableNameLowerCase.startsWith(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX)
+                    && lastTableNameLowerCase.length() > DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length()) {
+                return lastTableNameLowerCase.substring(DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX.length());
             }
         }
-        return schemaName;
+        return schemaNameLowerCase;
     }
 
     public String getLastTableName() {
