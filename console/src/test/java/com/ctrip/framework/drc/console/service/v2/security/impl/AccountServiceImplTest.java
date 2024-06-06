@@ -104,7 +104,7 @@ public class AccountServiceImplTest {
     @Test
     public void testInitMhaPasswordToken() throws Exception {
         List<MhaTblV2> data = this.getData();
-        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString(),Mockito.eq(0))).thenAnswer(
+        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenAnswer(
             invocation -> {
                 return data.stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals(invocation.getArgument(0))).findFirst().orElse(null);
             }

@@ -197,7 +197,7 @@ public class AccountServiceImpl implements AccountService {
     }
     
     private boolean initMhaPasswordToken(String mha) throws SQLException {
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha);
         if (mhaTblV2 == null) {
             throw ConsoleExceptionUtils.message(mha + " not exist");
         }
