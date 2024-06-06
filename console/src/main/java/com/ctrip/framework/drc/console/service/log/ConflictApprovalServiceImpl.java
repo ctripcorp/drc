@@ -220,7 +220,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         String dbName = resultPair.getRight();
         String targetMhaName = BooleanEnum.FALSE.getCode().equals(param.getWriteSide()) ? batchTbl.getDstMhaName() : batchTbl.getSrcMhaName();
 
-        MysqlWriteEntity entity = new MysqlWriteEntity(targetMhaName, Constants.CREATE_DRC_WRITE_FILTER, MysqlAccountTypeEnum.DRC_CONSOLE.getCode());
+        MysqlWriteEntity entity = new MysqlWriteEntity(targetMhaName, Constants.CREATE_DRC_WRITE_FILTER, DrcAccountTypeEnum.DRC_CONSOLE.getCode());
         StatementExecutorResult result = mysqlServiceV2.write(entity);
         if (result == null || result.getResult() != SqlResultEnum.SUCCESS.getCode()) {
             throw ConsoleExceptionUtils.message("createConflictApproval fail, " + result.getMessage());
@@ -304,7 +304,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         String sql = Joiner.on(";\n").join(sqlList);
         sqlBuilder.append("\n").append(sql).append(";\n").append(Constants.COMMIT);
 
-        MysqlWriteEntity entity = new MysqlWriteEntity(targetMha, sqlBuilder.toString(), MysqlAccountTypeEnum.DRC_WRITE.getCode());
+        MysqlWriteEntity entity = new MysqlWriteEntity(targetMha, sqlBuilder.toString(), DrcAccountTypeEnum.DRC_WRITE.getCode());
         StatementExecutorResult result = mysqlServiceV2.write(entity);
         batchTbl.setStatus(result.getResult());
         batchTbl.setRemark(result.getMessage());

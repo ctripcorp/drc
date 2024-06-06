@@ -12,14 +12,15 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto.MySQLInstance;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import java.sql.SQLException;
 import java.util.List;
-
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,10 +46,13 @@ public class DbMetaCorrectServiceImplTest {
     @Mock private MachineTblDao machineTblDao;
 
     @Mock private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Mock private AccountService accountService;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(accountService.getAccount(Mockito.any(MhaTblV2.class), Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("user", "password"));
     }
 
     @Test

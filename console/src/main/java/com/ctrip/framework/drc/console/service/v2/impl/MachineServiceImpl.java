@@ -5,12 +5,16 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -58,6 +62,8 @@ public class MachineServiceImpl implements MachineService {
     private DbaApiService dbaApiService;
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired
+    private AccountService accountService;
 
 
     @Override
@@ -137,6 +143,7 @@ public class MachineServiceImpl implements MachineService {
     }
 
     private Endpoint getMasterEndpointFromDbaApi(String mha) {
+        // todo hdpan acc 
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mha);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
         return memberlist.stream()
@@ -169,7 +176,8 @@ public class MachineServiceImpl implements MachineService {
     public Endpoint getMaster(MhaTblV2 mhaTblV2, List<MachineTbl> machineInfo) {
         for (MachineTbl machineTbl : machineInfo) {
             if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
-                return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), BooleanEnum.TRUE.isValue());
+                Account account = accountService.getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_CONSOLE);
+                return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), account.getUser(), account.getPassword(), BooleanEnum.TRUE.isValue());
             }
         }
         return null;
@@ -179,9 +187,10 @@ public class MachineServiceImpl implements MachineService {
         List<Endpoint> endpoints = new ArrayList<>();
         for (MachineTbl machineTbl : machineInfo) {
             if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
-                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getReadUser(), mhaTblV2.getReadPassword(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getWriteUser(), mhaTblV2.getWritePassword(), BooleanEnum.TRUE.isValue()));
+                MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTblV2);
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getMonitorAcc().getUser(),mhaAccounts.getMonitorAcc().getPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getReadAcc().getUser(), mhaAccounts.getReadAcc().getPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getWriteAcc().getUser(), mhaAccounts.getWriteAcc().getPassword(), BooleanEnum.TRUE.isValue()));
                 return endpoints;
             }
         }

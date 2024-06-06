@@ -128,6 +128,16 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String REPLICATOR_MAX_SIZE = "replicator.max.size";
 
     private static final String DRC_CONFIG_APPLICATION_SWITCH = "drc.config.application.swtich";
+    private static final String DEFAULT_READ_ACCOUNT_KMS_TOKEN= "default.read.account.kms.token";
+    private static final String DEFAULT_WRITE_ACCOUNT_KMS_TOKEN= "default.write.account.kms.token";
+    private static final String DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN= "default.monitor.account.kms.token";
+    
+    private static final String ACCOUNT_KMS_TOKEN_SWITCH = "account.kms.token.switch";
+    private static final String ACCOUNT_KMS_TOKEN_MHA_GRAY = "account.kms.token.mha.gray";
+    private static final String KMS_URL_PREFIX = "kms.url.";
+    private static final String KMS_ACCESS_TOKEN_PREFIX = "kms.access.token.";
+
+
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
     private static final String SGP_MESSENGER_GTID_INIT_KEY = SGP_MESSENGER_GTID_INIT + ".%s";
@@ -578,6 +588,34 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getDbReplicationConsistencyCheckSwitch() {
         return getBooleanProperty(DB_REPLICATION_CONSISTENCY_CHECK_SWITCH, true);
     }
+    
+    public String getDefaultReadAccountKmsToken() {
+        return getProperty(DEFAULT_READ_ACCOUNT_KMS_TOKEN);
+    }
+    
+    public String getDefaultWriteAccountKmsToken() {
+        return getProperty(DEFAULT_WRITE_ACCOUNT_KMS_TOKEN);
+    }
+    
+    public String getDefaultMonitorAccountKmsToken() {
+        return getProperty(DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN);
+    }
+    
+    public String getKMSAccessToken(String suffix) {
+        return getProperty(KMS_ACCESS_TOKEN_PREFIX + suffix,null);
+    }
+    
+    public boolean getAccountKmsTokenSwitch() {
+        return getBooleanProperty(ACCOUNT_KMS_TOKEN_SWITCH, false);
+    }
+    
+    public Set<String> getAccountKmsTokenMhaGray() {
+        String property = getProperty(ACCOUNT_KMS_TOKEN_MHA_GRAY, "");
+        if (StringUtils.isBlank(property)) {
+            return Collections.emptySet();
+        }
+        return Sets.newHashSet(property.split(","));
+    }
 
     public List<String> getBatchOfflineRegion() {
         String idcStr = getProperty(BATCH_OFFLINE_ALLOW_REGION, DEFAULT_BATCH_OFFLINE_ALLOW_REGION);
@@ -585,5 +623,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
             return new ArrayList<>();
         }
         return Lists.newArrayList(idcStr.split(","));
+    }
+
+    public String getKmsUrl(String envStr) {
+        return getProperty(KMS_URL_PREFIX + envStr, "");
     }
 }

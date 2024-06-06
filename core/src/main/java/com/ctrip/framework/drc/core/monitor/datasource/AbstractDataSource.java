@@ -30,4 +30,5 @@ public abstract class AbstractDataSource {
             poolProperties.setMaxIdle(poolProperties.getMaxActive());
         }
     }
+    
 }

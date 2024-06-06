@@ -4,11 +4,15 @@ import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.Data;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.cache.LoadingCache;
@@ -18,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
@@ -39,12 +44,15 @@ public class MachineServiceImplTest {
     DbaApiService dbaApiService;
     @Mock
     MonitorTableSourceProvider monitorTableSourceProvider;
+    @Mock
+    AccountService accountService;
     @InjectMocks
     MachineServiceImpl machineServiceImpl;
 
     @Before
     public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
+        when(accountService.getAccount(Mockito.any(MhaTblV2.class),Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("mockUser", "mockPassword"));
         MhaTblV2 mhaTblV2 = new MhaTblV2();
 
         mhaTblV2.setId(1L);

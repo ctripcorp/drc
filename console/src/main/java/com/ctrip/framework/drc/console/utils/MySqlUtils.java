@@ -8,7 +8,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
-import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -1172,7 +1172,7 @@ public class MySqlUtils {
 
 
     public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
-        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+        if (accountType == DrcAccountTypeEnum.DRC_WRITE.getCode()) {
             return writeV2(endpoint, sql, true);
         } else {
             return write(endpoint, sql);

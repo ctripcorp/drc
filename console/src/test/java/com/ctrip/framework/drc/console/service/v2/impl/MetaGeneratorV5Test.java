@@ -2,21 +2,14 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -24,6 +17,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 public class MetaGeneratorV5Test extends CommonDataInit {
 
@@ -32,6 +34,9 @@ public class MetaGeneratorV5Test extends CommonDataInit {
 
     @Spy
     RowsFilterServiceV2 rowsFilterServiceV2 = new RowsFilterServiceV2Impl();
+    
+    @Mock
+    private AccountService accountService;
 
     @Before
     public void setUp() throws SQLException, IOException {
@@ -42,6 +47,15 @@ public class MetaGeneratorV5Test extends CommonDataInit {
     @Test
     public void testGetDrc() throws Exception {
         Mockito.when(defaultConsoleConfig.getMetaGeneratorV5Switch()).thenReturn(true);
+        Mockito.when(accountService.grayKmsToken(Mockito.anyString())).thenAnswer(
+                invocation -> {
+                    String mhaName = invocation.getArgument(0);
+                    return mhaName.equals("mha1");
+                }
+        );
+        MhaAccounts mhaAccounts = new MhaAccounts();
+        Mockito.when(accountService.getMhaAccounts(Mockito.any(MhaTblV2.class))).thenReturn(mhaAccounts);
+        
         Drc result = metaGeneratorV5.getDrc();
         String xml = XmlUtils.formatXML(result.toString());
         System.out.println(xml);

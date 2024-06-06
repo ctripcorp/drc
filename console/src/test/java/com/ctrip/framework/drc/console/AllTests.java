@@ -56,6 +56,7 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationSe
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.security.impl.AccountServiceImplTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
@@ -123,8 +124,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ColumnsFilterServiceV2Test.class,
         DataMediaServiceV2Test.class,
         MessengerServiceV2Test.class,
-        MetaGeneratorV3Test.class,
-        MetaGeneratorV4Test.class,
         MetaGeneratorV5Test.class,
         RowsFilterServiceV2Test.class,
         MetaCompareServiceImplTest.class,
@@ -188,6 +187,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MultiTruncateMonitorTest.class,
         ConflictRowsLogCountTaskTest.class,
         DrcApplicationFormCheckTaskTest.class,
+        AccountServiceImplTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

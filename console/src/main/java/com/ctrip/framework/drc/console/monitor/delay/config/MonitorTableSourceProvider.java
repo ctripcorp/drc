@@ -225,26 +225,31 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return ConfigServiceHolder.instance;
     }
 
-    public String getReadUserVal() {
+    @Deprecated // todo hdpan get default acc from kms
+    public String getReadUserVal() { // todo hdpan 通过开关，替换为新账号的默认账密 
         return getProperty(READ_USER_KEY);
     }
 
+    @Deprecated
     public String getReadPasswordVal() {
         return getProperty(READ_PASSWORD_KEY);
     }
 
+    @Deprecated
     public String getWriteUserVal() {
         return getProperty(WRITE_USER_KEY);
     }
 
+    @Deprecated
     public String getWritePasswordVal() {
         return getProperty(WRITE_PASSWORD_KEY);
     }
 
+    @Deprecated
     public String getMonitorUserVal() {
         return getProperty(MONITOR_USER_KEY);
     }
-
+    @Deprecated
     public String getMonitorPasswordVal() {
         return getProperty(MONITOR_PASSWORD_KEY);
     }

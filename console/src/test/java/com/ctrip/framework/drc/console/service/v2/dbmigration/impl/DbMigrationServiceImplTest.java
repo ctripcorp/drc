@@ -43,7 +43,6 @@ import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -92,8 +91,6 @@ public class DbMigrationServiceImplTest {
     private MessengerGroupTblDao messengerGroupTblDao;
     @Mock
     private MessengerTblDao messengerTblDao;
-    @Mock
-    private MetaGeneratorV3 metaGeneratorV3;
     @Mock
     private DcTblDao dcTblDao;
     @Mock
@@ -320,8 +317,6 @@ public class DbMigrationServiceImplTest {
                 , Mockito.any(MhaTblV2.class),Mockito.any(MhaTblV2.class)
         );
         Mockito.doNothing().when(drcBuildServiceV2).autoConfigMessengersWithRealTimeGtid(Mockito.any(MhaTblV2.class));
-        Mockito.when(metaGeneratorV3.getDrc()).thenThrow(new Exception("mock exception"));
-
         Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
     }
     
@@ -361,9 +356,7 @@ public class DbMigrationServiceImplTest {
         Mockito.when(replicatorGroupTblDao.upsertIfNotExist(Mockito.anyLong())).thenReturn(1L);
         Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(),Mockito.anyLong(),Mockito.any())).thenReturn(1L);
 
-        Mockito.doNothing().when(drcBuildServiceV2).autoConfigReplicatorsWithRealTimeGtid(Mockito.any(MhaTblV2.class));
-        Mockito.when(metaGeneratorV3.getDrc()).thenThrow(new Exception("mock exception"));
-        Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
+        Mockito.doNothing().when(drcBuildServiceV2).autoConfigReplicatorsWithRealTimeGtid(Mockito.any(MhaTblV2.class));Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
     }
     
     private void mockNormalPreStartCopyAllDbReplication() throws Exception {
@@ -393,7 +386,6 @@ public class DbMigrationServiceImplTest {
         Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(),Mockito.anyLong(),Mockito.any())).thenReturn(1L);
 
         Mockito.doNothing().when(drcBuildServiceV2).autoConfigReplicatorsWithRealTimeGtid(Mockito.any(MhaTblV2.class));
-        Mockito.when(metaGeneratorV3.getDrc()).thenThrow(new Exception("mock exception"));
         Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
     }
     

@@ -26,7 +26,6 @@ public class DataSourceManager extends AbstractDataSource {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final int MAX_ACTIVE = 50;
-
     private Map<Endpoint, Lock> cachedLocks = new ConcurrentHashMap<>();
     private Map<Endpoint, Lock> writeCachedLocks = new ConcurrentHashMap<>();
 

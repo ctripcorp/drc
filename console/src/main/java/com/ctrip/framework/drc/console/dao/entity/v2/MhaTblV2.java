@@ -69,6 +69,28 @@ public class MhaTblV2 implements DalPojo {
     private String readPassword;
 
     /**
+     * binlog拉取账号密码加密Token
+     */
+    @Column(name = "read_password_token")
+    @Type(value = Types.VARCHAR)
+    private String readPasswordToken;
+    
+    /**
+     * binlog拉取账号用户名V2
+     */
+    @Column(name = "read_user_v2")
+    @Type(value = Types.VARCHAR)
+    private String readUserV2;
+
+    /**
+     * binlog拉取账号密码加密TokenV2
+     */
+    @Column(name = "read_password_token_v2")
+    @Type(value = Types.VARCHAR)
+    private String readPasswordTokenV2;
+    
+
+    /**
      * 写账号用户名
      */
     @Column(name = "write_user")
@@ -81,6 +103,27 @@ public class MhaTblV2 implements DalPojo {
     @Column(name = "write_password")
     @Type(value = Types.VARCHAR)
     private String writePassword;
+
+    /**
+     * 写账号用密码加密Token
+     */
+    @Column(name = "write_password_token")
+    @Type(value = Types.VARCHAR)
+    private String writePasswordToken;
+
+    /**
+     * 写账号用户名V2
+     */
+    @Column(name = "write_user_v2")
+    @Type(value = Types.VARCHAR)
+    private String writeUserV2;
+
+    /**
+     * 写账号用密码加密TokenV2
+     */
+    @Column(name = "write_password_token_v2")
+    @Type(value = Types.VARCHAR)
+    private String writePasswordTokenV2;
 
     /**
      * 监控账号用户名
@@ -96,6 +139,28 @@ public class MhaTblV2 implements DalPojo {
     @Type(value = Types.VARCHAR)
     private String monitorPassword;
 
+    /**
+     * 监控账号密码加密token
+     */
+    @Column(name = "monitor_password_token")
+    @Type(value = Types.VARCHAR)
+    private String monitorPasswordToken;
+
+
+    /**
+     * 监控账号用户名V2
+     */
+    @Column(name = "monitor_user_v2")
+    @Type(value = Types.VARCHAR)
+    private String monitorUserV2;
+
+    /**
+     * 监控账号密码加密tokenv2
+     */
+    @Column(name = "monitor_password_token_v2")
+    @Type(value = Types.VARCHAR)
+    private String monitorPasswordTokenV2;
+    
     /**
      * 是否开启监控, 0-否; 1-是
      */
@@ -193,52 +258,137 @@ public class MhaTblV2 implements DalPojo {
         this.clusterName = clusterName;
     }
 
+    @Deprecated
     public String getReadUser() {
         return readUser;
     }
 
+    @Deprecated
     public void setReadUser(String readUser) {
         this.readUser = readUser;
     }
 
+    @Deprecated
     public String getReadPassword() {
         return readPassword;
     }
 
+    @Deprecated
     public void setReadPassword(String readPassword) {
         this.readPassword = readPassword;
     }
 
+    @Deprecated
     public String getWriteUser() {
         return writeUser;
     }
 
+    @Deprecated
     public void setWriteUser(String writeUser) {
         this.writeUser = writeUser;
     }
 
+    @Deprecated
     public String getWritePassword() {
         return writePassword;
     }
 
+    @Deprecated
     public void setWritePassword(String writePassword) {
         this.writePassword = writePassword;
     }
 
+    @Deprecated
     public String getMonitorUser() {
         return monitorUser;
     }
 
+    @Deprecated
     public void setMonitorUser(String monitorUser) {
         this.monitorUser = monitorUser;
     }
 
+    @Deprecated
     public String getMonitorPassword() {
         return monitorPassword;
     }
 
+    @Deprecated
     public void setMonitorPassword(String monitorPassword) {
         this.monitorPassword = monitorPassword;
+    }
+
+
+    public String getReadPasswordToken() {
+        return readPasswordToken;
+    }
+
+    public void setReadPasswordToken(String readPasswordToken) {
+        this.readPasswordToken = readPasswordToken;
+    }
+
+    public String getReadUserV2() {
+        return readUserV2;
+    }
+
+    public void setReadUserV2(String readUserV2) {
+        this.readUserV2 = readUserV2;
+    }
+
+    public String getReadPasswordTokenV2() {
+        return readPasswordTokenV2;
+    }
+
+    public void setReadPasswordTokenV2(String readPasswordTokenV2) {
+        this.readPasswordTokenV2 = readPasswordTokenV2;
+    }
+
+    public String getWritePasswordToken() {
+        return writePasswordToken;
+    }
+
+    public void setWritePasswordToken(String writePasswordToken) {
+        this.writePasswordToken = writePasswordToken;
+    }
+
+    public String getWriteUserV2() {
+        return writeUserV2;
+    }
+
+    public void setWriteUserV2(String writeUserV2) {
+        this.writeUserV2 = writeUserV2;
+    }
+
+    public String getWritePasswordTokenV2() {
+        return writePasswordTokenV2;
+    }
+
+    public void setWritePasswordTokenV2(String writePasswordTokenV2) {
+        this.writePasswordTokenV2 = writePasswordTokenV2;
+    }
+
+    public String getMonitorPasswordToken() {
+        return monitorPasswordToken;
+    }
+
+    public void setMonitorPasswordToken(String monitorPasswordToken) {
+        this.monitorPasswordToken = monitorPasswordToken;
+    }
+
+    public String getMonitorUserV2() {
+        return monitorUserV2;
+    }
+
+    public void setMonitorUserV2(String monitorUserV2) {
+        this.monitorUserV2 = monitorUserV2;
+    }
+
+    public String getMonitorPasswordTokenV2() {
+        return monitorPasswordTokenV2;
+    }
+
+    public void setMonitorPasswordTokenV2(String monitorPasswordTokenV2) {
+        this.monitorPasswordTokenV2 = monitorPasswordTokenV2;
     }
 
     public Integer getMonitorSwitch() {
@@ -299,16 +449,26 @@ public class MhaTblV2 implements DalPojo {
                 ", clusterName='" + clusterName + '\'' +
                 ", readUser='" + readUser + '\'' +
                 ", readPassword='" + readPassword + '\'' +
+                ", readPasswordToken='" + readPasswordToken + '\'' +
+                ", readUserV2='" + readUserV2 + '\'' +
+                ", readPasswordTokenV2='" + readPasswordTokenV2 + '\'' +
                 ", writeUser='" + writeUser + '\'' +
                 ", writePassword='" + writePassword + '\'' +
+                ", writePasswordToken='" + writePasswordToken + '\'' +
+                ", writeUserV2='" + writeUserV2 + '\'' +
+                ", writePasswordTokenV2='" + writePasswordTokenV2 + '\'' +
                 ", monitorUser='" + monitorUser + '\'' +
                 ", monitorPassword='" + monitorPassword + '\'' +
+                ", monitorPasswordToken='" + monitorPasswordToken + '\'' +
+                ", monitorUserV2='" + monitorUserV2 + '\'' +
+                ", monitorPasswordTokenV2='" + monitorPasswordTokenV2 + '\'' +
                 ", monitorSwitch=" + monitorSwitch +
                 ", applyMode=" + applyMode +
                 ", deleted=" + deleted +
                 ", createTime=" + createTime +
                 ", datachangeLasttime=" + datachangeLasttime +
                 ", appId=" + appId +
+                ", tag='" + tag + '\'' +
                 '}';
     }
 }

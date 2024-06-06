@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
@@ -143,6 +144,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MhaDbReplicationService mhaDbReplicationService;
     @Autowired
     private MhaServiceV2 mhaServiceV2;
+    @Autowired
+    private AccountService accountService;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private final ListeningExecutorService replicationExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "replicationExecutorService"));
@@ -1164,6 +1167,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     private MachineTbl extractFrom(MachineDto machineDto, Long mhaId) throws Exception {
         boolean isMaster = Boolean.TRUE.equals(machineDto.getMaster());
+        // todo hdpan acc 
         String uuid = MySqlUtils.getUuid(machineDto.getIp(), machineDto.getPort(),
                 monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(),
                 isMaster);
@@ -1183,6 +1187,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         boolean isMaster = memberInfo.getRole().toLowerCase().contains("master");
         String uuid = null;
         try {
+            // todo hdpan acc 
             uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorTableSourceProvider.getMonitorUserVal(),
                     monitorTableSourceProvider.getMonitorPasswordVal(), isMaster);
         } catch (Exception e) {
@@ -1713,12 +1718,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setDeleted(BooleanEnum.FALSE.getCode());
         mhaTblV2.setTag(tag);
 
+        // todo hdpan no acc info in meta db now,
+        // get default new account from kms
+        // change password
+        // set default account and new password
         mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
         mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
+        mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
         mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
         mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
+        mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
         mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
         mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
+        mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
 
         return mhaTblV2;
     }
