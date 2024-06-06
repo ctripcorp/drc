@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
@@ -143,6 +144,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MhaDbReplicationService mhaDbReplicationService;
     @Autowired
     private MhaServiceV2 mhaServiceV2;
+    @Autowired
+    private AccountService accountService;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private final ListeningExecutorService replicationExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "replicationExecutorService"));
@@ -1721,10 +1724,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         // set default account and new password
         mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
         mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
+        mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
         mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
         mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
+        mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
         mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
         mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
+        mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
 
         return mhaTblV2;
     }
