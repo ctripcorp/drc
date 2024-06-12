@@ -23,4 +23,12 @@ public class ResourceMigrateDto {
     public void setOldIp(String oldIp) {
         this.oldIp = oldIp;
     }
+
+    @Override
+    public String toString() {
+        return "ResourceMigrateDto{" +
+                "newIp='" + newIp + '\'' +
+                ", oldIp='" + oldIp + '\'' +
+                '}';
+    }
 }

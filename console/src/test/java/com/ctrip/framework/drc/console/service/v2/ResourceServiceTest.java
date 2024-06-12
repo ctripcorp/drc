@@ -11,13 +11,10 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.param.v2.resource.ReplicatorMigrateParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
-import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.MhaView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
@@ -253,7 +250,7 @@ public class ResourceServiceTest {
         Mockito.when(replicatorGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getReplicatorGroupTbls());
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
 
-        List<String> result = resourceService.queryMhaByReplicator(1L);
+        List<MhaView> result = resourceService.queryMhaByReplicator(1L);
         Assert.assertEquals(result.size(), getMhaTblV2s().size());
     }
 
@@ -263,25 +260,25 @@ public class ResourceServiceTest {
         Mockito.when(messengerGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessengerGroup()));
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMhaTblV2()));
 
-        List<String> result = resourceService.queryMhaByMessenger(1L);
+        List<ApplierReplicationView> result = resourceService.queryMhaByMessenger(1L);
         Assert.assertEquals(result.size(), 1);
     }
 
     @Test
     public void testQueryMhaReplicationByApplier () throws Exception {
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
+        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getApplierTblV2s().get(0)));
         Mockito.when(applierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV2s());
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
         Mockito.when(mhaReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaReplicationTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
 
-        List<MhaReplicationView> result = resourceService.queryMhaReplicationByApplier(1L);
+        List<ApplierReplicationView> result = resourceService.queryMhaReplicationByApplier(1L);
         Assert.assertEquals(result.size(), getMhaReplicationTbls().size());
     }
 
     @Test
     public void testQueryMhaDbReplicationByApplier() throws Exception {
-        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
+        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getApplierTblV3s().get(0)));
         Mockito.when(dbApplierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV3s());
         Mockito.when(mhaDbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbReplicationTbls());
         Mockito.when(mhaDbMappingTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbMappingTbls1());
@@ -289,7 +286,7 @@ public class ResourceServiceTest {
         Mockito.when(dbTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
 
-        List<MhaDbReplicationView> result = resourceService.queryMhaDbReplicationByApplier(1L);
+        List<ApplierReplicationView> result = resourceService.queryMhaDbReplicationByApplier(1L);
         Assert.assertEquals(result.size(), 1);
     }
 
@@ -399,6 +396,59 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.getApplierMhaReplicationList().size(), 1);
         Assert.assertEquals(result.getMessengerMhaList().size(), 1);
         Assert.assertEquals(result.getReplicatorMhaList().size(), 1);
+    }
+
+    @Test
+    public void testGetResourceViewByIp() throws Exception {
+        Mockito.when(resourceTblDao.queryByIp(Mockito.anyString(), Mockito.anyInt())).thenReturn(getReplicatorResources().get(0));
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getReplicatorResources());
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getReplicatorTbls());
+        List<ResourceView> views = resourceService.getResourceViewByIp("ip1");
+        Assert.assertEquals(views.size(), 1);
+
+        Mockito.when(resourceTblDao.queryByIp(Mockito.anyString(), Mockito.anyInt())).thenReturn(getApplierResources().get(0));
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getApplierResources());
+        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
+        Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getMessengers());
+        Mockito.when(dbMessengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
+        views = resourceService.getResourceViewByIp("ip1");
+        Assert.assertEquals(views.size(), 1);
+    }
+
+    @Test
+    public void testPartialMigrateApplier() throws Exception {
+        List<ResourceTbl> resourceTbls = getApplierResources();
+        ApplierMigrateParam param = new ApplierMigrateParam();
+        param.setNewIp("newIp");
+        param.setOldIp("oldIp");
+        List<ApplierResourceDto> dtos = new ArrayList<>();
+        param.setApplierResourceDtos(dtos);
+        dtos.add(new ApplierResourceDto(200L, 1));
+        dtos.add(new ApplierResourceDto(200L, 2));
+        dtos.add(new ApplierResourceDto(200L, 3));
+        dtos.add(new ApplierResourceDto(200L, 4));
+
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("newIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("oldIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+
+        Mockito.when(applierTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
+        Mockito.when(messengerTblDao.queryByIds(Mockito.anyList())).thenReturn(getMessengers());
+        Mockito.when(dbMessengerTblDao.queryByIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+        Mockito.when(dbApplierTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
+
+        Mockito.when(applierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV2s());
+        Mockito.when(dbApplierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV3s());
+        Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
+        Mockito.when(dbMessengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+
+        Mockito.when(applierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbApplierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbMessengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        int result = resourceService.partialMigrateApplier(param);
+        Assert.assertEquals(result, 6);
     }
 
 }
