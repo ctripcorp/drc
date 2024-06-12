@@ -43,4 +43,13 @@ public class ReplicatorMigrateParam {
     public void setMhaList(List<String> mhaList) {
         this.mhaList = mhaList;
     }
+
+    @Override
+    public String toString() {
+        return "ReplicatorMigrateParam{" +
+                "oldIp='" + oldIp + '\'' +
+                ", newIp='" + newIp + '\'' +
+                ", mhaList=" + mhaList +
+                '}';
+    }
 }

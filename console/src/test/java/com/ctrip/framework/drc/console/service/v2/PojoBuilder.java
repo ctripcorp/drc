@@ -355,11 +355,13 @@ public class PojoBuilder {
         messengerTbl.setId(200L);
         messengerTbl.setMessengerGroupId(200L);
         messengerTbl.setDeleted(0);
+        messengerTbl.setResourceId(200L);
 
         MessengerTbl messengerTbl02 = new MessengerTbl();
         messengerTbl02.setId(201L);
         messengerTbl02.setMessengerGroupId(200L);
         messengerTbl02.setDeleted(0);
+        messengerTbl02.setResourceId(201L);
         return Lists.newArrayList(messengerTbl, messengerTbl02);
     }
 
@@ -500,6 +502,7 @@ public class PojoBuilder {
         resourceTbl.setIp("ip");
         resourceTbl.setTag("tag");
         resourceTbl.setDeleted(1);
+        resourceTbl.setDcId(200L);
         return Lists.newArrayList(resourceTbl);
     }
 

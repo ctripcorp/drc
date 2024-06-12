@@ -1,10 +1,8 @@
 package com.ctrip.framework.drc.console.service.v2.resource;
 
 import com.ctrip.framework.drc.console.param.v2.resource.*;
-import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceView;
+import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.core.entity.Applier;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -29,6 +27,13 @@ public interface ResourceService {
 
     List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception;
 
+    /**
+     * same dc
+     * same tag
+     * same type
+     */
+    List<ResourceView> getResourceViewByIp(String ip) throws Exception;
+
     List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
 
     List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException;
@@ -45,17 +50,15 @@ public interface ResourceService {
 
     List<ResourceView> handOffResource(List<String> selectedIps, List<ResourceView> availableResource);
 
-    List<String> queryMhaByReplicator(long resourceId) throws Exception;
+    List<MhaView> queryMhaByReplicator(long resourceId) throws Exception;
 
-    List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception;
-
-    List<MhaDbReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception;
-
-    List<String> queryMhaByMessenger(long resourceId) throws Exception;
+    List<ApplierReplicationView> queryReplicationByApplier(long resourceId) throws Exception;
 
     int migrateResource(String newIp, String oldIp, int type) throws Exception;
 
     int partialMigrateReplicator(ReplicatorMigrateParam param) throws Exception;
+
+    int partialMigrateApplier(ApplierMigrateParam param) throws Exception;
 
     int migrateSlaveReplicator(String newIp, String oldIp) throws Exception;
 
