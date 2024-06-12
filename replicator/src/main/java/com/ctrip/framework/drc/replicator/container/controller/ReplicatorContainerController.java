@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorDetailInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -101,6 +102,16 @@ public class ReplicatorContainerController {
     public void destroy(@PathVariable String registryKey) {
         logger.info("[Receive][Remove] replicator registryKey {}", registryKey);
         notifyExecutor.execute(registryKey, new DeleteKeyedTask(registryKey, null, serverContainer));
+    }
+
+    @RequestMapping(value = "/info/{registryKey}", method = RequestMethod.GET)
+    public ApiResult<ReplicatorDetailInfoDto> info(@PathVariable String registryKey) {
+        try {
+            return serverContainer.getInfo(registryKey);
+        } catch (Throwable t) {
+            logger.error("get info error for {}", registryKey, t);
+            return ApiResult.getFailInstance(t);
+        }
     }
 
     @RequestMapping(value = "/info/all", method = RequestMethod.GET)

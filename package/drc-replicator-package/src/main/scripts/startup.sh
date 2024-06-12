@@ -34,7 +34,7 @@ function getSafeFileSize() {
 
 function getTotalDisk() {
 
-    echo `df -lh /data/ | grep -v Size |  awk -F " " '{print substr($2,0,length($2) - 1 )}'`
+    echo `df -lh /data/ | awk '!/Size/ { if ($2 ~ /T$/) { $2 = $2 * 10000 } print substr($2, 0, length($2) - 1) }'`
 }
 
 function getIdc(){
@@ -144,6 +144,7 @@ then
 elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ] || [ $ENV = "UAT" ];then
     #GB
     USED_MEM=`getSafeXmx`
+    USED_MEM=`expr $USED_MEM \* 70 / 100`
     XMN=`getSafeXmn $USED_MEM`
     MAX_DIRECT=3
     FILE_SIZE=`getSafeFileSize`

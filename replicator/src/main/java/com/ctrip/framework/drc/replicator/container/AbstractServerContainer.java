@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.DrcServer;
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorDetailInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
@@ -32,7 +33,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.PORT_ALREADY_EXIST;
@@ -259,7 +262,17 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
     }
 
     @Override
-    public ApiResult getInfo() {
+    public ApiResult<ReplicatorDetailInfoDto> getInfo(String registryKey) {
+        DrcServer drcServer = drcServers.get(registryKey);
+        if (drcServer == null) {
+            return ApiResult.getFailInstance(null, "server not exist");
+        }
+        DefaultReplicatorServer replicatorServer = (DefaultReplicatorServer) drcServer;
+        return ApiResult.getSuccessInstance(replicatorServer.detailInfo());
+    }
+
+    @Override
+    public ApiResult<ReplicatorInfoDto> getInfo() {
         List<ReplicatorInfoDto> ret = drcServers.values().stream()
                 .map(DefaultReplicatorServer.class::cast)
                 .map(DefaultReplicatorServer::info)

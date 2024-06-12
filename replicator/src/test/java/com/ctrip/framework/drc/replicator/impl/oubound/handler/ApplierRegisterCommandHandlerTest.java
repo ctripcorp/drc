@@ -20,7 +20,7 @@ import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
 import com.ctrip.xpipe.netty.commands.NettyClient;
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -28,7 +28,6 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.util.Attribute;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -52,7 +51,7 @@ import static com.ctrip.framework.drc.replicator.AllTests.ROW_FILTER_PROPERTIES;
 public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
     @InjectMocks
-    private ApplierRegisterCommandHandler applierRegisterCommandHandler;
+    private ApplierRegisterCommandHandlerBefore applierRegisterCommandHandler;
 
     @Mock
     private Channel channel;
@@ -88,7 +87,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
     private ChannelAttributeKey channelAttributeKey;
 
     @Mock
-    private Gate gate;
+    private ScheduleCloseGate gate;
 
     private static final String APPLIER_NAME = "ut_applier_name";
 
@@ -121,7 +120,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
 
-        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, replicatorConfig);
+        applierRegisterCommandHandler = new ApplierRegisterCommandHandlerBefore(gtidManager, fileManager, outboundMonitorReport, replicatorConfig);
 
         createFiles();
 

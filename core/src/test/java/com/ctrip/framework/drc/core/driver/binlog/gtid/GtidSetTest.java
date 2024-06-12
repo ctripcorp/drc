@@ -72,6 +72,66 @@ public class GtidSetTest {
     }
 
     @Test
+    public void testAddAndFillGap(){
+        GtidSet gtidSet;
+
+        gtidSet = new GtidSet("");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:4");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:4", gtidSet.toString());
+
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:4");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:5");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:4-5", gtidSet.toString());
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:4");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:6");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:4-6", gtidSet.toString());
+
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:4");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:2");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2:4", gtidSet.toString());
+
+
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:2:4");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:3");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2-4", gtidSet.toString());
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:2-5");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:4");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2-5", gtidSet.toString());
+
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:2-5");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:11");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2-11", gtidSet.toString());
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:5-10");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:2");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2:5-10", gtidSet.toString());
+
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-8:12-15:17-20");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:10");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-10:12-15:17-20", gtidSet.toString());
+
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-9:12-15:17-20");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:10");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-10:12-15:17-20", gtidSet.toString());
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-10:12-15:17-20");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:11");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-15:17-20", gtidSet.toString());
+
+        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-15:17-20");
+        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:22");
+        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-22", gtidSet.toString());
+    }
+
+    @Test
     public void testJoin() throws Exception {
         GtidSet gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:3-4:6-7");
         gtidSet.add("00000000-0000-0000-0000-000000000000:5");
@@ -372,6 +432,17 @@ public class GtidSetTest {
     }
 
     @Test
+    public void testGetIntersectionNotSameObject() {
+        GtidSet origin = new GtidSet("a:1-10");
+        List<GtidSet> list = Lists.newArrayList(
+                origin
+        );
+
+        GtidSet intersection = GtidSet.getIntersection(list);
+        Assert.assertNotSame(intersection, origin);
+    }
+
+    @Test
     public void testUnion() {
         GtidSet big = new GtidSet(UUID + ":1-10:100");
         GtidSet small = new GtidSet(UUID + ":3-8");
@@ -536,6 +607,170 @@ public class GtidSetTest {
 
 
     @Test
+    public void testUnionInPlace() {
+        GtidSet big = new GtidSet(UUID + ":1-10:100");
+        GtidSet small = new GtidSet(UUID + ":3-8");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-10:100");
+
+        small = new GtidSet(UUID + ":2-5");
+        big = new GtidSet(UUID + ":7-15:100");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":2-5:7-15:100");
+
+        big = new GtidSet(UUID + ":7-15:100");
+        small = new GtidSet(UUID + ":2-5");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":2-5:7-15:100");
+
+        big = new GtidSet(UUID + ":1-3:6-10:15-20");
+        small = new GtidSet(UUID + ":17-50:100");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-3:6-10:15-50:100");
+
+        big = new GtidSet(UUID + ":1-3:6-10:15-20:100");
+        small = new GtidSet(UUID + ":17-50");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-3:6-10:15-50:100");
+
+        big = new GtidSet(UUID + ":1-10:50-100:1000");
+        small = new GtidSet(UUID + ":3-8:75-85:98-110:120-140");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-10:50-110:120-140:1000");
+
+        big = new GtidSet(UUID + ":1-10:50-100:1000");
+        small = new GtidSet(UUID + ":3-8:75-85:98-110:120-140");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-10:50-110:120-140:1000");
+
+        big = new GtidSet(UUID + ":15-200:1000");
+        small = new GtidSet(UUID + ":3-50:100:150-180");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":3-200:1000");
+
+        big = new GtidSet(UUID + ":15-200");
+        small = new GtidSet(UUID + ":3-50:100:150-180:1000");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":3-200:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:1000");
+        small = new GtidSet(UUID + ":1-12");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-12:15-20:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:1000");
+        small = new GtidSet(UUID + ":1-12");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-12:15-20:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:1000");
+        small = new GtidSet(UUID + ":3-17");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-20:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:1000");
+        small = new GtidSet(UUID + ":3-17");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-20:1000");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet(UUID + ":3-17");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-17:1000");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet(UUID + ":3-17");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-17:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:1000");
+        small = new GtidSet(UUID + ":3-22");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-22:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:1000");
+        small = new GtidSet(UUID + ":3-22");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-22:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:35-36:38-42:1000");
+        small = new GtidSet(UUID + ":3-40");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-42:1000");
+
+        big = new GtidSet(UUID + ":1-10:15-20:35-36:38-42:1000");
+        small = new GtidSet(UUID + ":3-40");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-42:1000");
+
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet(UUID + ":1-10");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-10:1000");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet(UUID + ":1-9");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-10:1000");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet(UUID + ":2-10");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-10:1000");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet(UUID + ":2-11");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-11:1000");
+
+        big = new GtidSet(UUID + ":1-10");
+        small = new GtidSet(UUID + ":11-20");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-20");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet("");
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), UUID + ":1-10:1000");
+
+        big = new GtidSet(UUID + ":1-10:1000");
+        small = new GtidSet("");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), UUID + ":1-10:1000");
+
+        big = new GtidSet("");
+        small = new GtidSet("");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), "");
+
+        big = new GtidSet("cb190774-6bf1-11ea-9799-fa163e02998c:1-18912721");
+        small = new GtidSet("cb190774-6bf1-11ea-9799-fa163e02998c:1-16504165:16504173-16541256:16541260-16545608:16545610-18913165");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), "cb190774-6bf1-11ea-9799-fa163e02998c:1-18913165");
+
+        big = new GtidSet("cb190774-6bf1-11ea-9799-fa163e02998c:1-18912721,bb190774-6bf1-11ea-9799-fa163e02998c:1-18912");
+        small = new GtidSet("cb190774-6bf1-11ea-9799-fa163e02998c:1-18912732,cb190774-6bf1-11ea-9799-fa163e029911:1-189127");
+        small.unionInPlace(big);
+        Assert.assertEquals(small.toString(), "cb190774-6bf1-11ea-9799-fa163e02998c:1-18912732,cb190774-6bf1-11ea-9799-fa163e029911:1-189127,bb190774-6bf1-11ea-9799-fa163e02998c:1-18912");
+
+        String gtidSetStringBig = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-2172782,e7d82d84-036c-11ea-bb09-075284a09713:1-427";
+        String gtidSetStringSmall = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2-2172778,e7d82d84-036c-11ea-bb09-075284a09713:2-427,3f40568c-6364-11ea-98b4-fa163ec90ff6:1-3";
+        big = new GtidSet(gtidSetStringBig);
+        small = new GtidSet(gtidSetStringSmall);
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-2172782,e7d82d84-036c-11ea-bb09-075284a09713:1-427,3f40568c-6364-11ea-98b4-fa163ec90ff6:1-3");
+
+        gtidSetStringBig = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2-2172778,e7d82d84-036c-11ea-bb09-075284a09713:2-427,3f40568c-6364-11ea-98b4-fa163ec90ff6:1-3";
+        gtidSetStringSmall = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-2172782,e7d82d84-036c-11ea-bb09-075284a09713:1-427";
+        big = new GtidSet(gtidSetStringBig);
+        small = new GtidSet(gtidSetStringSmall);
+        big.unionInPlace(small);
+        Assert.assertEquals(big.toString(), "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-2172782,e7d82d84-036c-11ea-bb09-075284a09713:1-427,3f40568c-6364-11ea-98b4-fa163ec90ff6:1-3");
+    }
+
+
+    @Test
     public void testConcurrentWhenAddInterval() throws InterruptedException {
         AtomicReference<Exception> exception = new AtomicReference<>(null);
         String gtidSetString = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-20";
@@ -627,12 +862,11 @@ public class GtidSetTest {
         Assert.assertEquals(new GtidSet("c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-39,34b4ecc5-3675-11ea-a598-b8599ffdbbb4:1-362422"), briefGtidSet);
     }
 
-
     @Test
-    public void test() {
-        GtidSet dbGtid = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-157408102:157408104-157538824");
-        GtidSet mhaGtid = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-156744202:156744639-157076784");
-        System.out.println(mhaGtid.isContainedWithin(dbGtid));
+    public void testGetGtidNum() {
+        GtidSet gtidSet = new GtidSet("c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-39:100-200:202,34b4ecc5-3675-11ea-a598-b8599ffdbbb4:1-362422");
+        long num = gtidSet.getGtidNum();
+        Assert.assertEquals(362563, num);
     }
 
     @Test

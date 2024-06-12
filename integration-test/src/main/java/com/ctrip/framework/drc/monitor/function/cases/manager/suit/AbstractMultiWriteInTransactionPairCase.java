@@ -46,7 +46,7 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
 
     private List<String> selectList = new ArrayList<>();
 
-    private static final String integrationTestInstanceName = ConfigService.getInstance().getIntegrationTestInstanceName();
+    protected static final String integrationTestInstanceName = ConfigService.getInstance().getIntegrationTestInstanceName();
 
     protected ResultCompareMonitorReport insertResultCompareMonitorReportSuccess = getResultCompareMonitorReport(DmlTypeEnum.INSERT, StatusEnum.SUCCESS, getClass().getSimpleName());
     protected ResultCompareMonitorReport updateResultCompareMonitorReportSuccess = getResultCompareMonitorReport(DmlTypeEnum.UPDATE, StatusEnum.SUCCESS, getClass().getSimpleName());
@@ -67,7 +67,7 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
         this.deleteStatementList = deleteStatementList;
     }
 
-    public void setSelectList(String ... selectArray) {
+    public void setSelectList(String... selectArray) {
         selectList.addAll(Arrays.asList(selectArray));
     }
 
@@ -85,7 +85,7 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
     }
 
     protected void initResource(List<String> insertStatementList, List<String> updateStatementList,
-                                List<String> deleteStatementList, String ... selectArray) {
+                                List<String> deleteStatementList, String... selectArray) {
         try {
             setInsertStatementList(insertStatementList);
             setUpdateStatementList(updateStatementList);
@@ -166,7 +166,7 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
                                 alarm.alarm(String.format("%s src and dst MISMATCH for [%s]", getClass().getSimpleName(), selectExecution.getStatements()));
                                 return false;
                             }
-                            for(int j = 0; j < Array.getLength(srcObject); j++){
+                            for (int j = 0; j < Array.getLength(srcObject); j++) {
                                 if (!Array.get(srcObject, j).equals(Array.get(dstObject, j))) {
                                     alarm.alarm(String.format("%s src and dst MISMATCH for [%s]", getClass().getSimpleName(), selectExecution.getStatements()));
                                     return false;
@@ -217,7 +217,7 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
     public void test(ReadWriteSqlOperator src, ReadSqlOperator<ReadResource> dst) {
         logger.info(">>>>>>>>>>>> START test [{}] >>>>>>>>>>>>", getClass().getSimpleName());
 
-        if(insertStatementList == null) {
+        if (insertStatementList == null) {
             doPerformanceTest(src, dst);
         } else {
             doFunctionTest(src, dst);
@@ -257,10 +257,10 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
             doWrite(src, dmlType);
 
             boolean result = true;
-            for(int i = 0; i < selectList.size(); i++) {
+            for (int i = 0; i < selectList.size(); i++) {
                 Execution selectExecution = new SingleSelectExecution(selectList.get(i));
                 result = result && diff(selectExecution, src, dst);
-                if(!result) {
+                if (!result) {
                     reportCount(dmlType, StatusEnum.FAIL);
                     t.addData(dmlType.getDescription(), StatusEnum.FAIL.getDescription());
                     t.setStatus(new Exception("Not all cases pass"));
@@ -295,21 +295,21 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
     protected void reportCount(DmlTypeEnum dmlType, StatusEnum statusEnum) {
         switch (dmlType) {
             case INSERT:
-                if(StatusEnum.SUCCESS == statusEnum) {
+                if (StatusEnum.SUCCESS == statusEnum) {
                     insertResultCompareMonitorReportSuccess.addOneCount();
                 } else {
                     insertResultCompareMonitorReportFail.addOneCount();
                 }
                 break;
             case UPDATE:
-                if(StatusEnum.SUCCESS == statusEnum) {
+                if (StatusEnum.SUCCESS == statusEnum) {
                     updateResultCompareMonitorReportSuccess.addOneCount();
                 } else {
                     updateResultCompareMonitorReportFail.addOneCount();
                 }
                 break;
             case DELETE:
-                if(StatusEnum.SUCCESS == statusEnum) {
+                if (StatusEnum.SUCCESS == statusEnum) {
                     deleteResultCompareMonitorReportSuccess.addOneCount();
                 } else {
                     deleteResultCompareMonitorReportFail.addOneCount();

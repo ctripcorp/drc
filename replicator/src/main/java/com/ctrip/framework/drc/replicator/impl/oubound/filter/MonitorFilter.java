@@ -33,7 +33,7 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
 
     private String dbName;
 
-    public MonitorFilter(OutboundFilterChainContext context) {
+    public MonitorFilter(OutFilterChainContext context) {
         this.outboundMonitorReport = context.getOutboundMonitorReport();
         this.registerKey = context.getRegisterKey();
         this.consumeType = context.getConsumeType();

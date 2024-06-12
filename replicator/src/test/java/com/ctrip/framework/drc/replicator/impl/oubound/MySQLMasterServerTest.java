@@ -57,8 +57,7 @@ public class MySQLMasterServerTest extends AbstractServerTest {
     public void setUp() throws Exception {
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
-        when(replicatorConfig.getRegistryKey()).thenReturn("");
-        when(replicatorConfig.getRegistryKey()).thenReturn("ut");
+        when(replicatorConfig.getRegistryKey()).thenReturn("ut_dalcluster.ut");
         when(replicatorConfig.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));

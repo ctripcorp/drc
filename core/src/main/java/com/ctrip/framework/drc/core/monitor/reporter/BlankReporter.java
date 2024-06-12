@@ -26,6 +26,11 @@ public class BlankReporter implements Reporter {
     }
 
     @Override
+    public void reportReplicatorScannerSenderNum(Map<String, String> tags, long num, String measurement) {
+
+    }
+
+    @Override
     public void reportTraffic(TrafficEntity entity, Long bytes) {
 
     }

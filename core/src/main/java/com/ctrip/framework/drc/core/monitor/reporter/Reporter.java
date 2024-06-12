@@ -19,6 +19,8 @@ public interface Reporter extends Ordered {
     
     void reportMessengerDelay(Map<String, String> tags,long delay,String measurement);
 
+    void reportReplicatorScannerSenderNum(Map<String, String> tags, long num, String measurement);
+
     void reportTraffic(@Valid TrafficEntity entity, Long bytes);
 
     void reportConflict(@Valid ConflictEntity conflictEntity, Long number);

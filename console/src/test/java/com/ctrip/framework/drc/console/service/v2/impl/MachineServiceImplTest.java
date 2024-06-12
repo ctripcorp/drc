@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -7,7 +8,6 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
-import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.Data;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
@@ -46,13 +46,16 @@ public class MachineServiceImplTest {
     MonitorTableSourceProvider monitorTableSourceProvider;
     @Mock
     AccountService accountService;
+    @Mock
+    DefaultConsoleConfig defaultConsoleConfig;
+
     @InjectMocks
     MachineServiceImpl machineServiceImpl;
 
     @Before
     public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
-        when(accountService.getAccount(Mockito.any(MhaTblV2.class),Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("mockUser", "mockPassword"));
+        when(accountService.getAccount(Mockito.any(MhaTblV2.class), Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("mockUser", "mockPassword"));
         MhaTblV2 mhaTblV2 = new MhaTblV2();
 
         mhaTblV2.setId(1L);
@@ -72,6 +75,7 @@ public class MachineServiceImplTest {
         data.setMemberlist(memberInfos);
         value.setData(data);
         when(dbaApiService.getClusterMembersInfo(anyString())).thenReturn(value);
+        when(defaultConsoleConfig.isCenterRegion()).thenReturn(true);
     }
 
     @Test
@@ -104,13 +108,13 @@ public class MachineServiceImplTest {
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setUuid("uuid1");
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(machineTbl);
-        Assert.assertEquals("uuid1",machineServiceImpl.getUuid("ip1", 3306));
+        Assert.assertEquals("uuid1", machineServiceImpl.getUuid("ip1", 3306));
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
         Assert.assertNull(machineServiceImpl.getUuid("ip1", 3306));
-        
+
         machineTbl.setUuid(null);
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(machineTbl);
-        Assert.assertEquals("",machineServiceImpl.getUuid("ip1", 3306));
+        Assert.assertEquals("", machineServiceImpl.getUuid("ip1", 3306));
     }
 
     @Test
@@ -119,9 +123,9 @@ public class MachineServiceImplTest {
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setUuid("uuid1");
         when(machineTblDao.queryByIpPort(anyString(), anyInt())).thenReturn(machineTbl);
-        Assert.assertEquals(1,machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
+        Assert.assertEquals(1, machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
-        Assert.assertEquals(0,machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
+        Assert.assertEquals(0, machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
     }
 }
 

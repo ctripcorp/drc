@@ -126,6 +126,24 @@ public class GtidSet {
         return uuidSet.add(transactionId);
     }
 
+    public boolean addAndFillGap(String gtid) {
+        String[] split = gtid.split(":");
+        if (split.length != 2) {
+            return false;
+        }
+        String sourceId = split[0];
+        long transactionId = Long.parseLong(split[1]);
+        return addAndFillGap(sourceId, transactionId);
+    }
+
+    public boolean addAndFillGap(String sourceId, long transactionId) {
+        UUIDSet uuidSet = map.get(sourceId);
+        if (uuidSet == null) {
+            map.put(sourceId, uuidSet = new UUIDSet(sourceId, new ArrayList<>()));
+        }
+        return uuidSet.addAndFillGap(transactionId);
+    }
+
     public GtidSet subtract(GtidSet other) {
         if (other == null || other.map == null || other.map.size() == 0) {
             return clone();
@@ -169,6 +187,25 @@ public class GtidSet {
         }
 
         return new GtidSet(clone.toString());  // transfer UUID:1-10:11-20 to UUID:1-20
+    }
+
+    public void unionInPlace(GtidSet other) {
+        if (other == null || other.map.size() == 0) {
+            return;
+        }
+        GtidSet otherClone = other.clone();
+        for (Map.Entry<String, UUIDSet> entry : otherClone.map.entrySet()) {
+            String uuid = entry.getKey();
+            UUIDSet uuidSet = this.getUUIDSet(uuid);
+            if (uuidSet == null) {
+                this.putUUIDSet(entry.getValue());
+                continue;
+            }
+            UUIDSet otherUUIDSet = entry.getValue();
+            for (Interval interval : otherUUIDSet.getIntervals()) {
+                addInterval(uuidSet, interval);
+            }
+        }
     }
 
     private void removeInterval(UUIDSet uuidSet, Interval other) {
@@ -326,7 +363,7 @@ public class GtidSet {
         if (CollectionUtils.isEmpty(list)) {
             return res;
         }
-        res = list.get(0);
+        res = list.get(0).clone();
         for (int i = 1; i < list.size(); i++) {
             res = res.getIntersection(list.get(i));
         }
@@ -430,6 +467,17 @@ public class GtidSet {
             }
         }
         return true;
+    }
+
+    public long getGtidNum() {
+        int count = 0;
+        for (UUIDSet value : map.values()) {
+            List<Interval> intervals = value.getIntervals();
+            for (Interval interval : intervals) {
+                count += interval.getEnd() - interval.getStart() + 1;
+            }
+        }
+        return count;
     }
 
     public GtidSet clone() {
@@ -572,6 +620,36 @@ public class GtidSet {
             return true;
         }
 
+        private synchronized boolean addAndFillGap(long transactionId) {
+            if (intervals.size() == 0) {
+                return add(transactionId);
+            }
+            int index = findInterval(transactionId);
+            List<Interval> list = new ArrayList<>();
+            if (index < intervals.size()) {
+                if (intervals.get(index).getStart() > transactionId) {
+                    index--;
+                }
+                if (index >= 0) {
+                    list.add(new Interval(intervals.get(0).getStart(), Math.max(intervals.get(index).getEnd(), transactionId)));
+                } else {
+                    list.add(new Interval(transactionId, transactionId));
+                }
+
+            } else {
+                list.add(new Interval(intervals.get(0).getStart(), transactionId));
+            }
+            for (int i = index + 1; i < intervals.size(); i++) {
+                list.add(intervals.get(i));
+            }
+            intervals = list;
+
+            if (intervals.size() > 1) {
+                joinAdjacentIntervals(index);
+            }
+            return true;
+        }
+
         /**
          * Collapses intervals like a-(b-1):b-c into a-c (only in index+-1 range).
          */
@@ -588,7 +666,7 @@ public class GtidSet {
         /**
          * @return index which is either a pointer to the interval containing v or a position at which v can be added
          */
-        private int findInterval(long v) {
+        public int findInterval(long v) {
             int l = 0, p = 0, r = intervals.size();
             while (l < r) {
                 p = (l + r) / 2;
