@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
 import com.ctrip.xpipe.netty.commands.NettyClient;
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import com.ctrip.xpipe.utils.MapUtils;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
@@ -67,11 +67,11 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
         String channelString = channel.toString();
         boolean writable = channel.isWritable();
         logger.info("{} channelWritabilityChanged to {}", channelString, writable);
-        Gate gate = channel.attr(KEY_CLIENT).get().getGate();
+        ScheduleCloseGate gate = channel.attr(KEY_CLIENT).get().getGate();
         if (writable) {
             gate.open();
         } else {
-            gate.close();
+            gate.scheduleClose();
         }
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.network.writability", channelString + ":" + writable);
         ctx.fireChannelWritabilityChanged();
@@ -147,7 +147,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
                             NettyClient cache = nettyClientMap.remove(channel);
                             logger.info("[Remove] {}:{} from nettyClientMap", channel, cache);
                         });
-                        ctx.channel().attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate(ctx.channel().remoteAddress().toString())));
+                        ctx.channel().attr(KEY_CLIENT).set(new ChannelAttributeKey(new ScheduleCloseGate(ctx.channel().remoteAddress().toString())));
                         return defaultNettyClient;
                     });
 

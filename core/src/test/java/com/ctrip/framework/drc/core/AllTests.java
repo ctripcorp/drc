@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.config.RegionConfigTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
@@ -111,6 +112,7 @@ import org.junit.runners.Suite;
 
         // gtid package
         GtidSetTest.class,
+        GtidTest.class,
 
         // header package
         LogEventHeaderTest.class,

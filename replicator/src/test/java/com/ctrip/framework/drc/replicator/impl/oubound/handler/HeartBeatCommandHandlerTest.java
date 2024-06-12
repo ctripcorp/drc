@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.MockTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -35,8 +35,8 @@ public class HeartBeatCommandHandlerTest extends MockTest {
     public void setUp() throws Exception {
         super.initMocks();
         System.setProperty(TIME_SPAN_KEY, String.valueOf(validTime));
-        channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key")));
-        delayedChannel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key")));
+        channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new ScheduleCloseGate("test_channel_key")));
+        delayedChannel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new ScheduleCloseGate("test_channel_key")));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class HeartBeatCommandHandlerTest extends MockTest {
     @Test
     public void testNotHeartBeat() {
         Channel channel = new EmbeddedChannel();
-        channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key"), false));
+        channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new ScheduleCloseGate("test_channel_key"), false));
 
         HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
         heartBeatCommandHandler.sendHeartBeat(channel);

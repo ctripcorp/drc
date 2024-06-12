@@ -25,8 +25,15 @@ public enum ResultCode {
 
     SERVER_ALREADY_EXIST(6, "server already exists"),
 
+    SCANNER_STOP(7, "binlog scanner stopped"),
+
+    REPLICATOR_FULL_USE(8, "replicator service is full, wait and retry"),
+
+    REPLICATOR_BINLOG_PURGED(9, "not able to serve, binlog file is purged"),
+
+
     UNKNOWN_ERROR(100, "unknown error"),
-    
+
     NO_PERMISSION(403, "no permission");
 
     private int code;
@@ -71,6 +78,15 @@ public enum ResultCode {
 
     public void sendResultCode(Channel channel, Logger logger) {
         DrcErrorLogEvent errorLogEvent = new DrcErrorLogEvent(this.getCode(), this.getMessage());
+        send(channel, logger, errorLogEvent);
+    }
+
+    public void sendResultCode(Channel channel, Logger logger, String msg) {
+        DrcErrorLogEvent errorLogEvent = new DrcErrorLogEvent(this.getCode(), msg);
+        send(channel, logger, errorLogEvent);
+    }
+
+    private static void send(Channel channel, Logger logger, DrcErrorLogEvent errorLogEvent) {
         try {
             errorLogEvent.write(byteBufs -> {
                 for (ByteBuf byteBuf : byteBufs) {

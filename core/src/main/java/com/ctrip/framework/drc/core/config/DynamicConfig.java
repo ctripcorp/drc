@@ -13,6 +13,11 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String CONCURRENCY = "scheme.clone.task.concurrency.%s";
     private static final String SNAPSHOT_CONCURRENCY = "scheme.snapshot.task.concurrency.%s";
+    private static final String SCANNER_SENDER_NUM_MAX = "binlog.scanner.sender.max";
+    private static final String SCANNER_NUM_MAX = "binlog.scanner.max";
+    private static final String SCANNER_MERGE_GTID_GAP_MAX = "binlog.scanner.merge.gtid.gap.max";
+    private static final String SCANNER_MERGE_PERIOD_MILLI = "binlog.scanner.merge.period";
+    private static final String SCANNER_SPLIT_EVENT_THRESHOLD = "binlog.scanner.split.event.threshold";
 
     private static final String DATASOURCE_SOCKET_TIMEOUT = "datasource.socket.timeout";
 
@@ -35,6 +40,14 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private DynamicConfig() {}
 
+    public int getMergeCheckPeriodMilli() {
+        return getIntProperty(SCANNER_MERGE_PERIOD_MILLI, 1000);
+    }
+
+    public int getScannerSplitThreshold() {
+        return getIntProperty(SCANNER_SPLIT_EVENT_THRESHOLD, 8000);
+    }
+
     private static class ConfigHolder {
         public static final DynamicConfig INSTANCE = new DynamicConfig();
     }
@@ -47,6 +60,17 @@ public class DynamicConfig extends AbstractConfigBean {
         return getIntProperty(String.format(CONCURRENCY, key), MAX_ACTIVE);
     }
 
+    public int getMaxSenderNumPerScanner() {
+        return getIntProperty(SCANNER_SENDER_NUM_MAX, 30);
+    }
+
+    public int getMaxScannerNumPerMha() {
+        return getIntProperty(SCANNER_NUM_MAX, 100);
+    }
+
+    public int getMaxGtidGapForMergeScanner() {
+        return getIntProperty(SCANNER_MERGE_GTID_GAP_MAX, 10000);
+    }
 
     public int getSnapshotTaskConcurrency() {
         return getIntProperty(SNAPSHOT_CONCURRENCY, 5);

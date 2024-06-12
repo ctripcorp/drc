@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.container.controller.task.AddKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.DeleteKeyedTask;
 import com.ctrip.framework.drc.applier.container.controller.task.RegisterKeyedTask;
+import com.ctrip.framework.drc.applier.container.controller.task.RestartKeyedTask;
 import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -89,6 +90,19 @@ public class ApplierServerController {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("remove error", e);
+            return ApiResult.getFailInstance(false);
+        }
+    }
+
+    @RequestMapping(value = "/restart", method = RequestMethod.POST)
+    public ApiResult<Boolean> restart(@RequestBody ApplierConfigDto config) {
+        try {
+            String registryKey = config.getRegistryKey();
+            logger.info("[Receive][Register] applier: " + config);
+            keyedExecutor.execute(registryKey, new RestartKeyedTask(registryKey, config, serverContainer));
+            return ApiResult.getSuccessInstance(Boolean.TRUE);
+        } catch (Throwable t) {
+            logger.error("register error", t);
             return ApiResult.getFailInstance(false);
         }
     }

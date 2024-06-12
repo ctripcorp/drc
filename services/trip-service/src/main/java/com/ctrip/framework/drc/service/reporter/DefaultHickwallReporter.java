@@ -241,6 +241,11 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         reportHistogram(tags,delay,measurement);
     }
 
+    @Override
+    public void reportReplicatorScannerSenderNum(Map<String, String> tags, long num, String measurement) {
+        reportHistogram(tags,num,measurement);
+    }
+
     public boolean removeHistogramDelay(@Valid UnidirectionalEntity unidirectionalEntity, String measurement) {
         MetricName metricName = getMetricName(unidirectionalEntity.getTags(), measurement);
         return metrics.remove(metricName);

@@ -84,7 +84,7 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
                     if (drc_error_log_event == event.getLogEventType()) {
                         DrcErrorLogEvent errorLogEvent = (DrcErrorLogEvent) event;
                         ResultCode resultCode = ResultCode.getResultCode(errorLogEvent.getErrorNumber());
-                        ErrorMessage<ResultCode> errorMessage = new ErrorMessage<>(resultCode, resultCode.getMessage());
+                        ErrorMessage<ResultCode> errorMessage = new ErrorMessage<>(resultCode, errorLogEvent.getMessage());
                         errorLogEvent.release();
                         throw new LogEventException(errorMessage, null);
                     }

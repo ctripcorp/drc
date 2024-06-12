@@ -72,6 +72,20 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="RollingFileBinlogScannerInfo" fileName="${baseDir}/scanner.log"
+                     filePattern="${baseDir}/scanner-%i.log.gz">
+            <PatternLayout pattern="[%d][%t] - %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="scanner-*.log.gz"/>
+                    <IfAccumulatedFileCount exceeds="100"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
         <RollingFile name="RollingFileDdlInfo" fileName="${baseDir}/ddl.log"
                      filePattern="${baseDir}/ddl-%i.log.gz">
             <PatternLayout pattern="[%d][%t] - %m%n"/>
@@ -205,6 +219,9 @@
         </Logger>
         <Logger name="com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler" level="info" additivity="false">
             <AppenderRef ref="RollingFileGtidInfo"/>
+        </Logger>
+        <Logger name="com.ctrip.framework.drc.replicator.impl.oubound.handler.binlog.DefaultBinlogScannerManager" level="info" additivity="false">
+            <AppenderRef ref="RollingFileBinlogScannerInfo"/>
         </Logger>
         <Logger name="com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter" level="info" additivity="false">
             <AppenderRef ref="RollingFileDdlInfo"/>

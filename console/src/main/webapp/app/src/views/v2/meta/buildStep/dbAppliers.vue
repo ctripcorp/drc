@@ -528,7 +528,9 @@ export default {
       this.tableData.forEach(row => {
         if (selectedDbNames.includes(row.dbName)) {
           row.ips = this.target.ips
-          row.gtidInit = this.target.gtid
+          if (this.target.gtid) {
+            row.gtidInit = this.target.gtid
+          }
         }
       })
       this.$Message.warning('修改成功！共修改' + selectedDbNames.length + '行')

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -63,6 +64,8 @@ public class MachineServiceImpl implements MachineService {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
     @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired
     private AccountService accountService;
 
 
@@ -84,6 +87,9 @@ public class MachineServiceImpl implements MachineService {
         try {
             if (mha == null) {
                 return null;
+            }
+            if (!defaultConsoleConfig.isCenterRegion()) {
+                return this.getMasterEndpointFromDbaApi(mha);
             }
             MhaTblV2 mhaTblV2 = mhaTblDao.queryByMhaName(mha, 0);
             if (mhaTblV2 == null) {
@@ -143,7 +149,7 @@ public class MachineServiceImpl implements MachineService {
     }
 
     private Endpoint getMasterEndpointFromDbaApi(String mha) {
-        // todo hdpan acc 
+        // todo hdpan acc
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mha);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
         return memberlist.stream()

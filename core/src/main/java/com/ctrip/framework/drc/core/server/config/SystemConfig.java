@@ -97,6 +97,10 @@ public class SystemConfig {
 
     public static final Logger GTID_LOGGER = LoggerFactory.getLogger(GTID_LOG);
 
+    public static final String BINLOG_SCANNER_LOG = "com.ctrip.framework.drc.replicator.impl.oubound.handler.binlog.DefaultBinlogScannerManager";
+
+    public static final Logger BINLOG_SCANNER_LOGGER = LoggerFactory.getLogger(BINLOG_SCANNER_LOG);
+
     public static final String DELAY_LOG = "com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorCommandHandler";
 
     public static final Logger DELAY_LOGGER = LoggerFactory.getLogger(DELAY_LOG);

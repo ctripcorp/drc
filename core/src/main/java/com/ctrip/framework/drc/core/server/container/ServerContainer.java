@@ -16,5 +16,7 @@ public interface ServerContainer<C, S> {
 
     S register(String identity, int port);
 
+    S getInfo(String identity);
+
     S getInfo();
 }
