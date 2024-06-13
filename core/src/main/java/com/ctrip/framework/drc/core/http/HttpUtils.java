@@ -162,8 +162,8 @@ public class HttpUtils {
      * Deprecated
      */
     public static String doGet(String uri, int timeout) throws Exception {
-        AuthorityConfig authorityConfig = AuthorityConfig.getInstance();
-        String xAccessToken = authorityConfig.getXAccessToken();
+        DynamicConfig dynamicConfig = DynamicConfig.getInstance();
+        String xAccessToken = dynamicConfig.getXAccessToken();
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .header("X-Access-Token", xAccessToken)

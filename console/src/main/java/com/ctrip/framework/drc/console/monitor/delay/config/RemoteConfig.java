@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.service.security.HeraldService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -21,6 +23,8 @@ public class RemoteConfig extends AbstractConfig implements Config {
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
+    
+    private HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
 
     @Override
     public void updateConfig() {
@@ -32,15 +36,13 @@ public class RemoteConfig extends AbstractConfig implements Config {
         if (!StringUtils.isEmpty(centerRegionUrl)) {
             try {
                 DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.meta.update", "remote", () -> {
-                    String drcFromRemote;
                     long s = System.currentTimeMillis();
-                    if (DefaultConsoleConfig.SWITCH_ON.equals(consoleConfig.getMetaRealtimeSwitch())) {
-                        drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v2/meta/?refresh=true", centerRegionUrl), String.class);
-                        META_LOGGER.info("remote update meta info with v2, refresh true");
-                    } else {
-                        drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v1/meta/", centerRegionUrl), String.class);
-                        META_LOGGER.info("remote update meta info with v1, refresh false");
+                    String requestUrl = String.format("%s/api/drc/v2/meta/?refresh=true", centerRegionUrl);
+                    if (consoleConfig.requestWithHeraldToken()) {
+                        requestUrl += "&heraldToken=" + heraldService.getLocalHeraldToken();
                     }
+                    String drcFromRemote = HttpUtils.get(requestUrl, String.class);
+                    META_LOGGER.info("remote update meta info with v2, refresh true");
                     long e = System.currentTimeMillis();
                     META_LOGGER.info("remote update meta info, took {}ms", e - s);
                     META_LOGGER.debug("[meta] remote generated drc: {}", drcFromRemote);

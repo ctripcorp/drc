@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.service.security.HeraldService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,6 +58,11 @@ public class MetaControllerV2Test {
 
     @Mock
     private MetaProviderV2 metaProviderV2;
+    
+    @Mock
+    private HeraldService heraldService;
+    
+    
 
     @Before
     public void setUp() {
@@ -67,6 +73,7 @@ public class MetaControllerV2Test {
         Mockito.when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(buTbls);
         Mockito.when(metaInfoServiceV2.queryAllDcWithCache()).thenReturn(dcDos);
         Mockito.when(metaInfoServiceV2.queryAllRegionWithCache()).thenReturn(regionTbls);
+        Mockito.when(heraldService.heraldValidate(Mockito.anyString())).thenReturn(true);
     }
 
     @Test
@@ -147,7 +154,7 @@ public class MetaControllerV2Test {
     @Test
     public void testGetAllMetaData() throws Exception {
         Mockito.when(metaProviderV2.getDrc()).thenThrow(ConsoleException.class);
-        String result = controller.getAllMetaData("false");
+        String result = controller.getAllMetaData("false","heraldToken");
         Assert.assertNull(result);
     }
 }
