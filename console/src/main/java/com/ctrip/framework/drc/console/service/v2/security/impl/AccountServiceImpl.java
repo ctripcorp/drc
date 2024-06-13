@@ -177,6 +177,7 @@ public class AccountServiceImpl implements AccountService {
     
     @Override
     public Pair<Boolean,Integer> initMhaAccountV2(List<String> mhas) throws SQLException {
+        
         return null;
     }
 

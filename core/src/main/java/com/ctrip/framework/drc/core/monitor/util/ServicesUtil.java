@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.mq.ProducerFactory;
 import com.ctrip.framework.drc.core.server.common.filter.service.UserService;
+import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 
 /**
@@ -45,5 +46,13 @@ public class ServicesUtil extends com.ctrip.xpipe.utils.ServicesUtil {
     public static IAMService getIAMService() {
         return IAMServiceHolder.INSTANCE;
     }
-    
+
+    private static class HeraldServiceHolder {
+        public static final HeraldService INSTANCE = load(HeraldService.class);
+    }
+    public static HeraldService getHeraldService() {
+        return HeraldServiceHolder.INSTANCE;
+    }
+
+
 }

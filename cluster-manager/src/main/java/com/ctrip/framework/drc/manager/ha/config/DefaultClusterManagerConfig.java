@@ -36,6 +36,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_REFRESH_WHEN_CONSOLE_INVOKE = "refresh.when.console.invoke";
     public static String KEY_PERIOD_META_CHECK = "period.meta.consistency.check";
     public static String KEY_PERIOD_META_CORRECT = "period.meta.consistency.correct";
+    public static String KEY_HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
 
 
 
@@ -201,6 +202,11 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public boolean getPeriodCorrectSwitch() {
         return getBooleanProperty(KEY_PERIOD_META_CORRECT, false);
+    }
+
+    @Override
+    public boolean requestWithHeraldToken() {
+        return getBooleanProperty(KEY_HERALD_TOKEN_REQUEST_SWITCH, false);
     }
 
     @Override

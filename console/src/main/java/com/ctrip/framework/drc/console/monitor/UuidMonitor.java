@@ -125,7 +125,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
                     autoCorrect(ip, port, uuidsFromMetaDB, uuidFromCommand);
                 }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[monitor=UUIDMonitor]] monitorUuid error", e);
         }
         

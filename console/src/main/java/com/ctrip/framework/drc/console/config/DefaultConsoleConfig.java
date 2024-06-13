@@ -137,6 +137,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String KMS_URL_PREFIX = "kms.url.";
     private static final String KMS_ACCESS_TOKEN_PREFIX = "kms.access.token.";
 
+    public static String HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
 
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
@@ -627,5 +628,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getKmsUrl(String envStr) {
         return getProperty(KMS_URL_PREFIX + envStr, "");
+    }
+
+    public boolean requestWithHeraldToken() {
+        return getBooleanProperty(HERALD_TOKEN_REQUEST_SWITCH, false);
     }
 }
