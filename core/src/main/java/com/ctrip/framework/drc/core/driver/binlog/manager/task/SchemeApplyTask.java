@@ -28,7 +28,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER
  */
 public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
-    public static final String DDL_SQL = "use %s;";
+    public static final String DDL_SQL = "use `%s`;";
 
     private String schema;
 
