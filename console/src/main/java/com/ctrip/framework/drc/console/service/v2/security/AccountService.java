@@ -24,10 +24,13 @@ public interface AccountService {
     Pair<Boolean,Integer> initMhaPasswordToken(List<String> mhas) throws SQLException;
     
     boolean grayKmsToken(String mhaName);
+    
+    boolean grayNewAccount(String mhaName);
 
     Pair<Boolean,Integer> initMhaAccountV2(List<String> mhas) throws SQLException;
 
-    Pair<Boolean,String> accountV2Check(List<String> mhas);
+    // key: success count , value: error message
+    Pair<Integer,String> accountV2Check(List<String> mhas) throws SQLException;
     
     boolean grayAccountV2(String mhaName);
 

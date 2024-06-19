@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
@@ -60,4 +61,6 @@ public interface MhaServiceV2 {
     boolean offlineMha(String mhaName) throws SQLException;
 
     List<MhaTblV2> queryMhas(MhaQueryParam param) throws Exception;
+    
+    MachineTbl getMasterNode(Long mhaId) throws SQLException;
 }

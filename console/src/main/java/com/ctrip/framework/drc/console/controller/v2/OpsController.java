@@ -79,4 +79,25 @@ public class OpsController {
         }
     }
     
+    @PostMapping("account/accountV2")
+    public ApiResult initMhaAccountV2(@RequestBody List<String> mhas) {
+        try {
+            Pair<Boolean, Integer> result = accountService.initMhaAccountV2(mhas);
+            return ApiResult.getSuccessInstance(result, "init mha account v2 success");
+        } catch (Exception e) {
+            logger.error("initMhaAccountV2 error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    
+    @PostMapping("account/accountV2Check")
+    public ApiResult checkNewAccounts(@RequestBody List<String> mhas) {
+        try {
+            return ApiResult.getSuccessInstance(accountService.accountV2Check(mhas));
+        } catch (Exception e) {
+            logger.error("getMhaAccountV2 error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    
 }

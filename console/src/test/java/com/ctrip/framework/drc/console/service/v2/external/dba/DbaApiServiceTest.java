@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.tomcat.util.buf.HexUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -206,5 +207,5 @@ public class DbaApiServiceTest {
 
         }
     }
-
+    
 }

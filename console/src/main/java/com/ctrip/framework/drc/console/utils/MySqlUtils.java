@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
+import com.ctrip.framework.drc.console.monitor.delay.impl.operator.AccSensitiveSqlOperator;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapperV2;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
@@ -21,6 +22,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtid
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
@@ -63,6 +65,8 @@ public class MySqlUtils {
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
     private static Map<Endpoint, WriteSqlOperatorWrapperV2> writeSqlOperatorMapper = new HashMap<>();
+    
+    private static Map<Endpoint,AccSensitiveSqlOperator> accSensitiveSqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
@@ -1171,6 +1175,64 @@ public class MySqlUtils {
     }
 
 
+    public static String getAccountPrivilege(AccountEndpoint accEndpoint,boolean closeDataSource) {
+        AccSensitiveSqlOperator accSensitiveSqlOperator = getOrCreateSqlOperator(accEndpoint);
+        ReadResource readResource = null;
+        try  {
+            String sql = String.format("show grants for '%s'", accEndpoint.getUser());
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = accSensitiveSqlOperator.select(execution);
+            ResultSet resultSet = readResource.getResultSet();
+            resultSet.next();
+            return resultSet.getString(1);
+        } catch (Throwable t) {
+            logger.error("getAccountPrivilege error,address:{},user {} ", accEndpoint.getSocketAddress(), accEndpoint.getUser(), t);
+            closeDataSource(accEndpoint);
+            return null;
+        } finally {
+            if (readResource != null){
+                readResource.close();
+            }
+            if (closeDataSource) {
+                closeDataSource(accEndpoint);
+            }
+        }
+        
+        
+
+    }
+
+    private static void closeDataSource(AccountEndpoint accEndpoint) {
+        AccSensitiveSqlOperator sqlOperator = accSensitiveSqlOperatorMapper.remove(accEndpoint);
+        if (sqlOperator != null) {
+            try {
+                sqlOperator.stop();
+                sqlOperator.dispose();
+            } catch (Exception e) {
+                logger.error(" closeDataSourceForSqlOperator error,address:{},user {} ", 
+                        accEndpoint.getSocketAddress(), accEndpoint.getUser(), e);
+            }
+        }
+    
+    }
+
+    private static AccSensitiveSqlOperator getOrCreateSqlOperator(AccountEndpoint accEndpoint) {
+        if (accSensitiveSqlOperatorMapper.containsKey(accEndpoint)) {
+            return accSensitiveSqlOperatorMapper.get(accEndpoint);
+        } else {
+            AccSensitiveSqlOperator sqlOperatorWrapper = new AccSensitiveSqlOperator(accEndpoint, null);
+            try {
+                sqlOperatorWrapper.initialize();
+                sqlOperatorWrapper.start();
+            } catch (Exception e) {
+               logger.error("[[endpoint={}:{}]] getSqlOperator error: ", accEndpoint.getHost(), accEndpoint.getPort(), e);
+            }
+            accSensitiveSqlOperatorMapper.put(accEndpoint, sqlOperatorWrapper);
+            return sqlOperatorWrapper;
+        }
+    }
+    
+
     public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
         if (accountType == DrcAccountTypeEnum.DRC_WRITE.getCode()) {
             return writeV2(endpoint, sql, true);
@@ -1412,7 +1474,7 @@ public class MySqlUtils {
                 || Time.class.getName().equals(columnType)
                 || Timestamp.class.getName().equals(columnType);
     }
-
+    
     public static final class TableSchemaName {
         private String schema;
         private String name;

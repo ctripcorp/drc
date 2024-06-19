@@ -475,26 +475,19 @@ public class MetaGeneratorV5 {
             String mhaName = mhaTbl.getMhaName();
             logger.debug("generate dbs for mha: {}",mhaName );
             Dbs dbs = new Dbs();
-            if (accountService.grayKmsToken(mhaName)) {
-                try {
-                    MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTbl);
-                    if(checkAccounts(mhaAccounts,mhaTbl)){
-                        dbs.setReadUser(mhaAccounts.getReadAcc().getUser())
-                                .setReadPassword(mhaAccounts.getReadAcc().getPassword())
-                                .setWriteUser(mhaAccounts.getWriteAcc().getUser())
-                                .setWritePassword(mhaAccounts.getWriteAcc().getPassword())
-                                .setMonitorUser(mhaAccounts.getMonitorAcc().getUser())
-                                .setMonitorPassword(mhaAccounts.getMonitorAcc().getPassword());
-                        dbCluster.setDbs(dbs);
-                        return dbs;
-                    } else {
-                        logger.warn("kms mismatch, mhaName: {}", mhaName);
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.kms.mismatch", mhaName);
-                    }
-                } catch (Throwable e) {
-                    logger.error("get mha accounts failed, mhaName: {}", mhaName, e);
-                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.kms.failed", mhaName);
-                }
+            try {
+                MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTbl);
+                dbs.setReadUser(mhaAccounts.getReadAcc().getUser())
+                        .setReadPassword(mhaAccounts.getReadAcc().getPassword())
+                        .setWriteUser(mhaAccounts.getWriteAcc().getUser())
+                        .setWritePassword(mhaAccounts.getWriteAcc().getPassword())
+                        .setMonitorUser(mhaAccounts.getMonitorAcc().getUser())
+                        .setMonitorPassword(mhaAccounts.getMonitorAcc().getPassword());
+                dbCluster.setDbs(dbs);
+                return dbs;
+            } catch (Throwable e) {
+                logger.error("get mha new accounts , mhaName: {}", mhaName, e);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kms.account.gray.failed", mhaName);
             }
             dbs.setReadUser(mhaTbl.getReadUser())
                     .setReadPassword(mhaTbl.getReadPassword())

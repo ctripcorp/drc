@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -25,12 +26,14 @@ import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTask;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -406,4 +409,52 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         return result;
     }
 
+    @Override
+    public Pair<Boolean, String> checkAccountsPrivileges(String mha, MhaAccounts oldAccounts, MhaAccounts newAccounts) {
+        StringBuilder checkRes = new StringBuilder();
+        
+        String monitorPrivilegeV1 = checkAccountPrivileges(mha, oldAccounts.getMonitorAcc().getUser(), oldAccounts.getMonitorAcc().getPassword());
+        String monitorPrivilegeV2 = checkAccountPrivileges(mha, newAccounts.getMonitorAcc().getUser(), newAccounts.getMonitorAcc().getPassword());
+        
+        String readPrivilegeV1 = checkAccountPrivileges(mha, oldAccounts.getReadAcc().getUser(), oldAccounts.getReadAcc().getPassword());
+        String readPrivilegeV2 = checkAccountPrivileges(mha, newAccounts.getReadAcc().getUser(), newAccounts.getReadAcc().getPassword());
+
+        String writePrivilegeV1 = checkAccountPrivileges(mha, oldAccounts.getWriteAcc().getUser(), oldAccounts.getWriteAcc().getPassword());
+        String writePrivilegeV2 = checkAccountPrivileges(mha, newAccounts.getWriteAcc().getUser(), newAccounts.getWriteAcc().getPassword());
+
+        boolean res1 = this.privilegeCheck(mha, oldAccounts.getMonitorAcc().getUser(), monitorPrivilegeV1,
+                newAccounts.getMonitorAcc().getUser(), monitorPrivilegeV2, checkRes);
+        boolean res2 = this.privilegeCheck(mha, oldAccounts.getReadAcc().getUser(), readPrivilegeV1,
+                newAccounts.getReadAcc().getUser(), readPrivilegeV2, checkRes);
+        boolean res3 = this.privilegeCheck(mha, oldAccounts.getWriteAcc().getUser(), writePrivilegeV1,
+                newAccounts.getWriteAcc().getUser(), writePrivilegeV2, checkRes);
+
+        return Pair.of(res1&res2&res3, checkRes.toString());
+    }
+    
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/accountPrivileges")
+    public String checkAccountPrivileges(String mha, String account, String pwd) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        AccountEndpoint accEndpoint = new AccountEndpoint(endpoint.getHost(), endpoint.getPort(), account, pwd, true);
+        return MySqlUtils.getAccountPrivilege(accEndpoint,true);
+    }
+    
+    private boolean privilegeCheck(String mha, String oldAcc,String oldPrivilege,String newAcc,String newPrivilege,StringBuilder checkRes) {
+        if (oldPrivilege == null || newPrivilege == null) {
+            checkRes.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
+                    .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
+            return false;
+        }
+        oldPrivilege = oldPrivilege.substring(0,oldPrivilege.length()-oldAcc.length());
+        newPrivilege = newPrivilege.substring(0,newPrivilege.length()-newAcc.length());
+        if (!oldPrivilege.equalsIgnoreCase(newPrivilege)) {
+            checkRes.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
+                    .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
+            return false;
+        }
+        return true;
+    }
+    
+    
 }
