@@ -82,8 +82,7 @@ public class OpsController {
     @PostMapping("account/accountV2")
     public ApiResult initMhaAccountV2(@RequestBody List<String> mhas) {
         try {
-            Pair<Boolean, Integer> result = accountService.initMhaAccountV2(mhas);
-            return ApiResult.getSuccessInstance(result, "init mha account v2 success");
+            return ApiResult.getSuccessInstance(accountService.initMhaAccountV2(mhas), "init mha account v2 success");
         } catch (Exception e) {
             logger.error("initMhaAccountV2 error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
