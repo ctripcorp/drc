@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.security.impl;
 
 import static com.ctrip.framework.drc.console.monitor.MockTest.any;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -11,26 +11,17 @@ import com.ctrip.framework.drc.console.dao.entity.v2.DrcTmpconninfo;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider.Mha;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
-import com.ctrip.framework.drc.console.service.v2.impl.CommonDataInit;
 import com.ctrip.framework.drc.console.service.v2.security.DataSourceCrypto;
 import com.ctrip.framework.drc.console.service.v2.security.KmsService;
-import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
-import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.tomcat.util.buf.HexUtils;
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Sets;
 import org.junit.Assert;
@@ -41,7 +32,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class AccountServiceImplTest {
     
