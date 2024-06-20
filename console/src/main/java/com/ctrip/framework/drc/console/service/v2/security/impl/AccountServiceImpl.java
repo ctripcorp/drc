@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.console.service.v2.security.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.DrcTmpconninfoDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
@@ -115,7 +114,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType) {
         boolean grayKms = grayKmsToken(mhaTblV2.getMhaName());
-        boolean grayNewAccount = grayNewAccount(mhaTblV2.getMhaName());
+        boolean grayNewAccount = grayAccountV2(mhaTblV2.getMhaName());
         switch (accountType) {
             case DRC_CONSOLE:
                 return grayKms ? 
@@ -194,7 +193,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public boolean grayNewAccount(String mhaName) {
+    public boolean grayAccountV2(String mhaName) {
         boolean accountKmsTokenSwitch = consoleConfig.getAccountKmsTokenSwitchV2();
         if (!accountKmsTokenSwitch) {
             return false;
@@ -233,11 +232,7 @@ public class AccountServiceImpl implements AccountService {
         }
         return Pair.of(successCount, msg.toString());
     }
-
-    @Override
-    public boolean grayAccountV2(String mhaName) {
-        return false;
-    }
+    
     
     @Override
     public boolean changePasswordInNewAccount(String mha, String user, String newPassword) { // todo hdpan CHANGE PASSWORD IF Pwd leakage
@@ -315,7 +310,7 @@ public class AccountServiceImpl implements AccountService {
         }
         MhaAccounts mhaAccounts = dbaApiService.initAccountV2(mhaTblV2);
         if (mhaAccounts == null) {
-            throw ConsoleExceptionUtils.message("init account v2 error");
+            throw ConsoleExceptionUtils.message("init account v2 error" + mha);
         }
         
         mhaTblV2.setMonitorUserV2(mhaAccounts.getMonitorAcc().getUser());

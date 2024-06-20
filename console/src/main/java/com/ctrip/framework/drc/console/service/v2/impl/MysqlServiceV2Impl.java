@@ -56,10 +56,6 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Autowired
     private CacheMetaService cacheMetaService;
-    @Autowired
-    private MhaTblV2Dao mhaTblV2Dao;
-    @Autowired
-    private DdlHistoryTblDao ddlHistoryTblDao;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -446,8 +442,8 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
                     .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
             return false;
         }
-        oldPrivilege = oldPrivilege.substring(0,oldPrivilege.length()-oldAcc.length());
-        newPrivilege = newPrivilege.substring(0,newPrivilege.length()-newAcc.length());
+        oldPrivilege = oldPrivilege.substring(0,oldPrivilege.length()-oldAcc.length()-6); // remove 'user'@'%'
+        newPrivilege = newPrivilege.substring(0,newPrivilege.length()-newAcc.length()-6);
         if (!oldPrivilege.equalsIgnoreCase(newPrivilege)) {
             checkRes.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
                     .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");

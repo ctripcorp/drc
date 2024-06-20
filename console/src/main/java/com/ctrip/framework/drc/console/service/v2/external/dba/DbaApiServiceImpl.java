@@ -51,9 +51,11 @@ public class DbaApiServiceImpl implements DbaApiService {
     private DomainConfig domainConfig;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    
+    private UserService userService = ApiContainer.getUserServiceImpl();
+
     @Autowired
     private KmsService kmsService;
-    private UserService userService = ApiContainer.getUserServiceImpl();
     @Autowired
     private MhaServiceV2 mhaServiceV2;
     @Autowired
@@ -259,12 +261,12 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Override
     public boolean changePassword(MhaTblV2 mhaTblV2, MachineTbl masterNode) {
-        if (!EnvUtils.pro()) { // fat,uat change pwd via manually call dba api
-            return true; 
-        }
         Map<String,Object> params = Maps.newLinkedHashMap();
         params.put("datasource", masterNode.getIp() + ";port=" + masterNode.getPort());
-        params.put("token", consoleConfig.getKMSAccessToken("dba.acccount"));
+        String kmsAccessToken = consoleConfig.getKMSAccessToken("dba.account");
+        String secretKey = kmsService.getSecretKey(kmsAccessToken);
+        params.put("token", secretKey);
+        
         String resString = HttpUtils.post(consoleConfig.getDbaApiPwdChangeUrl(), params, String.class); 
         JsonObject res = JsonUtils.parseObject(resString);
         String status = res.get("status").getAsString();

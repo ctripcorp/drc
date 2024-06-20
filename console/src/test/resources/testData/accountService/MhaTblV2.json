@@ -16,6 +16,12 @@
     "monitorUser": "root",
     "monitorPassword": "root",
     "monitorPasswordToken": "6dddf2af8aae064e41edadb0986a2a21",
+    "readUserV2": "root1",
+    "readPasswordTokenV2": "2586febe1945d3e00480aa630164a011",
+    "writeUserV2": "root1",
+    "writePasswordTokenV2": "2586febe1945d3e00480aa630164a011",
+    "monitorUserV2": "root1",
+    "monitorPasswordTokenV2": "2586febe1945d3e00480aa630164a011",
     "deleted": 0
   },
   {

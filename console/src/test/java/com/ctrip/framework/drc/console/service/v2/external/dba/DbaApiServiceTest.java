@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -8,19 +9,24 @@ import static org.mockito.Mockito.when;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.v2.DrcTmpconninfoDao;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Content;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Digest;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.tomcat.util.buf.HexUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,7 +49,13 @@ public class DbaApiServiceTest {
     private UserService userService;
     @Mock
     private DefaultConsoleConfig consoleConfig;
-
+    @Mock
+    private KmsService kmsService;
+    @Mock
+    private MhaServiceV2 mhaServiceV2;
+    @Mock
+    private DrcTmpconninfoDao drcTmpconninfoDao;
+    
 
     @Before
     public void setUp() throws Exception {
@@ -205,6 +217,23 @@ public class DbaApiServiceTest {
             sqlDigestInfo.getContent().getSelect().getDigest_sql();
             sqlDigestInfo.getContent().getSelect().getDatachange_lasttime();
 
+        }
+    }
+
+    @Test
+    public void testInitAccountV2() throws SQLException {
+        when(mhaServiceV2.getMasterNode(Mockito.anyLong())).thenReturn(MockEntityBuilder.buildMachineTbl());
+        when(consoleConfig.getKMSAccessToken(Mockito.eq("dba.account"))).thenReturn("accessToken");
+        when(kmsService.getSecretKey("accessToken")).thenReturn("secretKey");
+        when(consoleConfig.getDbaApiPwdChangeUrl()).thenReturn("changePwdUrl");
+        when(drcTmpconninfoDao.queryByHostPort(anyString(),anyString(),anyInt())).thenReturn(new MhaAccounts());
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(eq("changePwdUrl"), any(), any())).thenReturn("{\n"
+                    + "    \"status\": \"success\",\n"
+                    + "    \"query\": \"\"\n"
+                    + "}");
+            MhaAccounts mhaAccounts = dbaApiService.initAccountV2(MockEntityBuilder.buildMhaTblV2());
+            Assert.assertNotNull(mhaAccounts);
         }
     }
     

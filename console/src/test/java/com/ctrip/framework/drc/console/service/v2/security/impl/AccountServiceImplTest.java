@@ -61,6 +61,8 @@ public class AccountServiceImplTest {
         when(consoleConfig.getKMSAccessToken("account")).thenReturn("kmsAccountAccessToken");
         when(consoleConfig.getAccountKmsTokenSwitch()).thenReturn(true);
         when(consoleConfig.getAccountKmsTokenMhaGray()).thenReturn(Sets.newHashSet(Lists.newArrayList("mha1","mha2")));
+        when(consoleConfig.getAccountKmsTokenSwitchV2()).thenReturn(true);
+        when(consoleConfig.getAccountKmsTokenMhaGrayV2()).thenReturn(Sets.newHashSet(Lists.newArrayList("mha1")));
         when(kmsService.getSecretKey(Mockito.eq("kmsAccountAccessToken"))).thenReturn("o$:K@0ktUc0<7mkO");
     }
     
@@ -98,6 +100,10 @@ public class AccountServiceImplTest {
             Assert.assertNotNull(mhaAccounts.getReadAcc().getPassword());
             Assert.assertNotNull(mhaAccounts.getWriteAcc().getUser());
             Assert.assertNotNull(mhaAccounts.getWriteAcc().getPassword());
+            if (mhaTblV2.getMhaName().equalsIgnoreCase("mha1")) {
+                Assert.assertEquals("root1", mhaAccounts.getMonitorAcc().getUser());
+                Assert.assertEquals("root1", mhaAccounts.getMonitorAcc().getPassword());
+            }
         }
     }
     
@@ -133,5 +139,25 @@ public class AccountServiceImplTest {
         String encrypt = dataSourceCrypto.encrypt(content, secretKey);
         String decrypt = dataSourceCrypto.decrypt(encrypt, secretKey);
         assertEquals(content, decrypt);
+        String encrypt1 = dataSourceCrypto.encrypt("root1", secretKey);
+        String decrypt1 = dataSourceCrypto.decrypt(encrypt1, secretKey);
+        assertEquals("root1", decrypt1);
+    }
+
+    @Test
+    public void testInitMhaAccountV2() throws Exception {
+        List<MhaTblV2> data = this.getData();
+        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString(),Mockito.eq(0))).thenAnswer(
+                invocation -> data.stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals(invocation.getArgument(0)))
+                        .findFirst().orElse(null)
+        );
+        MhaAccounts mhaAccounts = accountServiceImpl.getMhaAccounts(data.get(0));// mha1 account, root1
+        when(dbaApiService.initAccountV2(Mockito.any(MhaTblV2.class))).thenReturn(mhaAccounts);
+        when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
+        
+        Pair<Boolean, Integer> res = accountServiceImpl.initMhaAccountV2(
+                Lists.newArrayList("mha1", "mha2", "mha3"));
+        Assert.assertTrue(res.getLeft());
+        Assert.assertEquals(3, res.getRight().intValue());
     }
 }
