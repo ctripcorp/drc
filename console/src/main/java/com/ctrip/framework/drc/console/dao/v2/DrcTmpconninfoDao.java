@@ -35,7 +35,7 @@ public class DrcTmpconninfoDao extends AbstractDao<DrcTmpconninfo> {
         if (host == null || port <= 0) {
             throw new IllegalArgumentException("host or port is null");
         }
-        String sql = "select dbuser,CAST(AES_DECRYPT(Password,'%s') AS Char) from drc_tmpconninfo where host = ? and port = ? order by DataChange_CreateTime desc limit 3";
+        String sql = "select dbuser,CAST(AES_DECRYPT(Password,left('%s',16)) AS Char) from drc_tmpconninfo where host = ? and port = ? order by DataChange_CreateTime desc limit 3";
         String formatSql = String.format(sql, token);
         DalClient client = DalClientFactory.getClient("fxdrcmetadb_w");
         StatementParameters parameters = new StatementParameters();
