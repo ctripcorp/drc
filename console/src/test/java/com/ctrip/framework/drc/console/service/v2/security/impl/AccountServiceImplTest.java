@@ -1,14 +1,19 @@
 package com.ctrip.framework.drc.console.service.v2.security.impl;
 
+import static com.ctrip.framework.drc.console.monitor.MockTest.any;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.entity.v2.DrcTmpconninfo;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider.Mha;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.impl.CommonDataInit;
 import com.ctrip.framework.drc.console.service.v2.security.DataSourceCrypto;
@@ -18,11 +23,14 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHo
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tomcat.util.buf.HexUtils;
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Sets;
 import org.junit.Assert;
@@ -51,6 +59,8 @@ public class AccountServiceImplTest {
     private MhaTblV2Dao mhaTblV2Dao;
     @Mock
     private DbaApiService dbaApiService;
+    @Mock
+    private MysqlServiceV2 mysqlServiceV2;
     
     
     
@@ -159,5 +169,36 @@ public class AccountServiceImplTest {
                 Lists.newArrayList("mha1", "mha2", "mha3"));
         Assert.assertTrue(res.getLeft());
         Assert.assertEquals(3, res.getRight().intValue());
+    }
+
+    @Test
+    public void testAccountV2Check() throws Exception {
+        List<MhaTblV2> data = this.getData();
+        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString(),Mockito.eq(0))).thenAnswer(
+                invocation -> data.stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals(invocation.getArgument(0)))
+                        .findFirst().orElse(null)
+        );
+        when(mysqlServiceV2.checkAccountsPrivileges(anyString(),any(MhaAccounts.class),any(MhaAccounts.class))).thenReturn(Pair.of(true,null));
+        
+        Pair<Integer, String> res = accountServiceImpl.accountV2Check(Lists.newArrayList("mha1"));
+        Assert.assertEquals(1, res.getLeft().intValue());
+
+        DrcTmpconninfo drcTmpconninfo = new DrcTmpconninfo();
+        drcTmpconninfo.setId(1L);
+        drcTmpconninfo.setHost("ip");
+        drcTmpconninfo.setPort(3306);
+        drcTmpconninfo.setDbUser("root");
+        drcTmpconninfo.setPassword(new Byte[]{1,2,3,4});
+        drcTmpconninfo.setDatachangeCreateTime(new Timestamp(System.currentTimeMillis()));
+        drcTmpconninfo.setDatachangeLasttime(new Timestamp(System.currentTimeMillis())); 
+        
+        drcTmpconninfo.getId();
+        drcTmpconninfo.getHost();
+        drcTmpconninfo.getPort();
+        drcTmpconninfo.getDbUser();
+        drcTmpconninfo.getPassword();
+        drcTmpconninfo.getDatachangeCreateTime();
+        drcTmpconninfo.getDatachangeLasttime();
+        
     }
 }
