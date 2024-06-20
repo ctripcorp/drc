@@ -58,6 +58,8 @@ import java.util.stream.Collectors;
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getReplicatorTbls;
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -532,4 +534,24 @@ public class MhaServiceV2ImplTest {
         when(machineTblDao.update(Mockito.any(MachineTbl.class))).thenReturn(1);
     }
 
+    @Test
+    public void testGetMasterNode() throws SQLException {
+        List<MachineTbl> machineTbls = new ArrayList<>();
+        MachineTbl machineTbl1 = new MachineTbl();
+        machineTbl1.setId(1L);
+        machineTbl1.setMhaId(1L);
+        machineTbl1.setMaster(0);
+        machineTbls.add(machineTbl1);
+
+        MachineTbl machineTbl2 = new MachineTbl();
+        machineTbl2.setId(2L);
+        machineTbl2.setMhaId(1L);
+        machineTbl2.setMaster(1);
+        machineTbls.add(machineTbl2);
+
+        when(machineTblDao.queryByMhaId(anyLong(),anyInt())).thenReturn(machineTbls);
+
+        MachineTbl masterNode = mhaServiceV2.getMasterNode(1L);
+        Assert.assertEquals(2L, masterNode.getId().longValue());
+    }
 }
