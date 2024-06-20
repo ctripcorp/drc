@@ -799,4 +799,14 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
         return mhaTblV2Dao.queryByParam(param);
     }
+
+    @Override
+    public MachineTbl getMasterNode(Long mhaId) throws SQLException {
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(machineTbls)) {
+            return null;
+        }
+        return machineTbls.stream().filter(machineTbl -> machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode()))
+                .findFirst().orElse(null);
+    }
 }

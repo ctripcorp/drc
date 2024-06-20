@@ -24,6 +24,7 @@ import java.util.*;
 @Component("defaultConsoleConfig")
 public class DefaultConsoleConfig extends AbstractConfigBean {
 
+    
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
     public static String KEY_DC_INFOS = "drc.dcinfos";
@@ -133,11 +134,15 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN= "default.monitor.account.kms.token";
     
     private static final String ACCOUNT_KMS_TOKEN_SWITCH = "account.kms.token.switch";
+    private static final String ACCOUNT_KMS_TOKEN_SWITCH_V2 = "account.kms.token.switch.v2";
     private static final String ACCOUNT_KMS_TOKEN_MHA_GRAY = "account.kms.token.mha.gray";
+    private static final String ACCOUNT_KMS_TOKEN_MHA_GRAY_V2 = "account.kms.token.mha.gray.v2";
     private static final String KMS_URL_PREFIX = "kms.url.";
     private static final String KMS_ACCESS_TOKEN_PREFIX = "kms.access.token.";
 
     public static String HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
+
+    private static final String DBA_API_PWD_CHANGE_URL = "dba.api.pwd.change.url";
 
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
@@ -618,6 +623,18 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return Sets.newHashSet(property.split(","));
     }
 
+    public Set<String> getAccountKmsTokenMhaGrayV2() {
+        String property = getProperty(ACCOUNT_KMS_TOKEN_MHA_GRAY_V2, "");
+        if (StringUtils.isBlank(property)) {
+            return Collections.emptySet();
+        }
+        return Sets.newHashSet(property.split(","));
+    }
+
+    public boolean getAccountKmsTokenSwitchV2() {
+        return getBooleanProperty(ACCOUNT_KMS_TOKEN_SWITCH_V2, false);
+    }
+
     public List<String> getBatchOfflineRegion() {
         String idcStr = getProperty(BATCH_OFFLINE_ALLOW_REGION, DEFAULT_BATCH_OFFLINE_ALLOW_REGION);
         if (StringUtils.isBlank(idcStr)) {
@@ -633,4 +650,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean requestWithHeraldToken() {
         return getBooleanProperty(HERALD_TOKEN_REQUEST_SWITCH, false);
     }
+
+    public String getDbaApiPwdChangeUrl() {
+        return getProperty(DBA_API_PWD_CHANGE_URL, "");
+    }
+    
 }

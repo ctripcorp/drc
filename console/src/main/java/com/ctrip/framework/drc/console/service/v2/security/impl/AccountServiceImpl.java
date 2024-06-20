@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.service.v2.security.DataSourceCrypto;
@@ -50,6 +51,9 @@ public class AccountServiceImpl implements AccountService {
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
     private DbaApiService dbaApiService;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
+    
     private TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance();
     
     private Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
@@ -109,16 +113,29 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType) {
-        boolean gray = grayKmsToken(mhaTblV2.getMhaName());
+        boolean grayKms = grayKmsToken(mhaTblV2.getMhaName());
+        boolean grayNewAccount = grayAccountV2(mhaTblV2.getMhaName());
         switch (accountType) {
             case DRC_CONSOLE:
-                return gray ? new Account(mhaTblV2.getMonitorUser(),decrypt(mhaTblV2.getMonitorPasswordToken())) :
+                return grayKms ? 
+                        (grayNewAccount ? 
+                                new Account(mhaTblV2.getMonitorUserV2(),decrypt(mhaTblV2.getMonitorPasswordTokenV2())) : 
+                                new Account(mhaTblV2.getMonitorUser(),decrypt(mhaTblV2.getMonitorPasswordToken()))
+                        ) : 
                         new Account(mhaTblV2.getMonitorUser(),mhaTblV2.getMonitorPassword());
             case DRC_READ:
-                return gray ? new Account(mhaTblV2.getReadUser(),decrypt(mhaTblV2.getReadPasswordToken())) :
+                return grayKms ?
+                        (grayNewAccount ?
+                                new Account(mhaTblV2.getReadUserV2(),decrypt(mhaTblV2.getReadPasswordTokenV2())) :
+                                new Account(mhaTblV2.getReadUser(),decrypt(mhaTblV2.getReadPasswordToken()))
+                        ) :
                         new Account(mhaTblV2.getReadUser(),mhaTblV2.getReadPassword());
             case DRC_WRITE:
-                return gray ? new Account(mhaTblV2.getWriteUser(),decrypt(mhaTblV2.getWritePasswordToken())) :
+                return grayKms ?
+                        (grayNewAccount ?
+                                new Account(mhaTblV2.getWriteUserV2(),decrypt(mhaTblV2.getWritePasswordTokenV2())) :
+                                new Account(mhaTblV2.getWriteUser(),decrypt(mhaTblV2.getWritePasswordToken()))
+                        ) :
                         new Account(mhaTblV2.getWriteUser(),mhaTblV2.getWritePassword());
             default:
                 throw ConsoleExceptionUtils.message("accountType not support");
@@ -174,26 +191,53 @@ public class AccountServiceImpl implements AccountService {
         Set<String> accountKmsTokenMhaGray = consoleConfig.getAccountKmsTokenMhaGray();
         return accountKmsTokenMhaGray.contains("*") || accountKmsTokenMhaGray.contains(mhaName);
     }
-    
-    @Override
-    public Pair<Boolean,Integer> initMhaAccountV2(List<String> mhas) throws SQLException {
-        
-        return null;
-    }
-
-    @Override
-    public Pair<Boolean,String> accountV2Check(List<String> mhas) {
-        // test connection & authority 3 account
-        return null;
-    }
 
     @Override
     public boolean grayAccountV2(String mhaName) {
-        return false;
+        boolean accountKmsTokenSwitch = consoleConfig.getAccountKmsTokenSwitchV2();
+        if (!accountKmsTokenSwitch) {
+            return false;
+        }
+        Set<String> accountKmsTokenMhaGray = consoleConfig.getAccountKmsTokenMhaGrayV2();
+        return accountKmsTokenMhaGray.contains("*") || accountKmsTokenMhaGray.contains(mhaName);
+    }
+
+    @Override
+    public Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException {
+        int successCount = 0;
+        StringBuilder msg = new StringBuilder();
+        for (String mha : mhas) {
+            try {
+                if (initMhaAccountV2(mha)) {
+                    successCount++;
+                }
+            } catch (Exception e) {
+                logger.error("initMhaAccountV2 error mha:{}",mha,e);
+                msg.append(e.getMessage()).append("\n");
+            }
+        }
+        return Pair.of(successCount, msg.toString());
+    }
+
+    @Override
+    public Pair<Integer, String> accountV2Check(List<String> mhas) throws SQLException {
+        // test connection & authority 3 account
+        int successCount = 0;
+        StringBuilder msg = new StringBuilder();
+        for (String mha : mhas) {
+            Pair<Boolean, String> res = accountV2Check(mha);
+            if (res.getKey()) {
+                successCount++;
+            } else {
+                msg.append(res.getValue()).append("\n");
+            }
+        }
+        return Pair.of(successCount, msg.toString());
     }
     
+    
     @Override
-    public boolean changePasswordInNewAccount(String mha, String user, String newPassword){
+    public boolean changePasswordInNewAccount(String mha, String user, String newPassword) { // todo hdpan CHANGE PASSWORD IF Pwd leakage
         return true;
     }
     
@@ -218,22 +262,71 @@ public class AccountServiceImpl implements AccountService {
     }
     
     
-    private boolean accountV2Check(String mha) throws SQLException {
-        return false; // todo hdpan  
-
+    private Pair<Boolean,String> accountV2Check(String mha) {
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha,0);
+            if (mhaTblV2 == null) {
+                logger.error("mha:{} not exist",mha);
+                return Pair.of(false,"mha not exist");
+            }
+            MhaAccounts mhaAccountsV1 = getMhaAccounts(mhaTblV2, false);
+            MhaAccounts mhaAccountsV2 = getMhaAccounts(mhaTblV2, true);
+            return mysqlServiceV2.checkAccountsPrivileges(mha, mhaAccountsV1, mhaAccountsV2);
+        } catch (Throwable e) {
+            logger.error("mha:{} account check error",mha,e);
+            return Pair.of(false,"account check error");
+        }
     }
+    
+    private MhaAccounts getMhaAccounts(MhaTblV2 mhaTblV2,boolean newAccount) {
+        if (newAccount) {
+            return new MhaAccounts(
+                    mhaTblV2.getMhaName(),
+                    new Account(mhaTblV2.getMonitorUserV2(),this.decrypt(mhaTblV2.getMonitorPasswordTokenV2())),
+                    new Account(mhaTblV2.getReadUserV2(),this.decrypt(mhaTblV2.getReadPasswordTokenV2())),
+                    new Account(mhaTblV2.getWriteUserV2(),this.decrypt(mhaTblV2.getWritePasswordTokenV2()))
+            );
+        } else {
+            return new MhaAccounts(
+                    mhaTblV2.getMhaName(),
+                    new Account(mhaTblV2.getMonitorUser(),this.decrypt(mhaTblV2.getMonitorPasswordToken())),
+                    new Account(mhaTblV2.getReadUser(),this.decrypt(mhaTblV2.getReadPasswordToken())),
+                    new Account(mhaTblV2.getWriteUser(),this.decrypt(mhaTblV2.getWritePasswordToken()))
+            );
+        }
+    } 
 
     private boolean initMhaAccountV2(String mha) throws SQLException {
-        return false; // todo hdpan
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
+        if(mhaTblV2 == null){
+            throw ConsoleExceptionUtils.message(mha + " not exist");
+        }
+        if (!StringUtils.isBlank(mhaTblV2.getMonitorUserV2())
+                && !StringUtils.isBlank(mhaTblV2.getMonitorPasswordTokenV2())
+                && !StringUtils.isBlank(mhaTblV2.getReadUserV2())
+                && !StringUtils.isBlank(mhaTblV2.getReadPasswordTokenV2())
+                && !StringUtils.isBlank(mhaTblV2.getWriteUserV2())
+                && !StringUtils.isBlank(mhaTblV2.getWritePasswordTokenV2())) {
+            logger.info("mha:{} already init account v2",mha);
+            return true;
+        }
+        MhaAccounts mhaAccounts = dbaApiService.initAccountV2(mhaTblV2);
+        if (mhaAccounts == null) {
+            throw ConsoleExceptionUtils.message("init account v2 error" + mha);
+        }
+        
+        mhaTblV2.setMonitorUserV2(mhaAccounts.getMonitorAcc().getUser());
+        mhaTblV2.setMonitorPasswordTokenV2(this.encrypt(mhaAccounts.getMonitorAcc().getPassword()));
+        mhaTblV2.setReadUserV2(mhaAccounts.getReadAcc().getUser());
+        mhaTblV2.setReadPasswordTokenV2(this.encrypt(mhaAccounts.getReadAcc().getPassword()));
+        mhaTblV2.setWriteUserV2(mhaAccounts.getWriteAcc().getUser());
+        mhaTblV2.setWritePasswordTokenV2(this.encrypt(mhaAccounts.getWriteAcc().getPassword()));
+        
+        return mhaTblV2Dao.update(mhaTblV2) == 1;
     }
     
     
-
-    private String generateNewPassword(String mhaName,String defaultPassword) {
-        return null; // todo hdpan
-    }
-    
-    private String doEncrypt(String password) throws Exception { // todo 
+    private String doEncrypt(String password) throws Exception { 
         return transactionMonitor.logTransaction(
                 "DRC.console.account.encrypt", 
                 "encrypt password",

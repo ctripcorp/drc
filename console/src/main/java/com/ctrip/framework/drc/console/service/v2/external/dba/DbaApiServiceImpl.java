@@ -2,17 +2,25 @@ package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.DrcTmpconninfoDao;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Digest;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +51,15 @@ public class DbaApiServiceImpl implements DbaApiService {
     private DomainConfig domainConfig;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    
     private UserService userService = ApiContainer.getUserServiceImpl();
+
+    @Autowired
+    private KmsService kmsService;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
+    @Autowired
+    private DrcTmpconninfoDao drcTmpconninfoDao;
 
 
     @Override
@@ -228,9 +244,38 @@ public class DbaApiServiceImpl implements DbaApiService {
     }
 
     @Override
-    public void changePassword(String mhaName, String userName, String newPassword) {
+    public MhaAccounts initAccountV2(MhaTblV2 mhaTblV2) {
+        try {
+            MachineTbl masterNode = mhaServiceV2.getMasterNode(mhaTblV2.getId());
+            if (!changePassword(mhaTblV2, masterNode)) {
+                return null;
+            }
+            String kmsAccessToken = consoleConfig.getKMSAccessToken("dba.account");
+            String secretKey = kmsService.getSecretKey(kmsAccessToken);
+            return drcTmpconninfoDao.queryByHostPort(secretKey, masterNode.getIp(), masterNode.getPort());
+        } catch (Exception e) {
+            logger.error("initAccountV2 failed, mhaTblV2:{}", mhaTblV2, e);
+            return null;
+        }
     }
 
-
+    @Override
+    public boolean changePassword(MhaTblV2 mhaTblV2, MachineTbl masterNode) {
+        Map<String,Object> params = Maps.newLinkedHashMap();
+        params.put("datasource", masterNode.getIp() + ";port=" + masterNode.getPort());
+        String kmsAccessToken = consoleConfig.getKMSAccessToken("dba.account");
+        String secretKey = kmsService.getSecretKey(kmsAccessToken);
+        params.put("token", secretKey);
+        
+        String resString = HttpUtils.post(consoleConfig.getDbaApiPwdChangeUrl(), params, String.class); 
+        JsonObject res = JsonUtils.parseObject(resString);
+        String status = res.get("status").getAsString();
+        if ("success".equalsIgnoreCase(status)) {
+            return true;
+        }
+        logger.error("changePassword failed, mhaTblV2:{}, masterNode:{}, response:{}", mhaTblV2, masterNode, resString);
+        return false;
+    }
+    
 
 }
