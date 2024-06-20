@@ -27,7 +27,7 @@ public interface AccountService {
     
     boolean grayAccountV2(String mhaName);
 
-    Pair<Boolean,Integer> initMhaAccountV2(List<String> mhas) throws SQLException;
+    Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException;
 
     // key: success count , value: error message
     Pair<Integer,String> accountV2Check(List<String> mhas) throws SQLException;

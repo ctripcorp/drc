@@ -155,10 +155,9 @@ public class AccountServiceImplTest {
         when(dbaApiService.initAccountV2(Mockito.any(MhaTblV2.class))).thenReturn(mhaAccounts);
         when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
         
-        Pair<Boolean, Integer> res = accountServiceImpl.initMhaAccountV2(
+        Pair<Integer, String> res = accountServiceImpl.initMhaAccountV2(
                 Lists.newArrayList("mha1", "mha2", "mha3"));
-        Assert.assertTrue(res.getLeft());
-        Assert.assertEquals(3, res.getRight().intValue());
+        Assert.assertEquals(3, res.getLeft().intValue());
     }
 
     @Test

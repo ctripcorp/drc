@@ -203,8 +203,9 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Pair<Boolean,Integer> initMhaAccountV2(List<String> mhas) throws SQLException {
+    public Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException {
         int successCount = 0;
+        StringBuilder msg = new StringBuilder();
         for (String mha : mhas) {
             try {
                 if (initMhaAccountV2(mha)) {
@@ -212,9 +213,10 @@ public class AccountServiceImpl implements AccountService {
                 }
             } catch (Exception e) {
                 logger.error("initMhaAccountV2 error mha:{}",mha,e);
+                msg.append(e.getMessage()).append("\n");
             }
         }
-        return Pair.of(successCount == mhas.size(), successCount);
+        return Pair.of(successCount, msg.toString());
     }
 
     @Override
