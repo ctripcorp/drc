@@ -239,6 +239,23 @@ public class MhaReplicationController {
         }
     }
 
+    @GetMapping("delayByName")
+    @SuppressWarnings("unchecked")
+    public ApiResult<DelayInfoVo> getMhaReplicationDelayByName(@RequestParam(name = "srcMha") String srcMha, @RequestParam(name = "dstMha") String dstMha) {
+        try {
+            if (StringUtils.isEmpty(dstMha) || StringUtils.isEmpty(srcMha)) {
+                return ApiResult.getSuccessInstance(Collections.emptyList());
+            }
+
+            MhaDelayInfoDto mhaReplicationDelay = mhaReplicationServiceV2.getMhaReplicationDelay(srcMha, dstMha);
+            DelayInfoVo delayInfoVo = DelayInfoVo.from(mhaReplicationDelay);
+            return ApiResult.getSuccessInstance(delayInfoVo);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaReplicationDelay error: %s - %s", srcMha, dstMha), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("relatedReplicationDelay")
     @SuppressWarnings("unchecked")
     public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestParam(name = "mhas") List<String> mhas,

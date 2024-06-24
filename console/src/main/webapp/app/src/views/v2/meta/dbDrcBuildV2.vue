@@ -13,7 +13,7 @@
               <Select
                 v-model="meta.dbName"
                 filterable
-                :disabled="meta.fixDb"
+                :disabled="!!meta.fixDb"
                 placeholder="请搜索数据库信息"
                 @on-change="selectDb"
                 :remote-method="getExistDb"
@@ -47,7 +47,7 @@
             </Card>
             <Divider orientation="left">同步DB</Divider>
             <Card style="width:100%">
-              <mha-replication-panel :mha-replications="drcConfig.mhaReplications"/>
+              <mha-replication-panel :mha-replications="drcConfig.mhaReplications" @updated="getDrcConfig"/>
             </Card>
           </Form>
         </Col>

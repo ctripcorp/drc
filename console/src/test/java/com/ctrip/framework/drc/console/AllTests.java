@@ -17,6 +17,8 @@ import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
+import com.ctrip.framework.drc.console.dto.v3.DbApplierSwitchReqDtoTest;
+import com.ctrip.framework.drc.console.dto.v3.MhaApplierDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.monitor.*;
@@ -229,6 +231,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         CreatePojoTest.class,
         MhaDbDelayInfoDtoTest.class,
         MhaDbQueryDtoTest.class,
+        MhaApplierDtoTest.class,
+        DbApplierSwitchReqDtoTest.class,
         MhaDbReplicationQueryDtoTest.class
 
 })

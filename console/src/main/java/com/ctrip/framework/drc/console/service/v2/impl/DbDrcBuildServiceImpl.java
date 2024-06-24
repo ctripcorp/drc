@@ -119,11 +119,12 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     public List<DbApplierDto> getMhaDbAppliers(String srcMhaName, String dstMhaName) {
         // mha pair -> mha db replication
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha(srcMhaName, dstMhaName, null);
-        return getMhaDbAppliers(replicationDtos);
+        setMhaDbAppliers(replicationDtos);
+        return replicationDtos.stream().map(MhaDbReplicationDto::getDbApplierDto).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override
-    public List<DbApplierDto> getMhaDbAppliers(List<MhaDbReplicationDto> replicationDtos) {
+    public void setMhaDbAppliers(List<MhaDbReplicationDto> replicationDtos) {
         try { // appliers
             List<Long> replicationIds = replicationDtos.stream().map(MhaDbReplicationDto::getId).collect(Collectors.toList());
             List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryByMhaDbReplicationIds(replicationIds);
@@ -138,19 +139,21 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             // build data
             Map<Long, ApplierGroupTblV3> applierGroupTblV3Map = applierGroupTblV3s.stream().collect(Collectors.toMap(ApplierGroupTblV3::getMhaDbReplicationId, e -> e));
             Map<Long, List<ApplierTblV3>> applierMap = applierTblV3s.stream().collect(Collectors.groupingBy(ApplierTblV3::getApplierGroupId));
-            return replicationDtos.stream().map(replicationTbl -> {
+            replicationDtos.stream().forEach(replicationTbl -> {
                 ApplierGroupTblV3 applierGroupTblV3 = applierGroupTblV3Map.get(replicationTbl.getId());
                 if (replicationTbl.getId() == null || applierGroupTblV3 == null) {
-                    return new DbApplierDto(null, null, replicationTbl.getDst().getDbName(), null);
+                    replicationTbl.setDbApplierDto(new DbApplierDto(null, null, replicationTbl.getDst().getDbName(), null));
+                    return;
                 }
                 List<ApplierTblV3> appliers = applierMap.getOrDefault(applierGroupTblV3.getId(), Collections.emptyList());
                 List<String> ips = appliers.stream().map(e -> resouceMap.get(e.getResourceId())).collect(Collectors.toList());
                 if (CollectionUtils.isEmpty(ips) && CollectionUtils.isEmpty(replicationTbl.getDbReplicationDtos())) {
                     // skip
-                    return null;
+                    replicationTbl.setDbApplierDto(null);
+                    return;
                 }
-                return new DbApplierDto(ips, applierGroupTblV3.getGtidInit(), replicationTbl.getDst().getDbName(), applierGroupTblV3.getConcurrency());
-            }).filter(Objects::nonNull).collect(Collectors.toList());
+                replicationTbl.setDbApplierDto(new DbApplierDto(ips, applierGroupTblV3.getGtidInit(), replicationTbl.getDst().getDbName(), applierGroupTblV3.getConcurrency()));
+            });
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
@@ -444,17 +447,40 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void switchAppliers(List<DbApplierSwitchReqDto> reqDtos) throws Exception {
+        for (DbApplierSwitchReqDto reqDto : reqDtos) {
+            String srcMhaName = reqDto.getSrcMhaName();
+            String dstMhaName = reqDto.getDstMhaName();
+            MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
+            MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
+            if (srcMha == null || dstMha == null) {
+                throw ConsoleExceptionUtils.message("mha not exist: " + srcMhaName + " or " + dstMhaName);
+            }
+
+            List<DbApplierDto> mhaDbAppliers = this.getMhaDbAppliers(srcMhaName, dstMhaName);
+            boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+
+            if (dbApplyMode) {
+                this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), null);
+            } else {
+                drcBuildServiceV2.autoConfigAppliers(srcMha, dstMha, null);
+            }
+
+        }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid) throws Exception {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha(srcMha, dstMha, dbNames);
-        List<DbApplierDto> existMhaDbApplierDto = this.getMhaDbAppliers(replicationDtos);
-        Map<String, DbApplierDto> dbNameToExistApplier = existMhaDbApplierDto.stream().collect(Collectors.toMap(DbApplierDto::getDbName, e -> e));
+        this.setMhaDbAppliers(replicationDtos);
 
         List<ResourceView> mhaDbAvailableResource = resourceService.getMhaDbAvailableResource(dstMha, ModuleEnum.APPLIER.getCode());
 
         List<DbApplierDto> newDbAppliers = Lists.newArrayList();
         for (MhaDbReplicationDto replicationDto : replicationDtos) {
             String dbName = replicationDto.getSrc().getDbName();
-            DbApplierDto dbApplierDto = dbNameToExistApplier.get(dbName);
+            DbApplierDto dbApplierDto = replicationDto.getDbApplierDto();
             // gtid
             String newGtid;
             if (StringUtils.isEmpty(initGtid)) {
@@ -533,7 +559,11 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             mhaReplicationDto.setMhaDbReplications(list);
             if (isAdmin()) {
                 // drc resource info detail
-                mhaReplicationDto.setDbAppliers(getMhaDbAppliers(list));
+                setMhaDbAppliers(list);
+                boolean dbApplyMode = list.stream().map(MhaDbReplicationDto::getDbApplierDto).anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+                if (!dbApplyMode) {
+                    setMhaAppliers(mhaReplicationDto);
+                }
                 mhaReplicationDto.getSrcMha().setReplicatorInfoDtos(mhaServiceV2.getMhaReplicatorsV2(mhaReplicationDto.getSrcMha().getName()));
             }
         }
@@ -542,6 +572,18 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         dbDrcConfigInfoDto.setLogicTableSummaryDtos(LogicTableSummaryDto.from(mhaDbReplicationDtos));
         dbDrcConfigInfoDto.setDbNames(dbNames);
         return dbDrcConfigInfoDto;
+    }
+
+    private void setMhaAppliers(MhaReplicationDto mhaReplicationDto) {
+        try {
+            String srcMhaName = mhaReplicationDto.getSrcMha().getName();
+            String dstMhaName = mhaReplicationDto.getDstMha().getName();
+            List<String> ips = drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName);
+            String applierGtid = drcBuildServiceV2.getApplierGtid(srcMhaName, dstMhaName);
+            mhaReplicationDto.setMhaApplierDto(new MhaApplierDto(ips, applierGtid));
+        } catch (Exception e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
     }
 
     @Override
@@ -737,19 +779,42 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     }
 
     private List<String> getDbNamesWithinSameDalCluster(String dbName) {
-        String dalClusterName;
+        String dalClusterName = getDalclusterName(dbName);
+        return getDbNamesByDalClusterName(dalClusterName);
+
+    }
+
+    private List<String> getDbNamesByDalClusterName(String dalClusterName) {
         try {
-            dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbName);
+            List<DbClusterInfoDto> databaseClusterInfoList = dbaApiService.getDatabaseClusterInfoList(dalClusterName);
+            return databaseClusterInfoList.stream().map(DbClusterInfoDto::getDbName).collect(Collectors.toList());
         } catch (Exception e) {
-            if (!EnvUtils.pro()) {
-                dalClusterName = DalclusterUtils.getDalClusterName(dbName);
-                logger.info("get dalcluster from dba api fail. DbName: {}, Assume dalclusterName: {}  ", dbName, dalClusterName);
-            } else {
+            if (EnvUtils.pro()) {
                 throw e;
             }
         }
-        List<DbClusterInfoDto> databaseClusterInfoList = dbaApiService.getDatabaseClusterInfoList(dalClusterName);
-        return databaseClusterInfoList.stream().map(DbClusterInfoDto::getDbName).collect(Collectors.toList());
+        // test shard db
+        try {
+            List<DbTbl> dbTbls = dbTblDao.queryAllExist();
+            return dbTbls.stream().map(DbTbl::getDbName).filter(db -> dalClusterName.equals(DalclusterUtils.getDalClusterName(db))).collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, e);
+        }
+    }
+
+    private String getDalclusterName(String dbName) {
+        try {
+            return dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbName);
+        } catch (Exception e) {
+            if (EnvUtils.pro()) {
+                throw e;
+            }
+        }
+
+        String dalClusterName = DalclusterUtils.getDalClusterName(dbName);
+        logger.info("get dalcluster from dba api fail. DbName: {}, Assume dalclusterName: {}  ", dbName, dalClusterName);
+        return dalClusterName;
+
     }
 
     private void checkExistDbReplication(List<MhaDbReplicationDto> mhaDbReplicationDtos, List<DbApplierDto> dbApplierDtos) {

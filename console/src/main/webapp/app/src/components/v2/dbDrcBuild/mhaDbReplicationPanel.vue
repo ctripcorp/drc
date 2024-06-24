@@ -1,6 +1,12 @@
 <template>
-  <Table stripe border :columns="columns" :data="mhaDbReplications">
-  </Table>
+
+  <div>
+    <Table stripe border :columns="columns" :data="mhaDbReplications" v-if="!mhaReplication.mhaApplierDto">
+    </Table>
+    <Table stripe border :columns="mhaColumns" :data="[mhaReplication]" v-if="mhaReplication.mhaApplierDto">
+    </Table>
+  </div>
+
 </template>
 
 <script>
@@ -9,10 +15,11 @@ import prettyMilliseconds from 'pretty-ms'
 export default {
   name: 'mhaDbReplicationPanel',
   props: {
-    mhaDbReplications: Array
+    mhaReplication: {}
   },
   data () {
     return {
+      mhaDbReplications: this.mhaReplication.mhaDbReplications,
       value: ['1'],
       delayDataLoading: false,
       columns: [
@@ -81,7 +88,6 @@ export default {
             let color, text
             if (row.drcStatus === true) {
               if (row.delay != null) {
-                console.log(row.delay)
                 text = prettyMilliseconds(row.delay, { compact: true })
                 if (row.delay > 10000) {
                   color = 'warning'
@@ -109,13 +115,93 @@ export default {
           render: (h, params) => {
             return h('p', params.row.src.dbName)
           }
+        },
+        {
+          title: 'applier',
+          key: 'srcDbName',
+          render: (h, params) => {
+            return h('p', params.row.dbApplierDto ? params.row.dbApplierDto.ips.join(', ') : null)
+          }
+        }
+      ],
+      mhaColumns: [
+        {
+          title: '延迟',
+          key: 'drcStatus',
+          width: 100,
+          align: 'center',
+          renderHeader: (h, params) => {
+            return h('span', [
+              h('span', '延迟'),
+              this.mhaReplication.mhaApplierDto.ips && h('Button', {
+                on: {
+                  click: async () => {
+                    await this.getMhaDelay()
+                  }
+                },
+                props: {
+                  loading: this.delayDataLoading,
+                  size: 'small',
+                  shape: 'circle',
+                  type: 'default',
+                  icon: 'md-refresh'
+                }
+              })
+            ])
+          },
+          render: (h, params) => {
+            const row = params.row
+            let color, text
+            if (row.mhaApplierDto.ips) {
+              if (row.delay != null) {
+                text = prettyMilliseconds(row.delay, { compact: true })
+                if (row.delay > 10000) {
+                  color = 'warning'
+                } else {
+                  color = 'success'
+                }
+              } else {
+                text = '已接入'
+                color = 'blue'
+              }
+            } else {
+              text = '未接入'
+              color = 'default'
+            }
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
+          title: '类型',
+          width: 100,
+          key: '',
+          render: (h, params) => {
+            return h('p', 'mha 同步')
+          }
+        },
+        {
+          title: 'applier',
+          key: '',
+          render: (h, params) => {
+            return h('p', params.row.mhaApplierDto.ips.join(','))
+          }
+        },
+        {
+          title: 'initGtid',
+          key: '',
+          render: (h, params) => {
+            return h('p', params.row.mhaApplierDto.gtidInit)
+          }
         }
       ]
     }
   },
   methods: {
     showModal (row) {
-      console.log('show modal')
       this.$Message.info('还未上线，敬请期待')
     },
     async getDelay () {
@@ -138,11 +224,29 @@ export default {
           this.mhaDbReplications.forEach(line => {
             this.$set(line, 'delay', dataMap.get(line.src.mhaName + '->' + line.dst.mhaName + '->' + line.src.dbName))
           })
-          console.log('replications', this.mhaDbReplications)
         })
         .catch(message => {
           console.log(message)
           this.$Message.error('查询延迟异常: ' + message)
+        })
+        .finally(() => {
+          this.delayDataLoading = false
+        })
+    },
+    async getMhaDelay () {
+      const param = {
+        srcMha: this.mhaReplication.srcMha.name,
+        dstMha: this.mhaReplication.dstMha.name
+      }
+      this.delayDataLoading = true
+      this.axios.get('/api/drc/v2/replication/delayByName', { params: param })
+        .then(response => {
+          const delays = response.data.data.delay
+          this.$set(this.mhaReplication, 'delay', delays)
+        })
+        .catch(message => {
+          console.log(message)
+          this.$Message.error('查询 MHA 延迟异常: ' + message)
         })
         .finally(() => {
           this.delayDataLoading = false
@@ -159,6 +263,7 @@ export default {
   },
   created () {
     this.getDelay()
+    this.getMhaDelay()
   }
 }
 </script>

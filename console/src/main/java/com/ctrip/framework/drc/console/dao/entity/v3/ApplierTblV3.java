@@ -139,4 +139,13 @@ public class ApplierTblV3 implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    @Override
+    public String toString() {
+        return "ApplierTblV3{" +
+                "id=" + id +
+                ", applierGroupId=" + applierGroupId +
+                ", resourceId=" + resourceId +
+                ", deleted=" + deleted +
+                '}';
+    }
 }
