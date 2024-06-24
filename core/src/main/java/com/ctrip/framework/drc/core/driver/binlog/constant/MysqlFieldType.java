@@ -296,6 +296,11 @@ public enum MysqlFieldType {
         return "binary".equalsIgnoreCase(literal) || "varbinary".equalsIgnoreCase(literal);
     }
 
+
+    public static boolean isTextType(final String literal) {
+        return "tinytext".equalsIgnoreCase(literal) || "text".equalsIgnoreCase(literal) || "mediumtext".equalsIgnoreCase(literal) || "longtext".equalsIgnoreCase(literal);
+    }
+
     public static boolean is1ByteLengthBlobOrTextType(final String literal) {
         return "tinyblob".equalsIgnoreCase(literal) || "tinytext".equalsIgnoreCase(literal);
     }

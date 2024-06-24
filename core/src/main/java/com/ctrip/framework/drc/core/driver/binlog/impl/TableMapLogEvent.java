@@ -564,14 +564,16 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
                 this.onUpdate = true;
             }
 
+            if (MysqlFieldType.isTextType(dataTypeLiteral) || MysqlFieldType.isCharsetType(dataTypeLiteral)) {
+                this.charset = charset;
+                this.collation = collation;
+            }
+
             if (MysqlFieldType.isNumberType(dataTypeLiteral)) {
                 this.unsigned = columnType.contains("unsigned");
 
             } else if (MysqlFieldType.isCharsetType(dataTypeLiteral)) {
                 this.meta = Integer.parseInt(characterOctetLength);
-                this.charset = charset;
-                this.collation = collation;
-
             } else if (MysqlFieldType.isDatetimePrecisionType(dataTypeLiteral)) {
                 // date,year replicator is null
                 this.meta = Integer.parseInt(datetimePrecision);
@@ -847,6 +849,11 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
         }
 
         private Charset calCharset() {
+            Charset javaCharset = calJavaCharset();
+            return Objects.requireNonNullElse(javaCharset, UTF_8);
+        }
+
+        public Charset calJavaCharset() {
             final String charset = this.charset;
             final String collation = this.collation;
             if (null != charset && !"".equals(charset) && null != collation && !"".equals(collation)) {
@@ -855,9 +862,7 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
                     return Charset.forName(javaCharset);
                 }
             }
-
-            // default
-            return UTF_8;
+            return null;
         }
 
         public void setColumnDefault(String columnDefault) {

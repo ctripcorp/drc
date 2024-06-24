@@ -228,6 +228,13 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             }
         } catch (SQLException e) {
             DDL_LOGGER.error("queryTableInfoByIS for {}.{} error", schema, table, e);
+        } catch (Throwable e) {
+            if (DynamicConfig.getInstance().getSkipUnsupportedTableSwitch()) {
+                DDL_LOGGER.warn("[queryTableInfoByIS] [problemSchemaSkip] {}.{} ", schema, table, e);
+            } else {
+                DDL_LOGGER.error("[queryTableInfoByIS] [problemSchema] {}.{} ", schema, table, e);
+                throw e;
+            }
         }
 
         return null;
@@ -282,6 +289,13 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             }
         } catch (IOException e) {
             DDL_LOGGER.error("[Write] DRC TableMapLogEvent error", e);
+        } catch (Throwable e) {
+            if (DynamicConfig.getInstance().getSkipUnsupportedTableSwitch()) {
+                DDL_LOGGER.warn("[persistColumnInfo] [problemSchemaSkip] {}.{} ", tableInfo.getDbName(), tableInfo.getTableName(), e);
+            } else {
+                DDL_LOGGER.error("[persistColumnInfo] [problemSchema] {}.{} ", tableInfo.getDbName(), tableInfo.getTableName(), e);
+                throw e;
+            }
         }
         DDL_LOGGER.info("[Persist] drc table map log event for {}.{}", tableInfo.getDbName(), tableInfo.getTableName());
     }
