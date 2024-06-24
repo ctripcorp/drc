@@ -29,8 +29,10 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -62,6 +64,10 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dbTbl1.setDbName("db1");
         DbTbl dbTbl2 = new DbTbl();
         dbTbl2.setDbName("db2");
+        DbTbl dbTbl3 = new DbTbl();
+        dbTbl3.setDbName("db3");
+        DbTbl dbTbl4 = new DbTbl();
+        dbTbl4.setDbName("db4");
 
         DcDo dcDo1 = new DcDo();
         dcDo1.setRegionName("src1");
@@ -88,10 +94,36 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dto2.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1002L, config)));
         dto2.setReplicationType(0);
 
-        List<MhaDbReplicationDto> mhaDbReplicationDtos = Lists.newArrayList(dto1, dto2);
+        MhaDbReplicationDto dto11 = new MhaDbReplicationDto();
+        dto11.setId(3L);
+        dto11.setSrc(MhaDbDto.from(5L, srcMhaTbl, dbTbl3, dcDo1));
+        dto11.setDst(MhaDbDto.from(6L, dstMhaTbl, dbTbl3, dcDo2));
+        dto11.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1003L, config)));
+        dto11.setReplicationType(0);
 
-        when(mhaDbReplicationService.queryByMha(eq(srcMha), eq(dstMha), any())).thenReturn(mhaDbReplicationDtos);
-        when(mhaDbReplicationService.queryByDbNames(argThat(e -> e.contains("db1") && e.contains("db2")), eq(ReplicationTypeEnum.DB_TO_DB))).thenReturn(mhaDbReplicationDtos);
+
+        MhaDbReplicationDto dto22 = new MhaDbReplicationDto();
+        dto22.setId(4L);
+        dto22.setSrc(MhaDbDto.from(7L, srcMhaTbl, dbTbl4, dcDo1));
+        dto22.setDst(MhaDbDto.from(8L, dstMhaTbl, dbTbl4, dcDo2));
+        dto22.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1004L, config)));
+        dto22.setReplicationType(0);
+
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = Lists.newArrayList(dto1, dto2, dto11, dto22);
+
+        when(mhaDbReplicationService.queryByMha(eq(srcMha), eq(dstMha), any())).thenAnswer(param -> {
+            List<String> dbNames = param.getArgument(2);
+            return mhaDbReplicationDtos.stream().filter(e -> {
+                if(dbNames == null){
+                    return true;
+                }
+                return dbNames.contains(e.getSrc().getDbName());
+            }).collect(Collectors.toList());
+        });
+        when(mhaDbReplicationService.queryByDbNames(anyList(), eq(ReplicationTypeEnum.DB_TO_DB))).thenAnswer(param -> {
+            List<String> dbNames = param.getArgument(0);
+            return mhaDbReplicationDtos.stream().filter(e -> dbNames.contains(e.getSrc().getDbName())).collect(Collectors.toList());
+        });
 
         // messenger
         MhaDbReplicationDto dto3 = new MhaDbReplicationDto();
@@ -254,12 +286,12 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         MhaDbReplicationCreateDto createDto = new MhaDbReplicationCreateDto();
         createDto.setSrcRegionName("src1");
         createDto.setDstRegionName("dst1");
-        createDto.setDbName("db3");
+        createDto.setDbName("db5");
         DrcAutoBuildParam drcAutoBuildParam = new DrcAutoBuildParam();
         drcAutoBuildParam.setSrcMhaName("mha1");
         drcAutoBuildParam.setDstMhaName("mha2");
 
-        drcAutoBuildParam.setDbName(Sets.newHashSet("db3"));
+        drcAutoBuildParam.setDbName(Sets.newHashSet("db5"));
         List<DrcAutoBuildParam> value = Lists.newArrayList(drcAutoBuildParam);
         when(drcAutoBuildService.getDrcBuildParam(any())).thenReturn(value);
         dbDrcBuildService.createMhaDbDrcReplication(createDto);
@@ -286,6 +318,26 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dbDrcBuildService.createDbReplication(dbReplicationCreateDto);
         verify(drcBuildServiceV2, times(1)).buildDbReplicationConfig(any());
 
+    }
+
+    @Test
+    public void testSwitchAppliers() throws Exception {
+        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
+        DbApplierSwitchReqDto req1 = new DbApplierSwitchReqDto();
+        req1.setDbNames(Lists.newArrayList("db1"));
+        req1.setSrcMhaName("mha1");
+        req1.setDstMhaName("mha2");
+        reqDtos.add(req1);
+
+        DbApplierSwitchReqDto req2 = new DbApplierSwitchReqDto();
+        req2.setDbNames(Lists.newArrayList("aadb1"));
+        req2.setSrcMhaName("mha2");
+        req2.setDstMhaName("mha1");
+        reqDtos.add(req2);
+
+        dbDrcBuildService.switchAppliers(reqDtos);
+        verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(),any(),any());
+        verify(applierTblV3Dao, times(1)).batchInsert(any());
     }
 
     private static DbReplicationEditDto getDbReplicationEditDto() {

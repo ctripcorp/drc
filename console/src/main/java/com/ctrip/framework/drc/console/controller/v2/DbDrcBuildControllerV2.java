@@ -2,10 +2,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dto.v3.DbDrcConfigInfoDto;
-import com.ctrip.framework.drc.console.dto.v3.DbReplicationCreateDto;
-import com.ctrip.framework.drc.console.dto.v3.DbReplicationEditDto;
-import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationCreateDto;
+import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.DbQuery;
@@ -201,6 +198,19 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @PostMapping("switchAppliers")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> switchAppliers(@RequestBody List<DbApplierSwitchReqDto> reqDtos) {
+        logger.info("[meta] autoBuildReq, req {}", reqDtos);
+        try {
+            dbDrcBuildService.switchAppliers(reqDtos);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("[meta] autoBuildReq, req {}", reqDtos, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("getRowsFilterView")
     @SuppressWarnings("unchecked")
     public ApiResult<RowsFilterConfigView> getRowsFilterView(@RequestParam("rowsFilterId") Long rowsFilterId) {
@@ -283,6 +293,7 @@ public class DbDrcBuildControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
 
 
 }

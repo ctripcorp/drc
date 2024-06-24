@@ -386,7 +386,7 @@ export default {
         buCode: null,
         regionId: null
       },
-      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : null,
+      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
       preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend
@@ -461,7 +461,7 @@ export default {
         buCode: null,
         regionId: null
       }
-      this.drcStatus = null
+      this.drcStatus = 1
       this.getReplications(1)
     },
     async getReplications (pageIndex = 1) {
@@ -699,8 +699,9 @@ export default {
       if (this.preciseSearchMode) {
         this.$router.replace({
           query: {
-            srcDbName: this.srcMhaDb.dbName,
-            dstDbName: this.dstMhaDb.dbName,
+            srcMhaName: this.srcMhaDb.mhaName,
+            dstMhaName: this.dstMhaDb.mhaName,
+            relatedDbName: this.relatedMhaDb.dbName,
             drcStatus: this.drcStatus,
             preciseSearchMode: true
           }
@@ -709,6 +710,7 @@ export default {
       } else {
         this.$router.replace({
           query: {
+            relatedMhaName: this.relatedMhaDb.mhaName,
             relatedDbName: this.relatedMhaDb.dbName,
             drcStatus: this.drcStatus,
             preciseSearchMode: false

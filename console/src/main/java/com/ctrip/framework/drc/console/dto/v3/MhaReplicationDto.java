@@ -11,8 +11,8 @@ import java.util.Objects;
 public class MhaReplicationDto {
     private MhaDto srcMha;
     private MhaDto dstMha;
+    private MhaApplierDto mhaApplierDto;
     private List<MhaDbReplicationDto> mhaDbReplications;
-    private List<DbApplierDto> dbAppliers;
 
     public MhaDto getSrcMha() {
         return srcMha;
@@ -30,13 +30,6 @@ public class MhaReplicationDto {
         this.dstMha = dstMha;
     }
 
-    public List<DbApplierDto> getDbAppliers() {
-        return dbAppliers;
-    }
-
-    public void setDbAppliers(List<DbApplierDto> dbAppliers) {
-        this.dbAppliers = dbAppliers;
-    }
 
     public List<MhaDbReplicationDto> getMhaDbReplications() {
         return mhaDbReplications;
@@ -46,17 +39,25 @@ public class MhaReplicationDto {
         this.mhaDbReplications = mhaDbReplications;
     }
 
+    public MhaApplierDto getMhaApplierDto() {
+        return mhaApplierDto;
+    }
+
+    public void setMhaApplierDto(MhaApplierDto mhaApplierDto) {
+        this.mhaApplierDto = mhaApplierDto;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MhaReplicationDto)) return false;
         MhaReplicationDto that = (MhaReplicationDto) o;
-        return Objects.equals(srcMha, that.srcMha) && Objects.equals(dstMha, that.dstMha) && Objects.equals(dbAppliers, that.dbAppliers);
+        return Objects.equals(srcMha, that.srcMha) && Objects.equals(dstMha, that.dstMha) && Objects.equals(mhaDbReplications, that.mhaDbReplications);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(srcMha, dstMha, dbAppliers);
+        return Objects.hash(srcMha, dstMha, mhaDbReplications);
     }
 }
 

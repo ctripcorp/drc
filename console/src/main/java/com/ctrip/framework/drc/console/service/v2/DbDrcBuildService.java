@@ -15,7 +15,7 @@ public interface DbDrcBuildService {
 
     List<DbApplierDto> getMhaDbAppliers(String srcMhaName, String dstMhaName);
 
-    List<DbApplierDto> getMhaDbAppliers(List<MhaDbReplicationDto> replicationDtos);
+    void setMhaDbAppliers(List<MhaDbReplicationDto> replicationDtos);
 
     List<DbApplierDto> getMhaDbMessengers(String mhaName) throws Exception;
 
@@ -37,6 +37,8 @@ public interface DbDrcBuildService {
 
     String getDbDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName);
 
+    void switchAppliers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
+
     void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid) throws Exception;
 
     List<DbDrcConfigInfoDto> getExistDbReplicationDirections(String dbName);
@@ -54,4 +56,5 @@ public interface DbDrcBuildService {
     void editDbReplication(DbReplicationEditDto editDto) throws Exception;
 
     void deleteDbReplication(DbReplicationEditDto editDto) throws Exception;
+
 }

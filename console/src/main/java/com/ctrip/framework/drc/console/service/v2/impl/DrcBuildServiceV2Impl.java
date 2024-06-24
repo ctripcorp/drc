@@ -814,6 +814,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (applierGroupTblV2 == null) {
             throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
         }
+        if (StringUtils.isEmpty(applierGroupTblV2.getGtidInit()) && StringUtils.isEmpty(gtid)) {
+            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, init gtid needed! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
+        }
+
         autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, gtid);
     }
 
