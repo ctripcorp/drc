@@ -219,26 +219,30 @@ public class OutboundLogEventContext {
 
     public AbstractRowsEvent readRowsEvent() {
         if (logEvent == null) {
-            AbstractRowsEvent rowsEvent;
-            switch (eventType) {
-                case write_rows_event_v2:
-                    rowsEvent = new FilteredWriteRowsEvent();
-                    break;
-                case update_rows_event_v2:
-                    rowsEvent = new FilteredUpdateRowsEvent();
-                    break;
-                case delete_rows_event_v2:
-                    rowsEvent = new FilteredDeleteRowsEvent();
-                    break;
-                default:
-                    throw new RuntimeException("row event type does not exist: " + eventType);
-            }
-
+            AbstractRowsEvent rowsEvent = newRowsEvent(eventType);
             EventReader.readEvent(fileChannel, eventSize, rowsEvent, compositeByteBuf);
             logEvent = rowsEvent;
         }
 
         return (AbstractRowsEvent) logEvent;
+    }
+
+    protected AbstractRowsEvent newRowsEvent(LogEventType eventType) {
+        AbstractRowsEvent rowsEvent;
+        switch (eventType) {
+            case write_rows_event_v2:
+                rowsEvent = new FilteredWriteRowsEvent();
+                break;
+            case update_rows_event_v2:
+                rowsEvent = new FilteredUpdateRowsEvent();
+                break;
+            case delete_rows_event_v2:
+                rowsEvent = new FilteredDeleteRowsEvent();
+                break;
+            default:
+                throw new RuntimeException("row event type does not exist: " + eventType);
+        }
+        return rowsEvent;
     }
 
     public void skipPosition(Long skipSize) {

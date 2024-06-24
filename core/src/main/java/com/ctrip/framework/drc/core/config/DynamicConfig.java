@@ -32,6 +32,7 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String RECEIVE_CHECK_SWITCH = "receive.check.switch";
     private static final String SCHEMA_MANAGER_CACHE_DISABLE_SWITCH = "schema.manager.snapshot.cache.disable.switch";
+    private static final String REPLICATOR_SKIP_UNSUPPORTED_SCHEMA = "replicator.skip.unsupported.schema";
 
 
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
@@ -90,6 +91,11 @@ public class DynamicConfig extends AbstractConfigBean {
         }
         return Boolean.parseBoolean(value);
     }
+
+    public boolean getSkipUnsupportedTableSwitch() {
+        return getBooleanProperty(REPLICATOR_SKIP_UNSUPPORTED_SCHEMA, false);
+    }
+
 
     public boolean getPurgedGtidSetCheckSwitch() {
         String value = getProperty(PURGED_GTID_SET_CHECK_SWITCH);

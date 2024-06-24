@@ -1585,4 +1585,12 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     public void setRows(List<Row> rows) {
         this.rows = rows;
     }
+
+
+    public void copyTo(AbstractRowsEvent rowsEvent) {
+        ByteBuf payloadBuf = getPayloadBuf();
+        payloadBuf.readerIndex(0);
+        rowsEvent.setPayloadBuf(payloadBuf);
+        rowsEvent.setLogEventHeader(getLogEventHeader());
+    }
 }

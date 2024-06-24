@@ -59,6 +59,9 @@ public class SenderOutboundLogEventContext extends OutboundLogEventContext {
 
     @Override
     public AbstractRowsEvent readRowsEvent() {
-        return getReadEvent(AbstractRowsEvent.class);
+        AbstractRowsEvent readEvent = getReadEvent(AbstractRowsEvent.class);
+        AbstractRowsEvent rowsEvent = newRowsEvent(eventType);
+        readEvent.copyTo(rowsEvent);
+        return rowsEvent;
     }
 }
