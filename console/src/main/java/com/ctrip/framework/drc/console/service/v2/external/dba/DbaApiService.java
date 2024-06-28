@@ -23,5 +23,6 @@ public interface DbaApiService {
 
     MhaAccounts initAccountV2(MhaTblV2 mhaTblV2) ;
 
-    boolean changePassword(MhaTblV2 mhaTblV2, MachineTbl machineTbl);
+    MhaAccounts accountV2PwdChange(String mhaName, String masterNodeIp,Integer masterNodePort);
+    
 }

@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.core.http;
 
+import com.ctrip.framework.drc.core.utils.EncryptUtils;
 import com.ctrip.xpipe.config.AbstractConfigBean;
-import javax.print.DocFlavor.READER;
 
 /**
  * @ClassName DynamicConfig
@@ -23,7 +23,8 @@ public class DynamicConfig extends AbstractConfigBean { // drc.properties
     
     
     public String getXAccessToken() {
-        return getProperty(X_ACCESS_TOKEN,DEFAULT_X_ACCESS_TOKEN);
+        String rawToken =  getProperty(X_ACCESS_TOKEN,DEFAULT_X_ACCESS_TOKEN);
+        return EncryptUtils.encryptToken(rawToken);
     }
 
     public boolean shouldForceHeraldTokenCheck() {
@@ -40,7 +41,7 @@ public class DynamicConfig extends AbstractConfigBean { // drc.properties
     }
 
     public String getHeraldAuthToken() {
-        return getProperty(HERALD_AUTH_TOKEN);
+        return EncryptUtils.encryptToken(getProperty(HERALD_AUTH_TOKEN));
     }
 
     private static class DynamicConfigHolder {

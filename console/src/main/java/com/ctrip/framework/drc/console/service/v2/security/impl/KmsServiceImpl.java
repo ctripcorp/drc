@@ -31,6 +31,7 @@ public class KmsServiceImpl implements KmsService {
     private final Logger logger = LoggerFactory.getLogger(KmsServiceImpl.class);
     
     private Map<String,String> tokenSecretKeyCache = new ConcurrentHashMap<>();
+    private Map<String,Account> tokenAccountCache = new ConcurrentHashMap<>();
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
@@ -70,8 +71,36 @@ public class KmsServiceImpl implements KmsService {
     }
 
     @Override
+    // query-pwd?token={token}&appid={appid}&herald-token={herald-token}&type={type}
     public Account getAccountInfo(String accessToken) {
-       return null; // todo hdpan  
+        // get keyValue from kms via https request, should be loaded before generate metaInfo
+        if (tokenAccountCache.containsKey(accessToken)) {
+            return tokenAccountCache.get(accessToken);
+        }
+        String envStr = EnvUtils.getEnvStr();
+        String kmsUrl = consoleConfig.getKmsUrl(envStr);
+        Map<String, Object> paramsMap = Maps.newHashMap();
+        paramsMap.put("token", accessToken);
+        paramsMap.put("appid", Foundation.app().getAppId());
+        paramsMap.put("herald-token", heraldService.getLocalHeraldToken());
+        String queryParam= "/query-pwd?token={token}&appid={appid}&herald-token={herald-token}";
+        String responseBody = HttpUtils.get(kmsUrl + queryParam, String.class, paramsMap);
+        JsonNode jsonNode = HttpUtils.deserialize(responseBody);
+        if (jsonNode.get("code").asInt() == 0) {
+            String user = jsonNode.get("result").get("pwdAccount").asText();
+            String pwd = jsonNode.get("result").get("pwdValue").asText();
+            if (StringUtils.isEmpty(user) || StringUtils.isEmpty(pwd)) {
+                throw ConsoleExceptionUtils.message("Empty user or pwd value from KMS");
+            }
+            Account account = new Account(user, pwd);
+            tokenAccountCache.put(accessToken, account);
+            return account;
+        } else {
+            logger.error(
+                    "Error getAccountInfo from KMS, url:{}, token:{}, response:{}", kmsUrl, accessToken, responseBody
+            );
+            throw ConsoleExceptionUtils.message("Error getAccountInfo from KMS");
+        }
     }
 
 

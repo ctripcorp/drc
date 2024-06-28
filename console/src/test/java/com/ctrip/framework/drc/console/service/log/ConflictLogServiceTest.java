@@ -414,7 +414,17 @@ public class ConflictLogServiceTest {
     @Test
     public void testIsInBlackListWithCache() throws Exception {
         List<AviatorRegexFilter> filters = getConflictDbBlackListTbls().stream().map(tbl -> new AviatorRegexFilter(tbl.getDbFilter())).collect(Collectors.toList());
-        Mockito.when(dbBlacklistCache.getDbBlacklistInCache()).thenReturn(filters);
+        Mockito.when(dbBlacklistCache.isInBlackListWithCache(anyString())).thenAnswer(
+                p -> {
+                    String fullName = p.getArgument(0);
+                    for (AviatorRegexFilter filter : filters) {
+                        if (filter.filter(fullName)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+        );
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
         Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
         Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));

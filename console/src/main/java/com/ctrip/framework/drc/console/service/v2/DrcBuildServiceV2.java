@@ -21,8 +21,10 @@ import java.util.List;
  */
 public interface DrcBuildServiceV2 {
 
+    // auto build machineDto should not empty,will change pwd;Manual without machineDto use default acc
     void buildMha(DrcMhaBuildParam param) throws Exception;
 
+    // auto build machineDto should not empty,will change pwd;Manual without machineDto use default acc
     void buildMessengerMha(MessengerMhaBuildParam param) throws Exception;
 
     String buildDrc(DrcBuildParam param) throws Exception;

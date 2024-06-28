@@ -574,7 +574,17 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
     public void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
         // 1.(if needed) build mha, mha replication
-        DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(param.getSrcMhaName(), param.getDstMhaName(), param.getSrcDcName(), param.getDstDcName(), param.getBuName(), param.getTag(), param.getTag());
+        DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(
+                param.getSrcMhaName(),
+                param.getDstMhaName(),
+                param.getSrcDcName(), 
+                param.getDstDcName(), 
+                param.getBuName(), 
+                param.getTag(), 
+                param.getTag(),
+                param.getSrcMachines(),
+                param.getDstMachines()
+        );
         drcBuildService.buildMha(mhaBuildParam);
         if (param.getSrcMhaName().equals(param.getDstMhaName())) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_SAME_MHA_NOT_SUPPORTED, String.format("src: %s, dst: %s", param.getSrcMhaName(), param.getDstMhaName()));

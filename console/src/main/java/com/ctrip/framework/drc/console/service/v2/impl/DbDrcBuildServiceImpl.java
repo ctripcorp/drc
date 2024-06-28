@@ -638,7 +638,17 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             param.setBuName(req.getBuName());
             param.setTag(req.getTag());
             // 1.(if needed) build mha
-            DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(param.getSrcMhaName(), param.getDstMhaName(), param.getSrcDcName(), param.getDstDcName(), param.getBuName(), param.getTag(), param.getTag());
+            DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(
+                    param.getSrcMhaName(), 
+                    param.getDstMhaName(),
+                    param.getSrcDcName(),
+                    param.getDstDcName(), 
+                    param.getBuName(), 
+                    param.getTag(), 
+                    param.getTag(),
+                    param.getSrcMachines(),
+                    param.getDstMachines()
+            );
             drcBuildServiceV2.buildMha(mhaBuildParam);
             if (param.getSrcMhaName().equals(param.getDstMhaName())) {
                 throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_SAME_MHA_NOT_SUPPORTED, String.format("src: %s, dst: %s", param.getSrcMhaName(), param.getDstMhaName()));

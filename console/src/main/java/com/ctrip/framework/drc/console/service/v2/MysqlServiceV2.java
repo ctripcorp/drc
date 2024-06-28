@@ -79,8 +79,5 @@ public interface MysqlServiceV2 {
 
     AutoIncrementVo getAutoIncrementAndOffset(String mha);
     
-    Pair<Boolean,String> checkAccountsPrivileges(String mha, MhaAccounts oldAccounts, MhaAccounts newAccounts);
-
-    @PossibleRemote(path = "/api/drc/v2/mysql/accountPrivileges")
-    String checkAccountPrivileges(String mha, String account, String pwd);
+    String queryAccountPrivileges(String mha, String account, String pwd);
 }

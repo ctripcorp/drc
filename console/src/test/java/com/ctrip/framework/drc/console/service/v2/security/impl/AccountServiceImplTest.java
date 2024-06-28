@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2.security.impl;
 
-import static com.ctrip.framework.drc.console.monitor.MockTest.any;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -73,7 +72,7 @@ public class AccountServiceImplTest {
         System.setProperty("mock.data.path.prefix","/testData/accountService/");
         when(mhaTblV2Dao.queryAllExist()).thenReturn(getData());
         accountServiceImpl.init();
-        Assert.assertEquals(1,accountServiceImpl.decryptCache.size());
+        Assert.assertEquals(2,accountServiceImpl.decryptCache.size());
         Assert.assertTrue(accountServiceImpl.decryptCache.values().contains("root"));
     }
     
@@ -110,7 +109,7 @@ public class AccountServiceImplTest {
     @Test
     public void testInitMhaPasswordToken() throws Exception {
         List<MhaTblV2> data = this.getData();
-        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenAnswer(
+        when(mhaTblV2Dao.queryByMhaName(anyString())).thenAnswer(
             invocation -> {
                 return data.stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals(invocation.getArgument(0))).findFirst().orElse(null);
             }
@@ -147,7 +146,7 @@ public class AccountServiceImplTest {
     @Test
     public void testInitMhaAccountV2() throws Exception {
         List<MhaTblV2> data = this.getData();
-        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString(),Mockito.eq(0))).thenAnswer(
+        when(mhaTblV2Dao.queryByMhaName(anyString(),Mockito.eq(0))).thenAnswer(
                 invocation -> data.stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals(invocation.getArgument(0)))
                         .findFirst().orElse(null)
         );
@@ -163,11 +162,17 @@ public class AccountServiceImplTest {
     @Test
     public void testAccountV2Check() throws Exception {
         List<MhaTblV2> data = this.getData();
-        when(mhaTblV2Dao.queryByMhaName(Mockito.anyString(),Mockito.eq(0))).thenAnswer(
+        when(mhaTblV2Dao.queryByMhaName(anyString(),Mockito.eq(0))).thenAnswer(
                 invocation -> data.stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals(invocation.getArgument(0)))
                         .findFirst().orElse(null)
         );
-        when(mysqlServiceV2.checkAccountsPrivileges(anyString(),any(MhaAccounts.class),any(MhaAccounts.class))).thenReturn(Pair.of(true,null));
+        when(mysqlServiceV2.queryAccountPrivileges(anyString(),anyString(),anyString())).thenAnswer(
+                invocation -> {
+                    String user = invocation.getArgument(1);
+                    String privilegeFormatter = "GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%%`";
+                    return String.format(privilegeFormatter, user);
+                }
+        );
         
         Pair<Integer, String> res = accountServiceImpl.accountV2Check(Lists.newArrayList("mha1"));
         Assert.assertEquals(1, res.getLeft().intValue());
@@ -180,7 +185,7 @@ public class AccountServiceImplTest {
         drcTmpconninfo.setPassword(new Byte[]{1,2,3,4});
         drcTmpconninfo.setDatachangeCreateTime(new Timestamp(System.currentTimeMillis()));
         drcTmpconninfo.setDatachangeLasttime(new Timestamp(System.currentTimeMillis())); 
-        
+
         drcTmpconninfo.getId();
         drcTmpconninfo.getHost();
         drcTmpconninfo.getPort();
@@ -188,6 +193,8 @@ public class AccountServiceImplTest {
         drcTmpconninfo.getPassword();
         drcTmpconninfo.getDatachangeCreateTime();
         drcTmpconninfo.getDatachangeLasttime();
-        
     }
+
+
+    
 }
