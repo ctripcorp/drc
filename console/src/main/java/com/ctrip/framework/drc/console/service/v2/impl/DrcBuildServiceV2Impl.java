@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
@@ -27,6 +28,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClust
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
@@ -146,13 +148,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MhaServiceV2 mhaServiceV2;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private KmsService kmsService;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private final ListeningExecutorService replicationExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "replicationExecutorService"));
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
-
+    
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMha(DrcMhaBuildParam param) throws Exception {
@@ -165,15 +169,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(String.format("srcDc: %s or dstDc: %s not exist", param.getSrcDc(), param.getDstDc()));
         }
 
-        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId, param.getSrcTag());
-        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId, param.getDstTag());
+        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId, param.getSrcTag(),param.getSrcMachines());
+        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId, param.getDstTag(),param.getDstMachines());
 
         long srcMhaId = insertMha(srcMha);
         long dstMhaId = insertMha(dstMha);
         insertMhaReplication(srcMhaId, dstMhaId);
         insertMhaReplication(dstMhaId, srcMhaId);
     }
-
+    
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMessengerMha(MessengerMhaBuildParam param) throws Exception {
@@ -185,7 +189,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dc not exist: " + param.getDc());
         }
 
-        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag());
+        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag(),null);
         long mhaId = insertMha(mhaTbl);
 
         // messengerGroup
@@ -716,7 +720,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(), null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
-        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
+        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName(),null);
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = insertOrRecoverMha(mhaTblV2, existMha);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
@@ -1708,8 +1712,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         buTbl.setDeleted(BooleanEnum.FALSE.getCode());
         return buTblDao.insertWithReturnId(buTbl);
     }
-
-    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag) {
+    
+    
+   
+    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag,List<MachineDto> machineDto) {
         String clusterName = mhaName + CLUSTER_NAME_SUFFIX;
         MhaTblV2 mhaTblV2 = new MhaTblV2();
         mhaTblV2.setMhaName(mhaName);
@@ -1722,20 +1728,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setDeleted(BooleanEnum.FALSE.getCode());
         mhaTblV2.setTag(tag);
 
-        // todo hdpan no acc info in meta db now,
-        // get default new account from kms
-        // change password
-        // set default account and new password
+        
         mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
         mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
-        mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
         mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
         mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
-        mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
         mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
         mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
-        mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
-
+        if (consoleConfig.getAccountKmsTokenSwitch()) {
+            mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
+            mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
+            mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
+        }
         return mhaTblV2;
     }
 

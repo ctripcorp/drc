@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/7/27 14:53
@@ -12,6 +15,22 @@ public class DrcMhaBuildParam {
     private String buName;
     private String srcTag;
     private String dstTag;
+    private List<MachineDto> srcMachines; // for account init 
+    private List<MachineDto> dstMachines; // for account init 
+
+    public DrcMhaBuildParam(String srcMhaName, String dstMhaName, String srcDc, String dstDc, String buName,
+            String srcTag, String dstTag, List<MachineDto> srcMachines,
+            List<MachineDto> dstMachines) {
+        this.srcMhaName = srcMhaName;
+        this.dstMhaName = dstMhaName;
+        this.srcDc = srcDc;
+        this.dstDc = dstDc;
+        this.buName = buName;
+        this.srcTag = srcTag;
+        this.dstTag = dstTag;
+        this.srcMachines = srcMachines;
+        this.dstMachines = dstMachines;
+    }
 
     public DrcMhaBuildParam(String srcMhaName, String dstMhaName, String srcDc, String dstDc, String buName, String srcTag, String dstTag) {
         this.srcMhaName = srcMhaName;
@@ -26,6 +45,7 @@ public class DrcMhaBuildParam {
     public DrcMhaBuildParam() {
     }
 
+
     @Override
     public String toString() {
         return "DrcMhaBuildParam{" +
@@ -36,6 +56,8 @@ public class DrcMhaBuildParam {
                 ", buName='" + buName + '\'' +
                 ", srcTag='" + srcTag + '\'' +
                 ", dstTag='" + dstTag + '\'' +
+                ", srcMachines=" + srcMachines +
+                ", dstMachines=" + dstMachines +
                 '}';
     }
 
@@ -93,5 +115,21 @@ public class DrcMhaBuildParam {
 
     public void setDstDc(String dstDc) {
         this.dstDc = dstDc;
+    }
+
+    public List<MachineDto> getSrcMachines() {
+        return srcMachines;
+    }
+
+    public void setSrcMachines(List<MachineDto> srcMachines) {
+        this.srcMachines = srcMachines;
+    }
+
+    public List<MachineDto> getDstMachines() {
+        return dstMachines;
+    }
+
+    public void setDstMachines(List<MachineDto> dstMachines) {
+        this.dstMachines = dstMachines;
     }
 }

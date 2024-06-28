@@ -304,7 +304,7 @@ public class MysqlController {
     public ApiResult getAccountPrivileges(@RequestParam String mha, @RequestParam String account,@RequestParam String pwd) {
         try {
             logger.info("getAccountPrivileges, mha: {}", mha);
-            return ApiResult.getSuccessInstance(mysqlServiceV2.checkAccountPrivileges(mha,account,pwd));
+            return ApiResult.getSuccessInstance(mysqlServiceV2.queryAccountPrivileges(mha,account,pwd));
         } catch (Exception e) {
             logger.error("getAccountPrivileges fail, mha: {}", mha, e);
             return ApiResult.getFailInstance(null);

@@ -60,6 +60,7 @@ import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
+import com.ctrip.framework.drc.core.utils.EncryptUtilsTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -167,6 +168,7 @@ import org.junit.runners.Suite;
         MySQLPasswordEncrypterTest.class,
         FileUtilTest.class,
         IsolateHashCacheTest.class,
+        EncryptUtilsTest.class,
 
         //schema package
         SchemaTests.class,

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.security.impl;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
@@ -15,12 +17,19 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.api.monitor.Task;
+import com.google.common.collect.Maps;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,7 +49,9 @@ public class AccountServiceImpl implements AccountService {
     
     protected final Map<String,String> decryptCache = new ConcurrentHashMap<>(1000);
     protected final Map<String,String> encryptCache = new ConcurrentHashMap<>(1000);
-    
+
+    private ExecutorService accountExecutorService = ThreadUtils.newThreadExecutor(PROCESSORS_SIZE,PROCESSORS_SIZE * 5, "accountService");
+
     @Autowired
     private KmsService kmsService;
     @Autowired 
@@ -62,9 +73,13 @@ public class AccountServiceImpl implements AccountService {
     public void init() {
         try {
             if (consoleConfig.isCenterRegion()) {
-                loadEncryptCache();
+                DefaultTransactionMonitorHolder.getInstance().logTransaction(
+                        "Drc.console.loadEncryptCache",
+                        "init",
+                        (Task) this::loadEncryptCache
+                    );
             }
-        } catch (SQLException e) {
+        } catch (Exception e ) {
             logger.error("init loadEncryptCache failed",e);
             throw ConsoleExceptionUtils.message("loadCache failed");
         }
@@ -143,31 +158,50 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public void loadEncryptCache() throws SQLException {
+    public void loadEncryptCache() throws SQLException, InterruptedException {
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
-        Set<MhaTblV2> mhaGrayKmsToken = mhaTblV2s.stream().filter(mhaTblV2 -> grayKmsToken(mhaTblV2.getMhaName()))
-                .collect(Collectors.toSet());
-        for (MhaTblV2 mhaTblV2 : mhaGrayKmsToken) {
+        CountDownLatch latch = new CountDownLatch(mhaTblV2s.size());
+        for (MhaTblV2 mhaTblV2 : mhaTblV2s) {
+             accountExecutorService.submit(
+                     () -> {
+                         loadEncryptCache(mhaTblV2);
+                         logger.info("mha:{},loadEncryptCache success",mhaTblV2.getMhaName());
+                         latch.countDown();
+                     }
+             );
+        }
+        boolean await = latch.await(10, TimeUnit.SECONDS);
+        logger.info("loadEncryptCache finish,res:{}",await);
+    }
+    
+    private void loadEncryptCache(MhaTblV2 mhaTblV2) {
+        if (grayKmsToken(mhaTblV2.getMhaName())) {
             String monitorPasswordToken = mhaTblV2.getMonitorPasswordToken();
-            if (decryptCache.containsKey(monitorPasswordToken)) {
-                continue;
-            }
-            String monitorPassword = decrypt(monitorPasswordToken);
-            decryptCache.put(monitorPasswordToken,monitorPassword);
-
             String readPasswordToken = mhaTblV2.getReadPasswordToken();
-            if (decryptCache.containsKey(readPasswordToken)) {
-                continue;
-            }
-            String readPassword = decrypt(readPasswordToken);
-            decryptCache.put(readPasswordToken,readPassword);
-            
             String writePasswordToken = mhaTblV2.getWritePasswordToken();
-            if (decryptCache.containsKey(writePasswordToken)) {
-                continue;
+            if (!decryptCache.containsKey(monitorPasswordToken)) {
+                decryptCache.put(monitorPasswordToken, decrypt(monitorPasswordToken));
             }
-            String writePassword = decrypt(writePasswordToken);
-            decryptCache.put(writePasswordToken,writePassword);
+            if (!decryptCache.containsKey(readPasswordToken)) {
+                decryptCache.put(readPasswordToken, decrypt(readPasswordToken));
+            }
+            if (!decryptCache.containsKey(writePasswordToken)) {
+                decryptCache.put(writePasswordToken, decrypt(writePasswordToken));
+            }
+        }
+        if (grayAccountV2(mhaTblV2.getMhaName())) {
+            String monitorPasswordTokenV2 = mhaTblV2.getMonitorPasswordTokenV2();
+            String readPasswordTokenV2 = mhaTblV2.getReadPasswordTokenV2();
+            String writePasswordTokenV2 = mhaTblV2.getWritePasswordTokenV2();
+            if (!decryptCache.containsKey(monitorPasswordTokenV2)) {
+                decryptCache.put(monitorPasswordTokenV2,decrypt(monitorPasswordTokenV2));
+            }
+            if (!decryptCache.containsKey(readPasswordTokenV2)) {
+                decryptCache.put(readPasswordTokenV2,decrypt(readPasswordTokenV2));
+            }
+            if (!decryptCache.containsKey(writePasswordTokenV2)) {
+                decryptCache.put(writePasswordTokenV2,decrypt(writePasswordTokenV2));
+            }
         }
     }
     
@@ -206,30 +240,65 @@ public class AccountServiceImpl implements AccountService {
     public Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException {
         int successCount = 0;
         StringBuilder msg = new StringBuilder();
+        Map<String,Future<Boolean>> futureMap = Maps.newHashMap();
         for (String mha : mhas) {
+            Future<Boolean> res = accountExecutorService.submit(() -> initMhaAccountV2(mha));
+            futureMap.put(mha,res);
+        }       
+        
+        for (Map.Entry<String,Future<Boolean>> entry : futureMap.entrySet()) {
             try {
-                if (initMhaAccountV2(mha)) {
+                if (entry.getValue().get(10,TimeUnit.SECONDS)) {
                     successCount++;
                 }
+            } catch (TimeoutException e ){
+                logger.error("initMhaAccountV2 time out",e);
+                msg.append(entry.getKey()).append("time out ").append(e.getMessage()).append("\n");
             } catch (Exception e) {
-                logger.error("initMhaAccountV2 error mha:{}",mha,e);
-                msg.append(e.getMessage()).append("\n");
+                logger.error("initMhaAccountV2 error",e);
+                msg.append(entry.getKey()).append("fail ").append(e.getMessage()).append("\n");
             }
         }
         return Pair.of(successCount, msg.toString());
     }
 
     @Override
+    public boolean mhaAccountV2ChangeAndRecord(MhaTblV2 mhaTblV2, String masterNodeIp, Integer masterNodePort) {
+        MhaAccounts mhaAccounts = dbaApiService.accountV2PwdChange(mhaTblV2.getMhaName(), masterNodeIp, masterNodePort);
+        if (mhaAccounts == null) {
+            return false;
+        }
+        mhaTblV2.setMonitorUserV2(mhaAccounts.getMonitorAcc().getUser());
+        mhaTblV2.setMonitorPasswordTokenV2(this.encrypt(mhaAccounts.getMonitorAcc().getPassword()));
+        mhaTblV2.setReadUserV2(mhaAccounts.getReadAcc().getUser());
+        mhaTblV2.setReadPasswordTokenV2(this.encrypt(mhaAccounts.getReadAcc().getPassword()));
+        mhaTblV2.setWriteUserV2(mhaAccounts.getWriteAcc().getUser());
+        mhaTblV2.setWritePasswordTokenV2(this.encrypt(mhaAccounts.getWriteAcc().getPassword()));
+        return true;
+    }
+    
+
+    @Override
     public Pair<Integer, String> accountV2Check(List<String> mhas) throws SQLException {
         // test connection & authority 3 account
         int successCount = 0;
         StringBuilder msg = new StringBuilder();
+        Map<String,Future<Pair<Boolean, String>>> futureMap = Maps.newHashMap();
         for (String mha : mhas) {
-            Pair<Boolean, String> res = accountV2Check(mha);
-            if (res.getKey()) {
-                successCount++;
-            } else {
-                msg.append(res.getValue()).append("\n");
+            Future<Pair<Boolean, String>> future = accountExecutorService.submit(() -> accountV2Check(mha));
+            futureMap.put(mha,future);
+        }
+        for (Map.Entry<String,Future<Pair<Boolean, String>>> entry : futureMap.entrySet()) {
+            try {
+                Pair<Boolean, String> res = entry.getValue().get(30,TimeUnit.SECONDS);
+                if (res.getKey()) {
+                    successCount++;
+                } else {
+                    msg.append(entry.getKey()).append(" fail").append(res.getValue()).append("\n");
+                }
+            } catch (Exception  e) {
+                logger.error("accountV2Check error",e);
+                msg.append(entry.getKey()).append(" fail").append(e.getMessage()).append("\n");
             }
         }
         return Pair.of(successCount, msg.toString());
@@ -269,14 +338,40 @@ public class AccountServiceImpl implements AccountService {
                 logger.error("mha:{} not exist",mha);
                 return Pair.of(false,"mha not exist");
             }
-            MhaAccounts mhaAccountsV1 = getMhaAccounts(mhaTblV2, false);
-            MhaAccounts mhaAccountsV2 = getMhaAccounts(mhaTblV2, true);
-            return mysqlServiceV2.checkAccountsPrivileges(mha, mhaAccountsV1, mhaAccountsV2);
+            MhaAccounts oldAccounts = getMhaAccounts(mhaTblV2, false);
+            MhaAccounts newAccounts = getMhaAccounts(mhaTblV2, true);
+            StringBuilder checkRes = new StringBuilder();
+            boolean res1 = this.privilegeCheck(mha, oldAccounts.getMonitorAcc(), newAccounts.getMonitorAcc(), checkRes);
+            boolean res2 = this.privilegeCheck(mha, oldAccounts.getReadAcc(), newAccounts.getReadAcc(), checkRes);
+            boolean res3 = this.privilegeCheck(mha, oldAccounts.getWriteAcc(), newAccounts.getWriteAcc(), checkRes);
+            
+            return Pair.of(res1&res2&res3, checkRes.toString());
         } catch (Throwable e) {
             logger.error("mha:{} account check error",mha,e);
             return Pair.of(false,"account check error");
         }
     }
+    
+    private boolean privilegeCheck(String mha, Account oldAccount, Account newAccount, StringBuilder diffRecorder) {
+        String oldAcc = oldAccount.getUser();
+        String newAcc = newAccount.getUser();
+        String oldPrivilege = mysqlServiceV2.queryAccountPrivileges(mha, oldAccount.getUser(), oldAccount.getPassword());
+        String newPrivilege = mysqlServiceV2.queryAccountPrivileges(mha, newAccount.getUser(), newAccount.getPassword());
+        if (oldPrivilege == null || newPrivilege == null) {
+            diffRecorder.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
+                    .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
+            return false;
+        }
+        oldPrivilege = oldPrivilege.substring(0,oldPrivilege.length()-oldAcc.length()-6); // remove 'user'@'%'
+        newPrivilege = newPrivilege.substring(0,newPrivilege.length()-newAcc.length()-6);
+        if (!oldPrivilege.equalsIgnoreCase(newPrivilege)) {
+            diffRecorder.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
+                    .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
+            return false;
+        }
+        return true;
+    }
+    
     
     private MhaAccounts getMhaAccounts(MhaTblV2 mhaTblV2,boolean newAccount) {
         if (newAccount) {
@@ -312,16 +407,14 @@ public class AccountServiceImpl implements AccountService {
         }
         MhaAccounts mhaAccounts = dbaApiService.initAccountV2(mhaTblV2);
         if (mhaAccounts == null) {
-            throw ConsoleExceptionUtils.message("init account v2 error" + mha);
+            throw ConsoleExceptionUtils.message("dbaApiService.initAccountV2 error");
         }
-        
         mhaTblV2.setMonitorUserV2(mhaAccounts.getMonitorAcc().getUser());
         mhaTblV2.setMonitorPasswordTokenV2(this.encrypt(mhaAccounts.getMonitorAcc().getPassword()));
         mhaTblV2.setReadUserV2(mhaAccounts.getReadAcc().getUser());
         mhaTblV2.setReadPasswordTokenV2(this.encrypt(mhaAccounts.getReadAcc().getPassword()));
         mhaTblV2.setWriteUserV2(mhaAccounts.getWriteAcc().getUser());
         mhaTblV2.setWritePasswordTokenV2(this.encrypt(mhaAccounts.getWriteAcc().getPassword()));
-        
         return mhaTblV2Dao.update(mhaTblV2) == 1;
     }
     

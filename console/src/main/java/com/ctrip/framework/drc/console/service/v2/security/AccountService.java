@@ -19,7 +19,7 @@ public interface AccountService {
     
     Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType);
     
-    void loadEncryptCache() throws SQLException;
+    void loadEncryptCache() throws SQLException , InterruptedException;
     
     Pair<Boolean,Integer> initMhaPasswordToken(List<String> mhas) throws SQLException;
     
@@ -29,6 +29,8 @@ public interface AccountService {
 
     Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException;
 
+    boolean mhaAccountV2ChangeAndRecord(MhaTblV2 mhaTblV2,String masterNodeIp,Integer masterNodePort);
+    
     // key: success count , value: error message
     Pair<Integer,String> accountV2Check(List<String> mhas) throws SQLException;
     

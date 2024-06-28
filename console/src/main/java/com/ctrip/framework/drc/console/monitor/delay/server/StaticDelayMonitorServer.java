@@ -386,6 +386,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                             LinkedHashMap<String, String> tags = Maps.newLinkedHashMap();
                             tags.put("destMha", config.getDestMha());
                             tags.put("srcMha", srcMha);
+                            iterator.remove();
                             DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(),tags);
                             continue;
                         }
