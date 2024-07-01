@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.InfoDto;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -87,7 +88,8 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
         void doCheck(Map<String, List<M>> metaGroupByRegistryKeyMap, List<I> allInstances, Set<String> validIps) {
             Map<String, List<I>> instanceGroupByRegistryKey = allInstances.stream().collect(Collectors.groupingBy(InfoDto::getRegistryKey));
 
-            for (String registryKey : metaGroupByRegistryKeyMap.keySet()) {
+            Set<String> registryKeys = this.getAllRegistryKey(metaGroupByRegistryKeyMap, instanceGroupByRegistryKey);
+            for (String registryKey : registryKeys) {
                 String clusterId = RegistryKey.from(registryKey).toString();
                 List<M> metas = metaGroupByRegistryKeyMap.getOrDefault(registryKey, Collections.emptyList()).stream().filter(e -> validIps.contains(e.getIp())).collect(Collectors.toList());
                 List<I> instances = instanceGroupByRegistryKey.getOrDefault(registryKey, Collections.emptyList());
@@ -145,16 +147,25 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
             }
         }
 
+        private Set<String> getAllRegistryKey(Map<String, List<M>> metaGroupByRegistryKeyMap, Map<String, List<I>> instanceGroupByRegistryKey) {
+            Set<String> registryKeysFromInstance = instanceGroupByRegistryKey.keySet().stream()
+                    .filter(registryKey -> {
+                        String clusterId = RegistryKey.from(registryKey).toString();
+                        return currentMetaManager.hasCluster(clusterId);
+                    }).collect(Collectors.toSet());
+            Set<String> registryKeysFromMeta = metaGroupByRegistryKeyMap.keySet();
+            Set<String> registryKeys = new HashSet<>();
+            registryKeys.addAll(registryKeysFromInstance);
+            registryKeys.addAll(registryKeysFromMeta);
+            return registryKeys;
+        }
+
         private Db getDbMaster(String clusterId) {
-            DbCluster cluster = currentMetaManager.getCluster(clusterId);
-            if (cluster == null) {
+            Endpoint mySQLMaster = currentMetaManager.getMySQLMaster(clusterId);
+            if (mySQLMaster == null) {
                 return null;
             }
-            Dbs dbs = cluster.getDbs();
-            if (dbs == null || CollectionUtils.isEmpty(dbs.getDbs())) {
-                return null;
-            }
-            return dbs.getDbs().stream().filter(Db::getMaster).findFirst().orElseGet(null);
+            return new Db().setMaster(true).setIp(mySQLMaster.getHost()).setPort(mySQLMaster.getPort());
         }
 
         protected boolean isDownStreamIpMatch(Replicator replicatorMaster, Db dbMaster, List<I> instances) {

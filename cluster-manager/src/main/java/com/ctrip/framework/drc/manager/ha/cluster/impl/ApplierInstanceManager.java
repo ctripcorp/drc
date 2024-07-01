@@ -182,10 +182,7 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
             return instances.stream()
                     .map(ApplierInfoDto::getDbInfo)
                     .filter(Objects::nonNull)
-                    .allMatch(e -> dbMaster.getIp().equals(e.getIp())
-                            && dbMaster.getPort().equals(e.getPort())
-                            && dbMaster.getUuid().equals(e.getUuid())
-                    );
+                    .allMatch(e -> dbMaster.getIp().equals(e.getIp()) && dbMaster.getPort().equals(e.getPort()));
         }
 
         @Override
