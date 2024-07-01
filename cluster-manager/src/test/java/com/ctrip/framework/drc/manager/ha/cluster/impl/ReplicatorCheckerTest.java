@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -315,6 +316,8 @@ public class ReplicatorCheckerTest {
 
         when(clusterManagerConfig.getPeriodCheckSwitch()).thenReturn(true);
         when(clusterManagerConfig.getPeriodCorrectSwitch()).thenReturn(true);
+        when(currentMetaManager.getMySQLMaster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(new DefaultEndPoint(DB_1_IP, DB_PORT));
+        when(currentMetaManager.getMySQLMaster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(new DefaultEndPoint(DB_2_IP, DB_PORT));
     }
 
     private static ReplicatorInfoDto getReplicatorInfoDto(String registryKey, String ip, int port, boolean master, String upstreamIp) {

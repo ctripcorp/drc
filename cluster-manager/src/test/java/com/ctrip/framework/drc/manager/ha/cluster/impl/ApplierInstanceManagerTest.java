@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
@@ -106,6 +107,26 @@ public class ApplierInstanceManagerTest {
     }
 
     @Test
+    public void testCheckerBothMhaDbApplier() {
+        ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
+
+        init();
+
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
+                getApplierInfoDto(String.join(".", "mha1_dc1_dalcluster.mha1_dc1", "mha1_dc2"), "127.0.1.1", 8080, true, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc1_dalcluster.mha1_dc1", "mha1_dc2"), "127.0.1.2", 8080, false, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.1", 8080, true, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1"), "127.0.2.1", 8080, true, "10.1.1.1")
+        );
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, times(1)).removeApplier(any(), any(), anyBoolean());
+        verify(instanceStateController, never()).addApplier(any(), any());
+    }
+
+    @Test
     public void testCheckerDbMaster() {
         ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
 
@@ -128,6 +149,56 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
+    }
+
+    @Test
+    public void testCheckerDbMaster2() {
+        ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
+
+        init();
+
+        ApplierInfoDto applierInfoDto = getApplierInfoDto(String.join(".", "mha1_dc1_dalcluster.mha1_dc1", "mha1_dc2"), "127.0.1.1", 8080, true, "10.1.1.1");
+        DBInfo dbInfo = new DBInfo();
+        dbInfo.setUuid("aaaa-bbbb-cccc");
+        dbInfo.setIp("db1_ip_wrong");
+        dbInfo.setPort(55111);
+        applierInfoDto.setDbInfo(dbInfo);
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
+                applierInfoDto,
+                getApplierInfoDto(String.join(".", "mha1_dc1_dalcluster.mha1_dc1", "mha1_dc2"), "127.0.1.2", 8080, false, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.1", 8080, true, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
+        );
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
+        verify(instanceStateController, times(1)).addApplier(any(), any());
+    }
+
+    @Test
+    public void testCheckerDbMasterOK() {
+        ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
+
+        init();
+
+        ApplierInfoDto applierInfoDto = getApplierInfoDto(String.join(".", "mha1_dc1_dalcluster.mha1_dc1", "mha1_dc2"), "127.0.1.1", 8080, true, "10.1.1.1");
+        DBInfo dbInfo = new DBInfo();
+        dbInfo.setUuid("aaaa-bbbb-cccc");
+        dbInfo.setIp("db1_ip_right");
+        dbInfo.setPort(55111);
+        applierInfoDto.setDbInfo(dbInfo);
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
+                applierInfoDto,
+                getApplierInfoDto(String.join(".", "mha1_dc1_dalcluster.mha1_dc1", "mha1_dc2"), "127.0.1.2", 8080, false, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.1", 8080, true, "10.1.1.1"),
+                getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
+        );
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
+        verify(instanceStateController, never()).addApplier(any(), any());
     }
 
     @Test
@@ -331,8 +402,9 @@ public class ApplierInstanceManagerTest {
 
 
     private void init() {
+        Db db = new Db().setMaster(true).setIp("db1_ip_right").setPort(55111).setUuid("aaaa-bbbb-cccc");
         DbCluster dbCluster1 = new DbCluster("mha1_dc1_dalcluster.mha1_dc1")
-                .setDbs(new Dbs().addDb(new Db().setMaster(true).setIp("db1_ip").setPort(55111).setUuid("aaaa-bbbb-cccc")))
+                .setDbs(new Dbs().addDb(new Db().setMaster(true).setIp("db1_ip_wrong").setPort(55111).setUuid("aaaa-bbbb-cccc")))
                 .addApplier(new Applier().setIp("127.0.1.1").setPort(8080).setMaster(true).setTargetMhaName("mha1_dc2").setTargetName("mha1_dc2_dalcluster").setApplyMode(ApplyMode.transaction_table.getType()).setIncludedDbs(null))
                 .addApplier(new Applier().setIp("127.0.1.2").setPort(8080).setMaster(false).setTargetMhaName("mha1_dc2").setTargetName("mha1_dc2_dalcluster").setApplyMode(ApplyMode.transaction_table.getType()).setIncludedDbs(null));
 
@@ -352,6 +424,9 @@ public class ApplierInstanceManagerTest {
         when(clusterManagerConfig.getPeriodCheckSwitch()).thenReturn(true);
         when(clusterManagerConfig.getPeriodCorrectSwitch()).thenReturn(true);
         when(currentMetaManager.getCluster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(dbCluster1);
+        when(currentMetaManager.getMySQLMaster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(new DefaultEndPoint(db.getIp(),db.getPort()));
+        when(currentMetaManager.hasCluster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(true);
+        when(currentMetaManager.hasCluster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(true);
     }
 
     private static ApplierInfoDto getApplierInfoDto(String registryKey, String ip, int port, boolean master, String replicatorIp) {

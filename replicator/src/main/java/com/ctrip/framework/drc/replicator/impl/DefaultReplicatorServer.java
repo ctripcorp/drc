@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
+import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.enums.DirectionEnum;
@@ -215,7 +216,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
     public ReplicatorInfoDto info() {
         ReplicatorInfoDto replicatorInfoDto = new ReplicatorInfoDto();
         replicatorInfoDto.setRegistryKey(this.replicatorConfig.getRegistryKey());
-        replicatorInfoDto.setMaster(this.replicatorConfig.getMySQLSlaveConfig().isMaster());
+        InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
+        replicatorInfoDto.setMaster(instanceStatus == InstanceStatus.ACTIVE);
         replicatorInfoDto.setIp(this.replicatorConfig.getMySQLMasterConfig().getIp());
         replicatorInfoDto.setPort(this.replicatorConfig.getApplierPort());
         replicatorInfoDto.setUpstreamMasterIp(this.replicatorConfig.getMySQLSlaveConfig().getEndpoint().getHost());
