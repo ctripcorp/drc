@@ -80,9 +80,9 @@ public class OpsController {
     }
     
     @PostMapping("account/accountV2")
-    public ApiResult initMhaAccountV2(@RequestBody List<String> mhas) {
+    public ApiResult initMhaAccountV2(@RequestBody List<String> mhas,@RequestParam boolean forceChange) {
         try {
-            return ApiResult.getSuccessInstance(accountService.initMhaAccountV2(mhas), "init mha account v2 success");
+            return ApiResult.getSuccessInstance(accountService.mhaAccountV2ChangePwd(mhas, forceChange), "init mha account v2 success");
         } catch (Exception e) {
             logger.error("initMhaAccountV2 error", e);
             return ApiResult.getFailInstance(null, e.getMessage());

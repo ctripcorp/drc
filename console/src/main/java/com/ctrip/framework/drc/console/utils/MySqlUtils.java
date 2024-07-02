@@ -1175,6 +1175,7 @@ public class MySqlUtils {
     }
 
 
+    // return privileges combine by ';'
     public static String getAccountPrivilege(AccountEndpoint accEndpoint,boolean closeDataSource) {
         AccSensitiveSqlOperator accSensitiveSqlOperator = getOrCreateSqlOperator(accEndpoint);
         ReadResource readResource = null;
@@ -1183,8 +1184,14 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = accSensitiveSqlOperator.select(execution);
             ResultSet resultSet = readResource.getResultSet();
-            resultSet.next();
-            return resultSet.getString(1);
+            StringBuilder privileges = new StringBuilder();
+            while (resultSet.next()) {
+                if (!StringUtils.isEmpty(privileges.toString())) {
+                    privileges.append(";");
+                }
+                privileges.append(resultSet.getString(1));
+            }
+            return privileges.toString();
         } catch (Throwable t) {
             logger.error("getAccountPrivilege error,address:{},user {} ", accEndpoint.getSocketAddress(), accEndpoint.getUser(), t);
             closeDataSource(accEndpoint);

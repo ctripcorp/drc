@@ -141,7 +141,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String KMS_ACCESS_TOKEN_PREFIX = "kms.access.token.";
 
     public static String HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
-
+    private static final String ACCOUNT_FROM_METE_SWITCH = "account.from.meta.switch";
     private static final String DBA_API_PWD_CHANGE_URL = "dba.api.pwd.change.url";
 
 
@@ -654,5 +654,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public String getDbaApiPwdChangeUrl() {
         return getProperty(DBA_API_PWD_CHANGE_URL, "");
     }
-    
+
+    public boolean getAccountFromMetaSwitch() {
+        return getBooleanProperty(ACCOUNT_FROM_METE_SWITCH, false);
+    }
 }

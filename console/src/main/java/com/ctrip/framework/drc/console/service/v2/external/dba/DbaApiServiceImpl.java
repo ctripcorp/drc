@@ -244,7 +244,7 @@ public class DbaApiServiceImpl implements DbaApiService {
     }
 
     @Override
-    public MhaAccounts initAccountV2(MhaTblV2 mhaTblV2) {
+    public MhaAccounts accountV2PwdChange(MhaTblV2 mhaTblV2) {
         try {
             MachineTbl masterNode = mhaServiceV2.getMasterNode(mhaTblV2.getId());
             if (!doChangeAccountV2Pwd(mhaTblV2.getMhaName(), masterNode)) {

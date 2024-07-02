@@ -24,7 +24,7 @@ public class DynamicConfig extends AbstractConfigBean { // drc.properties
     
     public String getXAccessToken() {
         String rawToken =  getProperty(X_ACCESS_TOKEN,DEFAULT_X_ACCESS_TOKEN);
-        return EncryptUtils.encryptToken(rawToken);
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public boolean shouldForceHeraldTokenCheck() {
@@ -41,7 +41,7 @@ public class DynamicConfig extends AbstractConfigBean { // drc.properties
     }
 
     public String getHeraldAuthToken() {
-        return EncryptUtils.encryptToken(getProperty(HERALD_AUTH_TOKEN));
+        return EncryptUtils.decryptRawToken(getProperty(HERALD_AUTH_TOKEN));
     }
 
     private static class DynamicConfigHolder {

@@ -14,11 +14,15 @@ import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.service.v2.security.DataSourceCrypto;
 import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.vo.check.v2.AccountPrivilege;
+import com.ctrip.framework.drc.console.vo.check.v2.AccountPrivilegeCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.monitor.Task;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.sql.SQLException;
 import java.util.List;
@@ -37,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 /**
  * @ClassName AccountServiceImpl
@@ -124,6 +129,12 @@ public class AccountServiceImpl implements AccountService {
         Account readAcc = getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_READ);
         Account writeAcc = getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_WRITE);
         return new MhaAccounts(mhaTblV2.getMhaName(),monitorAcc,readAcc,writeAcc);
+    }
+
+    @Override
+    public MhaAccounts getMhaAccounts(String mhaName) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
+        return this.getMhaAccounts(mhaTblV2);
     }
 
     @Override
@@ -237,12 +248,12 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException {
+    public Pair<Integer, String> mhaAccountV2ChangePwd(List<String> mhas, boolean forceChange) throws SQLException {
         int successCount = 0;
         StringBuilder msg = new StringBuilder();
         Map<String,Future<Boolean>> futureMap = Maps.newHashMap();
         for (String mha : mhas) {
-            Future<Boolean> res = accountExecutorService.submit(() -> initMhaAccountV2(mha));
+            Future<Boolean> res = accountExecutorService.submit(() -> mhaAccountV2ChangePwd(mha,forceChange));
             futureMap.put(mha,res);
         }       
         
@@ -296,7 +307,7 @@ public class AccountServiceImpl implements AccountService {
                 } else {
                     msg.append(entry.getKey()).append(" fail").append(res.getValue()).append("\n");
                 }
-            } catch (Exception  e) {
+            } catch (Exception e) {
                 logger.error("accountV2Check error",e);
                 msg.append(entry.getKey()).append(" fail").append(e.getMessage()).append("\n");
             }
@@ -305,10 +316,6 @@ public class AccountServiceImpl implements AccountService {
     }
     
     
-    @Override
-    public boolean changePasswordInNewAccount(String mha, String user, String newPassword) { // todo hdpan CHANGE PASSWORD IF Pwd leakage
-        return true;
-    }
     
     private boolean initMhaPasswordToken(String mha) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha);
@@ -340,36 +347,46 @@ public class AccountServiceImpl implements AccountService {
             }
             MhaAccounts oldAccounts = getMhaAccounts(mhaTblV2, false);
             MhaAccounts newAccounts = getMhaAccounts(mhaTblV2, true);
-            StringBuilder checkRes = new StringBuilder();
-            boolean res1 = this.privilegeCheck(mha, oldAccounts.getMonitorAcc(), newAccounts.getMonitorAcc(), checkRes);
-            boolean res2 = this.privilegeCheck(mha, oldAccounts.getReadAcc(), newAccounts.getReadAcc(), checkRes);
-            boolean res3 = this.privilegeCheck(mha, oldAccounts.getWriteAcc(), newAccounts.getWriteAcc(), checkRes);
+            AccountPrivilegeCheckVo checkVo = new AccountPrivilegeCheckVo();
+            checkVo.setAccounts(Lists.newArrayList());
+            checkVo.setMhaName(mha);
+            boolean res1 = this.privilegeCheck(mha, oldAccounts.getMonitorAcc(), newAccounts.getMonitorAcc(), checkVo);
+            boolean res2 = this.privilegeCheck(mha, oldAccounts.getReadAcc(), newAccounts.getReadAcc(), checkVo);
+            boolean res3 = this.privilegeCheck(mha, oldAccounts.getWriteAcc(), newAccounts.getWriteAcc(), checkVo);
             
-            return Pair.of(res1&res2&res3, checkRes.toString());
+            String errorTips = CollectionUtils.isEmpty(checkVo.getAccounts()) ? null : JsonUtils.toJson(checkVo);
+            return Pair.of(res1&res2&res3, errorTips);
         } catch (Throwable e) {
             logger.error("mha:{} account check error",mha,e);
-            return Pair.of(false,"account check error");
+            return Pair.of(false, "account check error" + e.getMessage());
         }
     }
     
-    private boolean privilegeCheck(String mha, Account oldAccount, Account newAccount, StringBuilder diffRecorder) {
+    private boolean privilegeCheck(String mha, Account oldAccount, Account newAccount, AccountPrivilegeCheckVo checkVo) {
         String oldAcc = oldAccount.getUser();
         String newAcc = newAccount.getUser();
-        String oldPrivilege = mysqlServiceV2.queryAccountPrivileges(mha, oldAccount.getUser(), oldAccount.getPassword());
-        String newPrivilege = mysqlServiceV2.queryAccountPrivileges(mha, newAccount.getUser(), newAccount.getPassword());
-        if (oldPrivilege == null || newPrivilege == null) {
-            diffRecorder.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
-                    .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
-            return false;
+        String oldPrivilegesString = mysqlServiceV2.queryAccountPrivileges(mha, oldAccount.getUser(), oldAccount.getPassword());
+        String newPrivilegesString = mysqlServiceV2.queryAccountPrivileges(mha, newAccount.getUser(), newAccount.getPassword());
+        if (oldPrivilegesString != null && newPrivilegesString != null) {
+            String[] oldPrivileges = oldPrivilegesString.split(";");
+            String[] newPrivileges = newPrivilegesString.split(";");
+            if (oldPrivileges.length == newPrivileges.length) {
+                for (int i = 0; i < oldPrivileges.length; i++) { // remove 'user'@'%' and compare
+                    String oldPrivilege = oldPrivileges[i].substring(0,oldPrivileges[i].length()-oldAcc.length()-6);
+                    String newPrivilege = newPrivileges[i].substring(0,newPrivileges[i].length()-newAcc.length()-6);
+                    if (!oldPrivilege.equalsIgnoreCase(newPrivilege)) {
+                        break;
+                    } else {
+                        if (i == oldPrivileges.length -1) { // all privilege equal
+                            return true;
+                        }
+                    }
+                }
+            }
         }
-        oldPrivilege = oldPrivilege.substring(0,oldPrivilege.length()-oldAcc.length()-6); // remove 'user'@'%'
-        newPrivilege = newPrivilege.substring(0,newPrivilege.length()-newAcc.length()-6);
-        if (!oldPrivilege.equalsIgnoreCase(newPrivilege)) {
-            diffRecorder.append(mha).append(",oldAcc:").append(oldAcc).append(",oldPrivilege:").append(oldPrivilege)
-                    .append(",newAcc:").append(newAcc).append(",newPrivilege:").append(newPrivilege).append("\n");
-            return false;
-        }
-        return true;
+        checkVo.getAccounts().add(new AccountPrivilege(oldAcc,oldPrivilegesString));
+        checkVo.getAccounts().add(new AccountPrivilege(newAcc,newPrivilegesString));
+        return false;
     }
     
     
@@ -391,12 +408,13 @@ public class AccountServiceImpl implements AccountService {
         }
     } 
 
-    private boolean initMhaAccountV2(String mha) throws SQLException {
+    private boolean mhaAccountV2ChangePwd(String mha,boolean forceChange) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, 0);
         if(mhaTblV2 == null){
             throw ConsoleExceptionUtils.message(mha + " not exist");
         }
-        if (!StringUtils.isBlank(mhaTblV2.getMonitorUserV2())
+        if (!forceChange 
+                && !StringUtils.isBlank(mhaTblV2.getMonitorUserV2())
                 && !StringUtils.isBlank(mhaTblV2.getMonitorPasswordTokenV2())
                 && !StringUtils.isBlank(mhaTblV2.getReadUserV2())
                 && !StringUtils.isBlank(mhaTblV2.getReadPasswordTokenV2())
@@ -405,7 +423,7 @@ public class AccountServiceImpl implements AccountService {
             logger.info("mha:{} already init account v2",mha);
             return true;
         }
-        MhaAccounts mhaAccounts = dbaApiService.initAccountV2(mhaTblV2);
+        MhaAccounts mhaAccounts = dbaApiService.accountV2PwdChange(mhaTblV2);
         if (mhaAccounts == null) {
             throw ConsoleExceptionUtils.message("dbaApiService.initAccountV2 error");
         }

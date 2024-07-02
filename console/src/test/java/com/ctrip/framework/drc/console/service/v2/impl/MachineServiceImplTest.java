@@ -8,15 +8,18 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.Data;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
+import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.cache.LoadingCache;
 import org.assertj.core.util.Lists;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,12 +46,11 @@ public class MachineServiceImplTest {
     @Mock
     DbaApiService dbaApiService;
     @Mock
-    MonitorTableSourceProvider monitorTableSourceProvider;
-    @Mock
     AccountService accountService;
     @Mock
     DefaultConsoleConfig defaultConsoleConfig;
-
+    @Mock
+    MetaAccountService metaAccountService;
     @InjectMocks
     MachineServiceImpl machineServiceImpl;
 
@@ -61,9 +63,15 @@ public class MachineServiceImplTest {
         mhaTblV2.setId(1L);
         mhaTblV2.setMhaName("mha1");
         when(mhaTblDao.queryByMhaName(anyString(), anyInt())).thenReturn(mhaTblV2);
-        when(monitorTableSourceProvider.getMonitorUserVal()).thenReturn("mockUser");
-        when(monitorTableSourceProvider.getMonitorPasswordVal()).thenReturn("mockPassword");
-
+        when(metaAccountService.getMhaAccounts(anyString())).thenReturn(
+                new MhaAccounts(
+                        "mha",
+                        new Account("mockUser", "mockPassword"),
+                        new Account("mockUser", "mockPassword"),
+                        new Account("mockUser", "mockPassword")
+                        )
+        );
+        
         DbaClusterInfoResponse value = new DbaClusterInfoResponse();
         Data data = new Data();
         List<MemberInfo> memberInfos = Lists.newArrayList();

@@ -1,7 +1,34 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getApplierGroupTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getBuTbl;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getColumnsFilterTbl;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDbReplicationTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDbReplicationTbls1;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDbTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDcTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getFilterMappings;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaDbMappingTbls1;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaReplicationTbl;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaReplicationTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaTblV2;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getResourceTbls;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getRowsFilterCreateParam;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getRowsFilterTbl;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.BuTblDao;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.MachineTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.ProxyTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.RouteTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
@@ -10,28 +37,50 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
+import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
-import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.param.v2.ColumnsFilterCreateParam;
+import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
+import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
+import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
+import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
+import com.ctrip.framework.drc.console.param.v2.GtidCompensateParam;
+import com.ctrip.framework.drc.console.param.v2.MessengerMhaBuildParam;
+import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
-import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
+import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -41,13 +90,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
-import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getDbReplicationTbls;
 
 /**
  * Created by dengquanliang
@@ -129,11 +171,16 @@ public class DrcBuildServiceV2Test {
     private MhaServiceV2 mhaServiceV2;
     @Mock
     private AccountService accountService;
+    @Mock
+    private KmsService kmsService;
+    @Mock
+    private MetaAccountService metaAccountService;
     
     
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(accountService.encrypt(Mockito.anyString())).thenReturn("encryptToken");
         Mockito.when(accountService.encrypt(Mockito.anyString())).thenReturn("encryptToken");
     }
 
@@ -145,9 +192,25 @@ public class DrcBuildServiceV2Test {
         Mockito.when(mhaTblDao.insertWithReturnId(Mockito.any(MhaTblV2.class))).thenReturn(1L);
         Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyLong())).thenReturn(null);
         Mockito.when(mhaReplicationTblDao.insert(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
+        Mockito.when(consoleConfig.getAccountKmsTokenSwitch()).thenReturn(true);
+        Mockito.when(consoleConfig.getAccountKmsTokenSwitchV2()).thenReturn(true);
+        Mockito.when(consoleConfig.getAccountFromMetaSwitch()).thenReturn(true);
+        Mockito.when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root","root"));
+        MachineDto masterInSrcMha = new MachineDto(3306,"ip1",true);
+        MachineDto masterInDstMha = new MachineDto(3306,"ip2",true);
+        Mockito.when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class),Mockito.anyString(),Mockito.anyInt())).thenReturn(true);
+        
 
-        drcBuildServiceV2.buildMha(new DrcMhaBuildParam("srcMha", "dstMha", "srcDc", "dstDc", "BBZ", "srcTag", "dstTag"));
+
+        drcBuildServiceV2.buildMha(new DrcMhaBuildParam(
+                "srcMha", "dstMha", 
+                "srcDc", "dstDc", 
+                "BBZ", "srcTag", "dstTag",
+                Lists.newArrayList(masterInSrcMha),
+                Lists.newArrayList(masterInDstMha)
+        ));
         Mockito.verify(mhaTblDao, Mockito.never()).update(Mockito.any(MhaTblV2.class));
+        Mockito.verify(mhaTblDao, Mockito.times(2)).insertWithReturnId(Mockito.any(MhaTblV2.class));
     }
 
     @Test

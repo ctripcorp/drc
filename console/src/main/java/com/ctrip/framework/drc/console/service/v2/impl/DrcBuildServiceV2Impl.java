@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
@@ -29,6 +30,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberIn
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.service.v2.security.KmsService;
+import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
@@ -150,6 +152,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private AccountService accountService;
     @Autowired
     private KmsService kmsService;
+    @Autowired
+    private MetaAccountService metaAccountService;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private final ListeningExecutorService replicationExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "replicationExecutorService"));
@@ -169,11 +173,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(String.format("srcDc: %s or dstDc: %s not exist", param.getSrcDc(), param.getDstDc()));
         }
 
-        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId, param.getSrcTag(),param.getSrcMachines());
-        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId, param.getDstTag(),param.getDstMachines());
+        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId, param.getSrcTag());
+        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId, param.getDstTag());
 
-        long srcMhaId = insertMha(srcMha);
-        long dstMhaId = insertMha(dstMha);
+        long srcMhaId = initMhaAndAccount(srcMha,param.getSrcMachines());
+        long dstMhaId = initMhaAndAccount(dstMha,param.getDstMachines());
         insertMhaReplication(srcMhaId, dstMhaId);
         insertMhaReplication(dstMhaId, srcMhaId);
     }
@@ -189,8 +193,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dc not exist: " + param.getDc());
         }
 
-        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag(),null);
-        long mhaId = insertMha(mhaTbl);
+        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag());
+        long mhaId = initMhaAndAccount(mhaTbl,null);
 
         // messengerGroup
         Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
@@ -720,13 +724,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(), null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
-        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName(),null);
+        // record mha and init accountv2
+        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
+        if (consoleConfig.getAccountFromMetaSwitch()) {
+            MemberInfo master = memberlist.stream().filter(memberInfo -> memberInfo.getRole().toLowerCase().contains("master")).findFirst().get();
+            accountService.mhaAccountV2ChangeAndRecord(mhaTblV2,master.getService_ip(),master.getDns_port());
+        }
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = insertOrRecoverMha(mhaTblV2, existMha);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
+        // record machines
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
-            machinesToBeInsert.add(extractFrom(memberInfo, mhaId));
+            machinesToBeInsert.add(extractFrom(memberInfo, mhaId,mhaName));
         }
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName, Arrays.stream(ints).sum());
@@ -760,7 +770,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         List<MachineTbl> machineFromDba = new ArrayList<>();
         for (MachineDto memberInfo : machineDtos) {
-            MachineTbl machineTbl = extractFrom(memberInfo, mhaId);
+            MachineTbl machineTbl = extractFrom(memberInfo, mhaId,mhaName);
             machineFromDba.add(machineTbl);
         }
         dbMetaCorrectService.mhaInstancesChange(machineFromDba, existMha);
@@ -1173,11 +1183,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return addRemoveReplicatorIpsPair;
     }
 
-    private MachineTbl extractFrom(MachineDto machineDto, Long mhaId) throws Exception {
+    private MachineTbl extractFrom(MachineDto machineDto, Long mhaId,String mhaName) throws Exception {
         boolean isMaster = Boolean.TRUE.equals(machineDto.getMaster());
-        // todo hdpan acc 
-        String uuid = MySqlUtils.getUuid(machineDto.getIp(), machineDto.getPort(),
-                monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(),
+        MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaName);
+        Account monitorAcc = mhaAccounts.getMonitorAcc();
+        String uuid = MySqlUtils.getUuid(
+                machineDto.getIp(), machineDto.getPort(),
+                monitorAcc.getUser(), monitorAcc.getPassword(), 
                 isMaster);
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setMhaId(mhaId);
@@ -1188,16 +1200,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return machineTbl;
     }
 
-    private MachineTbl extractFrom(MemberInfo memberInfo, Long mhaId) {
+    private MachineTbl extractFrom(MemberInfo memberInfo, Long mhaId,String mhaName) {
         String serviceIp = memberInfo.getService_ip();
         int dnsPort = memberInfo.getDns_port();
         String dcInDbaSystem = memberInfo.getMachine_located_short();
         boolean isMaster = memberInfo.getRole().toLowerCase().contains("master");
         String uuid = null;
         try {
-            // todo hdpan acc 
-            uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorTableSourceProvider.getMonitorUserVal(),
-                    monitorTableSourceProvider.getMonitorPasswordVal(), isMaster);
+            MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaName);
+            Account monitorAcc = mhaAccounts.getMonitorAcc();
+             uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorAcc.getUser(), monitorAcc.getPassword(), isMaster);
         } catch (Exception e) {
             logger.warn("getUuid failed, serviceIp:{}, dnsPort:{}, dcInDbaSystem:{}, isMaster:{}, e:{}",
                     serviceIp, dnsPort, dcInDbaSystem, isMaster, e.getMessage());
@@ -1690,16 +1702,75 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-    private long insertMha(MhaTblV2 mhaTblV2) throws Exception {
+    private long initMhaAndAccount(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) throws Exception {
         MhaTblV2 existMhaTbl = mhaTblDao.queryByMhaName(mhaTblV2.getMhaName());
         if (null == existMhaTbl) {
+            initAccountIfNeed(mhaTblV2,machineDto);
             return mhaTblDao.insertWithReturnId(mhaTblV2);
         } else if (existMhaTbl.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
+            initAccountIfNeed(existMhaTbl,machineDto);
             existMhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(existMhaTbl);
         }
         return existMhaTbl.getId();
     }
+    
+    private void initAccountIfNeed(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) {
+        if (StringUtils.isBlank(mhaTblV2.getMonitorUser()) 
+                || StringUtils.isBlank(mhaTblV2.getMonitorPassword()) 
+                || StringUtils.isBlank(mhaTblV2.getMonitorPasswordToken())
+                || StringUtils.isBlank(mhaTblV2.getReadUser())
+                || StringUtils.isBlank(mhaTblV2.getReadPassword())
+                || StringUtils.isBlank(mhaTblV2.getReadPasswordToken())
+                || StringUtils.isBlank(mhaTblV2.getWriteUser())
+                || StringUtils.isBlank(mhaTblV2.getWritePassword())
+                || StringUtils.isBlank(mhaTblV2.getWritePasswordToken())) {
+            mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
+            mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
+            mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
+            mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
+            mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
+            mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
+            if (consoleConfig.getAccountKmsTokenSwitch()) {
+                mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
+                mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
+                mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
+            }
+        }
+        if (StringUtils.isBlank(mhaTblV2.getMonitorUserV2())
+                || StringUtils.isBlank(mhaTblV2.getMonitorPasswordTokenV2())
+                || StringUtils.isBlank(mhaTblV2.getReadUserV2())
+                || StringUtils.isBlank(mhaTblV2.getReadPasswordTokenV2())
+                || StringUtils.isBlank(mhaTblV2.getWriteUserV2())
+                || StringUtils.isBlank(mhaTblV2.getWritePasswordTokenV2())) {
+            if (consoleConfig.getAccountKmsTokenSwitchV2()) {
+                // if no masterNode info , record default account v2
+                if (CollectionUtils.isEmpty(machineDto)) {
+                    Account monitorAcc = kmsService.getAccountInfo(consoleConfig.getDefaultMonitorAccountKmsToken());
+                    Account readAcc = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
+                    Account writeAcc = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
+                    mhaTblV2.setMonitorUserV2(monitorAcc.getUser());
+                    mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorAcc.getPassword()));
+                    mhaTblV2.setReadUserV2(readAcc.getUser());
+                    mhaTblV2.setReadPasswordToken(accountService.encrypt(readAcc.getPassword()));
+                    mhaTblV2.setWriteUserV2(writeAcc.getUser());
+                    mhaTblV2.setWritePasswordToken(accountService.encrypt(writeAcc.getPassword()));
+                } else {
+                    if (consoleConfig.getAccountFromMetaSwitch()) {
+                        MachineDto masterNode = machineDto.stream().filter(MachineDto::getMaster).findFirst().orElse(null);
+                        if (masterNode == null) {
+                            throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " masterNode not found!");
+                        }
+                        boolean res = accountService.mhaAccountV2ChangeAndRecord(mhaTblV2, masterNode.getIp(), masterNode.getPort());
+                        if (!res) {
+                            throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " account change failed!");
+                        }
+                    }
+                }
+            }
+        }
+    } 
+    
 
     private long getBuId(String buName) throws Exception {
         BuTbl existBuTbl = buTblDao.queryByBuName(buName);
@@ -1715,7 +1786,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     
     
    
-    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag,List<MachineDto> machineDto) {
+    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag) {
         String clusterName = mhaName + CLUSTER_NAME_SUFFIX;
         MhaTblV2 mhaTblV2 = new MhaTblV2();
         mhaTblV2.setMhaName(mhaName);
@@ -1729,17 +1800,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setTag(tag);
 
         
-        mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
-        mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
-        mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
-        mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
-        mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
-        mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
-        if (consoleConfig.getAccountKmsTokenSwitch()) {
-            mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
-            mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
-            mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
-        }
         return mhaTblV2;
     }
 

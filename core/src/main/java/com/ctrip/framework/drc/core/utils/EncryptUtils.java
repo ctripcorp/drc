@@ -21,7 +21,7 @@ import java.util.Base64;
 public class EncryptUtils {
 
 
-    public static String encryptToken(String rawToken) {
+    public static String decryptRawToken(String rawToken) {
         try {
             return EncryptUtils.decryptAES_ECB(rawToken,Foundation.app().getAppId());
         } catch (Exception e) {

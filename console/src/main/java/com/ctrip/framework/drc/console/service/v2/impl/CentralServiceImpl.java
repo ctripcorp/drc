@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.response.MhaAccountsApiRes;
 import com.ctrip.framework.drc.console.aop.forward.response.MhaDbReplicationListResponse;
 import com.ctrip.framework.drc.console.aop.forward.response.MhaV2ListResponse;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
@@ -14,9 +15,11 @@ import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
@@ -52,6 +55,8 @@ public class CentralServiceImpl implements CentralService {
     private MhaDbReplicationService mhaDbReplicationService;
     @Autowired
     private MachineService machineService;
+    @Autowired
+    private AccountService accountService;
 
 
     @Override
@@ -98,6 +103,13 @@ public class CentralServiceImpl implements CentralService {
         logger.info("correctMachineUuid requestBody: {}", requestBody);
         return machineService.correctUuid(requestBody.getIp(), requestBody.getPort(), requestBody.getUuid());
     }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/mhaAccounts", forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaAccountsApiRes.class)
+    public MhaAccounts getMhaAccounts(String mhaName) throws SQLException {
+        return accountService.getMhaAccounts(mhaName);
+    }
+    
 
     private Long getDcId(String dcName) throws SQLException {
         if (StringUtils.isBlank(dcName)) {

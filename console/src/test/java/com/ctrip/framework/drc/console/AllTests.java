@@ -59,6 +59,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.security.impl.AccountServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.security.impl.MetaAccountServiceImplTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
@@ -155,6 +156,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         CentralServiceImplTest.class,
         DbBlacklistCacheTest.class,
         DrcApplicationServiceTest.class,
+        MetaAccountServiceImplTest.class,
 //
         // controller
         OperationLogControllerTest.class,

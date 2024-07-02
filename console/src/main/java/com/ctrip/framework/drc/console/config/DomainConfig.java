@@ -171,7 +171,7 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getOpsApprovalToken() {
         String rawToken = getProperty(OPS_APPROVAL_TOKEN, "");
-        return EncryptUtils.encryptToken(rawToken);
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getConflictApproveCcEmail() {
@@ -231,7 +231,7 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getOpsAccessToken() {
-        return EncryptUtils.encryptToken(getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN));
+        return EncryptUtils.decryptRawToken(getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN));
     }
 
     public String getOpsAccessTokenFat() {
@@ -248,7 +248,7 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getCmsAccessToken() {
         String rawToken =  getProperty(CMS_ACCESS_TOKEN, "");
-        return EncryptUtils.encryptToken(rawToken);
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getTrafficFromHickWall() {
@@ -291,7 +291,7 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getQmqApiToken(){
         String rawToken =  getProperty(QMQ_API_TOKEN_KEY, "");
-        return EncryptUtils.encryptToken(rawToken);
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getQConfigRestApiUrl() {
@@ -300,12 +300,12 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getQConfigAPIToken() {
         String rawToken = getProperty(QCONFIG_API_TOKEN, "");
-        return EncryptUtils.encryptToken(rawToken);
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getQConfigApiConsoleToken() {
         String rawToken = getProperty(QCONFIG_API_CONSOLE_TOKEN, "");
-        return EncryptUtils.encryptToken(rawToken);
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getWhitelistTargetGroupId() {
@@ -348,7 +348,7 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getDotToken() {
-        return EncryptUtils.encryptToken(getProperty(DOT_TOKEN, ""));
+        return EncryptUtils.decryptRawToken(getProperty(DOT_TOKEN, ""));
     }
 
     public String getDotQueryApiUrl() {

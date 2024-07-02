@@ -16,7 +16,9 @@ public interface AccountService {
     String encrypt(String password);
     
     MhaAccounts getMhaAccounts(MhaTblV2 mhaTblV2);
-    
+
+    MhaAccounts getMhaAccounts(String mhaName) throws SQLException;
+
     Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType);
     
     void loadEncryptCache() throws SQLException , InterruptedException;
@@ -27,12 +29,19 @@ public interface AccountService {
     
     boolean grayAccountV2(String mhaName);
 
-    Pair<Integer, String> initMhaAccountV2(List<String> mhas) throws SQLException;
+    /**
+     * 
+     * @param mhas
+     * @param forceChange ignore accountV2 old pwd
+     * @return k: success count ,value: fail info
+     * @throws SQLException
+     */
+    Pair<Integer, String> mhaAccountV2ChangePwd(List<String> mhas,boolean forceChange) throws SQLException;
 
+    // auto build drc ,call this api init and change pwd in account v2
     boolean mhaAccountV2ChangeAndRecord(MhaTblV2 mhaTblV2,String masterNodeIp,Integer masterNodePort);
     
     // key: success count , value: error message
     Pair<Integer,String> accountV2Check(List<String> mhas) throws SQLException;
     
-    boolean changePasswordInNewAccount(String mha, String user, String newPassword);
 }

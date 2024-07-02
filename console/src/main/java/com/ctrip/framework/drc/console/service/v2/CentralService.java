@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -18,4 +19,6 @@ public interface CentralService {
     String getUuidInMetaDb(String mhaName, String ip, Integer port) throws SQLException;
     
     Integer correctMachineUuid(MachineTbl requestBody) throws SQLException;
+    
+    MhaAccounts getMhaAccounts(String mhaName) throws SQLException;
 }
