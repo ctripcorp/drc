@@ -232,7 +232,7 @@ public class DbaApiServiceTest {
                     + "    \"status\": \"success\",\n"
                     + "    \"query\": \"\"\n"
                     + "}");
-            MhaAccounts mhaAccounts = dbaApiService.initAccountV2(MockEntityBuilder.buildMhaTblV2());
+            MhaAccounts mhaAccounts = dbaApiService.accountV2PwdChange(MockEntityBuilder.buildMhaTblV2());
             Assert.assertNotNull(mhaAccounts);
         }
     }

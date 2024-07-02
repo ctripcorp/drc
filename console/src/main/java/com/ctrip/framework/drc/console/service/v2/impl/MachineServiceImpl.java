@@ -6,22 +6,26 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
-import com.ctrip.framework.drc.console.service.v2.security.AccountService;
+import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,16 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import javax.validation.constraints.NotNull;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
 /**
- * Created by dengquanliang
- * 2023/7/27 15:43
+ * Created by dengquanliang 2023/7/27 15:43
  */
 @Service
 public class MachineServiceImpl implements MachineService {
@@ -62,11 +58,9 @@ public class MachineServiceImpl implements MachineService {
     @Autowired
     private DbaApiService dbaApiService;
     @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
-    @Autowired
     private DefaultConsoleConfig defaultConsoleConfig;
     @Autowired
-    private AccountService accountService;
+    private MetaAccountService metaAccountService;
 
 
     @Override
@@ -149,7 +143,8 @@ public class MachineServiceImpl implements MachineService {
     }
 
     private Endpoint getMasterEndpointFromDbaApi(String mha) {
-        // todo hdpan acc
+        MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mha);
+        Account monitorAcc = mhaAccounts.getMonitorAcc();
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mha);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
         return memberlist.stream()
@@ -157,8 +152,8 @@ public class MachineServiceImpl implements MachineService {
                 .map(e -> new MySqlEndpoint(
                         e.getService_ip(),
                         e.getDns_port(),
-                        monitorTableSourceProvider.getMonitorUserVal(),
-                        monitorTableSourceProvider.getMonitorPasswordVal(),
+                        monitorAcc.getUser(),
+                        monitorAcc.getPassword(),
                         BooleanEnum.TRUE.isValue()
                 ))
                 .findFirst().orElse(null);
@@ -170,9 +165,16 @@ public class MachineServiceImpl implements MachineService {
         List<Endpoint> endpoints = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
             if (memberInfo.getRole().toLowerCase().contains("master")) {
-                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(), monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(), monitorTableSourceProvider.getReadUserVal(), monitorTableSourceProvider.getReadPasswordVal(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(), monitorTableSourceProvider.getWriteUserVal(), monitorTableSourceProvider.getWritePasswordVal(), BooleanEnum.TRUE.isValue()));
+                MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mha);
+                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(),
+                        mhaAccounts.getMonitorAcc().getUser(), mhaAccounts.getMonitorAcc().getPassword(),
+                        BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(),
+                        mhaAccounts.getReadAcc().getUser(), mhaAccounts.getReadAcc().getPassword(),
+                        BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(memberInfo.getService_ip(), memberInfo.getDns_port(),
+                        mhaAccounts.getWriteAcc().getUser(), mhaAccounts.getWriteAcc().getPassword(),
+                        BooleanEnum.TRUE.isValue()));
                 return endpoints;
             }
         }
@@ -182,8 +184,10 @@ public class MachineServiceImpl implements MachineService {
     public Endpoint getMaster(MhaTblV2 mhaTblV2, List<MachineTbl> machineInfo) {
         for (MachineTbl machineTbl : machineInfo) {
             if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
-                Account account = accountService.getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_CONSOLE);
-                return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), account.getUser(), account.getPassword(), BooleanEnum.TRUE.isValue());
+                MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaTblV2.getMhaName());
+                Account account = mhaAccounts.getMonitorAcc();
+                return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), account.getUser(),
+                        account.getPassword(), BooleanEnum.TRUE.isValue());
             }
         }
         return null;
@@ -193,10 +197,16 @@ public class MachineServiceImpl implements MachineService {
         List<Endpoint> endpoints = new ArrayList<>();
         for (MachineTbl machineTbl : machineInfo) {
             if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
-                MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTblV2);
-                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getMonitorAcc().getUser(),mhaAccounts.getMonitorAcc().getPassword(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getReadAcc().getUser(), mhaAccounts.getReadAcc().getPassword(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getWriteAcc().getUser(), mhaAccounts.getWriteAcc().getPassword(), BooleanEnum.TRUE.isValue()));
+                MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaTblV2.getMhaName());
+                endpoints.add(new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(),
+                        mhaAccounts.getMonitorAcc().getUser(), mhaAccounts.getMonitorAcc().getPassword(),
+                        BooleanEnum.TRUE.isValue()));
+                endpoints.add(
+                        new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getReadAcc().getUser(),
+                                mhaAccounts.getReadAcc().getPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(
+                        new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaAccounts.getWriteAcc().getUser(),
+                                mhaAccounts.getWriteAcc().getPassword(), BooleanEnum.TRUE.isValue()));
                 return endpoints;
             }
         }
