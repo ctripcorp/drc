@@ -84,7 +84,7 @@ public class KmsServiceImpl implements KmsService {
         paramsMap.put("appid", Foundation.app().getAppId());
         paramsMap.put("herald-token", heraldService.getLocalHeraldToken());
         String queryParam= "/query-pwd?token={token}&appid={appid}&herald-token={herald-token}";
-        String responseBody = HttpUtils.get(kmsUrl + queryParam, String.class, paramsMap);
+        String responseBody = HttpUtils.getAcceptAll(kmsUrl + queryParam, String.class, paramsMap);
         JsonNode jsonNode = HttpUtils.deserialize(responseBody);
         if (jsonNode.get("code").asInt() == 0) {
             String user = jsonNode.get("result").get("pwdAccount").asText();

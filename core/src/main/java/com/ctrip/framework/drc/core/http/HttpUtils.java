@@ -95,6 +95,16 @@ public class HttpUtils {
         return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
     }
 
+    public static <T> T getAcceptAll(String url, Class<T> responseType, Map<String, ?> urlVariables) {
+        init();
+        HttpHeaders httpHeaders = defaultHttpHeaders();
+        httpHeaders.setAccept(Lists.newArrayList(MediaType.ALL));
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(httpHeaders);
+        return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
+    }
+    
+    
+
     public static <T> T put(String url, Object body, Class<T> clazz) {
         init();
         HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
