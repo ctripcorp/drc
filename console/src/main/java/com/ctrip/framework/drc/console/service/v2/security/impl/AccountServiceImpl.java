@@ -384,8 +384,8 @@ public class AccountServiceImpl implements AccountService {
                 }
             }
         }
-        checkVo.getAccounts().add(new AccountPrivilege(oldAcc,oldPrivilegesString));
-        checkVo.getAccounts().add(new AccountPrivilege(newAcc,newPrivilegesString));
+        checkVo.getAccounts().add(new AccountPrivilege(oldAcc,StringUtils.isEmpty(oldPrivilegesString) ? "error" : oldPrivilegesString));
+        checkVo.getAccounts().add(new AccountPrivilege(newAcc,StringUtils.isEmpty(newPrivilegesString) ? "error" : newPrivilegesString));
         return false;
     }
     
