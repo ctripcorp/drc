@@ -17,8 +17,7 @@ import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
-import com.ctrip.framework.drc.console.dto.v3.DbApplierSwitchReqDtoTest;
-import com.ctrip.framework.drc.console.dto.v3.MhaApplierDtoTest;
+import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.monitor.*;
@@ -38,6 +37,7 @@ import com.ctrip.framework.drc.console.monitor.gtid.function.CheckDbGtidTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
 import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.task.*;
+import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReqTest;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParamTest;
 import com.ctrip.framework.drc.console.pojo.CreatePojoTest;
@@ -63,6 +63,7 @@ import com.ctrip.framework.drc.console.service.v2.security.impl.MetaAccountServi
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDtoTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
@@ -235,8 +236,13 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaDbQueryDtoTest.class,
         MhaApplierDtoTest.class,
         DbApplierSwitchReqDtoTest.class,
-        MhaDbReplicationQueryDtoTest.class
-
+        MhaDbReplicationQueryDtoTest.class,
+        DbMqCreateDtoTest.class,
+        DbMqEditDtoTest.class,
+        DrcAutoBuildReqTest.class,
+        MhaDbReplicationCreateDtoTest.class,
+        MhaReplicationPreviewDtoTest.class,
+        DbMqConfigInfoDtoTest.class
 })
 public class AllTests {
 

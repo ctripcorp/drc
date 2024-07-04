@@ -144,6 +144,7 @@ export default {
       case '/v2/messengersV2':
       case '/v2/dbDrcBuild':
       case '/v2/dbDrcBuildV2':
+      case '/v2/dbMqBuildV2':
       case '/metaMessage':
         this.openNames = ['v2-0']
         break
@@ -185,6 +186,8 @@ export default {
       activeName = '/v2/mhaReplications'
     } else if (['/v2/dbDrcBuildV2'].includes(this.$route.path)) {
       activeName = '/v2/mhaDbReplications'
+    } else if (['/v2/dbMqBuildV2'].includes(this.$route.path)) {
+      activeName = '/v2/messengersV2'
     } else if (['/v2/buildMessengerV2'].includes(this.$route.path)) {
       activeName = '/v2/messengersV2'
     } else if (['/drcResource'].includes(this.$route.path)) {

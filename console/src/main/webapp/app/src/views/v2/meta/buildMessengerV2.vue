@@ -39,7 +39,7 @@ import mhaConfig from '../../../components/v2/mhaMessengers/mhaConfig.vue'
 import preCheck from '../../../components/v2/mhaMessengers/preCheck.vue'
 import drcConfig from '../../../components/v2/mhaMessengers/drcConfig.vue'
 export default {
-  name: 'buildMhaMessenger.vue',
+  name: 'buildMhaMessenger',
   components: {
     mhaInit,
     mhaConfig,

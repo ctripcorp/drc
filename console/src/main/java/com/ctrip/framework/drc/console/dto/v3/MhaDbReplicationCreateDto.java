@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import org.apache.commons.lang3.StringUtils;
 
 public class MhaDbReplicationCreateDto {
+    private Integer replicationType = ReplicationTypeEnum.DB_TO_DB.getType();
     private String srcRegionName;
     private String dstRegionName;
     private String dbName;
@@ -14,15 +16,27 @@ public class MhaDbReplicationCreateDto {
         if (StringUtils.isBlank(srcRegionName)) {
             throw new IllegalArgumentException("srcRegionName should not be blank!");
         }
-        if (StringUtils.isBlank(dstRegionName)) {
-            throw new IllegalArgumentException("dstRegionName should not be blank!");
+        srcRegionName = srcRegionName.trim();
+        if (ReplicationTypeEnum.getByType(replicationType) == ReplicationTypeEnum.DB_TO_DB) {
+            if (StringUtils.isBlank(dstRegionName)) {
+                throw new IllegalArgumentException("dstRegionName should not be blank!");
+            }
+            dstRegionName = dstRegionName.trim();
         }
         if (StringUtils.isBlank(dbName)) {
             throw new IllegalArgumentException("dbName should not be blank!");
         }
-        srcRegionName = srcRegionName.trim();
-        dstRegionName = dstRegionName.trim();
+
+
         dbName = dbName.trim();
+    }
+
+    public Integer getReplicationType() {
+        return replicationType;
+    }
+
+    public void setReplicationType(Integer replicationType) {
+        this.replicationType = replicationType;
     }
 
     public String getSrcRegionName() {

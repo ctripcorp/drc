@@ -169,6 +169,7 @@
                            :db-name="formItem.dbName"
                            :table-names="formItem.tableName"
                            :mode="formItem.buildMode"
+                           :replication-type="Number(0)"
         />
       </Col>
     </Row>

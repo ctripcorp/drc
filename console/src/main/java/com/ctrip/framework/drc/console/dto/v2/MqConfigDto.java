@@ -1,12 +1,15 @@
 package com.ctrip.framework.drc.console.dto.v2;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class MqConfigDto implements Serializable {
 
-    private Long dbReplicationId;
+    private List<Long> dbReplicationIds;
     private String mhaName;
     private String bu;
     private String mqType;
@@ -31,15 +34,32 @@ public class MqConfigDto implements Serializable {
     }
 
     public boolean isInsertRequest() {
-        return dbReplicationId == null;
+        return CollectionUtils.isEmpty(this.getDbReplicationIds());
     }
 
     public Long getDbReplicationId() {
-        return dbReplicationId;
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            return null;
+        }
+        if (dbReplicationIds.size() > 1) {
+            throw new IllegalArgumentException("more than one db replication id!");
+        }
+        return dbReplicationIds.get(0);
+    }
+
+    public List<Long> getDbReplicationIds() {
+        return dbReplicationIds;
+    }
+
+    public void setDbReplicationIds(List<Long> dbReplicationIds) {
+        this.dbReplicationIds = dbReplicationIds;
     }
 
     public void setDbReplicationId(Long dbReplicationId) {
-        this.dbReplicationId = dbReplicationId;
+        if (dbReplicationId == null) {
+            return;
+        }
+        this.dbReplicationIds = Lists.newArrayList(dbReplicationId);
     }
 
     public String getMhaName() {
@@ -149,7 +169,7 @@ public class MqConfigDto implements Serializable {
     @Override
     public String toString() {
         return "MqConfigDto{" +
-                "dbReplicationId=" + dbReplicationId +
+                "dbReplicationIds=" + dbReplicationIds +
                 ", mhaName='" + mhaName + '\'' +
                 ", bu='" + bu + '\'' +
                 ", mqType='" + mqType + '\'' +

@@ -31,7 +31,8 @@ export default {
     dbName: String,
     srcRegionName: String,
     dstRegionName: String,
-    tableNames: String
+    tableNames: String,
+    replicationType: Number
   },
   emits: ['updated'],
   data () {
@@ -95,7 +96,7 @@ export default {
           return
         }
       }
-      if (!this.srcRegionName || !this.dstRegionName) {
+      if (!this.srcRegionName || (this.replicationType === 0 && !this.dstRegionName)) {
         this.$Message.warning('请先填写同步方向')
         return
       }
@@ -110,6 +111,7 @@ export default {
           dbName: this.dbName,
           srcRegionName: this.srcRegionName,
           dstRegionName: this.dstRegionName,
+          replicationType: this.replicationType,
           tblsFilterDetail: {
             tableNames: this.tableNames
           }

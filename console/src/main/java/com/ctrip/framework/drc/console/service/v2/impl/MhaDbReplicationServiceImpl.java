@@ -384,12 +384,16 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
                 DbReplicationFilterMappingTbl filterMapping = filterMappingTblsMap.get(source.getId());
                 LogicTableConfig logicTableConfig = new LogicTableConfig();
                 logicTableConfig.setLogicTable(source.getSrcLogicTableName());
+                logicTableConfig.setDstLogicTable(source.getDstLogicTableName());
                 if (filterMapping != null) {
                     if (filterMapping.getRowsFilterId() != -1L) {
                         logicTableConfig.setRowsFilterId(filterMapping.getRowsFilterId());
                     }
                     if (filterMapping.getColumnsFilterId() != -1) {
                         logicTableConfig.setColsFilterId(filterMapping.getColumnsFilterId());
+                    }
+                    if (filterMapping.getMessengerFilterId() != -1L) {
+                        logicTableConfig.setMessengerFilterId(filterMapping.getMessengerFilterId());
                     }
                 }
                 return new DbReplicationDto(source.getId(), logicTableConfig);
@@ -589,6 +593,35 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             mhaDbReplicationTbl.setSrcMhaDbMappingId(srcMapping.getId());
             mhaDbReplicationTbl.setDstMhaDbMappingId(dstMapping.getId());
             mhaDbReplicationTbl.setReplicationType(ReplicationTypeEnum.DB_TO_DB.getType());
+            return mhaDbReplicationTbl;
+        }).collect(Collectors.toList());
+
+        this.insertAndUpdate(this.getInsertsAndUpdatesBySample(samples));
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames) throws SQLException {
+        MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
+        if (srcMhaTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + srcMhaName);
+        }
+        // 1. mha db mapping
+        List<MhaDbMappingTbl> srcMappingTbl = mhaDbMappingService.initMhaDbMappings(srcMhaTbl, dbNames);
+
+        // 2. mha db replication
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
+        Map<Long, String> dbIdToDbName = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        Map<String, MhaDbMappingTbl> dbNameToSrcMappingTblMap = srcMappingTbl.stream().collect(Collectors.toMap(e -> dbIdToDbName.get(e.getDbId()), e -> e));
+
+
+        List<MhaDbReplicationTbl> samples = dbNames.stream().map(dbName -> {
+            MhaDbMappingTbl srcMapping = dbNameToSrcMappingTblMap.get(dbName);
+
+            MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+            mhaDbReplicationTbl.setSrcMhaDbMappingId(srcMapping.getId());
+            mhaDbReplicationTbl.setDstMhaDbMappingId(-1L);
+            mhaDbReplicationTbl.setReplicationType(ReplicationTypeEnum.DB_TO_MQ.getType());
             return mhaDbReplicationTbl;
         }).collect(Collectors.toList());
 

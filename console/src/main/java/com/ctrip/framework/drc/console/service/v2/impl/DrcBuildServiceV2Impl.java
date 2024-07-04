@@ -194,7 +194,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag());
-        long mhaId = initMhaAndAccount(mhaTbl,null);
+        long mhaId = initMhaAndAccount(mhaTbl, param.getMachineDto());
 
         // messengerGroup
         Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
@@ -911,10 +911,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("[[mha={}]] getMhaExecutedGtid failed", mhaTbl.getMhaName());
             throw new ConsoleException("getMhaExecutedGtid failed!");
         }
+
+        autoConfigMessenger(mhaTbl, mhaExecutedGtid);
+    }
+
+    @Override
+    public void autoConfigMessenger(MhaTblV2 mhaTbl, String gtid) throws SQLException {
         MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
-        messengerGroupTbl.setGtidExecuted(mhaExecutedGtid);
+        if (StringUtils.isEmpty(messengerGroupTbl.getGtidExecuted()) && StringUtils.isEmpty(gtid)) {
+            throw ConsoleExceptionUtils.message(String.format("configure messenger fail, init gtid needed! mha: %s", mhaTbl.getMhaName()));
+        }
+        messengerGroupTbl.setGtidExecuted(gtid);
         messengerGroupTblDao.update(messengerGroupTbl);
-        logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mhaExecutedGtid);
+        logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), gtid);
 
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
@@ -1189,7 +1198,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Account monitorAcc = mhaAccounts.getMonitorAcc();
         String uuid = MySqlUtils.getUuid(
                 machineDto.getIp(), machineDto.getPort(),
-                monitorAcc.getUser(), monitorAcc.getPassword(), 
+                monitorAcc.getUser(), monitorAcc.getPassword(),
                 isMaster);
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setMhaId(mhaId);
@@ -1714,10 +1723,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         return existMhaTbl.getId();
     }
-    
+
     private void initAccountIfNeed(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) {
-        if (StringUtils.isBlank(mhaTblV2.getMonitorUser()) 
-                || StringUtils.isBlank(mhaTblV2.getMonitorPassword()) 
+        if (StringUtils.isBlank(mhaTblV2.getMonitorUser())
+                || StringUtils.isBlank(mhaTblV2.getMonitorPassword())
                 || StringUtils.isBlank(mhaTblV2.getMonitorPasswordToken())
                 || StringUtils.isBlank(mhaTblV2.getReadUser())
                 || StringUtils.isBlank(mhaTblV2.getReadPassword())
@@ -1769,8 +1778,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 }
             }
         }
-    } 
-    
+    }
+
 
     private long getBuId(String buName) throws Exception {
         BuTbl existBuTbl = buTblDao.queryByBuName(buName);
@@ -1799,7 +1808,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setDeleted(BooleanEnum.FALSE.getCode());
         mhaTblV2.setTag(tag);
 
-        
+
         return mhaTblV2;
     }
 

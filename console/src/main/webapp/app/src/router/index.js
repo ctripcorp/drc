@@ -204,6 +204,11 @@ const routes = [
     component: () => import('../views/v2/meta/dbDrcBuildV2.vue')
   },
   {
+    path: '/v2/dbMqBuildV2',
+    name: 'v2/dbMqBuildV2',
+    component: () => import('../views/v2/meta/dbMqBuildV2.vue')
+  },
+  {
     path: '/conflictLog',
     name: 'conflictLog',
     component: () => import('../views/log/conflictLog.vue')

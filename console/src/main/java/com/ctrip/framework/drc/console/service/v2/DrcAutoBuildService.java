@@ -19,7 +19,7 @@ public interface DrcAutoBuildService {
     List<String> getRegionOptions(DrcAutoBuildReq req);
     List<String> getCommonColumn(DrcAutoBuildReq req);
 
-    List<MhaReplicationPreviewDto> getMhaReplicationPreviewDtos(String srcRegionName, String dstRegionName, List<DbClusterInfoDto> databaseClusterInfoList);
+    List<MhaReplicationPreviewDto> getMhaReplicationPreviewDtos(DrcAutoBuildReq req, List<DbClusterInfoDto> databaseClusterInfoList);
 
     void autoBuildDrc(DrcAutoBuildReq req) ;
 
