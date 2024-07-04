@@ -15,11 +15,6 @@ public class SenderTableNameFilter extends TableNameFilter {
     }
 
     @Override
-    protected void filterDrcTableMapEvent(OutboundLogEventContext value) {
-        // do nothing
-    }
-
-    @Override
     protected boolean shouldSkipTableMapEvent(String tableName) {
         return !binlogSender.concernTable(tableName);
     }

@@ -567,6 +567,9 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
             if (MysqlFieldType.isTextType(dataTypeLiteral) || MysqlFieldType.isCharsetType(dataTypeLiteral)) {
                 this.charset = charset;
                 this.collation = collation;
+            } else if (MysqlFieldType.isBinaryType(dataTypeLiteral)) {
+                this.charset = "binary";
+                this.collation = "binary";
             }
 
             if (MysqlFieldType.isNumberType(dataTypeLiteral)) {
