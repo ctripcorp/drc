@@ -82,6 +82,7 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha("mha1", null);
         Assert.assertEquals(1, replicationDtos.size());
         Assert.assertEquals("mha1", replicationDtos.get(0).getSrc().getMhaName());
+        Assert.assertTrue(StringUtils.isNotBlank(replicationDtos.get(0).getDbReplicationDtos().get(0).getLogicTableConfig().getDstLogicTable()));
         Assert.assertEquals(MhaDbReplicationDto.MQ_DTO, replicationDtos.get(0).getDst());
     }
 
@@ -133,6 +134,13 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     @Test
     public void testQueryByDbNames(){
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList("db1", "db2"), ReplicationTypeEnum.DB_TO_DB);
+        Assert.assertEquals(2, replicationDtos.size());
+        System.out.println(replicationDtos);
+    }
+
+    @Test
+    public void testQueryByDbNamesForMq(){
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList("db1", "db2"), ReplicationTypeEnum.DB_TO_MQ);
         Assert.assertEquals(2, replicationDtos.size());
         System.out.println(replicationDtos);
     }

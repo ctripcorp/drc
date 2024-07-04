@@ -34,7 +34,7 @@
               </RadioGroup>
               <Button type="primary" icon="md-add" ghost @click="goToCreateReplication">新增</Button>
               <Modal v-model="createModal.open" width="1200px" :footer-hide="true" title="创建同步">
-                <mha-preview v-if="createModal.open" :db-name="meta.dbName" @updated="getDrcConfig"
+                <mha-preview v-if="createModal.open" :db-name="meta.dbName" :replication-type=0 @updated="getDrcConfig"
                              :exist-replication-region-options="meta.existReplicationRegionOptions"></mha-preview>
               </Modal>
             </FormItem>

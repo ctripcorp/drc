@@ -72,6 +72,9 @@ public interface DrcBuildServiceV2 {
     void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl,
             MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException;
 
+
+    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid) throws SQLException;
+
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 
     void initReplicationTables() throws Exception;

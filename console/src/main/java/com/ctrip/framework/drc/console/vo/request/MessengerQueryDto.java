@@ -4,6 +4,8 @@ public class MessengerQueryDto {
     private MhaQueryDto mha;
     private String dbNames;
     private Integer drcStatus;
+    private String topic;
+
 
     public MhaQueryDto getMha() {
         return mha;
@@ -27,5 +29,13 @@ public class MessengerQueryDto {
 
     public void setDrcStatus(Integer drcStatus) {
         this.drcStatus = drcStatus;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 }

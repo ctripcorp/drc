@@ -12,10 +12,6 @@ import com.ctrip.framework.drc.core.http.PageResult;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Created by dengquanliang
- * 2023/7/31 16:48
- */
 public interface MhaDbReplicationService {
     /**
      * query mhaDbReplication by conditions
@@ -38,6 +34,7 @@ public interface MhaDbReplicationService {
 
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
     void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException;
+    void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames) throws SQLException;
     void offlineMhaDbReplication(String mhaName, String mhaName1);
 
     /**

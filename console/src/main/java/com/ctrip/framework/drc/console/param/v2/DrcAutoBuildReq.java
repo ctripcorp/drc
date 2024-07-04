@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import org.apache.commons.lang3.StringUtils;
 
@@ -22,14 +23,31 @@ public class DrcAutoBuildReq {
     private Boolean openColsFilterConfig;
     private ColumnsFilterCreateParam colsFilterDetail;
     private Long applicationFormId;
+    /**
+     * @see com.ctrip.framework.drc.console.enums.ReplicationTypeEnum
+     */
+    private int replicationType = ReplicationTypeEnum.DB_TO_DB.getType();
+
+    public ReplicationTypeEnum getReplicationType() {
+        return ReplicationTypeEnum.getByType(replicationType);
+    }
+
+    public void setReplicationType(int replicationType) {
+        this.replicationType = replicationType;
+    }
 
     public void validAndTrim() {
         BuildMode modeEnum = getModeEnum();
         if (StringUtils.isBlank(srcRegionName)) {
             throw new IllegalArgumentException("srcRegionName should not be blank!");
         }
-        if (StringUtils.isBlank(dstRegionName)) {
-            throw new IllegalArgumentException("dstRegionName should not be blank!");
+        srcRegionName = srcRegionName.trim();
+
+        if (getReplicationType() == ReplicationTypeEnum.DB_TO_DB) {
+            if (StringUtils.isBlank(dstRegionName)) {
+                throw new IllegalArgumentException("dstRegionName should not be blank!");
+            }
+            dstRegionName = dstRegionName.trim();
         }
         if (StringUtils.isBlank(buName)) {
             throw new IllegalArgumentException("buName should not be blank!");
@@ -59,8 +77,6 @@ public class DrcAutoBuildReq {
         }
 
         // trim
-        srcRegionName = srcRegionName.trim();
-        dstRegionName = dstRegionName.trim();
         buName = buName.trim();
         tag = tag.trim();
         tblsFilterDetail.tableNames = tblsFilterDetail.tableNames.trim();
@@ -69,7 +85,7 @@ public class DrcAutoBuildReq {
     public enum BuildMode {
         SINGLE_DB_NAME(0),
         DAL_CLUSTER_NAME(1),
-        MULTI_DB_NAME(2)
+        MULTI_DB_NAME(2),
         ;
 
         BuildMode(int value) {

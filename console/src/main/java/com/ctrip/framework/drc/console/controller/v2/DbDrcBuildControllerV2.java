@@ -184,6 +184,18 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("getExistDbMqConfigDcOption")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<DbMqConfigInfoDto>> getExistDbMqConfigDcOption(DrcAutoBuildReq req) {
+        logger.info("[meta] getDbDrcConfig, req: {}", req);
+        try {
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getExistDbMqConfigDcOption(req.getDbName()));
+        } catch (Throwable e) {
+            logger.error("[meta] getDbDrcConfig, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
 
     @GetMapping("getDbDrcConfig")
     @SuppressWarnings("unchecked")
@@ -198,12 +210,38 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("getDbMqConfig")
+    @SuppressWarnings("unchecked")
+    public ApiResult<DbMqConfigInfoDto> getDbMQConfig(DrcAutoBuildReq req) {
+        logger.info("[meta] getDbMQConfig, req: {}", req);
+        try {
+            DbMqConfigInfoDto dbMqConfig = dbDrcBuildService.getDbMqConfig(req.getDbName(), req.getSrcRegionName());
+            return ApiResult.getSuccessInstance(dbMqConfig);
+        } catch (Throwable e) {
+            logger.error("[meta] getDbMQConfig, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @PostMapping("switchAppliers")
     @SuppressWarnings("unchecked")
     public ApiResult<Boolean> switchAppliers(@RequestBody List<DbApplierSwitchReqDto> reqDtos) {
         logger.info("[meta] autoBuildReq, req {}", reqDtos);
         try {
             dbDrcBuildService.switchAppliers(reqDtos);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("[meta] autoBuildReq, req {}", reqDtos, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("switchMessengers")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> switchMessengers(@RequestBody List<DbApplierSwitchReqDto> reqDtos) {
+        logger.info("[meta] autoBuildReq, req {}", reqDtos);
+        try {
+            dbDrcBuildService.switchMessengers(reqDtos);
             return ApiResult.getSuccessInstance(true);
         } catch (Throwable e) {
             logger.error("[meta] autoBuildReq, req {}", reqDtos, e);
@@ -255,6 +293,46 @@ public class DbDrcBuildControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @PostMapping("dbMq/create")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDbMqReplication(@RequestBody DbMqCreateDto dbMqCreateDto) {
+        logger.info("[meta] createDbReplication, req {}", dbMqCreateDto);
+        try {
+            dbDrcBuildService.createDbMqReplication(dbMqCreateDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("[meta] createDbReplication, req {}", dbMqCreateDto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("dbMq/edit")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> editDMqbReplication(@RequestBody DbMqEditDto dbMqEditDto) {
+        logger.info("[meta] editDMqbReplication, req {}", dbMqEditDto);
+        try {
+            dbDrcBuildService.editDbMqReplication(dbMqEditDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("[meta] editDMqbReplication, req {}", dbMqEditDto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("dbMq/delete")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> deleteDbMqReplication(@RequestBody DbMqEditDto dbMqEditDto) {
+        logger.info("[meta] deleteDbReplication, req {}", dbMqEditDto);
+        try {
+            dbDrcBuildService.deleteDbMqReplication(dbMqEditDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("[meta] deleteDbReplication, req {}", dbMqEditDto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @PostMapping("dbReplication/edit")
     @SuppressWarnings("unchecked")
     public ApiResult<Boolean> editDbReplication(@RequestBody DbReplicationEditDto dbReplicationEditDto) {
@@ -294,6 +372,17 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
-
+    @PostMapping("mhaDbReplicationForMq/create")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createMhaDbReplicationForMq(@RequestBody MhaDbReplicationCreateDto createDto) {
+        logger.info("[meta] createMhaDbReplicationForMq, req {}", createDto);
+        try {
+            dbDrcBuildService.createMhaDbReplicationForMq(createDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("[meta] createMhaDbReplicationForMq, req {}", createDto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 
 }

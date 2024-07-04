@@ -9,66 +9,113 @@
         {{ alertInfo.title }}
         <template #desc>{{ alertInfo.message }}</template>
       </Alert>
-      <Col span="12">
-        <Row style="margin-right: 20px">
-          <Divider>1. 选择同步方向</Divider>
-          <Col span="11">
-            <Card :bordered="true">
-              <template #title>
-                <Icon type="ios-pin"/>
-                源 region
-              </template>
-              <Select filterable clearable v-model="formItem.srcRegionName" placeholder="地域"
-                      @on-change="afterSwitchRegion">
-                <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
-                  {{ region }}
-                </Option>
-              </Select>
-            </Card>
-          </Col>
-          <Col span="2" style="text-align: center">
-            <Button size="small" shape="circle" type="default" :loading="dataLoading" @click="getRegionOptions">
-              ->
+      <div v-if="replicationType === meta.replicationType.DB_TO_DB">
+        <Col span="12">
+          <Row style="margin-right: 20px">
+            <Divider>1. 选择同步方向</Divider>
+            <Col span="11">
+              <Card :bordered="true">
+                <template #title>
+                  <Icon type="ios-pin"/>
+                  源 region
+                </template>
+                <Select filterable clearable v-model="formItem.srcRegionName" placeholder="地域"
+                        @on-change="afterSwitchRegion">
+                  <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
+                    {{ region }}
+                  </Option>
+                </Select>
+              </Card>
+            </Col>
+            <Col span="2" style="text-align: center">
+              <Button size="small" shape="circle" type="default" :loading="dataLoading" @click="getRegionOptions">
+                ->
+              </Button>
+            </Col>
+            <Col span="11">
+              <Card :bordered="true">
+                <template #title>
+                  <Icon type="ios-pin"/>
+                  目标 region
+                </template>
+                <Select filterable clearable v-model="formItem.dstRegionName" placeholder="地域"
+                        @on-change="afterSwitchRegion">
+                  <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
+                    {{ region }}
+                  </Option>
+                </Select>
+              </Card>
+            </Col>
+          </Row>
+        </Col>
+        <Col span="12">
+          <Row>
+            <Divider>2. 预览：同步集群</Divider>
+            <Button type="primary" :loading="table.dbMhaTableLoading" @click="getDalInfo" style="margin-bottom: 5px">
+              检查同步集群
             </Button>
-          </Col>
-          <Col span="11">
-            <Card :bordered="true">
-              <template #title>
-                <Icon type="ios-pin"/>
-                目标 region
-              </template>
-              <Select filterable clearable v-model="formItem.dstRegionName" placeholder="地域"
-                      @on-change="afterSwitchRegion">
-                <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
-                  {{ region }}
-                </Option>
-              </Select>
-            </Card>
-          </Col>
-        </Row>
-      </Col>
-      <Col span="12">
-        <Row>
-          <Divider>2. 预览：同步集群</Divider>
-          <Button type="primary" :loading="table.dbMhaTableLoading" @click="getDalInfo" style="margin-bottom: 5px">
-            检查同步集群
-          </Button>
-          <Table size="small" :loading="table.dbMhaTableLoading" stripe :columns="table.dbMhaTableColumn"
-                 :data="preCheckMhaReplicationPage" border></Table>
-          <div>
-            <Page
-              :transfer="true"
-              :total="previewDataList.length"
-              :current.sync="table.dbMhaTablePage.current"
-              :page-size-opts="table.dbMhaTablePage.pageSizeOpts"
-              :page-size="table.dbMhaTablePage.size"
-              show-total
-              show-sizer
-              show-elevator
-              @on-page-size-change="(val) => {table.dbMhaTablePage.size = val}"></Page>
-          </div>
-        </Row>
-      </Col>
+            <Table size="small" :loading="table.dbMhaTableLoading" stripe :columns="table.dbMhaTableColumn"
+                   :data="preCheckMhaReplicationPage" border></Table>
+            <div>
+              <Page
+                  :transfer="true"
+                  :total="previewDataList.length"
+                  :current.sync="table.dbMhaTablePage.current"
+                  :page-size-opts="table.dbMhaTablePage.pageSizeOpts"
+                  :page-size="table.dbMhaTablePage.size"
+                  show-total
+                  show-sizer
+                  show-elevator
+                  @on-page-size-change="(val) => {table.dbMhaTablePage.size = val}"></Page>
+            </div>
+          </Row>
+        </Col>
+      </div>
+      <div v-if="replicationType === meta.replicationType.DB_TO_MQ">
+        <Col span="12">
+          <Row style="margin-right: 20px">
+            <Divider>1. 选择消息投递Region</Divider>
+            <Col span="24">
+              <Card :bordered="true">
+                <template #title>
+                  <Icon type="ios-pin"/>
+                  源 region
+                  <Button size="small" shape="circle" type="default" :loading="dataLoading" style="margin-left: 50px" @click="getRegionOptions">刷新
+                  </Button>
+                </template>
+                <Select filterable clearable v-model="formItem.srcRegionName" placeholder="地域"
+                        @on-change="afterSwitchRegion">
+                  <Option v-for="region in meta.regionOptions" :value="region" :key="region" :label="region">
+                    {{ region }}
+                  </Option>
+                </Select>
+              </Card>
+            </Col>
+          </Row>
+        </Col>
+        <Col span="12">
+          <Row>
+            <Divider>2. 预览：消息投递集群</Divider>
+            <Button type="primary" :loading="table.dbMhaTableLoading" @click="getDalInfo" style="margin-bottom: 5px">
+              检查同步集群
+            </Button>
+            <Table size="small" :loading="table.dbMhaTableLoading" stripe :columns="table.dbMhaMqTableColumn"
+                   :data="preCheckMhaReplicationPage" border></Table>
+            <div>
+              <Page
+                  :transfer="true"
+                  :total="previewDataList.length"
+                  :current.sync="table.dbMhaTablePage.current"
+                  :page-size-opts="table.dbMhaTablePage.pageSizeOpts"
+                  :page-size="table.dbMhaTablePage.size"
+                  show-total
+                  show-sizer
+                  show-elevator
+                  @on-page-size-change="(val) => {table.dbMhaTablePage.size = val}"></Page>
+            </div>
+          </Row>
+        </Col>
+      </div>
     </Row>
     <Divider></Divider>
     <Button @click="createReplication" :loading="dataLoading" type="primary">提交</Button>
@@ -82,6 +129,7 @@ export default {
   name: 'mhaPreview',
   components: {},
   props: {
+    replicationType: Number,
     dbName: String,
     existReplicationRegionOptions: Array
   },
@@ -90,7 +138,11 @@ export default {
     return {
       meta: {
         regionOptions: [],
-        existReplicationRegionOptions: []
+        existReplicationRegionOptions: [],
+        replicationType: {
+          DB_TO_DB: 0,
+          DB_TO_MQ: 1
+        }
       },
       alertInfo: {
         show: false,
@@ -155,6 +207,32 @@ export default {
             }
           }
         ],
+        dbMhaMqTableColumn: [
+          {
+            title: 'DB名',
+            key: 'dbName'
+          },
+          {
+            title: '源集群',
+            key: 'srcMhaName',
+            render: (h, params) => {
+              const row = params.row
+              const mha = row.srcMha
+              if (mha != null) {
+                return h('div', [
+                  h('span', mha.name),
+                  h('span', {
+                    style:
+                        {
+                          float: 'right',
+                          color: '#ababab'
+                        }
+                  }, mha.regionName + '(' + mha.dcName + ')')
+                ])
+              }
+            }
+          }
+        ],
         dbMhaTablePage: {
           total: 0,
           current: 1,
@@ -207,7 +285,7 @@ export default {
           mode: this.constants.DAL_CLUSTER_MODE,
           dbName: this.dbName,
           srcRegionName: this.formItem.srcRegionName,
-          dstRegionName: this.formItem.dstRegionName
+          replicationType: this.replicationType
         }
       })
         .then(response => {
@@ -232,12 +310,19 @@ export default {
       const params = {
         srcRegionName: this.formItem.srcRegionName,
         dstRegionName: this.formItem.dstRegionName,
-        dbName: this.dbName
+        dbName: this.dbName,
+        replicationType: this.replicationType
       }
       this.alertInfo.show = false
       this.alertInfo.successShow = false
       this.dataLoading = true
-      await this.axios.post('/api/drc/v2/autoconfig/mhaDbReplication/create', params)
+      let scene
+      if (this.replicationType === this.meta.replicationType.DB_TO_MQ) {
+        scene = 'mhaDbReplicationForMq'
+      } else {
+        scene = 'mhaDbReplication'
+      }
+      await this.axios.post('/api/drc/v2/autoconfig/' + scene + '/create', params)
         .then(response => {
           const data = response.data
           const success = data.status === 0

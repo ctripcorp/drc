@@ -14,6 +14,13 @@ public enum AutoBuildErrorEnum implements IErrorDef {
     ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST("ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST", "original configuration is missing. maybe it's modified or deleted. please fresh the page and try again"),
     CREATE_MHA_DB_REPLICATION_FAIL_CONFIG_EXIST("CREATE_MHA_DB_REPLICATION_FAIL_CONFIG_EXIST", "replication already exists. please fresh the page and try again"),
     GET_BU_CODE_FOR_DB_FAIL("GET_BU_CODE_FOR_DB_FAIL", "get bu code fail. different bu code found for dbs"),
+    PRE_CHECK_MYSQL_TABLE_INFO_FAIL("PRE_CHECK_MYSQL_TABLE_INFO_FAIL", "pre check mysql table fail."),
+
+    /**
+     * mq
+     */
+    MQ_CONFIG_CHECK_FAIL("MQ_CONFIG_CHECK_FAIL", "pre check mq config fail"),
+
     ;
 
 

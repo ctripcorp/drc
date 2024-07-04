@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.ColumnsFilterCreateParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
@@ -171,7 +172,6 @@ public class DrcAutoBuildServiceImplTest {
         Assert.assertFalse(StringUtils.isBlank(drcBuildParam.get(0).getSrcMhaName()));
 
 
-
         req = getDrcAutoBuildReqForMultiDb();
         drcBuildParam = drcAutoBuildServiceImpl.getDrcBuildParam(req);
         Assert.assertEquals(1, drcBuildParam.size());
@@ -282,6 +282,7 @@ public class DrcAutoBuildServiceImplTest {
         req.setTag(null);
         drcAutoBuildServiceImpl.autoBuildDrc(req);
     }
+
     @Test(expected = IllegalArgumentException.class)
     public void testAutoBuildNoTag() throws Exception {
         DrcAutoBuildReq req = getDrcAutoBuildReqForSingleDb();
@@ -289,6 +290,7 @@ public class DrcAutoBuildServiceImplTest {
         req.setTag("COMMON");
         drcAutoBuildServiceImpl.autoBuildDrc(req);
     }
+
     @Test
     public void testAutoBuild() throws Exception {
         DrcAutoBuildReq req = getDrcAutoBuildReqForSingleDb();
@@ -324,7 +326,7 @@ public class DrcAutoBuildServiceImplTest {
         verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
-        verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(),any());
+        verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(), any());
         verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any());
     }
 
@@ -351,6 +353,8 @@ public class DrcAutoBuildServiceImplTest {
         TblsFilterDetail tblsFilterDetail = new TblsFilterDetail();
         tblsFilterDetail.setTableNames("testTable1");
         req.setTblsFilterDetail(tblsFilterDetail);
+        req.setBuName("bu");
+        req.autoSetTag();
 
         return req;
     }
@@ -359,7 +363,7 @@ public class DrcAutoBuildServiceImplTest {
     private static DrcAutoBuildReq getDrcAutoBuildReqForMultiDb() {
         DrcAutoBuildReq req = new DrcAutoBuildReq();
         req.setMode(DrcAutoBuildReq.BuildMode.MULTI_DB_NAME.getValue());
-        req.setDbName(String.join(",",TEST_DB_NAME,TEST_DB_NAME2));
+        req.setDbName(String.join(",", TEST_DB_NAME, TEST_DB_NAME2));
         req.setSrcRegionName("ntgxh");
         req.setDstRegionName("sin");
         TblsFilterDetail tblsFilterDetail = new TblsFilterDetail();

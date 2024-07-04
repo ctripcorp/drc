@@ -1,0 +1,103 @@
+<template>
+  <div :style="{padding: '1px 1px',height: '100%'}">
+    <Collapse v-model="value">
+      <Panel v-for="(mhaMqDto, index) in mhaMqDtos"
+             :key="mhaMqDto.srcMha.name +'-> mq'"
+             :name="String(index)">
+        {{ mhaMqDto.srcMha.name + ' ------ ' + ([mhaMqDto.mhaDbReplications.length] + 'DB') }}
+        <template #content>
+          <Button icon="ios-open-outline" @click="openModal(index)" style="margin-bottom: 10px"> 打开详情</Button>
+          <mha-db-mq-panel :mha-mq-dtos="mhaMqDto"/>
+              <Modal v-model="openDetailModal[index]" width="1500px" :footer-hide="true">
+                <drc-config ref="dbReplicationConfigComponent" v-if="openDetailModal[index]"
+                              :mha-name="mhaMqDto.srcMha.name"
+                              :dc="mhaMqDto.srcMha.dcName"
+                />
+              </Modal>
+        </template>
+      </Panel>
+    </Collapse>
+    <br/>
+    <Button type="primary" @click="goToSwitchAppliers" icon="md-sync">
+      切换Messenger生效配置
+    </Button>
+  </div>
+</template>
+
+<script>
+
+import MhaDbMqPanel from '@/components/v2/dbDrcBuild/mhaDbMqPanel.vue'
+import DrcConfig from '@/components/v2/mhaMessengers/drcConfig.vue'
+
+export default {
+  name: 'mhaMqPanel',
+  components: { DrcConfig, MhaDbMqPanel },
+  props: {
+    mhaMqDtos: Array
+  },
+  emits: ['updated'],
+  data () {
+    return {
+      value: [],
+      openDetailModal: [],
+      dataLoading: false
+    }
+  },
+  methods: {
+    openModal (index) {
+      this.$set(this.openDetailModal, index, true)
+    },
+    goToSwitchAppliers () {
+      this.$Modal.confirm({
+        title: '切换Messenger',
+        content: '<p>请确认</p>',
+        loading: true,
+        onOk: () => {
+          this.switchMessengers()
+        }
+      })
+    },
+    switchMessengers () {
+      const params = this.getSwitchParams()
+      console.log(params)
+      this.dataLoading = true
+      this.axios.post('/api/drc/v2/autoconfig/switchMessengers', params)
+        .then(response => {
+          const data = response.data
+          const success = data.status === 0
+          if (success) {
+            this.$Message.success('提交成功')
+          } else {
+            this.$Message.warning('提交失败: ' + data.message)
+          }
+        })
+        .catch(message => {
+          this.$Message.error('提交异常: ' + message)
+        })
+        .finally(() => {
+          this.$Modal.remove()
+          this.dataLoading = false
+          this.$emit('updated')
+        })
+    },
+    getSwitchParams () {
+      return this.mhaMqDtos.map((item) => {
+        return {
+          srcMhaName: item.srcMha.name,
+          dbNames: item.mhaDbReplications.map((mhaDbReplication) => {
+            return mhaDbReplication.src.dbName
+          })
+        }
+      })
+    }
+  },
+  created () {
+    console.log('mhaMqDtos', this.mhaMqDtos)
+    this.openDetailModal = Array(this.mhaMqDtos.length).fill(false)
+  }
+}
+</script>
+
+<style scoped>
+
+</style>
