@@ -42,7 +42,13 @@ public abstract class TableNameFilter extends AbstractLogEventFilter<OutboundLog
         return doNext(value, value.isSkipEvent());
     }
 
-    protected abstract void filterDrcTableMapEvent(OutboundLogEventContext value);
+    protected void filterDrcTableMapEvent(OutboundLogEventContext value) {
+        TableMapLogEvent tableMapLogEvent = value.readTableMapEvent();
+        if (shouldSkipTableMapEvent(tableMapLogEvent.getSchemaNameDotTableName())) {
+            value.setSkipEvent(true);
+            GTID_LOGGER.debug("[Skip] drc table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
+        }
+    }
 
     private void filterTableMapEvent(OutboundLogEventContext value) {
         Map<Long, TableMapLogEvent> rowsRelatedTableMap = value.getRowsRelatedTableMap();

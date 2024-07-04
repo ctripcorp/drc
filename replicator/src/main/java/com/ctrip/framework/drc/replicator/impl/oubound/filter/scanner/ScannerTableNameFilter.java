@@ -17,12 +17,6 @@ public class ScannerTableNameFilter extends TableNameFilter {
         this.senders = context.getScanner().getSenders();
     }
 
-
-    @Override
-    protected void filterDrcTableMapEvent(OutboundLogEventContext value) {
-        value.readTableMapEvent();
-    }
-
     @Override
     protected void filterRowsEvent(OutboundLogEventContext value) {
         super.filterRowsEvent(value);
