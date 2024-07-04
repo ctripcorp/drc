@@ -1750,11 +1750,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                     Account readAcc = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
                     Account writeAcc = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
                     mhaTblV2.setMonitorUserV2(monitorAcc.getUser());
-                    mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorAcc.getPassword()));
+                    mhaTblV2.setMonitorPasswordTokenV2(accountService.encrypt(monitorAcc.getPassword()));
                     mhaTblV2.setReadUserV2(readAcc.getUser());
-                    mhaTblV2.setReadPasswordToken(accountService.encrypt(readAcc.getPassword()));
+                    mhaTblV2.setReadPasswordTokenV2(accountService.encrypt(readAcc.getPassword()));
                     mhaTblV2.setWriteUserV2(writeAcc.getUser());
-                    mhaTblV2.setWritePasswordToken(accountService.encrypt(writeAcc.getPassword()));
+                    mhaTblV2.setWritePasswordTokenV2(accountService.encrypt(writeAcc.getPassword()));
                 } else {
                     if (consoleConfig.getAccountFromMetaSwitch()) {
                         MachineDto masterNode = machineDto.stream().filter(MachineDto::getMaster).findFirst().orElse(null);

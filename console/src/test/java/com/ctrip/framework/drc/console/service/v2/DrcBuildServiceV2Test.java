@@ -195,6 +195,9 @@ public class DrcBuildServiceV2Test {
         Mockito.when(consoleConfig.getAccountKmsTokenSwitch()).thenReturn(true);
         Mockito.when(consoleConfig.getAccountKmsTokenSwitchV2()).thenReturn(true);
         Mockito.when(consoleConfig.getAccountFromMetaSwitch()).thenReturn(true);
+        Mockito.when(consoleConfig.getDefaultMonitorAccountKmsToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDefaultReadAccountKmsToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDefaultWriteAccountKmsToken()).thenReturn("token");
         Mockito.when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root","root"));
         MachineDto masterInSrcMha = new MachineDto(3306,"ip1",true);
         MachineDto masterInDstMha = new MachineDto(3306,"ip2",true);
@@ -211,6 +214,15 @@ public class DrcBuildServiceV2Test {
         ));
         Mockito.verify(mhaTblDao, Mockito.never()).update(Mockito.any(MhaTblV2.class));
         Mockito.verify(mhaTblDao, Mockito.times(2)).insertWithReturnId(Mockito.any(MhaTblV2.class));
+
+        drcBuildServiceV2.buildMha(new DrcMhaBuildParam(
+                "srcMha", "dstMha",
+                "srcDc", "dstDc",
+                "BBZ", "srcTag", "dstTag",
+                null,
+                null
+        ));
+        Mockito.verify(mhaTblDao, Mockito.times(4)).insertWithReturnId(Mockito.any(MhaTblV2.class));
     }
 
     @Test
