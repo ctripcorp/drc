@@ -64,6 +64,6 @@ public class LogEventUtils {
     }
 
     public static boolean isApplierIgnored(LogEventType eventType) {
-        return LogEventType.rows_query_log_event == eventType || LogEventType.query_log_event == eventType;
+        return LogEventType.rows_query_log_event == eventType || LogEventType.query_log_event == eventType || LogEventType.drc_schema_snapshot_log_event == eventType;
     }
 }

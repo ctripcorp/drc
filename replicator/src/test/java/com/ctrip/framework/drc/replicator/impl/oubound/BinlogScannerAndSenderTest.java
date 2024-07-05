@@ -198,8 +198,8 @@ public class BinlogScannerAndSenderTest {
         fsm.put(LogEventType.write_rows_event_v2, Sets.newHashSet(LogEventType.xid_log_event, LogEventType.table_map_log_event, LogEventType.write_rows_event_v2));
         fsm.put(LogEventType.delete_rows_event_v2, Sets.newHashSet(LogEventType.xid_log_event, LogEventType.table_map_log_event, LogEventType.delete_rows_event_v2));
         fsm.put(drc_ddl_log_event, Sets.newHashSet(drc_table_map_log_event, gtid_log_event, LogEventType.xid_log_event, drc_ddl_log_event));
-        fsm.put(drc_table_map_log_event, Sets.newHashSet(LogEventType.xid_log_event, drc_table_map_log_event, LogEventType.drc_schema_snapshot_log_event, LogEventType.gtid_log_event, drc_ddl_log_event));
-        fsm.put(LogEventType.drc_schema_snapshot_log_event, Sets.newHashSet(LogEventType.drc_uuid_log_event));
+        fsm.put(drc_table_map_log_event, Sets.newHashSet(LogEventType.xid_log_event, drc_table_map_log_event, LogEventType.drc_schema_snapshot_log_event, LogEventType.drc_uuid_log_event, LogEventType.gtid_log_event, drc_ddl_log_event));
+        fsm.put(LogEventType.drc_schema_snapshot_log_event, Sets.newHashSet());
         fsm.put(LogEventType.drc_uuid_log_event, Sets.newHashSet(drc_ddl_log_event, LogEventType.gtid_log_event));
         fsm.put(LogEventType.format_description_log_event, Sets.newHashSet(LogEventType.previous_gtids_log_event));
         fsm.put(LogEventType.previous_gtids_log_event, Sets.newHashSet(drc_table_map_log_event, gtid_log_event));
