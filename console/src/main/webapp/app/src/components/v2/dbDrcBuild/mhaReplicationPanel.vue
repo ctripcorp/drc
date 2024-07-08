@@ -29,7 +29,6 @@
 <script>
 import MhaDbReplicationPanel from '@/components/v2/dbDrcBuild/mhaDbReplicationPanel.vue'
 import DrcBuildV2 from '@/views/v2/meta/buildStep/drcBuildV2.vue'
-import mhaDbReplications from '@/views/v2/meta/mhaDbReplications.vue'
 
 export default {
   name: 'mhaReplicationPanel',
@@ -95,7 +94,11 @@ export default {
     }
   },
   created () {
-    this.openDetailModal = Array(mhaDbReplications.length).fill(false)
+    this.openDetailModal = Array(this.mhaReplications.length).fill(false)
+    console.log('mhaReplications.length', this.mhaReplications)
+    if (this.mhaReplications && this.mhaReplications.length === 1) {
+      this.value = ['0']
+    }
   }
 }
 </script>

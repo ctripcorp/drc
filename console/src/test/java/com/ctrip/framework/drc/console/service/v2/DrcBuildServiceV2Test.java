@@ -31,6 +31,8 @@ import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.RouteTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
@@ -49,6 +51,7 @@ import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
@@ -80,6 +83,7 @@ import com.google.common.collect.Sets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
@@ -537,13 +541,44 @@ public class DrcBuildServiceV2Test {
 
     @Test
     public void testAutoConfigMessengersWithRealTimeGtid() throws Exception {
-        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        String gtid = "abc-zyn-test:1235";
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn(gtid);
         Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(1L, 1L));
         Mockito.when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
-        Mockito.when(resourceService.autoConfigureResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
+        Mockito.when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
+        Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(messengerGroupTblDao,Mockito.times(1)).update((MessengerGroupTbl) Mockito.argThat(e->{
+            MessengerGroupTbl group = (MessengerGroupTbl) e;
+            return group.getGtidExecuted().equals(gtid);
+        }));
+    }
+
+
+    @Test
+    public void testAutoConfigMessengers() throws Exception {
+        String gtid = "abc-zyn-test:1235";
+        MessengerGroupTbl value = MockEntityBuilder.buildMessengerGroupTbl(1L, 1L);
+        value.setGtidExecuted(gtid);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(value);
+        Mockito.when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setResourceId(1001L);
+        messengerTbl.setId(101L);
+        Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(1L))).thenReturn(Lists.newArrayList(messengerTbl));
+        ResourceTbl resourceTbl = new ResourceTbl();
+        resourceTbl.setId(1001L);
+        resourceTbl.setIp("10.12.13.14");
+        Mockito.when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(resourceTbl));
+        Mockito.when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
+                ModuleEnum.APPLIER.getCode()));
+        Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
+        drcBuildServiceV2.autoConfigMessenger(MockEntityBuilder.buildMhaTblV2(),null);
+        Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(messengerTblDao,Mockito.times(1)).batchUpdate(Mockito.argThat(e->e.stream().allMatch(tbl-> Objects.equals(tbl.getDeleted(), BooleanEnum.TRUE.getCode()))));
+        Mockito.verify(messengerGroupTblDao,Mockito.never()).update((MessengerGroupTbl) Mockito.anyObject());
     }
 
     @Test

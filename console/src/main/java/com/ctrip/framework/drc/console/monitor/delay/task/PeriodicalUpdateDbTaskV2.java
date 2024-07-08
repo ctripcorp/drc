@@ -32,9 +32,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
@@ -72,7 +70,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
     private static final int MAX_MAP_SIZE = 600;
 
-    private final ExecutorService updateExecutor = ThreadUtils.newFixedThreadPool(20, "updateTaskV2");
+    private final ExecutorService updateExecutor = ThreadUtils.newThreadExecutor(20, 20, 10000, "updateTaskV2");
 
     public static final String UPSERT_DB_SQL = "INSERT INTO `drcmonitordb`.`" + DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + "%s`(`id`, `delay_info`, `datachange_lasttime`) VALUES (%s, '%s', '%s') " +
             "ON DUPLICATE KEY UPDATE delay_info = '%s', datachange_lasttime = '%s';";
@@ -162,7 +160,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             String mhaName = e.getKey().getMhaName();
             return !CollectionUtils.isEmpty(mhaDbReplicationMap.get(mhaName));
         }).collect(Collectors.toSet());
-        List<Future<?>> list = Lists.newArrayList();
+        List<Callable<Object>> list = Lists.newArrayList();
         for (Map.Entry<MetaKey, MySqlEndpoint> endPointEntry : filteredEndpointEntries) {
             MetaKey metaKey = endPointEntry.getKey();
             Endpoint endpoint = endPointEntry.getValue();
@@ -170,42 +168,53 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             String mhaName = metaKey.getMhaName();
             String dcName = metaKey.getDc();
             String region = consoleConfig.getRegionForDc(dcName);
-            List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationMap.getOrDefault(mhaName, Collections.emptyList());
-            List<String> dbNames = mhaDbReplicationDtos.stream().map(e -> e.getSrc().getDbName()).collect(Collectors.toList());
+            List<MhaDbReplicationDto> allReplications = mhaDbReplicationMap.getOrDefault(mhaName, Collections.emptyList());
+            List<String> dbNames = allReplications.stream().map(e -> e.getSrc().getDbName()).collect(Collectors.toList());
             logger.info("[[monitor=delay_v2]] going to update for mha:{}, dbs:{}", mhaName, dbNames);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.delay.update", mhaName);
             WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-            for (MhaDbReplicationDto e : mhaDbReplicationDtos) {
-                list.add(updateExecutor.submit(() -> {
-                    String dbName = e.getSrc().getDbName().toLowerCase();
-                    Long mappingId = e.getSrc().getMhaDbMappingId();
-                    long timestampInMillis = System.currentTimeMillis();
-                    Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String delayInfoJson = DbDelayDto.DelayInfo.from(dcName, region, mhaName, dbName).toJson();
-                    String sql = String.format(UPSERT_DB_SQL, dbName, mappingId, delayInfoJson, timestamp, delayInfoJson, timestamp);
-                    GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-                    try {
-                        CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, timestamp);
-                        sqlOperatorWrapper.update(execution);
-                        long commitTimeInMillis = System.currentTimeMillis();
-                        boolean slowCommit = commitTimeInMillis - timestampInMillis > SLOW_COMMIT_THRESHOLD;
-                        CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
-                        if (slowCommit) {
-                            DatachangeLastTime datachangeLastTime = new DatachangeLastTime(registryKey, dbName, timestamp.toString());
-                            commitTimeMap.put(datachangeLastTime, commitTimeInMillis);
-                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] Put commitTimeMap: {} -> {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, datachangeLastTime.toString(), commitTimeInMillis);
+            List<List<MhaDbReplicationDto>> partitioned = Lists.partition(allReplications, 20);
+            for (List<MhaDbReplicationDto> mhaDbReplicationDtos : partitioned) {
+                Runnable runnable = () -> {
+                    for (MhaDbReplicationDto e : mhaDbReplicationDtos) {
+                        String dbName = e.getSrc().getDbName().toLowerCase();
+                        Long mappingId = e.getSrc().getMhaDbMappingId();
+                        if (!sqlOperatorWrapper.getLifecycleState().isStarted()) {
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] skip update db, sqlOperatorWrapper state: {}.", endpoint.getSocketAddress(), localDcName, registryKey, dbName, sqlOperatorWrapper.getLifecycleState().getPhaseName());
+                            return;
                         }
-                    } catch (Throwable t) {
-                        removeSqlOperator(endpoint);
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.delay.update.exception", mhaName + "." + dbName + ":" + endpoint.getHost() + ":" + endpoint.getPort());
-                        CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] fail update db, ", endpoint.getSocketAddress(), localDcName, registryKey, dbName, t);
+                        long timestampInMillis = System.currentTimeMillis();
+                        Timestamp timestamp = new Timestamp(timestampInMillis);
+                        String delayInfoJson = DbDelayDto.DelayInfo.from(dcName, region, mhaName, dbName).toJson();
+                        String sql = String.format(UPSERT_DB_SQL, dbName, mappingId, delayInfoJson, timestamp, delayInfoJson, timestamp);
+                        GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+                        try {
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, timestamp);
+                            sqlOperatorWrapper.update(execution);
+                            long commitTimeInMillis = System.currentTimeMillis();
+                            boolean slowCommit = commitTimeInMillis - timestampInMillis > SLOW_COMMIT_THRESHOLD;
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
+                            if (slowCommit) {
+                                DatachangeLastTime datachangeLastTime = new DatachangeLastTime(registryKey, dbName, timestamp.toString());
+                                commitTimeMap.put(datachangeLastTime, commitTimeInMillis);
+                                CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] Put commitTimeMap: {} -> {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, datachangeLastTime.toString(), commitTimeInMillis);
+                            }
+                        } catch (Throwable t) {
+                            removeSqlOperator(endpoint);
+                            DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.delay.update.exception", mhaName + "." + dbName + ":" + endpoint.getHost() + ":" + endpoint.getPort());
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] fail update db, ", endpoint.getSocketAddress(), localDcName, registryKey, dbName, t);
+                        }
                     }
-                }));
+                };
+                list.add(Executors.callable(runnable));
             }
         }
         try {
-            for (Future<?> future : list) {
-                future.get(defaultConsoleConfig.getDelayExceptionTimeInMilliseconds(), TimeUnit.MILLISECONDS);
+            long delayExceptionTimeInMilliseconds = defaultConsoleConfig.getDelayExceptionTimeInMilliseconds();
+            List<Future<Object>> futures = updateExecutor.invokeAll(list, delayExceptionTimeInMilliseconds, TimeUnit.MILLISECONDS);
+            if (futures.stream().anyMatch(Future::isCancelled)) {
+                DefaultEventMonitorHolder.getInstance().logAlertEvent("DRC.console.delay.update.timeout");
+                logger.error("[[monitor=delay_v2]] some task timeout: {} ms", delayExceptionTimeInMilliseconds);
             }
         } catch (Exception e) {
             DefaultEventMonitorHolder.getInstance().logAlertEvent("DRC.console.delay.update.timeout");

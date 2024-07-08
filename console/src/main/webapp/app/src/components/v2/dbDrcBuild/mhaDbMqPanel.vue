@@ -219,7 +219,7 @@ export default {
       this.delayDataLoading = true
       this.axios.get('/api/drc/v2/messenger/delay', { params: param })
         .then(response => {
-          const delays = response.data.data.delay
+          const delays = response.data.data[0].delayInfoDto.delay
           this.$set(this.mhaMqDtos, 'delay', delays)
         })
         .catch(message => {

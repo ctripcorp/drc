@@ -330,6 +330,7 @@ export default {
             this.alertInfo.successShow = true
             this.alertInfo.message = null
             this.alertInfo.title = '提交成功'
+            this.$Message.warning('提交成功')
             this.$emit('updated')
           } else {
             this.alertInfo.show = true
