@@ -918,34 +918,54 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Override
     public void autoConfigMessenger(MhaTblV2 mhaTbl, String gtid) throws SQLException {
         MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (StringUtils.isEmpty(messengerGroupTbl.getGtidExecuted()) && StringUtils.isEmpty(gtid)) {
+        if (StringUtils.isBlank(messengerGroupTbl.getGtidExecuted()) && StringUtils.isBlank(gtid)) {
             throw ConsoleExceptionUtils.message(String.format("configure messenger fail, init gtid needed! mha: %s", mhaTbl.getMhaName()));
         }
-        messengerGroupTbl.setGtidExecuted(gtid);
-        messengerGroupTblDao.update(messengerGroupTbl);
-        logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), gtid);
+        if (!StringUtils.isBlank(gtid) && !gtid.equals(messengerGroupTbl.getGtidExecuted())) {
+            messengerGroupTbl.setGtidExecuted(gtid);
+            messengerGroupTblDao.update(messengerGroupTbl);
+            logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), gtid);
+        }
+
+        // messengers
+        List<MessengerTbl> existMessengers = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        List<Long> inUseResourceId = existMessengers.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
+        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
 
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(mhaTbl.getMhaName());
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+        selectParam.setSelectedIps(inUseIps);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
         if (CollectionUtils.isEmpty(resourceViews)) {
             logger.error("[[mha={}]] autoConfigMessengers failed", mhaTbl.getMhaName());
             throw new ConsoleException("autoConfigMessengers failed!");
-        } else {
-            List<MessengerTbl> insertMessengers = Lists.newArrayList();
-            for (ResourceView resourceView : resourceViews) {
-                MessengerTbl messengerTbl = new MessengerTbl();
-                messengerTbl.setMessengerGroupId(messengerGroupTbl.getId());
-                messengerTbl.setResourceId(resourceView.getResourceId());
-                messengerTbl.setPort(DEFAULT_APPLIER_PORT);
-                messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                insertMessengers.add(messengerTbl);
-            }
-            int[] ints = messengerTblDao.batchInsert(insertMessengers);
-            logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
         }
+        // insert new messengers
+        List<MessengerTbl> insertMessengers = resourceViews.stream()
+                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
+                .map(e -> buildMessengerTbl(messengerGroupTbl, e))
+                .collect(Collectors.toList());
 
+        // delete old messengers
+        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+        List<MessengerTbl> deleteMessengers = existMessengers.stream()
+                .filter(e -> !newResourceId.contains(e.getResourceId()))
+                .collect(Collectors.toList());
+        deleteMessengers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        messengerTblDao.batchInsert(insertMessengers);
+        messengerTblDao.batchUpdate(deleteMessengers);
+        logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
+    }
+
+    private static MessengerTbl buildMessengerTbl(MessengerGroupTbl messengerGroupTbl, ResourceView resourceView) {
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setMessengerGroupId(messengerGroupTbl.getId());
+        messengerTbl.setResourceId(resourceView.getResourceId());
+        messengerTbl.setPort(DEFAULT_APPLIER_PORT);
+        messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return messengerTbl;
     }
 
     @Override

@@ -94,6 +94,9 @@ export default {
   created () {
     console.log('mhaMqDtos', this.mhaMqDtos)
     this.openDetailModal = Array(this.mhaMqDtos.length).fill(false)
+    if (this.mhaMqDtos.length === 1) {
+      this.value = ['0']
+    }
   }
 }
 </script>
