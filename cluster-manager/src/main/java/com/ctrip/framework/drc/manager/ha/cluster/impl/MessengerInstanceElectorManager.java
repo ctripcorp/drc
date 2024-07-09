@@ -16,6 +16,7 @@ import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.ObjectUtils;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
@@ -133,12 +134,18 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         currentMetaManager.setSurviveMessengers(clusterId, registryKey, survivalMessengers, activeMessenger);
     }
 
-    private Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
+    @VisibleForTesting
+    protected Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Messenger> messengerList = dbCluster.getMessengers();
         return messengerList.stream().filter(messenger ->
-                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port
-                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(messenger.getIncludedDbs(), targetDB)))
+                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port)
+                .filter(messenger -> {
+                    if (StringUtils.isBlank(targetDB)) {
+                        return StringUtils.isBlank(messenger.getIncludedDbs());
+                    }
+                    return ObjectUtils.equals(messenger.getIncludedDbs(), targetDB);
+                })
                 .findFirst().orElse(null);
     }
 

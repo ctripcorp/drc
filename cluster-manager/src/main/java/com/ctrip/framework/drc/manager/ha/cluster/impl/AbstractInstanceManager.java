@@ -147,7 +147,7 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
             }
         }
 
-        private Set<String> getAllRegistryKey(Map<String, List<M>> metaGroupByRegistryKeyMap, Map<String, List<I>> instanceGroupByRegistryKey) {
+        protected Set<String> getAllRegistryKey(Map<String, List<M>> metaGroupByRegistryKeyMap, Map<String, List<I>> instanceGroupByRegistryKey) {
             Set<String> registryKeysFromInstance = instanceGroupByRegistryKey.keySet().stream()
                     .filter(registryKey -> {
                         String clusterId = RegistryKey.from(registryKey).toString();

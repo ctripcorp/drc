@@ -15,6 +15,7 @@ import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.ObjectUtils;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
@@ -130,15 +131,20 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         currentMetaManager.setSurviveAppliers(clusterId, registryKey, survivalAppliers, activeApplier);
     }
 
-    private Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
+    @VisibleForTesting
+    protected Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
         return applierList.stream().filter(applier ->
                 applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port
                         && applier.getTargetMhaName().equalsIgnoreCase(targetMha)
-                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
-                .findFirst().orElse(null);
+                ).filter(applier -> {
+                    if (StringUtils.isBlank(targetDB)) {
+                        return StringUtils.isBlank(applier.getIncludedDbs());
+                    }
+                    return ObjectUtils.equals(applier.getIncludedDbs(), targetDB);
+                }).findFirst().orElse(null);
     }
 
     private void removeApplier(String clusterId, Applier applier) {
