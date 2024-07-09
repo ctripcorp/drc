@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.*;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnectorTest;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServerTest2;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2Test;
@@ -226,6 +227,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         ListenReplicatorTaskTest.class,
         ConflictLogManagerTest.class,
+        StaticDelayMonitorServerTest2.class,
 
         //entity
         MhaInstanceGroupDtoTest.class,

@@ -2,36 +2,32 @@ package com.ctrip.framework.drc.core.monitor.column;
 
 import com.ctrip.xpipe.api.codec.Codec;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DB-> DB drc delay dto
  */
 public class DbDelayDto {
     private final long id;
-    private final String mha;
-    private final String dbName;
-    private final String region;
-    private final String dcName;
+    private final DelayInfo delayInfo;
     private final Long datachangeLasttime;
 
 
-    public DbDelayDto(long id, String mha, String dbName, String region, String dcName, Long datachangeLasttime) {
+    public DbDelayDto(long id, DelayInfo delayInfo, Long datachangeLasttime) {
         this.id = id;
-        this.mha = mha;
-        this.dbName = dbName;
-        this.region = region;
-        this.dcName = dcName;
+        this.delayInfo = delayInfo;
         this.datachangeLasttime = datachangeLasttime;
     }
 
     public static DbDelayDto from(long id, DelayInfo delayInfo, Long datachangeLasttime) {
-        return new DbDelayDto(id, delayInfo.getM(), delayInfo.getB(), delayInfo.getR(), delayInfo.getD(), datachangeLasttime);
+        return new DbDelayDto(id, delayInfo, datachangeLasttime);
     }
 
 
     public String getDbName() {
-        return dbName;
+        return delayInfo.getB();
     }
 
     public long getId() {
@@ -39,15 +35,15 @@ public class DbDelayDto {
     }
 
     public String getMha() {
-        return mha;
+        return delayInfo.getM();
     }
 
     public String getRegion() {
-        return region;
+        return delayInfo.getR();
     }
 
     public String getDcName() {
-        return dcName;
+        return delayInfo.getD();
     }
 
     public Long getDatachangeLasttime() {
@@ -58,15 +54,13 @@ public class DbDelayDto {
     public String toString() {
         return "DbDelayDto{" +
                 "id=" + id +
-                ", mha='" + mha + '\'' +
-                ", dbName='" + dbName + '\'' +
-                ", region='" + region + '\'' +
-                ", dcName='" + dcName + '\'' +
+                ", delayInfo=" + delayInfo +
                 ", datachangeLasttime=" + datachangeLasttime +
                 '}';
     }
 
     public static class DelayInfo {
+        private static final Map<String, DelayInfo> FLYWEIGHT_CACHE = new ConcurrentHashMap<>();
         // dc
         private String d;
         // region
@@ -77,8 +71,9 @@ public class DbDelayDto {
         private String b;
 
         public static DelayInfo parse(String json) {
-            return Codec.DEFAULT.decode(json, DelayInfo.class);
+            return FLYWEIGHT_CACHE.computeIfAbsent(json, newJson -> Codec.DEFAULT.decode(newJson, DelayInfo.class));
         }
+
         public static DelayInfo from(String dc, String region, String mhaName, String dbName) {
             DelayInfo delayInfo = new DelayInfo();
             delayInfo.setD(dc);
@@ -87,7 +82,8 @@ public class DbDelayDto {
             delayInfo.setB(dbName);
             return delayInfo;
         }
-        public String toJson(){
+
+        public String toJson() {
             return Codec.DEFAULT.encode(this);
         }
 
@@ -97,6 +93,16 @@ public class DbDelayDto {
             if (!(o instanceof DelayInfo)) return false;
             DelayInfo delayInfo = (DelayInfo) o;
             return Objects.equals(d, delayInfo.d) && Objects.equals(r, delayInfo.r) && Objects.equals(m, delayInfo.m) && Objects.equals(b, delayInfo.b);
+        }
+
+        @Override
+        public String toString() {
+            return "DelayInfo{" +
+                    "d='" + d + '\'' +
+                    ", r='" + r + '\'' +
+                    ", m='" + m + '\'' +
+                    ", b='" + b + '\'' +
+                    '}';
         }
 
         @Override
