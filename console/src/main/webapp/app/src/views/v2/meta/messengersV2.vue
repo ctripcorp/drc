@@ -73,7 +73,7 @@
                 <template #list>
                   <DropdownMenu >
                     <DropdownItem @click.native="() => {$router.push({path: '/v2/buildMessengerV2'})}">新建Messenger配置</DropdownItem>
-                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbMqBuildV2'})}">新建Messenger配置（DB纬度）</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbMqBuildV2'})}">新建Messenger配置（DB维度）</DropdownItem>
                   </DropdownMenu>
                 </template>
               </Dropdown>

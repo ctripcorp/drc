@@ -1,20 +1,37 @@
-package com.ctrip.framework.drc.core.monitor.column;
+package com.ctrip.framework.drc.console.monitor.delay.server;
 
+import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
+import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
+import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
+import com.ctrip.framework.drc.core.monitor.column.DbDelayMonitorColumn;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-import java.text.ParseException;
-import java.util.List;
-
+import static org.mockito.Mockito.*;
 
 /**
- * Created by jixinwang on 2021/11/11
+ * @author: yongnian
+ * @create: 2024/7/9 13:21
  */
-public class DbDelayMonitorColumnTest {
+public class StaticDelayMonitorServerTest2 {
+    @InjectMocks
+    StaticDelayMonitorServer staticDelayMonitorServer = new StaticDelayMonitorServer(mock(DelayMonitorSlaveConfig.class), null, null, null, null, 30000);
+
+    @Mock
+    PeriodicalUpdateDbTask periodicalUpdateDbTask;
+    @Mock
+    PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
+
     byte[] dbDelayBytes = new byte[]{
             (byte) 0x51, (byte) 0x96, (byte) 0x5c, (byte) 0x65, (byte) 0x1f, (byte) 0xea, (byte) 0x0c, (byte) 0x00, (byte) 0x00, (byte) 0xd0, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xd7, (byte) 0xf1, (byte) 0xd0, (byte) 0x1f, (byte) 0x00, (byte) 0x00,
             (byte) 0x30, (byte) 0x5D, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x03, (byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0xD9, (byte) 0x41,
@@ -54,92 +71,33 @@ public class DbDelayMonitorColumnTest {
         return byteBuf;
     }
 
+    @Before
+    public void setUp() throws Exception {
+        MockitoAnnotations.openMocks(this);
+        when(staticDelayMonitorServer.getConfig().getEndpoint()).thenReturn(new DefaultEndPoint("ip1", 8080));
+    }
+
     @Test
-    public void testMatch() {
+    public void processMhaDelayEvent() {
+        ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
+        DelayMonitorLogEvent mhaDelayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
+        DbDelayDto dbDelayDto = DbDelayMonitorColumn.tryParseEvent(mhaDelayMonitorLogEvent);
+        Assert.assertNull(dbDelayDto);
+
+        staticDelayMonitorServer.processDelayEvent(mhaDelayMonitorLogEvent);
+        verify(periodicalUpdateDbTask, times(1)).getAndDeleteCommitTime(any());
+        verify(periodicalUpdateDbTaskV2, never()).getAndDeleteCommitTime(any());
+    }
+
+    @Test
+    public void processDbDelayEvent() {
         ByteBuf eventByteBuf = initByteBuf(dbDelayBytes);
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
-        Assert.assertNotNull(DbDelayMonitorColumn.tryParseEvent(delayMonitorLogEvent));
-    }
-
-    @Test
-    public void testReadOrigin() {
-        ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
-        DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
-        Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
-        List<List<Object>> afterPresentRowsValues = DelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
-        Assert.assertEquals(4, afterPresentRowsValues.get(0).size());
-        delayMonitorLogEvent.release();
-    }
-
-    @Test
-    public void testMatchThenParse() {
-        ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
-        DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        Assert.assertFalse(DbDelayMonitorColumn.match(delayMonitorLogEvent));
-        Assert.assertNull(DbDelayMonitorColumn.tryParseEvent(delayMonitorLogEvent));
-        Assert.assertTrue(DelayMonitorColumn.match(delayMonitorLogEvent));
-        String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
-        Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
-
-        eventByteBuf = initByteBuf(dbDelayBytes);
-        delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
-        Assert.assertFalse(DelayMonitorColumn.match(delayMonitorLogEvent));
-        delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
-        Assert.assertEquals("ntgxh", delayMonitorSrcDcName);
-    }
-
-    @Test
-    public void testParseDbDelayEvent() throws ParseException {
-        ByteBuf dbEventByteBuf = initByteBuf(dbDelayBytes);
-        DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(dbEventByteBuf));
-
-        // 1. match
-        Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
-
-        // 2. get src name
-        String delayMonitorSrcDcName = DbDelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
-        Assert.assertEquals(delayMonitorSrcDcName, "ntgxh");
-
-        // 3. get rows
-        List<List<Object>> afterPresentRowsValues2 = DbDelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
-        Assert.assertEquals(3, afterPresentRowsValues2.get(0).size());
-
-        // 4. get dto
-        DbDelayDto dbDelayDto = DbDelayMonitorColumn.parseEvent(delayMonitorLogEvent);
+        DbDelayDto dbDelayDto = DbDelayMonitorColumn.tryParseEvent(delayMonitorLogEvent);
         Assert.assertNotNull(dbDelayDto);
-        System.out.println(dbDelayDto);
-        Assert.assertEquals("zyn_test_1", dbDelayDto.getMha());
-        Assert.assertEquals("zyn_test_shard_db162", dbDelayDto.getDbName());
-        Assert.assertEquals("ntgxh", dbDelayDto.getRegion());
-        Assert.assertEquals("ntgxh", dbDelayDto.getDcName());
-        Assert.assertEquals(Long.valueOf(1700566609376L), dbDelayDto.getDatachangeLasttime());
-        delayMonitorLogEvent.release();
-    }
 
-
-    @Test
-    public void testLoadTwice() {
-        ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
-        DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-
-        // 1. test load normal twice
-        List<List<Object>> rows1 = DelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
-        List<List<Object>> rwos2 = DelayMonitorColumn.getAfterPresentRowsValues(delayMonitorLogEvent);
-        Assert.assertEquals(rows1, rwos2);
-
-        delayMonitorLogEvent.release();
-    }
-
-    @Test
-    public void testPrint() {
-        ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
-        ByteBuf dbeventByteBuf = initByteBuf(dbDelayBytes);
-        DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        DelayMonitorLogEvent dbDelayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(dbeventByteBuf));
-        System.out.println(DbDelayMonitorColumn.getUpdateRowsBytes(delayMonitorLogEvent.getUpdateRowsEvent()));
-        System.out.println(DbDelayMonitorColumn.getUpdateRowsBytes(dbDelayMonitorLogEvent.getUpdateRowsEvent()));
+        staticDelayMonitorServer.processDelayEvent(delayMonitorLogEvent);
+        verify(periodicalUpdateDbTaskV2, times(1)).getAndDeleteCommitTime(any());
+        verify(periodicalUpdateDbTask, never()).getAndDeleteCommitTime(any());
     }
 }

@@ -18,6 +18,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String SCANNER_MERGE_GTID_GAP_MAX = "binlog.scanner.merge.gtid.gap.max";
     private static final String SCANNER_MERGE_PERIOD_MILLI = "binlog.scanner.merge.period";
     private static final String SCANNER_SPLIT_EVENT_THRESHOLD = "binlog.scanner.split.event.threshold";
+    private static final String CONSOLE_LOG_DELAY_THRESHOLD = "console.log.delay.threshold";
 
     private static final String DATASOURCE_SOCKET_TIMEOUT = "datasource.socket.timeout";
 
@@ -47,6 +48,10 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public int getScannerSplitThreshold() {
         return getIntProperty(SCANNER_SPLIT_EVENT_THRESHOLD, 8000);
+    }
+
+    public long getLogDelayDetailThresholdMillis() {
+        return getIntProperty(CONSOLE_LOG_DELAY_THRESHOLD, 500);
     }
 
     private static class ConfigHolder {
