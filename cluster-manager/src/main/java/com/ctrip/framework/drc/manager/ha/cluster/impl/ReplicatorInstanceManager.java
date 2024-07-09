@@ -12,10 +12,12 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ReplicatorComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @Author limingdong
@@ -109,6 +111,12 @@ public class ReplicatorInstanceManager extends AbstractInstanceManager implement
         @Override
         protected Map<String, List<Replicator>> getMetaGroupByRegistryKeyMap() {
             return currentMetaManager.getAllMetaReplicator();
+        }
+
+        @Override
+        protected Set<String> getAllRegistryKey(Map<String, List<Replicator>> metaGroupByRegistryKeyMap, Map<String, List<ReplicatorInfoDto>> instanceGroupByRegistryKey) {
+            // ignore registry keys fetched from instance (when re-balance cluster, it could lead to false removal.)
+            return Sets.newHashSet(metaGroupByRegistryKeyMap.keySet());
         }
 
         @Override
