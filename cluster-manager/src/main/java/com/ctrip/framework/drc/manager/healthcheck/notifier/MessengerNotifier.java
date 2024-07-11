@@ -71,7 +71,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
         config.replicator.mhaName = DRC_MQ;
 
         for (Messenger messenger : dbCluster.getMessengers()) {
-            if (ipAndPort.equals(messenger.getIp() + ":" + messenger.getPort())) {
+            if (ipAndPort.equals(getInstancesNotifyIpPort(messenger))) {
                 config.ip = messenger.getIp();
                 config.port = messenger.getPort();
                 config.setGtidExecuted(messenger.getGtidExecuted());
@@ -101,7 +101,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
             return Lists.newArrayList();
         }
         return Lists.newArrayList(dbCluster.getMessengers().stream().map(
-                messenger -> messenger.getIp() + ":" + messenger.getPort()
+                this::getInstancesNotifyIpPort
         ).collect(Collectors.toList()));
     }
 }

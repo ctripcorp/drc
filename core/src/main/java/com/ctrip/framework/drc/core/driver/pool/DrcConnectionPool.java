@@ -103,7 +103,6 @@ public class DrcConnectionPool extends ConnectionPool {
             conn.setAutoCommit(true);
             try (Statement statement = conn.createStatement()) {
                 if (statement != null) {
-                    statement.setQueryTimeout(1);
                     statement.execute(String.format("set session wait_timeout = %d", sessionWaitTimeout));
                     try (ResultSet rs = statement.executeQuery("show session variables like 'wait_timeout'")) {
                         if (rs.next() && sessionWaitTimeout == rs.getInt(2)) {

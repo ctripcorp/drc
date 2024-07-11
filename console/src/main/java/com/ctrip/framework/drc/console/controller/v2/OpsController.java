@@ -28,14 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/drc/v2/ops")
 public class OpsController {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     @Autowired
     private RowsFilterServiceV2 rowsFilterServiceV2;
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
     private AccountService accountService;
-    
+
     @GetMapping("migrate/sgp/rowsFilter")
     public ApiResult getRowsFilterIdsShouldMigrateToSGP(@RequestParam String srcRegion) {
         try {
@@ -46,7 +46,7 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    
+
     @PostMapping("migrate/sgp/rowsFilter")
     public ApiResult migrateRowsFilterToSGP(@RequestBody List<Long> rowsFilterIds,@RequestParam String srcRegion,@RequestParam String dstRegion) {
         try {
@@ -57,7 +57,7 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    
+
     @PostMapping("gtid/gapCompensate")
     public ApiResult gapCompensate(@RequestBody GtidCompensateParam gtidCompensateParam) {
         try {
@@ -67,7 +67,7 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    
+
     @PostMapping("account/passwordToken")
     public ApiResult initMhaPasswordToken(@RequestBody List<String> mhas) {
         try {
@@ -78,7 +78,7 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    
+
     @PostMapping("account/accountV2")
     public ApiResult initMhaAccountV2(@RequestBody List<String> mhas,@RequestParam boolean forceChange) {
         try {
@@ -88,7 +88,7 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    
+
     @PostMapping("account/accountV2Check")
     public ApiResult checkNewAccounts(@RequestBody List<String> mhas) {
         try {
@@ -98,5 +98,5 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    
+
 }

@@ -11,6 +11,8 @@ import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.foundation.Foundation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Maps;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Map;
 import javax.servlet.annotation.HandlesTypes;
 import org.apache.commons.lang3.StringUtils;
@@ -40,7 +42,9 @@ public class KmsServiceImplTest {
     
     @Test
     public void testGetSecretKey() {
-       
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
     }
 
     

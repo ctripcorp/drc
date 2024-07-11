@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.server.config;
 
+import static com.ctrip.framework.drc.core.http.RestTemplateFactory.SSL_PORT;
+
 import com.ctrip.framework.drc.core.server.utils.IpUtils;
 import com.ctrip.xpipe.utils.OsUtils;
 import org.slf4j.Logger;
@@ -60,6 +62,8 @@ public class SystemConfig {
     public static final int CONNECTION_IDLE_TIMEOUT_SECOND = MASTER_HEARTBEAT_PERIOD_SECONDS * 3;
 
     public static final long SLOW_COMMIT_THRESHOLD = 500L;
+
+    public static final Integer HTTPS_PORT = 8081;
 
     public static final String DOT = ".";
 

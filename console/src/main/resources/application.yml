@@ -1,3 +1,5 @@
+
+
 src:
   datasource:
     jdbc-url: jdbc:mysql://{serverIP}:{port}/{db}?useUnicode=true&characterEncoding=utf-8&serverTimezone=CST&useServerPrepStmts=true
