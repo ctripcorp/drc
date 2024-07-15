@@ -1,13 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.dao.DbTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
@@ -30,6 +24,7 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
+import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -46,6 +41,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -83,6 +79,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
     private ReplicatorTblDao replicatorTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
@@ -491,4 +489,103 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         }
     }
 
+    @Override
+    public MhaSyncView mhaSyncCount() throws SQLException {
+        MhaSyncView view = new MhaSyncView();
+        Set<Long> mhaSyncIdSet = Sets.newHashSet();
+        Set<String> dbNameSet = Sets.newHashSet();
+        Set<String> dbSyncSet = Sets.newHashSet();
+        Set<String> dalClusterSet = Sets.newHashSet();
+        Set<String> dbMessengerSet = Sets.newHashSet();
+        Set<String> dbOtterSet = Sets.newHashSet();
+
+        List<ApplierTblV3> applierTblV3s = applierTblV3Dao.queryAllExist();
+        List<Long> applierGroupIds = applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).distinct().collect(Collectors.toList());
+        List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryAllExist();
+        List<Long> applierGroupMhaDbRepList = applierGroupTblV3s.stream()
+                .filter(e -> applierGroupIds.contains(e.getId()))
+                .map(ApplierGroupTblV3::getMhaDbReplicationId).distinct().collect(Collectors.toList());
+
+        //db_replication_tbl
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist();
+
+        //mha_db_mapping_tbl
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+        Map<Long,MhaDbMappingTbl> MhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> e));
+
+        //mha_replication_tbl
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllExist();
+        Map<Long,Map<Long,MhaReplicationTbl>> mhaReplicationMap = mhaReplicationTbls.stream()
+                .collect(Collectors.groupingBy(MhaReplicationTbl::getSrcMhaId,
+                        Collectors.toMap(MhaReplicationTbl::getDstMhaId, e -> e)));
+        //mha_db_replication_tbl
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAllExist();
+        Map<Long,Map<Long,MhaDbReplicationTbl>> mhaDbReplicationMap = mhaDbReplicationTbls.stream()
+                .collect(Collectors.groupingBy(MhaDbReplicationTbl::getSrcMhaDbMappingId,
+                        Collectors.toMap(MhaDbReplicationTbl::getDstMhaDbMappingId, e -> e)));
+
+        //db_tbl
+        List<DbTbl> dbTbls = dbTblDao.queryAllExist();
+        Map<Long,DbTbl> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, e -> e));
+
+        //mha_tbl_v2
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        Map<Long,MhaTblV2> mhaTblMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
+
+        //messenger_tbl
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllExist();
+        List<Long> messengerGroupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
+
+        //messenger_group_tbl
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAllExist();
+        List<Long> messengerGroupMhaIdList = messengerGroupTbls.stream()
+                .filter(e -> messengerGroupIds.contains(e.getId()))
+                .map(MessengerGroupTbl::getMhaId).distinct().collect(Collectors.toList());
+
+        for (DbReplicationTbl dbRepliTbl : dbReplicationTbls) {
+            try {
+                if (dbRepliTbl.getReplicationType() == 0) {
+                    MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
+                    MhaDbMappingTbl dstMapping = MhaDbMappingMap.get(dbRepliTbl.getDstMhaDbMappingId());
+                    MhaReplicationTbl mhaRepli = mhaReplicationMap.get(srcMapping.getMhaId()).get(dstMapping.getMhaId());
+                    MhaDbReplicationTbl mhaDbRepli = mhaDbReplicationMap.get(srcMapping.getId()).get(dstMapping.getId());
+                    if ((mhaRepli.getDrcStatus() == 1 && mhaRepli.getDeleted() == 0) || applierGroupMhaDbRepList.contains(mhaDbRepli.getId())) {
+                        mhaSyncIdSet.add(mhaRepli.getId());
+                        DbTbl srcDb = dbMap.get(srcMapping.getDbId());
+                        dbNameSet.add(srcDb.getDbName());
+                        dbSyncSet.add(dbRepliTbl.getSrcMhaDbMappingId() + ">" + dbRepliTbl.getDstMhaDbMappingId());
+                        if (srcDb.getDbName().contains("shard")) {
+                            dalClusterSet.add(srcDb.getDbName().substring(0,srcDb.getDbName().indexOf("shard")) + "shardbasedb");
+                        } else {
+                            dalClusterSet.add(srcDb.getDbName());
+                        }
+                    }
+                } else if (dbRepliTbl.getReplicationType() == 1) {
+                    MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
+                    DbTbl srcDb = dbMap.get(srcMapping.getDbId());
+                    MhaTblV2 mhaTbl = mhaTblMap.get(srcMapping.getMhaId());
+                    if (messengerGroupMhaIdList.contains(mhaTbl.getId())) {
+                        dbMessengerSet.add(srcDb.getDbName());
+                        if ( (dbRepliTbl.getDstLogicTableName().contains("otter") || !dbRepliTbl.getDstLogicTableName().endsWith(".binlog")) && !dbRepliTbl.getDatachangeLasttime().before(Timestamp.valueOf("2024-06-10 00:00:00.000"))) {
+                            dbOtterSet.add(srcDb.getDbName());
+                        }
+                    }
+
+                }
+
+
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_SYNC_COUNT, e);
+            }
+        }
+
+        view.setMhaSyncIds(mhaSyncIdSet);
+        view.setDbNameSet(dbNameSet);
+        view.setDbSyncSet(dbSyncSet);
+        view.setDalClusterSet(dalClusterSet);
+        view.setDbMessengerSet(dbMessengerSet);
+        view.setDbOtterSet(dbOtterSet);
+
+        return view;
+    }
 }

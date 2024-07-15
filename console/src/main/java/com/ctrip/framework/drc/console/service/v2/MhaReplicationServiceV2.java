@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.xpipe.tuple.Pair;
 
@@ -69,4 +70,9 @@ public interface MhaReplicationServiceV2 {
      * query all mha replication that has db drc
      */
     List<MhaReplicationTbl> queryAllHasActiveMhaDbReplications();
+
+    /**
+     * query sync access machine counts
+     */
+    MhaSyncView mhaSyncCount() throws SQLException;
 }

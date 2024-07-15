@@ -167,6 +167,7 @@ public class PojoBuilder {
         mhaReplicationTbl.setId(200L);
         mhaReplicationTbl.setSrcMhaId(200L);
         mhaReplicationTbl.setDstMhaId(201L);
+        mhaReplicationTbl.setDrcStatus(1);
         return Lists.newArrayList(mhaReplicationTbl);
     }
 
@@ -340,6 +341,20 @@ public class PojoBuilder {
         tbl.setReplicatorGroupId(-1L);
         tbl.setGtidExecuted("gtid");
         return tbl;
+    }
+
+    public static List<MessengerGroupTbl> getMessengerGroups() {
+        List<MessengerGroupTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            MessengerGroupTbl tbl = new MessengerGroupTbl();
+            tbl.setDeleted(0);
+            tbl.setId(Long.valueOf(i));
+            tbl.setMhaId(200L);
+            tbl.setReplicatorGroupId(-1L);
+            tbl.setGtidExecuted("gtid");
+            tbls.add(tbl);
+        }
+        return tbls;
     }
 
     public static MessengerTbl getMessenger() {

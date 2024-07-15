@@ -200,6 +200,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictRowsLogCountTaskTest.class,
         DrcApplicationFormCheckTaskTest.class,
         AccountServiceImplTest.class,
+        MhaSyncStatusCheckTaskTest.class,
+        ResourceAzCheckTaskTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

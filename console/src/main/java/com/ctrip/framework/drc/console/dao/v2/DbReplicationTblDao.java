@@ -151,4 +151,5 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         List<String> list = samples.stream().map(e -> String.format("(%d,%d,%d)", e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId(), e.getReplicationType())).collect(Collectors.toList());
         return String.format("(%s, %s, %s) in (%s) and deleted = 0", SRC_MHA_DB_MAPPING_ID, DST_MHA_DB_MAPPING_ID, REPLICATION_TYPE, String.join(",", list));
     }
+
 }
