@@ -172,6 +172,7 @@ public class DdlParser {
 
     private static void processName(DdlResult ddlResult, String schema, SQLExpr sqlName, boolean isOri) {
         if (sqlName == null) {
+            schema = unescapeName(schema);
             if (StringUtils.isNotBlank(schema)) {
                 ddlResult.setSchemaName(schema);
             }
