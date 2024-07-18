@@ -50,7 +50,7 @@ public class TableKey extends Key {
 
     @Override
     public String toString() {
-        return "`" + databaseName.toLowerCase()/*temp code 2020.7.12*/ + "`.`" + tableName + "`";
+        return "`" + databaseName.toLowerCase()/*temp code 2020.7.12*/ + "`.`" + tableName.toLowerCase() + "`";
     }
 
     @Override
