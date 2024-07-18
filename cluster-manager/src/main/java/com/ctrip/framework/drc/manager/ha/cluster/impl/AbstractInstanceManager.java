@@ -1,6 +1,10 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.entity.Db;
+import com.ctrip.framework.drc.core.entity.Instance;
+import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.entity.SimpleInstance;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.InfoDto;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -36,6 +40,10 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
     @Autowired
     protected ClusterManagerConfig clusterManagerConfig;
 
+    @Autowired
+    private DefaultClusterManagers clusterServers;
+
+
     private ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create(getClass().getSimpleName()));
 
     @Override
@@ -63,34 +71,49 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
                 QUERY_INFO_LOGGER.info("[check][{}}] switch off， stop.", getName());
                 return;
             }
-            try {
-                // query info
-                QUERY_INFO_LOGGER.info("[check][{}}] start query info", getName());
-                Map<String, List<M>> metaGroupByRegistryKeyMap = getMetaGroupByRegistryKeyMap();
+            DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("drc.cm.checker", getName(), () -> {
+                try {
+                    // query info
+                    long startTime = System.currentTimeMillis();
+                    long endTime = startTime + clusterManagerConfig.getCheckMaxTime();
+                    QUERY_INFO_LOGGER.info("[check][{}}] start query info", getName());
+                    Map<String, List<M>> metaGroupByRegistryKeyMap = getMetaGroupByRegistryKeyMap();
 
-                List<Instance> instancesFromMeta = getAllMeta();
-                Pair<List<String>, List<I>> pair = fetchInstanceInfo(instancesFromMeta);
-                List<I> instanceList = pair.getValue();
-                Set<String> validIps = Sets.newHashSet(pair.getKey());
-                Set<String> invalidIps = instancesFromMeta.stream().map(Instance::getIp).filter(e -> !validIps.contains(e)).collect(Collectors.toSet());
-                QUERY_INFO_LOGGER.info("[check][{}] valid ip: {}. http fail ip: {}", getName(), validIps, invalidIps);
+                    List<Instance> instancesFromMeta = getAllMeta();
+                    Pair<List<String>, List<I>> pair = fetchInstanceInfo(instancesFromMeta);
+                    List<I> instanceList = pair.getValue();
+                    Set<String> validIps = Sets.newHashSet(pair.getKey());
+                    Set<String> invalidIps = instancesFromMeta.stream().map(Instance::getIp).filter(e -> !validIps.contains(e)).collect(Collectors.toSet());
+                    QUERY_INFO_LOGGER.info("[check][{}] valid ip: {}. http fail ip: {}", getName(), validIps, invalidIps);
 
-                // check diff
-                doCheck(metaGroupByRegistryKeyMap, instanceList, validIps);
-                QUERY_INFO_LOGGER.info("[check][{}}] done", getName());
-            } catch (Throwable e) {
-                EventMonitor.DEFAULT.logEvent("drc.cm.check.exception", getName());
-                QUERY_INFO_LOGGER.error("[check][{}}] exception. error:", getName(), e);
-            }
+                    // check diff
+                    doCheck(metaGroupByRegistryKeyMap, instanceList, validIps, startTime, endTime);
+                    QUERY_INFO_LOGGER.info("[check][{}}] done", getName());
+                } catch (Throwable e) {
+                    EventMonitor.DEFAULT.logEvent("drc.cm.check.exception", getName());
+                    QUERY_INFO_LOGGER.error("[check][{}}] exception. error:", getName(), e);
+                }
+            });
         }
 
         @VisibleForTesting
-        void doCheck(Map<String, List<M>> metaGroupByRegistryKeyMap, List<I> allInstances, Set<String> validIps) {
+        void doCheck(Map<String, List<M>> metaGroupByRegistryKeyMap, List<I> allInstances, Set<String> validIps, long startTime, long endTime) {
             Map<String, List<I>> instanceGroupByRegistryKey = allInstances.stream().collect(Collectors.groupingBy(InfoDto::getRegistryKey));
 
             Set<String> registryKeys = this.getAllRegistryKey(metaGroupByRegistryKeyMap, instanceGroupByRegistryKey);
             for (String registryKey : registryKeys) {
                 String clusterId = RegistryKey.from(registryKey).toString();
+
+                if (this.shouldStopTask(startTime, endTime)) {
+                    break;
+                }
+
+                if (!currentMetaManager.hasCluster(clusterId)) {
+                    QUERY_INFO_LOGGER.info("{}: [ignore uninterested] clusterId: {}, registryKey: {}", getName(), clusterId, registryKeys);
+                    EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.ignore.%s", getName()), registryKey);
+                    continue;
+                }
+
                 List<M> metas = metaGroupByRegistryKeyMap.getOrDefault(registryKey, Collections.emptyList()).stream().filter(e -> validIps.contains(e.getIp())).collect(Collectors.toList());
                 List<I> instances = instanceGroupByRegistryKey.getOrDefault(registryKey, Collections.emptyList());
                 // 1. check extra instance (instance working but not in meta)
@@ -115,6 +138,29 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
                     }
                     instancesToRemove.forEach(current::remove);
                 }
+
+                List<Instance> instanceToRegister = this.getInstanceToRegister(current, expected);
+                List<M> metaToRegister = filterMeta(metas, instanceToRegister);
+                if (!CollectionUtils.isEmpty(metaToRegister)) {
+                    QUERY_INFO_LOGGER.info("{}: [register {}}]: \n" +
+                            "current: {}, \n" +
+                            "expected:{}, \n" +
+                            "register: {}", getName(), registryKey, current, expected, instanceToRegister);
+                    if (clusterManagerConfig.getPeriodCorrectSwitch()) {
+                        // do remove
+                        for (M instance : metaToRegister) {
+                            registerInstance(clusterId, instance);
+                            EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.register.%s", getName()), registryKey + ":" + instance.getIp());
+                        }
+                    } else {
+                        for (Instance instance : instanceToRegister) {
+                            EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.register.%s.mock", getName()), registryKey + ":" + instance.getIp());
+                        }
+                    }
+                    // if register sucess, no need
+                    continue;
+                }
+
 
                 // 2 check instance config (ip/port/isMaster) same
                 if (!CollectionUtils.isEmpty(expected)) {
@@ -147,13 +193,31 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
             }
         }
 
+        private boolean shouldStopTask(long startTime, long endTime) {
+            long currentTimeMillis = System.currentTimeMillis();
+            if (currentTimeMillis > endTime) {
+                QUERY_INFO_LOGGER.info("{}: [timeout] currentTimeMillis: {}, startTime: {}, endTime:{}", getName(), currentTimeMillis, startTime, endTime);
+                EventMonitor.DEFAULT.logEvent("drc.cm.check.timeout", getName());
+                return true;
+            }
+
+            long lastChildEventTime = clusterServers.getLastChildEventTime();
+            if (lastChildEventTime > startTime) {
+                QUERY_INFO_LOGGER.info("{}: [possible reshard] currentTimeMillis: {}, startTime: {}, lastChildEventTime: {}", getName(), currentTimeMillis, startTime, lastChildEventTime);
+                EventMonitor.DEFAULT.logEvent("drc.cm.check.reshard.skip", getName());
+                return true;
+            }
+            return false;
+        }
+
         protected Set<String> getAllRegistryKey(Map<String, List<M>> metaGroupByRegistryKeyMap, Map<String, List<I>> instanceGroupByRegistryKey) {
+            Set<String> registryKeysFromMeta = metaGroupByRegistryKeyMap.keySet();
+            Set<String> clusterIdFromMetaSet = registryKeysFromMeta.stream().map(registryKey -> RegistryKey.from(registryKey).toString()).collect(Collectors.toSet());
             Set<String> registryKeysFromInstance = instanceGroupByRegistryKey.keySet().stream()
                     .filter(registryKey -> {
                         String clusterId = RegistryKey.from(registryKey).toString();
-                        return currentMetaManager.hasCluster(clusterId);
+                        return currentMetaManager.hasCluster(clusterId) && clusterIdFromMetaSet.contains(clusterId);
                     }).collect(Collectors.toSet());
-            Set<String> registryKeysFromMeta = metaGroupByRegistryKeyMap.keySet();
             Set<String> registryKeys = new HashSet<>();
             registryKeys.addAll(registryKeysFromInstance);
             registryKeys.addAll(registryKeysFromMeta);
@@ -192,6 +256,21 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
             }
             return current.stream().filter(e -> expected.stream().noneMatch(t -> t.getIp().equals(e.getIp()) && t.getPort().equals(e.getPort()))).collect(Collectors.toList());
         }
+
+        private List<Instance> getInstanceToRegister(Set<Instance> current, Set<Instance> expected) {
+            if (current.equals(expected)) {
+                // same, do nothing
+                return Lists.newArrayList();
+            }
+            return expected.stream().filter(e -> current.stream().noneMatch(t -> t.getIp().equals(e.getIp()) && t.getPort().equals(e.getPort()))).collect(Collectors.toList());
+        }
+
+
+        private List<M> filterMeta(List<M> metas, List<Instance> instanceToRegister) {
+            return metas.stream().filter(meta -> instanceToRegister.stream().anyMatch(instance -> instance.getIp().equals(meta.getIp()) && instance.getPort().equals(meta.getPort()))).collect(Collectors.toList());
+        }
+
+        abstract void registerInstance(String clusterId, M instance);
 
         abstract void refreshInstance(String clusterId, M master);
 

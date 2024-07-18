@@ -41,6 +41,9 @@ public class ReplicatorCheckerTest {
     @Mock
     protected ClusterManagerConfig clusterManagerConfig;
 
+    @Mock
+    private DefaultClusterManagers clusterServers;
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -63,10 +66,11 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
     }
 
     @Test
-    public void testChecker2() {
+    public void testCheckerRegister() {
         ReplicatorInstanceManager.ReplicatorChecker checker = replicatorInstanceManager.getChecker();
 
         init();
@@ -76,7 +80,7 @@ public class ReplicatorCheckerTest {
         when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
-        verify(instanceStateController, times(2)).addReplicator(any(), any());
+        verify(instanceStateController, times(3)).registerReplicator(any(), any());
     }
 
     @Test
@@ -92,6 +96,8 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
+
     }
 
     @Test
@@ -121,8 +127,9 @@ public class ReplicatorCheckerTest {
                 SimpleInstance.from("127.0.2.2", REPLICATOR_PORT)
         ));
         checker.run();
-        verify(instanceStateController, times(1)).removeReplicator(any(), any());
+        verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
     }
 
     @Test
@@ -141,6 +148,8 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
+
     }
 
     @Test
@@ -159,6 +168,7 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
     }
 
 
@@ -179,6 +189,7 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(1)).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
     }
 
     @Test
@@ -198,6 +209,8 @@ public class ReplicatorCheckerTest {
 
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(1)).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
+
     }
 
     @Test
@@ -217,11 +230,13 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(1)).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
+
     }
 
 
     @Test
-    public void testCheckerRedundantApplier() {
+    public void testCheckerRedundantReplicator() {
         ReplicatorInstanceManager.ReplicatorChecker checker = replicatorInstanceManager.getChecker();
 
         init();
@@ -236,12 +251,13 @@ public class ReplicatorCheckerTest {
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.2.3");
         when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
-        verify(instanceStateController, times(1)).removeReplicator(any(), any());
+        verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
     }
 
     @Test
-    public void testCheckerLackApplier() {
+    public void testCheckerLackReplicator() {
         ReplicatorInstanceManager.ReplicatorChecker checker = replicatorInstanceManager.getChecker();
 
         init();
@@ -255,7 +271,8 @@ public class ReplicatorCheckerTest {
         when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
-        verify(instanceStateController, times(1)).addReplicator(any(), any());
+        verify(instanceStateController, times(0)).addReplicator(any(), any());
+        verify(instanceStateController, times(1)).registerReplicator(any(), any());
     }
 
 
@@ -277,6 +294,7 @@ public class ReplicatorCheckerTest {
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
+        verify(instanceStateController, never()).registerReplicator(any(), any());
     }
 
 
@@ -313,11 +331,13 @@ public class ReplicatorCheckerTest {
             String clusterId = e.getArgument(0);
             return clusterMap.get(clusterId);
         });
-
+        when(clusterManagerConfig.getCheckMaxTime()).thenReturn(3 * 1000);
         when(clusterManagerConfig.getPeriodCheckSwitch()).thenReturn(true);
         when(clusterManagerConfig.getPeriodCorrectSwitch()).thenReturn(true);
         when(currentMetaManager.getMySQLMaster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(new DefaultEndPoint(DB_1_IP, DB_PORT));
         when(currentMetaManager.getMySQLMaster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(new DefaultEndPoint(DB_2_IP, DB_PORT));
+        when(currentMetaManager.hasCluster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(true);
+        when(currentMetaManager.hasCluster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(true);
     }
 
     private static ReplicatorInfoDto getReplicatorInfoDto(String registryKey, String ip, int port, boolean master, String upstreamIp) {

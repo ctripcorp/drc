@@ -186,6 +186,11 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
         }
 
         @Override
+        void registerInstance(String clusterId, Applier applier) {
+            instanceStateController.registerApplier(clusterId, applier);
+        }
+
+        @Override
         void refreshInstance(String clusterId, Applier master) {
             instanceStateController.addApplier(clusterId, master);
         }

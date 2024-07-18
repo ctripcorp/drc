@@ -131,6 +131,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
                 validIps.add(ip);
                 EventMonitor.DEFAULT.logEvent("drc.cm.inquiry.applier.success", ip + ":" + port);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                future.cancel(true);
                 QUERY_INFO_LOGGER.error("get applier fail, skip for: {}", pair.getKey() + ":" + pair.getValue());
                 EventMonitor.DEFAULT.logEvent("drc.cm.inquiry.applier.fail", ip + ":" + port);
             }

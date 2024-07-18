@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,6 +43,10 @@ public class ApplierInstanceManagerTest {
 
     @Mock
     protected ClusterManagerConfig clusterManagerConfig;
+
+    @Mock
+    private DefaultClusterManagers clusterServers;
+
 
     @Before
     public void setUp() {
@@ -104,6 +109,40 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
+    }
+
+
+    @Test
+    public void testCheckerRegister() {
+        ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
+
+        init();
+
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList();
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
+        verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, times(4)).registerApplier(any(), any());
+    }
+
+    @Test
+    public void testCheckerReshardSkipRegister() {
+        ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
+
+        init();
+        when(clusterServers.getLastChildEventTime()).thenReturn(System.currentTimeMillis()+100000);
+
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList();
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
+        verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, times(0)).registerApplier(any(), any());
+        when(clusterServers.getLastChildEventTime()).thenReturn(0L);
     }
 
     @Test
@@ -124,6 +163,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, times(1)).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -149,6 +189,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -174,6 +215,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -199,20 +241,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
-    }
-
-    @Test
-    public void testChecker2() {
-        ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
-
-        init();
-
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList();
-        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
-        checker.run();
-        verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
-        verify(instanceStateController, times(2)).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -235,15 +264,16 @@ public class ApplierInstanceManagerTest {
             return Pair.from(validIps.stream().filter(ips::contains).collect(Collectors.toList()), instanceList.stream().filter(applier -> ips.contains(applier.getIp())).collect(Collectors.toList()));
         });
         when(currentMetaManager.getAllApplierOrMessengerInstances()).thenReturn(Sets.newHashSet(
-           SimpleInstance.from("127.0.1.1",8080),
-           SimpleInstance.from("127.0.1.2",8080),
-           SimpleInstance.from("127.0.1.3",8080),
-           SimpleInstance.from("127.0.2.1",8080),
-           SimpleInstance.from("127.0.2.2",8080)
+                SimpleInstance.from("127.0.1.1", 8080),
+                SimpleInstance.from("127.0.1.2", 8080),
+                SimpleInstance.from("127.0.1.3", 8080),
+                SimpleInstance.from("127.0.2.1", 8080),
+                SimpleInstance.from("127.0.2.2", 8080)
         ));
         checker.run();
         verify(instanceStateController, times(1)).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -262,6 +292,8 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
+
     }
 
     @Test
@@ -280,6 +312,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
 
@@ -300,6 +333,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -319,6 +353,7 @@ public class ApplierInstanceManagerTest {
 
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -338,6 +373,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
 
@@ -359,6 +395,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, times(1)).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
     @Test
@@ -376,7 +413,7 @@ public class ApplierInstanceManagerTest {
         when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
-        verify(instanceStateController, times(1)).addApplier(any(), any());
+        verify(instanceStateController, times(1)).registerApplier(eq("mha1_dc2_dalcluster.mha1_dc2"), any());
     }
 
 
@@ -398,6 +435,7 @@ public class ApplierInstanceManagerTest {
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
+        verify(instanceStateController, never()).registerApplier(any(), any());
     }
 
 
@@ -423,8 +461,9 @@ public class ApplierInstanceManagerTest {
         when(currentMetaManager.getApplierMaster(any(), anyString())).thenReturn(Pair.from("10.1.1.1", 8080));
         when(clusterManagerConfig.getPeriodCheckSwitch()).thenReturn(true);
         when(clusterManagerConfig.getPeriodCorrectSwitch()).thenReturn(true);
+        when(clusterManagerConfig.getCheckMaxTime()).thenReturn(3 * 1000);
         when(currentMetaManager.getCluster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(dbCluster1);
-        when(currentMetaManager.getMySQLMaster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(new DefaultEndPoint(db.getIp(),db.getPort()));
+        when(currentMetaManager.getMySQLMaster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(new DefaultEndPoint(db.getIp(), db.getPort()));
         when(currentMetaManager.hasCluster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(true);
         when(currentMetaManager.hasCluster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(true);
     }

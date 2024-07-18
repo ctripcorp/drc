@@ -16,6 +16,8 @@ public interface ClusterManagerConfig extends ZkConfig {
 
     int getClusterRefreshMilli();
 
+    int getCheckMaxTime();
+
     String getClusterServerId();
 
     String getClusterServerIp();

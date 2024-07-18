@@ -134,7 +134,6 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
     @VisibleForTesting
     protected Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
-        logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
         return applierList.stream().filter(applier ->
                 applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port

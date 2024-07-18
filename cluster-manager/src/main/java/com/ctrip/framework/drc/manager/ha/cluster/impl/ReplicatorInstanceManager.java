@@ -151,8 +151,12 @@ public class ReplicatorInstanceManager extends AbstractInstanceManager implement
 
         @Override
         protected void removeRedundantInstance(String registryKey, String clusterId, Instance replicator) {
-            Replicator replicatorToRemove = new Replicator().setIp(replicator.getIp()).setPort(replicator.getPort()).setMaster(replicator.getMaster());
-            removeReplicator(clusterId, replicatorToRemove);
+            // replicator should operate manually, no auto remove.
+        }
+
+        @Override
+        void registerInstance(String clusterId, Replicator replicator) {
+            instanceStateController.registerReplicator(clusterId, replicator);
         }
 
         @Override

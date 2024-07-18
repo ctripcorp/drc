@@ -296,7 +296,6 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
         DbCluster dbCluster = getCluster(clusterId);
         List<Applier> applierList = dbCluster.getAppliers();
         for (Applier applier : applierList) {
-            logger.info("[Applier] is {}", applier);
             String targetMhaName = applier.getTargetMhaName();
             String targetName = applier.getTargetName();
             if (StringUtils.isNotBlank(targetMhaName)) {

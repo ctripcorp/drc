@@ -60,11 +60,18 @@ public class ClusterManagerApplication extends SpringBootServletInitializer {
 
     private static ComponentRegistry initComponentRegistry(ConfigurableApplicationContext context) throws Exception {
 
-        final ComponentRegistry registry = new DefaultRegistry(new CreatedComponentRedistry(),
-                new SpringComponentRegistry(context));
-        registry.initialize();
-        registry.start();
-        ComponentRegistryHolder.initializeRegistry(registry);
-        return registry;
+        try {
+            final ComponentRegistry registry = new DefaultRegistry(new CreatedComponentRedistry(),
+                    new SpringComponentRegistry(context));
+            registry.initialize();
+            registry.start();
+            ComponentRegistryHolder.initializeRegistry(registry);
+            return registry;
+        } catch (Throwable e) {
+            context.registerShutdownHook();
+            logger.error("initComponentRegistry error, shutdown", e);
+            System.exit(1);
+            throw e;
+        }
     }
 }
