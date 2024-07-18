@@ -113,6 +113,33 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     private final DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
 
     @Override
+    public void mhaInitBeforeBuild(DrcAutoBuildReq req) throws Exception {
+        DrcAutoBuildReq.BuildMode modeEnum = req.getModeEnum();
+        if (modeEnum == null) {
+            throw new IllegalArgumentException("illegal build mode: " + req.getMode());
+        }
+        this.validReqRegions(req);
+        List<DrcAutoBuildParam> params = this.buildParam(req);
+        for (DrcAutoBuildParam param : params) {
+            param.setBuName(req.getBuName());
+            param.setTag(req.getTag());
+        }
+        logger.info("autoBuildDrc params: {}", params);
+        try {
+            for (DrcAutoBuildParam param : params) {
+                DefaultTransactionMonitorHolder.getInstance().logTransaction(
+                        "DRC.build.mhaInit",
+                        param.getSrcMhaName() + "-" + param.getDstMhaName(),
+                        () -> this.mhaInit(param)
+                );
+            }
+        } catch (Throwable e) {
+            logger.error("mhaInitBeforeBuild", e);
+            throw new ConsoleException("mhaInitBeforeBuild:" + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<MhaReplicationPreviewDto> preCheckMhaReplication(DrcAutoBuildReq req) {
         List<DbClusterInfoDto> list = this.getDbClusterInfoDtos(req);
         return getMhaReplicationPreviewDtos(req, list);
@@ -600,6 +627,28 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         return sb.toString();
     }
 
+    public void mhaInit(DrcAutoBuildParam param) throws Exception {
+        // 1.(if needed) build mha, mha replication
+        DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(
+                param.getSrcMhaName(),
+                param.getDstMhaName(),
+                param.getSrcDcName(),
+                param.getDstDcName(),
+                param.getBuName(),
+                param.getTag(),
+                param.getTag(),
+                param.getSrcMachines(),
+                param.getDstMachines()
+        );
+        drcBuildService.mhaInitBeforeBuildIfNeed(mhaBuildParam);
+
+        MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
+        MhaTblV2 dstMhaTbl = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
+        
+        drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
+        drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(dstMhaTbl, param.getDstMachines());
+    }
+    
     public void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
         // 1.(if needed) build mha, mha replication
         DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(
@@ -613,7 +662,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
                 param.getSrcMachines(),
                 param.getDstMachines()
         );
-        drcBuildService.buildMha(mhaBuildParam);
+        drcBuildService.buildMhaAndReplication(mhaBuildParam);
         if (param.getSrcMhaName().equals(param.getDstMhaName())) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_SAME_MHA_NOT_SUPPORTED, String.format("src: %s, dst: %s", param.getSrcMhaName(), param.getDstMhaName()));
         }

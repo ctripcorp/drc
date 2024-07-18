@@ -17,7 +17,7 @@ public interface AccountService {
     
     MhaAccounts getMhaAccounts(MhaTblV2 mhaTblV2);
 
-    MhaAccounts getMhaAccounts(String mhaName) throws SQLException;
+    MhaAccounts getMhaAccountsOrDefault(String mhaName) throws SQLException;
 
     Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType);
     

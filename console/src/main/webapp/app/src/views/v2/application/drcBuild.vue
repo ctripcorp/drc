@@ -339,6 +339,7 @@
 export default {
   data () {
     return {
+      mhaAccountInited: false,
       mysqlConfig: {
         dataLoading: false,
         result: false,
@@ -880,19 +881,8 @@ export default {
       const that = this
       that.previewDataList = []
       that.table.dbMhaTablePage.current = 1
-      if (params.mode === 0) {
-        if (!params.dbName) {
-          this.$Message.warning('请先填写数据库')
-          return
-        }
-      } else if (params.mode === 1) {
-        if (!params.dalClusterName) {
-          this.$Message.warning('请先填写 dalcluster')
-          return
-        }
-      }
-      if (!params.srcRegionName || !params.dstRegionName) {
-        this.$Message.warning('请先填写同步方向')
+      await that.mhaInitBeforeBuild()
+      if (!this.necessaryParamsCheck()) {
         return
       }
       that.table.dbMhaTableLoading = true
@@ -929,24 +919,12 @@ export default {
       const that = this
       that.checkTableDataList = []
       that.table.dbTablePage.current = 1
-      if (params.mode === 0) {
-        if (!params.dbName) {
-          this.$Message.warning('请先填写数据库')
-          return
-        }
-      } else if (params.mode === 1) {
-        if (!params.dalClusterName) {
-          this.$Message.warning('请先填写 dalcluster')
-          return
-        }
-      }
-      if (!params.srcRegionName || !params.dstRegionName) {
-        this.$Message.warning('请先填写同步方向')
-        return
-      }
       if (!params.tblsFilterDetail.tableNames) {
         console.log(params)
         this.$Message.warning('请先填写表名')
+        return
+      }
+      if (!this.necessaryParamsCheck()) {
         return
       }
       that.table.dbTableLoading = true
@@ -1013,6 +991,8 @@ export default {
       if (!params.srcRegionName || !params.dstRegionName) {
         return
       }
+      this.mhaAccountInited = false
+      await this.mhaInitBeforeBuild()
       this.getDalInfo()
     },
     async afterEnterTableName () {
@@ -1094,8 +1074,54 @@ export default {
     async beforeSubmit () {
       await this.preCheckBuildParam()
     },
+    async mhaInitBeforeBuild () {
+      const params = this.getParams()
+      const that = this
+      that.previewDataList = []
+      that.table.dbMhaTablePage.current = 1
+      if (params.mode === 0) {
+        if (!params.dbName) {
+          this.$Message.warning('请先填写数据库')
+          return
+        }
+      } else if (params.mode === 1) {
+        if (!params.dalClusterName) {
+          this.$Message.warning('请先填写 dalcluster')
+          return
+        }
+      }
+      if (!params.srcRegionName || !params.dstRegionName) {
+        this.$Message.warning('请先填写同步方向')
+        return
+      }
+      await that.axios.post('/api/drc/v2/autoconfig/mhaInitBeforeBuild', params)
+        .then(response => {
+          const success = response.data.status === 0
+          console.log('mhaInitBeforeBuild', success)
+          if (success) {
+            this.mhaAccountInited = true
+            that.$Message.success('MySQL集群账号初始化成功')
+          } else {
+            this.mhaAccountInited = false
+            that.$Message.warning('MySQL集群账号初始化失败：' + response.data.message)
+          }
+        })
+        .catch(message => {
+          that.$Message.error('查询DB异常: ' + message)
+        })
+        .finally(() => {
+        })
+    },
     getCommonColumns (name) {
       const params = this.getParams()
+      if (!params.tblsFilterDetail.tableNames) {
+        console.log(params)
+        this.$Message.warning('请先填写表名')
+        return
+      }
+      if (!this.necessaryParamsCheck()) {
+        return
+      }
       if (params.rowsFilterDetail) {
         params.rowsFilterDetail.columns = []
         params.rowsFilterDetail.udlColumns = []
@@ -1225,6 +1251,15 @@ export default {
         mhaList.push(data.srcMha.name)
         mhaList.push(data.dstMha.name)
       })
+      if (mhaList.length === 0) {
+        this.$Message.warning('mha配置校验失败: 请先配置mha')
+        this.mysqlConfig.dataLoading = false
+        return
+      }
+      if (!this.necessaryParamsCheck()) {
+        this.mysqlConfig.dataLoading = false
+        return
+      }
       console.log('mhaList:')
       console.log(mhaList)
       this.axios.get('/api/drc/v2/autoconfig/preCheckMysqlConfig?mhaList=' + mhaList).then(res => {
@@ -1244,10 +1279,34 @@ export default {
       this.mysqlConfig.dataLoading = false
       this.mysqlConfig.modal = true
     },
+    necessaryParamsCheck () {
+      const params = this.getParams()
+      if (params.mode === 0) {
+        if (!params.dbName) {
+          this.$Message.warning('请先填写数据库')
+          return false
+        }
+      } else if (params.mode === 1) {
+        if (!params.dalClusterName) {
+          this.$Message.warning('请先填写 dalcluster')
+          return false
+        }
+      }
+      if (!params.srcRegionName || !params.dstRegionName) {
+        this.$Message.warning('请先填写同步方向')
+        return false
+      }
+      if (!this.mhaAccountInited) {
+        this.$Message.warning('相关mha账号未初始化，请刷新或 点击 检查同步集群重试！')
+        return false
+      }
+      return true
+    },
     init () {
       if (this.applicationFormId === null) {
         return
       }
+      this.mhaInitBeforeBuild()
       this.initMha()
       this.formItem.srcRegionName = this.$route.query.srcRegion
       this.formItem.dstRegionName = this.$route.query.dstRegion

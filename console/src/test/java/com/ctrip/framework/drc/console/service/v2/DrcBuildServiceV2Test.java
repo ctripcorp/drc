@@ -209,7 +209,7 @@ public class DrcBuildServiceV2Test {
         
 
 
-        drcBuildServiceV2.buildMha(new DrcMhaBuildParam(
+        drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
                 "srcMha", "dstMha", 
                 "srcDc", "dstDc", 
                 "BBZ", "srcTag", "dstTag",
@@ -219,7 +219,7 @@ public class DrcBuildServiceV2Test {
         Mockito.verify(mhaTblDao, Mockito.never()).update(Mockito.any(MhaTblV2.class));
         Mockito.verify(mhaTblDao, Mockito.times(2)).insertWithReturnId(Mockito.any(MhaTblV2.class));
 
-        drcBuildServiceV2.buildMha(new DrcMhaBuildParam(
+        drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
                 "srcMha", "dstMha",
                 "srcDc", "dstDc",
                 "BBZ", "srcTag", "dstTag",

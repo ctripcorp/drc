@@ -107,7 +107,7 @@ public class CentralServiceImpl implements CentralService {
     @Override
     @PossibleRemote(path = "/api/drc/v2/centralService/mhaAccounts", forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaAccountsApiRes.class)
     public MhaAccounts getMhaAccounts(String mhaName) throws SQLException {
-        return accountService.getMhaAccounts(mhaName);
+        return accountService.getMhaAccountsOrDefault(mhaName);
     }
     
 

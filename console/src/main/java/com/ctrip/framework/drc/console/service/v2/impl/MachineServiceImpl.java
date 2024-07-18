@@ -69,7 +69,11 @@ public class MachineServiceImpl implements MachineService {
             if (StringUtils.isEmpty(mha)) {
                 return null;
             }
-            return cache.get(mha);
+            if (defaultConsoleConfig.getAccountRealTimeSwitch()) {
+                return this.getMasterEndpoint(mha);
+            } else {
+                return cache.get(mha);
+            }
         } catch (ExecutionException e) {
             logger.error("getDrcReplicationConfig execution exception", e);
             return null;
