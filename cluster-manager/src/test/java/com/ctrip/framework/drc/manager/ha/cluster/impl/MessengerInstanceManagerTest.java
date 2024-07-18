@@ -57,6 +57,9 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
     @Mock
     protected ClusterManagerConfig clusterManagerConfig;
 
+    @Mock
+    private DefaultClusterManagers clusterServers;
+
 
     @Before
     public void setUp() throws Exception {
@@ -170,21 +173,23 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
     @Test
-    public void testChecker2() {
+    public void testCheckerRegister() {
         MessengerInstanceManager.MessengerChecker checker = messengerInstanceManager.getChecker();
 
         init();
 
         ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
         );
-        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
-        verify(instanceStateController, times(2)).addMessenger(any(), any());
+        verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, times(4)).registerMessenger(any(), any());
     }
 
     @Test
@@ -203,6 +208,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
     @Test
@@ -221,6 +227,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
 
@@ -241,6 +248,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
     @Test
@@ -260,6 +268,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
     @Test
@@ -279,6 +288,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
 
@@ -300,6 +310,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         checker.run();
         verify(instanceStateController, times(1)).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
     }
 
     @Test
@@ -317,8 +328,50 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
-        verify(instanceStateController, times(1)).addMessenger(any(), any());
+        verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, times(1)).registerMessenger(any(), any());
     }
+
+
+    @Test
+    public void testCheckerLackMasterMessenger() {
+        MessengerInstanceManager.MessengerChecker checker = messengerInstanceManager.getChecker();
+
+        init();
+
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
+                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, false, "10.1.1.1")
+        );
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
+        verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, times(1)).registerMessenger(any(), any());
+    }
+
+    @Test
+    public void testCheckerLackTwoMasterMessenger() {
+        MessengerInstanceManager.MessengerChecker checker = messengerInstanceManager.getChecker();
+
+        init();
+
+        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
+                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, false, "10.1.1.1"),
+                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
+        );
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
+        verify(instanceStateController, times(1)).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
+    }
+
 
 
     private void init() {
@@ -337,10 +390,13 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
             mockMap.put(dbCluster.getId(), dbCluster.getMessengers().stream().collect(Collectors.groupingBy(NameUtils::getMessengerDbName)));
         }
 
+        when(clusterManagerConfig.getCheckMaxTime()).thenReturn(3*1000);
         when(currentMetaManager.getAllMetaMessengers()).thenReturn(mockMap);
         when(currentMetaManager.getActiveReplicator(ArgumentMatchers.anyString())).thenReturn(new Replicator().setIp("10.1.1.1"));
         when(clusterManagerConfig.getPeriodCheckSwitch()).thenReturn(true);
         when(clusterManagerConfig.getPeriodCorrectSwitch()).thenReturn(true);
+        when(currentMetaManager.hasCluster("mha1_dc1_dalcluster.mha1_dc1")).thenReturn(true);
+        when(currentMetaManager.hasCluster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(true);
     }
 
     private static ApplierInfoDto getApplierInfoDto(String clusterId, String ip, int port, boolean master, String replicatorIp) {

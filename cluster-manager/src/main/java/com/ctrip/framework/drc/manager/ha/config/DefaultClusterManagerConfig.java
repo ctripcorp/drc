@@ -45,6 +45,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_SERVER_PORT = "server.port";
 
     private static final String KEY_INFO_CHECK_INTERVAL = "clustermanager.info.check.interval";
+    private static final String KEY_INFO_CHECK_TASK_MAX_TIME = "clustermanager.info.check.max.time";
 
     private String defaultConsoleAddress = System.getProperty("consoleAddress", "http://localhost:8080");
 
@@ -212,6 +213,12 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public int getCheckInterval() {
         return getIntProperty(KEY_INFO_CHECK_INTERVAL, 30 * 1000);
+    }
+
+
+    @Override
+    public int getCheckMaxTime() {
+        return getIntProperty(KEY_INFO_CHECK_TASK_MAX_TIME, 5 * 1000);
     }
 
 
