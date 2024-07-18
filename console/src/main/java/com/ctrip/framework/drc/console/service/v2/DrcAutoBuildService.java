@@ -11,6 +11,9 @@ import java.util.List;
 
 
 public interface DrcAutoBuildService {
+    
+    void mhaInitBeforeBuild(DrcAutoBuildReq req) throws Exception;
+    
     List<MhaReplicationPreviewDto> preCheckMhaReplication(DrcAutoBuildReq req);
     List<TableCheckVo> preCheckMysqlTables(DrcAutoBuildReq req);
 

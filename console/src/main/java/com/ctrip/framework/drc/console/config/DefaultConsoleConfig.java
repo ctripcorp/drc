@@ -24,7 +24,7 @@ import java.util.*;
 @Component("defaultConsoleConfig")
 public class DefaultConsoleConfig extends AbstractConfigBean {
 
-    
+
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
     public static String KEY_DC_INFOS = "drc.dcinfos";
@@ -149,7 +149,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String SGP_MESSENGER_GTID_INIT_KEY = SGP_MESSENGER_GTID_INIT + ".%s";
     private static final String BATCH_OFFLINE_ALLOW_REGION = "meta.batch.offline.allow.region";
     private static String DEFAULT_BATCH_OFFLINE_ALLOW_REGION = "sin";
-
+    private static final String ACCOUNT_REALTIME_SWITCH = "account.realtime.switch";
 
 
     // only for test
@@ -657,5 +657,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getAccountFromMetaSwitch() {
         return getBooleanProperty(ACCOUNT_FROM_METE_SWITCH, false);
+    }
+
+    public boolean getAccountRealTimeSwitch() {
+        return getBooleanProperty(ACCOUNT_REALTIME_SWITCH, false);
     }
 }

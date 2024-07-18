@@ -132,9 +132,19 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public MhaAccounts getMhaAccounts(String mhaName) throws SQLException {
+    public MhaAccounts getMhaAccountsOrDefault(String mhaName) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
+        if (mhaTblV2 == null ) {
+            return this.getDefaultMhaAccounts(mhaName);
+        }
         return this.getMhaAccounts(mhaTblV2);
+    }
+    
+    private MhaAccounts getDefaultMhaAccounts(String mhaName) {
+        Account monitorAcc = kmsService.getAccountInfo(consoleConfig.getDefaultMonitorAccountKmsToken());
+        Account readAcc = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
+        Account writeAcc = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
+        return new MhaAccounts(mhaName,monitorAcc,readAcc,writeAcc);
     }
 
     @Override

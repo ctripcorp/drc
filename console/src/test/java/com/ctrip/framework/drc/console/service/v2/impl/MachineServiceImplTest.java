@@ -89,6 +89,7 @@ public class MachineServiceImplTest {
     @Test
     public void testGetMasterEndpointCached() throws Exception {
         when(machineTblDao.queryByMhaId(anyLong(), anyInt())).thenReturn(null);
+        when(defaultConsoleConfig.getAccountRealTimeSwitch()).thenReturn(false);
         for (int i = 0; i < 10; i++) {
             Endpoint result = machineServiceImpl.getMasterEndpointCached("mha1");
             Assert.assertEquals(new MySqlEndpoint("ip1", 3306, "mockUser", "mockPassword", true), result);

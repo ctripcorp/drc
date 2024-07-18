@@ -45,7 +45,7 @@ public class DrcBuildControllerV2 {
             success = "buildMha with DrcMhaBuildParam: {#param.toString()}")
     public ApiResult<Boolean> buildMha(@RequestBody DrcMhaBuildParam param) {
         try {
-            drcBuildServiceV2.buildMha(param);
+            drcBuildServiceV2.buildMhaAndReplication(param);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());

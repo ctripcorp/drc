@@ -160,12 +160,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
-    
+
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void buildMha(DrcMhaBuildParam param) throws Exception {
+    public Pair<Long,Long> mhaInitBeforeBuildIfNeed(DrcMhaBuildParam param) throws Exception {
         checkDrcMhaBuildParam(param);
-
+        
         long buId = getBuId(param.getBuName());
         DcTbl srcDcTbl = dcTblDao.queryByDcName(param.getSrcDc());
         DcTbl dstDcTbl = dcTblDao.queryByDcName(param.getDstDc());
@@ -178,6 +178,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         long srcMhaId = initMhaAndAccount(srcMha,param.getSrcMachines());
         long dstMhaId = initMhaAndAccount(dstMha,param.getDstMachines());
+        return Pair.of(srcMhaId,dstMhaId);
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildMhaAndReplication(DrcMhaBuildParam param) throws Exception {
+        Pair<Long,Long> mhaIds = mhaInitBeforeBuildIfNeed(param);
+        long srcMhaId = mhaIds.getLeft();
+        long dstMhaId = mhaIds.getRight();
+        
         insertMhaReplication(srcMhaId, dstMhaId);
         insertMhaReplication(dstMhaId, srcMhaId);
     }
@@ -1217,9 +1227,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaName);
         Account monitorAcc = mhaAccounts.getMonitorAcc();
         String uuid = MySqlUtils.getUuid(
-                machineDto.getIp(), machineDto.getPort(),
-                monitorAcc.getUser(), monitorAcc.getPassword(),
-                isMaster);
+                    machineDto.getIp(), machineDto.getPort(),
+                    monitorAcc.getUser(), monitorAcc.getPassword(),
+                    isMaster);
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setMhaId(mhaId);
         machineTbl.setMaster(isMaster ? BooleanEnum.TRUE.getCode() : BooleanEnum.FALSE.getCode());
@@ -1738,6 +1748,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             return mhaTblDao.insertWithReturnId(mhaTblV2);
         } else if (existMhaTbl.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
             initAccountIfNeed(existMhaTbl,machineDto);
+            existMhaTbl.setMonitorSwitch(BooleanEnum.TRUE.getCode());
             existMhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(existMhaTbl);
         }

@@ -60,7 +60,11 @@ public class MetaAccountServiceImpl implements MetaAccountService {
     public MhaAccounts getMhaAccounts(String mhaName) {
         try {
             if (consoleConfig.getAccountFromMetaSwitch()) {
-                return mhaAccountsCache.get(mhaName);
+                if (consoleConfig.getAccountRealTimeSwitch()) {
+                    return loadCache(mhaName);
+                } else {
+                    return mhaAccountsCache.get(mhaName);
+                }
             } else {
                 return new MhaAccounts(
                         mhaName,
@@ -69,7 +73,6 @@ public class MetaAccountServiceImpl implements MetaAccountService {
                         new Account(monitorTableSourceProvider.getWriteUserVal(),monitorTableSourceProvider.getWritePasswordVal())
                 );
             }
-            
         } catch (ExecutionException e) {
             logger.error("mha:{},getMhaAccounts error",mhaName,e);
             throw new RuntimeException(e);

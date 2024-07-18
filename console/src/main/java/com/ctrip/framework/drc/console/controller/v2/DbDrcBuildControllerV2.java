@@ -54,6 +54,20 @@ public class DbDrcBuildControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+    
+    @PostMapping("mhaInitBeforeBuild")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Void> mhaInitBeforeBuild(@RequestBody DrcAutoBuildReq req) {
+        logger.info("[meta] mhaInitBeforeBuild, req: {}", req);
+        try {
+            drcAutoBuildService.mhaInitBeforeBuild(req);
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("[meta] mhaInitBeforeBuild, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    } 
+    
 
     @GetMapping("preCheck")
     @SuppressWarnings("unchecked")

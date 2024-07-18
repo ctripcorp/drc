@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.ColumnsFilterCreateParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
@@ -25,7 +24,6 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbCluste
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -282,13 +280,49 @@ public class DrcAutoBuildServiceImplTest {
         req.setTag(null);
         drcAutoBuildServiceImpl.autoBuildDrc(req);
     }
-
+    
     @Test(expected = IllegalArgumentException.class)
     public void testAutoBuildNoTag() throws Exception {
         DrcAutoBuildReq req = getDrcAutoBuildReqForSingleDb();
         req.setBuName(null);
         req.setTag("COMMON");
         drcAutoBuildServiceImpl.autoBuildDrc(req);
+    }
+
+    @Test
+    public void testMhaInitBeforeBuild() throws Exception {
+        DrcAutoBuildReq req = getDrcAutoBuildReqForSingleDb();
+        req.setBuName("BBZ");
+        req.setTag("COMMON");
+
+        req.setOpenRowsFilterConfig(true);
+        req.setRowsFilterDetail(new RowsFilterCreateParam());
+        req.setOpenColsFilterConfig(true);
+        req.setColsFilterDetail(new ColumnsFilterCreateParam());
+
+        // mock mha
+        String mhaJson = "[{\"id\":1,\"mhaName\":\"mha1\",\"clusterName\":\"test_dalcluster\",\"dcId\":1,\"buId\":1,\"monitorSwitch\":0,\"applyMode\":0,\"deleted\":0},{\"id\":2,\"mhaName\":\"mha2\",\"clusterName\":\"test_dalcluster\",\"dcId\":2,\"buId\":1,\"monitorSwitch\":0,\"applyMode\":0,\"deleted\":0},{\"id\":3,\"mhaName\":\"sin1\",\"clusterName\":\"test_dalcluster\",\"dcId\":3,\"buId\":1,\"monitorSwitch\":0,\"applyMode\":0,\"deleted\":0}]";
+        List<MhaTblV2> mhaTblV2List = JsonUtils.fromJsonToList(mhaJson, MhaTblV2.class);
+        when(mhaTblDao.queryByMhaName(anyString(), anyInt())).thenAnswer(i -> {
+            String mhaName = i.getArgument(0, String.class);
+            Integer deleted = i.getArgument(1, Integer.class);
+            return mhaTblV2List.stream().filter(e -> mhaName.equals(e.getMhaName()) && deleted.equals(e.getDeleted())).findFirst().orElse(null);
+        });
+
+        String mhaReplicationJson = "[{\"id\":1,\"srcMhaId\":1,\"dstMhaId\":3,\"deleted\":0,\"drcStatus\":1,\"createTime\":\"2025-07-13 03:46:15\",\"datachangeLasttime\":\"2015-09-15 04:37:01\"},{\"id\":2,\"srcMhaId\":2,\"dstMhaId\":3,\"deleted\":0,\"drcStatus\":1,\"createTime\":\"2025-07-13 03:46:15\",\"datachangeLasttime\":\"2015-09-15 04:37:01\"},{\"id\":3,\"srcMhaId\":3,\"dstMhaId\":1,\"deleted\":0,\"drcStatus\":1,\"createTime\":\"2025-07-13 03:46:15\",\"datachangeLasttime\":\"2015-09-15 04:37:01\"},{\"id\":4,\"srcMhaId\":3,\"dstMhaId\":2,\"deleted\":0,\"drcStatus\":1,\"createTime\":\"2025-07-13 03:46:15\",\"datachangeLasttime\":\"2015-09-15 04:37:01\"}]";
+        List<MhaReplicationTbl> mhaReplicationTbls = JsonUtils.fromJsonToList(mhaReplicationJson, MhaReplicationTbl.class);
+        when(mhaReplicationTblDao.queryByMhaId(anyLong(), anyLong(), anyInt())).thenAnswer(i -> {
+            Long srcMhaId = i.getArgument(0, Long.class);
+            Long dstMhaId = i.getArgument(1, Long.class);
+            Integer deleted = i.getArgument(2, Integer.class);
+            return mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId) && Objects.equals(e.getDeleted(), deleted)).findFirst().orElse(null);
+        });
+        when(mysqlServiceV2.getMhaExecutedGtid(any())).thenReturn("26ddaa00-4d3f-11ee-bd11-06cc389a9314:1-11286566");
+
+        drcAutoBuildServiceImpl.mhaInitBeforeBuild(req);
+
+        verify(drcBuildService, times(1)).mhaInitBeforeBuildIfNeed(any());
+        verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
     }
 
     @Test
@@ -322,7 +356,7 @@ public class DrcAutoBuildServiceImplTest {
         when(mysqlServiceV2.getMhaExecutedGtid(any())).thenReturn("26ddaa00-4d3f-11ee-bd11-06cc389a9314:1-11286566");
 
         drcAutoBuildServiceImpl.autoBuildDrc(req);
-        verify(drcBuildService, times(1)).buildMha(any());
+        verify(drcBuildService, times(1)).buildMhaAndReplication(any());
         verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
@@ -372,4 +406,5 @@ public class DrcAutoBuildServiceImplTest {
 
         return req;
     }
+    
 }
