@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 
@@ -12,6 +13,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGE
 public abstract class AbstractConfig extends AbstractConfigBean implements Config{
 
     protected volatile String xml;
+    protected volatile Drc drc;
 
     private ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("persist-config");
 
@@ -20,7 +22,21 @@ public abstract class AbstractConfig extends AbstractConfigBean implements Confi
         if(this.xml == null) {
             updateConfig();
         }
+        if (this.xml == null) {
+            throw new IllegalStateException("drc config is null");
+        }
         return this.xml;
+    }
+
+    @Override
+    public Drc getDrc() {
+        if (this.drc == null) {
+            updateConfig();
+        }
+        if (this.drc == null) {
+            throw new IllegalStateException("drc is null");
+        }
+        return this.drc;
     }
 
     @Override

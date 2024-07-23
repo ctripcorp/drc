@@ -152,9 +152,13 @@ public class MetaControllerV2Test {
     }
 
     @Test
-    public void testGetAllMetaData() throws Exception {
-        Mockito.when(metaProviderV2.getDrc()).thenThrow(ConsoleException.class);
+    public void testGetAllMetaDataException() throws Exception {
+        Mockito.when(metaProviderV2.getDrcString()).thenThrow(ConsoleException.class);
         String result = controller.getAllMetaData("false","heraldToken");
+        verify(metaProviderV2, never()).getRealtimeDrc();
+        verify(metaProviderV2, never()).getDrc();
+        verify(metaProviderV2, never()).getRealtimeDrcString();
+        verify(metaProviderV2, times(1)).getDrcString();
         Assert.assertNull(result);
     }
 }

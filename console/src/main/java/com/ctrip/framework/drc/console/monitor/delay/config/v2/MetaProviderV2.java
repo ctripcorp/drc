@@ -27,26 +27,26 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
     @Autowired
     private CompositeConfig compositeConfig;
 
-    protected volatile String drcString;
-
-    protected volatile Drc drc;
-
     public synchronized Drc getDrc() {
-        if (drc == null) {
-            scheduledTask();
-        }
-        return drc;
+        return compositeConfig.getDrc();
     }
 
     public Drc getRealtimeDrc() {
-        scheduledTask();
-        return drc;
+        compositeConfig.updateConfig();
+        return compositeConfig.getDrc();
+    }
+
+    public synchronized String getDrcString() {
+        return compositeConfig.getConfig();
+    }
+
+    public String getRealtimeDrcString() {
+        compositeConfig.updateConfig();
+        return compositeConfig.getConfig();
     }
 
     public Drc getDrc(String dcId) {
-        if (drc == null) {
-            scheduledTask();
-        }
+        Drc drc = compositeConfig.getDrc();
         Dc dc = drc.findDc(dcId);
         Drc drcWithOneDc = new Drc();
         drcWithOneDc.addDc(dc);
@@ -54,7 +54,8 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
     }
 
     public Drc getRealtimeDrc(String dcId) {
-        scheduledTask();
+        compositeConfig.updateConfig();
+        Drc drc = compositeConfig.getDrc();
         Dc dc = drc.findDc(dcId);
         Drc drcWithOneDc = new Drc();
         drcWithOneDc.addDc(dc);
@@ -85,17 +86,6 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
     @Override // refresh when new config submit
     public void scheduledTask() {
         compositeConfig.updateConfig();
-        synchronized (this) {
-            String newDrcString = compositeConfig.getConfig();
-            if (StringUtils.isNotBlank(newDrcString) && !newDrcString.equalsIgnoreCase(drcString)) {
-                drcString = newDrcString;
-                try {
-                    drc = DefaultSaxParser.parse(drcString);
-                } catch (Throwable t) {
-                    logger.error("[Parser] config {} error", drcString);
-                }
-            }
-        }
     }
 
     @Override

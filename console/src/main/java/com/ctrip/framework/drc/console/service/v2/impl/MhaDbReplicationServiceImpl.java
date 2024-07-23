@@ -486,16 +486,17 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             return Collections.emptyList();
         }
 
-        return dbNames.stream().map(e -> {
-            Long srcTime = srcTimeMap.get(e);
-            Long dstTime = dstTimeMap.get(e);
+        return dbNames.stream().map(dbName -> {
+            String dbNameLowerCase = dbName.toLowerCase();
+            Long srcTime = srcTimeMap.get(dbNameLowerCase);
+            Long dstTime = dstTimeMap.get(dbNameLowerCase);
             if (currentTime != null && srcTime != null) {
                 srcTime = Math.max(srcTime, currentTime);
             } else {
                 srcTime = null;
             }
             MhaDbDelayInfoDto dto = new MhaDbDelayInfoDto();
-            dto.setDbName(e);
+            dto.setDbName(dbName);
             dto.setSrcMha(srcMha);
             dto.setDstMha(dstMha);
             dto.setSrcTime(srcTime);

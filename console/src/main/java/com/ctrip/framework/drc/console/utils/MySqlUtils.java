@@ -291,7 +291,7 @@ public class MySqlUtils {
             return null;
         }
         // param filter for sql injection
-        List<String> dbsToQuery = dbNames.stream().filter(dbs::contains).collect(Collectors.toList());
+        List<String> dbsToQuery = dbNames.stream().map(String::toLowerCase).filter(dbs::contains).collect(Collectors.toList());
         List<String> list = Lists.newArrayList();
         for (String s : dbsToQuery) {
             list.add("(" + SELECT_DB_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL.replace("${dbName}", s) + ")");

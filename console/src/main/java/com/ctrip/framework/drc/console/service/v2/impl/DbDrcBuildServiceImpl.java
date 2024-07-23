@@ -862,15 +862,19 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 throw ConsoleExceptionUtils.message("init mha fail");
             }
 
-            // 3. sync mha db info
-            drcBuildServiceV2.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
+            try {
+                // 3. sync mha db info
+                drcBuildServiceV2.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
 
-            // 4. mha db replication
-            mhaDbReplicationService.maintainMhaDbReplicationForMq(param.getSrcMhaName(), Lists.newArrayList(param.getDbName()));
+                // 4. mha db replication
+                mhaDbReplicationService.maintainMhaDbReplicationForMq(param.getSrcMhaName(), Lists.newArrayList(param.getDbName()));
 
-            // 5. replicator
-            replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
-            drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
+                // 5. replicator
+                replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
+                drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.CONFIGURE_MESSENGER_MHA_FAIL, "mha: " + srcMhaTbl.getMhaName(), e);
+            }
         }
     }
 

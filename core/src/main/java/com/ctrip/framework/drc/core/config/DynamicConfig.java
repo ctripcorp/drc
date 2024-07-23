@@ -28,6 +28,7 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String INDEPENDENT_EMBEDDED_MYSQL_SWITCH_KEY = INDEPENDENT_EMBEDDED_MYSQL_SWITCH + ".%s";
     private static final String DELAY_EVENT_OLD_SWITCH = "delay.event.old.switch";
+    private static final String DRC_DB_DELAY_MEASUREMENT = "drc.db.delay.measurement";
 
     private static final String PURGED_GTID_SET_CHECK_SWITCH = "purged.gtid.set.check.switch";
 
@@ -122,6 +123,10 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public boolean getOldDelayEventProcessSwitch() {
         return getBooleanProperty(DELAY_EVENT_OLD_SWITCH, true);
+    }
+
+    public String getDrcDbDelayMeasurement() {
+        return getProperty(DRC_DB_DELAY_MEASUREMENT, "fx.drc.delay");
     }
 
     public boolean getTrafficCountChangeSwitch() {

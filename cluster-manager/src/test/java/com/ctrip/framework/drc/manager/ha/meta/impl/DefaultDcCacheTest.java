@@ -360,4 +360,14 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         verify(observer, times(1)).update(any(DcRouteComparator.class), Mockito.any());
     }
 
+    @Test
+    public void testEmptyMetaNoChange() {
+        Dc current = getDc("shaoy");
+        Dc future = null;
+
+        Observer observer = mock(Observer.class);
+        dcCache.addObserver(observer);
+        dcCache.changeDcMeta(current, future, System.currentTimeMillis());
+        verify(observer, never()).update(any(DcComparator.class), Mockito.any());
+    }
 }

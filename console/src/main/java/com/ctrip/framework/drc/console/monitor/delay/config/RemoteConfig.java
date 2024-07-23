@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
+import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -48,6 +49,7 @@ public class RemoteConfig extends AbstractConfig implements Config {
                     META_LOGGER.debug("[meta] remote generated drc: {}", drcFromRemote);
                     if (StringUtils.isNotBlank(drcFromRemote) && !drcFromRemote.equalsIgnoreCase(this.xml)) {
                         this.xml = drcFromRemote;
+                        this.drc = DefaultSaxParser.parse(this.xml);
                         persistConfig();
                     }
                     long e2 = System.currentTimeMillis();
