@@ -27,6 +27,7 @@ import com.ctrip.framework.drc.console.monitor.consistency.table.DefaultTablePro
 import com.ctrip.framework.drc.console.monitor.delay.DelayMapTest;
 import com.ctrip.framework.drc.console.monitor.delay.MqDelayMonitorServerTest;
 import com.ctrip.framework.drc.console.monitor.delay.config.*;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2Test;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnectorTest;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -176,6 +177,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         //task
         ExecutedGtidQueryTaskTest.class,
+        MetaProviderV2Test.class,
         // monitor
         SyncMhaTaskTest.class,
         MySqlUtilsTest.class,

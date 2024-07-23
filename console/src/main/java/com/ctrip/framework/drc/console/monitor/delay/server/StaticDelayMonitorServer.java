@@ -32,7 +32,6 @@ import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +74,6 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
     private static final String DRC_DELAY_EXCEPTION_MESUREMENT = "fx.drc.delay.exception";
-    public static final String FX_DRC_DB_DELAY_MEASUREMENT = "fx.drc.db.delay";
     private static final String FX_DRC_DB_DELAY_EXCEPTION_MEASUREMENT = "fx.drc.db.delay.exception";
 
     private Map<String, UnidirectionalEntity> entityMap = Maps.newConcurrentMap();
@@ -254,7 +252,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     }
 
     private void processDbDelay(DbDelayDto delayDto, String gtid) {
-
+        String FX_DRC_DB_DELAY_MEASUREMENT = DynamicConfig.getInstance().getDrcDbDelayMeasurement();
         String mhaString = delayDto.getMha();
         String dbName = delayDto.getDbName();
         if (!isReplicatorMaster && !mhaString.equalsIgnoreCase(config.getDestMha())) {
@@ -430,6 +428,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         receiveTimeMapV2.putAll(initMap);
         log("init receiveTime: " + rTime + '(' + dateFormatThreadLocal.get().format(rTime) + ')', INFO, null);
         checkScheduledExecutorService.scheduleWithFixedDelay(() -> {
+            String FX_DRC_DB_DELAY_MEASUREMENT = DynamicConfig.getInstance().getDrcDbDelayMeasurement();
             try {
                 SimpleDateFormat formatter = dateFormatThreadLocal.get();
                 long curTime = System.currentTimeMillis();
@@ -494,7 +493,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
         Map<String, UnidirectionalEntity> remove = entityV2Map.remove(config.getMha());
         if (remove != null && remove.size() > 0) {
-            DefaultReporterHolder.getInstance().removeRegister(FX_DRC_DB_DELAY_MEASUREMENT, "destMha", config.getDestMha());
+            DefaultReporterHolder.getInstance().removeRegister(DynamicConfig.getInstance().getDrcDbDelayMeasurement(), "destMha", config.getDestMha());
         }
 
         log("stopped server success", INFO, null);
@@ -659,6 +658,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         if (delay <= DynamicConfig.getInstance().getLogDelayDetailThresholdMillis()) {
             return;
         }
+        String FX_DRC_DB_DELAY_MEASUREMENT = DynamicConfig.getInstance().getDrcDbDelayMeasurement();
         String prefix = CLOG_TAGS_V2 + msg;
         switch (types) {
             case WARN:

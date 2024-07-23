@@ -36,9 +36,13 @@ public class DaoConfig extends AbstractConfig implements Config {
                 long e = System.currentTimeMillis();
                 META_LOGGER.info("dao update meta info, took {}ms", e - s);
                 META_LOGGER.debug("[meta] dao generated drc: {}", drc);
-                if (null != drc && drc.getDcs().size() != 0 && !drc.toString().equalsIgnoreCase(this.xml)) {
-                    this.xml = drc.toString();
-                    persistConfig();
+                if (null != drc && !drc.getDcs().isEmpty()) {
+                    String drcString = drc.toString();
+                    if (!drcString.equalsIgnoreCase(this.xml)) {
+                        this.xml = drcString;
+                        this.drc = drc;
+                        persistConfig();
+                    }
                 }
                 long e2 = System.currentTimeMillis();
                 META_LOGGER.info("dao update meta info, check and persist took {}ms", e2 - e);

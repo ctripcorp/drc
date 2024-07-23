@@ -54,14 +54,14 @@ public class MetaControllerV2 {
                 return null;
             }
             logger.info("[meta] get all, refresh: {}", refresh);
-            Drc drc;
+            String drcString;
             if (StringUtils.equals("true", refresh)) {
-                drc = metaProviderV2.getRealtimeDrc();
+                drcString = metaProviderV2.getRealtimeDrcString();
             } else {
-                drc = metaProviderV2.getDrc();
+                drcString = metaProviderV2.getDrcString();
             }
-            logger.debug("drc:\n {}", drc.toString());
-            return drc.toString();
+            logger.debug("drc:\n {}", drcString);
+            return drcString;
         } catch (Exception e) {
             logger.error("get drc fail", e);
             return null;
@@ -84,8 +84,9 @@ public class MetaControllerV2 {
             } else {
                 dcInfo = metaProviderV2.getDrc(dc);
             }
-            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfo.toString());
-            return dcInfo.toString();
+            String dcInfostring = dcInfo.toString();
+            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfostring);
+            return dcInfostring;
         } catch (Exception e) {
             logger.error("get dc: {} info fail", dc, e);
             return null;

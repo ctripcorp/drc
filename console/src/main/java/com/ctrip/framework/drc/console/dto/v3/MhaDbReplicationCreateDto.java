@@ -78,4 +78,16 @@ public class MhaDbReplicationCreateDto {
     public void setTag(String tag) {
         this.tag = tag;
     }
+
+    @Override
+    public String toString() {
+        return "MhaDbReplicationCreateDto{" +
+                "replicationType=" + replicationType +
+                ", srcRegionName='" + srcRegionName + '\'' +
+                ", dstRegionName='" + dstRegionName + '\'' +
+                ", dbName='" + dbName + '\'' +
+                ", buName='" + buName + '\'' +
+                ", tag='" + tag + '\'' +
+                '}';
+    }
 }

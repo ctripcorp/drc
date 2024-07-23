@@ -177,6 +177,14 @@ public class DbClusterSourceProviderTest {
         Assert.assertNull(actual);
     }
 
+    @Test
+    public void testGetNull() {
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn(null);
+        Assert.assertNull(sourceProvider.getDc(SHAOY));
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn("");
+        Assert.assertNull(sourceProvider.getDc(SHAOY));
+    }
+
     @After
     public void tearDown() {
 
