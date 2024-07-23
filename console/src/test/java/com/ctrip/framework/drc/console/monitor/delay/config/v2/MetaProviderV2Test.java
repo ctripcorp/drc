@@ -132,12 +132,13 @@ public class MetaProviderV2Test {
         Assert.assertEquals(drcXmlStrFromConsole, result);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testGetRealtimeDrcStringException() throws Exception {
-        Drc parse = DefaultSaxParser.parse(drcXmlStrFromConsole);
-        when(compositeConfig.getConfig()).thenThrow(IllegalStateException.class);
+        when(compositeConfig.getConfig()).thenReturn(null);
+        when(compositeConfig.getDrc()).thenReturn(null);
 
         String result = metaProviderV2.getRealtimeDrcString();
+        Assert.assertNull(result);
     }
 
 }

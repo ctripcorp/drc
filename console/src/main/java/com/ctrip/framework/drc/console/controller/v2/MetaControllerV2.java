@@ -61,6 +61,10 @@ public class MetaControllerV2 {
                 drcString = metaProviderV2.getDrcString();
             }
             logger.debug("drc:\n {}", drcString);
+            if (StringUtils.isBlank(drcString)) {
+                logger.error("get drc fail");
+                return null;
+            }
             return drcString;
         } catch (Exception e) {
             logger.error("get drc fail", e);
