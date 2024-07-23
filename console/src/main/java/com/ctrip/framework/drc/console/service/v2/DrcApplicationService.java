@@ -23,5 +23,7 @@ public interface DrcApplicationService {
 
     boolean sendEmail(long applicationFormId) throws Exception;
 
+    boolean manualSendEmail(long applicationFormId) throws Exception;
+
     boolean updateApplicant(long applicationFormId, String applicant) throws Exception;
 }
