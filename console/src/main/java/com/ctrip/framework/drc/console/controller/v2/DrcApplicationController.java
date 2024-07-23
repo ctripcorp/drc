@@ -76,7 +76,7 @@ public class DrcApplicationController {
     @PostMapping("email")
     public ApiResult<Boolean> sendEmail(@RequestParam Long applicationFormId) {
         try {
-            return ApiResult.getSuccessInstance(drcApplicationService.sendEmail(applicationFormId));
+            return ApiResult.getSuccessInstance(drcApplicationService.manualSendEmail(applicationFormId));
         } catch (Exception e) {
             logger.error("createApplicationForm fail, ", e);
             return ApiResult.getFailInstance(false, e.getMessage());

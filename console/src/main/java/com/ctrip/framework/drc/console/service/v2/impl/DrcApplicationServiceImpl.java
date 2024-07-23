@@ -183,8 +183,15 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
                 Collectors.toMap(e -> new MultiKey(e.getSrcMha(), e.getDstMha()), this::buildMhaReplicationDto, (k1, k2) ->k1));
         List<MhaReplicationDto> mhaReplicationDtos = Lists.newArrayList(mhaReplicationDtoMap.values());
 
-        List<DbApplierDto> mhaDbAppliers = dbDrcBuildService.getMhaDbAppliers(replicationTableTbls.get(0).getSrcMha(), replicationTableTbls.get(0).getDstMha());
-        boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+        boolean dbApplyMode = false;
+        //for shardDb there is delay in one db, and by default, other db also experience delays
+        for (MultiKey multiKey : mhaReplicationDtoMap.keySet()) {
+            List<DbApplierDto> mhaDbAppliers = dbDrcBuildService.getMhaDbAppliers((String) multiKey.getKey(0), (String) multiKey.getKey(1));
+            dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            if (dbApplyMode) {
+                break;
+            }
+        }
         if (!dbApplyMode) {
             boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
             if (!delayCorrect) {
@@ -208,6 +215,17 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.CONFIG.EMAIL.FAIL", String.valueOf(applicationFormId));
         }
 
+        return result;
+    }
+
+    @Override
+    public boolean manualSendEmail(long applicationFormId) throws Exception {
+        boolean result = sendEmail(applicationFormId);
+        ApplicationFormTbl applicationForm = applicationFormTblDao.queryById(applicationFormId);
+        if (applicationForm.getIsSentEmail().equals(BooleanEnum.FALSE.getCode())) {
+            applicationForm.setIsSentEmail(BooleanEnum.TRUE.getCode());
+            applicationFormTblDao.update(applicationForm);
+        }
         return result;
     }
 
