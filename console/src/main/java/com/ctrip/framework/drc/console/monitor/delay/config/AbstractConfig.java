@@ -22,9 +22,7 @@ public abstract class AbstractConfig extends AbstractConfigBean implements Confi
         if(this.xml == null) {
             updateConfig();
         }
-        if (this.xml == null) {
-            throw new IllegalStateException("drc config is null");
-        }
+
         return this.xml;
     }
 
@@ -33,9 +31,7 @@ public abstract class AbstractConfig extends AbstractConfigBean implements Confi
         if (this.drc == null) {
             updateConfig();
         }
-        if (this.drc == null) {
-            throw new IllegalStateException("drc is null");
-        }
+
         return this.drc;
     }
 
