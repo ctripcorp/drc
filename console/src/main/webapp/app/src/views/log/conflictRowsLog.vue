@@ -26,11 +26,11 @@
               <Input prefix="ios-search" v-model="queryParam.tableName" placeholder="表名"></Input>
             </Col>
             <Col span="4">
-              <DatePicker type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
+              <DatePicker :transfer="true"  type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
                           :clearable="false" placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="4">
-              <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
+              <DatePicker :transfer="true" type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           :confirm="false" :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
