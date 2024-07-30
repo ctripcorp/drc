@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.unknown_log_event;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
 
 /**
@@ -15,6 +16,10 @@ public class LogEventTypeTest {
     @Test
     public void getLogEventTypeTest() {
         Assert.assertEquals(update_rows_event_v2, LogEventType.getLogEventType(31));
+        for (LogEventType value : LogEventType.values()) {
+            Assert.assertEquals(value, LogEventType.getLogEventType(value.getType()));
+        }
+        Assert.assertEquals(unknown_log_event, LogEventType.getLogEventType(9191));
     }
 
     private ByteBuf initByteBuf() {

@@ -1,37 +1,38 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.*;
+import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dc;
-import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -40,8 +41,9 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.tuple.Pair;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import java.util.Map.Entry;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,12 +52,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by yongnian
@@ -95,6 +96,26 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private MhaDbReplicationTblDao mhaDbReplicationTblDao;
+    @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
+    @Autowired
+    private ApplierGroupTblV3Dao applierGroupTblV3Dao;
+    @Autowired
+    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
+    @Autowired
+    private ApplierTblV3Dao applierTblV3Dao;
+    @Autowired
+    private ApplierTblV2Dao applierTblV2Dao;
+    @Autowired
+    private MessengerGroupTblV3Dao messengerGroupTblV3Dao;
+    @Autowired
+    private MessengerTblV3Dao messengerTblV3Dao;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private AccountService accountService;
 
 
     @Override
@@ -271,7 +292,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         if (mhaTblV2 == null) {
             throw ConsoleExceptionUtils.message(String.format("mha: %s not exist", mhaName));
         }
-        String uuid = MySqlUtils.getUuid(ip, port, mhaTblV2.getReadUser(), mhaTblV2.getReadPassword(), master);
+        Account account = accountService.getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_CONSOLE);
+        String uuid = MySqlUtils.getUuid(ip, port, account.getUser(), account.getPassword(), master);
         return uuid;
     }
 
@@ -334,6 +356,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         String mhaName = mhaTblV2.getMhaName();
         long mhaId = mhaTblV2.getId();
         logger.info("[[mha={}]]no such master {}:{}, try insert", mhaTblV2.getMhaName(), ip, port);
+        // todo hdpan get default new account from kms,no acc info in metaDB 
         String uuid = StringUtils.isNotBlank(suppliedUuid) ? suppliedUuid : MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), true);
         if (null == uuid) {
             logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaTblV2.getMhaName(), ip, port);
@@ -349,6 +372,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         String mhaName = mhaTblV2.getMhaName();
         long mhaId = mhaTblV2.getId();
         logger.info("[[mha={}]]no such slave {}:{}, try insert", mhaName, ip, port);
+        // todo hdpan get default new account from kms,no acc info in metaDB
         String uuid = StringUtils.isNotBlank(suppliedUuid) ? suppliedUuid : MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), false);
         if (null == uuid) {
             logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);
@@ -459,7 +483,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                 trafficFromHickWall, opsAccessToken);
         return mhaReplicationDelay.stream().filter(entity -> mhas.contains(entity.getSrcMha()))
                 .collect(Collectors.toMap(
-                        HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay,(e1, e2) -> e1));
+                        HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay, (e1, e2) -> e1));
     }
 
     @Override
@@ -481,12 +505,217 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         return mhas;
     }
 
+
+    @Autowired
+    private DbReplicationTblDao dbReplicationTblDao;
+
     @Override
-    public Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException {
+    public Map<String, List<String>> getMhasWithoutDrcReplication(boolean checkDbReplication) {
+        try {
+            Drc drc = metaProviderV2.getRealtimeDrc();
+            Map<String, List<String>> mhasWithoutDrcReplication = getMhasWithoutDrcReplication(drc);
+            if (checkDbReplication) {
+                Set<String> mhasWithoutDbReplicationConfig = getMhasWithoutDbReplicationConfigs();
+                for (Entry<String, List<String>> entry : mhasWithoutDrcReplication.entrySet()) {
+                    List<String> mhas = entry.getValue().stream().filter(mhasWithoutDbReplicationConfig::contains).collect(Collectors.toList());
+                    entry.setValue(mhas);
+                }
+            }
+            return mhasWithoutDrcReplication;
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @VisibleForTesting
+    protected Set<String> getMhasWithoutDbReplicationConfigs() throws SQLException {
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist();
+        Set<Long> configRelatedMappingIds = dbReplicationTbls.stream().flatMap(e -> {
+            if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())) {
+                return Stream.of(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId());
+            } else if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType())) {
+                return Stream.of(e.getSrcMhaDbMappingId());
+            } else {
+                return Stream.empty();
+            }
+        }).collect(Collectors.toSet());
+
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+        Set<Long> configRelatedMhaIds = mhaDbMappingTbls.stream().filter(e -> configRelatedMappingIds.contains(e.getId()))
+                .map(MhaDbMappingTbl::getMhaId).collect(Collectors.toSet());
+        List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryAllExist();
+        return mhaTblV2List.stream().filter(e -> !configRelatedMhaIds.contains(e.getId())).map(MhaTblV2::getMhaName).collect(Collectors.toSet());
+    }
+
+    @VisibleForTesting
+    protected Map<String, List<String>> getMhasWithoutDrcReplication(Drc drc) {
+        List<DbCluster> dbClusters = drc.getDcs().values().stream().flatMap(e -> e.getDbClusters().values().stream()).collect(Collectors.toList());
+        Set<String> drcRelatedMha = Sets.newHashSet();
+        //
+        for (DbCluster dbCluster : dbClusters) {
+            if (CollectionUtils.isEmpty(dbCluster.getAppliers())
+                    && CollectionUtils.isEmpty(dbCluster.getMessengers())) {
+                continue;
+            }
+
+            String dstMha = dbCluster.getMhaName();
+            Set<String> srcMhas = dbCluster.getAppliers().stream().map(Applier::getTargetMhaName).collect(Collectors.toSet());
+            drcRelatedMha.add(dstMha);
+            drcRelatedMha.addAll(srcMhas);
+        }
+        Map<String, List<String>> dcToMhaMap = new HashMap<>();
+        for (Entry<String, Dc> dcEntry : drc.getDcs().entrySet()) {
+            Dc dc = dcEntry.getValue();
+            List<String> mhasWithReplicatorButNoDrc = dc.getDbClusters().values().stream()
+                    .map(DbCluster::getMhaName)
+                    .filter(mhaName -> !drcRelatedMha.contains(mhaName))
+                    .collect(Collectors.toList());
+            dcToMhaMap.put(dc.getRegion(), mhasWithReplicatorButNoDrc);
+        }
+        return dcToMhaMap;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public Pair<Boolean, Integer> offlineMhasWithOutReplication(List<String> mhas) throws SQLException {
+        if (CollectionUtils.isEmpty(mhas)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "empty input ");
+        }
+        List<String> allowDc = consoleConfig.getBatchOfflineRegion();
+        if (CollectionUtils.isEmpty(allowDc)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "no allow dc found ");
+        }
+        Map<String, List<String>> mhasWithoutDrcReplication = getMhasWithoutDrcReplication(true);
+        List<String> allowMhas = Lists.newArrayList();
+        for (String dc : allowDc) {
+            allowMhas.addAll(mhasWithoutDrcReplication.get(dc));
+        }
+        if (CollectionUtils.isEmpty(allowMhas)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "no allow mha found");
+        }
+        if (!Sets.newHashSet(allowMhas).containsAll(mhas)) {
+            mhas.removeAll(allowMhas);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "not allowed mhas: " + mhas);
+        }
+        if (CollectionUtils.isEmpty(mhas)) {
+            return new Pair<>(Boolean.FALSE, 0);
+        }
+        Pair<Boolean, Integer> res = Pair.of(Boolean.TRUE, 0);
+
+        List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(mhas, BooleanEnum.FALSE.getCode());
+        List<Long> mhaIds = mhaTblV2List.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+        // do offline 1: mha replication + applier group + messenger group
+        this.offlineMhaReplications(mhaIds);
+
+        // do offline 2: mha db replications + db applier group + db messenger group
+        this.offLineMhaDbReplications(mhaIds);
+
+        // do offline 3: mha replicators
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryByMhaIds(mhaIds, BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(replicatorGroupTbls)) {
+            List<Long> replicatorGroupIds = replicatorGroupTbls.stream().map(ReplicatorGroupTbl::getId).collect(Collectors.toList());
+            List<ReplicatorTbl> replicators = replicatorTblDao.queryByRGroupIds(replicatorGroupIds, BooleanEnum.FALSE.getCode());
+            // update
+            replicators.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            replicatorTblDao.batchUpdate(replicators);
+            replicatorGroupTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            replicatorGroupTblDao.batchUpdate(replicatorGroupTbls);
+        }
+
+
+        // do offline: mha
+        for (String mha : mhas) {
+            if (offlineMha(mha)) {
+                res.setValue(res.getValue() + 1);
+            } else {
+                logger.error("offline mha: {} failed", mha);
+                res.setKey(Boolean.FALSE);
+            }
+        }
+        return res;
+    }
+
+    private void offlineMhaReplications(List<Long> mhaIds) throws SQLException {
+        if (CollectionUtils.isEmpty(mhaIds)) {
+            return;
+        }
+        List<MhaReplicationTbl> mhaReplicationTblsToDelete = mhaReplicationTblDao.queryByRelatedMhaId(mhaIds);
+        if (!CollectionUtils.isEmpty(mhaReplicationTblsToDelete)) {
+            List<Long> mhaReplicationIds = mhaReplicationTblsToDelete.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList());
+            // applier
+            List<ApplierGroupTblV2> applierGroupTblV2sToDelete = applierGroupTblV2Dao.queryByMhaReplicationIds(mhaReplicationIds);
+            List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupIds(applierGroupTblV2sToDelete.stream().map(ApplierGroupTblV2::getId).collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(applierTblV2s)) {
+                List<Long> groupIds = applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList());
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha applier still exist for group:  " + groupIds);
+            }
+            // update
+            mhaReplicationTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            mhaReplicationTblDao.batchUpdate(mhaReplicationTblsToDelete);
+            applierGroupTblV2sToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            applierGroupTblV2Dao.batchUpdate(applierGroupTblV2sToDelete);
+        }
+        // messenger
+        List<MessengerGroupTbl> messengerGroupTblsToDelete = messengerGroupTblDao.queryByMhaIds(mhaIds, BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(messengerGroupTblsToDelete)) {
+            List<Long> messengerGroupTblIds = messengerGroupTblsToDelete.stream().map(MessengerGroupTbl::getId).collect(Collectors.toList());
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(messengerGroupTblIds);
+            if (!CollectionUtils.isEmpty(messengerTbls)) {
+                List<Long> groupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger still exist for group:  " + groupIds);
+            }
+            messengerGroupTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            messengerGroupTblDao.batchUpdate(messengerGroupTblsToDelete);
+        }
+    }
+
+    private void offLineMhaDbReplications(List<Long> mhaIds) throws SQLException {
+        if (CollectionUtils.isEmpty(mhaIds)) {
+            return;
+        }
+        List<MhaDbMappingTbl> mhaDbMappingTblsToDelete = mhaDbMappingTblDao.queryByMhaIds(mhaIds);
+        if (CollectionUtils.isEmpty(mhaDbMappingTblsToDelete)) {
+            return;
+        }
+        List<Long> mappingIds = mhaDbMappingTblsToDelete.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+        MhaDbReplicationQuery query = new MhaDbReplicationQuery();
+        query.setRelatedMappingList(mappingIds);
+        List<MhaDbReplicationTbl> mhaDbReplicationTblsToDelete = mhaDbReplicationTblDao.query(query);
+
+        // mha db applier
+        List<Long> mhaDbReplicationApplierIds = mhaDbReplicationTblsToDelete.stream().filter(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType())).map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
+        List<ApplierGroupTblV3> applierGroupTblV3sToDelete = applierGroupTblV3Dao.queryByMhaDbReplicationIds(mhaDbReplicationApplierIds);
+        List<Long> applierGroupV3Ids = applierGroupTblV3sToDelete.stream().map(ApplierGroupTblV3::getId).collect(Collectors.toList());
+        List<ApplierTblV3> applierTblV3s = applierTblV3Dao.queryByApplierGroupIds(applierGroupV3Ids, BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(applierTblV3s)) {
+            List<Long> groupIds = applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).distinct().collect(Collectors.toList());
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db applier still exist for group:  " + groupIds);
+        }
+        // mha db messenger
+        List<Long> mhaDbReplicationMessengerIds = mhaDbReplicationTblsToDelete.stream().filter(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType())).map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
+        List<MessengerGroupTblV3> messengerGroupTblsV3ToDelete = messengerGroupTblV3Dao.queryByMhaDbReplicationIds(mhaDbReplicationMessengerIds);
+        List<Long> messengerGroupTblV3Ids = messengerGroupTblsV3ToDelete.stream().map(MessengerGroupTblV3::getId).collect(Collectors.toList());
+        List<MessengerTblV3> messengerTblsV3 = messengerTblV3Dao.queryByGroupIds(messengerGroupTblV3Ids);
+        if (!CollectionUtils.isEmpty(messengerTblsV3)) {
+            List<Long> groupIds = messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList());
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db messenger still exist for group:  " + groupIds);
+        }
+
+        // update
+        mhaDbReplicationTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        mhaDbReplicationTblDao.batchUpdate(mhaDbReplicationTblsToDelete);
+        applierGroupTblV3sToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        applierGroupTblV3Dao.batchUpdate(applierGroupTblV3sToDelete);
+        messengerGroupTblsV3ToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        messengerGroupTblV3Dao.batchUpdate(messengerGroupTblsV3ToDelete);
+    }
+
+    @Override
+    public Pair<Boolean, Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException {
         List<String> mhaWithOutDrc = queryMhasWithOutDrc();
         mhas.retainAll(mhaWithOutDrc);
         if (CollectionUtils.isEmpty(mhas)) {
-            return new Pair<>(Boolean.FALSE,0);
+            return new Pair<>(Boolean.FALSE, 0);
         }
         Pair<Boolean, Integer> res = Pair.of(Boolean.TRUE, 0);
         for (String mha : mhas) {
@@ -497,6 +726,39 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                 res.setKey(Boolean.FALSE);
             }
         }
+        return res;
+    }
+
+    @Override
+    public List<Long> queryMachineWithOutMha() throws SQLException {
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        List<MachineTbl> machineTbls = machineTblDao.queryAllExist();
+        Set<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toSet());
+        return machineTbls.stream().filter(machineTbl -> !mhaIds.contains(machineTbl.getMhaId()))
+                .map(MachineTbl::getId).collect(Collectors.toList());
+    }
+
+    @Override
+    public Pair<Boolean, Integer> offlineMachineWithOutMha(List<Long> machineIds) throws SQLException {
+        if (CollectionUtils.isEmpty(machineIds)) {
+            return Pair.of(Boolean.FALSE, 0);
+        }
+        List<Long> machineIdCanOffline = this.queryMachineWithOutMha();
+        machineIds.retainAll(machineIdCanOffline);
+        if (CollectionUtils.isEmpty(machineIds)) {
+            return Pair.of(Boolean.FALSE, 0);
+        }
+        Pair<Boolean, Integer> res = Pair.of(Boolean.TRUE, 0);
+        machineTblDao.queryByPk(machineIds).forEach(machineTbl -> {
+            machineTbl.setDeleted(BooleanEnum.TRUE.getCode());
+            try {
+                machineTblDao.update(machineTbl);
+                res.setValue(res.getValue() + 1);
+            } catch (SQLException e) {
+                logger.error("offline machine: {} failed", machineTbl.getId(), e);
+                res.setKey(Boolean.FALSE);
+            }
+        });
         return res;
     }
 
@@ -536,5 +798,15 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
 
         return mhaTblV2Dao.queryByParam(param);
+    }
+
+    @Override
+    public MachineTbl getMasterNode(Long mhaId) throws SQLException {
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(machineTbls)) {
+            return null;
+        }
+        return machineTbls.stream().filter(machineTbl -> machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode()))
+                .findFirst().orElse(null);
     }
 }

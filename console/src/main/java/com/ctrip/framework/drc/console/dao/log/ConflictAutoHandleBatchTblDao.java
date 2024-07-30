@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao.log;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictAutoHandleBatchTbl;
+import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +33,21 @@ public class ConflictAutoHandleBatchTblDao extends AbstractDao<ConflictAutoHandl
         }
         if (StringUtils.isNotBlank(tableName)) {
             sqlBuilder.and().like(TABLE_NAME, tableName, MatchPattern.CONTAINS, Types.VARCHAR);
+        }
+
+        return queryList(sqlBuilder);
+    }
+
+    public List<ConflictAutoHandleBatchTbl> queryByParam(ConflictApprovalQueryParam param) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        if (!param.isAdmin()) {
+            sqlBuilder.and().in(DB_NAME, param.getDbsWithPermission(), Types.VARCHAR);
+        }
+        if (StringUtils.isNotBlank(param.getDbName())) {
+            sqlBuilder.and().like(DB_NAME, param.getDbName(), MatchPattern.CONTAINS, Types.VARCHAR);
+        }
+        if (StringUtils.isNotBlank(param.getTableName())) {
+            sqlBuilder.and().like(TABLE_NAME, param.getTableName(), MatchPattern.CONTAINS, Types.VARCHAR);
         }
 
         return queryList(sqlBuilder);

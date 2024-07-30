@@ -87,4 +87,15 @@ public class CentralServiceController {
         }
     }
 
+    @GetMapping("mhaAccounts")
+    public ApiResult getMhaAccounts(@RequestParam String mhaName) {
+        try {
+            logger.info("getMhaAccounts,mha:{}",mhaName);
+            return ApiResult.getSuccessInstance(centralService.getMhaAccounts(mhaName));
+        } catch (Throwable e) {
+            logger.info("getMhaAccounts fail,mha:{}",mhaName);
+            return ApiResult.getFailInstance(null, "getMhaAccounts fail" + mhaName);
+        }
+    }
+    
 }

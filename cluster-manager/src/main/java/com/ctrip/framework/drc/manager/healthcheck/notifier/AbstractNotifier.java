@@ -1,5 +1,12 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_TABLE_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HTTPS_PORT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
+
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -9,26 +16,27 @@ import com.ctrip.framework.drc.core.entity.Instance;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.RestTemplateFactory;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.command.AbstractCommand;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.retry.RestOperationsRetryPolicyFactory;
-import com.ctrip.xpipe.spring.RestTemplateFactory;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import org.apache.http.conn.ConnectTimeoutException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.*;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestOperations;
-
 import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
+import org.apache.http.conn.ConnectTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestOperations;
 
 /**
  * Created by mingdongli
@@ -40,11 +48,12 @@ public abstract class AbstractNotifier implements Notifier {
 
     public static int RETRY_INTERVAL = 2000;
 
-    protected RestOperations restTemplate = RestTemplateFactory.createCommonsHttpRestTemplate(4, 40, CONNECTION_TIMEOUT, 5000, 0, new RestOperationsRetryPolicyFactory(RETRY_INTERVAL)); //retry by Throwable
+    protected RestOperations restTemplate = RestTemplateFactory.createRestTemplateWithSSLContext(4, 40, CONNECTION_TIMEOUT, 5000, 0, new RestOperationsRetryPolicyFactory(RETRY_INTERVAL)); //retry by Throwable
 
     private KeyedOneThreadTaskExecutor<String> notifyExecutor;
 
     private static final String NOTIFY_URL = "http://%s/%s";
+    private static final String HTTPS_NOTIFY_URL = "https://%s/%s";
 
     protected AbstractNotifier() {
         int threadNum = DynamicConfig.getInstance().getCmNotifyThread();
@@ -53,6 +62,23 @@ public abstract class AbstractNotifier implements Notifier {
         notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);
     }
 
+
+    public boolean isNotifyHttps() {
+        return DynamicConfig.getInstance().getCMNotifyHttpsSwitch();
+    }
+    
+    public String getNotifyUrlFormatter() {
+        return isNotifyHttps() ? HTTPS_NOTIFY_URL : NOTIFY_URL;
+    }
+
+    public String getInstancesNotifyIpPort(Instance instance) {
+        if (isNotifyHttps()) {
+            return instance.getIp() + ":" + HTTPS_PORT;
+        } else {
+            return instance.getIp() + ":" + instance.getPort();
+        }
+    }
+    
     /**
      * registryKey is diff:
      * replicator: name.mha
@@ -62,7 +88,7 @@ public abstract class AbstractNotifier implements Notifier {
     @Override
     public void notify(String registryKey, DbCluster dbCluster) {  //retry when failed
         for (String ipAndPort : getDomains(dbCluster)) {
-            String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
+            String url = String.format(getNotifyUrlFormatter(), ipAndPort, getUrlPath());
             PostSend postSend = new PostSend(ipAndPort, url, dbCluster);
             notifyExecutor.execute(registryKey, new SendTask(registryKey, postSend));
         }
@@ -77,7 +103,7 @@ public abstract class AbstractNotifier implements Notifier {
     @Override
     public void notifyAdd(String registryKey, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
-            String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
+            String url = String.format(getNotifyUrlFormatter(), ipAndPort, getUrlPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, false);
             notifyExecutor.execute(registryKey, new SendTask(registryKey, putSend));
         }
@@ -92,7 +118,7 @@ public abstract class AbstractNotifier implements Notifier {
     @Override
     public void notifyRegister(String registryKey, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
-            String url = String.format(NOTIFY_URL, ipAndPort, getRegisterPath());
+            String url = String.format(getNotifyUrlFormatter(), ipAndPort, getRegisterPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, true);
             notifyExecutor.execute(registryKey, new SendTask(registryKey, putSend));
         }
@@ -107,8 +133,8 @@ public abstract class AbstractNotifier implements Notifier {
     @Override
     public void notifyRemove(String registryKey, Instance instance, boolean deleted) {
         String ip = instance.getIp();
-        int port = instance.getPort();
-        String url = String.format(NOTIFY_URL, ip + ":" + port, getUrlPath());
+        int port = isNotifyHttps() ? HTTPS_PORT : instance.getPort();
+        String url = String.format(getNotifyUrlFormatter(), ip + ":" + port, getUrlPath());
         String deleteUrl = url + "/" + registryKey + "/";
         if ((instance instanceof Applier || instance instanceof Messenger) && !deleted) {
             deleteUrl += deleted;

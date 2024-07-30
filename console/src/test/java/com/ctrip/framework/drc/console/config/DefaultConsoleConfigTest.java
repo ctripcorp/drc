@@ -167,4 +167,23 @@ public class DefaultConsoleConfigTest {
         String region = config.getRegionForDc("dc1");
         Assert.assertEquals("region1",region);
     }
+
+
+    @Test
+    public void testGetAccountKmsTokenMhaGrayV2() {
+        Set<String> accountKmsTokenMhaGrayV2 = config.getAccountKmsTokenMhaGrayV2();
+        Assert.assertEquals(0,accountKmsTokenMhaGrayV2.size());
+    }
+
+    @Test
+    public void testGetAccountKmsTokenSwitchV2() {
+        boolean accountKmsTokenSwitchV2 = config.getAccountKmsTokenSwitchV2();
+        Assert.assertFalse(accountKmsTokenSwitchV2);
+    }
+
+    @Test
+    public void testGetDbaApiPwdChangeUrl() {
+        String dbaApiPwdChangeUrl = config.getDbaApiPwdChangeUrl();
+        Assert.assertEquals("",dbaApiPwdChangeUrl);
+    }
 }

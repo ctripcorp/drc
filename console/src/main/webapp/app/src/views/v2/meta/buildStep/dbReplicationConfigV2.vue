@@ -112,6 +112,32 @@
                   </FormItem>
                 </div>
               </div>
+              <div v-else-if="useCustomSoaMode">
+                <FormItem label="相关字段">
+                  <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
+                          @on-create="handleCreateUDLColumn" placeholder="选择相关字段">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="ServiceCode">
+                  <Select v-model="rowsFilterConfig.drcStrategyId" filterable allow-create @on-create="handleCreateSoaServiceCode"
+                          style="width: 200px"
+                          placeholder="请选择soaServiceCode">
+                    <Option v-for="item in rowsFilterConfig.serviceCodeForChose" :value="item"
+                            :key="item">{{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="服务名">
+                  <Select v-model="rowsFilterConfig.context" filterable allow-create @on-create="handleCreateSoaServiceName"
+                          style="width: 200px"
+                          placeholder="请选择服务名">
+                    <Option v-for="item in rowsFilterConfig.serviceNameForChose" :value="item"
+                            :key="item">{{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+              </div>
               <div v-else>
                 <FormItem label="规则内容">
                   <Input type="textarea" v-model="rowsFilterConfig.context"
@@ -200,6 +226,7 @@ export default {
       submit: true,
       constants: {
         regionsForChose: [
+          'SGP',
           'SIN',
           'SH',
           'FRA'
@@ -211,8 +238,8 @@ export default {
           JAVA_REGEX: 0,
           TRIP_UDL: 1,
           AVIATOR_REGEX: 3,
-          CUSTOM: 4,
-          TRIP_UDL_UID: 5
+          TRIP_UDL_UID: 5,
+          CUSTOM_SOA: 6
         },
         fetchMode: {
           RPC: 0,
@@ -244,12 +271,12 @@ export default {
             mode: 3
           },
           {
-            name: 'custom',
-            mode: 4
-          },
-          {
             name: 'trip_udl_uid',
             mode: 5
+          },
+          {
+            name: 'custom_soa',
+            mode: 6
           }
         ],
         fetchModeForChose: [
@@ -269,6 +296,13 @@ export default {
             k: 'BlackListGlobal',
             v: 3
           }
+        ],
+        serviceCodeForChose: [
+          32578
+        ],
+        serviceNameForChose: [
+          'DataSyncService',
+          'FilterRowService'
         ]
       },
       columnsForChose: [],
@@ -477,7 +511,7 @@ export default {
             mode: this.rowsFilterConfig.mode,
             columns: this.rowsFilterConfig.columns.length === 0 ? null : this.rowsFilterConfig.columns,
             udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.udlColumns,
-            drcStrategyId: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.drcStrategyId,
+            drcStrategyId: (this.rowsFilterConfig.udlColumns.length === 0 && !this.useCustomSoaMode) ? null : this.rowsFilterConfig.drcStrategyId,
             routeStrategyId: this.rowsFilterConfig.routeStrategyId,
             illegalArgument: this.rowsFilterConfig.illegalArgument,
             fetchMode: this.rowsFilterConfig.fetchMode,
@@ -629,6 +663,28 @@ export default {
       }
       this.columnsForChose.push(val)
     },
+    handleCreateSoaServiceCode (val) {
+      if (this.contains(this.rowsFilterConfig.serviceCodeForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null || val === 0) {
+        alert('serviceCode不能为空')
+        return
+      }
+      this.rowsFilterConfig.serviceCodeForChose.push(val)
+    },
+    handleCreateSoaServiceName (val) {
+      if (this.contains(this.rowsFilterConfig.serviceNameForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('serviceName不能为空')
+        return
+      }
+      this.rowsFilterConfig.serviceNameForChose.push(val)
+    },
     notice () {
       if (this.batchUpdate && this.commonInfo.dbReplicationIds !== undefined) {
         this.$Message.info('共选中' + this.commonInfo.dbReplicationIds.length + '行')
@@ -651,6 +707,9 @@ export default {
     },
     useTripUdlOrUidMode () {
       return [this.constants.filterMode.TRIP_UDL, this.constants.filterMode.TRIP_UDL_UID].includes(this.rowsFilterConfig.mode)
+    },
+    useCustomSoaMode () {
+      return [this.constants.filterMode.CUSTOM_SOA].includes(this.rowsFilterConfig.mode)
     },
     hasUdlColumn () {
       return this.rowsFilterConfig.udlColumns.length !== 0

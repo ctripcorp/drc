@@ -14,7 +14,14 @@
               </Input>
             </Card>
           </Col>
-          <Col span="16">
+          <Col span="2">
+            <Card :padding=5>
+              <template #title> topic </template>
+              <Input prefix="ios-search" v-model="topic" placeholder="topic" @on-enter="getAllMessengerVos()">
+              </Input>
+            </Card>
+          </Col>
+          <Col span="14">
             <Row :gutter=10 align="middle">
               <Col span="24">
                 <Card :padding=5>
@@ -66,6 +73,7 @@
                 <template #list>
                   <DropdownMenu >
                     <DropdownItem @click.native="() => {$router.push({path: '/v2/buildMessengerV2'})}">新建Messenger配置</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbMqBuildV2'})}">新建Messenger配置（DB维度）</DropdownItem>
                   </DropdownMenu>
                 </template>
               </Dropdown>
@@ -163,6 +171,7 @@ export default {
         mhaToBeRemoved: ''
       },
       dbNames: null,
+      topic: null,
       mha: {
         name: this.$route.query.mhaName,
         buId: null,
@@ -296,7 +305,8 @@ export default {
     getParams () {
       const params = {
         mha: this.mha,
-        dbNames: this.dbNames
+        dbNames: this.dbNames,
+        topic: this.topic
       }
       return this.flattenObj(params)
     },
@@ -437,9 +447,15 @@ export default {
     }
   },
   created () {
-    this.getRegions()
-    this.getBus()
-    this.getAllMessengerVos()
+    this.axios.get('/api/drc/v2/permission/meta/mqReplication/query').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.getRegions()
+      this.getBus()
+      this.getAllMessengerVos()
+    })
   }
 }
 </script>

@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledC
 import com.ctrip.framework.drc.applier.confirmed.ConfirmedTests;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainerTest;
 import com.ctrip.framework.drc.applier.container.controller.ApplierServerControllerTest;
+import com.ctrip.framework.drc.applier.container.controller.task.WatchKeyedTaskTest;
 import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTest;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTestWithMockedEvents;
@@ -99,6 +100,7 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         ApplierServerControllerTest.class,
 
         //activity
+        WatchKeyedTaskTest.class,
         ApplierDumpEventActivityTest.class,
         TransactionTableApplierDumpEventActivityTest.class,
         ReportConflictActivityTest.class,

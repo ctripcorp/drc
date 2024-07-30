@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.service.v2.dbmigration.impl;
 
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
+
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
@@ -12,19 +15,62 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.MachineTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.MigrationTaskTblDao;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
-import com.ctrip.framework.drc.console.enums.*;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
+import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
@@ -42,6 +88,16 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,16 +105,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
 
 /**
  * @ClassName DbMigrationServiceImpl
@@ -101,8 +147,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private MessengerTblDao messengerTblDao;
-    @Autowired
-    private MetaGeneratorV3 metaGeneratorV3;
     @Autowired
     private DcTblDao dcTblDao;
     @Autowired
@@ -200,6 +244,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
+        
+        forbidMhaExistAnyDbMode(oldMhaTblV2, newMhaTblV2);
         
         StringBuilder tips = new StringBuilder();
         StringBuilder errorInfo = new StringBuilder();
@@ -378,7 +424,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 }
                 MhaReplicationTbl mhaReplicationInNew = mhaReplicationTblDao.queryByMhaId(mhaInSrc.getId(), newMhaTbl.getId(), BooleanEnum.FALSE.getCode());
                 ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationInNew.getId(), BooleanEnum.FALSE.getCode());
-                drcBuildServiceV2.autoConfigAppliersWithRealTimeGtid(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl);
+                
+                // ->sha,use old applierGroup's gtidInit
+                ApplierGroupTblV2 applierGroupOld = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationInOld.getId(), BooleanEnum.FALSE.getCode());
+                String gtidInit = applierGroupOld.getGtidInit();
+                logger.info("[[migration=start]] task:{} autoConfigAppliers, {}->mhaInDest:{}, gtidInit:{}", taskId, mhaInSrc.getMhaName(), newMhaTbl.getMhaName(), gtidInit);
+                drcBuildServiceV2.autoConfigAppliers(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl,gtidInit);
             }
         }
 
@@ -959,13 +1010,23 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (migrationTaskTbl == null) {
             throw ConsoleExceptionUtils.message("taskId: " + taskId + " not exist!");
         }
-        
-        String currentStatus = migrationTaskTbl.getStatus();
         if (cancel) {
             rollBack = true;
         } else {
-            if (!currentStatus.equals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus())) {
-                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to continue");
+            String currentStatus = migrationTaskTbl.getStatus();
+            List<String> statusCanRollback = Lists.newArrayList(
+                    MigrationStatusEnum.STARTING.getStatus(),
+                    MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(),
+                    MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus()
+                    );
+            List<String> statusCanCommit = Lists.newArrayList(
+                    MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus()
+            );
+            if (rollBack && !statusCanRollback.contains(currentStatus)) {
+                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to rollback");
+            }
+            if (!rollBack && !statusCanCommit.contains(currentStatus)) {
+                throw ConsoleExceptionUtils.message("task status is: " + currentStatus + ", not ready to commit");
             }
             String status = rollBack ? MigrationStatusEnum.FAIL.getStatus() : MigrationStatusEnum.SUCCESS.getStatus();
             migrationTaskTbl.setStatus(status);
@@ -1038,6 +1099,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (!existMhaReplication(targetMhaId)) {
             String mhaName = rollBack ? newMhaName : oldMhaName;
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.Empty.Replication", mhaName);
+            // todo: offline mha & machine
         }
 
         try {
@@ -1261,6 +1323,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         mqDbReplications.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         logger.info("delete mqDbReplicationTblIds: {}", mqDbReplicationIds);
         dbReplicationTblDao.update(mqDbReplications);
+        mhaDbReplicationService.offlineMhaDbReplication(mqDbReplications);
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(mqDbReplicationIds);
         if (!CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
@@ -1282,6 +1345,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         logger.info("delete dbReplicationTblIds: {}", dbReplicationIds);
         dbReplicationTblDao.update(dbReplicationTbls);
+        mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (!CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
@@ -1378,6 +1442,22 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         return !dbReplicationExist;
     }
     
+    private void forbidMhaExistAnyDbMode(MhaTblV2 oldMhaTblV2, MhaTblV2 newMhaTblV2) {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications();
+        mhaReplicationTbls.forEach(mhaReplicationTbl -> {
+            if (oldMhaTblV2.getId().equals(mhaReplicationTbl.getSrcMhaId()) || 
+                    oldMhaTblV2.getId().equals(mhaReplicationTbl.getDstMhaId())) {
+                throw ConsoleExceptionUtils.message(
+                        oldMhaTblV2.getMhaName() + "Mha has db mode replication, please contact DRC team!");
+            }
+            if (newMhaTblV2.getId().equals(mhaReplicationTbl.getSrcMhaId()) || 
+                    newMhaTblV2.getId().equals(mhaReplicationTbl.getDstMhaId())) {
+                throw ConsoleExceptionUtils.message(
+                        newMhaTblV2.getMhaName() + "Mha has db mode replication, please contact DRC team!");
+            }
+        });
+    }
+    
     private MhaTblV2 checkAndInitMhaInfo(MigrateMhaInfo mhaInfo) throws SQLException {
         MhaTblV2 mhaTblV2;
         MachineTbl mhaMaterNode = machineTblDao.queryByIpPort(mhaInfo.getMasterIp(), mhaInfo.getMasterPort());
@@ -1389,12 +1469,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             Long mhaId = mhaMaterNode.getMhaId();
             mhaTblV2 = mhaTblV2Dao.queryByPk(mhaId);
             String newMhaNameInDrc = mhaTblV2.getMhaName();
-            if (mhaTblV2.getMonitorSwitch().equals(0) ) {
-                mhaTblV2.setMonitorSwitch(1);
-                mhaTblV2Dao.update(mhaTblV2);
-                logger.info("mha:{} recover and monitor switch turn on", mhaTblV2.getMhaName());
-            }
-            if (!newMhaNameInDrc.equals(mhaInfo.getName())) {
+            mhaTblV2.setMonitorSwitch(1);
+            mhaTblV2.setDeleted(0);
+            mhaTblV2Dao.update(mhaTblV2);
+            logger.info("mha:{} recover and monitor switch turn on", mhaTblV2.getMhaName());
+            
+            if (!newMhaNameInDrc.equals(mhaInfo.getName())) { 
                 logger.warn("drcMha:{},dbRequestMha:{},mhaName not match....", newMhaNameInDrc, mhaInfo.getName());
             }
         }
@@ -1417,40 +1497,56 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         PreconditionUtils.checkArgument(dbMigrationRequest.getNewMha().getMasterPort() != 0, "newMha masterPort is 0");
     }
 
-
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public Pair<String, String> getAndUpdateTaskStatus(Long taskId) {
+    public Pair<String, String> getAndUpdateTaskStatus(Long taskId,boolean careNewMha) {
         try {
             MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
             if (migrationTaskTbl == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "task not exist: " + taskId);
             }
-            // not STARTING or READY_TO_SWITCH_DAL status, return
-            List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
-            if (!statusList.contains(migrationTaskTbl.getStatus())) {
-                return Pair.of(null, migrationTaskTbl.getStatus());
-            }
-
             List<String> dbNames = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class);
             String oldMha = migrationTaskTbl.getOldMha();
             String newMha = migrationTaskTbl.getNewMha();
-
-            // all related mha delay < 10s
-            Pair<String, Boolean> res = this.isRelatedDelaySmall(dbNames, oldMha, newMha);
-            String message = res.getLeft();
-            Boolean allReady = res.getRight();
-
-            String currStatus = migrationTaskTbl.getStatus();
-            String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
-            boolean needUpdate = !targetStatus.equals(currStatus);
-            if (needUpdate) {
-                migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,
-                        "GetAndUpdateTaskStatus res: " + targetStatus, migrationTaskTbl.getOperator(), LocalDateTime.now()));
-                migrationTaskTbl.setStatus(targetStatus);
-                migrationTaskTblDao.update(migrationTaskTbl);
+            if (careNewMha) {
+                // not STARTING or READY_TO_SWITCH_DAL status, return
+                List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+                if (!statusList.contains(migrationTaskTbl.getStatus())) {
+                    return Pair.of(null, migrationTaskTbl.getStatus());
+                }
+                Pair<String, Boolean> res = this.isRelatedDelaySmall(dbNames,Lists.newArrayList(newMha));
+                String message = res.getLeft();
+                Boolean allReady = res.getRight();
+                String currStatus = migrationTaskTbl.getStatus();
+                String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
+                boolean needUpdate = !targetStatus.equals(currStatus);
+                if (needUpdate) {
+                    migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,
+                            "GetAndUpdateTaskStatus before dal switch res: " + targetStatus, migrationTaskTbl.getOperator(), LocalDateTime.now()));
+                    migrationTaskTbl.setStatus(targetStatus);
+                    migrationTaskTblDao.update(migrationTaskTbl);
+                }
+                return Pair.of(message, targetStatus);
+            } else {
+                List<String> statusList = Lists.newArrayList(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(),MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
+                if (!statusList.contains(migrationTaskTbl.getStatus())) {
+                    return Pair.of(null, migrationTaskTbl.getStatus());
+                }
+                Pair<String, Boolean> res = this.isRelatedDelaySmall(dbNames,Lists.newArrayList(oldMha));
+                String message = res.getLeft();
+                Boolean allReady = res.getRight();
+                String currStatus = migrationTaskTbl.getStatus();
+                String targetStatus = allReady ? MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus() : MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus();
+                boolean needUpdate = !targetStatus.equals(currStatus);
+                if (needUpdate) {
+                    migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,
+                            "GetAndUpdateTaskStatus after dal switch res: " + targetStatus, migrationTaskTbl.getOperator(), LocalDateTime.now()));
+                    migrationTaskTbl.setStatus(targetStatus);
+                    migrationTaskTblDao.update(migrationTaskTbl);
+                }
+                return Pair.of(message, targetStatus);
+                
             }
-            return Pair.of(message, targetStatus);
         } catch (SQLException e) {
             logger.error("queryAndPushToReadyIfPossible error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -1462,15 +1558,16 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.UNKNOWN_EXCEPTION, e);
         }
     }
-
-    private Pair<String, Boolean> isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
+    
+    
+    private Pair<String,Boolean> isRelatedDelaySmall(List<String> dbNames, List<String> mhas) {
         try {
             // 1. get mha replication delay info
-            List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
+            List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(mhas, dbNames);
             // only concern active mha replication
             all = all.stream().filter(e -> BooleanEnum.TRUE.getCode().equals(e.getStatus())).collect(Collectors.toList());
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(all);
-            logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, mhaReplicationDelays);
+            logger.info("Mha:{}, db:{}, delay info: {}", mhas, dbNames, mhaReplicationDelays);
             if (mhaReplicationDelays.size() != all.size()) {
                 throw ConsoleExceptionUtils.message("query delay fail[1]");
             }
@@ -1478,17 +1575,17 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 throw ConsoleExceptionUtils.message("query delay fail[2]");
             }
             // 2. get mha messenger delay info
-            List<MhaMessengerDto> messengerDtoList = messengerServiceV2.getRelatedMhaMessenger(Lists.newArrayList(oldMha, newMha), dbNames);
+            List<MhaMessengerDto> messengerDtoList = messengerServiceV2.getRelatedMhaMessenger(mhas, dbNames);
             messengerDtoList = messengerDtoList.stream().filter(e -> BooleanEnum.TRUE.getCode().equals(e.getStatus())).collect(Collectors.toList());
             List<MhaDelayInfoDto> messengerDelays = messengerServiceV2.getMhaMessengerDelays(messengerDtoList);
-            logger.info("messenger oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, messengerDelays);
+            logger.info("messenger Mha:{}, db:{}, delay info: {}", mhas, dbNames, mhaReplicationDelays);
             if (messengerDelays.size() != messengerDtoList.size()) {
                 throw ConsoleExceptionUtils.message("query delay fail[3]");
             }
             if (messengerDelays.stream().anyMatch(e -> e.getDelay() == null)) {
                 throw ConsoleExceptionUtils.message("query delay fail[4]");
             }
-
+    
             // 3. ready condition: all related mha delay < 10s (given by DBA)
             List<MhaDelayInfoDto> mhaReplicationNotReadyList = mhaReplicationDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             List<MhaDelayInfoDto> messengerNotReadyList = messengerDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());

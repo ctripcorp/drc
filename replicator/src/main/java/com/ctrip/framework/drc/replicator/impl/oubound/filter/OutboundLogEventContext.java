@@ -11,10 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
-import java.util.List;
 import java.util.Map;
-
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 
 /**
  * @Author limingdong
@@ -36,7 +33,7 @@ public class OutboundLogEventContext {
      */
     private long fileChannelSize;
 
-    private LogEventType eventType;
+    protected LogEventType eventType;
 
     private long eventSize;
 
@@ -46,15 +43,9 @@ public class OutboundLogEventContext {
 
     private CompositeByteBuf compositeByteBuf;
 
-    private LogEvent logEvent;
-
-    private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
+    protected LogEvent logEvent;
 
     private Map<Long, TableMapLogEvent> rowsRelatedTableMap = Maps.newHashMap();
-
-    private Map<String, TableMapLogEvent> drcTableMap;
-
-    private Map<String, List<Integer>> extractedColumnsIndexMap;
 
     private boolean skipEvent = false;
 
@@ -133,73 +124,16 @@ public class OutboundLogEventContext {
         return logEvent;
     }
 
-    public TableMapLogEvent getTableMapWithinTransaction(Long tableId) {
-        if (tableMapWithinTransaction == null) {
-            return null;
-        }
-        return tableMapWithinTransaction.get(tableId);
-    }
-
     public Map<Long, TableMapLogEvent> getRowsRelatedTableMap() {
         return rowsRelatedTableMap;
-    }
-
-    public void setRowsRelatedTableMap(Map<Long, TableMapLogEvent> rowsRelatedTableMap) {
-        this.rowsRelatedTableMap = rowsRelatedTableMap;
-    }
-
-    public Map<String, TableMapLogEvent> getDrcTableMap() {
-        return drcTableMap;
-    }
-
-    public void setDrcTableMap(Map<String, TableMapLogEvent> drcTableMap) {
-        this.drcTableMap = drcTableMap;
-    }
-
-    public TableMapLogEvent getDrcTableMap(String tableName) {
-        if (drcTableMap == null) {
-            return null;
-        }
-        return drcTableMap.get(tableName);
-    }
-
-    public List<Integer> getExtractedColumnsIndex(String tableName) {
-        if (extractedColumnsIndexMap == null) {
-            return null;
-        }
-        return extractedColumnsIndexMap.get(tableName);
     }
 
     public Exception getCause() {
         return cause;
     }
 
-    public void setTableMapWithinTransaction(Map<Long, TableMapLogEvent> tableMapWithinTransaction) {
-        this.tableMapWithinTransaction = tableMapWithinTransaction;
-    }
-
-    public void setExtractedColumnsIndexMap(Map<String, List<Integer>> extractedColumnsIndexMap) {
-        this.extractedColumnsIndexMap = extractedColumnsIndexMap;
-    }
-
     public void setCause(Exception cause) {
         this.cause = cause;
-    }
-
-    public void backToHeader() {
-        try {
-            this.fileChannel.position(fileChannelPos - eventHeaderLengthVersionGt1);
-        } catch (IOException e) {
-            setCause(e);
-        }
-    }
-
-    public void restorePosition() {
-        try {
-            this.fileChannel.position(fileChannelPos);
-        } catch (IOException e) {
-            setCause(e);
-        }
     }
 
     public boolean isSkipEvent() {
@@ -285,26 +219,30 @@ public class OutboundLogEventContext {
 
     public AbstractRowsEvent readRowsEvent() {
         if (logEvent == null) {
-            AbstractRowsEvent rowsEvent;
-            switch (eventType) {
-                case write_rows_event_v2:
-                    rowsEvent = new FilteredWriteRowsEvent();
-                    break;
-                case update_rows_event_v2:
-                    rowsEvent = new FilteredUpdateRowsEvent();
-                    break;
-                case delete_rows_event_v2:
-                    rowsEvent = new FilteredDeleteRowsEvent();
-                    break;
-                default:
-                    throw new RuntimeException("row event type does not exist: " + eventType);
-            }
-
+            AbstractRowsEvent rowsEvent = newRowsEvent(eventType);
             EventReader.readEvent(fileChannel, eventSize, rowsEvent, compositeByteBuf);
             logEvent = rowsEvent;
         }
 
         return (AbstractRowsEvent) logEvent;
+    }
+
+    protected AbstractRowsEvent newRowsEvent(LogEventType eventType) {
+        AbstractRowsEvent rowsEvent;
+        switch (eventType) {
+            case write_rows_event_v2:
+                rowsEvent = new FilteredWriteRowsEvent();
+                break;
+            case update_rows_event_v2:
+                rowsEvent = new FilteredUpdateRowsEvent();
+                break;
+            case delete_rows_event_v2:
+                rowsEvent = new FilteredDeleteRowsEvent();
+                break;
+            default:
+                throw new RuntimeException("row event type does not exist: " + eventType);
+        }
+        return rowsEvent;
     }
 
     public void skipPosition(Long skipSize) {
@@ -319,6 +257,7 @@ public class OutboundLogEventContext {
 
     /**
      * To save extra fileChannel.position() call
+     *
      * @see OutboundLogEventContext#skipPosition(Long)
      */
     public void skipPositionAfterReadEvent(Long skipSize) {

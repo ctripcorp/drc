@@ -507,7 +507,8 @@ export default {
     async getTaskStatus (row, index) {
       await this.axios.get('/api/drc/v2/migration/status', {
         params: {
-          taskId: row.id
+          taskId: row.id,
+          careNewMha: row.status === 'Starting'
         }
       }).then(response => {
         if (response.data.status === 1) {

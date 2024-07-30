@@ -116,7 +116,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
                 logger.info("[[monitor=UUIDMonitor]] No such Db:" + ip + ":" + port);
                 return;
             }
-            List<String> uuidsFromMetaDB = Lists.newArrayList(uuidStringFromDB.split(","));
+            List<String> uuidsFromMetaDB = StringUtils.isBlank(uuidStringFromDB)? Lists.newArrayList() : Lists.newArrayList(uuidStringFromDB.split(","));
             boolean uuidCorrect = uuidsFromMetaDB.contains(uuidFromCommand);
             reporter.resetReportCounter(entityTags, uuidCorrect? 0L : 1L, UUID_ERROR_NUM_MEASUREMENT);
             if (!uuidCorrect) {
@@ -125,7 +125,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
                     autoCorrect(ip, port, uuidsFromMetaDB, uuidFromCommand);
                 }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[monitor=UUIDMonitor]] monitorUuid error", e);
         }
         

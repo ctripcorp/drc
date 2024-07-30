@@ -142,8 +142,9 @@ public class CacheMetaServiceImplTest {
     }
 
     @Test
-    public void testGetSrcMhasShouldMonitor() {
-        Set<String> mhasShouldMonitor = cacheMetaService.getSrcMhasShouldMonitor("dbcluster2.mha3dc2", "region1");
-        Assert.assertEquals(2,mhasShouldMonitor.size());
+    public void testRefreshReplicationInfo() {
+        Map<String, Set<String>> stringSetMap = cacheMetaService.refreshMhaReplicationInfo();
+        System.out.println(stringSetMap.entrySet());
+        Assert.assertEquals(7,stringSetMap.size());
     }
 }

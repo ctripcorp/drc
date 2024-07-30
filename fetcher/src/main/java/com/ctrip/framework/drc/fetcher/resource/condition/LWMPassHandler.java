@@ -6,4 +6,7 @@ package com.ctrip.framework.drc.fetcher.resource.condition;
  */
 public interface LWMPassHandler {
     void onBegin() throws InterruptedException;
+
+    default void close() {
+    }
 }

@@ -7,6 +7,13 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -36,6 +43,15 @@ public class DbBlacklistCache implements InitializingBean {
 
     private static final String REFRESH_URL = "http://%s:%s/api/drc/v2/log/conflict/blacklist/refresh";
     private static List<AviatorRegexFilter> blacklist;
+    private final LoadingCache<String, Boolean> cache = CacheBuilder.newBuilder()
+            .maximumSize(100000)
+            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .build(new CacheLoader<>() {
+                @Override
+                public Boolean load(@NotNull String fullName) {
+                    return loadCache(fullName);
+                }
+            });
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -45,10 +61,11 @@ public class DbBlacklistCache implements InitializingBean {
     public List<AviatorRegexFilter> getDbBlacklistInCache() {
         return blacklist;
     }
-
+    
     public void refresh(boolean notify) throws Exception {
         logger.info("refresh dbBlacklist, notify: {}", notify);
         blacklist = conflictLogService.queryBlackList();
+        cache.cleanUp();
         if (notify) {
             List<AppNode> appNodes = ssoService.getAppNodes();
             if (CollectionUtils.isEmpty(appNodes)) {
@@ -76,5 +93,21 @@ public class DbBlacklistCache implements InitializingBean {
         }
     }
 
+    public boolean isInBlackListWithCache(String fullName) {
+        try {
+            return cache.get(fullName);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private boolean loadCache(String fullName) {
+        for (AviatorRegexFilter filter : blacklist) {
+            if (filter.filter(fullName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 }

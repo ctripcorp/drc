@@ -26,6 +26,7 @@ public class FileConfig extends AbstractConfig implements Config {
                 String tempC = DefaultSaxParser.parse(ins).toString();
                 if (StringUtils.isNotBlank(tempC)) {
                     this.xml = tempC;
+                    this.drc = DefaultSaxParser.parse(this.xml);
                 }
             });
         } catch (Exception e) {

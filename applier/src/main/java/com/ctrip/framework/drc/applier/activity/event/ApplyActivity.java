@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.applier.event.transaction.Transaction;
 import com.ctrip.framework.drc.applier.resource.context.AccurateTransactionContextResource;
 import com.ctrip.framework.drc.applier.resource.context.BatchTransactionContextResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -42,6 +43,9 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
         batch.setBigTransaction(bigTransaction);
         switch (transaction.apply(batch)) {
             case SUCCESS:
+                return onSuccess(transaction);
+            case TRANSACTION_TABLE_CONFLICT_ROLLBACK:
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.transaction.table.conflict", registryKey);
                 return onSuccess(transaction);
             default:
                 if (bigTransaction) {

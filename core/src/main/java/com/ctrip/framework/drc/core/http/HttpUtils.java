@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.http;
 
 import com.ctrip.xpipe.retry.RetryPolicyFactories;
 import com.ctrip.xpipe.spring.RestTemplateFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
@@ -52,11 +53,16 @@ public class HttpUtils {
                     DEFAULT_RETRY_TIMES,
                     RetryPolicyFactories.newRestOperationsRetryPolicyFactory(DEFAULT_RETRY_INTERVAL_MILLI));
         }
-        if(null == headers) {
-            headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        if (null == headers) {
+            headers = defaultHttpHeaders();
         }
+    }
+
+    private static HttpHeaders defaultHttpHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        return headers;
     }
 
     public static ApiResult get(String url) throws Exception {
@@ -89,6 +95,16 @@ public class HttpUtils {
         return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
     }
 
+    public static <T> T getAcceptAll(String url, Class<T> responseType, Map<String, ?> urlVariables) {
+        init();
+        HttpHeaders httpHeaders = defaultHttpHeaders();
+        httpHeaders.setAccept(Lists.newArrayList(MediaType.ALL));
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(httpHeaders);
+        return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
+    }
+    
+    
+
     public static <T> T put(String url, Object body, Class<T> clazz) {
         init();
         HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
@@ -99,6 +115,15 @@ public class HttpUtils {
     public static <T> T post(String url, Object body, Class<T> clazz) {
         init();
         HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz);
+        return response.getBody();
+    }
+
+    public static <T> T post(String url, Map<String, String> header, Object body, Class<T> clazz) {
+        init();
+        HttpHeaders httpHeaders = defaultHttpHeaders();
+        header.forEach(httpHeaders::add);
+        HttpEntity<Object> entity = new HttpEntity<Object>(body, httpHeaders);
         ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz);
         return response.getBody();
     }
@@ -118,6 +143,15 @@ public class HttpUtils {
         return response.getBody();
     }
 
+    public static JsonNode deserialize(String json)  {
+        try {
+            return objectMapper.readTree(json);
+        } catch (JsonProcessingException e) {
+            logger.error("deserialize json error: {}", json,e);
+            throw new RuntimeException("deserialize json error");
+        }
+    }
+    
     /**
      * Deprecated
      */
@@ -138,8 +172,8 @@ public class HttpUtils {
      * Deprecated
      */
     public static String doGet(String uri, int timeout) throws Exception {
-        AuthorityConfig authorityConfig = AuthorityConfig.getInstance();
-        String xAccessToken = authorityConfig.getXAccessToken();
+        DynamicConfig dynamicConfig = DynamicConfig.getInstance();
+        String xAccessToken = dynamicConfig.getXAccessToken();
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .header("X-Access-Token", xAccessToken)

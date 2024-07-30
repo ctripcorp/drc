@@ -1,33 +1,43 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
+import static com.ctrip.framework.drc.console.AllTests.DRC_XML;
+import static com.ctrip.framework.drc.console.monitor.MockTest.times;
+import static com.ctrip.framework.drc.console.utils.UTConstants.DRC_XML_STR;
+import static com.ctrip.framework.drc.console.utils.UTConstants.DRC_XML_STR2;
+
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
+import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.entity.Route;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.xml.sax.SAXException;
-
-import java.io.IOException;
-import java.util.*;
-
-import static com.ctrip.framework.drc.console.AllTests.DRC_XML;
-import static com.ctrip.framework.drc.console.monitor.MockTest.times;
-import static com.ctrip.framework.drc.console.utils.UTConstants.DRC_XML_STR;
-import static com.ctrip.framework.drc.console.utils.UTConstants.DRC_XML_STR2;
 
 /**
  * @author shenhaibo

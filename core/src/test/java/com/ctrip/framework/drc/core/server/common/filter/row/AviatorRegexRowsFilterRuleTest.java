@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.googlecode.aviator.AviatorEvaluator;
+import com.googlecode.aviator.Expression;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,4 +60,48 @@ public class AviatorRegexRowsFilterRuleTest extends AbstractEventTest {
         return "string.startsWith(one,'one') && math.abs(id) % 5 == 0"; // match one row
     }
 
+
+    private static Expression getExpression() {
+        return AviatorEvaluator.compile("orderid != 0 && userid != nil && string.length(userid) > 0", true);
+    }
+
+    @Test
+    public void test(){
+        Expression expression = getExpression();
+        Assert.assertEquals(true, expression.execute(expression.newEnv("orderid", 10, "userid", "10")));
+    }
+    @Test
+    public void test2(){
+        Expression expression = getExpression();
+        Assert.assertEquals(false, expression.execute(expression.newEnv("orderid", 0, "userid", "10")));
+    }
+
+
+    @Test
+    public void test3(){
+        Expression expression = getExpression();
+        Assert.assertEquals(false, expression.execute(expression.newEnv("orderid", 10, "userid", "")));
+    }
+    @Test
+    public void test31(){
+        Expression expression = getExpression();
+        Assert.assertEquals(false, expression.execute(expression.newEnv("orderid", 10, "userid", null)));
+    }
+
+    @Test
+    public void test4(){
+        Expression expression = getExpression();
+        Assert.assertEquals(false, expression.execute(expression.newEnv("orderid", 0, "userid", "")));
+    }
+
+    @Test
+    public void test5(){
+        Expression expression = getExpression();
+        Assert.assertEquals(false, expression.execute(expression.newEnv("orderid", 10)));
+    }
+    @Test
+    public void test6(){
+        Expression expression = getExpression();
+        Assert.assertEquals(false, expression.execute(expression.newEnv("orderid", 0,"userId","jzy")));
+    }
 }

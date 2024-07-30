@@ -18,11 +18,11 @@
               <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"></Input>
             </Col>
             <Col span="3">
-              <DatePicker type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
+              <DatePicker :transfer="true" type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
                           placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="3">
-              <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
+              <DatePicker :transfer="true" type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">

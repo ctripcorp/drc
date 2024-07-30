@@ -16,6 +16,7 @@ import com.ctrip.xpipe.zk.ZkClient;
 import org.apache.curator.framework.recipes.nodes.PersistentNode;
 import org.apache.zookeeper.CreateMode;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -103,5 +104,29 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
         clusterComparator.compare();
         messengerInstanceElectorManager.update(clusterComparator, null);
         verify(instanceStateController, times(0)).removeMessenger(dbCluster.getId(), dbCluster.getMessengers().get(0), true);
+    }
+
+    @Test
+    public void testGetMessenger() {
+        String clusterId = "clusterId";
+        DbCluster dbCluster = new DbCluster(clusterId)
+                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs("db1"))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs("db1"));
+        when(regionCache.getCluster(clusterId)).thenReturn(dbCluster);
+
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db2"));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1"));
+
+
+        dbCluster = new DbCluster(clusterId)
+                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs(null))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs(null));
+        when(regionCache.getCluster(clusterId)).thenReturn(dbCluster);
+
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1"));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_3", 8080, null));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null));
+
     }
 }

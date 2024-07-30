@@ -291,8 +291,8 @@ public class DdlParserTest {
     }
 
     /**
-     *  use drc4;
-     *  CREATE TABLE drc1.test_identity (
+     * use drc4;
+     * CREATE TABLE drc1.test_identity (
      * `id` int(11) NOT NULL AUTO_INCREMENT,
      * `one` varchar(30) DEFAULT 'one',
      * `two` varchar(1000) DEFAULT 'two',
@@ -323,5 +323,20 @@ public class DdlParserTest {
         String queryString = "ALTER TABLE trb4 truncate PARTITION p1;";
         DdlResult result = DdlParser.parse(queryString, "db0").get(0);
         Assert.assertEquals(result.getType(), QueryType.ALTER);
+    }
+
+    @Test
+    public void testCreateDbEscaped() {
+        String queryString = " CREATE DATABASE `test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */";
+        DdlResult result = DdlParser.parse(queryString, "test_db").get(0);
+        Assert.assertNotNull(result);
+        Assert.assertNull(result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
+
+        queryString = " CREATE DATABASE test_db /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */";
+        result = DdlParser.parse(queryString, "test_db").get(0);
+        Assert.assertNotNull(result);
+        Assert.assertNull(result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
     }
 }

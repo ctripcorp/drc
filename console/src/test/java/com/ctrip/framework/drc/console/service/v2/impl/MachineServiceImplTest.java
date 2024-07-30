@@ -1,23 +1,31 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.Data;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
+import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.cache.LoadingCache;
 import org.assertj.core.util.Lists;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
@@ -38,21 +46,32 @@ public class MachineServiceImplTest {
     @Mock
     DbaApiService dbaApiService;
     @Mock
-    MonitorTableSourceProvider monitorTableSourceProvider;
+    AccountService accountService;
+    @Mock
+    DefaultConsoleConfig defaultConsoleConfig;
+    @Mock
+    MetaAccountService metaAccountService;
     @InjectMocks
     MachineServiceImpl machineServiceImpl;
 
     @Before
     public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
+        when(accountService.getAccount(Mockito.any(MhaTblV2.class), Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("mockUser", "mockPassword"));
         MhaTblV2 mhaTblV2 = new MhaTblV2();
 
         mhaTblV2.setId(1L);
         mhaTblV2.setMhaName("mha1");
         when(mhaTblDao.queryByMhaName(anyString(), anyInt())).thenReturn(mhaTblV2);
-        when(monitorTableSourceProvider.getMonitorUserVal()).thenReturn("mockUser");
-        when(monitorTableSourceProvider.getMonitorPasswordVal()).thenReturn("mockPassword");
-
+        when(metaAccountService.getMhaAccounts(anyString())).thenReturn(
+                new MhaAccounts(
+                        "mha",
+                        new Account("mockUser", "mockPassword"),
+                        new Account("mockUser", "mockPassword"),
+                        new Account("mockUser", "mockPassword")
+                        )
+        );
+        
         DbaClusterInfoResponse value = new DbaClusterInfoResponse();
         Data data = new Data();
         List<MemberInfo> memberInfos = Lists.newArrayList();
@@ -64,11 +83,13 @@ public class MachineServiceImplTest {
         data.setMemberlist(memberInfos);
         value.setData(data);
         when(dbaApiService.getClusterMembersInfo(anyString())).thenReturn(value);
+        when(defaultConsoleConfig.isCenterRegion()).thenReturn(true);
     }
 
     @Test
     public void testGetMasterEndpointCached() throws Exception {
         when(machineTblDao.queryByMhaId(anyLong(), anyInt())).thenReturn(null);
+        when(defaultConsoleConfig.getAccountRealTimeSwitch()).thenReturn(false);
         for (int i = 0; i < 10; i++) {
             Endpoint result = machineServiceImpl.getMasterEndpointCached("mha1");
             Assert.assertEquals(new MySqlEndpoint("ip1", 3306, "mockUser", "mockPassword", true), result);
@@ -96,9 +117,13 @@ public class MachineServiceImplTest {
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setUuid("uuid1");
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(machineTbl);
-        Assert.assertEquals("uuid1",machineServiceImpl.getUuid("ip1", 3306));
+        Assert.assertEquals("uuid1", machineServiceImpl.getUuid("ip1", 3306));
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
         Assert.assertNull(machineServiceImpl.getUuid("ip1", 3306));
+
+        machineTbl.setUuid(null);
+        when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(machineTbl);
+        Assert.assertEquals("", machineServiceImpl.getUuid("ip1", 3306));
     }
 
     @Test
@@ -107,9 +132,9 @@ public class MachineServiceImplTest {
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setUuid("uuid1");
         when(machineTblDao.queryByIpPort(anyString(), anyInt())).thenReturn(machineTbl);
-        Assert.assertEquals(1,machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
+        Assert.assertEquals(1, machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
         when(machineTblDao.queryByIpPort(eq("ip1"), eq(3306))).thenReturn(null);
-        Assert.assertEquals(0,machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
+        Assert.assertEquals(0, machineServiceImpl.correctUuid("ip1", 3306, "uuid2").intValue());
     }
 }
 

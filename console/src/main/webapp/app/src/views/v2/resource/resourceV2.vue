@@ -61,9 +61,26 @@
         </Row>
         <Table stripe border :columns="columns" :data="resources">
           <template slot-scope="{ row, index }" slot="action">
-            <Button type="error" size="small" style="margin-right: 5px" @click="preDeleteResource(row, index)">
-              下线
-            </Button>
+            <Dropdown :transfer="true" placement="bottom-start">
+              <Button type="default" icon="ios-hammer">
+                操作
+                <Icon type="ios-arrow-down"></Icon>
+              </Button>
+              <template #list>
+                <DropdownMenu >
+                  <DropdownItem>
+                    <Button type="success" size="small" style="margin-right: 5px" @click="showMigrateInfo(row, index)">
+                      实例迁移
+                    </Button>
+                  </DropdownItem>
+                  <DropdownItem>
+                    <Button type="error" size="small" style="margin-right: 5px" @click="preDeleteResource(row, index)">
+                      下线
+                    </Button>
+                  </DropdownItem>
+                </DropdownMenu>
+              </template>
+            </Dropdown>
           </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
@@ -88,33 +105,109 @@
           <p><span>部署实例数量: </span><span style="color: red;font-size: 20px">{{deleteResourceInfo.instanceNum}}</span></p>
         </Modal>
         <Modal
-          v-model="showMha"
-          title="关联mha"
+          v-model="migrateApplierInfo.modal"
+          title="applier实例迁移"
+          footer-hide="true"
           width="900px" :scrollable="true" :draggable="true">
-          <List>
-            <ListItem v-for="item in mhaInfo" :value="item" :key="item">
-              <a v-on:click="toMhaReplicationByR(item)">{{ item }}</a></ListItem>
-          </List>
+          <Row :gutter=10>
+            <Col span="4">
+              <span>当前ip: </span><span style="color: red;font-size: 15px">{{migrateApplierInfo.oldIpInfo.ip}}</span>
+            </Col>
+            <Col span="4">
+              <span>&nbsp;&nbsp;tag: </span><span style="color: red;font-size: 15px">{{migrateApplierInfo.oldIpInfo.tag}}</span>
+            </Col>
+            <Col span="4">
+              <span>&nbsp;&nbsp;AZ: </span><span style="color: red;font-size: 15px">{{migrateApplierInfo.oldIpInfo.az}}</span>
+            </Col>
+          </Row>
+          <Form>
+            <FormItem label="选择目标ip">
+              <Select filterable clearable v-model="migrateApplierInfo.newIp" style="width: 400px" placeholder="目标ip">
+                <Option v-for="item in migrateApplierInfo.ipChooseList" :value="item" :key="item">
+                  {{ item }}
+                </Option>
+              </Select>
+              <Button type="primary" style="margin-left: 100px" :loading="migrateApplierInfo.loading2" @click="migrateAllApplier">全部实例迁移</Button>
+            </FormItem>
+            <FormItem>
+              <Table stripe border :columns="migrateApplierInfo.columns" :data="aDataWithPage" ref="multipleTable" @on-selection-change="changeSelectionA">
+              </Table>
+              <div>
+                <Page
+                  :transfer="true"
+                  :total="migrateApplierInfo.tableData.length"
+                  :current.sync="migrateApplierInfo.current"
+                  :page-size-opts="migrateApplierInfo.pageSizeOpts"
+                  :page-size="this.migrateApplierInfo.size"
+                  show-total
+                  show-sizer
+                  show-elevator
+                  @on-page-size-change="aHandleChangeSize"></Page>
+              </div>
+            </FormItem>
+            <FormItem>
+              <Button type="primary" :loading="migrateApplierInfo.loading" @click="migrateApplier">迁移</Button>
+              <Button type="success" style="margin-left: 100px" @click="refreshMigrateApplier">刷新</Button>
+            </FormItem>
+          </Form>
         </Modal>
         <Modal
-          v-model="showMhaReplication"
+          v-model="migrateReplicatorInfo.modal"
+          title="replicator实例迁移"
+          footer-hide="true"
+          width="900px" :scrollable="true" :draggable="true">
+          <Row :gutter=10>
+            <Col span="4">
+              <span>当前ip: </span><span style="color: red;font-size: 15px">{{migrateReplicatorInfo.oldIpInfo.ip}}</span>
+            </Col>
+            <Col span="4">
+              <span>&nbsp;&nbsp;tag: </span><span style="color: red;font-size: 15px">{{migrateReplicatorInfo.oldIpInfo.tag}}</span>
+            </Col>
+            <Col span="4">
+              <span>&nbsp;&nbsp;AZ: </span><span style="color: red;font-size: 15px">{{migrateReplicatorInfo.oldIpInfo.az}}</span>
+            </Col>
+          </Row>
+          <Form>
+            <FormItem label="选择目标ip">
+              <Select filterable clearable v-model="migrateReplicatorInfo.newIp" style="width: 400px" placeholder="目标ip">
+                <Option v-for="item in migrateReplicatorInfo.ipChooseList" :value="item" :key="item">
+                  {{ item }}
+                </Option>
+              </Select>
+            </FormItem>
+            <FormItem>
+              <Table stripe border :columns="migrateReplicatorInfo.columns" :data="rDataWithPage" ref="multipleTable" @on-selection-change="changeSelectionR">
+              </Table>
+              <div>
+                <Page
+                  :transfer="true"
+                  :total="migrateReplicatorInfo.tableData.length"
+                  :current.sync="migrateReplicatorInfo.current"
+                  :page-size-opts="migrateReplicatorInfo.pageSizeOpts"
+                  :page-size="this.migrateReplicatorInfo.size"
+                  show-total
+                  show-sizer
+                  show-elevator
+                  @on-page-size-change="rHandleChangeSize"></Page>
+              </div>
+            </FormItem>
+            <FormItem>
+              <Button type="primary" :loading="migrateReplicatorInfo.loading" @click="migrateReplicator">迁移</Button>
+              <Button type="success" style="margin-left: 100px" @click="refreshMigrateReplicator">刷新</Button>
+            </FormItem>
+          </Form>
+        </Modal>
+        <Modal
+          v-model="relatedMhaData.modal"
+          title="关联mha"
+          width="900px" :scrollable="true" :draggable="true">
+          <Table stripe border :columns="relatedMhaData.columns" :data="relatedMhaData.tableData"></Table>
+        </Modal>
+        <Modal
+          v-model="relatedReplicationData.modal"
           title="关联复制链路"
           width="900px" :scrollable="true" :draggable="true">
-          <List>
-            <ListItem v-for="item in mhaReplicationInfo" :value="item" :key="item">
-              <a v-on:click="toMhaReplication(item)">{{item.srcMhaName}}({{item.srcDcName}}) ==> {{item.dstMhaName}}({{item.dstDcName}})</a>
-            </ListItem>
-          </List>
-          <List>
-            <ListItem v-for="item in mhaDbReplicationInfo" :value="item" :key="item">
-              <a v-on:click="toMhaDbReplication(item)">{{item.dbName}}: {{item.srcMhaName}}({{item.srcDcName}}) ==> {{item.dstMhaName}}({{item.dstDcName}})</a>
-            </ListItem>
-          </List>
-          <List>
-            <ListItem v-for="item in mhaInfoByMessenger" :value="item" :key="item">
-              <a v-on:click="toMessenger(item)">{{ item }}</a>
-            </ListItem>
-          </List>
+          <Table stripe border :columns="relatedReplicationData.columns" :data="relatedReplicationData.tableData"></Table>
         </Modal>
       </div>
     </Content>
@@ -250,12 +343,319 @@ export default {
       regions: [],
       tagList: this.constant.tagList,
       deleteResourceModal: false,
-      showMha: false,
-      showMhaReplication: false,
-      mhaInfo: [],
-      mhaInfoByMessenger: [],
-      mhaReplicationInfo: [],
-      mhaDbReplicationInfo: [],
+      relatedReplicationData: {
+        tableData: [],
+        modal: false,
+        columns: [
+          {
+            title: '序号',
+            width: 75,
+            align: 'center',
+            // fixed: 'left',
+            render: (h, params) => {
+              return h(
+                'span',
+                params.index + 1
+              )
+            }
+          },
+          {
+            title: '类型',
+            key: 'type',
+            width: 150,
+            render: (h, params) => {
+              const row = params.row
+              let text = 'none'
+              let type = 'error'
+              let disabled = false
+              switch (row.type) {
+                case 1:
+                  text = 'Applier'
+                  type = 'info'
+                  break
+                case 2:
+                  text = 'DbApplier'
+                  type = 'success'
+                  break
+                case 3:
+                  text = 'Messenger'
+                  type = 'warning'
+                  break
+                case 4:
+                  text = 'DbMessenger'
+                  type = 'primary'
+                  break
+                default:
+                  text = '无'
+                  disabled = true
+                  break
+              }
+              return h('Button', {
+                props: {
+                  type: type,
+                  size: 'small',
+                  disabled: disabled
+                },
+                on: {
+                  click: () => {
+                    this.showModal(row)
+                  }
+                }
+              }, text)
+            }
+          },
+          {
+            title: '同步链路',
+            key: 'relatedId',
+            render: (h, params) => {
+              const row = params.row
+              const type = row.type
+              let text = ''
+              if (type === 1) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')' + ' => ' + row.dstMhaName + '(' + row.dstDcName + ')'
+              } else if (type === 2) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')' + ' => ' + row.dstMhaName + '(' + row.dstDcName + ')' + ' db: ' + row.dbName
+              } else if (type === 3) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')'
+              } else if (type === 4) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')' + ' db: ' + row.dbName
+              }
+              return h('a', {
+                props: {
+                  type: 'info',
+                  size: 'small',
+                  disabled: false
+                },
+                on: {
+                  click: () => {
+                    if (type === 1) {
+                      this.toMhaReplication(row)
+                    } else if (type === 2) {
+                      this.toMhaDbReplication(row)
+                    } else if (type === 3) {
+                      this.toMessenger(row)
+                    }
+                  }
+                }
+              }, text)
+            }
+          }
+        ]
+      },
+      relatedMhaData: {
+        tableData: [],
+        modal: false,
+        columns: [
+          {
+            title: '序号',
+            width: 75,
+            align: 'center',
+            // fixed: 'left',
+            render: (h, params) => {
+              return h(
+                'span',
+                params.index + 1
+              )
+            }
+          },
+          {
+            title: 'mha',
+            key: 'mhaName',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.mhaName
+              return h('a', {
+                props: {
+                  type: 'info',
+                  size: 'small',
+                  disabled: false
+                },
+                on: {
+                  click: () => {
+                    this.toMhaReplicationByR(row)
+                  }
+                }
+              }, text)
+            }
+          }
+        ]
+      },
+      migrateApplierInfo: {
+        loading: false,
+        loading2: false,
+        modal: false,
+        newIp: '',
+        ipChooseList: [],
+        oldIpInfo: {
+          ip: '',
+          tag: '',
+          az: '',
+          resourceId: null
+        },
+        migrateDataList: [],
+        tableData: [],
+        columns: [
+          {
+            type: 'selection',
+            width: 60,
+            align: 'center'
+          },
+          {
+            title: '序号',
+            width: 75,
+            align: 'center',
+            // fixed: 'left',
+            render: (h, params) => {
+              return h(
+                'span',
+                params.index + 1
+              )
+            }
+          },
+          {
+            title: '类型',
+            key: 'type',
+            width: 150,
+            render: (h, params) => {
+              const row = params.row
+              let text = 'none'
+              let type = 'error'
+              let disabled = false
+              switch (row.type) {
+                case 1:
+                  text = 'Applier'
+                  type = 'info'
+                  break
+                case 2:
+                  text = 'DbApplier'
+                  type = 'success'
+                  break
+                case 3:
+                  text = 'Messenger'
+                  type = 'warning'
+                  break
+                case 4:
+                  text = 'DbMessenger'
+                  type = 'primary'
+                  break
+                default:
+                  text = '无'
+                  disabled = true
+                  break
+              }
+              return h('Button', {
+                props: {
+                  type: type,
+                  size: 'small',
+                  disabled: disabled
+                },
+                on: {
+                  click: () => {
+                    this.showModal(row)
+                  }
+                }
+              }, text)
+            }
+          },
+          {
+            title: '同步链路',
+            key: 'relatedId',
+            render: (h, params) => {
+              const row = params.row
+              const type = row.type
+              let text = ''
+              if (type === 1) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')' + ' => ' + row.dstMhaName + '(' + row.dstDcName + ')'
+              } else if (type === 2) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')' + ' => ' + row.dstMhaName + '(' + row.dstDcName + ')' + ' db: ' + row.dbName
+              } else if (type === 3) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')'
+              } else if (type === 4) {
+                text = row.srcMhaName + '(' + row.srcDcName + ')' + ' db: ' + row.dbName
+              }
+              return h('a', {
+                props: {
+                  type: 'info',
+                  size: 'small',
+                  disabled: false
+                },
+                on: {
+                  click: () => {
+                    if (type === 1) {
+                      this.toMhaReplication(row)
+                    } else if (type === 2) {
+                      this.toMhaDbReplication(row)
+                    } else if (type === 3) {
+                      this.toMessenger(row)
+                    }
+                  }
+                }
+              }, text)
+            }
+          }
+        ],
+        total: 0,
+        current: 1,
+        size: 10,
+        pageSizeOpts: [10, 20, 50, 100]
+      },
+      migrateReplicatorInfo: {
+        loading: false,
+        modal: false,
+        newIp: '',
+        ipChooseList: [],
+        oldIpInfo: {
+          ip: '',
+          tag: '',
+          az: '',
+          resourceId: null
+        },
+        migrateMhaList: [],
+        tableData: [],
+        columns: [
+          {
+            type: 'selection',
+            width: 60,
+            align: 'center'
+          },
+          {
+            title: '序号',
+            width: 75,
+            align: 'center',
+            // fixed: 'left',
+            render: (h, params) => {
+              return h(
+                'span',
+                params.index + 1
+              )
+            }
+          },
+          {
+            title: 'mha',
+            key: 'mhaName',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.mhaName
+              return h('a', {
+                props: {
+                  type: 'info',
+                  size: 'small',
+                  disabled: false
+                },
+                on: {
+                  click: () => {
+                    this.toMhaReplicationByR(row)
+                  }
+                }
+              }, text)
+            }
+          }
+        ],
+        total: 0,
+        current: 1,
+        size: 10,
+        pageSizeOpts: [10, 20, 50, 100]
+      },
       deleteResourceInfo: {
         resourceId: null,
         ip: '',
@@ -285,17 +685,206 @@ export default {
       dataLoading: true
     }
   },
-  computed: {},
+  computed: {
+    rDataWithPage () {
+      const data = this.migrateReplicatorInfo.tableData
+      const start = this.migrateReplicatorInfo.current * this.migrateReplicatorInfo.size - this.migrateReplicatorInfo.size
+      const end = start + this.migrateReplicatorInfo.size
+      return [...data].slice(start, end)
+    },
+    aDataWithPage () {
+      const data = this.migrateApplierInfo.tableData
+      const start = this.migrateApplierInfo.current * this.migrateApplierInfo.size - this.migrateApplierInfo.size
+      const end = start + this.migrateApplierInfo.size
+      return [...data].slice(start, end)
+    }
+  },
   methods: {
+    aHandleChangeSize (val) {
+      this.migrateApplierInfo.size = val
+    },
+    changeSelectionA (val) {
+      this.migrateApplierInfo.migrateDataList = val
+      console.log(this.migrateApplierInfo.migrateDataList)
+    },
+    rHandleChangeSize (val) {
+      this.migrateReplicatorInfo.size = val
+    },
+    changeSelectionR (val) {
+      this.migrateReplicatorInfo.migrateMhaList = val
+      console.log(this.migrateReplicatorInfo.migrateMhaList)
+    },
+    migrateAllApplier () {
+      const newIp = this.migrateApplierInfo.newIp
+      if (newIp === null || newIp === '') {
+        this.$Message.warning('请选择目标ip')
+        return
+      }
+      const tableData = this.migrateApplierInfo.tableData
+      if (tableData.length === 0) {
+        this.$Message.warning('没有相关实例')
+        return
+      }
+      const oldIp = this.migrateApplierInfo.oldIpInfo.ip
+      this.migrateApplierInfo.loading2 = true
+      this.axios.post('/api/drc/v2/resource/migrate/applier?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
+        if (res.data.status === 0) {
+          this.migrateApplierInfo.tableData = res.data.data
+          this.$Message.success('共迁移' + res.data.data + '个实例')
+        } else {
+          this.$Message.error('迁移失败' + res.data.message)
+        }
+      })
+      this.migrateApplierInfo.loading2 = false
+    },
+    migrateApplier () {
+      const multiData = this.migrateApplierInfo.migrateDataList
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      const newIp = this.migrateApplierInfo.newIp
+      if (newIp === null || newIp === '') {
+        this.$Message.warning('请选择目标ip')
+        return
+      }
+      const migrateApplierInfos = []
+      multiData.forEach(data => {
+        const applierInfo = {
+          relatedId: data.relatedId,
+          type: data.type
+        }
+        migrateApplierInfos.push(applierInfo)
+      })
+      const params = {
+        oldIp: this.migrateApplierInfo.oldIpInfo.ip,
+        newIp: this.migrateApplierInfo.newIp,
+        applierResourceDtos: migrateApplierInfos
+      }
+      this.migrateApplierInfo.loading = true
+      this.axios.post('/api/drc/v2/resource/partialMigrate/applier', params).then(res => {
+        if (res.data.status === 0) {
+          this.migrateApplierInfo.tableData = res.data.data
+          this.$Message.success('共迁移' + res.data.data + '个实例')
+        } else {
+          this.$Message.error('迁移失败' + res.data.message)
+        }
+      })
+      this.migrateApplierInfo.loading = false
+    },
+    migrateReplicator () {
+      const multiData = this.migrateReplicatorInfo.migrateMhaList
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      const newIp = this.migrateReplicatorInfo.newIp
+      if (newIp === null || newIp === '') {
+        this.$Message.warning('请选择目标ip')
+        return
+      }
+      const mhaList = []
+      multiData.forEach(data => mhaList.push(data.mhaName))
+      const params = {
+        oldIp: this.migrateReplicatorInfo.oldIpInfo.ip,
+        newIp: this.migrateReplicatorInfo.newIp,
+        mhaList: mhaList
+      }
+      this.migrateReplicatorInfo.loading = true
+      this.axios.post('/api/drc/v2/resource/partialMigrate/replicator', params).then(res => {
+        if (res.data.status === 0) {
+          this.$Message.success('共迁移' + res.data.data + '个实例')
+        } else {
+          this.$Message.error('迁移失败' + res.data.message)
+        }
+      })
+      this.migrateReplicatorInfo.loading = false
+    },
+    refreshMigrateApplier () {
+      this.migrateApplierInfo.current = 1
+      const resourceId = this.migrateApplierInfo.oldIpInfo.resourceId
+      this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.migrateApplierInfo.tableData = res.data.data
+          console.log(this.migrateApplierInfo.tableData)
+          this.$forceUpdate()
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+    },
+    refreshMigrateReplicator () {
+      this.migrateReplicatorInfo.current = 1
+      const resourceId = this.migrateReplicatorInfo.oldIpInfo.resourceId
+      this.axios.get('/api/drc/v2/resource/mha?resourceId=' + resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.migrateReplicatorInfo.tableData = res.data.data
+          console.log(this.migrateReplicatorInfo.tableData)
+          this.$forceUpdate()
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+    },
+    showMigrateInfo (row) {
+      if (row.type === 0) {
+        this.showMigrateReplicator(row)
+      } else if (row.type === 1) {
+        this.showMigrateApplier(row)
+      }
+    },
+    showMigrateApplier (row) {
+      this.migrateApplierInfo.oldIpInfo = {
+        ip: row.ip,
+        tag: row.tag,
+        az: row.az,
+        resourceId: row.resourceId
+      }
+      this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.migrateApplierInfo.tableData = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+      this.axios.get('/api/drc/v2/resource/list?ip=' + row.ip).then(res => {
+        this.migrateApplierInfo.ipChooseList = []
+        res.data.data.forEach(e => this.migrateApplierInfo.ipChooseList.push(e.ip))
+        console.log(this.migrateApplierInfo.ipChooseList)
+      })
+      this.migrateApplierInfo.modal = true
+    },
+    showMigrateReplicator (row) {
+      this.migrateReplicatorInfo.oldIpInfo = {
+        ip: row.ip,
+        tag: row.tag,
+        az: row.az,
+        resourceId: row.resourceId
+      }
+      this.axios.get('/api/drc/v2/resource/mha?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.migrateReplicatorInfo.tableData = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+      this.axios.get('/api/drc/v2/resource/list?ip=' + row.ip).then(res => {
+        this.migrateReplicatorInfo.ipChooseList = []
+        res.data.data.forEach(e => this.migrateReplicatorInfo.ipChooseList.push(e.ip))
+        console.log(this.migrateReplicatorInfo.ipChooseList)
+      })
+      this.migrateReplicatorInfo.modal = true
+    },
     toMessenger (row) {
       const detail = this.$router.resolve({
         path: '/v2/messengersV2',
         query: {
-          mhaName: row
+          mhaName: row.srcMhaName
         }
       })
       window.open(detail.href, '_blank')
     },
+    toDbMessenger (row) {},
     toMhaReplication (row) {
       const detail = this.$router.resolve({
         path: '/v2/mhaReplications',
@@ -323,7 +912,7 @@ export default {
       const detail = this.$router.resolve({
         path: '/v2/mhaReplications',
         query: {
-          mhaName: row,
+          mhaName: row.mhaName,
           preciseSearchMode: false
         }
       })
@@ -359,36 +948,25 @@ export default {
     getRelatedMha (row) {
       this.axios.get('/api/drc/v2/resource/mha?resourceId=' + row.resourceId).then(res => {
         if (res.data.status === 0) {
-          this.mhaInfo = res.data.data
+          this.relatedMhaData.tableData = res.data.data
         } else {
           this.$Message.warning('查询异常')
+          this.relatedMhaData.tableData = []
         }
       })
-      this.showMha = true
+      this.relatedMhaData.modal = true
     },
     getRelatedMhaReplication (row) {
+      this.relatedReplicationData.tableData = []
       this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
         if (res.data.status === 0) {
-          this.mhaReplicationInfo = res.data.data
+          this.relatedReplicationData.tableData = res.data.data
         } else {
           this.$Message.warning('查询异常')
+          this.relatedReplicationData.tableData = []
         }
       })
-      this.axios.get('/api/drc/v2/resource/mhaDbReplication?resourceId=' + row.resourceId).then(res => {
-        if (res.data.status === 0) {
-          this.mhaDbReplicationInfo = res.data.data
-        } else {
-          this.$Message.warning('查询异常')
-        }
-      })
-      this.axios.get('/api/drc/v2/resource/mha/messenger?resourceId=' + row.resourceId).then(res => {
-        if (res.data.status === 0) {
-          this.mhaInfoByMessenger = res.data.data
-        } else {
-          this.$Message.warning('查询异常')
-        }
-      })
-      this.showMhaReplication = true
+      this.relatedReplicationData.modal = true
     },
     getResources () {
       const that = this

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.v2.ApplicationFormTblDao;
 import com.ctrip.framework.drc.console.dao.v2.ApplicationRelationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormBuildParam;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormQueryParam;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcApplicationServiceImpl;
@@ -123,6 +124,45 @@ public class DrcApplicationServiceTest {
         boolean result = drcApplicationService.sendEmail(1L);
         Assert.assertTrue(result);
 
+        Mockito.when(applicationFormTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationFormTbl());
+        Mockito.when(applicationApprovalTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationApprovalTbl2());
+        result = drcApplicationService.sendEmail(1L);
+        Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testManualSendEmail() throws Exception {
+        ApplicationApprovalTbl approvalTbl = PojoBuilder.buildApplicationApprovalTbl1();
+        approvalTbl.setApprovalResult(ApprovalResultEnum.NOT_APPROVED.getCode());
+        Mockito.when(applicationFormTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationFormTbl());
+        Mockito.when(applicationApprovalTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(approvalTbl);
+        Mockito.when(applicationRelationTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(Lists.newArrayList(PojoBuilder.buildApplicationRelationTbl()));
+        Mockito.when(replicationTableTblDao.queryExistByDbReplicationIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(PojoBuilder.buildReplicationTableTbl()));
+        Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(buildMhaDelayInfoDtos());
+        Mockito.when(applicationFormTblDao.update(Mockito.any(ApplicationFormTbl.class))).thenReturn(1);
+        Mockito.when(replicationTableTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        Mockito.when(domainConfig.getDrcConfigSenderEmail()).thenReturn("senderEmail");
+        Mockito.when(domainConfig.getDrcConfigEmailSendSwitch()).thenReturn(true);
+        Mockito.when(domainConfig.getDrcConfigCcEmail()).thenReturn(Lists.newArrayList("cc"));
+        Mockito.when(domainConfig.getDrcConfigDbaEmail()).thenReturn("dba");
+
+        EmailResponse response = new EmailResponse();
+        response.setSuccess(true);
+        Mockito.when(emailService.sendEmail(Mockito.any())).thenReturn(response);
+
+        Mockito.when(applicationFormTblDao.update(Mockito.any(ApplicationFormTbl.class))).thenReturn(1);
+        boolean result = drcApplicationService.manualSendEmail(1L);
+        Assert.assertFalse(result);
+
+    }
+
+    @Test
+    public void testUpdateApplicant() throws Exception {
+        Mockito.when(applicationApprovalTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationApprovalTbl1());
+        Mockito.when(applicationApprovalTblDao.update(Mockito.any(ApplicationApprovalTbl.class))).thenReturn(1);
+        boolean result = drcApplicationService.updateApplicant(1L, "applicant");
+        Assert.assertTrue(result);
     }
 
     private List<MhaDelayInfoDto> buildMhaDelayInfoDtos() {

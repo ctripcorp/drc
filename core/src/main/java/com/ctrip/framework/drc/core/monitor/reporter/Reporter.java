@@ -19,6 +19,8 @@ public interface Reporter extends Ordered {
     
     void reportMessengerDelay(Map<String, String> tags,long delay,String measurement);
 
+    void reportReplicatorScannerSenderNum(Map<String, String> tags, long num, String measurement);
+
     void reportTraffic(@Valid TrafficEntity entity, Long bytes);
 
     void reportConflict(@Valid ConflictEntity conflictEntity, Long number);
@@ -61,6 +63,8 @@ public interface Reporter extends Ordered {
     boolean removeRegister(String measurement);
 
     boolean removeRegister(String measurement, String key, String value);
+
+    boolean removeRegister(String measurement, Map<String, String> tagKvs);
 
     void reportRowsFilter(@Valid RowsFilterEntity rowsFilterEntity);
 

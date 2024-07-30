@@ -60,7 +60,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
     }
 
     private Lock lock = new ReentrantLock();
-    private boolean isLoaded = false;
+    private volatile boolean isLoaded = false;
 
     private void loadPostHeaderLocked() {
         lock.lock();

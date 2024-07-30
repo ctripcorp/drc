@@ -35,8 +35,9 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
         Collections.sort(parametersList);
         if (parametersList != null && !parametersList.isEmpty() && StringUtils.isNotBlank(parametersList.get(0).getContext())) {
             String[] locations = parametersList.get(0).getContext().split(COMMA);
+            boolean convertLocation = FetchMode.shouldConvertLocation(parametersList.get(0).getFetchMode());
             for (String l : locations) {
-                dstLocation.add(l.trim().toUpperCase());
+                dstLocation.add(convertLocation ? Region.nameFor(l.trim().toUpperCase()).name() : l.trim().toUpperCase());
             }
         }
         drcStrategyId = rowsFilterConfig.getConfigs() != null ? rowsFilterConfig.getConfigs().getDrcStrategyId() : -1;

@@ -21,8 +21,13 @@ import java.util.List;
  */
 public interface DrcBuildServiceV2 {
 
-    void buildMha(DrcMhaBuildParam param) throws Exception;
+    // auto build machineDto should not empty,will change pwd;Manual without machineDto use default acc
+    Pair<Long,Long> mhaInitBeforeBuildIfNeed(DrcMhaBuildParam param) throws Exception;
 
+    // auto build machineDto should not empty,will change pwd;Manual without machineDto use default acc
+    void buildMhaAndReplication(DrcMhaBuildParam param) throws Exception;
+
+    // auto build machineDto should not empty,will change pwd;Manual without machineDto use default acc
     void buildMessengerMha(MessengerMhaBuildParam param) throws Exception;
 
     String buildDrc(DrcBuildParam param) throws Exception;
@@ -66,7 +71,13 @@ public interface DrcBuildServiceV2 {
     void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String gtid) throws SQLException;
 
     void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException;
-    
+
+    void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl,
+            MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException;
+
+
+    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid) throws SQLException;
+
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 
     void initReplicationTables() throws Exception;
@@ -76,4 +87,7 @@ public interface DrcBuildServiceV2 {
     Long configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception;
 
     String configReplicatorOnly(MessengerMetaDto dto) throws Exception;
+    
+    // return affect replication count
+    int compensateGtidGap(GtidCompensateParam gtidCompensateParam) throws SQLException;
 }

@@ -618,6 +618,7 @@ export default {
       return false
     },
     showMhaApplierConfig (isSrc) {
+      // return true
       if (isSrc) {
         return !this.hasAppliers(this.srcBuildData.dbApplierDtos)
       } else {

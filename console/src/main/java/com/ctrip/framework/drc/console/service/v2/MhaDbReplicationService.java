@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
@@ -11,10 +12,6 @@ import com.ctrip.framework.drc.core.http.PageResult;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Created by dengquanliang
- * 2023/7/31 16:48
- */
 public interface MhaDbReplicationService {
     /**
      * query mhaDbReplication by conditions
@@ -23,6 +20,8 @@ public interface MhaDbReplicationService {
      * @param dbNames    related db names. query all if empty or null
      */
     List<MhaDbReplicationDto> queryByMha(String srcMhaName, String dstMhaName, List<String> dbNames);
+
+    List<MhaDbReplicationTbl> queryBySrcMha(String srcMhaName) throws SQLException;
 
     List<MhaDbReplicationDto> queryMqByMha(String srcMhaName, List<String> dbNames);
 
@@ -35,7 +34,13 @@ public interface MhaDbReplicationService {
 
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
     void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException;
+    void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames) throws SQLException;
     void offlineMhaDbReplication(String mhaName, String mhaName1);
+
+    /**
+     * after delete dbReplicationTbls
+     */
+    void offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
 
     boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
 

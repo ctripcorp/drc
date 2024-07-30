@@ -115,6 +115,24 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     }
 
     @Override
+    public boolean removeRegister(String measurement, Map<String, String> tagKvs) {
+        metrics.removeMatching(
+                (name, metric) ->  {
+                    if (name.getKey().equalsIgnoreCase(measurement)) {
+                        for (Map.Entry<String, String> entry : tagKvs.entrySet()) {
+                            if (!name.getTags().get(entry.getKey()).equalsIgnoreCase(entry.getValue())) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+        );
+        return true;
+    }
+
+    @Override
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getTotal(), ROWS_FILTER_TOTAL_MEASUREMENT);
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getSend(), ROWS_FILTER_SEND_MEASUREMENT);
@@ -221,6 +239,11 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     @Override
     public void reportMessengerDelay(Map<String, String> tags, long delay, String measurement) {
         reportHistogram(tags,delay,measurement);
+    }
+
+    @Override
+    public void reportReplicatorScannerSenderNum(Map<String, String> tags, long num, String measurement) {
+        reportHistogram(tags,num,measurement);
     }
 
     public boolean removeHistogramDelay(@Valid UnidirectionalEntity unidirectionalEntity, String measurement) {

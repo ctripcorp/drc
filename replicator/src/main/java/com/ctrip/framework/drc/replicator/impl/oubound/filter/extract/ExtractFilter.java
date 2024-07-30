@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.context.ExtractContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -43,7 +43,7 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
 
     private ExtractFilterContext extractContext;
 
-    public ExtractFilter(OutboundFilterChainContext context) {
+    public ExtractFilter(ExtractContext context) {
         this.registryKey = context.getDataMediaConfig().getRegistryKey();
         this.hasRowsFilterConfig = context.shouldFilterRows();
         this.hasColumnsFilterConfig = context.shouldFilterColumns();

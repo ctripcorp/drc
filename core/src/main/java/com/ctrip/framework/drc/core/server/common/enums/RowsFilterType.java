@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.common.enums;
 
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
+import com.ctrip.framework.drc.core.server.common.filter.row.soa.CustomSoaRowsFilterRule;
 
 import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.ROWS_FILTER_RULE;
 
@@ -49,7 +50,13 @@ public enum RowsFilterType {
             return UserRowsUdlThenUidFilterRule.class;
         }
     },
-
+    SOA_Custom("custom_soa") {
+        @Override
+        public Class<? extends RowsFilterRule> filterRuleClass() throws ClassNotFoundException {
+            return CustomSoaRowsFilterRule.class;
+        }
+    },
+    
     Custom("custom") {
         @Override
         public Class<? extends RowsFilterRule> filterRuleClass() throws ClassNotFoundException {

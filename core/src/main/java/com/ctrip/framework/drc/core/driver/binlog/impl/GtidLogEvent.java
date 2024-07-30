@@ -67,7 +67,7 @@ public class GtidLogEvent extends AbstractLogEvent {
             nextTransactionOffset = payloadBuf.readUnsignedIntLE();
         }
 
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 
@@ -89,8 +89,7 @@ public class GtidLogEvent extends AbstractLogEvent {
     }
 
     public String getGtid() {
-        StringBuilder stringBuilder = new StringBuilder(64);
-        return stringBuilder.append(serverUUID.toString()).append(":").append(id).toString();
+        return serverUUID.toString() + ":" + id;
     }
 
     public long getLastCommitted() {

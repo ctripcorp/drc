@@ -59,6 +59,20 @@ public class DbDelayMonitorColumn {
     }
 
 
+    public static DbDelayDto tryParseEvent(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
+        try {
+            DbDelayDto dbDelayDto = parseEvent(delayMonitorLogEvent);
+            if (StringUtils.isEmpty(dbDelayDto.getDcName())) {
+                return null;
+            }
+            return dbDelayDto;
+        } catch (Throwable e) {
+            logger.debug("parse match v2 error: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+
     public static String getDelayMonitorSrcRegionName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
         try {
             return parseEvent(delayMonitorLogEvent).getRegion();

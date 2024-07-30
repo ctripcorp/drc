@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -38,6 +39,17 @@ public class CentralServiceControllerTest {
 
         Mockito.when(centralService.insertDdlHistory(Mockito.any())).thenThrow(ConsoleExceptionUtils.message("error"));
         result = centralServiceController.insertDdlHistory(new DdlHistoryEntity());
+        Assert.assertNull(result.getData());
+    }
+
+    @Test
+    public void testGetMhaAccounts() throws SQLException {
+        Mockito.when(centralService.getMhaAccounts(Mockito.any())).thenReturn(new MhaAccounts("mhaName", null, null, null));
+        ApiResult<MhaAccounts> result = centralServiceController.getMhaAccounts("mhaName");
+        Assert.assertNotNull(result.getData());
+
+        Mockito.when(centralService.getMhaAccounts(Mockito.any())).thenThrow(ConsoleExceptionUtils.message("error"));
+        result = centralServiceController.getMhaAccounts("mha");
         Assert.assertNull(result.getData());
     }
 }

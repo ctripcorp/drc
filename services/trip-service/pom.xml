@@ -137,6 +137,22 @@
             <groupId>com.ctrip.framework.fx</groupId>
             <artifactId>ucs-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.ctrip.sysdev</groupId>
+            <artifactId>herald-token-lib</artifactId>
+            <version>${herlder-token.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.sysdev</groupId>
+            <artifactId>herald-review-client</artifactId>
+            <version>1.5.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>com.ctrip.muise.schema</groupId>

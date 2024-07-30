@@ -16,7 +16,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObse
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObserver;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.netty.commands.NettyClient;
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
@@ -115,7 +115,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         private Logger logger = LoggerFactory.getLogger(getClass());
 
-        private Gate gate;
+        private ScheduleCloseGate gate;
 
         private Channel channel;
 

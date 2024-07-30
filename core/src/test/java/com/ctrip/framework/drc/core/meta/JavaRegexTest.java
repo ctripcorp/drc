@@ -13,13 +13,13 @@ public class JavaRegexTest {
 
     @Test
     public void testRegex() {
-        Pattern pattern = Pattern.compile("(?i)^SG$");
-        Matcher matcher =  pattern.matcher("sg");
+        Pattern pattern = Pattern.compile("(?i)^12$");
+        Matcher matcher =  pattern.matcher("12");
         boolean result = matcher.find();
         Assert.assertTrue(result);
 
-        Matcher matcher2 =  pattern.matcher("SG");
+        Matcher matcher2 =  pattern.matcher("1");
         boolean result2 = matcher2.find();
-        Assert.assertTrue(result2);
+        Assert.assertFalse(result2);
     }
 }

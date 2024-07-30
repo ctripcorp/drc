@@ -14,6 +14,7 @@ public class MhaDbReplicationDto {
      */
     private String transmissionType;
     private List<DbReplicationDto> dbReplicationDtos;
+    private DbApplierDto dbApplierDto;
 
     public static final MhaDbDto MQ_DTO = new MhaDbDto(-1L, null, null);
 
@@ -82,5 +83,13 @@ public class MhaDbReplicationDto {
                 ", replicationType=" + replicationType +
                 ", drcStatus=" + drcStatus +
                 '}';
+    }
+
+    public DbApplierDto getDbApplierDto() {
+        return dbApplierDto;
+    }
+
+    public void setDbApplierDto(DbApplierDto dbApplierDto) {
+        this.dbApplierDto = dbApplierDto;
     }
 }

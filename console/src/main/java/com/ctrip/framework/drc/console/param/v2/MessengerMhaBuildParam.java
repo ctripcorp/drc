@@ -1,5 +1,9 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/7/27 14:53
@@ -9,6 +13,7 @@ public class MessengerMhaBuildParam {
     private String dc;
     private String buName;
     private String tag;
+    List<MachineDto> machineDto;
 
     @Override
     public String toString() {
@@ -17,7 +22,16 @@ public class MessengerMhaBuildParam {
                 ", dc='" + dc + '\'' +
                 ", buName='" + buName + '\'' +
                 ", tag='" + tag + '\'' +
+                ", machineDto=" + machineDto +
                 '}';
+    }
+
+    public List<MachineDto> getMachineDto() {
+        return machineDto;
+    }
+
+    public void setMachineDto(List<MachineDto> machineDto) {
+        this.machineDto = machineDto;
     }
 
     public String getTag() {

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNotSame;
 public class TableKeyTest {
 
     TableKey key = TableKey.from("a", "b");
+    TableKey bigKey = TableKey.from("Ab", "cD");
 
     @Test
     public void getDatabaseName() {
@@ -26,6 +27,7 @@ public class TableKeyTest {
     @Test
     public void testToString() {
         assertEquals("`a`.`b`", key.toString());
+        assertEquals("`ab`.`cd`", bigKey.toString());
     }
 
     @Test

@@ -39,11 +39,17 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.base.Joiner;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.util.concurrent.ExecutionException;
+import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -661,16 +667,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public boolean isInBlackListWithCache(String db, String table) {
-        String fullName = db + "." + table;
-        List<AviatorRegexFilter> filters = dbBlacklistCache.getDbBlacklistInCache();
-        for (AviatorRegexFilter filter : filters) {
-            if (filter.filter(fullName)) {
-                return true;
-            }
-        }
-        return false;
+        return dbBlacklistCache.isInBlackListWithCache(db + "." + table);
     }
-
+    
     @Override
     public List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception {
         if (CollectionUtils.isEmpty(conflictRowLogIds)) {

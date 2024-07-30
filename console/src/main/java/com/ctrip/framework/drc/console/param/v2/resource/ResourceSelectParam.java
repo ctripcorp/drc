@@ -43,4 +43,13 @@ public class ResourceSelectParam {
     public void setSelectedIps(List<String> selectedIps) {
         this.selectedIps = selectedIps;
     }
+
+    @Override
+    public String toString() {
+        return "ResourceSelectParam{" +
+                "mhaName='" + mhaName + '\'' +
+                ", type=" + type +
+                ", selectedIps=" + selectedIps +
+                '}';
+    }
 }

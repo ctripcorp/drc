@@ -26,11 +26,13 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.DefaultBinlogScannerAndSenderFilterChainTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.BinlogScannerAndSenderTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScannerMergeAlgorithmTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKeyTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.SchemaFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
@@ -64,7 +66,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
 @Suite.SuiteClasses({
         DefaultReplicatorServerTest.class,
         TypeFilterTest.class,
-        OutboundFilterChainFactoryTest.class,
 
         DefaultGtidManagerTest.class,
         DefaultUuidOperatorTest.class,
@@ -109,6 +110,10 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         TypeConvertFilterTest.class,
         TransactionTableFilterTest.class,
         SchemaFilterTest.class,
+        DefaultBinlogScannerAndSenderFilterChainTest.class,
+        BinlogScannerAndSenderTest.class,
+        LocalBinlogScannerManagerTest.class,
+        BinlogScannerMergeAlgorithmTest.class,
 
         // ddl
         DdlParserTest.class,

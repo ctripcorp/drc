@@ -10,8 +10,10 @@ import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.ColumnsFilterServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
@@ -29,6 +31,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -117,6 +120,9 @@ public class MetaGeneratorV5 {
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
+    @Autowired
+    private AccountService accountService;
+    
     private static final ExecutorService executorService = ThreadUtils.newFixedThreadPool(50, "queryAllExist");
 
     public Drc getDrc() throws Exception {
@@ -125,7 +131,7 @@ public class MetaGeneratorV5 {
             return null;
         }
         // thread safe
-        SingleTask task = new SingleTask(rowsFilterServiceV2, columnsFilterServiceV2);
+        SingleTask task = new SingleTask(rowsFilterServiceV2, columnsFilterServiceV2, accountService);
         this.refreshMetaData(task);
         return task.getDrc();
     }
@@ -194,10 +200,13 @@ public class MetaGeneratorV5 {
 
         private final RowsFilterServiceV2 rowsFilterServiceV2;
         private final ColumnsFilterServiceV2 columnsFilterServiceV2;
+        private final AccountService accountService;
 
-        public SingleTask(RowsFilterServiceV2 rowsFilterServiceV2, ColumnsFilterServiceV2 columnsFilterServiceV2) {
+        public SingleTask(RowsFilterServiceV2 rowsFilterServiceV2, ColumnsFilterServiceV2 columnsFilterServiceV2,
+                AccountService accountService) {
             this.rowsFilterServiceV2 = rowsFilterServiceV2;
             this.columnsFilterServiceV2 = columnsFilterServiceV2;
+            this.accountService = accountService;
         }
 
         public Drc getDrc() throws Exception {
@@ -463,8 +472,23 @@ public class MetaGeneratorV5 {
         }
 
         private Dbs generateDbs(DbCluster dbCluster, MhaTblV2 mhaTbl) {
-            logger.debug("generate dbs for mha: {}", mhaTbl.getMhaName());
+            String mhaName = mhaTbl.getMhaName();
+            logger.debug("generate dbs for mha: {}",mhaName );
             Dbs dbs = new Dbs();
+            try {
+                MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTbl);
+                dbs.setReadUser(mhaAccounts.getReadAcc().getUser())
+                        .setReadPassword(mhaAccounts.getReadAcc().getPassword())
+                        .setWriteUser(mhaAccounts.getWriteAcc().getUser())
+                        .setWritePassword(mhaAccounts.getWriteAcc().getPassword())
+                        .setMonitorUser(mhaAccounts.getMonitorAcc().getUser())
+                        .setMonitorPassword(mhaAccounts.getMonitorAcc().getPassword());
+                dbCluster.setDbs(dbs);
+                return dbs;
+            } catch (Throwable e) {
+                logger.error("get mha new accounts , mhaName: {}", mhaName, e);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kms.account.gray.failed", mhaName);
+            }
             dbs.setReadUser(mhaTbl.getReadUser())
                     .setReadPassword(mhaTbl.getReadPassword())
                     .setWriteUser(mhaTbl.getWriteUser())
@@ -473,6 +497,15 @@ public class MetaGeneratorV5 {
                     .setMonitorPassword(mhaTbl.getMonitorPassword());
             dbCluster.setDbs(dbs);
             return dbs;
+        }
+        
+        private boolean checkAccounts(MhaAccounts mhaAccounts,MhaTblV2 mhaTbl) {
+            return mhaAccounts.getMonitorAcc().getUser().equals(mhaTbl.getMonitorUser())
+                    && mhaAccounts.getReadAcc().getUser().equals(mhaTbl.getReadUser())
+                    && mhaAccounts.getWriteAcc().getUser().equals(mhaTbl.getWriteUser())
+                    && mhaAccounts.getMonitorAcc().getPassword().equals(mhaTbl.getMonitorPassword())
+                    && mhaAccounts.getReadAcc().getPassword().equals(mhaTbl.getReadPassword())
+                    && mhaAccounts.getWriteAcc().getPassword().equals(mhaTbl.getWritePassword());
         }
 
         private void generateDb(Dbs dbs, MhaTblV2 mhaTbl) {
@@ -780,6 +813,7 @@ public class MetaGeneratorV5 {
         task.mhaReplicationGroupByDstMhaIdMap = task.mhaReplicationTbls.stream().collect(Collectors.groupingBy(MhaReplicationTbl::getDstMhaId));
 
         Map<Long, MhaTblV2> mhaDbMappingId2MhaTblMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> task.mhaTblIdMap.get(e.getMhaId())));
+        this.validate(mhaDbMappingId2MhaTblMap, task.mhaDbReplicationTbls);
         task.mhaDbReplicationGroupByDstToSrcMhaIdMap = task.mhaDbReplicationTbls.stream().filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType()))
                 .collect(Collectors.groupingBy(
                         e -> mhaDbMappingId2MhaTblMap.get(e.getDstMhaDbMappingId()).getId(),
@@ -793,5 +827,17 @@ public class MetaGeneratorV5 {
         task.dbReplicationFilterMappingTblsByDbRplicationIdMap = task.dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
         task.dbMessengerTblsByGroupIdMap = task.dbMessengerTbls.stream().collect(Collectors.groupingBy(MessengerTblV3::getMessengerGroupId));
         task.dbApplierTblsByGroupIdMap = task.dbApplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getApplierGroupId));
+    }
+
+    @VisibleForTesting
+    protected void validate(Map<Long, MhaTblV2> mhaDbMappingId2MhaTblMap, List<MhaDbReplicationTbl> mhaDbReplicationTbls) {
+        List<Long> invalidMhaDbReplicationId = mhaDbReplicationTbls.stream()
+                .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType()))
+                .filter(e -> !(mhaDbMappingId2MhaTblMap.containsKey(e.getSrcMhaDbMappingId()) && mhaDbMappingId2MhaTblMap.containsKey(e.getDstMhaDbMappingId())))
+                .map(MhaDbReplicationTbl::getId)
+                .collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(invalidMhaDbReplicationId)) {
+            throw new IllegalArgumentException("mha not found for mha db replications (id):  " + invalidMhaDbReplicationId);
+        }
     }
 }

@@ -64,7 +64,7 @@ public class XidLogEvent extends AbstractLogEvent {
 
         final ByteBuf payloadBuf = getPayloadBuf();
         this.xid = payloadBuf.readLongLE(); // 8bytes
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

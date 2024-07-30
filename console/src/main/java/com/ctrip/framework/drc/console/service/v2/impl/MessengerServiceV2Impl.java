@@ -300,6 +300,23 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                     return Collections.emptyList();
                 }
             }
+
+            if (!StringUtils.isEmpty(queryDto.getTopic())) {
+                List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(queryDto.getTopic(), ReplicationTypeEnum.DB_TO_MQ.getType());
+                List<Long> mhaDbMappingId = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
+
+                List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(mhaDbMappingId);
+                List<Long> mhaIdByTopics = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getMhaId).collect(Collectors.toList());
+                if (CollectionUtils.isEmpty(mhaIds)) {
+                    mhaIds.addAll(mhaIdByTopics);
+                } else {
+                    mhaIds.retainAll(mhaIdByTopics);
+                }
+                if (CollectionUtils.isEmpty(mhaIds)) {
+                    return Collections.emptyList();
+                }
+            }
+
             if (!CollectionUtils.isEmpty(mhaIds)) {
                 messengerGroups = messengerGroups.stream().filter(e -> mhaIds.contains(e.getMhaId())).collect(Collectors.toList());
             }
@@ -428,7 +445,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     private List<QmqBuEntity> getBuEntitiesFromQmq() throws Exception {
         String qmqBuListUrl = domainConfig.getQmqBuListUrl();
-        QmqBuList response = HttpUtils.post(qmqBuListUrl, null, QmqBuList.class);
+        QmqBuList response = HttpUtils.post(qmqBuListUrl, getQmqApiHeader(), null, QmqBuList.class);
         return response.getData();
     }
 
@@ -481,6 +498,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             logger.info("deleteMessengerDbReplications, size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
             dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+            mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
 
             // do delete: dbReplicationFilterMappingTbl
             dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
@@ -612,11 +630,13 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
 
             // if update request, remove itself before check conflicts
-            boolean updateRequest = dto.getDbReplicationId() != null;
+            List<Long> dbReplicationIds = dto.getDbReplicationIds();
+            boolean updateRequest = !CollectionUtils.isEmpty(dbReplicationIds);
             if (updateRequest) {
-                boolean anyRemove = messengerDbReplications.removeIf(e -> e.getId().equals(dto.getDbReplicationId()));
-                if (!anyRemove) {
-                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, String.format("update replicationId %d that not belong to mha :%s", dto.getDbReplicationId(), mhaName));
+                boolean anyRemove = messengerDbReplications.removeIf(e -> dbReplicationIds.contains(e.getId()));
+                Set<Long> allExistDbReplications = messengerDbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toSet());
+                if (!anyRemove || allExistDbReplications.containsAll(dbReplicationIds)) {
+                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, String.format("update replicationId %s that not belong to mha :%s", dbReplicationIds.toString(), mhaName));
                 }
             }
 
@@ -785,6 +805,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void processDeleteMqConfig(MqConfigDeleteRequestDto dto) throws Exception {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(dto.getMhaName(), 0);
         if (mhaTblV2 == null) {
@@ -794,14 +815,15 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
         }
 
-        this.disableDalClusterMqConfigIfNecessary(dto.getDbReplicationIdList().get(0), mhaTblV2);
+        Map<String, List<MqConfigVo>> groupByTopic = queryByReplicationIdsAndMhaTbl(Sets.newHashSet(dto.getDbReplicationIdList()), mhaTblV2);
         this.deleteDbReplicationForMq(dto.getMhaName(), dto.getDbReplicationIdList());
+        this.disableDalClusterMqConfigIfNecessary(groupByTopic, mhaTblV2);
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void updateMqConfig(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
         // delete old
-        this.deleteDbReplicationForMq(mhaTblV2.getMhaName(), Lists.newArrayList(dto.getDbReplicationId()));
+        this.deleteDbReplicationForMq(mhaTblV2.getMhaName(), dto.getDbReplicationIds());
         // insert new
         this.addMqConfig(dto, mhaTblV2);
     }
@@ -990,7 +1012,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         requestBody.put("bu", dto.getBu());
         requestBody.put("creator", "drc");
         requestBody.put("emailGroup", "rdkjdrc@Ctrip.com");
-        QmqApiResponse response = HttpUtils.post(topicApplicationUrl, requestBody, QmqApiResponse.class);
+        QmqApiResponse response = HttpUtils.post(topicApplicationUrl, getQmqApiHeader(), requestBody, QmqApiResponse.class);
 
         if (response.getStatus() == 0) {
             logger.info("[[tag=qmqInit]] init qmq topic success,topic:{}", dto.getTopic());
@@ -1022,7 +1044,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         requestBody.put("creator", "drc");
         requestBody.put("remark", "binlog_dataChange_message");
 
-        QmqApiResponse response = HttpUtils.post(producerApplicationUrl, requestBody, QmqApiResponse.class);
+        QmqApiResponse response = HttpUtils.post(producerApplicationUrl, getQmqApiHeader(), requestBody, QmqApiResponse.class);
         if (response.getStatus() == 0) {
             logger.info("[[tag=qmqInit]] init qmq producer success,topic:{}", dto.getTopic());
         } else if (StringUtils.isNotBlank(response.getStatusMsg())
@@ -1033,6 +1055,12 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             return false;
         }
         return true;
+    }
+
+    private Map<String, String> getQmqApiHeader() {
+        Map<String,String> header = new HashMap<>();
+        header.put("ApiToken", domainConfig.getQmqApiToken());
+        return header;
     }
 
 
@@ -1062,64 +1090,80 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Generate",
                 dto.getTopic(),
-                () -> qConfigService.addOrUpdateDalClusterMqConfig(
-                        dcName, dto.getTopic(), dto.getTable(), null, matchTables
-                )
+                () -> {
+                    boolean result = qConfigService.addOrUpdateDalClusterMqConfig(
+                            dcName, dto.getTopic(), dto.getTable(), null, matchTables
+                    );
+                    if (!result) {
+                        throw ConsoleExceptionUtils.message("add dalcluster binlog registry in qconfig fail!");
+                    }
+                }
         );
     }
 
     private void updateDalClusterMqConfig(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
         // delete + add
-        disableDalClusterMqConfigIfNecessary(dto.getDbReplicationId(), mhaTblV2);
+        Map<String, List<MqConfigVo>> groupByTopic = queryByReplicationIdsAndMhaTbl(Sets.newHashSet(dto.getDbReplicationIds()), mhaTblV2);
+        disableDalClusterMqConfigIfNecessary(groupByTopic, mhaTblV2);
         addDalClusterMqConfig(dto, mhaTblV2);
     }
 
-    private void disableDalClusterMqConfigIfNecessary(Long dbReplicationId, MhaTblV2 mhaTblV2) throws Exception {
-        DbReplicationTbl dbReplicationTbl = dbReplicationTblDao.queryById(dbReplicationId);
-        MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblDao.queryById(dbReplicationTbl.getSrcMhaDbMappingId());
-        DbTbl dbTbl = dbTblDao.queryById(mhaDbMappingTbl.getDbId());
+    private void disableDalClusterMqConfigIfNecessary(Map<String, List<MqConfigVo>> groupByTopic, MhaTblV2 mhaTblV2) throws Exception {
+        for (Map.Entry<String, List<MqConfigVo>> existEntry : groupByTopic.entrySet()) {
+            String topic = existEntry.getKey();
+            String nameFilter = existEntry.getValue().stream().map(MqConfigVo::getTable).collect(Collectors.joining(","));
 
-        String dcName = this.getDcName(mhaTblV2);
-        String dbName = dbTbl.getDbName();
-        String tableName = dbReplicationTbl.getSrcLogicTableName();
-        String topic = dbReplicationTbl.getDstLogicTableName();
+            // to delete tables
+            List<MySqlUtils.TableSchemaName> tablesToDelete = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
+            if (CollectionUtils.isEmpty(tablesToDelete)) {
+                logger.info("no table to delete: {}", nameFilter);
+                return;
+            }
 
-        // to delete tables
-        String nameFilter = dbName + "\\." + tableName;
-        List<MySqlUtils.TableSchemaName> tablesToDelete = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
-        if (CollectionUtils.isEmpty(tablesToDelete)) {
-            logger.info("no table to delete: "+ nameFilter);
-            return;
+            // all topic tables
+            List<MySqlUtils.TableSchemaName> allTables = Lists.newArrayList();
+            Map<String, List<String>> tableNameFiltersWithSameTopicGroupByMha = this.getTableNameFiltersWithSameTopic(topic);
+            for (Map.Entry<String, List<String>> entry : tableNameFiltersWithSameTopicGroupByMha.entrySet()) {
+                String mhaName = entry.getKey();
+                List<String> sameTopicTableFilters = entry.getValue();
+                allTables.addAll(mysqlServiceV2.getAnyMatchTable(mhaName, String.join(",", sameTopicTableFilters)));
+            }
+
+
+            // final remain = all - delete
+            Set<MySqlUtils.TableSchemaName> tablesToDeletSet = Sets.newHashSet(tablesToDelete);
+            Set<MySqlUtils.TableSchemaName> allTablesSet = Sets.newHashSet(allTables);
+            allTablesSet.removeAll(tablesToDeletSet);
+            List<MySqlUtils.TableSchemaName> remainTables = Lists.newArrayList(allTablesSet);
+
+            // do update dal qmq config
+            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), tablesToDelete.get(0).getSchema());
+            transactionMonitor.logTransaction(
+                    "QConfig.OpenApi.MqConfig.Delete",
+                    topic,
+                    () -> {
+                        boolean result = qConfigService.updateDalClusterMqConfig(
+                                this.getDcName(mhaTblV2),
+                                topic,
+                                dalClusterName,
+                                remainTables
+                        );
+                        if (!result) {
+                            throw ConsoleExceptionUtils.message("disable dalcluster binlog registry in qconfig fail!");
+                        }
+                    }
+            );
         }
+    }
 
-        // all topic tables
-        List<MySqlUtils.TableSchemaName> allTables = Lists.newArrayList();
-        Map<String, List<String>> tableNameFiltersWithSameTopicGroupByMha = this.getTableNameFiltersWithSameTopic(topic);
-        for (Map.Entry<String, List<String>> entry : tableNameFiltersWithSameTopicGroupByMha.entrySet()) {
-            String mhaName = entry.getKey();
-            List<String> sameTopicTableFilters = entry.getValue();
-            allTables.addAll(mysqlServiceV2.getAnyMatchTable(mhaName, String.join(",", sameTopicTableFilters)));
+    private Map<String, List<MqConfigVo>> queryByReplicationIdsAndMhaTbl(Set<Long> dbReplicationIds, MhaTblV2 mhaTblV2) {
+        List<MqConfigVo> mqConfigVos = queryMhaMessengerConfigs(mhaTblV2.getMhaName());
+        Set<Long> allExistDbReplications = mqConfigVos.stream().map(MqConfigVo::getDbReplicationId).collect(Collectors.toSet());
+        List<Long> dbReplicationNotExistId = dbReplicationIds.stream().filter(id -> !allExistDbReplications.contains(id)).collect(Collectors.toList());
+        if (!dbReplicationNotExistId.isEmpty()) {
+            throw new IllegalArgumentException("db replication not found: " + dbReplicationNotExistId);
         }
-
-
-        // final remain = all - delete
-        Set<MySqlUtils.TableSchemaName> tablesToDeletSet = Sets.newHashSet(tablesToDelete);
-        Set<MySqlUtils.TableSchemaName> allTablesSet = Sets.newHashSet(allTables);
-        allTablesSet.removeAll(tablesToDeletSet);
-        List<MySqlUtils.TableSchemaName> remainTables = Lists.newArrayList(allTablesSet);
-
-        // do update dal qmq config
-        String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), tablesToDelete.get(0).getSchema());
-        transactionMonitor.logTransaction(
-                "QConfig.OpenApi.MqConfig.Delete",
-                topic,
-                () -> qConfigService.updateDalClusterMqConfig(
-                        dcName,
-                        topic,
-                        dalClusterName,
-                        remainTables
-                )
-        );
+        return mqConfigVos.stream().filter(e -> dbReplicationIds.contains(e.getDbReplicationId())).collect(Collectors.groupingBy(MqConfigVo::getTopic));
     }
 
     private Map<String, List<String>> getTableNameFiltersWithSameTopic(String topic) throws SQLException {
@@ -1166,7 +1210,9 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         mqConfig.setMqType(dto.getMqType());
         mqConfig.setSerialization(dto.getSerialization());
         mqConfig.setOrder(dto.isOrder());
-        mqConfig.setOrderKey(dto.getOrderKey());
+        if (dto.isOrder()) {
+            mqConfig.setOrderKey(dto.getOrderKey());
+        }
         mqConfig.setPersistent(dto.isPersistent());
         mqConfig.setPersistentDb(dto.getPersistentDb());
         mqConfig.setDelayTime(dto.getDelayTime());

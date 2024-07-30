@@ -16,6 +16,8 @@ public interface ClusterManagerConfig extends ZkConfig {
 
     int getClusterRefreshMilli();
 
+    int getCheckMaxTime();
+
     String getClusterServerId();
 
     String getClusterServerIp();
@@ -49,4 +51,10 @@ public interface ClusterManagerConfig extends ZkConfig {
     boolean validateDomain();
 
     int getCheckInterval();
+
+    boolean getPeriodCheckSwitch();
+
+    boolean getPeriodCorrectSwitch();
+
+    boolean requestWithHeraldToken();
 }

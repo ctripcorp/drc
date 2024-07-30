@@ -6,6 +6,7 @@ public enum MigrationStatusEnum {
     PRE_STARTED( "PreStarted"),
     STARTING("Starting"),
     READY_TO_SWITCH_DAL("ReadyToSwitchDal"),
+    READY_TO_COMMIT_TASK("ReadyToCommitTask"),
     SUCCESS("Success"),
     FAIL("Fail"),
     CANCELED("Canceled"),

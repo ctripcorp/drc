@@ -59,7 +59,7 @@ public class DbDelayMonitorColumnTest {
         ByteBuf eventByteBuf = initByteBuf(dbDelayBytes);
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         Assert.assertTrue(DbDelayMonitorColumn.match(delayMonitorLogEvent));
-
+        Assert.assertNotNull(DbDelayMonitorColumn.tryParseEvent(delayMonitorLogEvent));
     }
 
     @Test
@@ -78,6 +78,7 @@ public class DbDelayMonitorColumnTest {
         ByteBuf eventByteBuf = initByteBuf(mhaDelayBytes);
         DelayMonitorLogEvent delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
         Assert.assertFalse(DbDelayMonitorColumn.match(delayMonitorLogEvent));
+        Assert.assertNull(DbDelayMonitorColumn.tryParseEvent(delayMonitorLogEvent));
         Assert.assertTrue(DelayMonitorColumn.match(delayMonitorLogEvent));
         String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcRegionName(delayMonitorLogEvent);
         Assert.assertEquals("ntgxh", delayMonitorSrcDcName);

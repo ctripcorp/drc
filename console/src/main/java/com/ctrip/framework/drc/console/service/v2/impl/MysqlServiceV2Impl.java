@@ -2,16 +2,15 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
-import com.ctrip.framework.drc.console.dao.DdlHistoryTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
-import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -24,14 +23,15 @@ import com.ctrip.framework.drc.console.vo.check.v2.StatementExecutorApResult;
 import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTask;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,10 +54,6 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Autowired
     private CacheMetaService cacheMetaService;
-    @Autowired
-    private MhaTblV2Dao mhaTblV2Dao;
-    @Autowired
-    private DdlHistoryTblDao ddlHistoryTblDao;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -350,7 +346,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     public StatementExecutorResult write(MysqlWriteEntity requestBody) {
         logger.info("execute write sql, requestBody: {}", requestBody);
         Endpoint endpoint;
-        if (requestBody.getAccountType() == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+        if (requestBody.getAccountType() == DrcAccountTypeEnum.DRC_WRITE.getCode()) {
             endpoint = cacheMetaService.getMasterEndpointForWrite(requestBody.getMha());
         } else {
             endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
@@ -406,5 +402,14 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         return result;
     }
-
+    
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/accountPrivileges")
+    public String queryAccountPrivileges(String mha, String account, String pwd) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        AccountEndpoint accEndpoint = new AccountEndpoint(endpoint.getHost(), endpoint.getPort(), account, pwd, true);
+        return MySqlUtils.getAccountPrivilege(accEndpoint,true);
+    }
+    
+    
 }

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.aop.permission.AccessToken;
+import com.ctrip.framework.drc.console.enums.TokenType;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormBuildParam;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormQueryParam;
 import com.ctrip.framework.drc.console.service.v2.DrcApplicationService;
@@ -59,10 +61,22 @@ public class DrcApplicationController {
         }
     }
 
+    @AccessToken(type = TokenType.OPEN_API_4_DBA)
+    @PostMapping("dba")
+    public ApiResult<Boolean> createApplicationFormForDba(@RequestBody ApplicationFormBuildParam param) {
+        try {
+            drcApplicationService.createApplicationForm(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("createApplicationForm fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @PostMapping("email")
     public ApiResult<Boolean> sendEmail(@RequestParam Long applicationFormId) {
         try {
-            return ApiResult.getSuccessInstance(drcApplicationService.sendEmail(applicationFormId));
+            return ApiResult.getSuccessInstance(drcApplicationService.manualSendEmail(applicationFormId));
         } catch (Exception e) {
             logger.error("createApplicationForm fail, ", e);
             return ApiResult.getFailInstance(false, e.getMessage());
@@ -76,6 +90,17 @@ public class DrcApplicationController {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("createApplicationForm fail, ", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("applicant")
+    public ApiResult<Boolean> updateApplicant(@RequestParam Long applicationFormId, @RequestParam String applicant) {
+        try {
+            drcApplicationService.updateApplicant(applicationFormId, applicant);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("updateApplicant fail, ", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

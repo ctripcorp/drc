@@ -50,4 +50,14 @@ public class DbResourceSelectParam {
     public void setSelectedIps(List<String> selectedIps) {
         this.selectedIps = selectedIps;
     }
+
+    @Override
+    public String toString() {
+        return "DbResourceSelectParam{" +
+                "srcMhaName='" + srcMhaName + '\'' +
+                ", dstMhaName='" + dstMhaName + '\'' +
+                ", type=" + type +
+                ", selectedIps=" + selectedIps +
+                '}';
+    }
 }

@@ -20,7 +20,7 @@ public class StopLogEvent extends AbstractLogEvent {
         }
 
         final ByteBuf payloadBuf = getPayloadBuf();
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

@@ -93,7 +93,7 @@ public class RouteServiceTest {
         List<ProxyTbl> proxyTblList = this.getData("ProxyTbl.json", ProxyTbl.class);
 
         Mockito.when(proxyTblDao.queryAllExist()).thenReturn(proxyTblList);
-        Mockito.when(routeTblDao.queryAllExist()).thenReturn(routeTblList);
+        Mockito.when(routeTblDao.queryAll()).thenReturn(routeTblList);
         Mockito.when(buTblDao.queryByBuName(Mockito.anyString())).thenReturn(buTbls.get(0));
         Mockito.when(buTblDao.queryByPk(Mockito.anyLong())).thenReturn(buTbls.get(0));
 

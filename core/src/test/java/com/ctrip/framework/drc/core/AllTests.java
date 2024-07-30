@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.config.RegionConfigTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
@@ -48,6 +49,7 @@ import com.ctrip.framework.drc.core.server.common.AbstractResourceManagerTest;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeTypeTest;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
+import com.ctrip.framework.drc.core.server.common.filter.row.soa.CustomSoaRowsFilterRuleTest;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
@@ -59,6 +61,7 @@ import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
+import com.ctrip.framework.drc.core.utils.EncryptUtilsTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -87,6 +90,7 @@ import org.junit.runners.Suite;
         AbstractRowsFilterRuleForUidTest.class,
         AbstractRowsFilterRuleForUdlThenUidTest.UdlExistTest.class,
         AbstractRowsFilterRuleForUdlThenUidTest.UdlNotExistThenUidTest.class,
+        CustomSoaRowsFilterRuleTest.class,
         //schema
         TableOperationManagerTest.class,
         CommentQueryTaskTest.class,
@@ -111,6 +115,7 @@ import org.junit.runners.Suite;
 
         // gtid package
         GtidSetTest.class,
+        GtidTest.class,
 
         // header package
         LogEventHeaderTest.class,
@@ -145,6 +150,7 @@ import org.junit.runners.Suite;
         TransactionEventTest.class,
         ParsedDdlLogEventTest.class,
         TransactionTableMarkedTableMapLogEventTest.class,
+        FilterLogEventTest.class,
 
         // command package
         ApplierDumpCommandPacketTest.class,
@@ -164,6 +170,7 @@ import org.junit.runners.Suite;
         MySQLPasswordEncrypterTest.class,
         FileUtilTest.class,
         IsolateHashCacheTest.class,
+        EncryptUtilsTest.class,
 
         //schema package
         SchemaTests.class,
@@ -332,6 +339,30 @@ public class AllTests {
             "  ]\n" +
             "}";
 
+    public static final String ROW_FILTER_PROPERTIES2 = "{\n" + // custom mode ,context, fetchMode
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"%s\",\n" +
+            "      \"tables\": \"drc1.insert1\",\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"id\",\n" +
+            "              \"one\"\n" +
+            "            ],\n" +
+            "            \"fetchMode\": %s,\n" +
+            "            \"context\": \"%s\",\n" +
+            "            \"userFilterMode\": \"uid\",\n" +
+            "            \"drcStrategyId\" : 1,\n" +
+            "            \"routeStrategyId\" : 1\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    
     public static int ZK_PORT = 2182;
 
     public static int SRC_PORT = 3308;

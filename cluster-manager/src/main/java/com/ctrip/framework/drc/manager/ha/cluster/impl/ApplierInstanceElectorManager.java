@@ -4,19 +4,24 @@ import com.ctrip.framework.drc.core.Constants;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.ObjectUtils;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
@@ -26,6 +31,9 @@ import java.util.*;
  */
 @Component
 public class ApplierInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
+
+    @Autowired
+    private InstanceStateController instanceStateController;
 
     @Override
     protected String getLeaderPath(String registryKey) {
@@ -81,6 +89,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
         List<Applier> survivalAppliers = new ArrayList<>(childrenData.size());
+        List<Applier> redundantAppliers = new ArrayList<>();
 
         String targetMha = RegistryKey.getTargetMha(registryKey);
         String targetDB = RegistryKey.getTargetDB(registryKey);
@@ -95,11 +104,22 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
                         survivalAppliers.add(applier);
                         logger.info("[Survive] applier {} {}:{}", clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
                     } else {
-                        logger.info("[Survive] applier null for {} {}:{}", clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
+                        // exist in zk but not in memory, should remove
+                        redundantAppliers.add(new Applier()
+                                .setIp(zookeeperValue.getIp()).setPort(zookeeperValue.getPort())
+                                .setTargetMhaName(targetMha)
+                                .setIncludedDbs(targetDB).setApplyMode(StringUtils.isBlank(targetDB) ? ApplyMode.transaction_table.getType() : ApplyMode.db_transaction_table.getType())
+                        );
+                        logger.warn("[Survive] applier null for {} {}:{}", clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
                     }
                     break;
                 }
             }
+        }
+
+        if (!CollectionUtils.isEmpty(redundantAppliers)) {
+            logger.warn("do remove applier: {}", redundantAppliers);
+            redundantAppliers.forEach(redundantApplier -> removeApplier(clusterId, redundantApplier));
         }
 
         if (survivalAppliers.size() != childrenData.size()) {
@@ -111,14 +131,27 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
         currentMetaManager.setSurviveAppliers(clusterId, registryKey, survivalAppliers, activeApplier);
     }
 
-    private Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
+    @VisibleForTesting
+    protected Applier getApplier(String clusterId, String ip, int port, String targetMha, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
-        logger.info("[DbCluster] for applier is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
         return applierList.stream().filter(applier ->
                 applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port
                         && applier.getTargetMhaName().equalsIgnoreCase(targetMha)
-                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(applier.getIncludedDbs(), targetDB)))
-                .findFirst().orElse(null);
+                ).filter(applier -> {
+                    if (StringUtils.isBlank(targetDB)) {
+                        return StringUtils.isBlank(applier.getIncludedDbs());
+                    }
+                    return ObjectUtils.equals(applier.getIncludedDbs(), targetDB);
+                }).findFirst().orElse(null);
+    }
+
+    private void removeApplier(String clusterId, Applier applier) {
+        try {
+            EventMonitor.DEFAULT.logEvent("remove.redundant.zk.applier", NameUtils.getApplierRegisterKey(clusterId, applier) + ":" + applier.getIp());
+            instanceStateController.removeApplier(clusterId, applier, true);
+        } catch (Exception e) {
+            logger.error(String.format("[removeApplier]%s,%s", clusterId, applier), e);
+        }
     }
 }

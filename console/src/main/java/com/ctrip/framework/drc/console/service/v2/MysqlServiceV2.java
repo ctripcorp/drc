@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
@@ -12,6 +14,7 @@ import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Created by dengquanliang
@@ -75,4 +78,6 @@ public interface MysqlServiceV2 {
     Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody);
 
     AutoIncrementVo getAutoIncrementAndOffset(String mha);
+    
+    String queryAccountPrivileges(String mha, String account, String pwd);
 }

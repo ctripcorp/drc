@@ -1,15 +1,15 @@
 package com.ctrip.framework.drc.console.schedule;
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.service.ops.OPSApiService;
-import com.ctrip.framework.drc.core.service.statistics.traffic.*;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.*;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -40,13 +40,13 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String schemaVersion = "v1.1";
 
     private static final String SHA = "sha";
-    private static final String SIN = "sin";
+    private static final String SGP = "sgp";
     private static final String FRA = "fra";
     private static final String ALI = "ali";
 
     private static final String FRA_AWS = "FRA-AWS";
     private static final String SHA_REGION = "SHA";
-    private static final String SIN_AWS = "SIN-AWS";
+    private static final String SGP_ALI = "SGP";
     private static final String SHA_ALI = "SHA-ALI";
 
     private static final String AWS_PROVIDER = "aws";
@@ -55,10 +55,12 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private static final String ACCOUNT_ID_AWS_PROD = "671660153913";
     private static final String ACCOUNT_ID_ALIYUN_PROD = "1963804511755329";
+    private static final String ACCOUNT_ID_SGP_ALI_PROD = "5048708684694038";
     private static final String ACCOUNT_ID_TRIP_PROD = "";
 
     private static final String ACCOUNT_NAME_AWS_PROD = "aws_prod_share";
     private static final String ACCOUNT_NAME_ALIYUN_PROD = "aliyun_prod_share";
+    private static final String ACCOUNT_NAME_SGP_ALI_PROD = "ali_intl_prod_share";
     private static final String ACCOUNT_NAME_TRIP_PROD = "";
 
     private static final String appName = "drc";
@@ -67,6 +69,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private static final ProviderContext AWS_PROVIDER_CONTEXT = new ProviderContext(AWS_PROVIDER, ACCOUNT_ID_AWS_PROD, ACCOUNT_NAME_AWS_PROD);
     private static final ProviderContext ALIYUN_PROVIDER_CONTEXT = new ProviderContext(ALIYUN_PROVIDER, ACCOUNT_ID_ALIYUN_PROD, ACCOUNT_NAME_ALIYUN_PROD);
+    private static final ProviderContext SGP_ALI_PROVIDER_CONTEXT = new ProviderContext(ALIYUN_PROVIDER, ACCOUNT_ID_SGP_ALI_PROD, ACCOUNT_NAME_SGP_ALI_PROD);
     private static final ProviderContext TRIP_PROVIDER_CONTEXT = new ProviderContext(TRIP_PROVIDER, ACCOUNT_ID_TRIP_PROD, ACCOUNT_NAME_TRIP_PROD);
 
     private static final int batchSize = 100;
@@ -162,7 +165,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         for (Map.Entry<String, Set<String>> entry : apps.entrySet()) {
             String key = entry.getKey();
             Set<String> value = entry.getValue();
-            sendRelationCostToKafka(key, value, AWS_PROVIDER_CONTEXT, SIN_AWS);
+            sendRelationCostToKafka(key, value, SGP_ALI_PROVIDER_CONTEXT, SGP_ALI);
             sendRelationCostToKafka(key, value, AWS_PROVIDER_CONTEXT, FRA_AWS);
             sendRelationCostToKafka(key, value, ALIYUN_PROVIDER_CONTEXT, SHA_ALI);
             sendRelationCostToKafka(key, value, TRIP_PROVIDER_CONTEXT, SHA_REGION);
@@ -200,19 +203,19 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private void sendTraffic() throws Exception {
         logger.info("[[task=sendTraffic]] current time round to hour: {}", currentTimeRoundToHour);
 
-        // sin->sha
-        HickWallTrafficContext sinToShaContext = getHickWallTrafficContext(SIN, SHA);
-        List<HickWallTrafficEntity> sinToSha = opsApiService.getTrafficFromHickWall(sinToShaContext);
-        sendToKafKa(sinToSha, AWS_PROVIDER_CONTEXT, SIN_AWS, serviceTypeStorage, CostType.storage, 1);
-        sendToKafKa(sinToSha, AWS_PROVIDER_CONTEXT, SIN_AWS, serviceTypeFlow, CostType.flow, 9);
-        sendToCat(sinToSha);
-        sendToKafKa(sinToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
+        // sgp->sha
+        HickWallTrafficContext sgpToShaContext = getHickWallTrafficContext(SGP, SHA);
+        List<HickWallTrafficEntity> sgpToSha = opsApiService.getTrafficFromHickWall(sgpToShaContext);
+        sendToKafKa(sgpToSha, SGP_ALI_PROVIDER_CONTEXT, SGP_ALI, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(sgpToSha, SGP_ALI_PROVIDER_CONTEXT, SGP_ALI, serviceTypeFlow, CostType.flow, 9);
+        sendToCat(sgpToSha);
+        sendToKafKa(sgpToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // fra->sha
         HickWallTrafficContext fraToShaContext = getHickWallTrafficContext(FRA, SHA);
         List<HickWallTrafficEntity> fraToSha = opsApiService.getTrafficFromHickWall(fraToShaContext);
-        sendToKafKa(fraToSha, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeStorage, CostType.storage, 1);
-        sendToKafKa(fraToSha, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeFlow, CostType.flow, 9);
+        sendToKafKa(fraToSha, SGP_ALI_PROVIDER_CONTEXT, FRA_AWS, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(fraToSha, SGP_ALI_PROVIDER_CONTEXT, FRA_AWS, serviceTypeFlow, CostType.flow, 9);
         sendToCat(fraToSha);
         sendToKafKa(fraToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
@@ -229,12 +232,12 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         sendToCat(shaToSha);
         sendToKafKa(shaToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
-        // sha->sin
-        HickWallTrafficContext shaToSinContext = getHickWallTrafficContext(SHA, SIN);
-        List<HickWallTrafficEntity> shaToSin = opsApiService.getTrafficFromHickWall(shaToSinContext);
-        sendToKafKa(shaToSin, AWS_PROVIDER_CONTEXT, SIN_AWS, serviceTypeStorage, CostType.storage, 1);
-        sendToCat(shaToSin);
-        sendToKafKa(shaToSin, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
+        // sha->sgp
+        HickWallTrafficContext shaToSgpContext = getHickWallTrafficContext(SHA, SGP);
+        List<HickWallTrafficEntity> shaToSgp = opsApiService.getTrafficFromHickWall(shaToSgpContext);
+        sendToKafKa(shaToSgp, SGP_ALI_PROVIDER_CONTEXT, SGP_ALI, serviceTypeStorage, CostType.storage, 1);
+        sendToCat(shaToSgp);
+        sendToKafKa(shaToSgp, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // sha->fra
         HickWallTrafficContext shaToFraContext = getHickWallTrafficContext(SHA, FRA);

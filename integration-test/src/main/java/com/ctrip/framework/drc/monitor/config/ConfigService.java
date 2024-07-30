@@ -38,6 +38,8 @@ public class ConfigService extends AbstractConfigBean {
     private static final String KEY_AUTO_MESSENGER_SWITCH = "auto.messenger.switch";
     private static final String KEY_AUTO_DAL_SWITCH = "auto.dal.switch";
     private static final String KEY_AUTO_UNI_SWITCH = "auto.uni.switch";
+    private static final String KEY_SCANNER_SWITCH = "auto.scanner.switch";
+
     private static final String KEY_AUTO_BI_SWITCH = "auto.bi.switch";
     private static final String KEY_AUTO_TABLE_COMPARE_SWITCH = "auto.table.compare.switch";
     private static final String KEY_AUTO_TABLE_COMPARE_EXCLUDE_MHA = "auto.table.compare.exclude.mha";
@@ -68,6 +70,8 @@ public class ConfigService extends AbstractConfigBean {
     private static final String KEY_BINLOG_MINIMAL_ROW_IMAGE_SWITCH = "binlog.minimal.row.image.switch";
     private static final String KEY_BINLOG_NOBLOB_ROW_IMAGE_SWITCH = "binlog.noblob.row.image.switch";
     private static final String KEY_BENCHMARK_TWO_SIDE_WRITE_SWITCH = "benchmark.two.side.write.switch";
+    private static final String KEY_SCANNER_TEST_SHARD_NUM = "scanner.test.shard.num";
+
 
     // qconfig default value
     private static final String DEFAULT_DRC_MONITOR_MYSQL_SRC_IP = "";
@@ -259,6 +263,10 @@ public class ConfigService extends AbstractConfigBean {
         return getBooleanProperty(KEY_AUTO_UNI_SWITCH, DEFAULT_AUTO_UNI_SWITCH);
     }
 
+    public boolean getAutoScannerSwitch() {
+        return getBooleanProperty(KEY_SCANNER_SWITCH, DEFAULT_AUTO_UNI_SWITCH);
+    }
+
     public boolean getAutoBiSwitch() {
         return getBooleanProperty(KEY_AUTO_BI_SWITCH, DEFAULT_AUTO_BI_SWITCH);
     }
@@ -289,5 +297,9 @@ public class ConfigService extends AbstractConfigBean {
             return Collections.emptyList();
         }
         return Lists.newArrayList(property.split(","));
+    }
+
+    public int getScannerTestShardNum() {
+        return getIntProperty(KEY_SCANNER_TEST_SHARD_NUM, 50);
     }
 }

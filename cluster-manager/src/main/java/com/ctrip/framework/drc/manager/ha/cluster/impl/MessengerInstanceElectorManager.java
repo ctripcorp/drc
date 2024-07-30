@@ -1,22 +1,28 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.Constants;
+import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.ObjectUtils;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.locks.LockInternals;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
@@ -25,6 +31,9 @@ import java.util.*;
  */
 @Component
 public class MessengerInstanceElectorManager extends AbstractInstanceElectorManager implements InstanceElectorManager, Observer, TopElement {
+
+    @Autowired
+    private InstanceStateController instanceStateController;
 
     @Override
     protected String getLeaderPath(String registryKey) {
@@ -85,6 +94,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         List<String> sortedChildren = LockInternals.getSortedChildren("latch-", sorter, childrenPaths);
 
         List<Messenger> survivalMessengers = new ArrayList<>(childrenData.size());
+        List<Messenger> redundantMessengers = new ArrayList<>();
 
         String targetDB = RegistryKey.getTargetDB(registryKey);
 
@@ -98,11 +108,21 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
                         survivalMessengers.add(messenger);
                         logger.info("[Survive] messenger {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
                     } else {
+                        redundantMessengers.add(new Messenger()
+                                .setIp(zookeeperValue.getIp()).setPort(zookeeperValue.getPort())
+                                .setIncludedDbs(targetDB).setApplyMode(StringUtils.isBlank(targetDB) ? ApplyMode.mq.getType() : ApplyMode.db_mq.getType())
+                        );
+
                         logger.info("[Survive] messenger null for {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
                     }
                     break;
                 }
             }
+        }
+
+        if (!CollectionUtils.isEmpty(redundantMessengers)) {
+            logger.warn("do remove messengers: {}", redundantMessengers);
+            redundantMessengers.forEach(redundantApplier -> removeMessenger(clusterId, redundantApplier));
         }
 
         if (survivalMessengers.size() != childrenData.size()) {
@@ -114,12 +134,27 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         currentMetaManager.setSurviveMessengers(clusterId, registryKey, survivalMessengers, activeMessenger);
     }
 
-    private Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
+    @VisibleForTesting
+    protected Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Messenger> messengerList = dbCluster.getMessengers();
         return messengerList.stream().filter(messenger ->
-                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port
-                        && (StringUtils.isBlank(targetDB) || ObjectUtils.equals(messenger.getIncludedDbs(), targetDB)))
+                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port)
+                .filter(messenger -> {
+                    if (StringUtils.isBlank(targetDB)) {
+                        return StringUtils.isBlank(messenger.getIncludedDbs());
+                    }
+                    return ObjectUtils.equals(messenger.getIncludedDbs(), targetDB);
+                })
                 .findFirst().orElse(null);
+    }
+
+    private void removeMessenger(String clusterId, Messenger messenger) {
+        try {
+            EventMonitor.DEFAULT.logEvent("remove.redundant.zk.messenger", NameUtils.getMessengerRegisterKey(clusterId, messenger) + ":" + messenger.getIp());
+            instanceStateController.removeMessenger(clusterId, messenger, true);
+        } catch (Exception e) {
+            logger.error(String.format("[removeApplier]%s,%s", clusterId, messenger), e);
+        }
     }
 }

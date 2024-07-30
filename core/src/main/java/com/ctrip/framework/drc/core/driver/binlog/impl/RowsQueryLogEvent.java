@@ -25,7 +25,7 @@ public class RowsQueryLogEvent extends AbstractLogEvent {
         payloadBuf.readUnsignedByte(); // readIndex + 1
         final int length = payloadBuf.writerIndex() - payloadBuf.readerIndex() - 4;
         this.rowsQuery = readFixLengthStringDefaultCharset(payloadBuf, length);
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 
