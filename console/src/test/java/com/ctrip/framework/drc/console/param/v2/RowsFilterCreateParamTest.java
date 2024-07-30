@@ -13,6 +13,7 @@ public class RowsFilterCreateParamTest {
     String uidConfigs = "{\"parameterList\":[{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}";
 
     String udlThenUidConfigs = "{\"parameterList\":[{\"columns\":[\"userdata_location\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"},{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":2000000002,\"routeStrategyId\":0}";
+    String customSoaConfigs = "{\"parameterList\":[{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"{\\\"code\\\":32578,\\\"name\\\":\\\"DataSyncService\\\"}\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}";
     @Test
     public void testCheckAndGetConfigs() throws Exception {
         RowsFilterCreateParam udlRowsFilterParam = getUdlRowsFilterParam();
@@ -30,7 +31,26 @@ public class RowsFilterCreateParamTest {
         udlUidRowsFilterParam.checkParam();
         RowsFilterTblV2 udlUidTbl = udlUidRowsFilterParam.extractRowsFilterTbl();
         Assert.assertEquals(udlThenUidConfigs, udlUidTbl.getConfigs());
+
+        RowsFilterCreateParam customSoaRowsFilterParam = getCustomSoaRowsFilterParam();
+        customSoaRowsFilterParam.checkParam();
+        RowsFilterTblV2 rowsFilterTblV2 = customSoaRowsFilterParam.extractRowsFilterTbl();
+        Assert.assertEquals(customSoaConfigs, rowsFilterTblV2.getConfigs());
     }
+
+    private RowsFilterCreateParam getCustomSoaRowsFilterParam() {
+        RowsFilterCreateParam rowsFilterCreateParam = new RowsFilterCreateParam();
+        rowsFilterCreateParam.setColumns(Lists.newArrayList("uid"));
+        rowsFilterCreateParam.setContext("DataSyncService");
+        rowsFilterCreateParam.setDrcStrategyId(32578);
+        rowsFilterCreateParam.setFetchMode(FetchMode.RPC.getCode());
+        rowsFilterCreateParam.setIllegalArgument(false);
+        rowsFilterCreateParam.setMode(RowsFilterModeEnum.CUSTOM_SOA.getCode());
+        rowsFilterCreateParam.setRouteStrategyId(0);
+        rowsFilterCreateParam.setUdlColumns(null);
+        return rowsFilterCreateParam;
+    }
+
 
     private RowsFilterCreateParam getUdlThenUidRowsFilterParam() {
         RowsFilterCreateParam rowsFilterCreateParam = new RowsFilterCreateParam();

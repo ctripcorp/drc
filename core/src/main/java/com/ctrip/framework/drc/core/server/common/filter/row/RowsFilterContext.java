@@ -10,7 +10,27 @@ import java.util.HashMap;
  */
 public class RowsFilterContext extends HashMap<Object, RowsFilterResult.Status> {
 
+    private String srcRegion;
+    private String dstRegion;
+    
     private TableMapLogEvent drcTableMapLogEvent;
+
+    public String getSrcRegion() {
+        return srcRegion;
+    }
+
+    public void setSrcRegion(String srcRegion) {
+        this.srcRegion = srcRegion;
+    }
+
+    public String getDstRegion() {
+        return dstRegion;
+    }
+
+    public void setDstRegion(String dstRegion) {
+        this.dstRegion = dstRegion;
+    }
+    
 
     public TableMapLogEvent getDrcTableMapLogEvent() {
         return drcTableMapLogEvent;

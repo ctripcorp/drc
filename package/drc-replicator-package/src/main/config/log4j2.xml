@@ -184,6 +184,20 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="RollingFileCustomSoaInfo" fileName="${baseDir}/customSoa.log"
+          filePattern="${baseDir}/customSoa-%i.log.gz">
+            <PatternLayout pattern="[%d][%t] - %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="50">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="customSoa-*.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
         <RollingFile name="RollingFileHeartBeatInfo" fileName="${baseDir}/heartbeat.log"
                      filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.heartbeat.log.gz">
             <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
@@ -264,6 +278,9 @@
         </Logger>
         <Logger name="UID" additivity="false">
             <AppenderRef ref="RollingFileUidInfo"/>
+        </Logger>
+        <Logger name="CUSTOM SOA" additivity="false">
+            <AppenderRef ref="RollingFileCustomSoaInfo"/>
         </Logger>
 
         <Logger name="GTID RES" additivity="false">

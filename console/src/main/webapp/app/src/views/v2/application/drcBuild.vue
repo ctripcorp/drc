@@ -175,6 +175,32 @@
                   </FormItem>
                 </div>
               </div>
+              <div v-else-if="useCustomSoaMode">
+                <FormItem label="相关字段">
+                  <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple style="width: 200px"
+                          @on-create="handleCreateColumn" placeholder="选择相关字段">
+                    <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="ServiceCode">
+                  <Select v-model="formItem.rowsFilterDetail.drcStrategyId" filterable allow-create @on-create="handleCreateSoaServiceCode"
+                          style="width: 200px"
+                          placeholder="请选择soaServiceCode">
+                    <Option v-for="item in formItem.constants.serviceCodeForChose" :value="item"
+                            :key="item">{{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="服务名">
+                  <Select v-model="formItem.rowsFilterDetail.context" filterable allow-create @on-create="handleCreateSoaServiceName"
+                          style="width: 200px"
+                          placeholder="请选择服务名">
+                    <Option v-for="item in formItem.constants.serviceNameForChose" :value="item"
+                            :key="item">{{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+              </div>
               <div v-else>
                 <FormItem label="规则内容">
                   <Input type="textarea"
@@ -447,8 +473,8 @@ export default {
               JAVA_REGEX: 0,
               TRIP_UDL: 1,
               AVIATOR_REGEX: 3,
-              CUSTOM: 4,
-              TRIP_UDL_UID: 5
+              TRIP_UDL_UID: 5,
+              CUSTOM_SOA: 6
             },
             fetchMode: {
               RPC: 0,
@@ -470,12 +496,12 @@ export default {
                 mode: 3
               },
               {
-                name: 'custom',
-                mode: 4
-              },
-              {
                 name: 'trip_udl_uid',
                 mode: 5
+              },
+              {
+                name: 'custom_soa',
+                mode: 6
               }
             ],
             regionsForChose: [
@@ -522,7 +548,14 @@ export default {
               }
             ]
           },
-          columnsForChose: []
+          columnsForChose: [],
+          serviceCodeForChose: [
+            32578
+          ],
+          serviceNameForChose: [
+            'DataSyncService',
+            'FilterRowService'
+          ]
         }
       },
       gtidCheck: {
@@ -881,11 +914,11 @@ export default {
       const that = this
       that.previewDataList = []
       that.table.dbMhaTablePage.current = 1
+      that.table.dbMhaTableLoading = true
       await that.mhaInitBeforeBuild()
       if (!this.necessaryParamsCheck()) {
         return
       }
-      that.table.dbMhaTableLoading = true
       await that.axios.get('/api/drc/v2/autoconfig/preCheck', {
         params: {
           mode: params.mode,
@@ -1001,7 +1034,7 @@ export default {
     async afterEnterDalCluster () {
       await this.getRegionOptions()
     },
-    async getRegionOptions () {
+    async getRegionOptions () { // get region options ,then mha init,then preCheck mha config
       const that = this
       that.dataLoading = true
       that.previewDataList = []
@@ -1026,7 +1059,6 @@ export default {
               that.formItem.dstRegionName = null
             }
             that.$Message.success('查询到 ' + that.meta.regionOptions.length + ' 个可选区域')
-            this.getDalInfo()
             console.log('total selectable region: ' + that.meta.regionOptions.length)
           } else {
             that.formItem.srcRegionName = null
@@ -1040,6 +1072,7 @@ export default {
         .finally(() => {
           that.dataLoading = false
         })
+      await this.getDalInfo()
     },
     async getExistDb (dbName) {
       if (dbName === null || dbName.length === null || dbName.length <= 4) {
@@ -1077,8 +1110,7 @@ export default {
     async mhaInitBeforeBuild () {
       const params = this.getParams()
       const that = this
-      that.previewDataList = []
-      that.table.dbMhaTablePage.current = 1
+      this.mhaAccountInited = false
       if (params.mode === 0) {
         if (!params.dbName) {
           this.$Message.warning('请先填写数据库')
@@ -1191,6 +1223,28 @@ export default {
         return
       }
       this.formItem.constants.columnsForChose.push(val)
+    },
+    handleCreateSoaServiceCode (val) {
+      if (this.contains(this.formItem.constants.serviceCodeForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null || val === 0) {
+        alert('serviceCode不能为空')
+        return
+      }
+      this.formItem.constants.serviceCodeForChose.push(val)
+    },
+    handleCreateSoaServiceName (val) {
+      if (this.contains(this.formItem.constants.serviceNameForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('serviceName不能为空')
+        return
+      }
+      this.formItem.constants.serviceNameForChose.push(val)
     },
     handleCreateTag (val) {
       this.meta.tags.push(val)
@@ -1306,8 +1360,8 @@ export default {
       if (this.applicationFormId === null) {
         return
       }
-      this.mhaInitBeforeBuild()
-      this.initMha()
+      this.formItem.buildMode = 1
+      this.formItem.dalClusterModeOption.dalClusterName = this.$route.query.dalClusterName
       this.formItem.srcRegionName = this.$route.query.srcRegion
       this.formItem.dstRegionName = this.$route.query.dstRegion
       this.formItem.gtidInit = this.$route.query.gtidInit
@@ -1315,20 +1369,20 @@ export default {
       this.formItem.tag = this.$route.query.tag
       this.formItem.buName = this.$route.query.buName
       this.formItem.switch.rowsFilter = this.$route.query.filterType === 'UDL'
-      this.getTableInfo()
-      if (this.formItem.switch.rowsFilter) {
-        this.getCommonColumns('UDL')
-      }
-    },
-    initMha () {
-      this.formItem.buildMode = 1
-      this.formItem.dalClusterModeOption.dalClusterName = this.$route.query.dalClusterName
-      this.getRegionOptions()
+      this.getRegionOptions().then(() => {
+        this.getTableInfo()
+        if (this.formItem.switch.rowsFilter) {
+          this.getCommonColumns('UDL')
+        }
+      })
     }
   },
   computed: {
     useTripUdlOrUidMode () {
       return [this.formItem.constants.rowsFilter.filterMode.TRIP_UDL, this.formItem.constants.rowsFilter.filterMode.TRIP_UDL_UID].includes(this.formItem.rowsFilterDetail.mode)
+    },
+    useCustomSoaMode () {
+      return [this.formItem.constants.rowsFilter.filterMode.CUSTOM_SOA].includes(this.formItem.rowsFilterDetail.mode)
     },
     hasUdlColumn () {
       return this.formItem.rowsFilterDetail.udlColumns.length !== 0
