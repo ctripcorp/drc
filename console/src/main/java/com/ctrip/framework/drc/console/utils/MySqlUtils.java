@@ -656,6 +656,10 @@ public class MySqlUtils {
             if (rs.next()) {
                 uuid = rs.getString(UUID_INDEX);
             }
+        } catch (Throwable t) {
+            logger.error("[[endpoint={}:{}]]getUuid error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            throw new SQLException(endpoint.getSocketAddress() + "GetUuid error,closing old dataSource .Please check error log or retry!");
         } finally {
             if (readResource != null) {
                 readResource.close();

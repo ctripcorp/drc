@@ -62,6 +62,8 @@ public class ExtractFilterChainContext {
     }
 
     public static ExtractFilterChainContext from(ExtractContext outboundFilterChainContext, RowsFilterContext rowsFilterContext) {
+        rowsFilterContext.setSrcRegion(outboundFilterChainContext.getSrcRegion());
+        rowsFilterContext.setDstRegion(outboundFilterChainContext.getDstRegion());
         return new ExtractFilterChainContext(outboundFilterChainContext.getDataMediaConfig(),
                 outboundFilterChainContext.getOutboundMonitorReport(), rowsFilterContext);
     }

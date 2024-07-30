@@ -42,7 +42,8 @@ public class RowsFilter extends AbstractLogEventFilter<ExtractFilterContext> {
                 boolean noRowFiltered = handRowsEvent(beforeRowsEvent, context);
                 context.setRewrite(!noRowFiltered);
             } catch (Exception e) {
-                logger.error("[RowsFilter] error", e);
+                logger.error("[RowsFilter] error",e);
+                throw new RuntimeException("[RowsFilter] error");
             }
         }
 

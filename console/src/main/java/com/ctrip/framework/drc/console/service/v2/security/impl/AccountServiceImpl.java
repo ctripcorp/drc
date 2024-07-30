@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.AccountPrivilege;
 import com.ctrip.framework.drc.console.vo.check.v2.AccountPrivilegeCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -134,7 +135,8 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public MhaAccounts getMhaAccountsOrDefault(String mhaName) throws SQLException {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
-        if (mhaTblV2 == null ) {
+        if (mhaTblV2 == null) {
+            DefaultEventMonitorHolder.getInstance().logEvent("Drc.console.getMhaAccountsDefault",  mhaName, 1);
             return this.getDefaultMhaAccounts(mhaName);
         }
         return this.getMhaAccounts(mhaTblV2);

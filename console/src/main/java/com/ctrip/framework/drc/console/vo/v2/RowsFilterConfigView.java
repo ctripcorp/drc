@@ -3,9 +3,9 @@ package com.ctrip.framework.drc.console.vo.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig.SoaIdentifier;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-
 import java.util.List;
 
 /**
@@ -103,20 +103,25 @@ public class RowsFilterConfigView {
 
         List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
         RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
+        rowsFilterConfigView.setContext(firstParameters.getContext());
+        rowsFilterConfigView.setIllegalArgument(firstParameters.getIllegalArgument());
+        rowsFilterConfigView.setFetchMode(firstParameters.getFetchMode());
+        
         if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode()) || rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL_UID.getCode())) {
             setColumnsView(rowsFilterConfigView, firstParameters);
             if (parametersList.size() > 1) {
                 RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
                 setColumnsView(rowsFilterConfigView, secondParameters);
             }
+        } else if(rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.CUSTOM_SOA.getCode())) {
+            String context = firstParameters.getContext();
+            SoaIdentifier soaIdentifier = JsonUtils.fromJson(context, SoaIdentifier.class);
+            rowsFilterConfigView.setContext(soaIdentifier.getName());
+            rowsFilterConfigView.setDrcStrategyId(soaIdentifier.getCode());
+            rowsFilterConfigView.setColumns(firstParameters.getColumns());
         } else {
             rowsFilterConfigView.setColumns(firstParameters.getColumns());
         }
-
-        rowsFilterConfigView.setContext(firstParameters.getContext());
-        rowsFilterConfigView.setIllegalArgument(firstParameters.getIllegalArgument());
-        rowsFilterConfigView.setFetchMode(firstParameters.getFetchMode());
-
         return rowsFilterConfigView;
     }
 

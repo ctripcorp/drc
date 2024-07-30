@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.mq.ProducerFactory;
+import com.ctrip.framework.drc.core.server.common.filter.service.CustomSoaService;
 import com.ctrip.framework.drc.core.server.common.filter.service.UserService;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.core.service.user.IAMService;
@@ -36,6 +37,14 @@ public class ServicesUtil extends com.ctrip.xpipe.utils.ServicesUtil {
         return load(UserService.class);
     }
 
+    private static class CustomSoaServiceHolder {
+        public static final CustomSoaService INSTANCE = load(CustomSoaService.class);
+    }
+    
+    public static CustomSoaService getCustomSoaService(){
+        return CustomSoaServiceHolder.INSTANCE;
+    }
+    
     public static ProducerFactory getProducerFactory() {
         return load(ProducerFactory.class);
     }

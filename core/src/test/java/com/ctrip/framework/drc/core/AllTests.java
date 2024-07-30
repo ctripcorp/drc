@@ -49,6 +49,7 @@ import com.ctrip.framework.drc.core.server.common.AbstractResourceManagerTest;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeTypeTest;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
+import com.ctrip.framework.drc.core.server.common.filter.row.soa.CustomSoaRowsFilterRuleTest;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
@@ -89,6 +90,7 @@ import org.junit.runners.Suite;
         AbstractRowsFilterRuleForUidTest.class,
         AbstractRowsFilterRuleForUdlThenUidTest.UdlExistTest.class,
         AbstractRowsFilterRuleForUdlThenUidTest.UdlNotExistThenUidTest.class,
+        CustomSoaRowsFilterRuleTest.class,
         //schema
         TableOperationManagerTest.class,
         CommentQueryTaskTest.class,

@@ -166,6 +166,32 @@
                   </FormItem>
                 </div>
               </div>
+              <div v-else-if="useCustomSoaMode">
+                <FormItem label="相关字段">
+                  <Select v-model="formItem.rowsFilterDetail.columns" filterable allow-create multiple style="width: 200px"
+                          @on-create="handleCreateColumn" placeholder="选择相关字段">
+                    <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="ServiceCode">
+                  <Select v-model="formItem.rowsFilterDetail.drcStrategyId" filterable allow-create @on-create="handleCreateSoaServiceCode"
+                          style="width: 200px"
+                          placeholder="请选择soaServiceCode">
+                    <Option v-for="item in formItem.constants.serviceCodeForChose" :value="item"
+                            :key="item">{{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="服务名">
+                  <Select v-model="formItem.rowsFilterDetail.context" filterable allow-create @on-create="handleCreateSoaServiceName"
+                          style="width: 200px"
+                          placeholder="请选择服务名">
+                    <Option v-for="item in formItem.constants.serviceNameForChose" :value="item"
+                            :key="item">{{ item }}
+                    </Option>
+                  </Select>
+                </FormItem>
+              </div>
               <div v-else>
                 <FormItem label="规则内容">
                   <Input type="textarea"
@@ -380,8 +406,8 @@ export default {
               JAVA_REGEX: 0,
               TRIP_UDL: 1,
               AVIATOR_REGEX: 3,
-              CUSTOM: 4,
-              TRIP_UDL_UID: 5
+              TRIP_UDL_UID: 5,
+              CUSTOM_SOA: 6
             },
             fetchMode: {
               RPC: 0,
@@ -403,12 +429,12 @@ export default {
                 mode: 3
               },
               {
-                name: 'custom',
-                mode: 4
-              },
-              {
                 name: 'trip_udl_uid',
                 mode: 5
+              },
+              {
+                name: 'custom_soa',
+                mode: 6
               }
             ],
             regionsForChose: [
@@ -455,7 +481,14 @@ export default {
               }
             ]
           },
-          columnsForChose: []
+          columnsForChose: [],
+          serviceCodeForChose: [
+            32578
+          ],
+          serviceNameForChose: [
+            'DataSyncService',
+            'FilterRowService'
+          ]
         }
       },
       gtidCheck: {
@@ -1112,6 +1145,28 @@ export default {
       }
       this.formItem.constants.columnsForChose.push(val)
     },
+    handleCreateSoaServiceCode (val) {
+      if (this.contains(this.formItem.constants.serviceCodeForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null || val === 0) {
+        alert('serviceCode不能为空')
+        return
+      }
+      this.formItem.constants.serviceCodeForChose.push(val)
+    },
+    handleCreateSoaServiceName (val) {
+      if (this.contains(this.formItem.constants.serviceNameForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('serviceName不能为空')
+        return
+      }
+      this.formItem.constants.serviceNameForChose.push(val)
+    },
     handleCreateTag (val) {
       this.meta.tags.push(val)
     },
@@ -1166,6 +1221,9 @@ export default {
   computed: {
     useTripUdlOrUidMode () {
       return [this.formItem.constants.rowsFilter.filterMode.TRIP_UDL, this.formItem.constants.rowsFilter.filterMode.TRIP_UDL_UID].includes(this.formItem.rowsFilterDetail.mode)
+    },
+    useCustomSoaMode () {
+      return [this.formItem.constants.rowsFilter.filterMode.CUSTOM_SOA].includes(this.formItem.rowsFilterDetail.mode)
     },
     hasUdlColumn () {
       return this.formItem.rowsFilterDetail.udlColumns.length !== 0

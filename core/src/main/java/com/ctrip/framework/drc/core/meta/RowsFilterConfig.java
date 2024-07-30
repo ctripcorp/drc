@@ -220,4 +220,43 @@ public class RowsFilterConfig {
                     '}';
         }
     }
+    
+    // saving as a json in Configs.getParameterList().get(0).getContext()
+    public static class SoaIdentifier {
+        private int code;
+        private String name;
+        
+        public SoaIdentifier() {
+        }
+        
+        public SoaIdentifier(int code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+        
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "SoaIdentifier{" +
+                    "code=" + code +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
+    }
+    
 }

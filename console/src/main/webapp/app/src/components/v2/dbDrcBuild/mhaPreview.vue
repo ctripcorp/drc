@@ -285,6 +285,7 @@ export default {
           mode: this.constants.DAL_CLUSTER_MODE,
           dbName: this.dbName,
           srcRegionName: this.formItem.srcRegionName,
+          dstRegionName: this.formItem.dstRegionName,
           replicationType: this.replicationType
         }
       })
