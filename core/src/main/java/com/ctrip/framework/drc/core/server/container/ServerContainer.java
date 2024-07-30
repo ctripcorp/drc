@@ -15,4 +15,8 @@ public interface ServerContainer<C, S> {
     void removeServer(String identity, boolean closeLeaderElector);
 
     S register(String identity, int port);
+
+    S getInfo(String identity);
+
+    S getInfo();
 }

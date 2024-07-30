@@ -5,19 +5,25 @@ import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.service.security.HeraldService;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Created by dengquanliang
@@ -36,19 +42,30 @@ public class MetaControllerV2 {
 
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+    
+    private HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
 
     @GetMapping
-    public String getAllMetaData(@RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
+    public String getAllMetaData(
+            @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh,
+            @RequestParam (value = "heraldToken",required = false, defaultValue = "") String heraldToken) {
         try {
-            logger.info("[meta] get all, refresh: {}", refresh);
-            Drc drc;
-            if (StringUtils.equals("true", refresh)) {
-                drc = metaProviderV2.getRealtimeDrc();
-            } else {
-                drc = metaProviderV2.getDrc();
+            if (!heraldService.heraldValidate(heraldToken)) {
+                return null;
             }
-            logger.debug("drc:\n {}", drc.toString());
-            return drc.toString();
+            logger.info("[meta] get all, refresh: {}", refresh);
+            String drcString;
+            if (StringUtils.equals("true", refresh)) {
+                drcString = metaProviderV2.getRealtimeDrcString();
+            } else {
+                drcString = metaProviderV2.getDrcString();
+            }
+            logger.debug("drc:\n {}", drcString);
+            if (StringUtils.isBlank(drcString)) {
+                logger.error("get drc fail");
+                return null;
+            }
+            return drcString;
         } catch (Exception e) {
             logger.error("get drc fail", e);
             return null;
@@ -56,8 +73,14 @@ public class MetaControllerV2 {
     }
 
     @GetMapping("data/dcs/{dc}")
-    public String getDrcStr(@PathVariable String dc, @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
+    public String getDrcStr(
+            @PathVariable String dc,
+            @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh,
+            @RequestParam (value = "heraldToken",required = false, defaultValue = "") String heraldToken) {
         try {
+            if (!heraldService.heraldValidate(heraldToken)) {
+                return null;
+            }
             logger.info("[meta] get meta of dc: {} info, refresh: {}", dc, refresh);
             Drc dcInfo;
             if (StringUtils.equals("true", refresh)) {
@@ -65,8 +88,9 @@ public class MetaControllerV2 {
             } else {
                 dcInfo = metaProviderV2.getDrc(dc);
             }
-            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfo.toString());
-            return dcInfo.toString();
+            String dcInfostring = dcInfo.toString();
+            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfostring);
+            return dcInfostring;
         } catch (Exception e) {
             logger.error("get dc: {} info fail", dc, e);
             return null;

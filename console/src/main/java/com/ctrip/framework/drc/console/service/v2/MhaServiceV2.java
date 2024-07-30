@@ -1,12 +1,12 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.sql.SQLException;
@@ -43,12 +43,24 @@ public interface MhaServiceV2 {
     // key:mhaName , value: replicator slave delay
     Map<String,Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception;
 
+    // process Legacy dirty mha data
     List<String> queryMhasWithOutDrc();
 
-    Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException;
+    // dc -> mha names
+    // without drc or db replication configs
+    Map<String, List<String>> getMhasWithoutDrcReplication(boolean checkDbReplication);
 
+    Pair<Boolean,Integer> offlineMhasWithOutDrc(List<String> mhas) throws SQLException;
+    Pair<Boolean,Integer> offlineMhasWithOutReplication(List<String> mhas) throws SQLException;
+
+    // process Legacy dirty data
+    List<Long> queryMachineWithOutMha() throws SQLException;
+    Pair<Boolean,Integer> offlineMachineWithOutMha(List<Long> machineIds) throws SQLException;
+    
     // should check no use first
     boolean offlineMha(String mhaName) throws SQLException;
 
     List<MhaTblV2> queryMhas(MhaQueryParam param) throws Exception;
+    
+    MachineTbl getMasterNode(Long mhaId) throws SQLException;
 }

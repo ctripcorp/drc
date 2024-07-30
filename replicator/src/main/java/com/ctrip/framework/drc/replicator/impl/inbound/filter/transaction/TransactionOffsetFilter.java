@@ -16,6 +16,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.x
 public class TransactionOffsetFilter extends AbstractTransactionFilter {
 
     private String lastTrxSchema = null;
+    private String lastTableName = null;
+
 
     @Override
     public boolean doFilter(ITransactionEvent transactionEvent) {
@@ -38,6 +40,7 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
                         ? (TableMapLogEvent) logEvent
                         : ((TransactionTableMarkedTableMapLogEvent) logEvent).getDelegate();
                 lastTrxSchema = tableMapLogEvent.getSchemaName();
+                lastTableName = tableMapLogEvent.getTableName();
             }
             nextTransactionStartPosition += logEvent.getLogEventHeader().getEventSize();
         }
@@ -53,11 +56,12 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
             }
         }
 
-        firstLogEvent.encode(lastTrxSchema,
+        firstLogEvent.encode(lastTrxSchema, lastTableName, logEvents.size(),
                 nextTransactionStartPosition + secondLogEvent.getLogEventHeader().getEventSize());
 
         if (xid_log_event == lastLogEvent.getLogEventType()) {
             lastTrxSchema = null;
+            lastTableName = null;
         }
     }
 

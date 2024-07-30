@@ -65,6 +65,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     private String envType = ConfigService.getInstance().getDrcEnvType();
 
     private PairCaseManager pairCaseManager = new DefaultPairCaseManager();
+    private PairCaseManager scannerPairCaseManager = new DefaultPairCaseManager();
 
     private PairCaseManager benchmarkCaseManager = new BenchmarkPairCaseManager();
 
@@ -80,6 +81,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     private ScheduledExecutorService unilateralScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("unilateral-scheduledExecutorService");
     private ScheduledExecutorService compareTableScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("table-compare-scheduledExecutorService");
+    private ScheduledExecutorService oneCompareScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("multi-write-one-compare-scheduledExecutorService");
 
     private boolean writeOneTransaction = true;   // build replication automatically
 
@@ -104,13 +106,13 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     @Override
     protected void doInitialize() throws Exception {
-        if(null == user) {
+        if (null == user) {
             user = SystemConfig.MYSQL_USER_NAME;
         }
-        if(null == srcIp) {
+        if (null == srcIp) {
             srcIp = SystemConfig.LOCAL_SERVER_ADDRESS;
         }
-        if(null == dstIp) {
+        if (null == dstIp) {
             dstIp = SystemConfig.LOCAL_SERVER_ADDRESS;
         }
 
@@ -157,7 +159,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     }
 
     @Override
-    protected void doStart() throws Exception{
+    protected void doStart() throws Exception {
         sourceSqlOperator.start();
 
         reverseSourceSqlOperator.start();
@@ -216,8 +218,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
                     DefaultTransactionMonitorHolder.getInstance().logTransaction("Monitor", "Uni", new Task() {
                         @Override
                         public void go() throws Exception {
-                            final boolean finalAutoUni = ConfigService.getInstance().getAutoUniSwitch();
-                            if (finalAutoUni) {
+                            if (ConfigService.getInstance().getAutoScannerSwitch()) {
                                 uni();
                             }
                         }
@@ -237,6 +238,13 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
         }, 10, 100, TimeUnit.SECONDS);
 
 
+        oneCompareScheduledExecutorService.scheduleWithFixedDelay(() -> {
+            if (ConfigService.getInstance().getAutoScannerSwitch()) {
+                scannerTest();
+            }
+        }, 10, 10, TimeUnit.SECONDS);
+
+
         if (writeOneTransaction) {
             new MultiDBWriteInTransactionPairCase().test(sourceSqlOperator, reverseSourceSqlOperator); //write one transaction
         }
@@ -250,6 +258,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     }
 
     protected void addPairCase() {
+        pairCaseManager.addPairCase(new TransactionTableConflictPairCase());
         pairCaseManager.addPairCase(new MultiDBWriteInTransactionPairCase());
         pairCaseManager.addPairCase(new MultiTableWriteInTransactionPairCase());
         pairCaseManager.addPairCase(new PromiscuousWritePairCase());
@@ -309,6 +318,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
             ddlPairCaseManager.addPairCase(new CompositeKeysDdlPairCase());
         }
 
+        scannerPairCaseManager.addPairCase(new MultiShardDbWriteOneComparePairCase());
     }
 
     protected void probe() {
@@ -320,7 +330,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     }
 
     protected void benchmark(long round) {
-        if("fat".equalsIgnoreCase(envType) && round % 200 == 0) {
+        if ("fat".equalsIgnoreCase(envType) && round % 200 == 0) {
             logger.info(">>>>>>>>>>>> START truncate [{}] >>>>>>>>>>>>", "bbzbbzdrcbenchmarktmpdb.benchmark1," + "bbzbbzdrcbenchmarktmpdb.benchmark2");
             TableTruncate tableTruncate = new DefaultTableTruncate();
             tableTruncate.truncateTable(sourceSqlOperator, TRUNCATE_TABLE);
@@ -346,6 +356,11 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     protected void uni() {
         unilateralPairCaseManager.test(sourceSqlOperator, reverseSourceSqlOperator);
+    }
+
+    protected void scannerTest() {
+        logger.info("scannerTest start");
+        scannerPairCaseManager.test(sourceSqlOperator, reverseSourceSqlOperator);
     }
 
     @Override

@@ -1,10 +1,12 @@
 <template>
   <div id="app">
     <router-view></router-view>
+    <remote-script src="//webresint.ctripcorp.com/ares2/infosec/ifs/*/default/lab.min.js?expires=1s"></remote-script>
   </div>
 </template>
 
 <script>
+import '../src/common/remote-script.js'
 export default {
 
 }

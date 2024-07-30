@@ -56,8 +56,7 @@ public class QmqProducer extends AbstractProducer {
     }
 
     private void init(boolean persist, String dalClusterKey) {
-        provider = new MessageProducerProvider();
-        provider.init();
+        provider = QmqProviderFactory.createProvider(topic);
         if (persist) {
             provider.setTransactionProvider(new DalTransactionProvider(dalClusterKey));
         }
@@ -141,7 +140,6 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void destroy() {
-        provider.destroy();
-        loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
+        QmqProviderFactory.destroy(topic);
     }
 }

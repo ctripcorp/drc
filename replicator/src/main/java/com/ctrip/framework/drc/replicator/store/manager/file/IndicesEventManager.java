@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.PREVIOUS_GTID_BULK;
+
 /**
  * @Author limingdong
  * @create 2022/11/28
@@ -81,5 +83,16 @@ public class IndicesEventManager {
 
     public long getIndexEventPosition() {
         return indexEventPosition;
+    }
+
+    public long getLastIndexPosition() {
+        if (indices.isEmpty()) {
+            return 0;
+        }
+        return indices.get(indices.size() - 1);
+    }
+
+    public boolean shouldAddIndexEvent(long position) {
+        return position / PREVIOUS_GTID_BULK > this.getIndicesSize() && position - this.getLastIndexPosition() > PREVIOUS_GTID_BULK;
     }
 }

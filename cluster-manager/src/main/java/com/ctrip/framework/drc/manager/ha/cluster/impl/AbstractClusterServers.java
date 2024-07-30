@@ -49,6 +49,8 @@ public class AbstractClusterServers<T extends ClusterServer> extends AbstractLif
 
     private ScheduledFuture<?> future;
 
+    private volatile long lastChildEventTime = System.currentTimeMillis();
+
     @Override
     protected void doInitialize() throws Exception {
 
@@ -120,7 +122,7 @@ public class AbstractClusterServers<T extends ClusterServer> extends AbstractLif
 
     //path: IP:PORT easy for test
     private synchronized void childrenChanged() throws ClusterException {
-
+        lastChildEventTime = System.currentTimeMillis();
         try {
             logger.info("[childrenChanged][start][{}]{}", currentServerId(), servers);
             List<ChildData> allServers = serversCache.getCurrentData();
@@ -161,13 +163,17 @@ public class AbstractClusterServers<T extends ClusterServer> extends AbstractLif
 
                 }
             }
-
             logger.info("[childrenChanged][ end ][{}]{}", currentServerId(), servers);
         } catch (Exception e) {
             throw new ClusterException("[childrenChanged]", e);
+        } finally {
+            lastChildEventTime = System.currentTimeMillis();
         }
     }
 
+    public long getLastChildEventTime() {
+        return lastChildEventTime;
+    }
 
     private Object currentServerId() {
         return currentServer.getServerId();

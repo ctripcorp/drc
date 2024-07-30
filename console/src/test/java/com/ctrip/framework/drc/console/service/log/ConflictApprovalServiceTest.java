@@ -13,12 +13,15 @@ import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,9 +68,14 @@ public class ConflictApprovalServiceTest {
     private DbTblDao dbTblDao;
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private DbaApiService dbaApiService;
+    @Mock
+    private IAMService iamService;
 
     @Before
     public void setUp() {
+        System.setProperty("iam.config.enable", "off"); // skip the constructor of IAMServiceImpl
         MockitoAnnotations.openMocks(this);
     }
 
@@ -75,10 +83,22 @@ public class ConflictApprovalServiceTest {
     public void testGetConflictApprovalViews() throws Exception {
         ConflictApprovalQueryParam param = new ConflictApprovalQueryParam();
         Mockito.when(conflictApprovalTblDao.queryByParam(param)).thenReturn(buildApprovalTbls());
-        Mockito.when(conflictAutoHandleBatchTblDao.queryByIds(Mockito.anyList())).thenReturn(buildBatchTbls());
+        Mockito.when(conflictAutoHandleBatchTblDao.queryByParam(param)).thenReturn(buildBatchTbls());
         Mockito.when(domainConfig.getApprovalDetailUrl()).thenReturn("detail url");
 
-        List<ConflictApprovalView> results = conflictApprovalService.getConflictApprovalViews(param);
+        // case 1: can not query all db , dbsCanQuery is empty
+        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false, null));
+        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(null);
+        List<ConflictApprovalView> results = null;
+        try {
+            results = conflictApprovalService.getConflictApprovalViews(param);
+        } catch (Exception e) {
+            Assert.assertEquals("no db with DOT permission!", e.getMessage());
+        }
+
+        // case 2: can not query all db , query a db with dot permission;
+        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db1"));
+        results = conflictApprovalService.getConflictApprovalViews(param);
         Assert.assertEquals(results.size(), 1);
 
     }

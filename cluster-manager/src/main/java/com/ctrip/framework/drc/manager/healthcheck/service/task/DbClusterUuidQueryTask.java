@@ -10,6 +10,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.*;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +34,7 @@ public class DbClusterUuidQueryTask extends AbstractQueryTask<List<String>> {
     }
 
     @Override
+    @SuppressWarnings("findbugs:NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     protected List<String> doQuery() {
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -58,7 +60,7 @@ public class DbClusterUuidQueryTask extends AbstractQueryTask<List<String>> {
                 logger.error("doQuery error in countDownLatch wait", t);
                 countDownLatch.countDown();
             }
-        });
+        }, MoreExecutors.directExecutor());
 
         try {
             boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);

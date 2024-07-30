@@ -9,25 +9,19 @@ import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
-import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
-import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
-import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
-import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
-import com.ctrip.framework.drc.console.vo.v2.MhaDbReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceView;
+import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
@@ -266,6 +260,47 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    public List<ResourceView> getResourceViewByIp(String ip) throws Exception {
+        ResourceTbl resourceTbl = resourceTblDao.queryByIp(ip, BooleanEnum.FALSE.getCode());
+        if (resourceTbl == null) {
+            return new ArrayList<>();
+        }
+
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(Lists.newArrayList(resourceTbl.getDcId()), resourceTbl.getTag(), resourceTbl.getType(), BooleanEnum.TRUE.getCode());
+        resourceTbls = resourceTbls.stream().filter(e -> !e.getIp().equals(ip)).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(resourceTbls)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
+
+        List<ReplicatorTbl> replicatorTbls = new ArrayList<>();
+        List<ApplierTblV2> applierTbls = new ArrayList<>();
+        List<MessengerTbl> messengerTbls = new ArrayList<>();
+        List<MessengerTblV3> messengerTblsV3 = new ArrayList<>();
+        List<ApplierTblV3> applierTblV3s = new ArrayList<>();
+        if (resourceTbl.getType() == ModuleEnum.REPLICATOR.getCode()) {
+            replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
+        } else if (resourceTbl.getType() == ModuleEnum.APPLIER.getCode()) {
+            applierTbls = applierTblDao.queryByResourceIds(resourceIds);
+            messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
+            messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
+            applierTblV3s = dbApplierTblDao.queryByResourceIds(resourceIds);
+        }
+
+
+        Map<Long, Long> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
+        Map<Long, Long> applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
+        Map<Long, Long> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
+        Map<Long, Long> messengerV3Map = messengerTblsV3.stream().collect(Collectors.groupingBy(MessengerTblV3::getResourceId, Collectors.counting()));
+        Map<Long, Long> dbApplierMap = applierTblV3s.stream().collect(Collectors.groupingBy(ApplierTblV3::getResourceId, Collectors.counting()));
+
+        List<ResourceView> views = buildResourceViews(resourceTbls, replicatorMap, applierMap, dbApplierMap, messengerMap, messengerV3Map);
+        Collections.sort(views);
+        return views;
+    }
+
+    @Override
     public List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws SQLException {
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
@@ -499,7 +534,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<String> queryMhaByReplicator(long resourceId) throws Exception {
+    public List<MhaView> queryMhaByReplicator(long resourceId) throws Exception {
         List<ReplicatorTbl> replicators = replicatorTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
         if (CollectionUtils.isEmpty(replicators)) {
             return new ArrayList<>();
@@ -509,12 +544,25 @@ public class ResourceServiceImpl implements ResourceService {
         List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryByIds(replicatorGroupIds);
         List<Long> mhaIds = replicatorGroupTbls.stream().map(ReplicatorGroupTbl::getMhaId).collect(Collectors.toList());
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(mhaIds);
-        List<String> mhaNames = mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
-        return mhaNames;
+        List<MhaView> views = mhaTblV2s.stream().map(source -> {
+            MhaView target = new MhaView(source.getMhaName());
+            return target;
+        }).collect(Collectors.toList());
+
+        return views;
     }
 
     @Override
-    public List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception {
+    public List<ApplierReplicationView> queryReplicationByApplier(long resourceId) throws Exception {
+        List<ApplierReplicationView> views = new ArrayList<>();
+        views.addAll(queryMhaReplicationByApplier(resourceId));
+        views.addAll(queryMhaDbReplicationByApplier(resourceId));
+        views.addAll(queryMhaByMessenger(resourceId));
+
+        return views;
+    }
+
+    public List<ApplierReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception {
         List<ApplierTblV2> applierTblV2s = applierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
         if (CollectionUtils.isEmpty(applierTblV2s)) {
             return new ArrayList<>();
@@ -536,21 +584,25 @@ public class ResourceServiceImpl implements ResourceService {
         Map<Long, MhaTblV2> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
         Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
 
-        List<MhaReplicationView> views = mhaReplicationTbls.stream().map(mhaReplicationTbl -> {
-            MhaReplicationView view = new MhaReplicationView();
-            MhaTblV2 srcMha = mhaMap.get(mhaReplicationTbl.getSrcMhaId());
-            MhaTblV2 dstMha = mhaMap.get(mhaReplicationTbl.getDstMhaId());
-            view.setSrcMhaName(srcMha.getMhaName());
-            view.setSrcDcName(dcMap.get(srcMha.getDcId()));
-            view.setDstMhaName(dstMha.getMhaName());
-            view.setDstDcName(dcMap.get(dstMha.getDcId()));
-            return view;
+        Map<Long, Long> applierMap = applierTblV2s.stream().collect(Collectors.toMap(ApplierTblV2::getApplierGroupId, ApplierTblV2::getId));
+        Map<Long, Long> mhaReplicationIdToApplierGroupId = applierGroupTblV2s.stream().collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, ApplierGroupTblV2::getId));
+
+        List<ApplierReplicationView> views = mhaReplicationTbls.stream().map(source -> {
+            ApplierReplicationView target = new ApplierReplicationView();
+            MhaTblV2 srcMha = mhaMap.get(source.getSrcMhaId());
+            MhaTblV2 dstMha = mhaMap.get(source.getDstMhaId());
+            target.setSrcMhaName(srcMha.getMhaName());
+            target.setSrcDcName(dcMap.get(srcMha.getDcId()));
+            target.setDstMhaName(dstMha.getMhaName());
+            target.setDstDcName(dcMap.get(dstMha.getDcId()));
+            target.setRelatedId(applierMap.get(mhaReplicationIdToApplierGroupId.get(source.getId())));
+            target.setType(ApplierTypeEnum.APPLIER.getCode());
+            return target;
         }).collect(Collectors.toList());
         return views;
     }
 
-    @Override
-    public List<MhaDbReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception {
+    public List<ApplierReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception {
         List<ApplierTblV3> applierTblV3s = dbApplierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
         if (CollectionUtils.isEmpty(applierTblV3s)) {
             return new ArrayList<>();
@@ -572,26 +624,30 @@ public class ResourceServiceImpl implements ResourceService {
         Map<Long, MhaDbMappingTbl> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
         Map<Long, String> dbNameMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
 
-        List<MhaDbReplicationView> views = mhaDbReplicationTbls.stream().map(source -> {
+        Map<Long, Long> applierMap = applierTblV3s.stream().collect(Collectors.toMap(ApplierTblV3::getApplierGroupId, ApplierTblV3::getId));
+        Map<Long, Long> mhaReplicationIdToApplierGroupId = applierGroupTblV3s.stream().collect(Collectors.toMap(ApplierGroupTblV3::getMhaDbReplicationId, ApplierGroupTblV3::getId));
+
+        List<ApplierReplicationView> views = mhaDbReplicationTbls.stream().map(source -> {
             MhaDbMappingTbl srcMhaDbMapping = mhaDbMappingMap.get(source.getSrcMhaDbMappingId());
             MhaDbMappingTbl dstMhaDbMapping = mhaDbMappingMap.get(source.getDstMhaDbMappingId());
             MhaTblV2 srcMha = mhaMap.get(srcMhaDbMapping.getMhaId());
             MhaTblV2 dstMha = mhaMap.get(dstMhaDbMapping.getMhaId());
 
-            MhaDbReplicationView target = new MhaDbReplicationView();
+            ApplierReplicationView target = new ApplierReplicationView();
             target.setDbName(dbNameMap.get(srcMhaDbMapping.getDbId()));
             target.setSrcMhaName(srcMha.getMhaName());
             target.setDstMhaName(dstMha.getMhaName());
             target.setSrcDcName(dcMap.get(srcMha.getDcId()));
             target.setDstDcName(dcMap.get(dstMha.getDcId()));
 
+            target.setRelatedId(applierMap.get(mhaReplicationIdToApplierGroupId.get(source.getId())));
+            target.setType(ApplierTypeEnum.DB_APPLIER.getCode());
             return target;
         }).collect(Collectors.toList());
         return views;
     }
 
-    @Override
-    public List<String> queryMhaByMessenger(long resourceId) throws Exception {
+    public List<ApplierReplicationView> queryMhaByMessenger(long resourceId) throws Exception {
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
         if (CollectionUtils.isEmpty(messengerTbls)) {
             return new ArrayList<>();
@@ -601,7 +657,20 @@ public class ResourceServiceImpl implements ResourceService {
         List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryByIds(messengerGroupIds);
         List<Long> mhaIds = messengerGroupTbls.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(mhaIds);
-        return mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
+        Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
+
+        Map<Long, Long> messengerMap = messengerTbls.stream().collect(Collectors.toMap(MessengerTbl::getMessengerGroupId, MessengerTbl::getId));
+        Map<Long, Long> mhaIdToMessengerGroupId = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, MessengerGroupTbl::getId));
+
+        return mhaTblV2s.stream().map(source -> {
+            ApplierReplicationView target = new ApplierReplicationView();
+            target.setSrcMhaName(source.getMhaName());
+            target.setSrcDcName(dcMap.get(source.getDcId()));
+            target.setRelatedId(messengerMap.get(mhaIdToMessengerGroupId.get(source.getId())));
+            target.setType(ApplierTypeEnum.MESSENGER.getCode());
+            return target;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -622,6 +691,30 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public int partialMigrateReplicator(ReplicatorMigrateParam param) throws Exception {
         return migrateReplicator(param.getNewIp(), param.getOldIp(), param.getMhaList());
+    }
+
+    @Override
+    public int partialMigrateApplier(ApplierMigrateParam param) throws Exception {
+        ResourceTbl newResource = resourceTblDao.queryByIp(param.getNewIp(), BooleanEnum.FALSE.getCode());
+        ResourceTbl oldResource = resourceTblDao.queryByIp(param.getOldIp(), BooleanEnum.FALSE.getCode());
+        checkMigrateResource(newResource, oldResource, ModuleEnum.APPLIER.getCode());
+
+        List<Long> applierIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.APPLIER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
+        List<Long> dbApplierIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.DB_APPLIER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
+        List<Long> messengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
+        List<Long> dbMessengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.DB_MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
+        List<ApplierTblV2> applierTblV2s = applierTblDao.queryByIds(applierIds);
+        List<ApplierTblV3> applierTblV3s = dbApplierTblDao.queryByIds(dbApplierIds);
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByIds(messengerIds);
+        List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByIds(dbMessengerIds);
+
+        int result =  0;
+        result += migrateApplier(newResource, applierTblV2s);
+        result += migrateDbApplier(newResource, applierTblV3s);
+        result += migrateMessenger(newResource, messengerTbls);
+        result += migrateDbMessenger(newResource, messengerTblsV3);
+
+        return result;
     }
 
     @Override
@@ -848,62 +941,93 @@ public class ResourceServiceImpl implements ResourceService {
         return Pair.of(replicatorTbl.getId(), gtidInit);
     }
 
+    private int migrateApplier(ResourceTbl newResource, List<ApplierTblV2> applierTblV2s) throws SQLException {
+        if (CollectionUtils.isEmpty(applierTblV2s)) {
+            return 0;
+        }
+        List<ApplierTblV2> allApplierTblV2s = applierTblDao.queryByApplierGroupIds(
+                applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+        List<Long> allResourceIds = allApplierTblV2s.stream().map(ApplierTblV2::getResourceId).distinct().collect(Collectors.toList());
+        if (allResourceIds.contains(newResource.getId())) {
+            throw ConsoleExceptionUtils.message("applier requires different master and slave");
+        }
+        applierTblV2s.forEach(e -> e.setResourceId(newResource.getId()));
+        applierTblDao.update(applierTblV2s);
+        return applierTblV2s.size();
+    }
+
+    private int migrateDbApplier(ResourceTbl newResource, List<ApplierTblV3> applierTblV3s) throws SQLException {
+        if (CollectionUtils.isEmpty(applierTblV3s)) {
+            return 0;
+        }
+        List<ApplierTblV3> allApplierTblV3s = dbApplierTblDao.queryByApplierGroupIds(
+                applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).distinct().collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
+        List<Long> allResourceIds = allApplierTblV3s.stream().map(ApplierTblV3::getResourceId).distinct().collect(Collectors.toList());
+        if (allResourceIds.contains(newResource.getId())) {
+            throw ConsoleExceptionUtils.message("dbApplier requires different master and slave");
+        }
+        applierTblV3s.forEach(e -> e.setResourceId(newResource.getId()));
+        dbApplierTblDao.update(applierTblV3s);
+        return applierTblV3s.size();
+    }
+
+    private int migrateMessenger(ResourceTbl newResource, List<MessengerTbl> messengerTbls) throws SQLException {
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return 0;
+        }
+        List<MessengerTbl> allMessengerTbls = messengerTblDao.queryByGroupIds(messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList()));
+        List<Long> allResourceIds = allMessengerTbls.stream().map(MessengerTbl::getResourceId).distinct().collect(Collectors.toList());
+        if (allResourceIds.contains(newResource.getId())) {
+            throw ConsoleExceptionUtils.message("messenger requires different master and slave");
+        }
+        messengerTbls.forEach(e -> e.setResourceId(newResource.getId()));
+        messengerTblDao.update(messengerTbls);
+        return messengerTbls.size();
+    }
+
+    private int migrateDbMessenger(ResourceTbl newResource, List<MessengerTblV3> messengerTblsV3) throws SQLException {
+        if (CollectionUtils.isEmpty(messengerTblsV3)) {
+            return 0;
+        }
+        List<MessengerTblV3> allMessengerTblV3s = dbMessengerTblDao.queryByGroupIds(messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList()));
+        List<Long> allResourceIds = allMessengerTblV3s.stream().map(MessengerTblV3::getResourceId).distinct().collect(Collectors.toList());
+        if (allResourceIds.contains(newResource.getId())) {
+            throw ConsoleExceptionUtils.message("dbMessenger requires different master and slave");
+        }
+        messengerTblsV3.forEach(e -> e.setResourceId(newResource.getId()));
+        dbMessengerTblDao.update(messengerTblsV3);
+        return messengerTblsV3.size();
+    }
+
     private int migrateApplier(String newIp, String oldIp) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
-        if (newResource == null || oldResource == null) {
-            throw ConsoleExceptionUtils.message("newIp or oldIp not exist");
-        }
-        if (newResource.getActive().equals(BooleanEnum.FALSE.getCode())) {
-            throw ConsoleExceptionUtils.message("newIp is active");
-        }
-        if (!newResource.getType().equals(oldResource.getType()) || !newResource.getType().equals(ModuleEnum.APPLIER.getCode())) {
-            throw ConsoleExceptionUtils.message("newIp is not applier");
-        }
+        checkMigrateResource(newResource, oldResource, ModuleEnum.APPLIER.getCode());
 
         List<ApplierTblV2> applierTblV2s = applierTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
         List<ApplierTblV3> applierTblV3s = dbApplierTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
         List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
 
-        List<ApplierTblV2> allApplierTblV2s = applierTblDao.queryByApplierGroupIds(
-                applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
-        List<ApplierTblV3> allApplierTblV3s = dbApplierTblDao.queryByApplierGroupIds(
-                applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).distinct().collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
-        List<MessengerTbl> allMessengerTbls = messengerTblDao.queryByGroupIds(messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList()));
-        List<MessengerTblV3> allMessengerTblV3s = dbMessengerTblDao.queryByGroupIds(messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList()));
-
-        Set<Long> allResourceIds = new HashSet<>();
-        allResourceIds.addAll(allApplierTblV2s.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList()));
-        allResourceIds.addAll(allApplierTblV3s.stream().map(ApplierTblV3::getResourceId).collect(Collectors.toList()));
-        allResourceIds.addAll(allMessengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList()));
-        allResourceIds.addAll(allMessengerTblV3s.stream().map(MessengerTblV3::getResourceId).collect(Collectors.toList()));
-        if (allResourceIds.contains(newResource.getId())) {
-            throw ConsoleExceptionUtils.message("applier requires different master and slave");
-        }
-
         int result =  0;
-        if (!CollectionUtils.isEmpty(applierTblV2s)) {
-            applierTblV2s.forEach(e -> e.setResourceId(newResource.getId()));
-            applierTblDao.update(applierTblV2s);
-            result += applierTblV2s.size();
-        }
-        if (!CollectionUtils.isEmpty(applierTblV3s)) {
-            applierTblV3s.forEach(e -> e.setResourceId(newResource.getId()));
-            dbApplierTblDao.update(applierTblV3s);
-            result += applierTblV3s.size();
-        }
-        if (!CollectionUtils.isEmpty(messengerTbls)) {
-            messengerTbls.forEach(e -> e.setResourceId(newResource.getId()));
-            messengerTblDao.update(messengerTbls);
-            result += messengerTbls.size();
-        }
-        if (!CollectionUtils.isEmpty(messengerTblsV3)) {
-            messengerTblsV3.forEach(e -> e.setResourceId(newResource.getId()));
-            dbMessengerTblDao.update(messengerTblsV3);
-            result += messengerTblsV3.size();
-        }
+        result += migrateApplier(newResource, applierTblV2s);
+        result += migrateDbApplier(newResource, applierTblV3s);
+        result += migrateMessenger(newResource, messengerTbls);
+        result += migrateDbMessenger(newResource, messengerTblsV3);
+
         return result;
+    }
+
+    private void checkMigrateResource(ResourceTbl newResource, ResourceTbl oldResource, int type) {
+        if (newResource == null || oldResource == null) {
+            throw ConsoleExceptionUtils.message("newIp or oldIp not exist");
+        }
+        if (newResource.getActive().equals(BooleanEnum.FALSE.getCode())) {
+            throw ConsoleExceptionUtils.message("newIp is active");
+        }
+        if (!newResource.getType().equals(oldResource.getType()) || newResource.getType() != type) {
+            throw ConsoleExceptionUtils.message("newIp and oldIp are not same type");
+        }
     }
 
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
@@ -976,27 +1100,6 @@ public class ResourceServiceImpl implements ResourceService {
                 long dbApplierNum = dbApplierMap.getOrDefault(source.getId(), 0L);
                 long dbMessengerNum = dbMessengerMap.getOrDefault(source.getId(), 0L);
                 target.setInstanceNum(applierNum + messengerNum + dbApplierNum + dbMessengerNum);
-            }
-            return target;
-        }).collect(Collectors.toList());
-        return views;
-    }
-
-    private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls, Map<Long, Long> replicatorMap, Map<Long, Long> applierMap, Map<Long, Long> messengerMap) {
-        List<ResourceView> views = resourceTbls.stream().map(source -> {
-            ResourceView target = new ResourceView();
-            target.setResourceId(source.getId());
-            target.setIp(source.getIp());
-            target.setActive(source.getActive());
-            target.setAz(source.getAz());
-            target.setType(source.getType());
-            target.setTag(source.getTag());
-            if (source.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
-                target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
-            } else if (source.getType().equals(ModuleEnum.APPLIER.getCode())) {
-                long applierNum = applierMap.getOrDefault(source.getId(), 0L);
-                long messengerNum = messengerMap.getOrDefault(source.getId(), 0L);
-                target.setInstanceNum(applierNum + messengerNum);
             }
             return target;
         }).collect(Collectors.toList());

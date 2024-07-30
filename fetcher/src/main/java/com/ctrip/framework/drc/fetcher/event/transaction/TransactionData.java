@@ -13,6 +13,7 @@ public interface TransactionData<T extends BaseTransactionContext> extends Trace
         SUCCESS,
         CONFLICT_COMMIT,
         CONFLICT_ROLLBACK,
+        TRANSACTION_TABLE_CONFLICT_ROLLBACK,
         WHATEVER_ROLLBACK,
         DEADLOCK,
         COMMUNICATION_FAILURE,

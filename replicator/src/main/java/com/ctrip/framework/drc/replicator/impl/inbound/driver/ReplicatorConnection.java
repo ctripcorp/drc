@@ -31,6 +31,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.SocketException;
@@ -61,6 +62,16 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         this.schemaManager = schemaManager;
         if (eventHandler instanceof UuidObserver) {
             addObserver((Observer) eventHandler);
+        }
+    }
+
+    @Override
+    public void afterReconnection(SimpleObjectPool<NettyClient> result) {
+        UuidFetchTask uuidFetchTask = new UuidFetchTask();
+        try {
+            uuidFetchTask.doFetch(result);
+        } catch (Exception e) {
+            logger.error("afterReconnection {}:{} error", mySQLSlaveConfig.getEndpoint(), mySQLSlaveConfig.getRegistryKey(), e);
         }
     }
 
@@ -259,40 +270,45 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
             Futures.addCallback(listenableFuture, new FutureCallback<>() {
                 @Override
                 public void onSuccess(SimpleObjectPool<NettyClient> simpleObjectPool) {
-                    currentUuid = fetchServerUuid(simpleObjectPool);
-                    if (StringUtils.isNotBlank(currentUuid)) {
-                        gtidManager.setCurrentUuid(currentUuid);
-                        Set<String> previousUuids = gtidManager.getUuids();
-                        boolean added = previousUuids.add(currentUuid);
-                        logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
-                        if (added) {
-                            gtidManager.setUuids(previousUuids);
-                            Set<UUID> uuidSet = Sets.newHashSet();
-                            previousUuids.stream().forEach(id -> uuidSet.add(UUID.fromString(id)));
-                            mySQLSlaveConfig.setUuidSet(uuidSet);
-                            for (Observer observer : observers) {
-                                if (observer instanceof UuidObserver) {
-                                    observer.update(uuidSet, ReplicatorConnection.this);
-                                }
-                            }
-                            logger.info("update [WHITE UUID] set to {}", uuidSet);
-                        }
-                    }
-
-                    if (isIntegrityTest()) {
-                        EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
-                        GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
-                        mySQLSlaveConfig.setGtidSet(gtidSet);
-                        gtidManager.updateExecutedGtids(gtidSet);
-                    }
+                    doFetch(simpleObjectPool);
                 }
 
                 @Override
                 public void onFailure(Throwable t) {
                     logger.error("[fetchServerUuid] fetchServerUuid error", t);
                 }
-            });
+            }, MoreExecutors.directExecutor());
             return true;
+        }
+
+        public void doFetch(SimpleObjectPool<NettyClient> simpleObjectPool) {
+            logger.info("UuidFetchTask start");
+            currentUuid = fetchServerUuid(simpleObjectPool);
+            if (StringUtils.isNotBlank(currentUuid)) {
+                gtidManager.setCurrentUuid(currentUuid);
+                Set<String> previousUuids = gtidManager.getUuids();
+                boolean added = previousUuids.add(currentUuid);
+                logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
+                if (added) {
+                    gtidManager.setUuids(previousUuids);
+                    Set<UUID> uuidSet = Sets.newHashSet();
+                    previousUuids.stream().forEach(id -> uuidSet.add(UUID.fromString(id)));
+                    mySQLSlaveConfig.setUuidSet(uuidSet);
+                    for (Observer observer : observers) {
+                        if (observer instanceof UuidObserver) {
+                            observer.update(uuidSet, ReplicatorConnection.this);
+                        }
+                    }
+                    logger.info("update [WHITE UUID] set to {}", uuidSet);
+                }
+            }
+
+            if (isIntegrityTest()) {
+                EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
+                GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
+                mySQLSlaveConfig.setGtidSet(gtidSet);
+                gtidManager.updateExecutedGtids(gtidSet);
+            }
         }
 
         @Override

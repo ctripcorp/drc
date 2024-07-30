@@ -123,7 +123,7 @@ public class CheckDbGtid extends AbstractConfigBean {
                         String msg = String.format("[[monitor=dbGtid,dc=%s,mha=%s,db=%s,dbEndpoint=%s:%d]][Query] new master executed gtid error: ", localDcName, mhaName, dbName, mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort());
                         CONSOLE_GTID_LOGGER.error(msg, t);
                     }
-                });
+                }, MoreExecutors.directExecutor());
             }
         }
     }

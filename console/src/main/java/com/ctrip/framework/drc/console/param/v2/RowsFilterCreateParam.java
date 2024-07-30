@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.param.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig.SoaIdentifier;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
@@ -48,6 +49,19 @@ public class RowsFilterCreateParam {
             if (this.mode == RowsFilterModeEnum.TRIP_UDL_UID.getCode() && !configBothUidAndUdl) {
                 throw new IllegalArgumentException("should config both udl and uid!");
             }
+        } else if (RowsFilterModeEnum.CUSTOM_SOA.getCode() == this.mode) {
+            if (!hasColumns) {
+                throw new IllegalArgumentException("columns empty, not allowed!");
+            }
+            if (columns.size() != 1) {
+                throw new IllegalArgumentException("columns size should be 1!");
+            }
+            if (drcStrategyId == null || drcStrategyId == 0) {
+                throw new IllegalArgumentException("serviceCode should not be empty!");
+            }
+            if (StringUtils.isBlank(context)) {
+                throw new IllegalArgumentException("serviceName should not be empty!");
+            }
         } else {
             if (!hasColumns) {
                 throw new IllegalArgumentException("should config columns!");
@@ -85,6 +99,12 @@ public class RowsFilterCreateParam {
 
             configs.setParameterList(parametersList);
             configs.setRouteStrategyId(this.routeStrategyId);
+        } else if (RowsFilterModeEnum.CUSTOM_SOA.getCode() == this.mode) {
+            RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
+            parameters.setColumns(this.columns);
+            SoaIdentifier soaIdentifier = new SoaIdentifier(this.drcStrategyId, this.context);
+            parameters.setContext(JsonUtils.toJson(soaIdentifier));
+            configs.setParameterList(Lists.newArrayList(parameters));
         } else {
             // generate parameter
             RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();

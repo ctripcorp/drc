@@ -14,9 +14,12 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -57,6 +60,8 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
     @Autowired private MachineTblDao machineTblDao;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Autowired private AccountService accountService;
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -220,7 +225,8 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
             String ip = machine.getIp();
             Integer port = machine.getPort();
             Integer master = machine.getMaster();
-            String uuid = MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(),
+            Account account = accountService.getAccount(mhaTblV2, DrcAccountTypeEnum.DRC_CONSOLE);
+            String uuid = MySqlUtils.getUuid(ip, port, account.getUser(), account.getPassword(),
                     BooleanEnum.TRUE.getCode().equals(master));
             if (null == uuid) {
                 logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);

@@ -134,7 +134,25 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         //insertMhaDbMappings
         List<MhaDbMappingTbl> srcMappingTbl = this.insertOrRecoverMhaDbMappings(srcMha.getId(), srcDbList);
         List<MhaDbMappingTbl> dstMappingTbl = this.insertOrRecoverMhaDbMappings(dstMha.getId(), dstDbList);
-        return Pair.of(srcMappingTbl,dstMappingTbl);
+        return Pair.of(srcMappingTbl, dstMappingTbl);
+    }
+
+    @Override
+    public List<MhaDbMappingTbl> initMhaDbMappings(MhaTblV2 srcMha, List<String> dbNames) throws SQLException {
+        String nameFilter = String.join(",", dbNames);
+        List<String> srcDbList = mysqlServiceV2.queryDbsWithNameFilter(srcMha.getMhaName(), nameFilter);
+        if (CollectionUtils.isEmpty(srcDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for srcMha: " + srcMha.getMhaName());
+        }
+        if (!CommonUtils.isSameList(srcDbList, dbNames)) {
+            logger.error("insertMhaDbMappings srcDb, givenDbs is not same, srcDbList: {}, given dbs: {}", srcDbList, dbNames);
+            throw ConsoleExceptionUtils.message("srcMha contains different dbs. srcDbList: " + srcDbList + "");
+        }
+
+        this.insertDbs(srcDbList);
+
+        //insertMhaDbMappings
+        return this.insertOrRecoverMhaDbMappings(srcMha.getId(), srcDbList);
     }
 
     private Pair<List<String>, List<String>> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {

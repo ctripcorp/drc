@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HTTPS_PORT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
 
 /**
@@ -54,7 +55,7 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
         configDto.setSrcDcName(System.getProperty(DefaultFoundationService.DATA_CENTER_KEY, GlobalConfig.DC));
 
         Replicator masterReplicator = dbCluster.getReplicators().stream().filter(rep -> rep.isMaster()).findFirst().orElse(dbCluster.getReplicators().get(0));
-        Replicator notifyReplicator = dbCluster.getReplicators().stream().filter(rep -> ipAndPort.equalsIgnoreCase(rep.getIp() + ":" + rep.getPort())).findFirst().orElse(dbCluster.getReplicators().get(0));
+        Replicator notifyReplicator = dbCluster.getReplicators().stream().filter(rep -> ipAndPort.equalsIgnoreCase(getInstancesNotifyIpPort(rep))).findFirst().orElse(dbCluster.getReplicators().get(0));
         configDto.setClusterName(dbCluster.getName());
         configDto.setGtidSet(notifyReplicator.getGtidSkip());
 
@@ -72,7 +73,7 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
         }
 
         NOTIFY_LOGGER.info("[ipAndPort] {}, masterReplicator {}, notifyReplicator {}", ipAndPort, masterReplicator, notifyReplicator);
-        if (ipAndPort.equalsIgnoreCase(masterReplicator.getIp() + ":" + masterReplicator.getPort())) {
+        if (ipAndPort.equalsIgnoreCase(getInstancesNotifyIpPort(masterReplicator))) {
             configDto.setMaster(dbMaster);
             configDto.setStatus(InstanceStatus.ACTIVE.getStatus());
             configDto.setApplierPort(masterReplicator.getApplierPort());
@@ -95,7 +96,8 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
 
     @Override
     protected List<String> getDomains(DbCluster dbCluster) {
-        List<String> ipPorts = dbCluster.getReplicators().stream().map(rep -> rep.getIp() + ":" + rep.getPort()).collect(Collectors.toList());
+        List<String> ipPorts = dbCluster.getReplicators().stream().map(
+                this::getInstancesNotifyIpPort).collect(Collectors.toList());
         return ipPorts;
     }
 

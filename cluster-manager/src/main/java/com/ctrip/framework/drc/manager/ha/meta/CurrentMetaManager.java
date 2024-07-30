@@ -7,6 +7,7 @@ import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -44,6 +45,16 @@ public interface CurrentMetaManager extends Observable {
     List<Replicator> getSurviveReplicators(String clusterId);
 
     List<Messenger> getSurviveMessengers(String clusterId, String dbName);
+
+    Set<Instance> getAllApplierOrMessengerInstances();
+
+    Set<Instance> getAllReplicatorInstances();
+
+    Map<String, Map<String, List<Applier>>> getAllMetaAppliers();
+
+    Map<String, Map<String, List<Messenger>>> getAllMetaMessengers();
+
+    Map<String, List<Replicator>> getAllMetaReplicator();
 
     List<Applier> getSurviveAppliers(String clusterId, String backupRegistryKey);
 

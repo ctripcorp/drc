@@ -29,6 +29,7 @@ public class CompositeConfig extends AbstractConfig implements Config {
                     META_LOGGER.info("[META] from {}", config.getSourceType());
                     META_LOGGER.debug("[META] from {}: {}", config.getSourceType(), c);
                     xml = c;
+                    drc = config.getDrc();
                     break;
                 }
             }

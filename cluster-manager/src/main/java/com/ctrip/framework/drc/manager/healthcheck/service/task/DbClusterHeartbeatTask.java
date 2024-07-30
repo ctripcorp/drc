@@ -33,6 +33,7 @@ public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
     }
 
     @Override
+    @SuppressWarnings("findbugs:NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     protected DbCluster doQuery() {
         Dbs dbs = dbCluster.getDbs();
         List<Db> dbList = dbs.getDbs();
@@ -59,7 +60,7 @@ public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
             public void onFailure(Throwable t) {
                 countDownLatch.countDown();
             }
-        });
+        }, MoreExecutors.directExecutor());
 
         try {
             boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT + CONNECTION_TIMEOUT_DELTA, TimeUnit.MILLISECONDS);

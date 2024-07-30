@@ -35,4 +35,10 @@ public class RegistryKeyTest extends AbstractRegistryKey {
         }
 
     }
+
+    @Test
+    public void test(){
+        Assert.assertEquals(CLUSTER_NAME + DOT + OY_MHA, RegistryKey.from(String.join(DOT, CLUSTER_NAME, OY_MHA, RB_MHA)).toString());
+        Assert.assertEquals(CLUSTER_NAME + DOT + OY_MHA, RegistryKey.from(String.join(DOT, CLUSTER_NAME, OY_MHA, RB_MHA, "db1")).toString());
+    }
 }

@@ -29,7 +29,7 @@ public class HeartBeatLogEvent extends AbstractLogEvent {
         byte[] identificationBytes = new byte[identifyLength];
         payloadBuf.readBytes(identificationBytes, 0, identifyLength);
         this.identification = new String(identificationBytes, ISO_8859_1); // fix length
-        this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
+        this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
         return this;
     }
 

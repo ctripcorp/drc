@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.server.config;
 
+import static com.ctrip.framework.drc.core.http.RestTemplateFactory.SSL_PORT;
+
 import com.ctrip.framework.drc.core.server.utils.IpUtils;
 import com.ctrip.xpipe.utils.OsUtils;
 import org.slf4j.Logger;
@@ -61,6 +63,8 @@ public class SystemConfig {
 
     public static final long SLOW_COMMIT_THRESHOLD = 500L;
 
+    public static final Integer HTTPS_PORT = 8081;
+
     public static final String DOT = ".";
 
     public static final String COMMA = ",";
@@ -96,6 +100,10 @@ public class SystemConfig {
     public static final String GTID_LOG = "com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler";
 
     public static final Logger GTID_LOGGER = LoggerFactory.getLogger(GTID_LOG);
+
+    public static final String BINLOG_SCANNER_LOG = "com.ctrip.framework.drc.replicator.impl.oubound.handler.binlog.DefaultBinlogScannerManager";
+
+    public static final Logger BINLOG_SCANNER_LOGGER = LoggerFactory.getLogger(BINLOG_SCANNER_LOG);
 
     public static final String DELAY_LOG = "com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorCommandHandler";
 
@@ -153,6 +161,9 @@ public class SystemConfig {
     public static final String NOTIFY_LOG = "com.ctrip.framework.drc.manager.healthcheck.notifier";
 
     public static final Logger NOTIFY_LOGGER = LoggerFactory.getLogger(NOTIFY_LOG);
+    public static final String QUERY_INFO_LOG = "com.ctrip.framework.drc.manager.healthcheck.inquirer";
+
+    public static final Logger QUERY_INFO_LOGGER = LoggerFactory.getLogger(QUERY_INFO_LOG);
 
     public static final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 

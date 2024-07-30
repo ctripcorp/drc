@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.extract;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.context.ExtractContext;
 
 /**
  * Created by jixinwang on 2022/12/29
@@ -61,7 +61,9 @@ public class ExtractFilterChainContext {
         this.rowsFilterContext = rowsFilterContext;
     }
 
-    public static ExtractFilterChainContext from(OutboundFilterChainContext outboundFilterChainContext, RowsFilterContext rowsFilterContext) {
+    public static ExtractFilterChainContext from(ExtractContext outboundFilterChainContext, RowsFilterContext rowsFilterContext) {
+        rowsFilterContext.setSrcRegion(outboundFilterChainContext.getSrcRegion());
+        rowsFilterContext.setDstRegion(outboundFilterChainContext.getDstRegion());
         return new ExtractFilterChainContext(outboundFilterChainContext.getDataMediaConfig(),
                 outboundFilterChainContext.getOutboundMonitorReport(), rowsFilterContext);
     }

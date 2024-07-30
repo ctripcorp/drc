@@ -29,4 +29,12 @@ public class ResourceMigrateParam {
     public void setType(int type) {
         this.type = type;
     }
+
+    @Override
+    public String toString() {
+        return "ResourceMigrateParam{" +
+                "resourceMigrateDtoList=" + resourceMigrateDtoList +
+                ", type=" + type +
+                '}';
+    }
 }

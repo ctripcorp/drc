@@ -20,6 +20,16 @@ public class NameUtils {
         return registryKey;
     }
 
+    public static String getApplierRegisterKey(String clusterId, String applierBackupRegistryKey) {
+        String[] split = applierBackupRegistryKey.split("\\.");
+        StringBuilder sb = new StringBuilder();
+        sb.append(clusterId);
+        for (int i = 1; i < split.length; i++) {
+            sb.append(".").append(split[i]);
+        }
+        return sb.toString();
+    }
+
     public static String getApplierBackupRegisterKey(Applier applier) {
         String registryKey = RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName());
         if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applier.getApplyMode())) {
@@ -34,6 +44,14 @@ public class NameUtils {
             registryKey = registryKey + "." + messenger.getIncludedDbs();
         }
         return registryKey;
+    }
+
+    public static String getMessengerRegisterKey(String clusterId, String messengerDbName) {
+        if (DRC_MQ.equals(messengerDbName)) {
+            return clusterId + "." + DRC_MQ;
+        } else {
+            return clusterId + "." + DRC_MQ + "." + messengerDbName;
+        }
     }
 
     public static String getMessengerDbName(Messenger messenger) {

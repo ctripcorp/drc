@@ -8,10 +8,11 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
-import com.ctrip.framework.drc.console.enums.MysqlAccountTypeEnum;
+import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
+import com.ctrip.framework.drc.console.monitor.delay.impl.operator.AccSensitiveSqlOperator;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapperV2;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
@@ -21,6 +22,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtid
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
@@ -63,6 +65,8 @@ public class MySqlUtils {
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
     private static Map<Endpoint, WriteSqlOperatorWrapperV2> writeSqlOperatorMapper = new HashMap<>();
+    
+    private static Map<Endpoint,AccSensitiveSqlOperator> accSensitiveSqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
@@ -287,7 +291,7 @@ public class MySqlUtils {
             return null;
         }
         // param filter for sql injection
-        List<String> dbsToQuery = dbNames.stream().filter(dbs::contains).collect(Collectors.toList());
+        List<String> dbsToQuery = dbNames.stream().map(String::toLowerCase).filter(dbs::contains).collect(Collectors.toList());
         List<String> list = Lists.newArrayList();
         for (String s : dbsToQuery) {
             list.add("(" + SELECT_DB_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL.replace("${dbName}", s) + ")");
@@ -435,9 +439,13 @@ public class MySqlUtils {
 
     // column use lowerCase
     public static Map<String, Set<String>> getAllColumns(Endpoint endpoint, List<String> dbNames, Boolean removeSqlOperator) {
+        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
+        if (CollectionUtils.isEmpty(dbNames)) {
+            logger.info("[[monitor=table,endpoint={}:{}]], getAllColumns dbName are empty: ", endpoint.getHost(), endpoint.getPort());
+            return table2ColumnsMap;
+        }
         List<String> dbList = dbNames.stream().map(e -> toStringVal(e)).collect(Collectors.toList());
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
         ReadResource readResource = null;
         try {
             String sql = String.format(GET_TABLE_COLUMN_SQL, Joiner.on(",").join(dbList));
@@ -450,7 +458,7 @@ public class MySqlUtils {
                 table2ColumnsMap.computeIfAbsent(tableName, k -> new HashSet<>()).add(column);
             }
         } catch (Throwable t) {
-            logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            logger.error("[[monitor=table,endpoint={}:{}]] dbNames: {}, getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), dbNames, t);
             removeSqlOperator(endpoint);
         } finally {
             if (readResource != null) {
@@ -648,6 +656,10 @@ public class MySqlUtils {
             if (rs.next()) {
                 uuid = rs.getString(UUID_INDEX);
             }
+        } catch (Throwable t) {
+            logger.error("[[endpoint={}:{}]]getUuid error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            throw new SQLException(endpoint.getSocketAddress() + "GetUuid error,closing old dataSource .Please check error log or retry!");
         } finally {
             if (readResource != null) {
                 readResource.close();
@@ -1167,8 +1179,73 @@ public class MySqlUtils {
     }
 
 
+    // return privileges combine by ';'
+    public static String getAccountPrivilege(AccountEndpoint accEndpoint,boolean closeDataSource) {
+        AccSensitiveSqlOperator accSensitiveSqlOperator = getOrCreateSqlOperator(accEndpoint);
+        ReadResource readResource = null;
+        try  {
+            String sql = String.format("show grants for '%s'", accEndpoint.getUser());
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = accSensitiveSqlOperator.select(execution);
+            ResultSet resultSet = readResource.getResultSet();
+            StringBuilder privileges = new StringBuilder();
+            while (resultSet.next()) {
+                if (!StringUtils.isEmpty(privileges.toString())) {
+                    privileges.append(";");
+                }
+                privileges.append(resultSet.getString(1));
+            }
+            return privileges.toString();
+        } catch (Throwable t) {
+            logger.error("getAccountPrivilege error,address:{},user {} ", accEndpoint.getSocketAddress(), accEndpoint.getUser(), t);
+            closeDataSource(accEndpoint);
+            return null;
+        } finally {
+            if (readResource != null){
+                readResource.close();
+            }
+            if (closeDataSource) {
+                closeDataSource(accEndpoint);
+            }
+        }
+        
+        
+
+    }
+
+    private static void closeDataSource(AccountEndpoint accEndpoint) {
+        AccSensitiveSqlOperator sqlOperator = accSensitiveSqlOperatorMapper.remove(accEndpoint);
+        if (sqlOperator != null) {
+            try {
+                sqlOperator.stop();
+                sqlOperator.dispose();
+            } catch (Exception e) {
+                logger.error(" closeDataSourceForSqlOperator error,address:{},user {} ", 
+                        accEndpoint.getSocketAddress(), accEndpoint.getUser(), e);
+            }
+        }
+    
+    }
+
+    private static AccSensitiveSqlOperator getOrCreateSqlOperator(AccountEndpoint accEndpoint) {
+        if (accSensitiveSqlOperatorMapper.containsKey(accEndpoint)) {
+            return accSensitiveSqlOperatorMapper.get(accEndpoint);
+        } else {
+            AccSensitiveSqlOperator sqlOperatorWrapper = new AccSensitiveSqlOperator(accEndpoint, null);
+            try {
+                sqlOperatorWrapper.initialize();
+                sqlOperatorWrapper.start();
+            } catch (Exception e) {
+               logger.error("[[endpoint={}:{}]] getSqlOperator error: ", accEndpoint.getHost(), accEndpoint.getPort(), e);
+            }
+            accSensitiveSqlOperatorMapper.put(accEndpoint, sqlOperatorWrapper);
+            return sqlOperatorWrapper;
+        }
+    }
+    
+
     public static StatementExecutorResult write(Endpoint endpoint, String sql, int accountType) {
-        if (accountType == MysqlAccountTypeEnum.DRC_WRITE.getCode()) {
+        if (accountType == DrcAccountTypeEnum.DRC_WRITE.getCode()) {
             return writeV2(endpoint, sql, true);
         } else {
             return write(endpoint, sql);
@@ -1408,7 +1485,7 @@ public class MySqlUtils {
                 || Time.class.getName().equals(columnType)
                 || Timestamp.class.getName().equals(columnType);
     }
-
+    
     public static final class TableSchemaName {
         private String schema;
         private String name;

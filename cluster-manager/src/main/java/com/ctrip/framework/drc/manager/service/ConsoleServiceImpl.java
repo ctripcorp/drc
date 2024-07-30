@@ -4,6 +4,8 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
+import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -32,6 +34,8 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
 
     @Autowired
     private ClusterManagerConfig clusterManagerConfig;
+    
+    private HeraldService heraldService = ServicesUtil.getHeraldService();
 
     @Override
     public void replicatorActiveElected(String clusterId, Replicator replicator) {
@@ -88,18 +92,16 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         String region = dataCenterService.getRegion(dcId);
         RegionInfo regionInfo = consoleRegionInfos.get(region);
         if (null != regionInfo) {
-            String url;
-            if (clusterManagerConfig.getRealtimeMetaInfo()) {
-                url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v2/meta/data/dcs/%s?refresh=true", dcId);
-                META_LOGGER.info("[meta] for dc: {} using realtime url: {}", dcId, url);
-            } else {
-                url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
-                META_LOGGER.info("[meta] for dc: {} using old url: {}", dcId, url);
+            String url  = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v2/meta/data/dcs/%s?refresh=true", dcId);
+            if (clusterManagerConfig.requestWithHeraldToken()) {
+                url += "&heraldToken=" + heraldService.getLocalHeraldToken();
             }
+            META_LOGGER.info("[meta] for dc: {} using realtime url: {}", dcId, url);
             try {
+                String finalUrl = url;
                 return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.meta.get", region, () -> {
                     long s = System.currentTimeMillis();
-                    String dbClusters = restTemplate.getForObject(url, String.class);
+                    String dbClusters = restTemplate.getForObject(finalUrl, String.class);
                     long e = System.currentTimeMillis();
                     META_LOGGER.info("[meta] for dc: {}, took {}ms", dcId, e - s);
                     META_LOGGER.debug("[meta] for dc: {}, info: {}", dcId, dbClusters);

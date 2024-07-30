@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.channel;
 
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 
 import java.util.Objects;
 
@@ -12,7 +12,8 @@ public class ChannelAttributeKey {
 
     public static final long NO_SKIP_EVENT = 0;
 
-    private Gate gate;
+    private ScheduleCloseGate gate;
+
 
     private boolean heartBeat;
 
@@ -20,21 +21,21 @@ public class ChannelAttributeKey {
 
     private long skipCountInARow = 0;
 
-    public ChannelAttributeKey(Gate gate) {
+    public ChannelAttributeKey(ScheduleCloseGate gate) {
         this(gate, true);
     }
 
-    public ChannelAttributeKey(Gate gate, boolean heartBeat) {
+    public ChannelAttributeKey(ScheduleCloseGate gate, boolean heartBeat) {
         this.gate = gate;
         this.heartBeat = heartBeat;
         this.firstSkipEventTime = NO_SKIP_EVENT;
     }
 
-    public Gate getGate() {
+    public ScheduleCloseGate getGate() {
         return gate;
     }
 
-    public void setGate(Gate gate) {
+    public void setScheduleGate(ScheduleCloseGate gate) {
         this.gate = gate;
     }
 

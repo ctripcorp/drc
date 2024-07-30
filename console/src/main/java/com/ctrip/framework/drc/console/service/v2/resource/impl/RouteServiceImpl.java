@@ -87,10 +87,11 @@ public class RouteServiceImpl implements RouteService {
                 dstDcId = dcTblDao.queryByDcName(dstDcName).getId();
             }
             final Long finalBuId = buId, finalSrcDcId = srcDcId, finalDstDcId = dstDcId;
-            List<RouteTbl> routeTbls = routeTblDao.queryAllExist().stream().filter(p -> (null == routeOrgName || p.getRouteOrgId().equals(finalBuId))
+            List<RouteTbl> routeTbls = routeTblDao.queryAll().stream().filter(p -> (null == routeOrgName || p.getRouteOrgId().equals(finalBuId))
                     && (null == srcDcName || p.getSrcDcId().equals(finalSrcDcId))
                     && (null == dstDcName || p.getDstDcId().equals(finalDstDcId))
-                    && (null == tag || p.getTag().equalsIgnoreCase(tag)))
+                    && (null == tag || p.getTag().equalsIgnoreCase(tag))
+                    && (null == deleted || p.getDeleted().equals(deleted)))
                     .collect(Collectors.toList());
             for (RouteTbl routeTbl : routeTbls) {
                 routes.add(getRouteDto(routeTbl));

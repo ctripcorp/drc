@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -12,6 +13,7 @@ import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -29,8 +31,10 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -51,6 +55,8 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     private DrcAutoBuildService drcAutoBuildService;
     @Mock
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Mock
+    private MessengerServiceV2Impl messengerServiceV2;
 
     @Before
     public void setUp() throws IOException, SQLException {
@@ -62,6 +68,10 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dbTbl1.setDbName("db1");
         DbTbl dbTbl2 = new DbTbl();
         dbTbl2.setDbName("db2");
+        DbTbl dbTbl3 = new DbTbl();
+        dbTbl3.setDbName("db3");
+        DbTbl dbTbl4 = new DbTbl();
+        dbTbl4.setDbName("db4");
 
         DcDo dcDo1 = new DcDo();
         dcDo1.setRegionName("src1");
@@ -88,10 +98,64 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dto2.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1002L, config)));
         dto2.setReplicationType(0);
 
-        List<MhaDbReplicationDto> mhaDbReplicationDtos = Lists.newArrayList(dto1, dto2);
+        MhaDbReplicationDto dto11 = new MhaDbReplicationDto();
+        dto11.setId(3L);
+        dto11.setSrc(MhaDbDto.from(5L, srcMhaTbl, dbTbl3, dcDo1));
+        dto11.setDst(MhaDbDto.from(6L, dstMhaTbl, dbTbl3, dcDo2));
+        dto11.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1003L, config)));
+        dto11.setReplicationType(0);
 
-        when(mhaDbReplicationService.queryByMha(eq(srcMha), eq(dstMha), any())).thenReturn(mhaDbReplicationDtos);
-        when(mhaDbReplicationService.queryByDbNames(argThat(e -> e.contains("db1") && e.contains("db2")), eq(ReplicationTypeEnum.DB_TO_DB))).thenReturn(mhaDbReplicationDtos);
+
+        MhaDbReplicationDto dto22 = new MhaDbReplicationDto();
+        dto22.setId(4L);
+        dto22.setSrc(MhaDbDto.from(7L, srcMhaTbl, dbTbl4, dcDo1));
+        dto22.setDst(MhaDbDto.from(8L, dstMhaTbl, dbTbl4, dcDo2));
+        dto22.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1004L, config)));
+        dto22.setReplicationType(0);
+
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = Lists.newArrayList(dto1, dto2, dto11, dto22);
+
+        LogicTableConfig mqConfig = new LogicTableConfig();
+        mqConfig.setLogicTable("old_table");
+        mqConfig.setDstLogicTable("bbz.test.binlog");
+        mqConfig.setMessengerFilterId(1L);
+
+        MhaDbReplicationDto dtoForMq1 = new MhaDbReplicationDto();
+        dtoForMq1.setId(1L);
+        dtoForMq1.setSrc(MhaDbDto.from(1L, srcMhaTbl, dbTbl1, dcDo1));
+        dtoForMq1.setDst(MhaDbReplicationDto.MQ_DTO);
+        dtoForMq1.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1005L, mqConfig)));
+        dtoForMq1.setReplicationType(1);
+
+
+        MhaDbReplicationDto dtoForMq2 = new MhaDbReplicationDto();
+        dtoForMq2.setId(2L);
+        dtoForMq2.setSrc(MhaDbDto.from(2L, srcMhaTbl, dbTbl2, dcDo1));
+        dtoForMq2.setDst(MhaDbReplicationDto.MQ_DTO);
+        dtoForMq2.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1006L, mqConfig)));
+        dtoForMq2.setReplicationType(1);
+
+        List<MhaDbReplicationDto> mhaDbReplicationDtosForMq = Lists.newArrayList(dtoForMq1, dtoForMq2);
+
+
+        when(mhaDbReplicationService.queryByMha(eq(srcMha), eq(dstMha), any())).thenAnswer(param -> {
+            List<String> dbNames = param.getArgument(2);
+            return mhaDbReplicationDtos.stream().filter(e -> {
+                if (dbNames == null) {
+                    return true;
+                }
+                return dbNames.contains(e.getSrc().getDbName());
+            }).collect(Collectors.toList());
+        });
+        when(mhaDbReplicationService.queryByDbNames(anyList(), eq(ReplicationTypeEnum.DB_TO_DB))).thenAnswer(param -> {
+            List<String> dbNames = param.getArgument(0);
+            return mhaDbReplicationDtos.stream().filter(e -> dbNames.contains(e.getSrc().getDbName())).collect(Collectors.toList());
+        });
+
+        when(mhaDbReplicationService.queryByDbNames(anyList(), eq(ReplicationTypeEnum.DB_TO_MQ))).thenAnswer(param -> {
+            List<String> dbNames = param.getArgument(0);
+            return mhaDbReplicationDtosForMq.stream().filter(e -> dbNames.contains(e.getSrc().getDbName())).collect(Collectors.toList());
+        });
 
         // messenger
         MhaDbReplicationDto dto3 = new MhaDbReplicationDto();
@@ -114,6 +178,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         String json2 = "[{\"clusterList\":[{\"clusterName\":\"mha1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.1\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.2\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db1\"},{\"clusterList\":[{\"clusterName\":\"mha2\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.3\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.4\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db2\"}]";
         List<DbClusterInfoDto> list = JsonUtils.fromJsonToList(json2, DbClusterInfoDto.class);
         when(dbaApiService.getDatabaseClusterInfoList("db1_dalcluster")).thenReturn(list);
+        when(messengerServiceV2.checkMqConfig(any())).thenReturn(MqConfigCheckVo.from(Lists.newArrayList()));
 
         super.setUp();
     }
@@ -249,17 +314,36 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dbDrcBuildService.createMhaDbDrcReplication(createDto);
     }
 
+    @Test()
+    public void createMhaDbDrcMqReplication() throws Exception {
+        MhaDbReplicationCreateDto createDto = new MhaDbReplicationCreateDto();
+        createDto.setSrcRegionName("src1");
+        createDto.setDbName("db1");
+        createDto.setReplicationType(ReplicationTypeEnum.DB_TO_MQ.getType());
+
+        DrcAutoBuildParam drcAutoBuildParam = new DrcAutoBuildParam();
+        drcAutoBuildParam.setSrcMhaName("mha1");
+        drcAutoBuildParam.setDbName(Sets.newHashSet("db3"));
+        List<DrcAutoBuildParam> value = Lists.newArrayList(drcAutoBuildParam);
+        when(drcAutoBuildService.getDrcBuildParam(any())).thenReturn(value);
+        dbDrcBuildService.createMhaDbReplicationForMq(createDto);
+        verify(drcBuildServiceV2, times(1)).buildMessengerMha(any());
+        verify(drcBuildServiceV2, times(1)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
+        verify(drcBuildServiceV2, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
+        verify(mhaDbReplicationService, times(1)).maintainMhaDbReplicationForMq(any(), any());
+    }
+
     @Test
     public void createMhaDbDrcReplication2() throws Exception {
         MhaDbReplicationCreateDto createDto = new MhaDbReplicationCreateDto();
         createDto.setSrcRegionName("src1");
         createDto.setDstRegionName("dst1");
-        createDto.setDbName("db3");
+        createDto.setDbName("db5");
         DrcAutoBuildParam drcAutoBuildParam = new DrcAutoBuildParam();
         drcAutoBuildParam.setSrcMhaName("mha1");
         drcAutoBuildParam.setDstMhaName("mha2");
 
-        drcAutoBuildParam.setDbName(Sets.newHashSet("db3"));
+        drcAutoBuildParam.setDbName(Sets.newHashSet("db5"));
         List<DrcAutoBuildParam> value = Lists.newArrayList(drcAutoBuildParam);
         when(drcAutoBuildService.getDrcBuildParam(any())).thenReturn(value);
         dbDrcBuildService.createMhaDbDrcReplication(createDto);
@@ -288,6 +372,81 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
 
     }
 
+    @Test
+    public void testCreateDbMqReplication() throws Exception {
+        DbMqCreateDto dbReplicationCreateDto = getDbMqCreateDto();
+        dbDrcBuildService.createDbMqReplication(dbReplicationCreateDto);
+        verify(messengerServiceV2, times(1)).processAddMqConfig(any());
+    }
+
+    @Test
+    public void testEditDbMqReplication() throws Exception {
+        DbMqEditDto editDto = getDbMqEditDto();
+        dbDrcBuildService.editDbMqReplication(editDto);
+        verify(messengerServiceV2, times(1)).processUpdateMqConfig(any());
+    }
+
+    @Test
+    public void testDeleteDbMqReplication() throws Exception {
+        DbMqEditDto editDto = getDbMqEditDto();
+        dbDrcBuildService.deleteDbMqReplication(editDto);
+        verify(messengerServiceV2, times(1)).processDeleteMqConfig(any());
+    }
+
+
+    @Test(expected = ConsoleException.class)
+    public void testDeleteDbMqReplicationInvalidReq() throws Exception {
+        DbMqEditDto editDto = getDbMqEditDto();
+        editDto.getOriginLogicTableConfig().setMessengerFilterId(null);
+        dbDrcBuildService.deleteDbMqReplication(editDto);
+        verify(messengerServiceV2, times(1)).processDeleteMqConfig(any());
+    }
+
+    @Test
+    public void testSwitchAppliers() throws Exception {
+        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
+        DbApplierSwitchReqDto req1 = new DbApplierSwitchReqDto();
+        req1.setDbNames(Lists.newArrayList("db1"));
+        req1.setSrcMhaName("mha1");
+        req1.setDstMhaName("mha2");
+        reqDtos.add(req1);
+
+        DbApplierSwitchReqDto req2 = new DbApplierSwitchReqDto();
+        req2.setDbNames(Lists.newArrayList("aadb1"));
+        req2.setSrcMhaName("mha2");
+        req2.setDstMhaName("mha1");
+        reqDtos.add(req2);
+
+        dbDrcBuildService.switchAppliers(reqDtos);
+        verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(), any(), any());
+        verify(applierTblV3Dao, times(1)).batchInsert(any());
+    }
+
+    @Test
+    public void testSwitchMessengers() throws Exception {
+        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
+        DbApplierSwitchReqDto req2 = new DbApplierSwitchReqDto();
+        req2.setDbNames(Lists.newArrayList("aadb1"));
+        req2.setSrcMhaName("mha2");
+        reqDtos.add(req2);
+
+        dbDrcBuildService.switchMessengers(reqDtos);
+        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any());
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSwitchMessengersDbMessengerNotSupport() throws Exception {
+        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
+        DbApplierSwitchReqDto req1 = new DbApplierSwitchReqDto();
+        req1.setDbNames(Lists.newArrayList("db1"));
+        req1.setSrcMhaName("mha1");
+        reqDtos.add(req1);
+
+
+        dbDrcBuildService.switchMessengers(reqDtos);
+    }
+
     private static DbReplicationEditDto getDbReplicationEditDto() {
         DbReplicationEditDto editDto = new DbReplicationEditDto();
         LogicTableConfig originLogicTableConfig = new LogicTableConfig();
@@ -306,6 +465,50 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         return editDto;
     }
 
+
+    private static DbMqCreateDto getDbMqCreateDto() {
+        DbMqCreateDto create = new DbMqCreateDto();
+        LogicTableConfig logicTableConfig = new LogicTableConfig();
+        logicTableConfig.setLogicTable("new table");
+        logicTableConfig.setDstLogicTable("bbz.test.binlog");
+        create.setLogicTableConfig(logicTableConfig);
+        create.setDbNames(Lists.newArrayList("db1", "db2"));
+        create.setSrcRegionName("src1");
+        MqConfigDto mqConfig = new MqConfigDto();
+        mqConfig.setOrder(true);
+        mqConfig.setOrderKey("orderId");
+        mqConfig.setBu("bbz");
+        mqConfig.setMqType("qmq");
+        mqConfig.setSerialization("json");
+        create.setMqConfig(mqConfig);
+
+        return create;
+    }
+
+    private static DbMqEditDto getDbMqEditDto() {
+        DbMqEditDto editDto = new DbMqEditDto();
+        LogicTableConfig logicTableConfig = new LogicTableConfig();
+        logicTableConfig.setLogicTable("new table");
+        logicTableConfig.setDstLogicTable("bbz.test.binlog");
+        editDto.setLogicTableConfig(logicTableConfig);
+        LogicTableConfig originLogicTableConfig = new LogicTableConfig();
+        originLogicTableConfig.setLogicTable("old_table");
+        originLogicTableConfig.setDstLogicTable("bbz.test.binlog");
+        originLogicTableConfig.setMessengerFilterId(1L);
+        editDto.setOriginLogicTableConfig(originLogicTableConfig);
+        editDto.setDbNames(Lists.newArrayList("db1", "db2"));
+        editDto.setSrcRegionName("src1");
+        MqConfigDto mqConfig = new MqConfigDto();
+        mqConfig.setOrder(true);
+        mqConfig.setOrderKey("orderId");
+        mqConfig.setBu("bbz");
+        mqConfig.setMqType("qmq");
+        mqConfig.setSerialization("json");
+        editDto.setMqConfig(mqConfig);
+
+        editDto.setDbReplicationIds(Lists.newArrayList(1005L,1006L));
+        return editDto;
+    }
 
     private static DbReplicationCreateDto getDbReplicationCreateDto() {
         DbReplicationCreateDto create = new DbReplicationCreateDto();

@@ -13,6 +13,7 @@ public enum RowsFilterModeEnum {
     AVIATOR_REGEX(3, "aviator_regex"),
     CUSTOM(4, "custom"),
     TRIP_UDL_UID(5,"trip_udl_uid"),
+    CUSTOM_SOA(6,"custom_soa"),
     ;
 
     private Integer code;

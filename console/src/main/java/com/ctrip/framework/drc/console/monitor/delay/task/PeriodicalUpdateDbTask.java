@@ -169,11 +169,6 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
             logger.info("[[monitor=delay]] not leader do nothing");
         }
     }
-    
-    public Set<String> getSrcMhasShouldMonitor(String dstClusterName,String dstMha,String srcDc) {
-        String srcRegion = consoleConfig.getRegionForDc(srcDc);
-        return cacheMetaService.getSrcMhasShouldMonitor(dstClusterName + "." +dstMha,srcRegion);
-    }
 
     @Override
     public void switchToLeader() throws Throwable {
@@ -257,13 +252,25 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
         return TIME_UNIT;
     }
 
+    public Set<String> getSrcMhasShouldMonitor(String dstMha) {
+        Set<String> srcMhasHasReplication = Sets.newHashSet(cacheMetaService.getSrcMhasHasReplication(dstMha));
+        Set<String> mhaDbRelatedByDestMhaInLocalRegion = this.getMhaInLocalRegionRelatedByDstMha(dstMha);
+        srcMhasHasReplication.retainAll(mhaDbRelatedByDestMhaInLocalRegion);
+        return srcMhasHasReplication;
+    }
+    
+    public boolean isMhaMonitorEnabled(String mha) {
+        Set<String> mhaMonitorOnInLocalRegion = super.getMhasRelated();
+        return mhaMonitorOnInLocalRegion.contains(mha);
+    }
+    
     /**
-     * ignore mha that has db replications
+     * ignore mha that has db replications & only care local region
      */
-    public Set<String> getMhaDbRelatedByDestMha(String destMha) {
-        Set<String> mhasRelated = Sets.newHashSet(super.getMhasRelated());
+    protected Set<String> getMhaInLocalRegionRelatedByDstMha(String destMha) {
+        Set<String> mhasInLocalShouldMonitor = Sets.newHashSet(super.getMhasRelated());
         Set<String> mhaDbReplicationRelatedMhas = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(destMha).keySet();
-        mhasRelated.removeAll(mhaDbReplicationRelatedMhas);
-        return mhasRelated;
+        mhasInLocalShouldMonitor.removeAll(mhaDbReplicationRelatedMhas);
+        return mhasInLocalShouldMonitor;
     }
 }

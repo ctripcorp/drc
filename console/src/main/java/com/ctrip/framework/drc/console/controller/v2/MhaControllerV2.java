@@ -5,12 +5,14 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -18,6 +20,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -213,6 +216,48 @@ public class MhaControllerV2 {
             return ApiResult.getSuccessInstance(mhaServiceV2.offlineMhasWithOutDrc(mhas));
         } catch (Exception e) {
             logger.error("deleteMhasShuoldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("shouldOfflineV2")
+    public ApiResult getMhasShouldOfflineV2(@RequestParam(required = true) Boolean checkDbReplication) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMhasWithoutDrcReplication(checkDbReplication));
+        } catch (Exception e) {
+            logger.error("getMhasShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    @DeleteMapping("mhaWithoutDrcReplication")
+    public ApiResult deleteReplicators(@RequestBody List<String> mhas) {
+        try {
+            if (CollectionUtils.isEmpty(mhas)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "empty input ");
+            }
+            return ApiResult.getSuccessInstance(mhaServiceV2.offlineMhasWithOutReplication(mhas));
+        } catch (Exception e) {
+            logger.error("deleteMachineShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @GetMapping("machine/shouldOffline")
+    public ApiResult getMachineShouldOffline() {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.queryMachineWithOutMha());
+        } catch (Exception e) {
+            logger.error("getMachineShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @DeleteMapping("machine/offline")
+    public ApiResult deleteMachineShouldOffline(@RequestBody List<Long> machineIds) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.offlineMachineWithOutMha(machineIds));
+        } catch (Exception e) {
+            logger.error("deleteMachineShouldOffline error", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

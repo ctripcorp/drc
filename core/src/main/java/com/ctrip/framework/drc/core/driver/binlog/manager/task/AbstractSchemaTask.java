@@ -12,6 +12,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -112,6 +113,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
         }
     }
 
+    @SuppressWarnings("findbugs:NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     protected boolean oneBatch(List<BatchTask> tasks) {
         long now = System.currentTimeMillis();
         AtomicBoolean res = new AtomicBoolean(true);
@@ -144,7 +146,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
                 DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
                 countDownLatch.countDown();
             }
-        });
+        }, MoreExecutors.directExecutor());
 
         try {
             boolean queryResult = countDownLatch.await(60 * 3 , TimeUnit.SECONDS);

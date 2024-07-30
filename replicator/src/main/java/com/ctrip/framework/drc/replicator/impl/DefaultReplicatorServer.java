@@ -4,14 +4,18 @@ import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
+import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.enums.DirectionEnum;
 import com.ctrip.framework.drc.core.monitor.kpi.DelayMonitorReport;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorDetailInfoDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.impl.AbstractDrcServer;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
@@ -20,8 +24,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.ReplicatorSlaveServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.BackupReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupEventTransactionCache;
@@ -29,18 +33,24 @@ import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransact
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServer;
+import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScanner;
+import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScannerManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ApplierRegisterCommandHandler;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorCommandHandler;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.HeartBeatCommandHandler;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheck;
+import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 
-import java.io.File;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author wenchao.meng
@@ -71,6 +81,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
     private TableFilterConfiguration tableFilterConfiguration;
 
+    private BinlogScannerManager scannerManager;
+
     public DefaultReplicatorServer(ReplicatorConfig replicatorConfig, MySQLSchemaManager schemaManager, TableFilterConfiguration tableFilterConfiguration, UuidOperator uuidOperator) {
 
         this.replicatorConfig = replicatorConfig;
@@ -89,7 +101,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         InboundFilterChainContext transactionContext = new InboundFilterChainContext.Builder().applyMode(applyMode).build();
         transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext))
-                                    : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
+                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
@@ -135,7 +147,9 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         LifecycleHelper.initializeIfPossible(transactionCache);
         LifecycleHelper.initializeIfPossible(replicatorSlaveServer);
 
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport, replicatorConfig));
+        ApplierRegisterCommandHandler applierRegisterCommandHandler = new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport, replicatorConfig);
+        scannerManager = applierRegisterCommandHandler.getBinlogScannerManager();
+        mySQLMasterServer.addCommandHandler(applierRegisterCommandHandler);
         mySQLMasterServer.addCommandHandler(new DelayMonitorCommandHandler(logEventHandler, replicatorConfig.getRegistryKey()));
         mySQLMasterServer.addCommandHandler(new HeartBeatCommandHandler(replicatorConfig.getRegistryKey()));
         LifecycleHelper.initializeIfPossible(mySQLMasterServer);
@@ -197,6 +211,55 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
     @Override
     public Endpoint getUpstreamMaster() {
         return replicatorConfig.getEndpoint();
+    }
+
+    public ReplicatorInfoDto info() {
+        ReplicatorInfoDto replicatorInfoDto = new ReplicatorInfoDto();
+        replicatorInfoDto.setRegistryKey(this.replicatorConfig.getRegistryKey());
+        InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
+        replicatorInfoDto.setMaster(instanceStatus == InstanceStatus.ACTIVE);
+        replicatorInfoDto.setIp(this.replicatorConfig.getMySQLMasterConfig().getIp());
+        replicatorInfoDto.setPort(this.replicatorConfig.getApplierPort());
+        replicatorInfoDto.setUpstreamMasterIp(this.replicatorConfig.getMySQLSlaveConfig().getEndpoint().getHost());
+        return replicatorInfoDto;
+    }
+
+    public ReplicatorDetailInfoDto detailInfo() {
+        ReplicatorDetailInfoDto replicatorDetailInfoDto = new ReplicatorDetailInfoDto();
+        GtidManager gtidManager = this.eventStore.getGtidManager();
+        FileManager fileManager = this.eventStore.getFileManager();
+        String firstFile = fileManager.getFirstLogFile().getName();
+        String latestFile = fileManager.getCurrentLogFileName();
+        replicatorDetailInfoDto.setRegistryKey(this.replicatorConfig.getRegistryKey());
+        replicatorDetailInfoDto.setOldestBinlogFile(firstFile);
+        replicatorDetailInfoDto.setLatestBinlogFile(latestFile);
+        replicatorDetailInfoDto.setPurgedGtidSet(gtidManager.getPurgedGtids().toString());
+        replicatorDetailInfoDto.setExecutedGtidSet(gtidManager.getExecutedGtids().toString());
+
+        // scanner info
+        Map<ConsumeType, List<BinlogScanner>> senderSizeByType = scannerManager.getScanners().stream().collect(Collectors.groupingBy(BinlogScanner::getConsumeType));
+        for (Map.Entry<ConsumeType, List<BinlogScanner>> entry : senderSizeByType.entrySet()) {
+            ConsumeType consumeType = entry.getKey();
+            List<BinlogScanner> scanners = entry.getValue();
+            for (BinlogScanner scanner : scanners) {
+                ReplicatorDetailInfoDto.ScannerDto scannerDto = new ReplicatorDetailInfoDto.ScannerDto();
+                GtidSet scannerFilteredGtidSet = scanner.getFilteredGtidSet();
+                scannerDto.setGtid(scannerFilteredGtidSet.toString());
+                scannerDto.setConsumeType(scanner.getConsumeType().name());
+                scannerDto.setCurrentFile(scanner.getCurrentSendingFileName());
+                Set<String> uuiDs = scannerFilteredGtidSet.getUUIDs();
+                List<ReplicatorDetailInfoDto.SenderDto> senders = scanner.getSenders().stream().map(sender -> {
+                    ReplicatorDetailInfoDto.SenderDto senderDto = new ReplicatorDetailInfoDto.SenderDto(sender.getApplierName());
+                    GtidSet gtidSet = sender.getGtidSet().filterGtid(uuiDs);
+                    senderDto.setGtid(gtidSet.toString());
+                    senderDto.setGtidGap(gtidSet.subtract(scannerFilteredGtidSet).toString());
+                    return senderDto;
+                }).collect(Collectors.toList());
+                scannerDto.setSenders(senders);
+                replicatorDetailInfoDto.addScanner(scannerDto);
+            }
+        }
+        return replicatorDetailInfoDto;
     }
 
     @VisibleForTesting

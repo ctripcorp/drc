@@ -34,6 +34,9 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_REALTIME_META_INFO = "drc.realtime.meta.info";
     public static String KEY_CHECK_APPLIER_PROPERTY = "check.applier.property";
     public static String KEY_REFRESH_WHEN_CONSOLE_INVOKE = "refresh.when.console.invoke";
+    public static String KEY_PERIOD_META_CHECK = "period.meta.consistency.check";
+    public static String KEY_PERIOD_META_CORRECT = "period.meta.consistency.correct";
+    public static String KEY_HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
 
 
 
@@ -42,6 +45,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_SERVER_PORT = "server.port";
 
     private static final String KEY_INFO_CHECK_INTERVAL = "clustermanager.info.check.interval";
+    private static final String KEY_INFO_CHECK_TASK_MAX_TIME = "clustermanager.info.check.max.time";
 
     private String defaultConsoleAddress = System.getProperty("consoleAddress", "http://localhost:8080");
 
@@ -192,8 +196,29 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     }
 
     @Override
+    public boolean getPeriodCheckSwitch() {
+        return getBooleanProperty(KEY_PERIOD_META_CHECK, false);
+    }
+
+    @Override
+    public boolean getPeriodCorrectSwitch() {
+        return getBooleanProperty(KEY_PERIOD_META_CORRECT, false);
+    }
+
+    @Override
+    public boolean requestWithHeraldToken() {
+        return getBooleanProperty(KEY_HERALD_TOKEN_REQUEST_SWITCH, false);
+    }
+
+    @Override
     public int getCheckInterval() {
         return getIntProperty(KEY_INFO_CHECK_INTERVAL, 30 * 1000);
+    }
+
+
+    @Override
+    public int getCheckMaxTime() {
+        return getIntProperty(KEY_INFO_CHECK_TASK_MAX_TIME, 5 * 1000);
     }
 
 

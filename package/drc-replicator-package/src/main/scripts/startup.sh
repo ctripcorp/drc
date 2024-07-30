@@ -34,7 +34,7 @@ function getSafeFileSize() {
 
 function getTotalDisk() {
 
-    echo `df -lh /data/ | grep -v Size |  awk -F " " '{print substr($2,0,length($2) - 1 )}'`
+    echo `df -lh /data/ | awk '!/Size/ { if ($2 ~ /T$/) { $2 = $2 * 10000 } print substr($2, 0, length($2) - 1) }'`
 }
 
 function getIdc(){
@@ -144,6 +144,7 @@ then
 elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ] || [ $ENV = "UAT" ];then
     #GB
     USED_MEM=`getSafeXmx`
+    USED_MEM=`expr $USED_MEM \* 70 / 100`
     XMN=`getSafeXmn $USED_MEM`
     MAX_DIRECT=3
     FILE_SIZE=`getSafeFileSize`
@@ -159,7 +160,7 @@ else
 fi
 export JAVA_OPTS="-server $JAVA_OPTS -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:MaxTenuringThreshold=1 -Dio.netty.maxDirectMemory=0 -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:+HeapDumpOnOutOfMemoryError -XX:+HeapDumpBeforeFullGC -XX:-OmitStackTraceInFastThrow -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xlog:safepoint,classhisto*=trace,age*,gc*=info:file=$LOG_DIR/gc-%t.log:time,tid,tags:filecount=5,filesize=50m -XX:HeapDumpPath=$LOG_DIR/ -Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${IP} -XX:+FlightRecorder -Djava.security.egd=file:/dev/./urandom"
 export JAVA_OPTS="$JAVA_OPTS -cp .:./META-INF/"
-export JAVA_OPTS="$JAVA_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/sun.net.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens jdk.attach/sun.tools.attach=ALL-UNNAMED"
+export JAVA_OPTS="$JAVA_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/sun.net.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens jdk.attach/sun.tools.attach=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true"
 echo $JAVA_OPTS
 
 export LD_PRELOAD=/usr/local/lib/libjemalloc.so

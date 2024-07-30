@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,7 +17,7 @@ public class EventTypeFilterTest extends AbstractFilterTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        eventTypeFilter = new EventTypeFilter();
+        eventTypeFilter = new EventTypeFilter("test");
     }
 
     @Test
@@ -52,6 +53,16 @@ public class EventTypeFilterTest extends AbstractFilterTest {
         when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.drc_heartbeat_log_event);
         boolean skip = eventTypeFilter.doFilter(logEventWithGroupFlag);
         verify(callBack, times(1)).onHeartHeat();
+        Assert.assertTrue(skip);
+    }
+
+    @Test
+    public void doFilterUnknownEvent() {
+        LogEventHeader logEventHeader = new LogEventHeader();
+        logEventHeader.setEventType(28);
+        when(drcUnknownEvent.getLogEventHeader()).thenReturn(logEventHeader);
+        when(drcUnknownEvent.getLogEventType()).thenReturn(LogEventType.unknown_log_event);
+        boolean skip = eventTypeFilter.doFilter(new InboundLogEventContext(drcUnknownEvent, callBack, new TransactionFlags(), ""));
         Assert.assertTrue(skip);
     }
 }

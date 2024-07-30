@@ -38,6 +38,7 @@ public class LWMResource extends AbstractResource implements LWM {
 
     @Override
     public void doDispose() {
+        chart.clear();
         chart = null;
         bucket = null;
         notifier = null;
@@ -162,6 +163,11 @@ public class LWMResource extends AbstractResource implements LWM {
                 handler.onBegin();
             }
         }
+
+        @Override
+        public void close() {
+            handler.close();
+        }
     }
 
     public interface Chart<T, H> {
@@ -174,6 +180,8 @@ public class LWMResource extends AbstractResource implements LWM {
         void tick(T i) throws InterruptedException;
 
         int size();
+
+        void clear();
     }
 
     public static class InnerChart implements Chart<Long, LWMPassHandler> {
@@ -225,6 +233,25 @@ public class LWMResource extends AbstractResource implements LWM {
                         next.onBegin();
                     }
                 }
+            }
+        }
+
+        @Override
+        public void clear() {
+            NavigableSet<Long> keySet = chart.keySet();
+            int count = 0;
+            for (Long sn : keySet) {
+                Queue<LWMPassHandler> handlers = chart.remove(sn);
+                if (handlers != null) {
+                    LWMPassHandler next;
+                    while ((next = handlers.poll()) != null) {
+                        next.close();
+                        count++;
+                    }
+                }
+            }
+            if (count > 0) {
+                logger.info("{} release {} tasks after stop", getClass().getSimpleName(), count);
             }
         }
     }

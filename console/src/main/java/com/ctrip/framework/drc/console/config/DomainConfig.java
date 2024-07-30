@@ -1,17 +1,21 @@
 package com.ctrip.framework.drc.console.config;
 
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
+import com.ctrip.framework.drc.core.utils.EncryptUtils;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @ClassName DomainConifg
@@ -21,11 +25,10 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DomainConfig extends AbstractConfigBean {
-
-
+    
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-
+    
     private static final String MYSQL_API_URL = "mysql.api.url";
     private static final String DEFAULT_MYSQL_API_URL = "http://localhost:8080/mysqlapi/";
 
@@ -78,6 +81,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_FAT_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/19049";
 
     private static final String QMQ_APPLICATION_URL = "qmq.application.url";
+    private static final String QMQ_API_TOKEN_KEY = "qmq.http.api.token";
     private static final String TOPIC_SUFFIX = "/api/subject/save";
     private static final String PRODUCER_SUFFIX = "/api/producer/save";
     private static final String BU_SUFFIX = "/api/producer/getBuList";
@@ -147,7 +151,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_URL = "center.region.user.dml.count.query.url";
     private static final String OVERSEA_USER_DML_QUERY_TOKEN = "oversea.user.dml.query.token";
     private static final String OVERSEA_USER_DML_QUERY_URL = "oversea.user.dml.query.url";
-
+    
 
     public String getDbaApprovers() {
         return getProperty(DBA_APPROVERS);
@@ -166,7 +170,8 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getOpsApprovalToken() {
-        return getProperty(OPS_APPROVAL_TOKEN, "");
+        String rawToken = getProperty(OPS_APPROVAL_TOKEN, "");
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getConflictApproveCcEmail() {
@@ -226,7 +231,7 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getOpsAccessToken() {
-        return getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN);
+        return EncryptUtils.decryptRawToken(getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN));
     }
 
     public String getOpsAccessTokenFat() {
@@ -242,7 +247,8 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getCmsAccessToken() {
-        return getProperty(CMS_ACCESS_TOKEN, "");
+        String rawToken =  getProperty(CMS_ACCESS_TOKEN, "");
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getTrafficFromHickWall() {
@@ -283,16 +289,23 @@ public class DomainConfig extends AbstractConfigBean {
         });
     }
 
+    public String getQmqApiToken(){
+        String rawToken =  getProperty(QMQ_API_TOKEN_KEY, "");
+        return EncryptUtils.decryptRawToken(rawToken);
+    }
+
     public String getQConfigRestApiUrl() {
         return getProperty(QCONFIG_REST_API_URL, "");
     }
 
     public String getQConfigAPIToken() {
-        return getProperty(QCONFIG_API_TOKEN, "");
+        String rawToken = getProperty(QCONFIG_API_TOKEN, "");
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getQConfigApiConsoleToken() {
-        return getProperty(QCONFIG_API_CONSOLE_TOKEN, "");
+        String rawToken = getProperty(QCONFIG_API_CONSOLE_TOKEN, "");
+        return EncryptUtils.decryptRawToken(rawToken);
     }
 
     public String getWhitelistTargetGroupId() {
@@ -335,7 +348,7 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getDotToken() {
-        return getProperty(DOT_TOKEN, "");
+        return EncryptUtils.decryptRawToken(getProperty(DOT_TOKEN, ""));
     }
 
     public String getDotQueryApiUrl() {

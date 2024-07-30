@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.channel;
 
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,7 +12,7 @@ public class ChannelAttributeKeyTest {
 
     private ChannelAttributeKey channelAttributeKey;
 
-    private Gate gate = new Gate("ut");
+    private ScheduleCloseGate gate = new ScheduleCloseGate("ut");
 
     @Test
     public void testSendEvent() {

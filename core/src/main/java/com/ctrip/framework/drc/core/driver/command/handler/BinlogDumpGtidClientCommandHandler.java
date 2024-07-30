@@ -72,7 +72,7 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
                 logEvents = converter.convert(byteBuf);
             } catch (Throwable t) {
                 setHalfEvent(observable, false);
-                logger.info("convert error, with hex buf: " + ByteBufUtil.hexDump(byteBuf));
+                logger.error("convert error, with hex buf: {}", ByteBufUtil.hexDump(byteBuf), t);
                 handler.onLogEvent(null, null, new EventConvertException("converter.convert() - UNLIKELY", t));
             }
             if (null != logEvents && !logEvents.isEmpty()) {
@@ -84,7 +84,7 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
                     if (drc_error_log_event == event.getLogEventType()) {
                         DrcErrorLogEvent errorLogEvent = (DrcErrorLogEvent) event;
                         ResultCode resultCode = ResultCode.getResultCode(errorLogEvent.getErrorNumber());
-                        ErrorMessage<ResultCode> errorMessage = new ErrorMessage<>(resultCode, resultCode.getMessage());
+                        ErrorMessage<ResultCode> errorMessage = new ErrorMessage<>(resultCode, errorLogEvent.getMessage());
                         errorLogEvent.release();
                         throw new LogEventException(errorMessage, null);
                     }

@@ -259,8 +259,11 @@ public class TransactionTableResource extends AbstractResource implements Transa
         } catch (SQLException e) {
             //already executed or deadlock
             String message = e.getMessage();
-            if (message.startsWith("Duplicate entry") || message.equals("Deadlock found when trying to get lock; try restarting transaction")) {
-                loggerTT.error("[TT][{}] 0 rows updated or insert for record transaction table, PROLY already executed or deadlock", registryKey, e);
+            if (message.startsWith("Duplicate entry")) {
+                loggerTT.info("[TT][{}] 0 rows updated or insert for record transaction table, transaction already executed, should skip: {}", registryKey, uuid + ":" + gno);
+                throw new TransactionTableRepeatedUpdateException(e);
+            } else if (message.equals("Deadlock found when trying to get lock; try restarting transaction")) {
+                loggerTT.error("[TT][{}] 0 rows updated or insert for record transaction table, deadlock", registryKey, e);
                 throw e;
             } else {
                 loggerTT.error("[TT][{}] UNLIKELY exception when record transaction table, shutdown server", registryKey, e);

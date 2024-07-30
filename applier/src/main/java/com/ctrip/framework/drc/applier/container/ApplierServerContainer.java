@@ -7,8 +7,10 @@ import com.ctrip.framework.drc.applier.resource.position.TransactionTableResourc
 import com.ctrip.framework.drc.applier.server.*;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
+import com.ctrip.framework.drc.core.server.config.InfoDto;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
@@ -23,11 +25,15 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @Author Slight
@@ -227,6 +233,41 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         } catch (Throwable t) {
             logger.error("await error", t);
         }
+    }
+
+    public boolean containServer(String registryKey) {
+        return servers.containsKey(registryKey);
+    }
+
+    public ApplierServer getServer(String registryKey) {
+        return servers.get(registryKey);
+    }
+
+    public List<ApplierInfoDto> getInfo() {
+        List<ApplierInfoDto> list = new ArrayList<>();
+        // applier master
+        for (ApplierServerInCluster server : servers.values()) {
+            ApplierInfoDto dto = new ApplierInfoDto();
+            dto.setIp(server.config.ip);
+            dto.setPort(server.config.port);
+            dto.setRegistryKey(server.config.getRegistryKey());
+            dto.setReplicatorIp(server.config.replicator.ip);
+            dto.setDbInfo(server.config.target);
+            dto.setMaster(true);
+            list.add(dto);
+        }
+        Set<String> masters = list.stream().map(InfoDto::getRegistryKey).collect(Collectors.toSet());
+        // applier slave
+        for (String registryKey : zkLeaderElectors.keySet()) {
+            if (masters.contains(registryKey)) {
+                continue;
+            }
+            ApplierInfoDto dto = new ApplierInfoDto();
+            dto.setRegistryKey(registryKey);
+            dto.setMaster(false);
+            list.add(dto);
+        }
+        return list;
     }
 
     class ResourceReleaseTask implements Runnable {

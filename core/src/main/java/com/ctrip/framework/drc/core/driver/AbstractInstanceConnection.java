@@ -7,6 +7,7 @@ import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +39,7 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
                     scheduledExecutorService.schedule(() -> dump(callBack), 1, TimeUnit.SECONDS);
                 }
             }
-        });
+        }, MoreExecutors.directExecutor());
 
     }
 
@@ -50,6 +51,7 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
             Futures.addCallback(listenableFuture, new FutureCallback<>() {
                 @Override
                 public void onSuccess(SimpleObjectPool<NettyClient> result) {
+                    afterReconnection(result);
                     doWithSimpleObjectPool(result, callBack, reconnection_code);
                 }
 
@@ -58,7 +60,7 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
                     logger.error("[Reconnect] listenableFuture error", t);
                     scheduleReconnect(callBack, reconnection_code);
                 }
-            });
+            }, MoreExecutors.directExecutor());
         } else {
             logger.info("[Reconnect] return for state {}", getLifecycleState().getPhaseName());
         }

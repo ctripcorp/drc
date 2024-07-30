@@ -2,6 +2,9 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.google.common.collect.Lists;
 
@@ -279,4 +282,19 @@ public class MockEntityBuilder {
         return messengerTbl;
     }
 
+    public static MhaDbReplicationTbl buildMhaDbReplicationTbl(Long pk) {
+        MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+        mhaDbReplicationTbl.setId(pk);
+        mhaDbReplicationTbl.setDeleted(0);
+        return mhaDbReplicationTbl;
+        
+    }
+
+    public static ApplierGroupTblV3 buildDbApplierGroup(long pk, Long mhdDbReplicationId) {
+        ApplierGroupTblV3 applierGroupTbl = new ApplierGroupTblV3();
+        applierGroupTbl.setId(pk);
+        applierGroupTbl.setMhaDbReplicationId(mhdDbReplicationId);
+        applierGroupTbl.setDeleted(0);
+        return applierGroupTbl;
+    }
 }

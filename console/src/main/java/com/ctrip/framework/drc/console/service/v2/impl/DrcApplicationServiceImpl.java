@@ -77,6 +77,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final long MAX_DELAY = 10000;
+    private static final String EMAIL_SUFFIX = "@trip.com";
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -182,8 +183,15 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
                 Collectors.toMap(e -> new MultiKey(e.getSrcMha(), e.getDstMha()), this::buildMhaReplicationDto, (k1, k2) ->k1));
         List<MhaReplicationDto> mhaReplicationDtos = Lists.newArrayList(mhaReplicationDtoMap.values());
 
-        List<DbApplierDto> mhaDbAppliers = dbDrcBuildService.getMhaDbAppliers(replicationTableTbls.get(0).getSrcMha(), replicationTableTbls.get(0).getDstMha());
-        boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+        boolean dbApplyMode = false;
+        //for shardDb there is delay in one db, and by default, other db also experience delays
+        for (MultiKey multiKey : mhaReplicationDtoMap.keySet()) {
+            List<DbApplierDto> mhaDbAppliers = dbDrcBuildService.getMhaDbAppliers((String) multiKey.getKey(0), (String) multiKey.getKey(1));
+            dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            if (dbApplyMode) {
+                break;
+            }
+        }
         if (!dbApplyMode) {
             boolean delayCorrect = checkMhaReplicationDelays(mhaReplicationDtos);
             if (!delayCorrect) {
@@ -210,6 +218,25 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         return result;
     }
 
+    @Override
+    public boolean manualSendEmail(long applicationFormId) throws Exception {
+        boolean result = sendEmail(applicationFormId);
+        ApplicationFormTbl applicationForm = applicationFormTblDao.queryById(applicationFormId);
+        if (applicationForm.getIsSentEmail().equals(BooleanEnum.FALSE.getCode())) {
+            applicationForm.setIsSentEmail(BooleanEnum.TRUE.getCode());
+            applicationFormTblDao.update(applicationForm);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean updateApplicant(long applicationFormId, String applicant) throws Exception {
+        ApplicationApprovalTbl approvalTbl = applicationApprovalTblDao.queryByApplicationFormId(applicationFormId);
+        approvalTbl.setApplicant(applicant);
+        applicationApprovalTblDao.update(approvalTbl);
+        return true;
+    }
+
     private MhaReplicationDto buildMhaReplicationDto(ReplicationTableTbl replicationTableTbl) {
         MhaReplicationDto target = new MhaReplicationDto();
         MhaDto srcMha = new MhaDto();
@@ -231,7 +258,12 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         email.setSender(domainConfig.getDrcConfigSenderEmail());
         email.addCc(domainConfig.getDrcConfigSenderEmail());
         if (domainConfig.getDrcConfigEmailSendSwitch()) {
-            email.addRecipient(approvalTbl.getApplicant() + "@trip.com");
+            if (approvalTbl.getApplicant().endsWith(EMAIL_SUFFIX)) {
+                email.addRecipient(approvalTbl.getApplicant());
+            } else {
+                email.addRecipient(approvalTbl.getApplicant() + EMAIL_SUFFIX);
+            }
+
             domainConfig.getDrcConfigCcEmail().forEach(email::addCc);
             email.addCc(domainConfig.getDrcConfigDbaEmail());
         } else {

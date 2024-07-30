@@ -7,6 +7,15 @@ public class MachineDto {
     private String ip;
     private Boolean isMaster;
 
+    public MachineDto() {
+    }
+    
+    public MachineDto(Integer port, String ip, Boolean isMaster) {
+        this.port = port;
+        this.ip = ip;
+        this.isMaster = isMaster;
+    }
+
     public Integer getPort() {
         return port;
     }

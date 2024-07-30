@@ -5,7 +5,10 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.*;
@@ -17,18 +20,24 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.service.v2.security.AccountService;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
+import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -90,6 +99,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private ApplierTblV2Dao applierTblDao;
     @Autowired
+    private ApplierGroupTblV3Dao dbApplierGroupTblDao;
+    @Autowired
     private ResourceTblDao resourceTblDao;
     @Autowired
     private DbTblDao dbTblDao;
@@ -137,6 +148,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MhaDbReplicationService mhaDbReplicationService;
     @Autowired
     private MhaServiceV2 mhaServiceV2;
+    @Autowired
+    private AccountService accountService;
+    @Autowired
+    private KmsService kmsService;
+    @Autowired
+    private MetaAccountService metaAccountService;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private final ListeningExecutorService replicationExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "replicationExecutorService"));
@@ -146,9 +163,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void buildMha(DrcMhaBuildParam param) throws Exception {
+    public Pair<Long,Long> mhaInitBeforeBuildIfNeed(DrcMhaBuildParam param) throws Exception {
         checkDrcMhaBuildParam(param);
-
+        
         long buId = getBuId(param.getBuName());
         DcTbl srcDcTbl = dcTblDao.queryByDcName(param.getSrcDc());
         DcTbl dstDcTbl = dcTblDao.queryByDcName(param.getDstDc());
@@ -159,12 +176,22 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId, param.getSrcTag());
         MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId, param.getDstTag());
 
-        long srcMhaId = insertMha(srcMha);
-        long dstMhaId = insertMha(dstMha);
+        long srcMhaId = initMhaAndAccount(srcMha,param.getSrcMachines());
+        long dstMhaId = initMhaAndAccount(dstMha,param.getDstMachines());
+        return Pair.of(srcMhaId,dstMhaId);
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildMhaAndReplication(DrcMhaBuildParam param) throws Exception {
+        Pair<Long,Long> mhaIds = mhaInitBeforeBuildIfNeed(param);
+        long srcMhaId = mhaIds.getLeft();
+        long dstMhaId = mhaIds.getRight();
+        
         insertMhaReplication(srcMhaId, dstMhaId);
         insertMhaReplication(dstMhaId, srcMhaId);
     }
-
+    
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMessengerMha(MessengerMhaBuildParam param) throws Exception {
@@ -177,7 +204,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag());
-        long mhaId = insertMha(mhaTbl);
+        long mhaId = initMhaAndAccount(mhaTbl, param.getMachineDto());
 
         // messengerGroup
         Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
@@ -521,6 +548,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+        mhaDbReplicationService.offlineMhaDbReplication(dbReplicationTbls);
 
         //config replicationTables
         List<ReplicationTableTbl> replicationTableTbls = replicationTableTblDao.queryByDbReplicationIds(dbReplicationIds, BooleanEnum.FALSE.getCode());
@@ -706,13 +734,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(), null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
+        // record mha and init accountv2
         MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
+        if (consoleConfig.getAccountFromMetaSwitch()) {
+            MemberInfo master = memberlist.stream().filter(memberInfo -> memberInfo.getRole().toLowerCase().contains("master")).findFirst().get();
+            accountService.mhaAccountV2ChangeAndRecord(mhaTblV2,master.getService_ip(),master.getDns_port());
+        }
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = insertOrRecoverMha(mhaTblV2, existMha);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
+        // record machines
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
-            machinesToBeInsert.add(extractFrom(memberInfo, mhaId));
+            machinesToBeInsert.add(extractFrom(memberInfo, mhaId,mhaName));
         }
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName, Arrays.stream(ints).sum());
@@ -746,7 +780,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         List<MachineTbl> machineFromDba = new ArrayList<>();
         for (MachineDto memberInfo : machineDtos) {
-            MachineTbl machineTbl = extractFrom(memberInfo, mhaId);
+            MachineTbl machineTbl = extractFrom(memberInfo, mhaId,mhaName);
             machineFromDba.add(machineTbl);
         }
         dbMetaCorrectService.mhaInstancesChange(machineFromDba, existMha);
@@ -804,6 +838,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (applierGroupTblV2 == null) {
             throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
         }
+        if (StringUtils.isEmpty(applierGroupTblV2.getGtidInit()) && StringUtils.isEmpty(gtid)) {
+            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, init gtid needed! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
+        }
+
         autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, gtid);
     }
 
@@ -819,7 +857,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, mhaExecutedGtid);
     }
 
-    private void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException {
+    @Override
+    public void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
+            MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException {
         // applier group gtid
         if (!StringUtils.isBlank(mhaExecutedGtid)) {
             applierGroup.setGtidInit(mhaExecutedGtid);
@@ -881,32 +921,61 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("[[mha={}]] getMhaExecutedGtid failed", mhaTbl.getMhaName());
             throw new ConsoleException("getMhaExecutedGtid failed!");
         }
+
+        autoConfigMessenger(mhaTbl, mhaExecutedGtid);
+    }
+
+    @Override
+    public void autoConfigMessenger(MhaTblV2 mhaTbl, String gtid) throws SQLException {
         MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
-        messengerGroupTbl.setGtidExecuted(mhaExecutedGtid);
-        messengerGroupTblDao.update(messengerGroupTbl);
-        logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mhaExecutedGtid);
+        if (StringUtils.isBlank(messengerGroupTbl.getGtidExecuted()) && StringUtils.isBlank(gtid)) {
+            throw ConsoleExceptionUtils.message(String.format("configure messenger fail, init gtid needed! mha: %s", mhaTbl.getMhaName()));
+        }
+        if (!StringUtils.isBlank(gtid) && !gtid.equals(messengerGroupTbl.getGtidExecuted())) {
+            messengerGroupTbl.setGtidExecuted(gtid);
+            messengerGroupTblDao.update(messengerGroupTbl);
+            logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), gtid);
+        }
+
+        // messengers
+        List<MessengerTbl> existMessengers = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        List<Long> inUseResourceId = existMessengers.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
+        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
 
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(mhaTbl.getMhaName());
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+        selectParam.setSelectedIps(inUseIps);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
         if (CollectionUtils.isEmpty(resourceViews)) {
             logger.error("[[mha={}]] autoConfigMessengers failed", mhaTbl.getMhaName());
             throw new ConsoleException("autoConfigMessengers failed!");
-        } else {
-            List<MessengerTbl> insertMessengers = Lists.newArrayList();
-            for (ResourceView resourceView : resourceViews) {
-                MessengerTbl messengerTbl = new MessengerTbl();
-                messengerTbl.setMessengerGroupId(messengerGroupTbl.getId());
-                messengerTbl.setResourceId(resourceView.getResourceId());
-                messengerTbl.setPort(DEFAULT_APPLIER_PORT);
-                messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                insertMessengers.add(messengerTbl);
-            }
-            int[] ints = messengerTblDao.batchInsert(insertMessengers);
-            logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
         }
+        // insert new messengers
+        List<MessengerTbl> insertMessengers = resourceViews.stream()
+                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
+                .map(e -> buildMessengerTbl(messengerGroupTbl, e))
+                .collect(Collectors.toList());
 
+        // delete old messengers
+        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+        List<MessengerTbl> deleteMessengers = existMessengers.stream()
+                .filter(e -> !newResourceId.contains(e.getResourceId()))
+                .collect(Collectors.toList());
+        deleteMessengers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        messengerTblDao.batchInsert(insertMessengers);
+        messengerTblDao.batchUpdate(deleteMessengers);
+        logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
+    }
+
+    private static MessengerTbl buildMessengerTbl(MessengerGroupTbl messengerGroupTbl, ResourceView resourceView) {
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setMessengerGroupId(messengerGroupTbl.getId());
+        messengerTbl.setResourceId(resourceView.getResourceId());
+        messengerTbl.setPort(DEFAULT_APPLIER_PORT);
+        messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return messengerTbl;
     }
 
     @Override
@@ -1153,11 +1222,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return addRemoveReplicatorIpsPair;
     }
 
-    private MachineTbl extractFrom(MachineDto machineDto, Long mhaId) throws Exception {
+    private MachineTbl extractFrom(MachineDto machineDto, Long mhaId,String mhaName) throws Exception {
         boolean isMaster = Boolean.TRUE.equals(machineDto.getMaster());
-        String uuid = MySqlUtils.getUuid(machineDto.getIp(), machineDto.getPort(),
-                monitorTableSourceProvider.getMonitorUserVal(), monitorTableSourceProvider.getMonitorPasswordVal(),
-                isMaster);
+        MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaName);
+        Account monitorAcc = mhaAccounts.getMonitorAcc();
+        String uuid = MySqlUtils.getUuid(
+                    machineDto.getIp(), machineDto.getPort(),
+                    monitorAcc.getUser(), monitorAcc.getPassword(),
+                    isMaster);
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setMhaId(mhaId);
         machineTbl.setMaster(isMaster ? BooleanEnum.TRUE.getCode() : BooleanEnum.FALSE.getCode());
@@ -1167,15 +1239,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return machineTbl;
     }
 
-    private MachineTbl extractFrom(MemberInfo memberInfo, Long mhaId) {
+    private MachineTbl extractFrom(MemberInfo memberInfo, Long mhaId,String mhaName) {
         String serviceIp = memberInfo.getService_ip();
         int dnsPort = memberInfo.getDns_port();
         String dcInDbaSystem = memberInfo.getMachine_located_short();
         boolean isMaster = memberInfo.getRole().toLowerCase().contains("master");
         String uuid = null;
         try {
-            uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorTableSourceProvider.getMonitorUserVal(),
-                    monitorTableSourceProvider.getMonitorPasswordVal(), isMaster);
+            MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts(mhaName);
+            Account monitorAcc = mhaAccounts.getMonitorAcc();
+             uuid = MySqlUtils.getUuid(serviceIp, dnsPort, monitorAcc.getUser(), monitorAcc.getPassword(), isMaster);
         } catch (Exception e) {
             logger.warn("getUuid failed, serviceIp:{}, dnsPort:{}, dcInDbaSystem:{}, isMaster:{}, e:{}",
                     serviceIp, dnsPort, dcInDbaSystem, isMaster, e.getMessage());
@@ -1483,6 +1556,72 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return XmlUtils.formatXML(drcMessengerConfig.toString());
     }
 
+    @Override
+    public int compensateGtidGap(GtidCompensateParam gtidCompensateParam) throws SQLException {
+        List<MhaTblV2> mhaTblV2s = mhaTblDao.queryByPk(gtidCompensateParam.getSrcMhaIds());
+        if (mhaTblV2s.size() != gtidCompensateParam.getSrcMhaIds().size()) {
+            throw new RuntimeException("srcMhaIds not exist");
+        }
+        Set<Long> dcIds = mhaTblV2s.stream().map(MhaTblV2::getDcId).collect(Collectors.toSet());
+        List<DcTbl> dcTbls = dcTblDao.queryByPk(Lists.newArrayList(dcIds));
+        Set<String> regions = dcTbls.stream().map(DcTbl::getRegionName).collect(Collectors.toSet());
+        if (regions.size() != 1 || !regions.contains(gtidCompensateParam.getSrcRegion())) {
+            throw new RuntimeException("srcMhaIds belong to different region");
+        }
+        int affectReplication = 0;
+        for (MhaTblV2 mha : mhaTblV2s) {
+            affectReplication += compensateGtidGap(mha, gtidCompensateParam.isExecute());
+        }
+        return affectReplication;
+    }
+    
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public int compensateGtidGap(MhaTblV2 srcMha,boolean execute) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMha.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            throw new RuntimeException("mhaExecutedGtid is empty," + srcMha.getMhaName());
+        }
+        logger.info("{{compensateGtidGap=start,mha={}}} mhaExecutedGtid: {}", srcMha.getMhaName(), mhaExecutedGtid);
+        // 1.Applier
+        List<MhaReplicationTbl> mhaReplication = mhaReplicationTblDao.queryBySrcMhaId(srcMha.getId());
+        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblDao.queryByMhaReplicationIds(
+                mhaReplication.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList()));
+        applierGroupTblV2s.forEach(applierGroup -> applierGroup.setGtidInit(unionGtid(applierGroup.getGtidInit(), mhaExecutedGtid)));
+        // 2.DbApplier
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationService.queryBySrcMha(srcMha.getMhaName());
+        List<ApplierGroupTblV3> dbApplierGroupTbls = dbApplierGroupTblDao.queryByMhaDbReplicationIds(
+                mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList()));
+        dbApplierGroupTbls.forEach(applierGroup -> applierGroup.setGtidInit(unionGtid(applierGroup.getGtidInit(), mhaExecutedGtid)));
+        // 3.Messenger
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(srcMha.getId(), 0);
+        boolean existMessenger = messengerGroupTbl != null;
+        if (existMessenger) {
+            messengerGroupTbl.setGtidExecuted(unionGtid(messengerGroupTbl.getGtidExecuted(), mhaExecutedGtid));
+        }
+        if (execute) {
+            if (applierGroupTblV2s.size() > 0) {
+                applierGroupTblDao.update(applierGroupTblV2s);
+            }
+            if (dbApplierGroupTbls.size() > 0) {
+                dbApplierGroupTblDao.update(dbApplierGroupTbls);
+            }
+            if (existMessenger) {
+                messengerGroupTblDao.update(messengerGroupTbl);
+            }
+        }
+        int replicationCount = applierGroupTblV2s.size() + dbApplierGroupTbls.size() + (existMessenger ? 1 : 0);
+        logger.info("{{compensateGtidGap=end,mha={}}} mhaExecutedGtid: {} ,affectReplication:{}", srcMha.getMhaName(), mhaExecutedGtid, replicationCount);
+        return replicationCount;
+    }
+    
+    private String unionGtid(String origin,String compensateGtid) {
+        GtidSet originSet = new GtidSet(origin);
+        GtidSet compensateSet = new GtidSet(compensateGtid);
+        GtidSet unionSet = originSet.union(compensateSet);
+        logger.info("unionGtid origin:{},compensate:{},union:{}",origin,compensateGtid,unionSet.toString());
+        return unionSet.toString();
+    }
+
     private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         Map<String, Long> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getId));
 
@@ -1602,16 +1741,76 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-    private long insertMha(MhaTblV2 mhaTblV2) throws Exception {
+    private long initMhaAndAccount(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) throws Exception {
         MhaTblV2 existMhaTbl = mhaTblDao.queryByMhaName(mhaTblV2.getMhaName());
         if (null == existMhaTbl) {
+            initAccountIfNeed(mhaTblV2,machineDto);
             return mhaTblDao.insertWithReturnId(mhaTblV2);
         } else if (existMhaTbl.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
+            initAccountIfNeed(existMhaTbl,machineDto);
+            existMhaTbl.setMonitorSwitch(BooleanEnum.TRUE.getCode());
             existMhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(existMhaTbl);
         }
         return existMhaTbl.getId();
     }
+
+    private void initAccountIfNeed(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) {
+        if (StringUtils.isBlank(mhaTblV2.getMonitorUser())
+                || StringUtils.isBlank(mhaTblV2.getMonitorPassword())
+                || StringUtils.isBlank(mhaTblV2.getMonitorPasswordToken())
+                || StringUtils.isBlank(mhaTblV2.getReadUser())
+                || StringUtils.isBlank(mhaTblV2.getReadPassword())
+                || StringUtils.isBlank(mhaTblV2.getReadPasswordToken())
+                || StringUtils.isBlank(mhaTblV2.getWriteUser())
+                || StringUtils.isBlank(mhaTblV2.getWritePassword())
+                || StringUtils.isBlank(mhaTblV2.getWritePasswordToken())) {
+            mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
+            mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
+            mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
+            mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
+            mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
+            mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
+            if (consoleConfig.getAccountKmsTokenSwitch()) {
+                mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
+                mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
+                mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
+            }
+        }
+        if (StringUtils.isBlank(mhaTblV2.getMonitorUserV2())
+                || StringUtils.isBlank(mhaTblV2.getMonitorPasswordTokenV2())
+                || StringUtils.isBlank(mhaTblV2.getReadUserV2())
+                || StringUtils.isBlank(mhaTblV2.getReadPasswordTokenV2())
+                || StringUtils.isBlank(mhaTblV2.getWriteUserV2())
+                || StringUtils.isBlank(mhaTblV2.getWritePasswordTokenV2())) {
+            if (consoleConfig.getAccountKmsTokenSwitchV2()) {
+                // if no masterNode info , record default account v2
+                if (CollectionUtils.isEmpty(machineDto)) {
+                    Account monitorAcc = kmsService.getAccountInfo(consoleConfig.getDefaultMonitorAccountKmsToken());
+                    Account readAcc = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
+                    Account writeAcc = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
+                    mhaTblV2.setMonitorUserV2(monitorAcc.getUser());
+                    mhaTblV2.setMonitorPasswordTokenV2(accountService.encrypt(monitorAcc.getPassword()));
+                    mhaTblV2.setReadUserV2(readAcc.getUser());
+                    mhaTblV2.setReadPasswordTokenV2(accountService.encrypt(readAcc.getPassword()));
+                    mhaTblV2.setWriteUserV2(writeAcc.getUser());
+                    mhaTblV2.setWritePasswordTokenV2(accountService.encrypt(writeAcc.getPassword()));
+                } else {
+                    if (consoleConfig.getAccountFromMetaSwitch()) {
+                        MachineDto masterNode = machineDto.stream().filter(MachineDto::getMaster).findFirst().orElse(null);
+                        if (masterNode == null) {
+                            throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " masterNode not found!");
+                        }
+                        boolean res = accountService.mhaAccountV2ChangeAndRecord(mhaTblV2, masterNode.getIp(), masterNode.getPort());
+                        if (!res) {
+                            throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " account change failed!");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     private long getBuId(String buName) throws Exception {
         BuTbl existBuTbl = buTblDao.queryByBuName(buName);
@@ -1624,7 +1823,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         buTbl.setDeleted(BooleanEnum.FALSE.getCode());
         return buTblDao.insertWithReturnId(buTbl);
     }
-
+    
+    
+   
     private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag) {
         String clusterName = mhaName + CLUSTER_NAME_SUFFIX;
         MhaTblV2 mhaTblV2 = new MhaTblV2();
@@ -1638,12 +1839,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setDeleted(BooleanEnum.FALSE.getCode());
         mhaTblV2.setTag(tag);
 
-        mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
-        mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
-        mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
-        mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
-        mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
-        mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
 
         return mhaTblV2;
     }

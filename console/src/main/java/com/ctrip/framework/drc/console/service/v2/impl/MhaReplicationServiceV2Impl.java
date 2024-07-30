@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
@@ -92,6 +93,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private MhaDbReplicationTblDao mhaDbReplicationTblDao;
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
 
 
     @Override
@@ -340,22 +343,17 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                     srcMha.getMhaName() + "==>" + dstMha.getMhaName() + ":Applier not empty!" );
         }
 
-        List<MhaTblV2> mhasToBeDelete = Lists.newArrayList();
-        markMhaOfflineIfNeed(srcMha, mhasToBeDelete);
-        markMhaOfflineIfNeed(dstMha, mhasToBeDelete);
-
+        // delete mha db replications as well
+        mhaDbReplicationService.offlineMhaDbReplication(srcMha.getMhaName(), dstMha.getMhaName());
+        offlineMhaIfNeed(srcMha);
+        offlineMhaIfNeed(dstMha);
         logger.info("Going to delete mha replication, srcMha:{}, dstMha:{}", srcMha.getMhaName(), dstMha.getMhaName());
         mhaReplicationTbl.setDeleted(BooleanEnum.TRUE.getCode());
         mhaReplicationTblDao.update(mhaReplicationTbl);
-        if (!mhasToBeDelete.isEmpty()) {
-            mhaTblV2Dao.update(mhasToBeDelete);
-        }
-        // delete mha db replications as well
-        mhaDbReplicationService.offlineMhaDbReplication(srcMha.getMhaName(), dstMha.getMhaName());
         return true;
     }
 
-    private void markMhaOfflineIfNeed(MhaTblV2 mha, List<MhaTblV2> mhasToBeDelete) throws SQLException {
+    private void offlineMhaIfNeed(MhaTblV2 mha) throws SQLException {
         MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaId(mha.getId(), BooleanEnum.FALSE.getCode());
         if (messengerGroup != null) { // mha has messenger
             return;
@@ -368,9 +366,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
                         mha.getMhaName() + "will offline,but Replicator not empty!");
             } else {
-                logger.info("Going to mark mha {} as offline", mha.getMhaName());
-                mha.setDeleted(BooleanEnum.TRUE.getCode());
-                mhasToBeDelete.add(mha);
+                logger.info("offline mha {}", mha.getMhaName());
+                mhaServiceV2.offlineMha(mha.getMhaName());
             }
         }
     }

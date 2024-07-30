@@ -143,7 +143,7 @@
 
 <script>
 export default {
-  name: 'drcConfig.vue',
+  name: 'drcConfig',
   props: {
     mhaName: String,
     dc: String

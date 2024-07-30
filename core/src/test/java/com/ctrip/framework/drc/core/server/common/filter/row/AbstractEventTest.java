@@ -130,7 +130,7 @@ public abstract class AbstractEventTest {
     }
 
     protected String getContext() {
-        return "SG,FRA";
+        return "SIN,FRA";
     }
 
     /*

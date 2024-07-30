@@ -28,6 +28,10 @@ public class BackupReplicatorConnection extends ReplicatorConnection {
 
     }
 
+    @Override
+    public void afterReconnection(SimpleObjectPool<NettyClient> result) {
+    }
+
     protected boolean isMaster() {
         return false;
     }

@@ -64,8 +64,8 @@
             </Select>
           </FormItem>
           <FormItem label="Tag" prop="tag">
-            <Select v-model="buildParam.tag">
-              <Option v-for="item in tags" :value="item" :key="item">{{item}}</Option>
+            <Select v-model="buildParam.tag" filterable allow-create @on-create="handleCreateTag">
+              <Option v-for="item in tags" :value="item" :key="item" >{{item}}</Option>
             </Select>
           </FormItem>
           <FormItem label="是否刷存量数据" prop="flushExistingData">
@@ -181,6 +181,10 @@ export default {
     }
   },
   methods: {
+    handleCreateTag (val) {
+      this.constant.tagList.push(val)
+      this.tags.push(val)
+    },
     reverseRegion () {
       const srcRegion = this.buildParam.srcRegion
       this.buildParam.srcRegion = this.buildParam.dstRegion

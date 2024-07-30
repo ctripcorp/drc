@@ -16,7 +16,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +29,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
     private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
 
-    private static final String DEFAULT_BINARY_CHARSET = "ISO-8859-1";
+    private static final Charset DEFAULT_BINARY_CHARSET = StandardCharsets.ISO_8859_1;
 
     @InstanceResource
     public MqProvider mqProvider;
@@ -148,13 +150,13 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
     private String parseOneValue(Object value, TableMapLogEvent.Column column) {
         if (column.isBinary()) {
-            String charset = column.getCharset();
-            if (charset == null) {
-                charset = DEFAULT_BINARY_CHARSET;
-            }
+            Charset charset = column.calJavaCharset();
             try {
+                if (charset == null) {
+                    charset = DEFAULT_BINARY_CHARSET;
+                }
                 return new String((byte[]) value, charset);
-            } catch (UnsupportedEncodingException e) {
+            } catch (UnsupportedCharsetException e) {
                 loggerMsgSend.error("parse one value of row error with charset {}: ", charset, e);
             }
         }

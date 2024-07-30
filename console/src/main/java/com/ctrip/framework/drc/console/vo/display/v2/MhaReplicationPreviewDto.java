@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.vo.display.v2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.DrcApplyModeEnum;
 import com.ctrip.framework.drc.console.enums.DrcStatusEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 
 import java.util.List;
 
@@ -20,9 +21,23 @@ public class MhaReplicationPreviewDto {
 
     private Integer drcApplyMode;
 
+    private Integer replicationType = ReplicationTypeEnum.DB_TO_DB.getType();
+
     // only when
     public Boolean normalCase() {
-        return getSrcMha() != null && getDstMha() != null;
+        if (ReplicationTypeEnum.getByType(replicationType) == ReplicationTypeEnum.DB_TO_DB) {
+            return getSrcMha() != null && getDstMha() != null;
+        } else {
+            return getSrcMha() != null && getDstMha() == null;
+        }
+    }
+
+    public Integer getReplicationType() {
+        return replicationType;
+    }
+
+    public void setReplicationType(Integer replicationType) {
+        this.replicationType = replicationType;
     }
 
     public MhaDto getSrcMha() {

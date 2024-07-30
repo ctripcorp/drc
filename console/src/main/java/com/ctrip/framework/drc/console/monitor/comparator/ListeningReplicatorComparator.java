@@ -50,8 +50,9 @@ public class ListeningReplicatorComparator extends AbstractMetaComparator<String
                 dcRouteComparator.compare();
                 Set<Route> removedRoutes = dcRouteComparator.getRemoved();
                 Set<MetaComparator> modifiedRoutesComparator = dcRouteComparator.getMofified();
+                Set<Route> added = dcRouteComparator.getAdded();
 
-                if(!removedRoutes.isEmpty() || !modifiedRoutesComparator.isEmpty()) {
+                if(!removedRoutes.isEmpty() || !modifiedRoutesComparator.isEmpty() || !added.isEmpty()) {
                     modified.add(new ReplicatorWrapperComparator(dbClusterId));
                 }
             } else {

@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.mysql.MySQLToolsApiService;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.TrafficStatisticsService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 
@@ -83,6 +84,14 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
     }
     public static EmailService getEmailServiceImpl() {
         return EmailServiceHolder.INSTANCE;
+    }
+    
+    private static class HeraldServiceHolder {
+        public static final HeraldService INSTANCE = load(HeraldService.class);
+    }
+    
+    public static HeraldService getHeraldServiceImpl() {
+        return HeraldServiceHolder.INSTANCE;
     }
     
 }

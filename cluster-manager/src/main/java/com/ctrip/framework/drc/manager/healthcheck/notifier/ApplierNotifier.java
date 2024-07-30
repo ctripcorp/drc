@@ -84,7 +84,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
         String targetName = null;
         String replicatorMhaName = null;
         for (Applier applier : dbCluster.getAppliers()) {
-            if (ipAndPort.equals(applier.getIp() + ":" + applier.getPort())) {
+            if (ipAndPort.equals(getInstancesNotifyIpPort(applier))) {
                 config.ip = applier.getIp();
                 config.port = applier.getPort();
                 config.setGtidExecuted(applier.getGtidExecuted());
@@ -152,7 +152,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
             return Lists.newArrayList();
         }
         return Lists.newArrayList(dbCluster.getAppliers().stream().map(
-                applier -> applier.getIp() + ":" + applier.getPort()
+                this::getInstancesNotifyIpPort
         ).collect(Collectors.toList()));
     }
 

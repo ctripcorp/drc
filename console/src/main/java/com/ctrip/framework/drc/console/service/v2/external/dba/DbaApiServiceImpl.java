@@ -2,17 +2,27 @@ package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.DrcTmpconninfoDao;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.SQLDigestInfo.Digest;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +53,15 @@ public class DbaApiServiceImpl implements DbaApiService {
     private DomainConfig domainConfig;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    
     private UserService userService = ApiContainer.getUserServiceImpl();
+
+    @Autowired
+    private KmsService kmsService;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
+    @Autowired
+    private DrcTmpconninfoDao drcTmpconninfoDao;
 
 
     @Override
@@ -52,7 +70,6 @@ public class DbaApiServiceImpl implements DbaApiService {
         requestBody.put("clustername", clusterName);
         String mysqlApiUrl = domainConfig.getMysqlApiUrl();
         String responseString = HttpUtils.post(mysqlApiUrl + GET_CLUSTER_NODE_INFO, requestBody, String.class);
-        System.out.println("getClusterMembersInfo responseString" + responseString);
         DbaClusterInfoResponse clusterInfo = JsonUtils.fromJson(responseString, DbaClusterInfoResponse.class);
 
 //        DbaClusterInfoResponse clusterInfo = HttpUtils.post(mysqlApiUrl + GET_CLUSTER_NODE_INFO, requestBody,DbaClusterInfoResponse.class);
@@ -60,7 +77,6 @@ public class DbaApiServiceImpl implements DbaApiService {
                 || clusterInfo.getData().getMemberlist() == null || clusterInfo.getData().getMemberlist().isEmpty()) {
             logger.info("clusterName:{}, getMembersInfo failed, try to get from cloud", clusterName);
             responseString = HttpUtils.post(mysqlApiUrl + GET_CLUSTER_NODE_INFO_CLOUD, requestBody, String.class);
-            System.out.println("getClusterMembersInfo responseString" + responseString);
             clusterInfo = JsonUtils.fromJson(responseString, DbaClusterInfoResponse.class);
         }
         if (clusterInfo == null || !clusterInfo.getSuccess() || clusterInfo.getData() == null
@@ -226,6 +242,66 @@ public class DbaApiServiceImpl implements DbaApiService {
             return true;
         }
     }
-    
-    
+
+    @Override
+    public MhaAccounts accountV2PwdChange(MhaTblV2 mhaTblV2) {
+        try {
+            MachineTbl masterNode = mhaServiceV2.getMasterNode(mhaTblV2.getId());
+            if (!doChangeAccountV2Pwd(mhaTblV2.getMhaName(), masterNode)) {
+                return null;
+            }
+            String kmsAccessToken = consoleConfig.getKMSAccessToken("dba.account");
+            String secretKey = kmsService.getSecretKey(kmsAccessToken);
+            return drcTmpconninfoDao.queryByHostPort(secretKey, masterNode.getIp(), masterNode.getPort());
+        } catch (Exception e) {
+            DefaultEventMonitorHolder.getInstance().logEvent("drc.console.initAccountV2.fail", mhaTblV2.getMhaName());
+            logger.error("initAccountV2 failed, mhaTblV2:{}", mhaTblV2, e);
+            return null;
+        }
+    }
+
+    @Override
+    public MhaAccounts accountV2PwdChange(String mhaName, String masterNodeIp, Integer masterNodePort) {
+        try {
+            MachineTbl masterNode = new MachineTbl();
+            masterNode.setIp(masterNodeIp);
+            masterNode.setPort(masterNodePort);
+            if (!doChangeAccountV2Pwd(mhaName, masterNode)) {
+                return null;
+            }
+            String kmsAccessToken = consoleConfig.getKMSAccessToken("dba.account");
+            String secretKey = kmsService.getSecretKey(kmsAccessToken);
+            return drcTmpconninfoDao.queryByHostPort(secretKey, masterNodeIp, masterNodePort);
+        } catch (Exception e) {
+            DefaultEventMonitorHolder.getInstance().logEvent("drc.console.initAccountV2.fail", mhaName);
+            logger.error("initAccountV2 failed, mhaName:{}, masterNodeIp:{}, Port:{}", mhaName, masterNodeIp, masterNodePort, e);
+            return null;
+        }
+        
+    }
+
+    public boolean doChangeAccountV2Pwd(String mhaName, MachineTbl masterNode) throws Exception {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction(
+                "drc.console.doChangeAccountV2Pwd", mhaName,
+                ()-> {
+                    Map<String,Object> params = Maps.newLinkedHashMap();
+                    params.put("datasource", masterNode.getIp() + ";port=" + masterNode.getPort());
+                    String kmsAccessToken = consoleConfig.getKMSAccessToken("dba.account");
+                    String secretKey = kmsService.getSecretKey(kmsAccessToken);
+                    params.put("token", secretKey);
+
+                    String resString = HttpUtils.post(consoleConfig.getDbaApiPwdChangeUrl(), params, String.class);
+                    JsonObject res = JsonUtils.parseObject(resString);
+                    String status = res.get("status").getAsString();
+                    if ("success".equalsIgnoreCase(status)) {
+                        DefaultEventMonitorHolder.getInstance().logEvent("drc.console.changePassword.success", mhaName);
+                        return true;
+                    }
+                    DefaultEventMonitorHolder.getInstance().logEvent("drc.console.changePassword.fail", mhaName);
+                    logger.error("changePassword failed, mha:{}, masterNode:{}, response:{}", mhaName, masterNode, resString);
+                    return false;
+                });
+    }
+
+
 }

@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.replicator.MockTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -46,7 +46,7 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     private ChannelAttributeKey channelAttributeKey;
 
     @Mock
-    private Gate gate;
+    private ScheduleCloseGate gate;
 
     @Mock
     private IdleStateEvent idleStateEvent;
@@ -77,7 +77,7 @@ public class ReplicatorMasterHandlerTest extends MockTest {
 
         when(channel.isWritable()).thenReturn(false);
         masterHandler.channelWritabilityChanged(channelHandlerContext);
-        verify(gate, times(1)).close();
+        verify(gate, times(1)).scheduleClose();
     }
 
     @Test

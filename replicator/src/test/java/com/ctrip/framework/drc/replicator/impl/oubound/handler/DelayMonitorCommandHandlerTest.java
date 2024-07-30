@@ -10,7 +10,7 @@ import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
 import com.ctrip.xpipe.netty.commands.NettyClient;
-import com.ctrip.xpipe.utils.Gate;
+import com.ctrip.framework.drc.core.utils.ScheduleCloseGate;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
@@ -33,7 +33,7 @@ public class DelayMonitorCommandHandlerTest {
         ChannelFuture channelFuture = Mockito.mock(ChannelFuture.class);
         Attribute attribute = Mockito.mock(Attribute.class);
         ChannelAttributeKey channelAttributeKey = Mockito.mock(ChannelAttributeKey.class);
-        Gate gate = Mockito.mock(Gate.class);
+        ScheduleCloseGate gate = Mockito.mock(ScheduleCloseGate.class);
         Mockito.when(channel.remoteAddress()).thenReturn(new InetSocketAddress("127.0.0.1", 8080));
         Mockito.when(channel.closeFuture()).thenReturn(channelFuture);
         Mockito.when(channel.attr(Mockito.any())).thenReturn(attribute);
@@ -61,7 +61,7 @@ public class DelayMonitorCommandHandlerTest {
         ChannelFuture channelFuture = Mockito.mock(ChannelFuture.class);
         Attribute attribute = Mockito.mock(Attribute.class);
         ChannelAttributeKey channelAttributeKey = Mockito.mock(ChannelAttributeKey.class);
-        Gate gate = Mockito.mock(Gate.class);
+        ScheduleCloseGate gate = Mockito.mock(ScheduleCloseGate.class);
         Mockito.when(channel.remoteAddress()).thenReturn(new InetSocketAddress("127.0.0.1", 8080));
         Mockito.when(channel.closeFuture()).thenReturn(channelFuture);
         Mockito.when(channel.attr(Mockito.any())).thenReturn(attribute);
