@@ -30,7 +30,9 @@ public class DomainConfig extends AbstractConfigBean {
     private DefaultConsoleConfig consoleConfig;
     
     private static final String MYSQL_API_URL = "mysql.api.url";
+    private static final String MYSQL_API_URL_V2 = "mysql.api.url.v2";
     private static final String DEFAULT_MYSQL_API_URL = "http://localhost:8080/mysqlapi/";
+    private static final String DEFAULT_MYSQL_API_URL_V2 = "http://localhost:8080/mysqlapi/";
 
     private static final String DAL_SERVICE_PREFIX = "dal.service.prefix";
     private static final String DEFAULT_DAL_SERVICE_PREFIX = "http://localhost:8080/database/";
@@ -345,6 +347,10 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getMysqlApiUrl() {
         return getProperty(MYSQL_API_URL, DEFAULT_MYSQL_API_URL);
+    }
+
+    public String getMysqlApiUrlV2() {
+        return getProperty(MYSQL_API_URL_V2, DEFAULT_MYSQL_API_URL_V2);
     }
 
     public String getDotToken() {

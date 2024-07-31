@@ -39,7 +39,6 @@ import java.util.List;
  * @Date 2023/8/24 20:58
  * @Version: $
  */
-@Service
 public class DbaApiServiceImpl implements DbaApiService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
