@@ -2,10 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaDbClusterInfoResponseV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -47,14 +44,16 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
         String responseString = HttpUtils.get(url, String.class);
         logger.info("[getClusterMembersInfo] url: {}, resp: {}", url, responseString);
 
-
-        DbaClusterInfoResponse clusterInfo = JsonUtils.fromJson(responseString, DbaClusterInfoResponse.class);
-        if (clusterInfo == null || !clusterInfo.getSuccess() || clusterInfo.getData() == null
-                || clusterInfo.getData().getMemberlist() == null || clusterInfo.getData().getMemberlist().isEmpty()) {
-            logger.error("clusterName:{}, getMembersInfo from cloud failedd", clusterName);
-            throw ConsoleExceptionUtils.message(clusterName + " syncMhaInfoFormDbaApi failed! Response: " + clusterInfo);
+        DbaClusterInfoResponse response = JsonUtils.fromJson(responseString, DbaClusterInfoResponse.class);
+        if (response == null || !response.getSuccess()) {
+            throw ConsoleExceptionUtils.message(clusterName + " getClusterMembersInfo failed! Response: " + response);
         }
-        return clusterInfo;
+        Data data = response.getData();
+        if (data == null || CollectionUtils.isEmpty(data.getMemberlist())) {
+            throw ConsoleExceptionUtils.message(clusterName + " getClusterMembersInfo empty result ");
+        }
+
+        return response;
     }
 
     @Override
@@ -71,7 +70,7 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
             throw ConsoleExceptionUtils.message(dbName + " getDatabaseClusterInfo failed! Response: " + response);
         }
         if (CollectionUtils.isEmpty(response.getData())) {
-            throw ConsoleExceptionUtils.message(dbName + " empty result ");
+            throw ConsoleExceptionUtils.message(dbName + " getDatabaseClusterInfo empty result ");
         }
 
         return response.getData().stream().flatMap(e -> e.getClusterList().stream()).collect(Collectors.toList());
@@ -85,7 +84,6 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
 
         String url = domainConfig.getMysqlApiUrlV2() + GET_DB_CLUSTER_NODE_INFO.replace("{dalcluster}", dalClusterName);
         String responseString = HttpUtils.get(url, String.class);
-
         logger.info("[getDatabaseClusterInfoList] url: {}, resp: {}", url, responseString);
 
         DbaDbClusterInfoResponseV2 response = JsonUtils.fromJson(responseString, DbaDbClusterInfoResponseV2.class);
@@ -93,7 +91,7 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
             throw ConsoleExceptionUtils.message("Query db info error for dalCluster: " + dalClusterName + ". Response: " + response);
         }
         if (CollectionUtils.isEmpty(response.getData())) {
-            throw ConsoleExceptionUtils.message(dalClusterName + " empty result ");
+            throw ConsoleExceptionUtils.message(dalClusterName + " getDatabaseClusterInfoList empty result ");
         }
 
         return response.getData();
