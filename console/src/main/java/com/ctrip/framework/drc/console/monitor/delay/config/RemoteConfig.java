@@ -42,7 +42,7 @@ public class RemoteConfig extends AbstractConfig implements Config {
                     if (consoleConfig.requestWithHeraldToken()) {
                         requestUrl += "&heraldToken=" + heraldService.getLocalHeraldToken();
                     }
-                    String drcFromRemote = HttpUtils.get(requestUrl, String.class);
+                    String drcFromRemote = HttpUtils.getAcceptAllEncoding(requestUrl, String.class);
                     META_LOGGER.info("remote update meta info with v2, refresh true");
                     long e = System.currentTimeMillis();
                     META_LOGGER.info("remote update meta info, took {}ms", e - s);

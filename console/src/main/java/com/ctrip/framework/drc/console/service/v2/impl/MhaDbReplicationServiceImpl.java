@@ -567,7 +567,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     }
 
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
     public void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException {
         MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
         MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryByMhaName(dstMhaName, 0);
@@ -601,7 +601,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     }
 
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
     public void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames) throws SQLException {
         MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
         if (srcMhaTbl == null) {

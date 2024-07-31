@@ -63,7 +63,6 @@ public class HttpUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
-        headers.set(HttpHeaders.ACCEPT_ENCODING, GZIP_DEFLATE_BR);
         return headers;
     }
 
@@ -103,6 +102,15 @@ public class HttpUtils {
         httpHeaders.setAccept(Lists.newArrayList(MediaType.ALL));
         HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(httpHeaders);
         return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
+    }
+
+    public static <T> T getAcceptAllEncoding(String url, Class<T> responseType) {
+        init();
+        HttpHeaders httpHeaders = defaultHttpHeaders();
+        httpHeaders.setAccept(Lists.newArrayList(MediaType.ALL));
+        httpHeaders.set(HttpHeaders.ACCEPT_ENCODING, GZIP_DEFLATE_BR);
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(httpHeaders);
+        return restTemplate.exchange(url, HttpMethod.GET, requestWithHeader, responseType).getBody();
     }
     
     
