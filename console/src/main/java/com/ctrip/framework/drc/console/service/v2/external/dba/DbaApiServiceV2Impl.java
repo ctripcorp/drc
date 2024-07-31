@@ -12,13 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
 @Service
 public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiService {
 
+    public static final String OPERATOR = "drc";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final String GET_CLUSTER_NODE_INFO = "/api/v1/mysql/cluster/{cluster}/instances/query";
@@ -40,8 +43,10 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
         if (!useNewApi()) {
             return super.getClusterMembersInfo(clusterName);
         }
+        Map<String, String> params = new HashMap<>();
+        params.put("operator", OPERATOR);
         String url = domainConfig.getMysqlApiUrlV2() + GET_CLUSTER_NODE_INFO.replace("{cluster}", clusterName);
-        String responseString = HttpUtils.get(url, String.class);
+        String responseString = HttpUtils.get(url, String.class, params);
         logger.info("[getClusterMembersInfo] url: {}, resp: {}", url, responseString);
 
         DbaClusterInfoResponse response = JsonUtils.fromJson(responseString, DbaClusterInfoResponse.class);
@@ -61,8 +66,10 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
         if (!useNewApi()) {
             return super.getDatabaseClusterInfo(dbName);
         }
+        Map<String, String> params = new HashMap<>();
+        params.put("operator", OPERATOR);
         String url = domainConfig.getMysqlApiUrlV2() + GET_DATABASE_CLUSTER_INFO.replace("{database}", dbName);
-        String responseString = HttpUtils.get(url, String.class);
+        String responseString = HttpUtils.get(url, String.class, params);
         logger.info("[getDatabaseClusterInfo] url: {}, resp: {}", url, responseString);
 
         DbaDbClusterInfoResponseV2 response = JsonUtils.fromJson(responseString, DbaDbClusterInfoResponseV2.class);
@@ -82,8 +89,10 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
             return super.getDatabaseClusterInfoList(dalClusterName);
         }
 
+        Map<String, String> params = new HashMap<>();
+        params.put("operator", OPERATOR);
         String url = domainConfig.getMysqlApiUrlV2() + GET_DB_CLUSTER_NODE_INFO.replace("{dalcluster}", dalClusterName);
-        String responseString = HttpUtils.get(url, String.class);
+        String responseString = HttpUtils.get(url, String.class, params);
         logger.info("[getDatabaseClusterInfoList] url: {}, resp: {}", url, responseString);
 
         DbaDbClusterInfoResponseV2 response = JsonUtils.fromJson(responseString, DbaDbClusterInfoResponseV2.class);

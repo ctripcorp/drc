@@ -42,6 +42,7 @@ public class HttpUtils {
     public static int DEFAULT_SO_TIMEOUT = Integer.parseInt(System.getProperty("so-timeout", "60000"));
     public static int DEFAULT_RETRY_INTERVAL_MILLI = Integer
             .parseInt(System.getProperty("metaserver.retryIntervalMilli", "5"));
+    public static final String GZIP_DEFLATE_BR = "gzip, deflate, br";
 
     private static void init() {
         if(null == restTemplate) {
@@ -62,6 +63,7 @@ public class HttpUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        headers.set(HttpHeaders.ACCEPT_ENCODING, GZIP_DEFLATE_BR);
         return headers;
     }
 
