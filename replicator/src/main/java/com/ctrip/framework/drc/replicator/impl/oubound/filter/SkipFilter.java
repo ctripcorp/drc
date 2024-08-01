@@ -71,7 +71,7 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
         value.setGtid(gtidLogEvent.getGtid());
         previousGtid = value.getGtid();
 
-        Gtid gtid = new Gtid(gtidLogEvent.getServerUUID().toString(), gtidLogEvent.getId());
+        Gtid gtid = Gtid.from(gtidLogEvent);
         inExcludeGroup = skipEvent(excludedSet, eventType, gtid);
         if (inExcludeGroup) {
             GTID_LOGGER.debug("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", value.getGtid(), gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);

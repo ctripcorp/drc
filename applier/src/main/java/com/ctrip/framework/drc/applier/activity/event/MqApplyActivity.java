@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.applier.resource.context.MqTransactionContextResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -36,7 +37,7 @@ public class MqApplyActivity extends ApplyActivity {
 
     @Override
     protected Transaction onSuccess(Transaction transaction) throws InterruptedException {
-        mqPosition.add(transactionContext.fetchGtid());
+        mqPosition.add(new Gtid(transactionContext.fetchGtid()));
         return super.onSuccess(transaction);
     }
 

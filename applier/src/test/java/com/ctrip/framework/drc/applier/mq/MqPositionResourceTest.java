@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.mq;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.xpipe.zk.ZkClient;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.ExistsBuilder;
@@ -78,7 +79,7 @@ public class MqPositionResourceTest {
 
     @Test
     public void updatePosition() {
-        mqPosition.add(toUpdateGtid);
+        mqPosition.add(new Gtid(toUpdateGtid));
         String position = mqPosition.getCurrentPosition();
         Assert.assertEquals(toUpdateGtid, position);
     }

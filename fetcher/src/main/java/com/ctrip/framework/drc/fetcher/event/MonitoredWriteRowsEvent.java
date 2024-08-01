@@ -27,9 +27,11 @@ public class MonitoredWriteRowsEvent<T extends BaseTransactionContext> extends F
     protected void doApply(T context) {
         List<List<Object>> beforeRows = getBeforePresentRowsValues();
         Bitmap beforeBitmap = Bitmap.from(getBeforeRowsKeysPresent());
-        loggerR.info(attachTags(context, "WRITE.doApply()" +
-                "\nbefore rows: " + beforeRows +
-                "\nbefore bitmap: " + beforeBitmap));
+        if (loggerR.isDebugEnabled()) {
+            loggerR.debug(attachTags(context, "WRITE.doApply()" +
+                    "\nbefore rows: " + beforeRows +
+                    "\nbefore bitmap: " + beforeBitmap));
+        }
         context.insert(beforeRows, beforeBitmap, columns);
     }
 }

@@ -71,6 +71,37 @@ public class GtidSetTest {
                 "00000000-0000-0000-0000-000000000000:0:2-5:7,00000000-0000-0000-0000-000000000001:9");
     }
 
+
+    @Test
+    public void testAdd2() throws Exception {
+        String uuid = "00000000-0000-0000-0000-000000000000";
+        String uuid2 = "00000000-0000-0000-0000-000000000001";
+        GtidSet gtidSet = new GtidSet(uuid + ":3-5");
+        gtidSet.add(uuid, 2);
+        gtidSet.add(uuid, 4);
+        gtidSet.add(uuid, 5);
+        gtidSet.add(uuid, 7);
+        gtidSet.add(uuid2, 9);
+        gtidSet.add(uuid, 0);
+        Assert.assertEquals(gtidSet.toString(),
+                uuid + ":0:2-5:7," + uuid2 + ":9");
+    }
+
+    @Test
+    public void testAddUsingGtid() throws Exception {
+        String uuid = "00000000-0000-0000-0000-000000000000";
+        String uuid2 = "00000000-0000-0000-0000-000000000001";
+        GtidSet gtidSet = new GtidSet(uuid + ":3-5");
+        gtidSet.add(new Gtid(uuid, 2));
+        gtidSet.add(new Gtid(uuid, 4));
+        gtidSet.add(new Gtid(uuid, 5));
+        gtidSet.add(new Gtid(uuid, 7));
+        gtidSet.add(new Gtid(uuid2, 9));
+        gtidSet.add(new Gtid(uuid, 0));
+        Assert.assertEquals(gtidSet.toString(),
+                uuid + ":0:2-5:7," + uuid2 + ":9");
+    }
+
     @Test
     public void testAddAndFillGap(){
         GtidSet gtidSet;

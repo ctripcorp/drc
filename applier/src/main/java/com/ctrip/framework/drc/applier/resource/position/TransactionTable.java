@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.position;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 
 import java.sql.Connection;
@@ -20,7 +21,7 @@ public interface TransactionTable {
 
     void merge(GtidSet gtidSet);
 
-    void recordToMemory(String gtid);
+    void recordToMemory(Gtid gtid);
 
     GtidSet mergeRecord(String uuid, boolean needRetry);
 }

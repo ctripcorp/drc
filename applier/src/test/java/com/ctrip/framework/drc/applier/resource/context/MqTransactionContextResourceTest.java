@@ -145,6 +145,11 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
     class testProducer implements Producer {
 
         @Override
+        public String getTopic() {
+            return "mockTopic";
+        }
+
+        @Override
         public void send(List<EventData> eventDatas) {
             finalEventDatas = eventDatas;
         }

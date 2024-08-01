@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.activity.replicator.converter.MqAbstractByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
@@ -27,7 +28,7 @@ public class MqApplierDumpEventActivity extends ApplierDumpEventActivity {
     }
 
     @Override
-    protected void persistPosition(String gtid) {
+    protected void persistPosition(Gtid gtid) {
         mqPosition.add(gtid);
     }
 }
