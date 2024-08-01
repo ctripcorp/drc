@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba.response;
 
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class MemberInfoV2 {
     private String clusterName;
     private String machineName;
@@ -14,8 +12,7 @@ public class MemberInfoV2 {
     private String version;
     private String machineLocated;
     private String zone;
-    @JsonProperty("OSVersion")
-    private String oSVersion;
+    private String OSVersion;
 
     public MemberInfo toV1() {
         MemberInfo memberInfo = new MemberInfo();
@@ -116,11 +113,11 @@ public class MemberInfoV2 {
         this.zone = zone;
     }
 
-    public String getoSVersion() {
-        return oSVersion;
+    public String getOSVersion() {
+        return OSVersion;
     }
 
-    public void setoSVersion(String oSVersion) {
-        this.oSVersion = oSVersion;
+    public void setOSVersion(String OSVersion) {
+        this.OSVersion = OSVersion;
     }
 }
