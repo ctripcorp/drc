@@ -7,9 +7,12 @@ import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
+import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.xpipe.tuple.Pair;
 import org.assertj.core.util.Lists;
+import org.checkerframework.checker.nullness.qual.PolyKeyFor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -285,5 +288,29 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
     public void test() {
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications();
         Assert.assertFalse(CollectionUtils.isEmpty(mhaReplicationTbls));
+    }
+
+    @Test
+    public void testMhaSyncCount() throws Exception {
+        Mockito.when(applierTblV3Dao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV3s());
+        Mockito.when(applierGroupTblV3Dao.queryAllExist()).thenReturn(PojoBuilder.getApplierGroupTblV3s());
+        Mockito.when(dbReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getDbReplicationTbls());
+        Mockito.when(mhaDbMappingTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaDbMappingTbls1());
+        Mockito.when(mhaReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaReplicationTbls());
+        Mockito.when(mhaDbReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaDbReplicationTbls());
+        Mockito.when(dbTblDao.queryAllExist()).thenReturn(PojoBuilder.getDbTbls());
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(PojoBuilder.getMhaTblV2s());
+        Mockito.when(messengerTblDao.queryAllExist()).thenReturn(PojoBuilder.getMessengers());
+        Mockito.when(messengerGroupTblDao.queryAllExist()).thenReturn(PojoBuilder.getMessengerGroups());
+
+        MhaSyncView result = mhaReplicationServiceV2.mhaSyncCount();
+
+        Assert.assertEquals(result.getMhaSyncIds().size(),1);
+        Assert.assertEquals(result.getDbNameSet().size(),1);
+        Assert.assertEquals(result.getDbSyncSet().size(),1);
+        Assert.assertEquals(result.getDalClusterSet().size(),1);
+        Assert.assertEquals(result.getDbMessengerSet().size(),1);
+        Assert.assertEquals(result.getDbOtterSet().size(),1);
+
     }
 }

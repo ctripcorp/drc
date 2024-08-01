@@ -752,11 +752,14 @@ public class ResourceServiceImpl implements ResourceService {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
         Map<Long, String> resourceIdToAzMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
 
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAll();
+        Map<Long, MhaTblV2> mhaTblV2Map = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
+
         ResourceSameAzView view = new ResourceSameAzView();
-        view.setReplicatorMhaList(checkReplicators(resourceIdToAzMap));
-        view.setApplierMhaReplicationList(checkAppliers(resourceIdToAzMap));
+        view.setReplicatorMhaList(checkReplicators(resourceIdToAzMap, mhaTblV2Map));
+        view.setApplierMhaReplicationList(checkAppliers(resourceIdToAzMap, mhaTblV2Map));
         view.setApplierDbList(checkDbAppliers(resourceIdToAzMap));
-        view.setMessengerMhaList(checkMessengers(resourceIdToAzMap));
+        view.setMessengerMhaList(checkMessengers(resourceIdToAzMap, mhaTblV2Map));
         return view;
     }
 
@@ -764,69 +767,97 @@ public class ResourceServiceImpl implements ResourceService {
         List<String> dbNames = new ArrayList<>();
         List<ApplierTblV3> dbApplierTbls = dbApplierTblDao.queryAllExist();
         Map<Long, List<ApplierTblV3>> dbApplierMap = dbApplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getApplierGroupId));
-        for (Map.Entry<Long, List<ApplierTblV3>> entry : dbApplierMap.entrySet()) {
+
+        List<ApplierGroupTblV3> applierGroupTblV3s = dbApplierGroupTblDao.queryAll();
+        Map<Long, ApplierGroupTblV3> applierGroupTblV3Map = applierGroupTblV3s.stream().collect(Collectors.toMap(ApplierGroupTblV3::getId, e-> e));
+
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAll();
+        Map<Long, MhaDbReplicationTbl> mhaDbReplicationTblMap = mhaDbReplicationTbls.stream().collect(Collectors.toMap(MhaDbReplicationTbl::getId, e-> e));
+
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll();
+        Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> e));
+
+        List<DbTbl> dbTbls = dbTblDao.queryAll();
+        Map<Long, DbTbl> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, e -> e));
+
+         for (Map.Entry<Long, List<ApplierTblV3>> entry : dbApplierMap.entrySet()) {
             long applierGroupId = entry.getKey();
             List<ApplierTblV3> dbAppliers = entry.getValue();
             if (checkDbAppliers(dbAppliers, resourceIdToAzMap)) {
                 continue;
             }
-            ApplierGroupTblV3 applierGroupTblV3 = dbApplierGroupTblDao.queryById(applierGroupId);
-            MhaDbReplicationTbl mhaDbReplicationTbl = mhaDbReplicationTblDao.queryById(applierGroupTblV3.getMhaDbReplicationId());
-            MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblDao.queryById(mhaDbReplicationTbl.getSrcMhaDbMappingId());
-            DbTbl dbTbl = dbTblDao.queryById(mhaDbMappingTbl.getDbId());
+            ApplierGroupTblV3 applierGroupTblV3 = applierGroupTblV3Map.get(applierGroupId);
+            MhaDbReplicationTbl mhaDbReplicationTbl = mhaDbReplicationTblMap.get(applierGroupTblV3.getMhaDbReplicationId());
+            MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblMap.get(mhaDbReplicationTbl.getSrcMhaDbMappingId());
+            DbTbl dbTbl = dbTblMap.get(mhaDbMappingTbl.getDbId());
             dbNames.add(dbTbl.getDbName());
         }
         return dbNames;
     }
 
-    private List<MhaReplicationView> checkAppliers(Map<Long, String> resourceIdToAzMap) throws Exception {
+    private List<MhaReplicationView> checkAppliers(Map<Long, String> resourceIdToAzMap, Map<Long, MhaTblV2> mhaTblV2Map) throws Exception {
         List<MhaReplicationView> mhaReplicationViews = new ArrayList<>();
         List<ApplierTblV2> applierTblV2s = applierTblDao.queryAllExist();
         Map<Long, List<ApplierTblV2>> applierMap = applierTblV2s.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+
+        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblDao.queryAll();
+        Map<Long, ApplierGroupTblV2> applierGroupTblV2Map = applierGroupTblV2s.stream().collect(Collectors.toMap(ApplierGroupTblV2::getId, e -> e));
+
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAll();
+        Map<Long,MhaReplicationTbl> mhaReplicationTblMap = mhaReplicationTbls.stream().collect(Collectors.toMap(MhaReplicationTbl::getId, e -> e));
+
         for (Map.Entry<Long, List<ApplierTblV2>> entry : applierMap.entrySet()) {
             long applierGroupId = entry.getKey();
             List<ApplierTblV2> appliers = entry.getValue();
             if (checkAppliers(appliers, resourceIdToAzMap)) {
                 continue;
             }
-            ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblDao.queryById(applierGroupId);
-            MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryById(applierGroupTblV2.getMhaReplicationId());
-            MhaTblV2 srcMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getSrcMhaId());
-            MhaTblV2 dstMha = mhaTblV2Dao.queryById(mhaReplicationTbl.getDstMhaId());
+            ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Map.get(applierGroupId);
+            MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblMap.get(applierGroupTblV2.getMhaReplicationId());
+            MhaTblV2 srcMha = mhaTblV2Map.get(mhaReplicationTbl.getSrcMhaId());
+            MhaTblV2 dstMha = mhaTblV2Map.get(mhaReplicationTbl.getDstMhaId());
             mhaReplicationViews.add(new MhaReplicationView(srcMha.getMhaName(), dstMha.getMhaName()));
         }
         return mhaReplicationViews;
     }
 
-    private List<String> checkMessengers(Map<Long, String> resourceIdToAzMap) throws Exception {
+    private List<String> checkMessengers(Map<Long, String> resourceIdToAzMap, Map<Long, MhaTblV2> mhaTblV2Map) throws Exception {
         List<String> mhaNames = new ArrayList<>();
         List<MessengerTbl> messengerTbls = messengerTblDao.queryAllExist();
         Map<Long, List<MessengerTbl>> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAll();
+        Map<Long, MessengerGroupTbl> messengerGroupTblMap = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getId, e -> e));
+
         for (Map.Entry<Long, List<MessengerTbl>> entry : messengerMap.entrySet()) {
             long messengerGroupId = entry.getKey();
             List<MessengerTbl> messengers = entry.getValue();
             if (checkMessengers(messengers, resourceIdToAzMap)) {
                 continue;
             }
-            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryById(messengerGroupId);
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(messengerGroupTbl.getMhaId());
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblMap.get(messengerGroupId);
+            MhaTblV2 mhaTblV2 = mhaTblV2Map.get(messengerGroupTbl.getMhaId());
             mhaNames.add(mhaTblV2.getMhaName());
         }
         return mhaNames;
     }
 
-    private List<String> checkReplicators(Map<Long, String> resourceIdToAzMap) throws Exception {
+    private List<String> checkReplicators(Map<Long, String> resourceIdToAzMap, Map<Long, MhaTblV2> mhaTblV2Map) throws Exception {
         List<String> mhaNames = new ArrayList<>();
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllExist();
         Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll();
+        Map<Long, ReplicatorGroupTbl> replicatorGroupTblMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, e -> e));
+
         for (Map.Entry<Long, List<ReplicatorTbl>> entry : replicatorMap.entrySet()) {
             long replicatorGroupId = entry.getKey();
             List<ReplicatorTbl> replicators = entry.getValue();
             if (checkReplicators(replicators, resourceIdToAzMap)) {
                 continue;
             }
-            ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryById(replicatorGroupId);
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(replicatorGroupTbl.getMhaId());
+            ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblMap.get(replicatorGroupId);
+            MhaTblV2 mhaTblV2 = mhaTblV2Map.get(replicatorGroupTbl.getMhaId());
             mhaNames.add(mhaTblV2.getMhaName());
         }
         return mhaNames;

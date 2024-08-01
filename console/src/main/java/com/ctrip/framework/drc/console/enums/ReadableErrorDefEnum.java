@@ -22,6 +22,7 @@ public enum ReadableErrorDefEnum implements IErrorDef {
 
     QUERY_MHA_DELAY_FAIL("QUERY_MHA_DELAY_FAIL", "query delay fail"),
 
+    QUERY_MHA_SYNC_COUNT("QUERY_MHA_SYNC_COUNT", "query mah sync count fail"),
 
     /**
      * common dao exception

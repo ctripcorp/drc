@@ -373,29 +373,28 @@ public class ResourceServiceTest {
     @Test
     public void testCheckResourceAz() throws Exception {
         Mockito.when(resourceTblDao.queryAllExist()).thenReturn(PojoBuilder.getResourceTbls());
-
         Mockito.when(dbApplierTblDao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV3s());
-        Mockito.when(dbApplierGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getApplierGroupTblV3s().get(0));
-        Mockito.when(mhaDbReplicationTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaDbReplicationTbls().get(0));
-        Mockito.when(mhaDbMappingTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaDbMappingTbls1().get(0));
         Mockito.when(dbTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getDbTbls().get(0));
-
         Mockito.when(applierTblDao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV2s());
-        Mockito.when(applierGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getApplierGroupTblV2s().get(0));
-        Mockito.when(mhaReplicationTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaReplicationTbl());
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
-
         Mockito.when(messengerTblDao.queryAllExist()).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
-        Mockito.when(messengerGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMessengerGroup());
-
         Mockito.when(replicatorTblDao.queryAllExist()).thenReturn(PojoBuilder.getReplicatorTbls());
-        Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryAll()).thenReturn(PojoBuilder.getMhaTblV2s());
+        Mockito.when(applierGroupTblDao.queryAll()).thenReturn(PojoBuilder.getApplierGroupTblV2s());
+        Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(PojoBuilder.getMhaReplicationTbls());
+        Mockito.when(replicatorGroupTblDao.queryAll()).thenReturn(PojoBuilder.getReplicatorGroupTbls());
+        Mockito.when(messengerGroupTblDao.queryAll()).thenReturn(PojoBuilder.getMessengerGroups());
+        Mockito.when(dbApplierGroupTblDao.queryAll()).thenReturn(PojoBuilder.getApplierGroupTblV3s());
+        Mockito.when(mhaDbReplicationTblDao.queryAll()).thenReturn(PojoBuilder.getMhaDbReplicationTbls());
+        Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(PojoBuilder.getMhaDbMappingTbls2());
+        Mockito.when(dbTblDao.queryAll()).thenReturn(PojoBuilder.getDbTbls());
 
         ResourceSameAzView result = resourceService.checkResourceAz();
         Assert.assertEquals(result.getApplierDbList().size(), 1);
         Assert.assertEquals(result.getApplierMhaReplicationList().size(), 1);
         Assert.assertEquals(result.getMessengerMhaList().size(), 1);
         Assert.assertEquals(result.getReplicatorMhaList().size(), 1);
+
     }
 
     @Test
