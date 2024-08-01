@@ -21,7 +21,7 @@ public class MemberInfoV2 {
         MemberInfo memberInfo = new MemberInfo();
         memberInfo.setStatus(this.status);
         memberInfo.setMachine_name(this.machineName);
-        memberInfo.setMachine_located_short(zone.toUpperCase());
+        memberInfo.setMachine_located_short(this.zone.toUpperCase());
         memberInfo.setService_ip(this.ipBusiness);
         memberInfo.setCluster_name(this.clusterName);
         memberInfo.setDns_port(this.clusterPort);
