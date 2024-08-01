@@ -102,7 +102,7 @@
 
 <script>
 import conflictRowsLogDetail from './conflictRowsLogDetail.vue'
-import codemirror from 'vue-codemirror'
+import { codemirror } from 'vue-codemirror'
 import 'codemirror/theme/ambiance.css'
 import 'codemirror/mode/sql/sql.js'
 
@@ -533,9 +533,17 @@ export default {
   color: #fff;
 }
 
-.ivu-table .cell-class-type {
-  background-color: #2db7f5;
-  color: #fff;
+/*.ivu-table .cell-class-type {*/
+/*  background-color: #2db7f5;*/
+/*  color: #fff;*/
+/*}*/
+
+.CodeMirror {
+  /* Set height, width, borders, and global font properties here */
+  font-family: monospace;
+  height: auto;
+  color: black;
+  direction: ltr;
 }
 
 </style>

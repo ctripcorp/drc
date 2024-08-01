@@ -150,6 +150,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String BATCH_OFFLINE_ALLOW_REGION = "meta.batch.offline.allow.region";
     private static String DEFAULT_BATCH_OFFLINE_ALLOW_REGION = "sin";
     private static final String ACCOUNT_REALTIME_SWITCH = "account.realtime.switch";
+    private static final String MYSQL_API_V2_SWITCH = "mysql.api.v2.switch";
 
 
     // only for test
@@ -662,4 +663,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getAccountRealTimeSwitch() {
         return getBooleanProperty(ACCOUNT_REALTIME_SWITCH, false);
     }
+    public boolean getMySQLApiV2Switch() {
+        return getBooleanProperty(MYSQL_API_V2_SWITCH, false);
+    }
+
+
 }

@@ -11,3 +11,7 @@ target:
     jdbc-url: jdbc:mysql://{serverIP}:{port}/{db}?useUnicode=true&characterEncoding=utf-8&serverTimezone=CST&useServerPrepStmts=true
     username: user
     password: pw
+server:
+  compression:
+    enabled: true
+    min-response-size: 102400 # 100KB

@@ -42,7 +42,7 @@ public class RemoteConfigTest extends AbstractConfigTest {
         Mockito.doReturn("dc").when(dbClusterSourceProvider).getLocalDcName();
 
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when(() -> HttpUtils.get("http://127.0.0.1:8080/api/drc/v2/meta/?refresh=true&heraldToken=mockedToken", String.class)).thenReturn(DRC_XML);
+            theMock.when(() -> HttpUtils.getAcceptAllEncoding("http://127.0.0.1:8080/api/drc/v2/meta/?refresh=true&heraldToken=mockedToken", String.class)).thenReturn(DRC_XML);
             remoteConfig.updateConfig();
             Assert.assertNotNull(remoteConfig.xml);
         } catch (Exception e) {
