@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.mq;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
@@ -67,7 +68,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
     }
 
     @Override
-    public void add(String gtid) {
+    public void add(Gtid gtid) {
         gtidService.submit(() -> {
             executedGtidSet.add(gtid);
         });

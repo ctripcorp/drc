@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.applier.event.ApplierPreviousGtidsLogEvent;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
@@ -262,13 +263,13 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
     }
 
-    protected void persistPosition(String gtid) {
+    protected void persistPosition(Gtid gtid) {
 
     }
 
     private void compensateGap(String uuid, long start, long end) {
         for (long i = start; i < end; i++) {
-            String gtid = uuid + ":" + i;
+            Gtid gtid = new Gtid(uuid, i);
             updateContextGtidSet(gtid);
             persistPosition(gtid);
         }
@@ -312,7 +313,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         loggerTT.info("[Merge][{}] update context gtidset, context gtidset: {}, to merge gtidset: {}, unioned gtidset: {}", registryKey, set.toString(), gtidset.toString(), context.fetchGtidSet().toString());
     }
 
-    protected void updateContextGtidSet(String gtid) {
+    protected void updateContextGtidSet(Gtid gtid) {
         GtidSet set = context.fetchGtidSet();
         set.add(gtid);
     }

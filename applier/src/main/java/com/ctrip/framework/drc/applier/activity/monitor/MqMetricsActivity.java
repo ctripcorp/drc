@@ -19,7 +19,8 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
     @InstanceConfig(path = "cluster")
     public String cluster = "unset";
 
-    @InstanceConfig(path = "replicator.mhaName")
+    // replicator.mhaName: DRC_MQ, so use target.mhaName instead
+    @InstanceConfig(path = "target.mhaName")
     public String srcMhaName = "unset";
 
     @Override
@@ -35,7 +36,7 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
         tags.put("table", context.getTableName());
         tags.put("type", context.getEventType().name());
         tags.put("dcTag", context.getDcTag().getName());
-
+        tags.put("topic", context.getTopic());
         DefaultReporterHolder.getInstance().reportResetCounter(tags, (long)context.getValue(), measurement);
         return finish(context);
     }

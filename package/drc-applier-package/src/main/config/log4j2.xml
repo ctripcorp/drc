@@ -431,7 +431,7 @@
         <Logger name="HEARTBEAT" additivity="false">
             <AppenderRef ref="RollingFileHeartBeatInfo"/>
         </Logger>
-        <Logger name="io.netty" level="debug" additivity="false">
+        <Logger name="io.netty" level="warn" additivity="false">
             <AppenderRef ref="netty"/>
         </Logger>
         <Root level="info">

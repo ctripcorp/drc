@@ -78,7 +78,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         for (Producer producer : producers) {
             producer.send(eventDatas);
             rowsSize += eventDatas.size();
-            reportHickWall(eventDatas);
+            reportHickWall(eventDatas, producer.getTopic());
         }
         if (progress != null) {
             progress.tick();
@@ -163,10 +163,10 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         return value.toString();
     }
 
-    private void reportHickWall(List<EventData> eventDatas) {
+    private void reportHickWall(List<EventData> eventDatas, String topic) {
         if (!eventDatas.isEmpty()) {
             EventData eventData = eventDatas.get(0);
-            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag());
+            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag(), topic);
             mqMetricsActivity.report(mqMonitorContext);
         }
     }

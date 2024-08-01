@@ -117,11 +117,19 @@ public class GtidSet {
         if (split.length != 2) {
             return false;
         }
-        String sourceId = split[0];
+        String uuid = split[0];
         long transactionId = Long.parseLong(split[1]);
-        UUIDSet uuidSet = map.get(sourceId);
+        return add(uuid, transactionId);
+    }
+
+    public boolean add(Gtid gtid) {
+        return this.add(gtid.getUuid(), gtid.getTransactionId());
+    }
+
+    public boolean add(String uuid, long transactionId) {
+        UUIDSet uuidSet = map.get(uuid);
         if (uuidSet == null) {
-            map.put(sourceId, uuidSet = new UUIDSet(sourceId, new ArrayList<Interval>()));
+            map.put(uuid, uuidSet = new UUIDSet(uuid, new ArrayList<>()));
         }
         return uuidSet.add(transactionId);
     }

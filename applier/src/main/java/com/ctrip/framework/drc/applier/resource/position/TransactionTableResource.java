@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.position;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
@@ -336,7 +337,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     @Override
-    public void recordToMemory(String gtid) {
+    public void recordToMemory(Gtid gtid) {
         synchronized (gtidSavedInMemoryLock) {
             if (++gtidSetSizeInMemory >= TRANSACTION_TABLE_MERGE_SIZE) {
                 loggerTT.info("[TT][{}] merge gtid for up to memory merge size {} start", registryKey, gtidSetSizeInMemory);
