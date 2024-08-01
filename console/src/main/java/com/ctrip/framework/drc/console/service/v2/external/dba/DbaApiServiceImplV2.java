@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 
 @Service
-public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiService {
+public class DbaApiServiceImplV2 extends DbaApiServiceImpl implements DbaApiService {
 
     public static final String OPERATOR = "drc";
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -49,16 +49,17 @@ public class DbaApiServiceV2Impl extends DbaApiServiceImpl implements DbaApiServ
         String responseString = HttpUtils.get(url, String.class, params);
         logger.info("[getClusterMembersInfo] url: {}, resp: {}", url, responseString);
 
-        DbaClusterInfoResponse response = JsonUtils.fromJson(responseString, DbaClusterInfoResponse.class);
+        DbaClusterInfoResponseV2 response = JsonUtils.fromJson(responseString, DbaClusterInfoResponseV2.class);
         if (response == null || !response.getSuccess()) {
             throw ConsoleExceptionUtils.message(clusterName + " getClusterMembersInfo failed! Response: " + response);
         }
-        Data data = response.getData();
-        if (data == null || CollectionUtils.isEmpty(data.getMemberlist())) {
+        List<MemberInfoV2> data = response.getData();
+        if (CollectionUtils.isEmpty(data)) {
             throw ConsoleExceptionUtils.message(clusterName + " getClusterMembersInfo empty result ");
         }
 
-        return response;
+        // compatibility
+        return response.toV1();
     }
 
     @Override
