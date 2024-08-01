@@ -29,11 +29,13 @@ public class MonitoredUpdateRowsEvent<T extends BaseTransactionContext> extends 
         Bitmap afterBitmap = Bitmap.from(getAfterRowsKeysPresent());
         List<List<Object>> beforeRows = getBeforePresentRowsValues();
         Bitmap beforeBitmap = Bitmap.from(getBeforeRowsKeysPresent());
-        loggerR.info(attachTags(context, "UPDATE.doApply()" +
-                "\nafter rows: " + afterRows +
-                "\nafter bitmap: " + afterBitmap +
-                "\nbefore rows: " + beforeRows +
-                "\nbefore bitmap: " + beforeBitmap));
+        if (loggerR.isDebugEnabled()) {
+            loggerR.debug(attachTags(context, "UPDATE.doApply()" +
+                    "\nafter rows: " + afterRows +
+                    "\nafter bitmap: " + afterBitmap +
+                    "\nbefore rows: " + beforeRows +
+                    "\nbefore bitmap: " + beforeBitmap));
+        }
         context.update(beforeRows, beforeBitmap,
                 afterRows, afterBitmap, columns);
     }

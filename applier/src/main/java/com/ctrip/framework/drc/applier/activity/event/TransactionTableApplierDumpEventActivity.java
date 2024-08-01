@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.activity.event;
 import com.ctrip.framework.drc.applier.activity.replicator.converter.TransactionTableApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
@@ -35,7 +36,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     @Override
     protected void handleApplierDrcGtidEvent(FetcherEvent event) {
-        String gtid = ((ApplierDrcGtidEvent) event).getGtid();
+        Gtid gtid = Gtid.from((ApplierDrcGtidEvent) event);
         loggerER.info("{} {} - RECEIVED - {}", registryKey, gtid, event.getClass().getSimpleName());
         transactionTable.recordToMemory(gtid);
         updateContextGtidSet(gtid);
@@ -78,7 +79,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     }
 
     @Override
-    protected void persistPosition(String gtid) {
+    protected void persistPosition(Gtid gtid) {
         transactionTable.recordToMemory(gtid);
     }
 

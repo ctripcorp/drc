@@ -835,12 +835,18 @@ public class TransactionContextResource extends AbstractContext
         }
     }
 
-    private void logSQL(PreparedStatement statement, PreparedStatementExecutor preparedStatementExecutor) {
-        loggerS.info("log sql for ({})", fetchGtid());
+    /**
+     * @return logged sql string
+     */
+    private String logSQL(PreparedStatement statement, PreparedStatementExecutor preparedStatementExecutor) {
+        String gtid = fetchGtid();
+        loggerS.info("log sql for ({})", gtid);
+        String sqlString = statementToString(statement);
         String sql = (preparedStatementExecutor == PreparedStatementExecutor.DEFAULT ? "A" : "B")
-                + statementToString(statement);
+                + sqlString;
         addLogs(sql);
-        loggerS.info("({}){}", fetchGtid(), sql);
+        loggerS.info("({}){}", gtid, sql);
+        return sqlString;
     }
 
     private void addLogs(String log) {
@@ -883,8 +889,7 @@ public class TransactionContextResource extends AbstractContext
     
 
     private void logRawSQL(PreparedStatement statement, PreparedStatementExecutor preparedStatementExecutor) {
-        logSQL(statement, preparedStatementExecutor);
-        rawSql = statementToString(statement);
+        rawSql = logSQL(statement, preparedStatementExecutor);
     }
 
     private void logRawSQLExecutedResult(String result) {
@@ -893,8 +898,7 @@ public class TransactionContextResource extends AbstractContext
     }
 
     private void logConflictHandleSQL(PreparedStatement statement, PreparedStatementExecutor preparedStatementExecutor) {
-        logSQL(statement, preparedStatementExecutor);
-        conflictHandleSql = statementToString(statement);
+        conflictHandleSql = logSQL(statement, preparedStatementExecutor);
     }
 
     private void logConflictHandleSQLExecutedResult(String result) {

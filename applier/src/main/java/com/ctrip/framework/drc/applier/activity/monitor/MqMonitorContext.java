@@ -13,13 +13,15 @@ public class MqMonitorContext {
     private int value;
     private EventType eventType;
     private DcTag dcTag;
+    private String topic;
 
-    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag) {
+    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic) {
         this.dbName = dbName;
         this.tableName = tableName;
         this.value = value;
         this.eventType = eventType;
         this.dcTag = dcTag;
+        this.topic = topic;
     }
 
     public String getDbName() {
@@ -60,5 +62,13 @@ public class MqMonitorContext {
 
     public void setDcTag(DcTag dcTag) {
         this.dcTag = dcTag;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 }

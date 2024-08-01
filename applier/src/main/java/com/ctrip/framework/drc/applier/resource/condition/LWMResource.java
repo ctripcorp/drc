@@ -64,16 +64,20 @@ public class LWMResource extends AbstractResource implements LWM {
             first = false;
             doAcquire(sequenceNumber - 1);
             doCommit(sequenceNumber - 1);
-            loggerEGB.info("first event - lwm: " + bucket.lwm() +
-                    " sequence number: " + sequenceNumber);
+            if(loggerEGB.isDebugEnabled()){
+                loggerEGB.debug("first event - lwm: " + bucket.lwm() +
+                        " sequence number: " + sequenceNumber);
+            }
         } else if (sequenceNumber > lastSequenceNumber + 1) {
             //compensate sequence gap
             for (long i = lastSequenceNumber + 1; i < sequenceNumber; i++) {
                 doAcquire(i);
                 doCommit(i);
             }
-            loggerEGB.info("compensate gap [{}, {}) - lwm: {} sequence number: {}",
-                    lastSequenceNumber + 1, sequenceNumber, bucket.lwm(), sequenceNumber);
+            if(loggerEGB.isDebugEnabled()){
+                loggerEGB.debug("compensate gap [{}, {}) - lwm: {} sequence number: {}",
+                        lastSequenceNumber + 1, sequenceNumber, bucket.lwm(), sequenceNumber);
+            }
         }
         lastSequenceNumber = sequenceNumber;
         doAcquire(sequenceNumber);
@@ -376,17 +380,23 @@ public class LWMResource extends AbstractResource implements LWM {
             }
         }
 
-        public boolean isHeadLwm() {
-            //And when isHeadLwm() is called, list.size() must be larger than 1 (>=2).
-            return !(list.get(0) == list.get(1) - 1);
+        private boolean isHeadLwm(int i) {
+            //And when isHeadLwm(i) is called, list.size() must be larger than i+1 (>=i+2).
+            return list.get(i) != list.get(i + 1) - 1;
         }
 
+        //As shiftTilLwm() is called at the bottom of add(),
+        // here the final list.size() here must be larger than 0 (>=1)
         public long shiftTilLwm() {
-            //As shiftTilLwm() is called at the bottom of add(),
-            // here list.size() here must be larger than 0 (>=1)
-            while ((list.size() > 1) && (!isHeadLwm())) {
-                list.remove(0);
+            int i = 0;
+            while ((list.size() > i + 1) && (!isHeadLwm(i))) {
+                i++;
             }
+            // remove a range of elements
+            if (i > 0) {
+                list.subList(0, i).clear();
+            }
+
             return list.get(0);
         }
     }

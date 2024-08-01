@@ -138,6 +138,10 @@ public class QmqProducer extends AbstractProducer {
         return message;
     }
 
+    public String getTopic() {
+        return topic;
+    }
+
     @Override
     public void destroy() {
         QmqProviderFactory.destroy(topic);
