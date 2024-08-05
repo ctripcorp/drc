@@ -35,6 +35,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String RECEIVE_CHECK_SWITCH = "receive.check.switch";
     private static final String SCHEMA_MANAGER_CACHE_DISABLE_SWITCH = "schema.manager.snapshot.cache.disable.switch";
     private static final String REPLICATOR_SKIP_UNSUPPORTED_SCHEMA = "replicator.skip.unsupported.schema";
+    private static final String REPLICATOR_SCALE_OUT_KEY = "replicator.scale.out.%s";
 
 
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
@@ -68,6 +69,13 @@ public class DynamicConfig extends AbstractConfigBean {
     public int getConcurrency(String key) {
         return getIntProperty(String.format(CONCURRENCY, key), MAX_ACTIVE);
     }
+
+    public long getBinlogScaleOutNum(String registryKey, long defaultValue) {
+        Long longProperty = getLongProperty(String.format(REPLICATOR_SCALE_OUT_KEY, registryKey), defaultValue);
+        // must be positive
+        return Math.max(1L, longProperty);
+    }
+
 
     public int getMaxSenderNumPerScanner() {
         return getIntProperty(SCANNER_SENDER_NUM_MAX, 30);
