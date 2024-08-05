@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
@@ -844,13 +845,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     public void purge() {
         try {
             List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
-            if (files == null || files.size() < BINLOG_PURGE_SCALE_OUT) {
-                logger.info("[Purge] return for not reaching limit {}", BINLOG_PURGE_SCALE_OUT);
+            long binlogPurgeScaleOut = DynamicConfig.getInstance().getBinlogScaleOutNum(registryKey, BINLOG_PURGE_SCALE_OUT);
+            if (files == null || files.size() < binlogPurgeScaleOut) {
+                logger.info("[Purge] return for not reaching limit {}", binlogPurgeScaleOut);
                 return;
             }
             List<File> toBePurged = Lists.newArrayList();
             for (int i = 0; i < files.size(); ++i) {
-                if (i < BINLOG_PURGE_SCALE_OUT) {
+                if (i < binlogPurgeScaleOut) {
                     continue;
                 }
                 toBePurged.add(files.get(i));
@@ -858,7 +860,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             for (int i = toBePurged.size() - 1; i >= 0; i--) {
                 logger.info("[Purge] file {} for {} to be start", toBePurged.get(i).getName(), registryKey);
                 boolean deleted = toBePurged.get(i).delete();
-                logger.info("[Purge] file {} for {} reaching maxFileSize {} with result {}", toBePurged.get(i).getName(), registryKey, BINLOG_PURGE_SCALE_OUT, deleted);
+                logger.info("[Purge] file {} for {} reaching maxFileSize {} with result {}", toBePurged.get(i).getName(), registryKey, binlogPurgeScaleOut, deleted);
                 Thread.sleep(20);
             }
 
