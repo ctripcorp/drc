@@ -75,10 +75,10 @@ public class AccountServiceImplTest {
     @Test
     public void testInitAndDecrypt() throws Exception {
         System.setProperty("mock.data.path.prefix","/testData/accountService/");
-        when(mhaTblV2Dao.queryAllExist()).thenReturn(getData());
+        when(mhaTblV2Dao.queryAllExist()).thenReturn(getData().stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals("mha1")).collect(Collectors.toList()));
         accountServiceImpl.init();
-        Assert.assertEquals(2,accountServiceImpl.decryptCache.size());
-        Assert.assertTrue(accountServiceImpl.decryptCache.values().contains("root"));
+        Assert.assertEquals(1,accountServiceImpl.decryptCache.size());
+        Assert.assertTrue(accountServiceImpl.decryptCache.values().contains("root1"));
     }
     
     private List<MhaTblV2> getData()throws Exception{
@@ -95,7 +95,8 @@ public class AccountServiceImplTest {
 
     @Test
     public void testGetMhaAccounts() throws Exception {
-        List<MhaTblV2> data = this.getData();
+        List<MhaTblV2> data = this.getData().stream().filter(mhaTblV2 -> mhaTblV2.getMhaName().equals("mha1")).collect(Collectors.toList());
+        when(mhaTblV2Dao.queryAllExist()).thenReturn(data);
         for (MhaTblV2 mhaTblV2 : data) {
             MhaAccounts mhaAccounts = accountServiceImpl.getMhaAccounts(mhaTblV2);
             Assert.assertNotNull(mhaAccounts.getMonitorAcc().getUser());

@@ -736,12 +736,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
         // record mha and init accountv2
         MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
-        if (consoleConfig.getAccountFromMetaSwitch()) {
-            MemberInfo master = memberlist.stream().filter(memberInfo -> memberInfo.getRole().toLowerCase().contains("master")).findFirst().get();
-            accountService.mhaAccountV2ChangeAndRecord(mhaTblV2,master.getService_ip(),master.getDns_port());
-        }
-        mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
-        Long mhaId = insertOrRecoverMha(mhaTblV2, existMha);
+        long mhaId = initMhaAndAccount(mhaTblV2, memberlist.stream().map(MemberInfo::toMachineDto).collect(Collectors.toList()));   
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
         // record machines
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
@@ -753,16 +748,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         mhaTblV2.setId(mhaId);
         return mhaTblV2;
-    }
-    
-    private Long insertOrRecoverMha(MhaTblV2 mhaTblV2, MhaTblV2 existMha) throws SQLException {
-        if (existMha != null) {
-            mhaTblV2.setId(existMha.getId());
-            mhaTblDao.update(mhaTblV2);
-            return existMha.getId();
-        } else {
-            return mhaTblDao.insertWithReturnId(mhaTblV2);
-        }
     }
      
 
@@ -1741,7 +1726,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-    private long initMhaAndAccount(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) throws Exception {
+    private long initMhaAndAccount(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) throws SQLException {
         MhaTblV2 existMhaTbl = mhaTblDao.queryByMhaName(mhaTblV2.getMhaName());
         if (null == existMhaTbl) {
             initAccountIfNeed(mhaTblV2,machineDto);
@@ -1755,60 +1740,63 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return existMhaTbl.getId();
     }
 
-    private void initAccountIfNeed(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) {
-        if (StringUtils.isBlank(mhaTblV2.getMonitorUser())
-                || StringUtils.isBlank(mhaTblV2.getMonitorPassword())
-                || StringUtils.isBlank(mhaTblV2.getMonitorPasswordToken())
-                || StringUtils.isBlank(mhaTblV2.getReadUser())
-                || StringUtils.isBlank(mhaTblV2.getReadPassword())
-                || StringUtils.isBlank(mhaTblV2.getReadPasswordToken())
-                || StringUtils.isBlank(mhaTblV2.getWriteUser())
-                || StringUtils.isBlank(mhaTblV2.getWritePassword())
-                || StringUtils.isBlank(mhaTblV2.getWritePasswordToken())) {
-            mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
-            mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
-            mhaTblV2.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
-            mhaTblV2.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
-            mhaTblV2.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
-            mhaTblV2.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
-            if (consoleConfig.getAccountKmsTokenSwitch()) {
-                mhaTblV2.setReadPasswordToken(accountService.encrypt(monitorTableSourceProvider.getReadPasswordVal()));
-                mhaTblV2.setWritePasswordToken(accountService.encrypt(monitorTableSourceProvider.getWritePasswordVal()));
-                mhaTblV2.setMonitorPasswordToken(accountService.encrypt(monitorTableSourceProvider.getMonitorPasswordVal()));
-            }
-        }
+    private void initAccountIfNeed(MhaTblV2 mhaTblV2,List<MachineDto> machineDto) throws SQLException {
+        // account v2
         if (StringUtils.isBlank(mhaTblV2.getMonitorUserV2())
                 || StringUtils.isBlank(mhaTblV2.getMonitorPasswordTokenV2())
                 || StringUtils.isBlank(mhaTblV2.getReadUserV2())
                 || StringUtils.isBlank(mhaTblV2.getReadPasswordTokenV2())
                 || StringUtils.isBlank(mhaTblV2.getWriteUserV2())
                 || StringUtils.isBlank(mhaTblV2.getWritePasswordTokenV2())) {
-            if (consoleConfig.getAccountKmsTokenSwitchV2()) {
-                // if no masterNode info , record default account v2
-                if (CollectionUtils.isEmpty(machineDto)) {
-                    Account monitorAcc = kmsService.getAccountInfo(consoleConfig.getDefaultMonitorAccountKmsToken());
-                    Account readAcc = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
-                    Account writeAcc = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
-                    mhaTblV2.setMonitorUserV2(monitorAcc.getUser());
-                    mhaTblV2.setMonitorPasswordTokenV2(accountService.encrypt(monitorAcc.getPassword()));
-                    mhaTblV2.setReadUserV2(readAcc.getUser());
-                    mhaTblV2.setReadPasswordTokenV2(accountService.encrypt(readAcc.getPassword()));
-                    mhaTblV2.setWriteUserV2(writeAcc.getUser());
-                    mhaTblV2.setWritePasswordTokenV2(accountService.encrypt(writeAcc.getPassword()));
-                } else {
-                    if (consoleConfig.getAccountFromMetaSwitch()) {
-                        MachineDto masterNode = machineDto.stream().filter(MachineDto::getMaster).findFirst().orElse(null);
-                        if (masterNode == null) {
-                            throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " masterNode not found!");
-                        }
-                        boolean res = accountService.mhaAccountV2ChangeAndRecord(mhaTblV2, masterNode.getIp(), masterNode.getPort());
-                        if (!res) {
-                            throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " account change failed!");
-                        }
-                    }
+            // if no masterNode info , record default account v2
+            if (CollectionUtils.isEmpty(machineDto)) {
+                Account monitorAcc = kmsService.getAccountInfo(consoleConfig.getDefaultMonitorAccountKmsToken());
+                Account readAcc = kmsService.getAccountInfo(consoleConfig.getDefaultReadAccountKmsToken());
+                Account writeAcc = kmsService.getAccountInfo(consoleConfig.getDefaultWriteAccountKmsToken());
+                mhaTblV2.setMonitorUserV2(monitorAcc.getUser());
+                mhaTblV2.setMonitorPasswordTokenV2(accountService.encrypt(monitorAcc.getPassword()));
+                mhaTblV2.setReadUserV2(readAcc.getUser());
+                mhaTblV2.setReadPasswordTokenV2(accountService.encrypt(readAcc.getPassword()));
+                mhaTblV2.setWriteUserV2(writeAcc.getUser());
+                mhaTblV2.setWritePasswordTokenV2(accountService.encrypt(writeAcc.getPassword()));
+            } else {
+                if (checkAccountInitialized(mhaTblV2, machineDto)) {
+                    return;
+                }
+                MachineDto masterNode = machineDto.stream().filter(MachineDto::getMaster).findFirst().orElse(null);
+                if (masterNode == null) {
+                    throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " masterNode not found!");
+                }
+                if (!accountService.mhaAccountV2ChangeAndRecord(mhaTblV2, masterNode.getIp(), masterNode.getPort())) {
+                    throw ConsoleExceptionUtils.message(mhaTblV2.getMhaName() + " account change failed!");
                 }
             }
         }
+    }
+    
+    private boolean checkAccountInitialized(MhaTblV2 initMha, List<MachineDto> machineDtos) throws SQLException {
+        for (MachineDto machineDto : machineDtos) {
+            String ip = machineDto.getIp();
+            Integer port = machineDto.getPort();
+            MachineTbl existMachine = machineTblDao.queryByIpPort(ip, port);
+            if (existMachine != null) {
+                logger.warn("ambiguousMha:{},existMachine:{}",initMha.getMhaName(),existMachine);
+                if (consoleConfig.getAllowAmbiguousMhaSwitch()) {
+                    MhaTblV2 existMha = mhaTblDao.queryById(existMachine.getMhaId());
+                    initMha.setMonitorUserV2(existMha.getMonitorUserV2());
+                    initMha.setMonitorPasswordTokenV2(existMha.getMonitorPasswordTokenV2());
+                    initMha.setReadUserV2(existMha.getReadUserV2());
+                    initMha.setReadPasswordTokenV2(existMha.getReadPasswordTokenV2());
+                    initMha.setWriteUserV2(existMha.getWriteUserV2());
+                    initMha.setWritePasswordTokenV2(existMha.getWritePasswordTokenV2());
+                    logger.warn("copy account from exist mha {}->{},", existMha.getMhaName(), initMha.getMhaName());
+                } else {
+                    throw ConsoleExceptionUtils.message("ambiguousMha:" + initMha.getMhaName() + ",existMachine:" + existMachine);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
 

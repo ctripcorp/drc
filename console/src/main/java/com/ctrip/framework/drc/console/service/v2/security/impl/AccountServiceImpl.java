@@ -151,30 +151,14 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account getAccount(MhaTblV2 mhaTblV2, DrcAccountTypeEnum accountType) {
-        boolean grayKms = grayKmsToken(mhaTblV2.getMhaName());
-        boolean grayNewAccount = grayAccountV2(mhaTblV2.getMhaName());
         switch (accountType) {
             case DRC_CONSOLE:
-                return grayKms ? 
-                        (grayNewAccount ? 
-                                new Account(mhaTblV2.getMonitorUserV2(),decrypt(mhaTblV2.getMonitorPasswordTokenV2())) : 
-                                new Account(mhaTblV2.getMonitorUser(),decrypt(mhaTblV2.getMonitorPasswordToken()))
-                        ) : 
-                        new Account(mhaTblV2.getMonitorUser(),mhaTblV2.getMonitorPassword());
+                return new Account(mhaTblV2.getMonitorUserV2(),decrypt(mhaTblV2.getMonitorPasswordTokenV2()));
+                
             case DRC_READ:
-                return grayKms ?
-                        (grayNewAccount ?
-                                new Account(mhaTblV2.getReadUserV2(),decrypt(mhaTblV2.getReadPasswordTokenV2())) :
-                                new Account(mhaTblV2.getReadUser(),decrypt(mhaTblV2.getReadPasswordToken()))
-                        ) :
-                        new Account(mhaTblV2.getReadUser(),mhaTblV2.getReadPassword());
+                return new Account(mhaTblV2.getReadUserV2(),decrypt(mhaTblV2.getReadPasswordTokenV2()));
             case DRC_WRITE:
-                return grayKms ?
-                        (grayNewAccount ?
-                                new Account(mhaTblV2.getWriteUserV2(),decrypt(mhaTblV2.getWritePasswordTokenV2())) :
-                                new Account(mhaTblV2.getWriteUser(),decrypt(mhaTblV2.getWritePasswordToken()))
-                        ) :
-                        new Account(mhaTblV2.getWriteUser(),mhaTblV2.getWritePassword());
+                return new Account(mhaTblV2.getWriteUserV2(),decrypt(mhaTblV2.getWritePasswordTokenV2()));
             default:
                 throw ConsoleExceptionUtils.message("accountType not support");
         }
@@ -198,33 +182,17 @@ public class AccountServiceImpl implements AccountService {
     }
     
     private void loadEncryptCache(MhaTblV2 mhaTblV2) {
-        if (grayKmsToken(mhaTblV2.getMhaName())) {
-            String monitorPasswordToken = mhaTblV2.getMonitorPasswordToken();
-            String readPasswordToken = mhaTblV2.getReadPasswordToken();
-            String writePasswordToken = mhaTblV2.getWritePasswordToken();
-            if (!decryptCache.containsKey(monitorPasswordToken)) {
-                decryptCache.put(monitorPasswordToken, decrypt(monitorPasswordToken));
-            }
-            if (!decryptCache.containsKey(readPasswordToken)) {
-                decryptCache.put(readPasswordToken, decrypt(readPasswordToken));
-            }
-            if (!decryptCache.containsKey(writePasswordToken)) {
-                decryptCache.put(writePasswordToken, decrypt(writePasswordToken));
-            }
+        String monitorPasswordTokenV2 = mhaTblV2.getMonitorPasswordTokenV2();
+        String readPasswordTokenV2 = mhaTblV2.getReadPasswordTokenV2();
+        String writePasswordTokenV2 = mhaTblV2.getWritePasswordTokenV2();
+        if (!decryptCache.containsKey(monitorPasswordTokenV2)) {
+            decryptCache.put(monitorPasswordTokenV2,decrypt(monitorPasswordTokenV2));
         }
-        if (grayAccountV2(mhaTblV2.getMhaName())) {
-            String monitorPasswordTokenV2 = mhaTblV2.getMonitorPasswordTokenV2();
-            String readPasswordTokenV2 = mhaTblV2.getReadPasswordTokenV2();
-            String writePasswordTokenV2 = mhaTblV2.getWritePasswordTokenV2();
-            if (!decryptCache.containsKey(monitorPasswordTokenV2)) {
-                decryptCache.put(monitorPasswordTokenV2,decrypt(monitorPasswordTokenV2));
-            }
-            if (!decryptCache.containsKey(readPasswordTokenV2)) {
-                decryptCache.put(readPasswordTokenV2,decrypt(readPasswordTokenV2));
-            }
-            if (!decryptCache.containsKey(writePasswordTokenV2)) {
-                decryptCache.put(writePasswordTokenV2,decrypt(writePasswordTokenV2));
-            }
+        if (!decryptCache.containsKey(readPasswordTokenV2)) {
+            decryptCache.put(readPasswordTokenV2,decrypt(readPasswordTokenV2));
+        }
+        if (!decryptCache.containsKey(writePasswordTokenV2)) {
+            decryptCache.put(writePasswordTokenV2,decrypt(writePasswordTokenV2));
         }
     }
     
