@@ -40,8 +40,6 @@ public class MetaAccountServiceImpl implements MetaAccountService {
     private CentralService centralService;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
     
 
     private LoadingCache<String,MhaAccounts> mhaAccountsCache = CacheBuilder.newBuilder()
@@ -59,19 +57,10 @@ public class MetaAccountServiceImpl implements MetaAccountService {
     @Override
     public MhaAccounts getMhaAccounts(String mhaName) {
         try {
-            if (consoleConfig.getAccountFromMetaSwitch()) {
-                if (consoleConfig.getAccountRealTimeSwitch()) {
-                    return loadCache(mhaName);
-                } else {
-                    return mhaAccountsCache.get(mhaName);
-                }
+            if (consoleConfig.getAccountRealTimeSwitch()) {
+                return loadCache(mhaName);
             } else {
-                return new MhaAccounts(
-                        mhaName,
-                        new Account(monitorTableSourceProvider.getMonitorUserVal(),monitorTableSourceProvider.getMonitorPasswordVal()),
-                        new Account(monitorTableSourceProvider.getReadUserVal(),monitorTableSourceProvider.getReadPasswordVal()),
-                        new Account(monitorTableSourceProvider.getWriteUserVal(),monitorTableSourceProvider.getWritePasswordVal())
-                );
+                return mhaAccountsCache.get(mhaName);
             }
         } catch (ExecutionException e) {
             logger.error("mha:{},getMhaAccounts error",mhaName,e);

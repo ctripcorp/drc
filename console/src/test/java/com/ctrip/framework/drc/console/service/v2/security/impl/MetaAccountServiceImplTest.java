@@ -51,8 +51,6 @@ public class MetaAccountServiceImplTest {
         when(monitorTableSourceProvider.getMonitorPasswordVal()).thenReturn("mockPwd");
         when(monitorTableSourceProvider.getReadPasswordVal()).thenReturn("mockPwd");
         when(monitorTableSourceProvider.getWritePasswordVal()).thenReturn("mockPwd");
-        MhaAccounts mhaAccounts = metaAccountService.getMhaAccounts("mhaName");
-        Assert.assertEquals("mockPwd",mhaAccounts.getWriteAcc().getPassword());
         
         when(consoleConfig.getAccountFromMetaSwitch()).thenReturn(true);
         Drc drc = DefaultSaxParser.parse(FileUtils.getFileInputStream("api/open_api_meta.xml"));

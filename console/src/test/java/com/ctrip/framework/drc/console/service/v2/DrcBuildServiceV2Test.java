@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.RouteTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
@@ -53,6 +54,7 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.ColumnsFilterCreateParam;
@@ -228,6 +230,73 @@ public class DrcBuildServiceV2Test {
         ));
         Mockito.verify(mhaTblDao, Mockito.times(4)).insertWithReturnId(Mockito.any(MhaTblV2.class));
     }
+
+
+    @Test
+    public void testBuildAmbiguousMha() throws Exception {
+        Mockito.when(buTblDao.queryByBuName(Mockito.anyString())).thenReturn(getBuTbl());
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(null);
+        Mockito.when(mhaTblDao.insertWithReturnId(Mockito.any(MhaTblV2.class))).thenReturn(1L);
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyLong())).thenReturn(null);
+        Mockito.when(mhaReplicationTblDao.insert(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
+        Mockito.when(consoleConfig.getAccountKmsTokenSwitch()).thenReturn(true);
+        Mockito.when(consoleConfig.getAccountKmsTokenSwitchV2()).thenReturn(true);
+        Mockito.when(consoleConfig.getAccountFromMetaSwitch()).thenReturn(true);
+        Mockito.when(consoleConfig.getDefaultMonitorAccountKmsToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDefaultReadAccountKmsToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDefaultWriteAccountKmsToken()).thenReturn("token");
+        // for ambiguous mha
+        Mockito.when(consoleConfig.getAllowAmbiguousMhaSwitch()).thenReturn(true);
+        MachineTbl machineTbl = new MachineTbl();
+        machineTbl.setMhaId(111L);
+        Mockito.when(machineTblDao.queryByIpPort(Mockito.anyString(), Mockito.eq(13306))).thenReturn(machineTbl);
+        Mockito.when(mhaTblDao.queryById(Mockito.eq(111L))).thenReturn(new MhaTblV2());
+        
+        Mockito.when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root","root"));
+        MachineDto masterInSrcMha = new MachineDto(13306,"ip1",true);
+        MachineDto masterInDstMha = new MachineDto(13307,"ip2",true);
+        MachineDto slaveInDstMha = new MachineDto(13306,"ip3",false);
+
+        Mockito.when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class),Mockito.anyString(),Mockito.anyInt())).thenReturn(true);
+
+        drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
+                "srcMha", "dstMha",
+                "srcDc", "dstDc",
+                "BBZ", "srcTag", "dstTag",
+                Lists.newArrayList(masterInSrcMha),
+                Lists.newArrayList(masterInDstMha,slaveInDstMha)
+        ));
+        Mockito.verify(mhaTblDao, Mockito.never()).update(Mockito.any(MhaTblV2.class));
+        Mockito.verify(mhaTblDao, Mockito.times(2)).insertWithReturnId(Mockito.any(MhaTblV2.class));
+
+        drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
+                "srcMha", "dstMha",
+                "srcDc", "dstDc",
+                "BBZ", "srcTag", "dstTag",
+                null,
+                null
+        ));
+        Mockito.verify(mhaTblDao, Mockito.times(4)).insertWithReturnId(Mockito.any(MhaTblV2.class));
+        Mockito.verify(machineTblDao, Mockito.times(3)).queryByIpPort(Mockito.anyString(), Mockito.anyInt());
+
+
+        Mockito.when(consoleConfig.getAllowAmbiguousMhaSwitch()).thenReturn(false);
+        try {
+            drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
+                    "srcMha", "dstMha",
+                    "srcDc", "dstDc",
+                    "BBZ", "srcTag", "dstTag",
+                    Lists.newArrayList(masterInSrcMha),
+                    Lists.newArrayList(masterInDstMha,slaveInDstMha)
+            ));
+        }catch (Exception e){
+            Assert.assertTrue(e instanceof ConsoleException);
+            Assert.assertTrue(e.getMessage().contains("ambiguousMha"));
+        }
+        
+    }
+    
 
     @Test
     public void testBuildDrc() throws Exception {

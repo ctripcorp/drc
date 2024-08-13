@@ -143,6 +143,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public static String HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
     private static final String ACCOUNT_FROM_METE_SWITCH = "account.from.meta.switch";
     private static final String DBA_API_PWD_CHANGE_URL = "dba.api.pwd.change.url";
+    private static final String ALLOW_AMBIGUOUS_MHA_SWITCH = "allow.ambiguous.mha.switch";
 
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
@@ -676,4 +677,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
 
+    public boolean getAllowAmbiguousMhaSwitch() {
+        return getBooleanProperty(ALLOW_AMBIGUOUS_MHA_SWITCH, false);
+    }
 }
