@@ -61,7 +61,7 @@ public class OperationLogControllerTest {
     public void testGetAllType() {
         ApiResult<List<OptionView>> allType = operationLogController.getAllType();
         assertEquals(0,allType.getStatus().intValue());
-        assertEquals(7,allType.getData().size());
+        assertEquals(8,allType.getData().size());
     }
 
     @Test

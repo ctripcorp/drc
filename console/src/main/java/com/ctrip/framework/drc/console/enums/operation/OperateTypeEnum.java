@@ -6,6 +6,7 @@ package com.ctrip.framework.drc.console.enums.operation;
  * @Date 2023/12/11 14:31
  * @Version: $
  */
+@SuppressWarnings("ctrip-java:ChineseCharacterCheck")
 public enum OperateTypeEnum {
     MHA_REPLICATION("MHA同步","MHA_replication"),
     MESSENGER_REPLICATION("Messenger同步","messenger_replication"),
@@ -15,6 +16,7 @@ public enum OperateTypeEnum {
     CONFLICT_RESOLUTION("冲突处理","conflict_resolution"),
     DRC_RESOURCE("DRC资源","drc_resource"),
     MHA_MIGRATION("MHA迁移","mha_migration"),
+    MQ_REPLICATION("消息投递", "mq_replication")
     ;
 
     private String name;

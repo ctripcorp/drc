@@ -9,6 +9,20 @@
             <Icon type="ios-navigate"></Icon>
             <span>监控大盘</span>
           </MenuItem>
+<!--          <Submenu name="base">-->
+<!--            <template slot="title">-->
+<!--              <Icon type="ios-navigate"></Icon>-->
+<!--              <span>监控大盘</span>-->
+<!--            </template>-->
+<!--            <MenuItem name="/home" to="/home">-->
+<!--              <Icon type="ios-pie"></Icon>-->
+<!--              <span>监控大盘</span>-->
+<!--            </MenuItem>-->
+<!--            <MenuItem name="/mq" to="/mq">-->
+<!--              <Icon type="ios-copy"></Icon>-->
+<!--              <span>消息投递</span>-->
+<!--            </MenuItem>-->
+<!--          </Submenu>-->
           <Submenu name="v2-0">
             <template slot="title">
               <Icon type="ios-apps"></Icon>
@@ -37,6 +51,9 @@
             </MenuItem>
             <MenuItem name="/conflictLog" to="/conflictLog">
               <span>冲突处理</span>
+            </MenuItem>
+            <MenuItem name="/mq" to="/mq">
+              <span>消息投递</span>
             </MenuItem>
             <MenuItem name="/v2/operationlog" to="/v2/operationlog">
               <span>操作日志</span>
@@ -165,6 +182,7 @@ export default {
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
       case '/conflictLog':
+      case '/mq':
       case '/dbBlacklist':
       case '/v2/operationlog':
       case '/monitor':

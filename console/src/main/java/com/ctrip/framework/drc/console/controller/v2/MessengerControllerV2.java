@@ -13,10 +13,13 @@ import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
+import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.PageResult;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -215,6 +215,20 @@ public class MessengerControllerV2 {
 
         } catch (Throwable e) {
             logger.error("queryRelatedReplicationDelay error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mqReplication")
+    @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.MQ_REPLICATION, attr = OperateAttrEnum.QUERY,
+            success = "queryMqReplicationsByPage with MqReplicationQueryDto: {#queryDto.toString()}")
+    public ApiResult<PageResult<DbReplicationVo>> queryMqReplicationsByPage(MqReplicationQueryDto queryDto) {
+        logger.info("[meta] MqReplicationQueryDto :{}", queryDto.toString());
+        try {
+            return ApiResult.getSuccessInstance(messengerService.queryMqReplicationsByPage(queryDto));
+        }catch (Exception e) {
+            logger.error("queryMqReplicationsByPage fail, ", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

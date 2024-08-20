@@ -39,6 +39,12 @@ public class MhaSyncStatusCheckTask extends AbstractLeaderAwareMonitor {
     }
 
     @Override
+    public void switchToSlave() throws Throwable {
+        super.switchToSlave();
+        reporter.removeRegister(MHA_SYNC_STATUS_MEASUREMENT);
+    }
+
+    @Override
     public void scheduledTask() throws Exception {
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;

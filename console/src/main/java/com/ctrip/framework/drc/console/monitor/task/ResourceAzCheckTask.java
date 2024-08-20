@@ -41,6 +41,12 @@ public class ResourceAzCheckTask extends AbstractLeaderAwareMonitor  {
     }
 
     @Override
+    public void switchToSlave() throws Throwable {
+        super.switchToSlave();
+        reporter.removeRegister(RESOURCE_AZ_ERROR_NUM_MEASUREMENT);
+    }
+
+    @Override
     public void scheduledTask() throws Exception { //?
         if (!isRegionLeader || !consoleConfig.isCenterRegion()) {
             return;
