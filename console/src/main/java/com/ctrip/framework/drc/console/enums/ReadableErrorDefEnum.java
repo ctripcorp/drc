@@ -24,6 +24,8 @@ public enum ReadableErrorDefEnum implements IErrorDef {
 
     QUERY_MHA_SYNC_COUNT("QUERY_MHA_SYNC_COUNT", "query mah sync count fail"),
 
+    QUERY_MQ_REPLICATION_FAIL("QUERY_MQ_REPLICATION_FAIL", "query mq replications fail"),
+
     /**
      * common dao exception
      */

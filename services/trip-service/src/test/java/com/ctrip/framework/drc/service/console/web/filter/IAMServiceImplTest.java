@@ -36,7 +36,7 @@ public class IAMServiceImplTest {
         System.setProperty("iam.config.enable","off");
         MockitoAnnotations.openMocks(this);
         Mockito.when(qConfig.get(Mockito.eq("iam.filter.switch"), Mockito.any())).thenReturn("on");
-        Mockito.when(qConfig.get(Mockito.eq("query.all.cfl.permission.code"), Mockito.any())).thenReturn("code3");
+        Mockito.when(qConfig.get(Mockito.eq("query.all.db.permission.code"), Mockito.any())).thenReturn("code3");
     }
     
     @Test
@@ -92,8 +92,8 @@ public class IAMServiceImplTest {
         Assert.assertNull(iAMServiceImpl.checkPermission(Lists.newArrayList("code1"),"eid").getRight());
 
         // test checkQueryAllCflLogPermission
-        Assert.assertTrue(iAMServiceImpl.canQueryAllCflLog().getLeft());
-        Assert.assertNull(iAMServiceImpl.canQueryAllCflLog().getRight());
+        Assert.assertTrue(iAMServiceImpl.canQueryAllDbReplication().getLeft());
+        Assert.assertNull(iAMServiceImpl.canQueryAllDbReplication().getRight());
 
 
         // case4 check exception

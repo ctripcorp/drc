@@ -128,7 +128,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllCflLog().getLeft()) {
+        if (!iamService.canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");

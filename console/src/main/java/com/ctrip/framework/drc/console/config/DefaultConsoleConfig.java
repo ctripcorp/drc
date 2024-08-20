@@ -153,6 +153,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String ACCOUNT_REALTIME_SWITCH = "account.realtime.switch";
     private static final String MYSQL_API_V2_SWITCH = "mysql.api.v2.switch";
 
+    private static String CONSOLE_PANEL_URL = "console.panel.url";
+    private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
+
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -679,5 +682,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getAllowAmbiguousMhaSwitch() {
         return getBooleanProperty(ALLOW_AMBIGUOUS_MHA_SWITCH, false);
+    }
+
+    public String getConsolePanelUrl() {
+        return getProperty(CONSOLE_PANEL_URL);
+    }
+
+    public String getConsoleMqPanelUrl() {
+        return getProperty(CONSOLE_MQ_PANEL_URL);
     }
 }

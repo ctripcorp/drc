@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v1;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.service.v2.resource.ProxyService;
@@ -27,6 +28,9 @@ public class MetaController {
 
     @Autowired
     private ProxyService proxyService;
+
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @DeleteMapping(value = "routes/proxy")
     public ApiResult deleteProxyRoute(@RequestParam(value = "routeOrgName") String routeOrgName,
@@ -93,6 +97,15 @@ public class MetaController {
         logger.info("[meta] get all proxy uris");
         try {
             return ApiResult.getSuccessInstance(proxyService.getAllProxyUris());
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(t);
+        }
+    }
+
+    @GetMapping("panelUrl")
+    public ApiResult getPanelUrl() {
+        try {
+            return ApiResult.getSuccessInstance(defaultConsoleConfig.getConsolePanelUrl());
         } catch (Throwable t) {
             return ApiResult.getFailInstance(t);
         }

@@ -9,6 +9,10 @@ const routes = [
     component: () => import('../views/home.vue')
   },
   {
+    path: '/mq',
+    component: () => import('../views/mq.vue')
+  },
+  {
     path: '/monitor',
     component: () => import('../views/monitor.vue')
   },

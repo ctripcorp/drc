@@ -173,7 +173,7 @@ public class ConflictLogServiceTest {
         Mockito.when(conflictTrxLogTblDao.queryByParam(param)).thenReturn(buildConflictTrxLogTbls());
 
         // case 1: can not query all db , dbsCanQuery is empty
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false, null));
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(false, null));
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(null);
         List<ConflictTrxLogView> result = null;
         try {
@@ -189,7 +189,7 @@ public class ConflictLogServiceTest {
         Assert.assertEquals(1, result.size());
 
         // case 3: can query all db
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(true, null));
         result = conflictLogService.getConflictTrxLogView(param);
         Assert.assertEquals(1, result.size());
 
@@ -204,7 +204,7 @@ public class ConflictLogServiceTest {
         Mockito.when(conflictTrxLogTblDao.getCount(Mockito.any())).thenReturn(1);
 
         // case 1: can not query all db , dbsCanQuery is empty
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false, null));
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(false, null));
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(Lists.newArrayList("db"));
 
         int result = conflictLogService.getTrxLogCount(param);
@@ -224,7 +224,7 @@ public class ConflictLogServiceTest {
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList())).thenReturn(getMhaTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(true, null));
 
         int result = conflictLogService.getRowsLogCount(param);
         Assert.assertEquals(result, 1);
@@ -244,7 +244,7 @@ public class ConflictLogServiceTest {
         Mockito.when(conflictTrxLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList())).thenReturn(getMhaTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(true, null));
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(true, null));
 
         List<ConflictRowsLogView> result = conflictLogService.getConflictRowsLogView(param);
         Assert.assertEquals(1, result.size());

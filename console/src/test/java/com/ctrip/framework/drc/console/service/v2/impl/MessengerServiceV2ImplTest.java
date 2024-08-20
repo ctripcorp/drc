@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
@@ -9,10 +12,15 @@ import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
+import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
+import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
@@ -20,15 +28,22 @@ import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.util.Lists;
+import org.ietf.jgss.Oid;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -48,6 +63,10 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     MhaServiceV2Impl mhaServiceV2;
     @Mock
     MhaDbReplicationServiceImpl mhaDbReplicationService;
+    @Mock
+    DbaApiService dbaApiService;
+    @Mock
+    IAMService iamService;
 
     @Before
     public void setUp() throws IOException, SQLException {
@@ -56,6 +75,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         when(qConfigService.updateDalClusterMqConfig(anyString(),any(),any(),anyList())).thenReturn(true);
         when(qConfigService.removeDalClusterMqConfigIfNecessary(anyString(),any(),any(),any(),anyList(),anyList())).thenReturn(true);
         when(qConfigService.addOrUpdateDalClusterMqConfig(anyString(),any(),any(),any(),anyList())).thenReturn(true);
+        when(defaultConsoleConfig.getConsoleMqPanelUrl()).thenReturn("");
         doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
         super.setUp();
     }
@@ -556,4 +576,39 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         String json = "[{\"metric\":{\"mhaName\":\"mha1\"},\"values\":[[1693216955,\"132.358004355\"],[1693217015,\"131.2824921131\"]]},{\"metric\":{\"mhaName\":\"mha2\"},\"values\":[[1693216955,\"132.358004355\"],[1693217015,\"131.2824921131\"]]}]";
         return JsonUtils.fromJsonToList(json, HickWallMessengerDelayEntity.class);
     }
+
+    @Test
+    public void testQueryMqReplicationsByPage() throws Exception {
+        String dbNames = "db";
+        String srcTblName = "test";
+        String topic = "test";
+        boolean queryOtter = true;
+        MqReplicationQueryDto dto = MqReplicationQueryDto.from(dbNames,srcTblName,topic,queryOtter);
+
+        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(List.of("db"));
+        Mockito.when(dbTblDao.queryByDbNames(anyList())).thenReturn(PojoBuilder.getDbTbls());
+        Mockito.when(mhaDbMappingTblDao.queryByDbIds(anyList())).thenReturn(PojoBuilder.getMhaDbMappingTbls1());
+        Mockito.when(mhaDbMappingTblDao.queryByIds(anyList())).thenReturn(PojoBuilder.getMhaDbMappingTbls1());
+        Mockito.when(dcTblDao.queryAll()).thenReturn(PojoBuilder.getDcTbls());
+        Mockito.when(dbTblDao.queryByIds(anyList())).thenReturn(PojoBuilder.getDbTbls());
+        Mockito.when(mhaTblV2Dao.queryByIds(anyList())).thenReturn(PojoBuilder.getMhaTblV2s());
+        Mockito.when(dbReplicationTblDao.queryByPage(any())).thenReturn(PojoBuilder.getDbReplicationTbls());
+        Mockito.when(dbReplicationTblDao.count((MqReplicationQuery) any())).thenReturn(2);
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(false, null));
+
+        PageResult<DbReplicationVo> result = messengerServiceV2Impl.queryMqReplicationsByPage(dto);
+        Assert.assertNotNull(result);
+        Assert.assertEquals(result.getTotalCount(), 2);
+    }
+
+    @Test
+    public void testQueryByPage() throws Exception {
+        Mockito.when(dbReplicationTblDao.queryByPage(any())).thenReturn(PojoBuilder.getDbReplicationTbls());
+        Mockito.when(dbReplicationTblDao.count((MqReplicationQuery) any())).thenReturn(2);
+
+        PageResult result = messengerServiceV2Impl.queryByPage(new MqReplicationQuery());
+        Assert.assertNotNull(result);
+        Assert.assertEquals(result.getTotalCount(),2);
+    }
+
 }

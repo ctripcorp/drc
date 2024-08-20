@@ -8,11 +8,14 @@ import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
+import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
+import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.PageResult;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -21,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -149,5 +153,14 @@ public class MessengerControllerV2Test {
     public void testDeleteMha() {
         ApiResult<Boolean> result = messengerControllerV2.removeMessengerGroupInMha("mhaName");
         Assert.assertEquals((Integer) ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus());
+    }
+
+    @Test
+    public void testQueryMqReplicationsByPage() throws Exception{
+        List<DbReplicationVo> vos = new ArrayList<>();
+        vos.add(new DbReplicationVo());
+        when(messengerService.queryMqReplicationsByPage(any())).thenReturn(PageResult.newInstance(vos,1,20,1));
+        ApiResult<PageResult<DbReplicationVo>> result = messengerControllerV2.queryMqReplicationsByPage(new MqReplicationQueryDto());
+        Assert.assertNotNull(result);
     }
 }
