@@ -294,7 +294,7 @@ public class CurrentMeta implements Releasable {
                 if (!checkIn(surviveReplicators, activeReplicator)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeReplicator + ", all:" + this.surviveReplicators);
                 }
-                this.surviveReplicators = (List<Replicator>) MetaClone.clone((Serializable) surviveReplicators);
+                this.surviveReplicators = MetaClone.cloneList(surviveReplicators);
                 logger.info("[setSurviveReplicators]{},{},{}", clusterId, surviveReplicators, activeReplicator);
                 return doSetActive(clusterId, activeReplicator, this.surviveReplicators);
             } else {
@@ -311,7 +311,7 @@ public class CurrentMeta implements Releasable {
                 }
 
                 String dbName = NameUtils.getMessengerDbName(activeMessenger);
-                List<Messenger> messengers = (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
+                List<Messenger> messengers = MetaClone.cloneList(surviveMessengers);
                 this.surviveMessengers.put(dbName, messengers);
                 logger.info("[setSurviveMessengers]{},{},{},{}", clusterId, dbName, surviveMessengers, activeMessenger);
                 doSetActive(dbName, activeMessenger, messengers);
@@ -343,7 +343,7 @@ public class CurrentMeta implements Releasable {
                     throw new IllegalArgumentException("active not in all survivors " + activeApplier + ", all:" + this.surviveAppliers);
                 }
                 String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(activeApplier);
-                List<Applier> appliers = (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
+                List<Applier> appliers = MetaClone.cloneList(surviveAppliers);
                 this.surviveAppliers.put(backupRegistryKey, appliers);
                 logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupRegistryKey, surviveAppliers, activeApplier);
                 doSetActive(backupRegistryKey, activeApplier, appliers);
@@ -511,7 +511,7 @@ public class CurrentMeta implements Releasable {
         }
 
         public List<Replicator> getSurviveReplicators() {
-            return (List<Replicator>) MetaClone.clone((Serializable) surviveReplicators);
+            return MetaClone.cloneList(surviveReplicators);
         }
 
         public List<Messenger> getSurviveMessengers(String dbName) {
@@ -519,7 +519,7 @@ public class CurrentMeta implements Releasable {
             if (messengers == null) {
                 return null;
             }
-            return (List<Messenger>) MetaClone.clone((Serializable) messengers);
+            return MetaClone.cloneList(messengers);
         }
 
         public List<Applier> getSurviveAppliers(String backupRegistryKey) {
@@ -527,7 +527,7 @@ public class CurrentMeta implements Releasable {
             if (appliers == null) {
                 return null;
             }
-            return (List<Applier>) MetaClone.clone((Serializable) appliers);
+            return MetaClone.cloneList(appliers);
         }
 
         public String getClusterId() {

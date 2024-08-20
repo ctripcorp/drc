@@ -322,7 +322,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         Map<String, Map<String, List<Applier>>> map = new HashMap<>();
         for (String clusterId : allClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
-            List<Applier> applierList = (List<Applier>) MetaClone.clone(((Serializable) cluster.getAppliers()));
+            List<Applier> applierList = MetaClone.cloneList(cluster.getAppliers());
             Map<String, List<Applier>> appliersGroupByBackupRegistryKey = applierList.stream().collect(Collectors.groupingBy(NameUtils::getApplierBackupRegisterKey));
             for (Map.Entry<String, List<Applier>> entry : appliersGroupByBackupRegistryKey.entrySet()) {
                 String backupKey = entry.getKey();
@@ -340,7 +340,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         Map<String, Map<String, List<Messenger>>> map = new HashMap<>();
         for (String clusterId : allClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
-            List<Messenger> messengerList = (List<Messenger>) MetaClone.clone(((Serializable) cluster.getMessengers()));
+            List<Messenger> messengerList = MetaClone.cloneList(cluster.getMessengers());
             Map<String, List<Messenger>> messengersGroupByDbName = messengerList.stream().collect(Collectors.groupingBy(NameUtils::getMessengerDbName));
             for (Map.Entry<String, List<Messenger>> entry : messengersGroupByDbName.entrySet()) {
                 String dbName = entry.getKey();
@@ -359,7 +359,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         Map<String, List<Replicator>> map = new HashMap<>();
         for (String clusterId : allClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
-            List<Replicator> replicatorList = (List<Replicator>) MetaClone.clone(((Serializable) cluster.getReplicators()));
+            List<Replicator> replicatorList = MetaClone.cloneList(cluster.getReplicators());
             Replicator activeReplicator = currentMeta.getActiveReplicator(clusterId);
             setMaster(replicatorList, activeReplicator);
             map.put(clusterId, replicatorList);
