@@ -230,12 +230,12 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         if (mhaReplicationTbl == null) {
             return;
         }
+        if (consoleConfig.getMetaGeneratorV5Switch()) {
+            generateDbApplierInstances(dbCluster, srcMhaTbl, mhaTbl);
+        }
         ApplierGroupTblV2 applierGroupTbl = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), 0);
         if (applierGroupTbl == null) {
             return;
-        }
-        if (consoleConfig.getMetaGeneratorV5Switch()) {
-            generateDbApplierInstances(dbCluster, srcMhaTbl, mhaTbl);
         }
         if (CollectionUtils.isEmpty(dbCluster.getAppliers())) {
             generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);

@@ -15,6 +15,8 @@ public class DbDelayDtoTest {
 
         String json = "{\"d\":\"ntgxh\",\"r\":\"ntgxh\",\"m\":\"zyn_test_1\",\"b\":\"zyn_test_shard_db498\"}";
         Assert.assertEquals(json,from.toJson());
+        Assert.assertEquals(json,from.toJson());
+        Assert.assertEquals(json,from.toJson());
 
         DbDelayDto.DelayInfo parsed = DbDelayDto.DelayInfo.parse(json);
         Assert.assertEquals(from,parsed);

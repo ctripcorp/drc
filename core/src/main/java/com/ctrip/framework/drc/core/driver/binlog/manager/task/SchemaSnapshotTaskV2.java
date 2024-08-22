@@ -67,7 +67,7 @@ public class SchemaSnapshotTaskV2 extends AbstractSchemaTask<Map<String, Map<Str
                 }
             }
             int concurrency = DynamicConfig.getInstance().getSnapshotTaskConcurrency();
-            DDL_LOGGER.info("[SchemaSnapshotTaskV2] the concurrency of is: {}", concurrency);
+            DDL_LOGGER.info("[SchemaSnapshotTaskV2] the concurrency of is: {}, task num: {}", concurrency, allTasks.size());
             try {
                 List<List<Callable<Triple<String, String, String>>>> taskPartitions = Lists.partition(allTasks, concurrency);
                 for (List<Callable<Triple<String, String, String>>> subTasks : taskPartitions) {
