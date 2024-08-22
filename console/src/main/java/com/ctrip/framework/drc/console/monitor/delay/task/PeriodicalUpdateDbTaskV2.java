@@ -20,6 +20,9 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
@@ -30,6 +33,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import javax.validation.constraints.NotNull;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.*;
@@ -76,8 +81,20 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             "ON DUPLICATE KEY UPDATE delay_info = '%s', datachange_lasttime = '%s';";
 
     // src mha name -> mha db replications
-    private final Supplier<Map<String, List<MhaDbReplicationDto>>> mhaDbMapCache = Suppliers.memoizeWithExpiration(this::refreshAndGetMhaDbMap, 10, TimeUnit.SECONDS);
-    private Map<String, List<MhaDbReplicationDto>> mhaDbMapBackUp = Maps.newHashMap();
+    private final Supplier<Map<String, Map<String, List<MhaDbReplicationDto>>>> mhaDbMapCache = Suppliers.memoizeWithExpiration(this::refreshAndGetMhaDbMap, 10, TimeUnit.SECONDS);
+    private Map<String, Map<String, List<MhaDbReplicationDto>>> mhaDbMapBackUp = Maps.newHashMap();
+
+    // dst mha name -> (srcMha -> relatedDbs)
+    private final LoadingCache<String, Map<String, Set<String>>> cache = CacheBuilder.newBuilder()
+            .maximumSize(10000)
+            .initialCapacity(1000)
+            .expireAfterAccess(10, TimeUnit.SECONDS)
+            .build(new CacheLoader<>() {
+                @Override
+                public Map<String, Set<String>> load(@NotNull String dstMha) {
+                    return getMhaDbRelatedByDestMhaInner(dstMha);
+                }
+            });
 
     /**
      * value: the time when update sql commits
@@ -95,13 +112,13 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         currentMetaManager.addObserver(this);
     }
 
-    private Map<String, List<MhaDbReplicationDto>> refreshAndGetMhaDbMap() {
+    private Map<String, Map<String, List<MhaDbReplicationDto>>> refreshAndGetMhaDbMap() {
         try {
             if (consoleConfig.getLocalConfigCloudDc().contains(dataCenterService.getDc())) {
                 logger.warn("[[task=updateDelayTable_v2]] skip update localDcName");
                 return Maps.newHashMap();
             }
-            Map<String, List<MhaDbReplicationDto>> mhaDbReplication = Maps.newHashMap();
+            Map<String, Map<String, List<MhaDbReplicationDto>>> mhaDbReplication = Maps.newHashMap();
             for (String dc : dcsInRegion) {
                 mhaDbReplication.putAll(getMhaDbReplicationByDc(dc));
             }
@@ -113,7 +130,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         return Collections.unmodifiableMap(mhaDbMapBackUp);
     }
 
-    private Map<String, List<MhaDbReplicationDto>> getMhaDbReplicationByDc(String dcName) throws Exception {
+    private Map<String, Map<String, List<MhaDbReplicationDto>>> getMhaDbReplicationByDc(String dcName) throws SQLException {
         List<MhaDbReplicationDto> mhaDbMappingTblV2s = centralService.getMhaDbReplications(dcName);
         if (CollectionUtils.isEmpty(mhaDbMappingTblV2s)) {
             return Maps.newHashMap();
@@ -121,7 +138,10 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         return mhaDbMappingTblV2s.stream()
                 .filter(this::filterGrey)
                 .filter(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType()))
-                .collect(Collectors.groupingBy(e -> e.getSrc().getMhaName()));
+                .collect(Collectors.groupingBy(
+                        e -> e.getSrc().getMhaName(),
+                        Collectors.groupingBy(e -> e.getDst().getMhaName())
+                ));
     }
 
     @Override
@@ -133,12 +153,19 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
         }
     }
 
-    public Map<String, List<String>> getMhaDbRelatedByDestMha(String mhaName) {
-        Map<String, List<MhaDbReplicationDto>> stringListMap = mhaDbMapCache.get();
-        Map<String, List<String>> ret = new HashMap<>();
-        for (Map.Entry<String, List<MhaDbReplicationDto>> entry : stringListMap.entrySet()) {
+    public Map<String, Set<String>> getMhaDbRelatedByDestMha(String dstMha) {
+        return cache.getUnchecked(dstMha);
+    }
+
+    public Map<String, Set<String>> getMhaDbRelatedByDestMhaInner(String dstMha) {
+        Map<String, Map<String, List<MhaDbReplicationDto>>> stringListMap = mhaDbMapCache.get();
+        Map<String, Set<String>> ret = new HashMap<>();
+        for (Map.Entry<String, Map<String, List<MhaDbReplicationDto>>> entry : stringListMap.entrySet()) {
             String srcMha = entry.getKey();
-            List<String> dbs = entry.getValue().stream().filter(e -> e.getDst().getMhaName().equals(mhaName)).map(e -> e.getSrc().getDbName()).collect(Collectors.toList());
+            Map<String, List<MhaDbReplicationDto>> dstMhaToReplicationMap = entry.getValue();
+            Set<String> dbs = dstMhaToReplicationMap.getOrDefault(dstMha, Collections.emptyList())
+                    .stream()
+                    .map(e -> e.getSrc().getDbName()).collect(Collectors.toSet());
             if (CollectionUtils.isEmpty(dbs)) {
                 continue;
             }
@@ -155,7 +182,10 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
         logger.info("[[monitor=delay_v2]] start updateDbDelay");
         Set<Map.Entry<MetaKey, MySqlEndpoint>> entries = masterMySQLEndpointMap.entrySet();
-        Map<String, List<MhaDbReplicationDto>> mhaDbReplicationMap = mhaDbMapCache.get();
+        Map<String, List<MhaDbReplicationDto>> mhaDbReplicationMap = mhaDbMapCache.get().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        e -> e.getValue().values().stream().flatMap(Collection::stream).collect(Collectors.toList()))
+                );
         Set<Map.Entry<MetaKey, MySqlEndpoint>> filteredEndpointEntries = entries.stream().filter(e -> {
             String mhaName = e.getKey().getMhaName();
             return !CollectionUtils.isEmpty(mhaDbReplicationMap.get(mhaName));

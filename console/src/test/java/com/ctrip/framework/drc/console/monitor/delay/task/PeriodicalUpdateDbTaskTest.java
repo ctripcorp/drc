@@ -69,9 +69,9 @@ public class PeriodicalUpdateDbTaskTest {
     @Mock private CentralService centralService;
 
     @Mock private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
-    
+
     @Mock private CacheMetaService cacheMetaService;
-    
+
 
 
 
@@ -231,13 +231,13 @@ public class PeriodicalUpdateDbTaskTest {
         mock.put(new MetaKey(null, null, null, "mha_db_1_src"), null);
         task.setMasterMySQLEndpointMap(mock);
 
-        Map<String, List<String>> map = new HashMap<>();
-        map.put("mha_db_1_src", Lists.newArrayList("mha_db_1_dst"));
+        Map<String, Set<String>> map = new HashMap<>();
+        map.put("mha_db_1_src", Sets.newHashSet("mha_db_1_dst"));
         when(periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(eq("dstMha"))).thenReturn(map);
         Set<String> test = task.getMhaInLocalRegionRelatedByDstMha("dstMha");
         Assert.assertEquals(2, test.size());
         Assert.assertFalse(test.contains("mha_db_1_src"));
-        
+
         // test getSrcMhasShouldMonitor
         when(cacheMetaService.getSrcMhasHasReplication(eq("dstMha"))).thenReturn(Sets.newHashSet("mha1","mha2","mha_db_1_src","mha3InOtherDc"));
         test = task.getSrcMhasShouldMonitor("dstMha");
@@ -245,7 +245,7 @@ public class PeriodicalUpdateDbTaskTest {
 
         task.setMasterMySQLEndpointMap(origin);
     }
-    
+
 
     private void createDb() throws InterruptedException {
         try {

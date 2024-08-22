@@ -19,8 +19,8 @@ import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.when;
@@ -57,10 +57,10 @@ public class PeriodicalUpdateDbTaskV2Test {
 
     @Test
     public void test() {
-        Map<String, List<String>> mhaDb1Dst = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("some_mha");
+        Map<String, Set<String>> mhaDb1Dst = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("some_mha");
         Assert.assertTrue(mhaDb1Dst.isEmpty());
 
-        Map<String, List<String>> mhaDb2 = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("mha_db_1_dst");
+        Map<String, Set<String>> mhaDb2 = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("mha_db_1_dst");
         Assert.assertFalse(mhaDb2.isEmpty());
     }
 }

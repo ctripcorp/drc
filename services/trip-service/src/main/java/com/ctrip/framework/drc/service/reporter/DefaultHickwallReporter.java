@@ -99,7 +99,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     @Override
     public boolean removeRegister(String measurement) {
         metrics.removeMatching(
-                (name, metric) -> name.getKey().equalsIgnoreCase(measurement) 
+                (name, metric) -> name.getKey().equalsIgnoreCase(measurement)
         );
         return true;
     }
@@ -334,16 +334,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     }
 
     private MetricName getMetricName(Map<String, String> tags, String measurement) {
-        final MetricWrapper metricWrapper = new MetricWrapper(tags, measurement);
-        MetricName metricName;
-        if (null == (metricName = metricMapper.get(metricWrapper))) {
-            metricName = MetricName.build(measurement).tagged(tags);
-            if (UNKNOWN_ENV == ENV) {
-                metricName = metricName.tagged(APP_ID_TAG, APP_ID_PROPERTY);
-            }
-            metricMapper.put(metricWrapper, metricName);
-        }
-        return metricName;
+        return new MetricName(measurement, tags);
     }
 
 }

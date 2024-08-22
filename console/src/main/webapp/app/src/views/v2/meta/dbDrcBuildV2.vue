@@ -18,9 +18,7 @@
                 @on-change="selectDb"
                 :remote-method="getExistDb"
                 :loading="dataLoading">
-                <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">
-                  {{ option.dbName }}
-                </Option>
+                <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">{{option.dbName}}</Option>
               </Select>
             </FormItem>
             <FormItem label="同步方向" :required=true>
