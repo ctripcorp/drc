@@ -102,6 +102,9 @@ public class CommonDataInit {
     MhaDbReplicationServiceImpl mhaDbReplicationService;
     @InjectMocks
     DbDrcBuildServiceImpl dbDrcBuildService;
+    @InjectMocks
+    DbReplicationServiceImpl dbReplicationService;
+
 
     @Mock
     ColumnsFilterServiceV2 columnsFilterServiceV2;
