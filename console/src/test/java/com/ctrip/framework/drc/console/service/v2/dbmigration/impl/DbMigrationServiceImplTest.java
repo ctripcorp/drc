@@ -47,7 +47,6 @@ import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
@@ -269,15 +268,17 @@ public class DbMigrationServiceImplTest {
         
         Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
-        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
-        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),
+                Mockito.anyBoolean());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any(),Mockito.anyBoolean());
 
         migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         mockReplicationNotWork();
         Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
-        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
-        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),
+                Mockito.anyBoolean());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any(),Mockito.anyBoolean());
     }
     
     private void mockReplicationWork() throws SQLException {
@@ -316,7 +317,7 @@ public class DbMigrationServiceImplTest {
                Mockito.any(MhaReplicationTbl.class),Mockito.any(ApplierGroupTblV2.class)
                 , Mockito.any(MhaTblV2.class),Mockito.any(MhaTblV2.class)
         );
-        Mockito.doNothing().when(drcBuildServiceV2).autoConfigMessengersWithRealTimeGtid(Mockito.any(MhaTblV2.class));
+        Mockito.doNothing().when(drcBuildServiceV2).autoConfigMessengersWithRealTimeGtid(Mockito.any(MhaTblV2.class),Mockito.anyBoolean());
         Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
     }
     

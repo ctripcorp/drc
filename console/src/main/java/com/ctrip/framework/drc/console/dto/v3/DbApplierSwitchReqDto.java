@@ -10,6 +10,7 @@ public class DbApplierSwitchReqDto {
     private List<String> dbNames;
     private String srcMhaName;
     private String dstMhaName;
+    private boolean switchOnly;
 
     public List<String> getDbNames() {
         return dbNames;
@@ -33,5 +34,13 @@ public class DbApplierSwitchReqDto {
 
     public void setDstMhaName(String dstMhaName) {
         this.dstMhaName = dstMhaName;
+    }
+
+    public boolean isSwitchOnly() {
+        return switchOnly;
+    }
+
+    public void setSwitchOnly(boolean switchOnly) {
+        this.switchOnly = switchOnly;
     }
 }

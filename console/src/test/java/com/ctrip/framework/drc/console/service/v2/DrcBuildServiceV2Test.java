@@ -33,6 +33,7 @@ import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
@@ -52,6 +53,7 @@ import com.ctrip.framework.drc.console.dao.v2.ReplicationTableTblDao;
 import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -80,8 +82,13 @@ import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
+import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,6 +103,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
+import org.xml.sax.SAXException;
 
 /**
  * Created by dengquanliang
@@ -181,6 +189,8 @@ public class DrcBuildServiceV2Test {
     private KmsService kmsService;
     @Mock
     private MetaAccountService metaAccountService;
+    @Mock
+    private DbDrcBuildService dbDrcBuildService;
     
     
     @Before
@@ -617,7 +627,7 @@ public class DrcBuildServiceV2Test {
         Mockito.when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
-        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
+        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2(),Mockito.anyBoolean());
         Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
         Mockito.verify(messengerGroupTblDao,Mockito.times(1)).update((MessengerGroupTbl) Mockito.argThat(e->{
             MessengerGroupTbl group = (MessengerGroupTbl) e;
@@ -644,7 +654,7 @@ public class DrcBuildServiceV2Test {
         Mockito.when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
         Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
-        drcBuildServiceV2.autoConfigMessenger(MockEntityBuilder.buildMhaTblV2(),null);
+        drcBuildServiceV2.autoConfigMessenger(MockEntityBuilder.buildMhaTblV2(),null,false);
         Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
         Mockito.verify(messengerTblDao,Mockito.times(1)).batchUpdate(Mockito.argThat(e->e.stream().allMatch(tbl-> Objects.equals(tbl.getDeleted(), BooleanEnum.TRUE.getCode()))));
         Mockito.verify(messengerGroupTblDao,Mockito.never()).update((MessengerGroupTbl) Mockito.anyObject());
@@ -712,6 +722,107 @@ public class DrcBuildServiceV2Test {
         
         
     }
+
+
+    @Test
+    public void testIsolationMigrateReplicator() throws SQLException {
+        MhaTblV2 mha1 = MockEntityBuilder.buildMhaTblV2(1L, "mha1", 1L);
+        mha1.setTag("tag3");
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(mha1);
+        Mockito.when(mhaServiceV2.getMhaReplicatorsV2(Mockito.anyString())).thenReturn(
+                Lists.newArrayList(
+                        new ReplicatorInfoDto(1L,"gtid",true,"ip1","tag1","az1"),
+                        new ReplicatorInfoDto(2L,"gtid",false,"ip2","tag1","az2")
+                )
+        );
+        ResourceView resourceView1 = new ResourceView();
+        resourceView1.setResourceId(1L);
+        resourceView1.setType(ModuleEnum.REPLICATOR.getCode());
+        resourceView1.setTag("tag3");
+        resourceView1.setAz("az1");
+        resourceView1.setIp("ip3");
+
+        ResourceView resourceView2 = new ResourceView();
+        resourceView2.setResourceId(2L);
+        resourceView2.setType(ModuleEnum.REPLICATOR.getCode());
+        resourceView2.setTag("tag3");
+        resourceView2.setAz("az2");
+        resourceView2.setIp("ip4");
+        
+        Mockito.when(resourceService.getMhaAvailableResource(Mockito.anyString(),Mockito.anyInt())).thenReturn(
+                Lists.newArrayList(
+                        resourceView1,
+                        resourceView2
+                )
+        );
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtidInit");
+        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+
+        int i = drcBuildServiceV2.isolationMigrateReplicator(Lists.newArrayList("mha1"), true, "tag3", null);
+        Assert.assertEquals(1,i);
+
+
+        Mockito.when(mhaServiceV2.getMhaReplicatorsV2(Mockito.anyString())).thenReturn(
+                Lists.newArrayList(
+                        new ReplicatorInfoDto(1L,"gtid",true,"ip1","tag1","az1"),
+                        new ReplicatorInfoDto(2L,"gtid",false,"ip4","tag3","az2")
+                )
+        );
+        
+        i = drcBuildServiceV2.isolationMigrateReplicator(Lists.newArrayList("mha1"), false, "tag3", null);
+        Assert.assertEquals(1,i);
+        
+
+    }
+
+    @Test
+    public void testIsolationMigrateApplier() throws Exception {
+        MhaTblV2 mha1 = MockEntityBuilder.buildMhaTblV2(1L, "mha1", 1L);
+        MhaTblV2 mha2 = MockEntityBuilder.buildMhaTblV2(2L, "mha2", 2L);
+        mha2.setTag("tag");
+        Mockito.when(mhaReplicationTblDao.queryByDstMhaId(Mockito.anyLong())).thenReturn(
+                Lists.newArrayList(
+                        MockEntityBuilder.buildMhaReplicationTbl(
+                            1L,
+                                mha1,
+                                mha2
+                        )
+                )
+        );
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(mha2);
+        Mockito.when(mhaTblDao.queryByPk(Mockito.anyLong())).thenReturn(mha1);
+        Mockito.doNothing().when(dbDrcBuildService).switchAppliers(Mockito.anyList());
+        Mockito.doNothing().when(dbDrcBuildService).switchMessengers(Mockito.anyList());
+
+        int i = drcBuildServiceV2.isolationMigrateApplier(Lists.newArrayList("mha2"), "tag");
+        Assert.assertEquals(1,i);
+    }
+
+    @Test
+    public void testCheckIsoMigrateStatus() throws SQLException, IOException, SAXException {
+        ResourceTbl resource1 = new ResourceTbl();
+        resource1.setId(1L);
+        resource1.setIp("ip1");
+
+        ResourceTbl resource2 = new ResourceTbl();
+        resource2.setId(2L);
+        resource2.setIp("ip2");
+
+
+        InputStream ins = FileUtils.getFileInputStream("newMeta.xml");
+        Drc newDrc = DefaultSaxParser.parse(ins);
+        
+        Mockito.when(resourceTblDao.queryBy(Mockito.any())).thenReturn(Lists.newArrayList(resource1,resource2));
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(newDrc);
+
+        Pair<Boolean, String> checkRes = drcBuildServiceV2.checkIsoMigrateStatus(Lists.newArrayList("mha1", "mha2"), "tag");
+        Assert.assertFalse(checkRes.getKey());
+
+        resource2.setIp("testip");
+        checkRes = drcBuildServiceV2.checkIsoMigrateStatus(Lists.newArrayList("mha1", "mha2"), "tag");
+        Assert.assertTrue(checkRes.getKey());
+    }
+    
     
 
 }

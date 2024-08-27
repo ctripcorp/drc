@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -278,7 +279,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     public void testAutoConfigDbAppliers() throws Exception {
         when(resourceService.getMhaDbAvailableResource("mha2", ModuleEnum.APPLIER.getCode())).thenReturn(getResourceView());
         when(resourceService.handOffResource(anyList(), anyList())).thenReturn(getResourceView());
-        dbDrcBuildService.autoConfigDbAppliers("mha1", "mha2", Lists.newArrayList("db1"), null);
+        dbDrcBuildService.autoConfigDbAppliers("mha1", "mha2", Lists.newArrayList("db1"), null, true);
     }
 
 
@@ -418,7 +419,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         reqDtos.add(req2);
 
         dbDrcBuildService.switchAppliers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(), any(), any());
+        verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
         verify(applierTblV3Dao, times(1)).batchInsert(any());
     }
 
@@ -431,7 +432,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         reqDtos.add(req2);
 
         dbDrcBuildService.switchMessengers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any());
+        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any(MhaTblV2.class),anyBoolean());
     }
 
 
