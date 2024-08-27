@@ -478,6 +478,11 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
             List<DbApplierDto> mhaDbAppliers = this.getMhaDbAppliers(srcMhaName, dstMhaName);
             boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            if (!dbApplyMode && consoleConfig.getNewDrcDefaultDbApplierMode()) {
+                // new drc, use db applier mode
+                List<String> mhaAppliers = drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName);
+                dbApplyMode = CollectionUtils.isEmpty(mhaAppliers);
+            }
 
             if (dbApplyMode) {
                 this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), null,reqDto.isSwitchOnly());

@@ -88,7 +88,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
     private final LoadingCache<String, Map<String, Set<String>>> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
             .initialCapacity(1000)
-            .expireAfterAccess(10, TimeUnit.SECONDS)
+            .expireAfterWrite(10, TimeUnit.SECONDS)
             .build(new CacheLoader<>() {
                 @Override
                 public Map<String, Set<String>> load(@NotNull String dstMha) {

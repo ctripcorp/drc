@@ -418,9 +418,15 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         req2.setDstMhaName("mha1");
         reqDtos.add(req2);
 
+        when(defaultConsoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(false);
         dbDrcBuildService.switchAppliers(reqDtos);
         verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
         verify(applierTblV3Dao, times(1)).batchInsert(any());
+
+        when(defaultConsoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(true);
+        dbDrcBuildService.switchAppliers(reqDtos);
+        verify(drcBuildServiceV2, times(1)).getMhaAppliers(any(), any());
+        verify(applierTblV3Dao, times(2)).batchInsert(any());
     }
 
     @Test
@@ -507,7 +513,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         mqConfig.setSerialization("json");
         editDto.setMqConfig(mqConfig);
 
-        editDto.setDbReplicationIds(Lists.newArrayList(1005L,1006L));
+        editDto.setDbReplicationIds(Lists.newArrayList(1005L, 1006L));
         return editDto;
     }
 

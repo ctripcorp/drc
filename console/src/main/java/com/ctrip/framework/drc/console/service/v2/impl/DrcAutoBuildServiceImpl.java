@@ -1,21 +1,16 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
-import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.DrcApplyModeEnum;
-import com.ctrip.framework.drc.console.enums.DrcStatusEnum;
-import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
@@ -25,10 +20,6 @@ import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.assistant.MysqlConfigCheckAssistant;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
-import com.ctrip.framework.drc.console.service.v2.DrcAutoBuildService;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
@@ -41,8 +32,8 @@ import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
-import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -615,12 +606,12 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             sb.append("db: ").append(previewDto.getDbName());
             if (CollectionUtils.isEmpty(previewDto.getSrcOptionalMha())) {
                 sb.append("no mha options: src region: ").append(previewDto.getSrcRegionName());
-            } else if (previewDto.getSrcOptionalMha().size() > 2) {
+            } else if (previewDto.getSrcOptionalMha().size() >= 2) {
                 sb.append("multi options: src mha: ").append(previewDto.getSrcOptionalMha()).append(" in region ").append(previewDto.getSrcRegionName());
             }
             if (CollectionUtils.isEmpty(previewDto.getDstOptionalMha())) {
                 sb.append("no mha options: dst region: ").append(previewDto.getDstRegionName());
-            } else if (previewDto.getDstOptionalMha().size() > 2) {
+            } else if (previewDto.getDstOptionalMha().size() >= 2) {
                 sb.append("multi options: dst mha: ").append(previewDto.getDstOptionalMha()).append(" in region ").append(previewDto.getDstRegionName());
             }
         }
@@ -710,6 +701,11 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
                 .collect(Collectors.toList());
 
         boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+        if (!dbApplyMode && consoleConfig.getNewDrcDefaultDbApplierMode()) {
+            // new drc, use db applier mode
+            List<String> mhaAppliers = drcBuildService.getMhaAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName());
+            dbApplyMode = CollectionUtils.isEmpty(mhaAppliers);
+        }
         boolean drcConfigEmpty;
         boolean drcOff;
         if (dbApplyMode) {
