@@ -195,7 +195,7 @@ export default {
       }
       const reqParam = this.flattenObj(params)
       console.log(reqParam)
-      await that.axios.get('/api/drc/v2/messenger/mqReplication', { params: reqParam })
+      await that.axios.get('/api/drc/v2/dbReplication/mqReplication', { params: reqParam })
         .then(res => {
           const pageResult = res.data.data
           if (!pageResult || pageResult.totalCount === 0) {

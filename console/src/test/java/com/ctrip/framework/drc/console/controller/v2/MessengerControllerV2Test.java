@@ -155,12 +155,4 @@ public class MessengerControllerV2Test {
         Assert.assertEquals((Integer) ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus());
     }
 
-    @Test
-    public void testQueryMqReplicationsByPage() throws Exception{
-        List<DbReplicationVo> vos = new ArrayList<>();
-        vos.add(new DbReplicationVo());
-        when(messengerService.queryMqReplicationsByPage(any())).thenReturn(PageResult.newInstance(vos,1,20,1));
-        ApiResult<PageResult<DbReplicationVo>> result = messengerControllerV2.queryMqReplicationsByPage(new MqReplicationQueryDto());
-        Assert.assertNotNull(result);
-    }
 }

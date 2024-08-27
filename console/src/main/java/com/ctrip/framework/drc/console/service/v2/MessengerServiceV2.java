@@ -52,8 +52,4 @@ public interface MessengerServiceV2 {
     List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs);
 
     List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList);
-
-    PageResult<DbReplicationVo> queryMqReplicationsByPage(MqReplicationQueryDto queryDto) throws SQLException;
-
-    PageResult<DbReplicationTbl> queryByPage(MqReplicationQuery query);
 }

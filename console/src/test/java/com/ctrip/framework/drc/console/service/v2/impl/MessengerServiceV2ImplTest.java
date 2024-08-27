@@ -577,38 +577,4 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         return JsonUtils.fromJsonToList(json, HickWallMessengerDelayEntity.class);
     }
 
-    @Test
-    public void testQueryMqReplicationsByPage() throws Exception {
-        String dbNames = "db";
-        String srcTblName = "test";
-        String topic = "test";
-        boolean queryOtter = true;
-        MqReplicationQueryDto dto = MqReplicationQueryDto.from(dbNames,srcTblName,topic,queryOtter);
-
-        Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(List.of("db"));
-        Mockito.when(dbTblDao.queryByDbNames(anyList())).thenReturn(PojoBuilder.getDbTbls());
-        Mockito.when(mhaDbMappingTblDao.queryByDbIds(anyList())).thenReturn(PojoBuilder.getMhaDbMappingTbls1());
-        Mockito.when(mhaDbMappingTblDao.queryByIds(anyList())).thenReturn(PojoBuilder.getMhaDbMappingTbls1());
-        Mockito.when(dcTblDao.queryAll()).thenReturn(PojoBuilder.getDcTbls());
-        Mockito.when(dbTblDao.queryByIds(anyList())).thenReturn(PojoBuilder.getDbTbls());
-        Mockito.when(mhaTblV2Dao.queryByIds(anyList())).thenReturn(PojoBuilder.getMhaTblV2s());
-        Mockito.when(dbReplicationTblDao.queryByPage(any())).thenReturn(PojoBuilder.getDbReplicationTbls());
-        Mockito.when(dbReplicationTblDao.count((MqReplicationQuery) any())).thenReturn(2);
-        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(false, null));
-
-        PageResult<DbReplicationVo> result = messengerServiceV2Impl.queryMqReplicationsByPage(dto);
-        Assert.assertNotNull(result);
-        Assert.assertEquals(result.getTotalCount(), 2);
-    }
-
-    @Test
-    public void testQueryByPage() throws Exception {
-        Mockito.when(dbReplicationTblDao.queryByPage(any())).thenReturn(PojoBuilder.getDbReplicationTbls());
-        Mockito.when(dbReplicationTblDao.count((MqReplicationQuery) any())).thenReturn(2);
-
-        PageResult result = messengerServiceV2Impl.queryByPage(new MqReplicationQuery());
-        Assert.assertNotNull(result);
-        Assert.assertEquals(result.getTotalCount(),2);
-    }
-
 }

@@ -11,10 +11,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.log.OperationLogControllerTest;
-import com.ctrip.framework.drc.console.controller.v2.CentralServiceControllerTest;
-import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
-import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
-import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
+import com.ctrip.framework.drc.console.controller.v2.*;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
 import com.ctrip.framework.drc.console.dto.v3.*;
@@ -164,6 +161,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DbBlacklistCacheTest.class,
         DrcApplicationServiceTest.class,
         MetaAccountServiceImplTest.class,
+        DbReplicationServiceImplTest.class,
 //
         // controller
         OperationLogControllerTest.class,
@@ -178,6 +176,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         OpenApiControllerTest.class,
         RowsFilterMetaControllerTest.class,
         CentralServiceControllerTest.class,
+        DbReplicationControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,

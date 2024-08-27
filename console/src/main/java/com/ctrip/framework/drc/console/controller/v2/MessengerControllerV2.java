@@ -218,18 +218,4 @@ public class MessengerControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-
-    @GetMapping("mqReplication")
-    @SuppressWarnings("unchecked")
-    @LogRecord(type = OperateTypeEnum.MQ_REPLICATION, attr = OperateAttrEnum.QUERY,
-            success = "queryMqReplicationsByPage with MqReplicationQueryDto: {#queryDto.toString()}")
-    public ApiResult<PageResult<DbReplicationVo>> queryMqReplicationsByPage(MqReplicationQueryDto queryDto) {
-        logger.info("[meta] MqReplicationQueryDto :{}", queryDto.toString());
-        try {
-            return ApiResult.getSuccessInstance(messengerService.queryMqReplicationsByPage(queryDto));
-        }catch (Exception e) {
-            logger.error("queryMqReplicationsByPage fail, ", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
 }
