@@ -260,8 +260,18 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             }
             List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
             List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-            Map<Long, String> resourceIdToIpMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
-            return replicatorTbls.stream().map(e -> new ReplicatorInfoDto(resourceIdToIpMap.get(e.getResourceId()), e.getGtidInit())).collect(Collectors.toList());
+            Map<Long, ResourceTbl> resourceIdMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity()));
+            
+            return replicatorTbls.stream().map(r -> new ReplicatorInfoDto(
+                    r.getId(),
+                    r.getGtidInit(),
+                    r.getMaster().equals(BooleanEnum.TRUE.getCode()),
+                    resourceIdMap.get(r.getResourceId()).getIp(),
+                    resourceIdMap.get(r.getResourceId()).getTag(),
+                    resourceIdMap.get(r.getResourceId()).getAz()
+                    )
+            ).collect(Collectors.toList());
+            
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
@@ -444,10 +454,20 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    public void updateMhaTag(String mhaName, String tag) throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public int updateMhaTag(List<String> mhaNames, String tag) throws Exception {
+        int count = 0;
+        for (String mhaName : mhaNames) {
+            count += updateMhaTag(mhaName, tag);
+        }
+        return count;
+    }
+
+    @Override
+    public int updateMhaTag(String mhaName, String tag) throws Exception {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
         mhaTblV2.setTag(tag);
-        mhaTblV2Dao.update(mhaTblV2);
+        return mhaTblV2Dao.update(mhaTblV2);
     }
 
     @Override

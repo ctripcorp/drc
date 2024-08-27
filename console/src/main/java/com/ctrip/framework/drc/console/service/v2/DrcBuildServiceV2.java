@@ -68,17 +68,18 @@ public interface DrcBuildServiceV2 {
 
     void autoConfigReplicatorsWithGtid(MhaTblV2 mhaTbl, String gtidInit) throws SQLException;
 
-    void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String gtid) throws SQLException;
-
+    // switchOnly: true: only switch,not add when replication is empty; false: switch or add
+    void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String gtid, boolean switchOnly) throws SQLException;
+    
     void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException;
 
+    // switchOnly: true: only switch,not add when replication is empty; false: switch or add
     void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl,
-            MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException;
+            MhaTblV2 destMhaTbl, String mhaExecutedGtid, boolean switchOnly) throws SQLException;
+    
+    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid,boolean switchOnly) throws SQLException;
 
-
-    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid) throws SQLException;
-
-    void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
+    void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException;
 
     void initReplicationTables() throws Exception;
 
@@ -90,4 +91,11 @@ public interface DrcBuildServiceV2 {
     
     // return affect replication count
     int compensateGtidGap(GtidCompensateParam gtidCompensateParam) throws SQLException;
+    
+    int isolationMigrateReplicator(List<String> mhas, boolean master,String tag,String gtid) throws SQLException;
+    
+    int isolationMigrateApplier(List<String> mhas, String tag) throws  Exception;
+    
+    Pair<Boolean,String> checkIsoMigrateStatus(List<String> mhas,String tag) throws SQLException;
+    
 }

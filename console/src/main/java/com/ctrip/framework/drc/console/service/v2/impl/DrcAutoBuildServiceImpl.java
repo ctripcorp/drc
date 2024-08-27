@@ -747,10 +747,10 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         // 5. auto config appliers
         String applierGtid = newDrc ? gtidInit : null;
         if (dbApplyMode) {
-            dbDrcBuildService.autoConfigDbAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), Lists.newArrayList(param.getDbName()), applierGtid);
+            dbDrcBuildService.autoConfigDbAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), Lists.newArrayList(param.getDbName()), applierGtid,false);
         } else {
             applierGroupTblDao.insertOrReCover(srcToDstMhaReplication.getId(), null);
-            drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, applierGtid);
+            drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, applierGtid, false);
         }
 
         // 6. end

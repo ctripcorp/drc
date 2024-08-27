@@ -480,9 +480,9 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
 
             if (dbApplyMode) {
-                this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), null);
+                this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), null,reqDto.isSwitchOnly());
             } else {
-                drcBuildServiceV2.autoConfigAppliers(srcMha, dstMha, null);
+                drcBuildServiceV2.autoConfigAppliers(srcMha, dstMha, null, reqDto.isSwitchOnly());
             }
 
         }
@@ -506,25 +506,32 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }
             String messengerGtidExecuted = messengerServiceV2.getMessengerGtidExecuted(mhaName);
             if (StringUtils.isBlank(messengerGtidExecuted)) {
-                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(srcMha);
+                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(srcMha, reqDto.isSwitchOnly());
             } else {
-                drcBuildServiceV2.autoConfigMessenger(srcMha, null);
+                drcBuildServiceV2.autoConfigMessenger(srcMha, null, reqDto.isSwitchOnly());
             }
         }
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid) throws Exception {
+    public void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid,boolean switchOnly) throws Exception {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha(srcMha, dstMha, dbNames);
         this.setMhaDbAppliers(replicationDtos);
 
         List<ResourceView> mhaDbAvailableResource = resourceService.getMhaDbAvailableResource(dstMha, ModuleEnum.APPLIER.getCode());
 
         List<DbApplierDto> newDbAppliers = Lists.newArrayList();
-        for (MhaDbReplicationDto replicationDto : replicationDtos) {
+
+        Iterator<MhaDbReplicationDto> iterator = replicationDtos.iterator();
+        while (iterator.hasNext()) {
+            MhaDbReplicationDto replicationDto = iterator.next();
             String dbName = replicationDto.getSrc().getDbName();
             DbApplierDto dbApplierDto = replicationDto.getDbApplierDto();
+            if (switchOnly && (dbApplierDto == null || CollectionUtils.isEmpty(dbApplierDto.getIps()))) {
+                iterator.remove();
+                continue;
+            }
             // gtid
             String newGtid;
             if (StringUtils.isEmpty(initGtid)) {

@@ -48,6 +48,26 @@ function getIdc(){
 IDC=`getIdc`
 echo "current idc:"$IDC
 
+function getAz() {
+  AZ=local
+  if [ -f /opt/settings/server.properties ];then
+    AZ=`cat /opt/settings/server.properties | egrep -i "^az" | awk -F= '{print $2}'`
+  fi
+  echo `toUpper $AZ`
+}
+
+AZ=`getAz`
+echo "current az:"AZ
+
+function isCloudAz() {
+    string=$1
+    if [[ $string == *"AWS"* ]] || [[ $string == *"ALI"* ]]; then
+        return 0 # 返回true
+    else
+        return 1 # 返回false
+    fi
+}
+
 function getSafeXmx() {
     total=`getTotalMem`
     SAFE_PERCENT=70

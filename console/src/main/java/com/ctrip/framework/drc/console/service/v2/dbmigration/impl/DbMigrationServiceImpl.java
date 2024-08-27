@@ -5,13 +5,9 @@ import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
@@ -429,7 +425,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 ApplierGroupTblV2 applierGroupOld = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationInOld.getId(), BooleanEnum.FALSE.getCode());
                 String gtidInit = applierGroupOld.getGtidInit();
                 logger.info("[[migration=start]] task:{} autoConfigAppliers, {}->mhaInDest:{}, gtidInit:{}", taskId, mhaInSrc.getMhaName(), newMhaTbl.getMhaName(), gtidInit);
-                drcBuildServiceV2.autoConfigAppliers(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl,gtidInit);
+                drcBuildServiceV2.autoConfigAppliers(mhaReplicationInNew, applierGroupTblV2, mhaInSrc, newMhaTbl,gtidInit, false);
             }
         }
 
@@ -450,7 +446,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(oldMhaTbl.getId(), BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
             if (!CollectionUtils.isEmpty(messengerTbls)) {
-                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl);
+                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl,false);
             }
         }
 

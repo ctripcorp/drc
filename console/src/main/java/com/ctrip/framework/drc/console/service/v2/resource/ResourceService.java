@@ -34,7 +34,7 @@ public interface ResourceService {
      */
     List<ResourceView> getResourceViewByIp(String ip) throws Exception;
 
-    List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
+    List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws SQLException;
 
     List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException;
 

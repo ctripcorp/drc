@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.springframework.util.CollectionUtils;
@@ -361,7 +362,7 @@ public class DrcAutoBuildServiceImplTest {
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(), any());
-        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any());
+        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
     }
 
 
