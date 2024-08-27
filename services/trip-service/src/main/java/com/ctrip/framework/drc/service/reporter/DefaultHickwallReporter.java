@@ -185,7 +185,9 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     public void reportHistogram(Map<String, String> tags, Long value, String measurement) {
         MetricName metricName = getMetricName(tags, measurement);
-        final Histogram histogram = metrics.histogram(metricName);
+        final Histogram histogram = metrics.histogram(metricName, () ->
+                new Histogram(new ExponentiallyDecayingReservoir(300, 0.07))
+        );
         histogram.update(value);
     }
 

@@ -150,6 +150,9 @@
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToMhaDbReplicationDetails(row)">
               编辑
             </Button>
+            <Button type="default" size="small" style="margin-right: 5px" @click="goToMhaReplicationDetails(row)">
+              跳转MHA
+            </Button>
           </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
@@ -283,7 +286,7 @@ export default {
             let color, text
             if (row.drcStatus === true) {
               if (row.delay != null) {
-                text = prettyMilliseconds(row.delay, { compact: true })
+                text = prettyMilliseconds(row.delay, { compact: false })
                 if (row.delay > 10000) {
                   color = 'warning'
                 } else {
@@ -314,52 +317,45 @@ export default {
         {
           title: '业务部门',
           key: 'buText',
-          width: 150,
+          width: 100,
           render: (h, params) => {
             return h('span', params.row.src.buName)
           }
         },
         {
-          title: '同步方向',
-          key: 'replicationText',
+          title: '源集群',
+          key: 'srcMhaName',
+          width: 300,
           render: (h, params) => {
-            const row = params.row
-            const color = 'blue'
-            const text = `${row.src.regionName} -> ${row.dst.regionName}`
-            return h('Tag', {
-              props: {
-                color: color
-              }
-            }, text)
+            return h('div', [
+              params.row.src.mhaName + ' ',
+              h('Tag', {
+                props: {
+                  color: 'blue'
+                }
+              }, params.row.src.regionName)
+            ])
           }
         },
         {
-          title: '所属集群',
-          key: 'replicationText',
+          title: '目标集群',
+          key: 'dstMhaName',
+          width: 300,
           render: (h, params) => {
-            const row = params.row
-            const text = `${row.src.mhaName} -> ${row.dst.mhaName}`
-            return h('Button', {
-              props: {
-                type: 'default',
-                size: 'small',
-                icon: 'ios-build'
-              },
-              style: {
-                marginRight: '5px'
-              },
-              on: {
-                click: () => {
-                  this.goToMhaReplicationDetails(row)
+            return h('div', [
+              params.row.dst.mhaName + ' ',
+              h('Tag', {
+                props: {
+                  color: 'blue'
                 }
-              }
-            }, text)
+              }, params.row.dst.regionName)
+            ])
           }
         },
         {
           title: '操作',
           slot: 'action',
-          width: 150,
+          width: 300,
           align: 'center'
         }
       ],

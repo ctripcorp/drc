@@ -41,7 +41,6 @@ import org.springframework.util.CollectionUtils;
 import java.util.*;
 
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 public class DrcAutoBuildServiceImplTest {
@@ -281,7 +280,7 @@ public class DrcAutoBuildServiceImplTest {
         req.setTag(null);
         drcAutoBuildServiceImpl.autoBuildDrc(req);
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void testAutoBuildNoTag() throws Exception {
         DrcAutoBuildReq req = getDrcAutoBuildReqForSingleDb();
@@ -355,7 +354,6 @@ public class DrcAutoBuildServiceImplTest {
             return mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId) && Objects.equals(e.getDeleted(), deleted)).findFirst().orElse(null);
         });
         when(mysqlServiceV2.getMhaExecutedGtid(any())).thenReturn("26ddaa00-4d3f-11ee-bd11-06cc389a9314:1-11286566");
-
         drcAutoBuildServiceImpl.autoBuildDrc(req);
         verify(drcBuildService, times(1)).buildMhaAndReplication(any());
         verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
@@ -363,6 +361,13 @@ public class DrcAutoBuildServiceImplTest {
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(), any());
         verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
+        verify(dbDrcBuildService, never()).autoConfigDbAppliers(any(), any(), any(), any(),Mockito.anyBoolean());
+
+        when(consoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(true);
+        drcAutoBuildServiceImpl.autoBuildDrc(req);
+        verify(dbDrcBuildService, times(1)).autoConfigDbAppliers(any(), any(), any(), any(),Mockito.anyBoolean());
+
+
     }
 
 
@@ -407,5 +412,5 @@ public class DrcAutoBuildServiceImplTest {
 
         return req;
     }
-    
+
 }

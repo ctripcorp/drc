@@ -90,12 +90,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
     private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
     private static String DEFAULT_LOCAL_CONFIG_MHAS_MAP = "{}";
-    
+
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
 
     private static final String UPDATE_REPLICATOR_MASTER_SWITCH = "update.replicator.master.switch";
-    
+
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
     private static String VPC_MHA = "vpc.mha";
@@ -121,7 +121,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String MHA_SYNC_STATUS_CHECK_SWITCH = "mha.sync.status.check.switch";
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
-    
+
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
     private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
@@ -132,7 +132,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String DEFAULT_READ_ACCOUNT_KMS_TOKEN= "default.read.account.kms.token";
     private static final String DEFAULT_WRITE_ACCOUNT_KMS_TOKEN= "default.write.account.kms.token";
     private static final String DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN= "default.monitor.account.kms.token";
-    
+
     private static final String ACCOUNT_KMS_TOKEN_SWITCH = "account.kms.token.switch";
     private static final String ACCOUNT_KMS_TOKEN_SWITCH_V2 = "account.kms.token.switch.v2";
     private static final String ACCOUNT_KMS_TOKEN_MHA_GRAY = "account.kms.token.mha.gray";
@@ -144,6 +144,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String ACCOUNT_FROM_METE_SWITCH = "account.from.meta.switch";
     private static final String DBA_API_PWD_CHANGE_URL = "dba.api.pwd.change.url";
     private static final String ALLOW_AMBIGUOUS_MHA_SWITCH = "allow.ambiguous.mha.switch";
+    private static final String BUILD_DRC_DEFAULT_DB_APPLIER_SWITCH = "build.drc.default.dbapply.switch";
 
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
@@ -212,20 +213,20 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         return  regionsInfo.get(region);
     }
-    
+
     public boolean isCenterRegion() {
         return getCenterRegion().equals(getRegion());
     }
-    
+
     public String getCenterRegionUrl() {
         Map<String, String> consoleRegionUrls = getConsoleRegionUrls();
         return consoleRegionUrls.get(getCenterRegion());
     }
-    
+
     public String getCenterRegion() {
         return getProperty(CENTER_REGION,DEFAULT_CENTER_REGION);
     }
-    
+
     public String getRegionForDc(String dcName) {
         Map<String, Set<String>> region2dcsMapping = getRegion2dcsMapping();
         for (Map.Entry<String, Set<String>> entry : region2dcsMapping.entrySet()) {
@@ -235,7 +236,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         throw new IllegalArgumentException("can not find region with dcName: " + dcName);
     }
-    
+
     public int getConflictMhaRecordSearchTime() {
         return getIntProperty(CONFLICT_RECORD_SEARCH_TIME,DEFAULT_CONFLICT_RECORD_SEARCH_TIME);
     }
@@ -285,7 +286,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         return consoleDcInfos;
     }
-    
+
 
     public Map<String, String> getConsoleDcEndpointInfos() {
         if(consoleDcEndpointInfos.size() == 0) {
@@ -456,7 +457,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         logger.info("public cloud dc: {}", publicCloudDc);
         return Sets.newHashSet(publicCloudDc.split(","));
     }
-    
+
     public Set<String> getPublicCloudRegion() {
         String publicCloudRegion = getProperty(PUBLIC_CLOUD_REGION,DEFAULT_PUBLIC_CLOUD_REGION);
         logger.info("public cloud region: {}", publicCloudRegion);
@@ -579,7 +580,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public long getReplicatorMaxSize() {
         return getLongProperty(REPLICATOR_MAX_SIZE, DEFAULT_REPLICATOR_SIZE);
     }
-    
+
     public boolean getCflBlackListAutoAddSwitch() {
         return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
     }
@@ -611,23 +612,23 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public String getDefaultReadAccountKmsToken() {
         return getProperty(DEFAULT_READ_ACCOUNT_KMS_TOKEN);
     }
-    
+
     public String getDefaultWriteAccountKmsToken() {
         return getProperty(DEFAULT_WRITE_ACCOUNT_KMS_TOKEN);
     }
-    
+
     public String getDefaultMonitorAccountKmsToken() {
         return getProperty(DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN);
     }
-    
+
     public String getKMSAccessToken(String suffix) {
         return getProperty(KMS_ACCESS_TOKEN_PREFIX + suffix,null);
     }
-    
+
     public boolean getAccountKmsTokenSwitch() {
         return getBooleanProperty(ACCOUNT_KMS_TOKEN_SWITCH, false);
     }
-    
+
     public Set<String> getAccountKmsTokenMhaGray() {
         String property = getProperty(ACCOUNT_KMS_TOKEN_MHA_GRAY, "");
         if (StringUtils.isBlank(property)) {
@@ -690,5 +691,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getConsoleMqPanelUrl() {
         return getProperty(CONSOLE_MQ_PANEL_URL);
+    }
+
+    public boolean getNewDrcDefaultDbApplierMode() {
+        return getBooleanProperty(BUILD_DRC_DEFAULT_DB_APPLIER_SWITCH, true);
     }
 }
