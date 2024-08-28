@@ -1658,11 +1658,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             dbDrcBuildService.switchAppliers(switchReqDtos);
             
             // switch current messenger
-            DbApplierSwitchReqDto messengerSwitchReq = new DbApplierSwitchReqDto();
-            messengerSwitchReq.setSrcMhaName(mha);
-            messengerSwitchReq.setDstMhaName(mha);
-            messengerSwitchReq.setSwitchOnly(true);
-            dbDrcBuildService.switchMessengers(Lists.newArrayList(messengerSwitchReq));
+            MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(mha, BooleanEnum.FALSE.getCode());
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),
+                    BooleanEnum.FALSE.getCode());
+            if (messengerGroupTbl != null) {
+                DbApplierSwitchReqDto messengerSwitchReq = new DbApplierSwitchReqDto();
+                messengerSwitchReq.setSrcMhaName(mha);
+                messengerSwitchReq.setDstMhaName(mha);
+                messengerSwitchReq.setSwitchOnly(true);
+                dbDrcBuildService.switchMessengers(Lists.newArrayList(messengerSwitchReq));
+            }
             affectMhas++;
         }
         return affectMhas;

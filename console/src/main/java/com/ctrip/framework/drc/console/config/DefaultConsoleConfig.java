@@ -90,12 +90,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
     private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
     private static String DEFAULT_LOCAL_CONFIG_MHAS_MAP = "{}";
-
+    
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
 
     private static final String UPDATE_REPLICATOR_MASTER_SWITCH = "update.replicator.master.switch";
-
+    
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
     private static String VPC_MHA = "vpc.mha";
@@ -121,7 +121,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String MHA_SYNC_STATUS_CHECK_SWITCH = "mha.sync.status.check.switch";
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
-
+    
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
     private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
@@ -132,7 +132,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String DEFAULT_READ_ACCOUNT_KMS_TOKEN= "default.read.account.kms.token";
     private static final String DEFAULT_WRITE_ACCOUNT_KMS_TOKEN= "default.write.account.kms.token";
     private static final String DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN= "default.monitor.account.kms.token";
-
+    
     private static final String ACCOUNT_KMS_TOKEN_SWITCH = "account.kms.token.switch";
     private static final String ACCOUNT_KMS_TOKEN_SWITCH_V2 = "account.kms.token.switch.v2";
     private static final String ACCOUNT_KMS_TOKEN_MHA_GRAY = "account.kms.token.mha.gray";
@@ -156,6 +156,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String CONSOLE_PANEL_URL = "console.panel.url";
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
+    private static String DRC_ADMIN_TOKEN = "drc.admin.token";
 
 
     // only for test
@@ -691,6 +692,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getConsoleMqPanelUrl() {
         return getProperty(CONSOLE_MQ_PANEL_URL);
+    }
+
+    public String getDrcAdminToken() {
+        return getProperty(DRC_ADMIN_TOKEN,"");
     }
 
     public boolean getNewDrcDefaultDbApplierMode() {

@@ -791,6 +791,8 @@ public class DrcBuildServiceV2Test {
         );
         Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(mha2);
         Mockito.when(mhaTblDao.queryByPk(Mockito.anyLong())).thenReturn(mha1);
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString(),Mockito.anyInt())).thenReturn(mha2);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(),Mockito.anyInt())).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(2L,2L));
         Mockito.doNothing().when(dbDrcBuildService).switchAppliers(Mockito.anyList());
         Mockito.doNothing().when(dbDrcBuildService).switchMessengers(Mockito.anyList());
 

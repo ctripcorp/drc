@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.alibaba.arthas.deps.org.slf4j.Logger;
 import com.alibaba.arthas.deps.org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -61,6 +62,9 @@ public class MetaControllerV2Test {
     
     @Mock
     private HeraldService heraldService;
+    
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
     
     
 
@@ -156,7 +160,8 @@ public class MetaControllerV2Test {
     public void testGetAllMetaData() throws Exception {
         String test = "test123";
         Mockito.when(metaProviderV2.getDrcString()).thenReturn(test);
-        String result = controller.getAllMetaData("false","heraldToken");
+        Mockito.when(consoleConfig.getDrcAdminToken()).thenReturn("adminToken");
+        String result = controller.getAllMetaData("false","fLrRyHzu/bpuCr4byp3pyQ==","heraldToken");
         verify(metaProviderV2, never()).getRealtimeDrc();
         verify(metaProviderV2, never()).getDrc();
         verify(metaProviderV2, never()).getRealtimeDrcString();
@@ -168,7 +173,7 @@ public class MetaControllerV2Test {
     @Test
     public void testGetAllMetaDataNull() throws Exception {
         Mockito.when(metaProviderV2.getDrcString()).thenReturn(null);
-        String result = controller.getAllMetaData("false","heraldToken");
+        String result = controller.getAllMetaData("false","","heraldToken");
         verify(metaProviderV2, never()).getRealtimeDrc();
         verify(metaProviderV2, never()).getDrc();
         verify(metaProviderV2, never()).getRealtimeDrcString();
@@ -179,7 +184,7 @@ public class MetaControllerV2Test {
     @Test
     public void testGetAllMetaDataException() throws Exception {
         Mockito.when(metaProviderV2.getDrcString()).thenThrow(ConsoleException.class);
-        String result = controller.getAllMetaData("false","heraldToken");
+        String result = controller.getAllMetaData("false","","heraldToken");
         verify(metaProviderV2, never()).getRealtimeDrc();
         verify(metaProviderV2, never()).getDrc();
         verify(metaProviderV2, never()).getRealtimeDrcString();

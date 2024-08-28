@@ -368,6 +368,7 @@ public class DrcAutoBuildServiceImplTest {
         verify(dbDrcBuildService, times(1)).autoConfigDbAppliers(any(), any(), any(), any(),Mockito.anyBoolean());
 
 
+        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
     }
 
 

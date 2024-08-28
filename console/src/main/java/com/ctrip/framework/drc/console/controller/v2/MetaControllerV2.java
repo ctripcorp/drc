@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -13,7 +14,10 @@ import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
+import com.ctrip.framework.drc.core.utils.EncryptUtils;
 import java.util.List;
+import java.util.Objects;
+import javax.validation.groups.Default;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,13 +48,25 @@ public class MetaControllerV2 {
     private MhaDbReplicationService mhaDbReplicationService;
     
     private HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     @GetMapping
     public String getAllMetaData(
             @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh,
+            @RequestParam(value = "adminToken", required = false, defaultValue = "") String adminToken,
             @RequestParam (value = "heraldToken",required = false, defaultValue = "") String heraldToken) {
         try {
-            if (!heraldService.heraldValidate(heraldToken)) {
+            // check admin
+            boolean isAdmin = false;
+            if (StringUtils.isNotBlank(adminToken)) {
+                String adminTokenDecrypted = EncryptUtils.decryptRawToken(consoleConfig.getDrcAdminToken());
+                isAdmin = Objects.equals(adminToken, adminTokenDecrypted);
+            }
+            // check herald
+            boolean heraldValidate = heraldService.heraldValidate(heraldToken);
+            if (!heraldValidate && !isAdmin) {
                 return null;
             }
             logger.info("[meta] get all, refresh: {}", refresh);
@@ -60,7 +76,9 @@ public class MetaControllerV2 {
             } else {
                 drcString = metaProviderV2.getDrcString();
             }
-            logger.debug("drc:\n {}", drcString);
+            if (logger.isDebugEnabled()) {
+                logger.debug("drc:\n {}", drcString);
+            }
             if (StringUtils.isBlank(drcString)) {
                 logger.error("get drc fail");
                 return null;
@@ -76,9 +94,18 @@ public class MetaControllerV2 {
     public String getDrcStr(
             @PathVariable String dc,
             @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh,
+            @RequestParam(value = "adminToken", required = false, defaultValue = "") String adminToken,
             @RequestParam (value = "heraldToken",required = false, defaultValue = "") String heraldToken) {
         try {
-            if (!heraldService.heraldValidate(heraldToken)) {
+            // check admin
+            boolean isAdmin = false;
+            if (StringUtils.isNotBlank(adminToken)) {
+                String adminTokenDecrypted = EncryptUtils.decryptRawToken(adminToken);
+                isAdmin = Objects.equals(consoleConfig.getDrcAdminToken(), adminTokenDecrypted);
+            }
+            // check herald
+            boolean heraldValidate = heraldService.heraldValidate(heraldToken);
+            if (!heraldValidate && !isAdmin) {
                 return null;
             }
             logger.info("[meta] get meta of dc: {} info, refresh: {}", dc, refresh);
@@ -89,7 +116,9 @@ public class MetaControllerV2 {
                 dcInfo = metaProviderV2.getDrc(dc);
             }
             String dcInfostring = dcInfo.toString();
-            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfostring);
+            if (logger.isDebugEnabled()) {
+                logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfostring);
+            }
             return dcInfostring;
         } catch (Exception e) {
             logger.error("get dc: {} info fail", dc, e);

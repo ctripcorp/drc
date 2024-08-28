@@ -766,11 +766,15 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist:" + mhaName);
             }
             MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
+            if (mGroup == null) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "messenger group not exist:" + mhaName);
+            }
             return mGroup.getGtidExecuted();
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
+    
 
     @Override
     public void processAddMqConfig(MqConfigDto dto) throws Exception {
