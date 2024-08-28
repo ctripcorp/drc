@@ -13,13 +13,17 @@ public class JavaRegexTest {
 
     @Test
     public void testRegex() {
-        Pattern pattern = Pattern.compile("(?i)^12$");
-        Matcher matcher =  pattern.matcher("12");
+        Pattern pattern = Pattern.compile("^(?!(?i)CN_90001$|CN_90002$|CN_90003$).*$");
+        Matcher matcher =  pattern.matcher("CN_90002");
         boolean result = matcher.find();
-        Assert.assertTrue(result);
+        Assert.assertFalse(result);
 
-        Matcher matcher2 =  pattern.matcher("1");
+        Matcher matcher2 =  pattern.matcher("cn_90001");
         boolean result2 = matcher2.find();
         Assert.assertFalse(result2);
+
+        Matcher matcher3 =  pattern.matcher("SSS");
+        boolean result3 = matcher3.find();
+        Assert.assertTrue(result3);
     }
 }

@@ -99,9 +99,16 @@ public class ReplicatorContainerController {
     }
 
     @RequestMapping(value = "/{registryKey}/", method = RequestMethod.DELETE)
-    public void destroy(@PathVariable String registryKey) {
-        logger.info("[Receive][Remove] replicator registryKey {}", registryKey);
-        notifyExecutor.execute(registryKey, new DeleteKeyedTask(registryKey, null, serverContainer));
+    public ApiResult<Boolean> destroy(@PathVariable String registryKey) {
+        try {
+            logger.info("[Receive][Remove] replicator registryKey {}", registryKey);
+            notifyExecutor.execute(registryKey, new DeleteKeyedTask(registryKey, null, serverContainer));
+            return ApiResult.getSuccessInstance(Boolean.TRUE);
+        } catch (Throwable t) {
+            logger.error("destroy error for {}", registryKey, t);
+            return ApiResult.getFailInstance(t);
+        }
+        
     }
 
     @RequestMapping(value = "/info/{registryKey}", method = RequestMethod.GET)
