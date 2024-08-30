@@ -12,6 +12,9 @@ import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.log.OperationLogControllerTest;
 import com.ctrip.framework.drc.console.controller.v2.*;
+import com.ctrip.framework.drc.console.dao.AbstractDaoTest;
+import com.ctrip.framework.drc.console.dao.BaseDalTableDaoTest;
+import com.ctrip.framework.drc.console.dao.OverseaDalTableDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
 import com.ctrip.framework.drc.console.dto.v3.*;
@@ -251,7 +254,12 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DrcAutoBuildReqTest.class,
         MhaDbReplicationCreateDtoTest.class,
         MhaReplicationPreviewDtoTest.class,
-        DbMqConfigInfoDtoTest.class
+        DbMqConfigInfoDtoTest.class,
+
+        //DAO
+        BaseDalTableDaoTest.class,
+        OverseaDalTableDaoTest.class,
+        AbstractDaoTest.class
 })
 public class AllTests {
 
