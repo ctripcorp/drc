@@ -121,7 +121,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String MHA_SYNC_STATUS_CHECK_SWITCH = "mha.sync.status.check.switch";
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
-    
+
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
     private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
@@ -158,6 +158,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
     private static String DRC_ADMIN_TOKEN = "drc.admin.token";
 
+    private static class ConfigHolder {
+        public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
+    }
+
+    public static DefaultConsoleConfig getInstance() {
+        return DefaultConsoleConfig.ConfigHolder.INSTANCE;
+    }
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
