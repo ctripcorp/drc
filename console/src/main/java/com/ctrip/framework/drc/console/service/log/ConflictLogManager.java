@@ -237,10 +237,6 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     protected void checkConflictCount() throws Exception {
         String hickwallApi = domainConfig.getTrafficFromHickWall();
         String opsAccessToken = domainConfig.getOpsAccessToken();
-        if (EnvUtils.fat()) {
-            hickwallApi = domainConfig.getTrafficFromHickWallFat();
-            opsAccessToken = domainConfig.getOpsAccessTokenFat();
-        }
         List<HickWallConflictCount> commitTrxCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, true, true, 1);
         List<HickWallConflictCount> rollbackTrxCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, true, false, 1);
         List<HickWallConflictCount> commitRowsCounts = opsApiService.getConflictCount(hickwallApi, opsAccessToken, false, true, 1);

@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -56,12 +57,12 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String ACCOUNT_ID_AWS_PROD = "671660153913";
     private static final String ACCOUNT_ID_ALIYUN_PROD = "1963804511755329";
     private static final String ACCOUNT_ID_SGP_ALI_PROD = "5048708684694038";
-    private static final String ACCOUNT_ID_TRIP_PROD = "";
+    private static final String ACCOUNT_ID_TRIP_PROD = EnvUtils.pro() ? "100001" : "100002";
 
     private static final String ACCOUNT_NAME_AWS_PROD = "aws_prod_share";
     private static final String ACCOUNT_NAME_ALIYUN_PROD = "aliyun_prod_share";
     private static final String ACCOUNT_NAME_SGP_ALI_PROD = "ali_intl_prod_share";
-    private static final String ACCOUNT_NAME_TRIP_PROD = "";
+    private static final String ACCOUNT_NAME_TRIP_PROD = EnvUtils.pro() ? "trp_prod_share" : "trp_qa_share";
 
     private static final String appName = "drc";
     private static final String serviceTypeStorage = "drc-storage";
@@ -107,7 +108,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void initialize() {
-        this.accessToken = domainConfig.getCmsAccessToken();
+        this.accessToken = domainConfig.getOpsAccessToken();
         this.hickWallUrl = domainConfig.getTrafficFromHickWall();
     }
 

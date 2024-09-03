@@ -25,7 +25,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
-import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
@@ -66,6 +65,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class DbDrcBuildServiceImpl implements DbDrcBuildService {
@@ -213,11 +213,6 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
-    @Override
-    public boolean isDbApplierConfigurable(String mhaName) {
-        return consoleConfig.getDbApplierConfigureSwitch(mhaName);
-    }
-
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -237,18 +232,24 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         // config db applier
         if (!CollectionUtils.isEmpty(dstDbAppliers)) {
             // src -> dst
-            if (!this.isDbApplierConfigurable(dstMhaName)) {
-                throw new ConsoleException("mha " + dstMhaName + " is not allowed to configure db appliers");
-            }
             this.checkDbAppliers(dstDbAppliers);
             List<MhaDbReplicationDto> srcToDstMhaDbReplicationDtos = mhaDbReplicationService.queryByMha(srcMhaName, dstMhaName, dstDbAppliers.stream().map(DbApplierDto::getDbName).collect(Collectors.toList()));
             this.configureDbAppliers(srcToDstMhaDbReplicationDtos, dstDbAppliers);
         }
 
         if (!StringUtils.isBlank(dstBuildParam.getApplierInitGtid())) {
+            // rollback to mha applier
             ApplierGroupTblV2 applierGroupTblV2 = this.getApplierGroupTblV2(srcMha, dstMha);
             applierGroupTblV2.setGtidInit(dstBuildParam.getApplierInitGtid());
             applierGroupTblV2Dao.update(applierGroupTblV2);
+        }
+
+        // sync mha replication status
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId(), BooleanEnum.FALSE.getCode());
+        if (mhaReplicationTbl != null) {
+            BooleanEnum drcStatus = getMhaReplicationStatus(srcMhaName, dstMhaName, dstDbAppliers);
+            mhaReplicationTbl.setDrcStatus(drcStatus.getCode());
+            mhaReplicationTblDao.update(mhaReplicationTbl);
         }
 
         // refresh
@@ -260,6 +261,30 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             logger.error("metaProvider scheduledTask error", e);
         }
         return drcString;
+    }
+
+    private BooleanEnum getMhaReplicationStatus(String srcMhaName, String dstMhaName, List<DbApplierDto> mhaDbAppliers) throws Exception {
+        // judge by input
+        boolean dbDrcStatus = getDbDrcStatus(mhaDbAppliers.stream());
+        if (dbDrcStatus) {
+            return BooleanEnum.TRUE;
+        }
+        // rest mha db appliers
+        mhaDbAppliers = getMhaDbAppliers(srcMhaName, dstMhaName);
+        dbDrcStatus = getDbDrcStatus(mhaDbAppliers.stream());
+        if (dbDrcStatus) {
+            return BooleanEnum.TRUE;
+        }
+        // by mha appliers
+        List<String> mhaAppliers = drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName);
+        if (!CollectionUtils.isEmpty(mhaAppliers)) {
+            return BooleanEnum.TRUE;
+        }
+        return BooleanEnum.FALSE;
+    }
+
+    private static boolean getDbDrcStatus(Stream<DbApplierDto> mhaDbAppliers) {
+        return mhaDbAppliers.anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
     }
 
     @Override
@@ -438,9 +463,6 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message("empty config");
         }
 
-        if (!this.isDbApplierConfigurable(mhaName)) {
-            throw new ConsoleException("mha " + mhaName + " is not allowed to configure db messengers");
-        }
         this.checkDbAppliers(dbApplierDtos);
         List<String> dbNames = dbApplierDtos.stream().map(DbApplierDto::getDbName).collect(Collectors.toList());
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha(mhaName, dbNames);
@@ -477,20 +499,34 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }
 
             List<DbApplierDto> mhaDbAppliers = this.getMhaDbAppliers(srcMhaName, dstMhaName);
-            boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            boolean dbApplyMode = getDbDrcStatus(mhaDbAppliers.stream());
+            boolean newDrc = false;
             if (!dbApplyMode && consoleConfig.getNewDrcDefaultDbApplierMode()) {
-                // new drc, use db applier mode
+                // if new drc, use db applier mode
                 List<String> mhaAppliers = drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName);
-                dbApplyMode = CollectionUtils.isEmpty(mhaAppliers);
+                newDrc = CollectionUtils.isEmpty(mhaAppliers);
+                dbApplyMode = newDrc;
             }
 
             if (dbApplyMode) {
-                this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), null,reqDto.isSwitchOnly());
+                String gtidInit = this.getGtidInit(newDrc, srcMha);
+                this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), gtidInit, reqDto.isSwitchOnly());
             } else {
                 drcBuildServiceV2.autoConfigAppliers(srcMha, dstMha, null, reqDto.isSwitchOnly());
             }
 
         }
+    }
+
+    private String getGtidInit(boolean newDrc, MhaTblV2 srcMha) {
+        String gtidInit = null;
+        if (newDrc) {
+            gtidInit = mysqlServiceV2.getMhaExecutedGtid(srcMha.getMhaName());
+            if (StringUtils.isBlank(gtidInit)) {
+                throw ConsoleExceptionUtils.message("fail to query realtime gtid for mha: " + srcMha.getMhaName());
+            }
+        }
+        return gtidInit;
     }
 
     @Override
@@ -504,7 +540,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }
 
             List<DbApplierDto> mhaDbMessengers = this.getMhaDbMessengers(mhaName);
-            boolean dbApplyMode = mhaDbMessengers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            boolean dbApplyMode = getDbDrcStatus(mhaDbMessengers.stream());
 
             if (dbApplyMode) {
                 throw new IllegalArgumentException("db messenger not support yet");
@@ -540,12 +576,12 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             // gtid
             String newGtid;
             if (StringUtils.isEmpty(initGtid)) {
-                if ((dbApplierDto == null || StringUtils.isEmpty(dbApplierDto.getGtidInit()))) {
+                if ((dbApplierDto == null || StringUtils.isBlank(dbApplierDto.getGtidInit()))) {
                     throw ConsoleExceptionUtils.message("init gtid required for db: " + dbName);
                 }
                 newGtid = dbApplierDto.getGtidInit();
             } else {
-                if (dbApplierDto != null && !StringUtils.isEmpty(dbApplierDto.getGtidInit())) {
+                if (dbApplierDto != null && !StringUtils.isBlank(dbApplierDto.getGtidInit())) {
                     throw ConsoleExceptionUtils.message("already has init gtid, could not reset gtid for db: " + dbName);
                 }
                 newGtid = initGtid;
@@ -555,7 +591,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             List<ResourceView> resourceViews = resourceService.handOffResource(inUseIps, mhaDbAvailableResource);
             List<String> newIps = resourceViews.stream().map(ResourceView::getIp).collect(Collectors.toList());
 
-            newDbAppliers.add(new DbApplierDto(newIps, newGtid, dbName));
+            newDbAppliers.add(new DbApplierDto(newIps, newGtid.trim(), dbName));
         }
         DrcBuildParam drcBuildParam = new DrcBuildParam();
         DrcBuildBaseParam srcBuildParam = new DrcBuildBaseParam();
@@ -631,7 +667,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             if (isAdmin()) {
                 // drc resource info detail
                 setMhaDbAppliers(list);
-                boolean dbApplyMode = list.stream().map(MhaDbReplicationDto::getDbApplierDto).anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+                boolean dbApplyMode = getDbDrcStatus(list.stream().map(MhaDbReplicationDto::getDbApplierDto));
                 if (!dbApplyMode) {
                     setMhaAppliers(mhaReplicationDto);
                 }
@@ -673,7 +709,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 // drc resource info detail
                 mhaMqDto.getSrcMha().setReplicatorInfoDtos(mhaServiceV2.getMhaReplicatorsV2(mhaMqDto.getSrcMha().getName()));
                 setMhaDbMessengers(list);
-                boolean dbApplyMode = list.stream().map(MhaDbReplicationDto::getDbApplierDto).anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+                boolean dbApplyMode = getDbDrcStatus(list.stream().map(MhaDbReplicationDto::getDbApplierDto));
                 if (!dbApplyMode) {
                     setMhaMessengers(mhaMqDto);
                 }

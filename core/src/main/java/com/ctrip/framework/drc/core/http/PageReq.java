@@ -5,7 +5,7 @@ import java.util.Objects;
 
 public class PageReq implements Serializable {
 
-    public static final int MAX_PAGE_SIZE = 200;
+    public static final int MAX_PAGE_SIZE = 1000;
     private int pageIndex = 1;
     private int pageSize = 20;
     private int totalCount = 0;
@@ -38,7 +38,7 @@ public class PageReq implements Serializable {
             throw new IllegalArgumentException("pageSize should > 0");
         }
         if (pageSize > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("pageSize should <= 200");
+            throw new IllegalArgumentException("pageSize should <= " + MAX_PAGE_SIZE);
         }
         this.pageSize = pageSize;
     }

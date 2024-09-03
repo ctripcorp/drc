@@ -236,8 +236,7 @@ export default {
         applierInitGtid: ''
       },
       srcBuildData: {
-        dbApplierDtos: [],
-        dbApplierSwitch: false
+        dbApplierDtos: []
       },
       dstBuildParam: {
         mhaName: this.dstMhaName,
@@ -247,8 +246,7 @@ export default {
         applierInitGtid: ''
       },
       dstBuildData: {
-        dbApplierDtos: [],
-        dbApplierSwitch: false
+        dbApplierDtos: []
       },
       gtidCheck: {
         modal: false,
@@ -409,16 +407,6 @@ export default {
         .then(response => {
           console.log(response.data)
           this.dstBuildData.dbApplierDtos = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/dbApplier/switch?mhaName=' + this.srcBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.srcBuildData.dbApplierSwitch = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/dbApplier/switch?mhaName=' + this.dstBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.dstBuildData.dbApplierSwitch = response.data.data
         })
     },
     querySrcMhaMachineGtid () {
@@ -617,6 +605,14 @@ export default {
       }
       return false
     },
+    hasMhaAppliers (mhaAppliers) {
+      for (const x of mhaAppliers) {
+        if (x && x.length > 0) {
+          return true
+        }
+      }
+      return false
+    },
     showMhaApplierConfig (isSrc) {
       // return true
       if (isSrc) {
@@ -626,11 +622,7 @@ export default {
       }
     },
     showDbMhaApplierConfig (isSrc) {
-      if (isSrc) {
-        return this.srcBuildData.dbApplierSwitch || this.hasAppliers(this.srcBuildData.dbApplierDtos)
-      } else {
-        return this.dstBuildData.dbApplierSwitch || this.hasAppliers(this.dstBuildData.dbApplierDtos)
-      }
+      return true
     },
     refresh () {
       this.getSrcMhaReplicatorsInUse()

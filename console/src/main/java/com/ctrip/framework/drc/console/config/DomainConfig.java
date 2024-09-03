@@ -37,50 +37,21 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DAL_SERVICE_PREFIX = "dal.service.prefix";
     private static final String DEFAULT_DAL_SERVICE_PREFIX = "http://localhost:8080/database/";
 
-    private static final String DAL_REGISTER_PREFIX = "dal.register.prefix";
-    private static final String DEFAULT_DAL_REGISTER_PREFIX = "http://localhost:8080/api/dal/v2/";
-
-    private static final String BEACON_PREFIX = "beacon.prefix";
-    private static final String DEFAULT_BEACON_PREFIX = "http://localhost:8080/api/v1/";
-
     private static final String DAL_CLUSTER_URL = "dal.cluster.url";
     private static final String DEFAULT_DAL_CLUSTER_URL = "http://localhost:8080/dalcluster/";
-
-    private static final String MYSQL_PRECHECK_URL = "mysql.precheck.url";
-    private static final String DEFAULT_MYSQL_PRECHECK_URL = "http://localhost:8080/mysqltool/precheck/";
-
-    private static final String BUILD_NEW_CLUSTER_URL = "build.newcluster.url";
-    private static final String DEFAULT_BUILD_NEW_CLUSTER_URL = "http://localhost:8080/mysqltool/buildnewCluster/";
-
-    private static final String SLAVE_CASCADE_URL = "slave.cascade.url";
-    private static final String DEFAULT_SLAVE_CASCADE_URL = "http://localhost:8080/mysqltool/slavecascade/";
-
-    private static final String DNS_DEPLOY_URL = "dns.deploy.url";
-    private static final String DEFAULT_DNS_DEPLOY_URL = "http://localhost:8080/mysqltool/dnsdeploy/";
-
-    private static final String GET_ALL_CLUSTER_URL = "get.allcluster.url";
-    private static final String DEFAULT_GET_ALL_CLUSTER_URL = "http://localhost:8080/ops/getallcluster";
-
-    private static final String MYSQL_DB_CLUSTER_URL = "mysql.dbcluster.url";
-    private static final String DEFAULT_MYSQL_DB_CLUSTER_URL = "http://localhost:8080/ops/mysqldbcluster";
 
     private static final String CMS_GET_SERVER_URL = "cms.get.server";
     private static final String DEFAULT_CMS_GET_SERVER_URL = "http://localhost:8080/ops/getFATServers";
     private static final String OPS_ACCESS_TOKEN = "ops.access.token";
-    private static final String OPS_ACCESS_TOKEN_FAT = "ops.access.token.fat";
     private static final String DEFAULT_OPS_ACCESS_TOKEN = "";
-    private static final String DEFAULT_OPS_ACCESS_FAT_TOKEN = "";
 
     private static final String CMS_GET_DB_INFO_URL = "cms.get.db.info.url";
     private static final String DEFAULT_CMS_GET_DB_INFO_URL = "http://localhost:8080/cms/getAllDbInfo";
     private static final String CMS_GET_BU_INFO_URL = "cms.get.bu.info.url";
     private static final String DEFAULT_CMS_GET_BU_INFO_URL = "http://localhost:8080/cms/getAllBuInfo";
-    private static final String CMS_ACCESS_TOKEN = "cms.access.token";
 
     private static final String TRAFFIC_FROM_HICK_WALL_URL = "traffic.from.hick.wall.url";
-    private static final String TRAFFIC_FROM_HICK_WALL_FAT_URL = "traffic.from.hick.wall.fat.url";
     private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_URL = "http://osg.ops.ctripcorp.com/api/22853";
-    private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_FAT_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/19049";
 
     private static final String QMQ_APPLICATION_URL = "qmq.application.url";
     private static final String QMQ_API_TOKEN_KEY = "qmq.http.api.token";
@@ -103,7 +74,6 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String OPS_APPROVAL_URL = "ops.approval.url";
     private static final String OPS_APPROVAL_TOKEN = "aps.approval.token";
     private static final String CONFLICT_APPROVE_CC_EMAIL = "conflict_cc_email";
-    private static final String CONFLICT_DBA_APPROVERS = "conflict.dba.approvers";
     private static final String APPROVAL_CALLBACK_URL = "approval.callback.url";
     private static final String APPROVAL_DETAIL_URL = "approval.detail.url";
     private static final String CONFLICT_DETAIL_URL = "conflict.detail.url";
@@ -128,15 +98,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CFL_ALARM_THRESHOLD_ROLLBACK_TRX = "cfl.alarm.threshold.rollback.trx";
     
     private static final String CFL_ALARM_LIMIT_PER_HOUR = "cfl.alarm.limit.per.hour";
-    private static final String CFL_BLACKLIST_NEW_CONFIG_CLEAR_SWITCH = "cfl.blacklist.new.config.clear.switch";
-    private static final String CFL_BLACKLIST_NEW_CONFIG_EXPIRATION_HOUR = "cfl.blacklist.new.config.expiration.hour";
-    private static final String CFL_BLACKLIST_DBA_JOB_CLEAR_SWITCH = "cfl.blacklist.dba.job.clear.switch";
-    private static final String CFL_BLACKLIST_DBA_JOB_EXPIRATION_HOUR = "cfl.blacklist.dba.job.expiration.hour";
     private static final String CFL_BLACKLIST_ALARM_HOTSPOT_THRESHOLD = "cfl.blacklist.alarm.hotspot.threshold";
-    private static final String CFL_BLACKLIST_ALARM_HOTSPOT_CLEAR_SWITCH = "cfl.blacklist.alarm.hotspot.clear.switch";
-    private static final String CFL_BLACKLIST_ALARM_HOTSPOT_EXPIRATION_HOUR = "cfl.blacklist.alarm.hotspot.expiration.hour";
-    private static final String CFL_BLACKLIST_NO_USER_TRAFFIC_CLEAR_SWITCH = "cfl.blacklist.no.user.traffic.clear.switch";
-    private static final String CFL_BLACKLIST_NO_USER_TRAFFIC_EXPIRATION_HOUR = "cfl.blacklist.no.user.traffic.expiration.hour";
     private static final String CFL_BLACKLIST_SWITCH_FORMATTER = "cfl.blacklist.%s.clear.switch";
     private static final String CFL_BLACKLIST_EXPIRATION_HOUR_FORMATTER = "cfl.blacklist.%s.expiration.hour";
 
@@ -180,10 +142,6 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(CONFLICT_APPROVE_CC_EMAIL);
     }
 
-    public String getConflictDbaApprovers() {
-        return getProperty(CONFLICT_DBA_APPROVERS);
-    }
-
     public String getApprovalCallbackUrl() {
         return getProperty(APPROVAL_CALLBACK_URL);
     }
@@ -196,48 +154,12 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(DAL_SERVICE_PREFIX, DEFAULT_DAL_SERVICE_PREFIX);
     }
 
-    public String getDalRegisterPrefix() {
-        return getProperty(DAL_REGISTER_PREFIX, DEFAULT_DAL_REGISTER_PREFIX);
-    }
-
-    public String getBeaconPrefix() {
-        return getProperty(BEACON_PREFIX, DEFAULT_BEACON_PREFIX);
-    }
-
     public String getDalClusterUrl() {
         return getProperty(DAL_CLUSTER_URL, DEFAULT_DAL_CLUSTER_URL);
     }
 
-    public String getMysqlPrecheckUrl() {
-        return getProperty(MYSQL_PRECHECK_URL, DEFAULT_MYSQL_PRECHECK_URL);
-    }
-
-    public String getBuildNewClusterUrl() {
-        return getProperty(BUILD_NEW_CLUSTER_URL, DEFAULT_BUILD_NEW_CLUSTER_URL);
-    }
-
-    public String getSlaveCascadeUrl() {
-        return getProperty(SLAVE_CASCADE_URL, DEFAULT_SLAVE_CASCADE_URL);
-    }
-
-    public String getDnsDeployUrl() {
-        return getProperty(DNS_DEPLOY_URL, DEFAULT_DNS_DEPLOY_URL);
-    }
-
-    public String getGetAllClusterUrl() {
-        return getProperty(GET_ALL_CLUSTER_URL, DEFAULT_GET_ALL_CLUSTER_URL);
-    }
-
-    public String getMysqlDbClusterUrl() {
-        return getProperty(MYSQL_DB_CLUSTER_URL, DEFAULT_MYSQL_DB_CLUSTER_URL);
-    }
-
     public String getOpsAccessToken() {
         return EncryptUtils.decryptRawToken(getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN));
-    }
-
-    public String getOpsAccessTokenFat() {
-        return getProperty(OPS_ACCESS_TOKEN_FAT, DEFAULT_OPS_ACCESS_FAT_TOKEN);
     }
 
     public String getCmsGetDbInfoUrl() {
@@ -248,17 +170,8 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(CMS_GET_BU_INFO_URL, DEFAULT_CMS_GET_BU_INFO_URL);
     }
 
-    public String getCmsAccessToken() {
-        String rawToken =  getProperty(CMS_ACCESS_TOKEN, "");
-        return EncryptUtils.decryptRawToken(rawToken);
-    }
-
     public String getTrafficFromHickWall() {
         return getProperty(TRAFFIC_FROM_HICK_WALL_URL, DEFAULT_TRAFFIC_FROM_HICK_WALL_URL);
-    }
-
-    public String getTrafficFromHickWallFat() {
-        return getProperty(TRAFFIC_FROM_HICK_WALL_FAT_URL, DEFAULT_TRAFFIC_FROM_HICK_WALL_FAT_URL);
     }
 
     public String getQmqBuListUrl() {

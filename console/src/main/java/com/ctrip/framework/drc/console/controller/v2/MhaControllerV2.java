@@ -10,11 +10,14 @@ import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.DisposableFeature;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
+import com.ctrip.framework.drc.console.vo.v2.MhaApplierOfflineView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -42,6 +45,8 @@ public class MhaControllerV2 {
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
     @GetMapping("replicator")
     public ApiResult<List<String>> getMhaReplicators(@RequestParam String mhaName) {
@@ -187,8 +192,8 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
-    
+
+
     @GetMapping("shouldOffline")
     public ApiResult getMhasShouldOffline() {
         try {
@@ -198,7 +203,7 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
     @DeleteMapping("mhaName")
     public ApiResult deleteMhasShuoldOffline(@RequestBody List<String> mhas) {
         try {
@@ -210,6 +215,7 @@ public class MhaControllerV2 {
     }
 
     @GetMapping("shouldOfflineV2")
+    @DisposableFeature
     public ApiResult getMhasShouldOfflineV2(@RequestParam(required = true) Boolean checkDbReplication) {
         try {
             return ApiResult.getSuccessInstance(mhaServiceV2.getMhasWithoutDrcReplication(checkDbReplication));
@@ -219,6 +225,7 @@ public class MhaControllerV2 {
         }
     }
     @DeleteMapping("mhaWithoutDrcReplication")
+    @DisposableFeature
     public ApiResult deleteReplicators(@RequestBody List<String> mhas) {
         try {
             if (CollectionUtils.isEmpty(mhas)) {
@@ -230,7 +237,32 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
+    @GetMapping("mhaApplierShouldOffline")
+    @DisposableFeature
+    public ApiResult getMhaApplierShouldOffline() {
+        try {
+            MhaApplierOfflineView mhaApplierShouldOffline = mhaReplicationServiceV2.getMhaApplierShouldOffline();
+            mhaApplierShouldOffline.setAppliers(null);
+            return ApiResult.getSuccessInstance(mhaApplierShouldOffline);
+        } catch (Exception e) {
+            logger.error("getMhaApplierShouldOffline error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("mhaAppliers")
+    @DisposableFeature
+    public ApiResult offlineMhaAppliers() {
+        try {
+            int offlineNum = mhaReplicationServiceV2.offlineMhaAppliers();
+            return ApiResult.getSuccessInstance(offlineNum);
+        } catch (Exception e) {
+            logger.error("offlineMhaAppliers error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("machine/shouldOffline")
     public ApiResult getMachineShouldOffline() {
         try {
@@ -240,7 +272,7 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
     @DeleteMapping("machine/offline")
     public ApiResult deleteMachineShouldOffline(@RequestBody List<Long> machineIds) {
         try {
@@ -262,5 +294,5 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
 }

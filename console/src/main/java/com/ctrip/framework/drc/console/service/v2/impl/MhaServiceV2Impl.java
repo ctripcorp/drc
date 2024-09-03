@@ -495,10 +495,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     public Map<String, Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception {
         String trafficFromHickWall = domainConfig.getTrafficFromHickWall();
         String opsAccessToken = domainConfig.getOpsAccessToken();
-        if (EnvUtils.fat()) {
-            trafficFromHickWall = domainConfig.getTrafficFromHickWallFat();
-            opsAccessToken = domainConfig.getOpsAccessTokenFat();
-        }
         List<HickWallMhaReplicationDelayEntity> mhaReplicationDelay = opsApiServiceImpl.getMhaReplicationDelay(
                 trafficFromHickWall, opsAccessToken);
         return mhaReplicationDelay.stream().filter(entity -> mhas.contains(entity.getSrcMha()))

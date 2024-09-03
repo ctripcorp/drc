@@ -21,7 +21,7 @@ public class RemoteConfigTest extends AbstractConfigTest {
     private DefaultConsoleConfig consoleConfig = new DefaultConsoleConfig();
 
     @Mock
-    private DbClusterSourceProvider dbClusterSourceProvider = new DbClusterSourceProvider();
+    private DataCenterService dataCenterService = new DataCenterService();
     
     @Mock
     private HeraldService heraldService;
@@ -39,7 +39,7 @@ public class RemoteConfigTest extends AbstractConfigTest {
     @Test
     public void testUpdateConfig() throws Exception {
         Mockito.when(consoleConfig.getCenterRegionUrl()).thenReturn("http://127.0.0.1:8080");
-        Mockito.doReturn("dc").when(dbClusterSourceProvider).getLocalDcName();
+        Mockito.doReturn("dc").when(dataCenterService).getDc();
 
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> HttpUtils.getAcceptAllEncoding("http://127.0.0.1:8080/api/drc/v2/meta/?refresh=true&heraldToken=mockedToken", String.class)).thenReturn(DRC_XML);

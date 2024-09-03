@@ -40,7 +40,6 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Order(2)
 @Component
-@DependsOn("dbClusterSourceProvider")
 public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
     
     private Reporter reporter = DefaultReporterHolder.getInstance();

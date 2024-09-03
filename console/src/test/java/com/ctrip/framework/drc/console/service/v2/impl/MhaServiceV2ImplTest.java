@@ -287,8 +287,8 @@ public class MhaServiceV2ImplTest {
     @Test
     public void testGetMhaReplicatorSlaveDelay() throws Exception {
         if (EnvUtils.fat()) {
-            when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://localhost:8080");
-            when(domainConfig.getOpsAccessTokenFat()).thenReturn("token1");
+            when(domainConfig.getTrafficFromHickWall()).thenReturn("http://localhost:8080");
+            when(domainConfig.getOpsAccessToken()).thenReturn("token1");
         } else {
             when(domainConfig.getTrafficFromHickWall()).thenReturn("http://localhost:8080");
             when(domainConfig.getOpsAccessToken()).thenReturn("token1");

@@ -53,7 +53,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Order(1)
 @Component("listenReplicatorTask")
-@DependsOn({"dbClusterSourceProvider","metaProviderV2"})
+@DependsOn({"metaProviderV2"})
 public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");

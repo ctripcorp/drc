@@ -65,10 +65,9 @@ public class ConflictLogManagerTest {
     @Test
     public void testSchedule() throws Throwable {
         // mock check conflictCount
-        Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://hickwall.com");
         Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("opsAccessToken");
-        Mockito.when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://fat.hickwall.com");
-        Mockito.when(domainConfig.getOpsAccessTokenFat()).thenReturn("fatOpsAccessToken");
+        Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://fat.hickwall.com");
+        Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("fatOpsAccessToken");
         Mockito.when(domainConfig.getConflictAlarmThresholdCommitTrx()).thenReturn(100L);
         Mockito.when(domainConfig.getConflictAlarmThresholdCommitRow()).thenReturn(100L);
         Mockito.when(domainConfig.getConflictAlarmThresholdRollbackTrx()).thenReturn(100L);

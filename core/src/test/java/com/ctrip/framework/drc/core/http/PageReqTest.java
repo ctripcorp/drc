@@ -34,7 +34,7 @@ public class PageReqTest {
     @Test
     public void testSetPageSize() {
         PageReq pageReq = new PageReq();
-        for (int i = 1; i <= 200; i++) {
+        for (int i = 1; i <= 1000; i++) {
             pageReq.setPageSize(i);
             Assert.assertEquals(pageReq.getPageSize(), i);
         }
@@ -49,7 +49,7 @@ public class PageReqTest {
     @Test(expected = IllegalArgumentException.class)
     public void testSetPageSizeException2() {
         PageReq pageReq = new PageReq();
-        pageReq.setPageSize(201);
+        pageReq.setPageSize(1001);
     }
 
 }

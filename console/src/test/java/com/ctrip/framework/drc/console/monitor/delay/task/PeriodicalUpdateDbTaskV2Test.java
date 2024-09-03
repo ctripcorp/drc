@@ -45,7 +45,6 @@ public class PeriodicalUpdateDbTaskV2Test {
     public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet("ntgxh"));
-        when(consoleConfig.getDbApplierConfigureSwitch(anyString())).thenReturn(true);
         MhaDbReplicationDto dto = new MhaDbReplicationDto();
         dto.setSrc(new MhaDbDto(1L,"mha_db_1_src","db1"));
         dto.setDst(new MhaDbDto(1L,"mha_db_1_dst","db1"));

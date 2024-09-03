@@ -103,12 +103,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
     private static int DEFAULT_META_COMPARE_PARALLEL = 10;
     private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
-    private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
-    private static String META_GENERATOR_V5_SWITCH = "meta.generator.v5.switch";
-    private static String META_DB_APPLIER_CONFIG_SWITCH = "meta.db.applier.config.switch";
-    private static String META_DB_APPLIER_CONFIG_SWITCH_KEY = META_DB_APPLIER_CONFIG_SWITCH + ".%s";
     private static String META_REALTIME_SWITCH = "meta.realtime";
 
     private static final String CONFLICT_LOG_RECORD_SWITCH = "conflict.log.record.switch";
@@ -537,9 +533,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
     }
 
-    public String getDrcDoubleWriteSwitch() {
-        return getProperty(DRC_DOUBLE_WRITE_SWITCH, SWITCH_OFF);
-    }
 
     public String getNewDrcConfigSwitch() {
         return getProperty(NEW_DRC_CONFIG_SWITCH, SWITCH_OFF);
@@ -549,17 +542,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
     }
 
-    public boolean getMetaGeneratorV5Switch() {
-        return getBooleanProperty(META_GENERATOR_V5_SWITCH, false);
-    }
-
-    public boolean getDbApplierConfigureSwitch(String mha) {
-        String value = getProperty(String.format(META_DB_APPLIER_CONFIG_SWITCH_KEY, mha));
-        if (StringUtils.isBlank(value)) {
-            return getBooleanProperty(META_DB_APPLIER_CONFIG_SWITCH, false);
-        }
-        return Boolean.parseBoolean(value);
-    }
 
     public String getMetaRealtimeSwitch() {
         return getProperty(META_REALTIME_SWITCH, SWITCH_OFF);
