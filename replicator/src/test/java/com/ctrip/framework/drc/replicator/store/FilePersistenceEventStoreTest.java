@@ -63,7 +63,7 @@ public class FilePersistenceEventStoreTest extends AbstractTransactionTest{
         eventStore.initialize();
         eventStore.start();
 
-        transactionCache = new EventTransactionCache(eventStore, filterChain);
+        transactionCache = new EventTransactionCache(eventStore, filterChain, "ut_test");
         transactionCache.initialize();
         transactionCache.start();
     }

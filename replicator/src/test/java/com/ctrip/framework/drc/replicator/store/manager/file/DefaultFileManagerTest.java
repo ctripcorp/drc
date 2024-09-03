@@ -99,7 +99,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         ioCache.initialize();
         ioCache.start();
 
-        transactionCache = new EventTransactionCache(ioCache, filterChain);
+        transactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         transactionCache.initialize();
         transactionCache.start();
     }

@@ -33,6 +33,7 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final AbstractBinlogScannerManager manager;
+    private final String registryKey;
     protected List<BinlogSender> senders;
     protected final ConsumeType consumeType;
     protected final GtidSet excludedSet;
@@ -52,6 +53,7 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
         List<GtidSet> sendersGtid = senders.stream().map(BinlogSender::getGtidSet).collect(Collectors.toList());
         this.excludedSet = GtidSet.getIntersection(sendersGtid);
         this.consumeType = getConsumeType(binlogSenders);
+        this.registryKey = manager.getRegistryKey();
     }
 
     private static void validateSenders(List<BinlogSender> binlogSenders) {
@@ -66,7 +68,7 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     @Override
     public boolean canMerge() {
-        return consumeType != ConsumeType.Replicator && this.senders.size() < DynamicConfig.getInstance().getMaxSenderNumPerScanner();
+        return consumeType != ConsumeType.Replicator && this.senders.size() < DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey);
     }
 
     private ConsumeType getConsumeType(List<BinlogSender> binlogSenders) {

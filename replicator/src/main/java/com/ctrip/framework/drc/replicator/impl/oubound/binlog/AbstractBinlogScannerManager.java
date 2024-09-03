@@ -56,6 +56,10 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
         mergeService.scheduleWithFixedDelay(this::loop, 0, 1000, TimeUnit.MILLISECONDS);
     }
 
+    @Override
+    public String getRegistryKey() {
+        return registryKey;
+    }
 
     @Override
     public synchronized BinlogSender startSender(Channel channel, ApplierDumpCommandPacket dumpCommandPacket) throws Exception {
@@ -271,7 +275,7 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
 
     private MergeAlgorithm calculate(List<BinlogScanner> scanners) {
         int maxGtidGap = DynamicConfig.getInstance().getMaxGtidGapForMergeScanner();
-        int maxSenderNumPerScanner = DynamicConfig.getInstance().getMaxSenderNumPerScanner();
+        int maxSenderNumPerScanner = DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey);
         return MergeAlgorithm.calculate(scanners, maxGtidGap, maxSenderNumPerScanner);
     }
 

@@ -100,8 +100,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         int applyMode = mySQLSlaveConfig.getApplyMode();
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         InboundFilterChainContext transactionContext = new InboundFilterChainContext.Builder().applyMode(applyMode).build();
-        transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext))
-                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
+        transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext), clusterName)
+                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext), clusterName);
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
@@ -245,6 +245,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
                 ReplicatorDetailInfoDto.ScannerDto scannerDto = new ReplicatorDetailInfoDto.ScannerDto();
                 GtidSet scannerFilteredGtidSet = scanner.getFilteredGtidSet();
                 scannerDto.setGtid(scannerFilteredGtidSet.toString());
+                scannerDto.setGtidGap(scannerFilteredGtidSet.subtract(scannerFilteredGtidSet).toString());
                 scannerDto.setConsumeType(scanner.getConsumeType().name());
                 scannerDto.setCurrentFile(scanner.getCurrentSendingFileName());
                 Set<String> uuiDs = scannerFilteredGtidSet.getUUIDs();
@@ -252,7 +253,6 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
                     ReplicatorDetailInfoDto.SenderDto senderDto = new ReplicatorDetailInfoDto.SenderDto(sender.getApplierName());
                     GtidSet gtidSet = sender.getGtidSet().filterGtid(uuiDs);
                     senderDto.setGtid(gtidSet.toString());
-                    senderDto.setGtidGap(gtidSet.subtract(scannerFilteredGtidSet).toString());
                     return senderDto;
                 }).collect(Collectors.toList());
                 scannerDto.setSenders(senders);

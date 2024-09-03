@@ -116,7 +116,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         filePersistenceEventStore.initialize();
         filePersistenceEventStore.start();
 
-        transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain);
+        transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain, "ut_test");
         transactionCache.initialize();
         transactionCache.start();
 

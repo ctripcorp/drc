@@ -76,7 +76,7 @@ public class ReplicatorSlaveServerTest extends AbstractServerTest {
         mySQLSlaveConfig.setRegistryKey(AbstractServerTest.DESTINATION, MHA_NAME);
         mySQLServer = new ReplicatorSlaveServer(mySQLSlaveConfig, new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint()), null);  //需要连接的master信息
         eventStore = new FilePersistenceEventStore(null, uuidOperator, replicatorConfig);
-        transactionCache = new EventTransactionCache(eventStore, filterChain);
+        transactionCache = new EventTransactionCache(eventStore, filterChain, "ut_test");
         LogEventHandler eventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new EventFilterChainFactory().createFilterChain(new InboundFilterChainContext.Builder().build()));
         mySQLServer.setLogEventHandler(eventHandler);
     }
