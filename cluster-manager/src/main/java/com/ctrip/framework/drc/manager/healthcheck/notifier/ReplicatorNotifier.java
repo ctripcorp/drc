@@ -8,7 +8,9 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dbs;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.DbDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDtoV2;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.google.common.collect.Lists;
@@ -47,7 +49,7 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
 
     @Override
     protected Object getBody(String ipAndPort, DbCluster dbCluster, boolean register) {
-        ReplicatorConfigDto configDto = new ReplicatorConfigDto();
+        ReplicatorConfigDtoV2 configDto = new ReplicatorConfigDtoV2();
         //monitor and register info
         configDto.setBu(dbCluster.getBuName());
         configDto.setClusterAppId(dbCluster.getAppId());
@@ -74,13 +76,13 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
 
         NOTIFY_LOGGER.info("[ipAndPort] {}, masterReplicator {}, notifyReplicator {}", ipAndPort, masterReplicator, notifyReplicator);
         if (ipAndPort.equalsIgnoreCase(getInstancesNotifyIpPort(masterReplicator))) {
-            configDto.setMaster(dbMaster);
+            configDto.setMaster(DbDto.from(dbMaster));
             configDto.setStatus(InstanceStatus.ACTIVE.getStatus());
             configDto.setApplierPort(masterReplicator.getApplierPort());
         } else {
             dbMaster.setIp(masterReplicator.getIp());
             dbMaster.setPort(masterReplicator.getApplierPort());
-            configDto.setMaster(dbMaster);
+            configDto.setMaster(DbDto.from(dbMaster));
             configDto.setStatus(InstanceStatus.INACTIVE.getStatus());
             configDto.setApplierPort(notifyReplicator.getApplierPort());
         }

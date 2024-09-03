@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.http.AsyncHttpClientFactory;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
@@ -53,6 +54,12 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     @Override
     protected void doInitialize() throws Exception {
         super.doInitialize();
+    }
+    
+    @Override
+    protected void doStop() throws Exception {
+        super.doStop();
+        AsyncHttpClientFactory.closeAll();
     }
 
     /**

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.service;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.http.AsyncHttpClientFactory;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
@@ -12,6 +13,11 @@ import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.tuple.Pair;
+import com.google.common.util.concurrent.MoreExecutors;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.ListenableFuture;
+import org.asynchttpclient.Response;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -27,7 +33,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGG
  */
 @Order(3)
 @Component
-public class ConsoleServiceImpl extends AbstractService implements StateChangeHandler {
+public class ConsoleServiceImpl extends AbstractService implements StateChangeHandler, DisposableBean {
 
     @Autowired
     private DataCenterService dataCenterService;
@@ -35,7 +41,12 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
     @Autowired
     private ClusterManagerConfig clusterManagerConfig;
     
+    private static final String REPLICATOR_ACTIVE_ELECTED = "%s/api/drc/v1/switch/clusters/%s/replicators/master/";
+    private static final String MYSQL_MASTER_CHANGE = "%s/api/drc/v1/switch/clusters/%s/dbs/master/";
+    
     private HeraldService heraldService = ServicesUtil.getHeraldService();
+    
+    private AsyncHttpClient asyncHttpConsoleNotifier = AsyncHttpClientFactory.create(DEFAULT_CONNECT_TIMEOUT,DEFAULT_SO_TIMEOUT,DEFAULT_SO_TIMEOUT,0,100,1000);
 
     @Override
     public void replicatorActiveElected(String clusterId, Replicator replicator) {
@@ -47,11 +58,22 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
             if (!dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
-                String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/replicators/master/";
+                String host = entry.getValue().getMetaServerAddress();
+                String url = String.format(REPLICATOR_ACTIVE_ELECTED, host, clusterId);
                 try {
                     String ipAndPort = replicator.getIp() + ":" + replicator.getApplierPort();
-                    restTemplate.put(url, ipAndPort, clusterId);
-                    STATE_LOGGER.info("[replicatorActiveElected] notify {}, {}", url, clusterId);
+                    ListenableFuture<Response> httpFuture = asyncHttpConsoleNotifier.preparePut(url).setBody(ipAndPort).execute();
+                    httpFuture.addListener(() -> {
+                        try {
+                            Response response = httpFuture.get();
+                            if (response.getStatusCode() != 200) {
+                                STATE_LOGGER.error("[replicatorActiveElected] error for {}, {}", url, response.getResponseBody());
+                            }
+                            STATE_LOGGER.info("[replicatorActiveElected] notify {}, {}", url, clusterId);
+                        } catch (Throwable t) {
+                            STATE_LOGGER.error("[replicatorActiveElected] error for {}", url, t);
+                        }
+                    }, MoreExecutors.directExecutor());
                 } catch (Throwable t) {
                     logger.error("[replicatorActiveElected] error for {}", url, t);
                 }
@@ -78,10 +100,22 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         STATE_LOGGER.info("[mysqlMasterChanged] for {}:{}", clusterId, master);
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
-            String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/dbs/master/";
+            String consoleHost = entry.getValue().getMetaServerAddress();
+            String url = String.format(MYSQL_MASTER_CHANGE,consoleHost,clusterId);
             if (dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
-                restTemplate.put(url, ipAndPort, clusterId);
-                STATE_LOGGER.info("[mysqlMasterChanged] notify {}, {}", url, clusterId);
+                ListenableFuture<Response> httpFuture = asyncHttpConsoleNotifier.preparePut(url).setBody(ipAndPort).execute();
+                httpFuture.addListener(
+                        () -> {
+                            try {
+                                Response response = httpFuture.get();
+                                if (response.getStatusCode() != 200) {
+                                    STATE_LOGGER.error("[mysqlMasterChanged] error for {}, {}", url, response.getResponseBody());
+                                }
+                                STATE_LOGGER.info("[mysqlMasterChanged] notify {}, {}", url, clusterId);
+                            } catch (Throwable t) {
+                                STATE_LOGGER.error("[mysqlMasterChanged] error for {}", url, t);
+                            }
+                        }, MoreExecutors.directExecutor());
                 break;
             }
         }
@@ -112,5 +146,10 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
             }
         }
         return null;
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        asyncHttpConsoleNotifier.close();
     }
 }

@@ -238,8 +238,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (migrationDrcDoNotCare(dbMigrationRequest)) {
             return Pair.of(null, null);
         }
-        MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
-        MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
+        MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha(),null);
+        MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha(),dbMigrationRequest.getOldMha());
         
         forbidMhaExistAnyDbMode(oldMhaTblV2, newMhaTblV2);
         
@@ -883,7 +883,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (oldMha == null) {
             throw ConsoleExceptionUtils.message("oldMha not exist");
         }
-        MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi(newMhaName);
+        MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi(newMhaName, oldMhaName);
         DcTbl dcTbl = dcTblDao.queryById(newMha.getDcId());
         if (dcTbl == null || !dcTbl.getRegionName().equals("sgp")) {
             throw ConsoleExceptionUtils.message("only support mha from sgp");
@@ -1454,11 +1454,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         });
     }
     
-    private MhaTblV2 checkAndInitMhaInfo(MigrateMhaInfo mhaInfo) throws SQLException {
+    // init new Mha;Copy Account info From OldMha
+    private MhaTblV2 checkAndInitMhaInfo(MigrateMhaInfo mhaInfo,MigrateMhaInfo oldMhaInfo) throws SQLException {
         MhaTblV2 mhaTblV2;
         MachineTbl mhaMaterNode = machineTblDao.queryByIpPort(mhaInfo.getMasterIp(), mhaInfo.getMasterPort());
         if (mhaMaterNode == null) {
-            mhaTblV2 = drcBuildServiceV2.syncMhaInfoFormDbaApi(mhaInfo.getName());
+            mhaTblV2 = drcBuildServiceV2.syncMhaInfoFormDbaApi(mhaInfo.getName(),oldMhaInfo.getName());
         } else if (mhaMaterNode.getMaster().equals(BooleanEnum.FALSE.getCode())) {
             throw ConsoleExceptionUtils.message(mhaInfo.getName() + ",masterNode metaInfo not match,Please contact DRC team!");
         } else {

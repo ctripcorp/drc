@@ -60,8 +60,9 @@ public interface DrcBuildServiceV2 {
 
     String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
 
-    MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
-
+    // if oldMha not Blank ,copy oldMha accountInfo to newMha;otherwise init newMha and change AccountPwd
+    MhaTblV2 syncMhaInfoFormDbaApi(String newMha, String oldMha) throws SQLException;
+    
     void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha, List<MachineDto> machineDtos) throws Exception;
 
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;

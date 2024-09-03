@@ -184,7 +184,7 @@ public class DbMigrationServiceImplTest {
         mockMigrateDbsReplicationInfos();
         Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         Assert.assertEquals(1L,stringLongPair.getRight().longValue());
-        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).syncMhaInfoFormDbaApi(Mockito.eq("mha2"));
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).syncMhaInfoFormDbaApi(Mockito.eq("mha2"), Mockito.any());
         Mockito.verify(mhaTblV2Dao,Mockito.times(1)).queryByPk(Mockito.eq(1L));
 
         // check case1:migrate dbs effect multi mha-Replication in same region is not allowed;
@@ -426,7 +426,7 @@ public class DbMigrationServiceImplTest {
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip1"), Mockito.eq(3306))).thenReturn(machineTbl1);
         Mockito.when(mhaTblV2Dao.queryByPk(Mockito.eq(1L))).thenReturn(mha1);
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip2"), Mockito.eq(3306))).thenReturn(null);
-        Mockito.when(drcBuildServiceV2.syncMhaInfoFormDbaApi(Mockito.eq("mha2"))).thenReturn(mha2);
+        Mockito.when(drcBuildServiceV2.syncMhaInfoFormDbaApi(Mockito.eq("mha2"), Mockito.any())).thenReturn(mha2);
         Mockito.when(mhaDbReplicationService.isDbReplicationExist(Mockito.anyLong(),Mockito.anyList())).thenReturn(true);
         // getReplicationInfoInOldMha
         List<DbTbl> dbTbls = Lists.newArrayList(db1, db2);

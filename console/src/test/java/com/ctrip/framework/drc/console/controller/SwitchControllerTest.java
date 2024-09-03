@@ -52,13 +52,17 @@ public class SwitchControllerTest {
         /** build mvc env */
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
         // for void return type mockito
-        Mockito.when(switchService.switchUpdateDb(CLUSTER_ID, new DbEndpointDto("127.0.0.1", 3306))).thenReturn(ApiResult.getSuccessInstance(""));
-        Mockito.doAnswer((o) -> null).when(switchService).switchListenReplicator(CLUSTER_ID, REP_ENDPOINT);
+        Mockito.doNothing().when(switchService).switchUpdateDb(CLUSTER_ID, "127.0.0.1:3306", true);
+        Mockito.doNothing().when(switchService).switchListenReplicator(CLUSTER_ID, REP_ENDPOINT, true);
     }
 
     @Test
     public void testNotifyMasterDb() throws Exception {
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/dbs/master").contentType(MediaType.APPLICATION_JSON_UTF8).content(DB_ENDPOINT))
+        MvcResult mvcResult = mvc.perform(
+                MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/dbs/master")
+                        .contentType(MediaType.APPLICATION_JSON_UTF8)
+                        .content(DB_ENDPOINT)
+                        .accept(MediaType.APPLICATION_JSON_UTF8))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
         MockHttpServletResponse response = mvcResult.getResponse();
@@ -73,7 +77,10 @@ public class SwitchControllerTest {
     @Test
     public void testNotifyMasterReplicator() throws Exception {
         String jsonStr=JSON.toJSONString(REP_ENDPOINT);
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/replicators/master").contentType(MediaType.APPLICATION_JSON_UTF8).content(jsonStr))
+        MvcResult mvcResult = mvc.perform(
+                MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/replicators/master")
+                        .contentType(MediaType.APPLICATION_JSON_UTF8)
+                        .content(jsonStr).accept(MediaType.APPLICATION_JSON_UTF8))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
         MockHttpServletResponse response = mvcResult.getResponse();

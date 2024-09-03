@@ -60,7 +60,6 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import java.lang.ref.Reference;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.StringUtils;
@@ -732,36 +731,46 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         return XmlUtils.formatXML(drcMessengerConfig.toString());
     }
-
+    
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException {
-        MhaTblV2 existMha = mhaTblDao.queryByMhaName(mhaName);
-        if (existMha != null && existMha.getDeleted().equals(0)) {
-            throw ConsoleExceptionUtils.message("mhaName already exist!");
+    public MhaTblV2 syncMhaInfoFormDbaApi(String newMha, String oldMha) throws SQLException {
+        MhaTblV2 newMhaTbl = mhaTblDao.queryByMhaName(newMha,BooleanEnum.FALSE.getCode());
+        if (newMhaTbl != null) {
+            throw ConsoleExceptionUtils.message(newMha + "mhaName already exist!");
         }
-        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
+        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(newMha);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
         String dcInDbaSystem = memberlist.stream().findFirst().map(MemberInfo::getMachine_located_short).get();
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(), null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
-        // record mha and init accountv2
-        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
-        long mhaId = initMhaAndAccount(mhaTblV2, memberlist.stream().map(MemberInfo::toMachineDto).collect(Collectors.toList()));   
-        logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
+        // record mha and accountv2
+        MhaTblV2 mhaTobeInit = buildMhaTbl(newMha, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
+        Long mhaId;
+        if (StringUtils.isNotBlank(oldMha)) {
+            MhaTblV2 oldMhaTbl = mhaTblDao.queryByMhaName(oldMha,0);
+            if(oldMhaTbl == null) {
+                throw ConsoleExceptionUtils.message(oldMha + "mha not exist,can't copyMhaProperties");
+            }
+            copyMhaProperties(mhaTobeInit,oldMhaTbl);
+            mhaId = mhaTblDao.insertWithReturnId(mhaTobeInit);
+            logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{},copyMhaProperties from:{}", newMha, mhaId,oldMha);
+        } else {
+            mhaId = initMhaAndAccount(mhaTobeInit, memberlist.stream().map(MemberInfo::toMachineDto).collect(Collectors.toList()));
+            logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", newMha, mhaId);
+        }
+        
         // record machines
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
-            machinesToBeInsert.add(extractFrom(memberInfo, mhaId,mhaName));
+            machinesToBeInsert.add(extractFrom(memberInfo, mhaId, newMha));
         }
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
-        logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName, Arrays.stream(ints).sum());
-
-        mhaTblV2.setId(mhaId);
-        return mhaTblV2;
+        logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", newMha, Arrays.stream(ints).sum());
+        mhaTobeInit.setId(mhaId);
+        return mhaTobeInit;
     }
-     
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -1977,7 +1986,17 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return buTblDao.insertWithReturnId(buTbl);
     }
     
-    
+    private void copyMhaProperties(MhaTblV2 copy,MhaTblV2 origin) {
+        copy.setMonitorUserV2(origin.getMonitorUserV2());
+        copy.setMonitorPasswordTokenV2(origin.getMonitorPasswordTokenV2());
+        copy.setReadUserV2(origin.getReadUserV2());
+        copy.setReadPasswordTokenV2(origin.getReadPasswordTokenV2());
+        copy.setWriteUserV2(origin.getWriteUserV2());
+        copy.setWritePasswordTokenV2(origin.getWritePasswordTokenV2());
+        copy.setMonitorSwitch(origin.getMonitorSwitch());
+        copy.setTag(origin.getTag());
+        copy.setBuId(origin.getBuId());
+    }
    
     private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag) {
         String clusterName = mhaName + CLUSTER_NAME_SUFFIX;

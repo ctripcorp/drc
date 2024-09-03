@@ -43,6 +43,7 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String CM_NOTIFY_THREAD = "cm.notify.thread";
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
+    private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
     
 
     private DynamicConfig() {}
@@ -57,6 +58,10 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public long getLogDelayDetailThresholdMillis() {
         return getIntProperty(CONSOLE_LOG_DELAY_THRESHOLD, 500);
+    }
+
+    public boolean getCMNotifyAsyncSwitch() {
+        return getBooleanProperty(CM_NOTIFY_ASYNC_SWITCH, false);
     }
 
     private static class ConfigHolder {
