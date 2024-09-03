@@ -68,6 +68,7 @@ public class ReplicatorDetailInfoDto {
         private String consumeType;
         private List<SenderDto> senders;
         private String gtid;
+        private String gtidGap;
         private String currentFile;
 
         public void setCurrentFile(String currentFile) {
@@ -86,6 +87,13 @@ public class ReplicatorDetailInfoDto {
             this.senders = senders;
         }
 
+        public void setGtidGap(String gtidGap) {
+            this.gtidGap = gtidGap;
+        }
+
+        public String getGtidGap() {
+            return gtidGap;
+        }
 
         public void setGtid(String gtid) {
             this.gtid = gtid;
@@ -110,18 +118,9 @@ public class ReplicatorDetailInfoDto {
     public static class SenderDto {
         private String name;
         private String gtid;
-        private String gtidGap;
 
         public String getGtid() {
             return gtid;
-        }
-
-        public String getGtidGap() {
-            return gtidGap;
-        }
-
-        public void setGtidGap(String gtidGap) {
-            this.gtidGap = gtidGap;
         }
 
         public String getName() {

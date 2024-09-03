@@ -14,6 +14,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String CONCURRENCY = "scheme.clone.task.concurrency.%s";
     private static final String SNAPSHOT_CONCURRENCY = "scheme.snapshot.task.concurrency.%s";
     private static final String SCANNER_SENDER_NUM_MAX = "binlog.scanner.sender.max";
+    private static final String SCANNER_SENDER_NUM_MAX_KEY = SCANNER_SENDER_NUM_MAX+".%s";
     private static final String SCANNER_NUM_MAX = "binlog.scanner.max";
     private static final String SCANNER_MERGE_GTID_GAP_MAX = "binlog.scanner.merge.gtid.gap.max";
     private static final String SCANNER_MERGE_PERIOD_MILLI = "binlog.scanner.merge.period";
@@ -77,8 +78,9 @@ public class DynamicConfig extends AbstractConfigBean {
     }
 
 
-    public int getMaxSenderNumPerScanner() {
-        return getIntProperty(SCANNER_SENDER_NUM_MAX, 30);
+    public int getMaxSenderNumPerScanner(String key) {
+        int defaultNum = getIntProperty(SCANNER_SENDER_NUM_MAX, 20);
+        return getIntProperty(String.format(SCANNER_SENDER_NUM_MAX_KEY, key), defaultNum);
     }
 
     public int getMaxScannerNumPerMha() {

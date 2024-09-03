@@ -120,7 +120,7 @@ public class MySQLSchemaManagerTest extends MockTest {
 
         filePersistenceEventStore = new FilePersistenceEventStore(mySQLSchemaManager, uuidOperator, replicatorConfig);
         mySQLSchemaManager.setEventStore(filePersistenceEventStore);
-        transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain);
+        transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain, "ut_test");
         mySQLSchemaManager.setTransactionCache(transactionCache);
         fileManager = filePersistenceEventStore.getFileManager();
 

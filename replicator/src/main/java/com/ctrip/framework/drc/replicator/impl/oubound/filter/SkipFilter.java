@@ -87,11 +87,6 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
                 excludedSet.addAndFillGap(gtid.getUuid(), gtid.getTransactionId());
             }
         }
-
-        if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
-            value.setSkipEvent(true);
-            inExcludeGroup = true;
-        }
     }
 
     private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
@@ -107,6 +102,10 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
     }
 
     private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, Gtid gtid) {
+        if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
+            return true;
+        }
+
         if (LogEventUtils.isGtidLogEvent(eventType)) {
             return gtid.isContainedWithin(excludedSet);
         }

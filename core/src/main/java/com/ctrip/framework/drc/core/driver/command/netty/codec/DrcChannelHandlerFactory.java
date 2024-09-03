@@ -19,7 +19,6 @@ public class DrcChannelHandlerFactory implements ChannelHandlerFactory {
     @Override
     public List<ChannelHandler> createChannelHandlers() {
         List<ChannelHandler> handlerList = new ArrayList<>();
-        handlerList.add(new LoggingHandler(LogLevel.DEBUG));
         handlerList.add(new IdleStateHandler(CONNECTION_IDLE_TIMEOUT_SECOND, 0, 0));
         handlerList.add(new PackageEncoder());
         handlerList.add(new FileEventDecode());

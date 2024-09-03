@@ -23,4 +23,6 @@ public interface BinlogScannerManager extends Disposable {
     boolean isScannerEmpty();
 
     List<BinlogScanner> getScanners();
+
+    String getRegistryKey();
 }

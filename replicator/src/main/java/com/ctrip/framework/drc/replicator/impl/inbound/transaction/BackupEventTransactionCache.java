@@ -11,8 +11,8 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
  */
 public class BackupEventTransactionCache extends EventTransactionCache {
 
-    public BackupEventTransactionCache(IoCache ioCache, Filter<ITransactionEvent> filterChain) {
-        super(ioCache, filterChain);
+    public BackupEventTransactionCache(IoCache ioCache, Filter<ITransactionEvent> filterChain, String registryKey) {
+        super(ioCache, filterChain, registryKey);
     }
 
     protected TransactionEvent getTransactionEvent() {
