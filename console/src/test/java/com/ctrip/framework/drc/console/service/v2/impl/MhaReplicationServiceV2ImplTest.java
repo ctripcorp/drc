@@ -8,11 +8,11 @@ import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
+import com.ctrip.framework.drc.console.vo.v2.MhaApplierOfflineView;
 import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.xpipe.tuple.Pair;
 import org.assertj.core.util.Lists;
-import org.checkerframework.checker.nullness.qual.PolyKeyFor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 
 public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
@@ -132,6 +132,7 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         Assert.assertEquals(list.size(), delay.size());
         System.out.println(delay);
     }
+
     @Test
     public void testGetMhaReplicationDelaysV2() {
         String mha1 = "mha1";
@@ -184,12 +185,12 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         Mockito.when(mhaReplicationTblDao.update(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
         Mockito.when(mhaTblV2Dao.update(Mockito.anyList())).thenReturn(new int[]{1});
         Mockito.when(mhaServiceV2.offlineMha(Mockito.anyString())).thenReturn(true);
-        
+
         // case 1 dbReplication not empty 
         try {
             boolean b = mhaReplicationServiceV2.deleteMhaReplication(1L);
         } catch (ConsoleException e) {
-           Assert.assertTrue(e.getMessage().contains("DbReplications not empty!"));
+            Assert.assertTrue(e.getMessage().contains("DbReplications not empty!"));
         }
         // case 2 applier not empty
         try {
@@ -204,31 +205,30 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("Replicator not empty!"));
         }
-        
+
         // case 5 messenger empty, delete mha and replicator empty
         // delete mha6 , mha5 has other replication
-        
+
         boolean b = mhaReplicationServiceV2.deleteMhaReplication(4L);
         verify(mhaReplicationTblDao, Mockito.times(1)).update(Mockito.any(MhaReplicationTbl.class));
         verify(mhaServiceV2, Mockito.times(1)).offlineMha(Mockito.eq("mha6"));
-        
+
         releaseMockConfig();
     }
 
 
     @Test
-    public void testParseQconfig(){
+    public void testParseQconfig() {
         String input = getQConfigTemplate1();
         Map<String, String> expected = new HashMap<>();
-        expected.put("bbzimelongdb_dalcluster.bbzimelong.bbzimelongshali.purgedgtid","ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977");
-        expected.put("bbzimelongdb_dalcluster.itcchatos7.bbzimelongshali.purgedgtid","9382d1a9-b482-11eb-8957-94292f70c4d7:158736104-444988348,95a31a81-070c-11ec-80d4-b8cef6507324:26941-210088954,ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-619973813,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977");
-        expected.put("bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard.bbzimelongdetailshardshali.purgedgtid","935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800");
-        expected.put("bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard03os7.bbzimelongdetailshardshali.purgedgtid","935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800");
-
+        expected.put("bbzimelongdb_dalcluster.bbzimelong.bbzimelongshali.purgedgtid", "ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977");
+        expected.put("bbzimelongdb_dalcluster.itcchatos7.bbzimelongshali.purgedgtid", "9382d1a9-b482-11eb-8957-94292f70c4d7:158736104-444988348,95a31a81-070c-11ec-80d4-b8cef6507324:26941-210088954,ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-619973813,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977");
+        expected.put("bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard.bbzimelongdetailshardshali.purgedgtid", "935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800");
+        expected.put("bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard03os7.bbzimelongdetailshardshali.purgedgtid", "935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800");
 
 
         Map<String, String> output = mhaReplicationServiceV2.parseConfigFileGtidContent(input);
-        Assert.assertEquals(expected,output);
+        Assert.assertEquals(expected, output);
     }
 
     private static String getQConfigTemplate1() {
@@ -238,7 +238,7 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
                 "bbzimelongdb_dalcluster.bbzimelong.bbzimelongshali.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n" +
                 "bbzimelongdb_dalcluster.itcchatos7.bbzimelongshali.purgedgtid=9382d1a9-b482-11eb-8957-94292f70c4d7:158736104-444988348,95a31a81-070c-11ec-80d4-b8cef6507324:26941-210088954,ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-619973813,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n" +
                 "bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard.bbzimelongdetailshardshali.purgedgtid=935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800\n" +
-                "bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard03os7.bbzimelongdetailshardshali.purgedgtid=935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800\n"+
+                "bbzimelongdetailshardbasedb_dalcluster.bbzimelongdetailshard03os7.bbzimelongdetailshardshali.purgedgtid=935066db-454b-11eb-bcfe-506b4b2af01e:1-271601355,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-1806187800\n" +
                 "bbzimelongdetailshardbasedb_dalcluster.invalid.gtid.purgedgtid=\n";
         return input;
     }
@@ -305,12 +305,28 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
 
         MhaSyncView result = mhaReplicationServiceV2.mhaSyncCount();
 
-        Assert.assertEquals(result.getMhaSyncIds().size(),1);
-        Assert.assertEquals(result.getDbNameSet().size(),1);
-        Assert.assertEquals(result.getDbSyncSet().size(),1);
-        Assert.assertEquals(result.getDalClusterSet().size(),1);
-        Assert.assertEquals(result.getDbMessengerSet().size(),1);
-        Assert.assertEquals(result.getDbOtterSet().size(),1);
+        Assert.assertEquals(result.getMhaSyncIds().size(), 1);
+        Assert.assertEquals(result.getDbNameSet().size(), 1);
+        Assert.assertEquals(result.getDbSyncSet().size(), 1);
+        Assert.assertEquals(result.getDalClusterSet().size(), 1);
+        Assert.assertEquals(result.getDbMessengerSet().size(), 1);
+        Assert.assertEquals(result.getDbOtterSet().size(), 1);
 
+    }
+
+    @Test
+    public void testGetOfflineApplier() throws SQLException {
+        MhaApplierOfflineView res = mhaReplicationServiceV2.getMhaApplierShouldOffline();
+        Assert.assertNotNull(res);
+        Assert.assertEquals(2, res.getMhaReplicationWithMhaApplierCount());
+        Assert.assertEquals(1, res.getMhaReplicationWithDbApplierCount());
+        Assert.assertEquals(res.getMhaReplicationWithBothMhaApplierAndDbApplierIds().size(), res.getMhaReplicationWithBothMhaApplierAndDbApplierCount());
+    }
+
+    @Test
+    public void testOfflineApplier() throws SQLException {
+        int count = mhaReplicationServiceV2.offlineMhaAppliers();
+        Assert.assertEquals(2, count);
+        verify(applierTblV2Dao,times(1)).batchUpdate(any());
     }
 }

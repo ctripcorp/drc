@@ -203,10 +203,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         try {
             String trafficFromHickWall = domainConfig.getTrafficFromHickWall();
             String opsAccessToken = domainConfig.getOpsAccessToken();
-            if (EnvUtils.fat()) {
-                trafficFromHickWall = domainConfig.getTrafficFromHickWallFat();
-                opsAccessToken = domainConfig.getOpsAccessTokenFat();
-            }
             List<HickWallMessengerDelayEntity> messengerDelayFromHickWall = opsApiServiceImpl.getMessengerDelayFromHickWall(trafficFromHickWall, opsAccessToken, mhaNames);
             Map<String, HickWallMessengerDelayEntity> hickWallMap = messengerDelayFromHickWall.stream().collect(Collectors.toMap(HickWallMessengerDelayEntity::getMha, e -> e, (e1, e2) -> e1));
             for (MhaMessengerDto dto : messengerDtoList) {

@@ -177,15 +177,6 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @GetMapping("mha/dbApplier/switch")
-    public ApiResult<Boolean> getMhaDbAppliers(@RequestParam String mhaName) {
-        try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.isDbApplierConfigurable(mhaName));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("mha/applierGtid")
     public ApiResult<String> getApplierGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
         try {

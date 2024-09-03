@@ -46,7 +46,6 @@ public class MetaGeneratorV5Test extends CommonDataInit {
 
     @Test
     public void testGetDrc() throws Exception {
-        Mockito.when(defaultConsoleConfig.getMetaGeneratorV5Switch()).thenReturn(true);
         Mockito.when(accountService.grayKmsToken(Mockito.anyString())).thenAnswer(
                 invocation -> {
                     String mhaName = invocation.getArgument(0);

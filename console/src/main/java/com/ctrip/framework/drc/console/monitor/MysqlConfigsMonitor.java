@@ -2,9 +2,7 @@ package com.ctrip.framework.drc.console.monitor;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.monitor.task.AliBinlogRetentionTimeQueryTask;
 import com.ctrip.framework.drc.console.monitor.task.AwsBinlogRetentionTimeQueryTask;
@@ -23,15 +21,14 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
 
 import java.sql.SQLException;
 import java.util.Map;
 
-import static com.ctrip.framework.drc.console.enums.LogTypeEnum.*;
+import static com.ctrip.framework.drc.console.enums.LogTypeEnum.ERROR;
+import static com.ctrip.framework.drc.console.enums.LogTypeEnum.INFO;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MYSQL_LOG;

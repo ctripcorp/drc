@@ -230,9 +230,8 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         if (mhaReplicationTbl == null) {
             return;
         }
-        if (consoleConfig.getMetaGeneratorV5Switch()) {
-            generateDbApplierInstances(dbCluster, srcMhaTbl, mhaTbl);
-        }
+        generateDbApplierInstances(dbCluster, srcMhaTbl, mhaTbl);
+
         ApplierGroupTblV2 applierGroupTbl = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), 0);
         if (applierGroupTbl == null) {
             return;
@@ -243,12 +242,11 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     }
 
     private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
-        if (consoleConfig.getMetaGeneratorV5Switch()) {
-            List<Messenger> messengers = messengerService.generateDbMessengers(mhaTbl.getId());
-            messengers.forEach(dbCluster::addMessenger);
-        }
+        List<Messenger> messengers = messengerService.generateDbMessengers(mhaTbl.getId());
+        messengers.forEach(dbCluster::addMessenger);
+
         if (CollectionUtils.isEmpty(dbCluster.getMessengers())) {
-            List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
+            messengers = messengerService.generateMessengers(mhaTbl.getId());
             messengers.forEach(dbCluster::addMessenger);
         }
     }

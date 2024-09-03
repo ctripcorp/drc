@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
+import com.ctrip.framework.drc.console.vo.v2.MhaApplierOfflineView;
 import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -33,6 +34,7 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.mysql.jdbc.ConnectionFeatureNotAvailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -587,5 +589,56 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         view.setDbOtterSet(dbOtterSet);
 
         return view;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public MhaApplierOfflineView getMhaApplierShouldOffline() throws SQLException {
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryAllExist();
+        List<ApplierGroupTblV2> allApplierGroupTblV2s = applierGroupTblV2Dao.queryAllExist();
+        // mha replication that has mha applier
+        Set<Long> notEmptyApplierGroupId = applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).collect(Collectors.toSet());
+        Set<Long> mhaReplicationWithMhaApplier = allApplierGroupTblV2s.stream().filter(e -> notEmptyApplierGroupId.contains(e.getId())).map(e -> e.getMhaReplicationId()).collect(Collectors.toSet());
+        List<MhaReplicationTbl> mhaReplicationTblsWithMhaApplier = mhaReplicationTblDao.queryByIds(Lists.newArrayList(mhaReplicationWithMhaApplier));
+        Set<Long> mhaReplicationIdsWithMhaApplier = mhaReplicationTblsWithMhaApplier.stream().map(MhaReplicationTbl::getId).collect(Collectors.toSet());
+
+
+        // mha replication that has mha db applier
+        List<MhaReplicationTbl> mhaReplicationTblsWithDbApplier = this.queryAllHasActiveMhaDbReplications();
+        Set<Long> mhaReplicationIdsWithDbApplier = mhaReplicationTblsWithDbApplier.stream().map(MhaReplicationTbl::getId).collect(Collectors.toSet());
+
+        // mha replication that has mha db applier && mha applier
+        Set<Long> mhaReplicationShouldOfflineMhaAppliers = Sets.newHashSet(mhaReplicationIdsWithMhaApplier);
+        mhaReplicationShouldOfflineMhaAppliers.retainAll(mhaReplicationIdsWithDbApplier);
+        Set<Long> applierGroupV2Ids = allApplierGroupTblV2s.stream().filter(e -> mhaReplicationShouldOfflineMhaAppliers.contains(e.getMhaReplicationId())).map(ApplierGroupTblV2::getId).collect(Collectors.toSet());
+        List<ApplierTblV2> appliersShouldOffline = applierTblV2s.stream().filter(e -> applierGroupV2Ids.contains(e.getApplierGroupId())).collect(Collectors.toList());
+
+
+
+        // res
+        MhaApplierOfflineView mhaApplierOfflineView = new MhaApplierOfflineView();
+        mhaApplierOfflineView.setMhaApplierCount(appliersShouldOffline.size());
+        mhaApplierOfflineView.setAppliers(appliersShouldOffline);
+        mhaApplierOfflineView.setMhaReplicationWithMhaApplierCount(mhaReplicationTblsWithMhaApplier.size());
+        mhaApplierOfflineView.setMhaReplicationWithDbApplierCount(mhaReplicationTblsWithDbApplier.size());
+        mhaApplierOfflineView.setMhaReplicationWithBothMhaApplierAndDbApplierCount(mhaReplicationShouldOfflineMhaAppliers.size());
+        mhaApplierOfflineView.setMhaReplicationWithBothMhaApplierAndDbApplierIds(Lists.newArrayList(mhaReplicationShouldOfflineMhaAppliers));
+        return mhaApplierOfflineView;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public int offlineMhaAppliers() throws SQLException {
+        MhaApplierOfflineView mhaApplierShouldOffline = this.getMhaApplierShouldOffline();
+        List<ApplierTblV2> appliers = mhaApplierShouldOffline.getAppliers();
+        if (CollectionUtils.isEmpty(appliers)) {
+            throw ConsoleExceptionUtils.message("no mha applier need to be offline!");
+        }
+        appliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        List<List<ApplierTblV2>> partitions = Lists.partition(appliers, 1000);
+        for (List<ApplierTblV2> applierTblV2s : partitions) {
+            applierTblV2Dao.batchUpdate(applierTblV2s);
+        }
+        return appliers.size();
     }
 }

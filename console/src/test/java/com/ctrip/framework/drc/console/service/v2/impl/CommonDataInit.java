@@ -345,6 +345,11 @@ public class CommonDataInit {
             return mhaReplicationTbls.stream().filter(e -> id.equals(e.getId())).findFirst().orElse(null);
         });
 
+        when(mhaReplicationTblDao.queryByIds(anyList())).thenAnswer(i -> {
+            List ids = i.getArgument(0, List.class);
+            return mhaReplicationTbls.stream().filter(e -> ids.contains(e.getId())).collect(Collectors.toList());
+        });
+
 
         when(mhaReplicationTblDao.queryByMhaId(anyLong(), anyLong(), anyInt())).thenAnswer(i -> {
             Long srcMhaId = i.getArgument(0, Long.class);

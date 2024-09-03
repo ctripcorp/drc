@@ -172,7 +172,7 @@ export default {
         messengers: {},
         replicatorList: {},
         messengerList: {},
-        dbMessengerSwitch: false,
+        dbMessengerSwitch: true,
         dbMessengerList: []
       }
     }
@@ -207,10 +207,6 @@ export default {
       this.axios.get('/api/drc/v2/config/mha/dbMessenger?mhaName=' + this.drc.mhaName + '&type=1')
         .then(response => {
           this.drc.dbMessengerList = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/dbApplier/switch?mhaName=' + this.drc.mhaName + '&type=1')
-        .then(response => {
-          this.drc.dbMessengerSwitch = response.data.data
         })
     },
     getResourcesInUse () {

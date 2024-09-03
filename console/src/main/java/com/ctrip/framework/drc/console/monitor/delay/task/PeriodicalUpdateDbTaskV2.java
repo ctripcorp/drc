@@ -136,7 +136,6 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             return Maps.newHashMap();
         }
         return mhaDbMappingTblV2s.stream()
-                .filter(this::filterGrey)
                 .filter(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType()))
                 .collect(Collectors.groupingBy(
                         e -> e.getSrc().getMhaName(),
@@ -290,19 +289,6 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
     public Long getAndDeleteCommitTime(DatachangeLastTime datachangeLastTime) {
         return commitTimeMap.remove(datachangeLastTime);
-    }
-
-    private boolean filterGrey(MhaDbReplicationDto e) {
-        String mhaName;
-        if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType())) {
-            mhaName = e.getSrc().getMhaName();
-        } else {
-            mhaName = e.getDst().getMhaName();
-            if ("sgpali".equalsIgnoreCase(e.getDst().getDcName())) {
-                return true;
-            }
-        }
-        return consoleConfig.getDbApplierConfigureSwitch(mhaName);
     }
 
     public static final class DatachangeLastTime {

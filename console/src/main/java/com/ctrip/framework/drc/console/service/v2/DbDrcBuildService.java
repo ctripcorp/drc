@@ -30,8 +30,6 @@ public interface DbDrcBuildService {
 
     String buildDbMessenger(DrcBuildBaseParam param) throws Exception;
 
-    boolean isDbApplierConfigurable(String mhaName);
-
     GtidSet getMhaDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException;
 
     Map<String, GtidSet> getDbDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException;

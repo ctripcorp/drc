@@ -205,15 +205,14 @@ export default {
       this.$Message.info('还未上线，敬请期待')
     },
     async getDelay () {
-      const param = {
-        replicationIds: this.replicationIds
-      }
-      if (param.replicationIds.length === 0) {
+      if (this.replicationIds.length === 0) {
         console.log('skip delay search')
         return
       }
       this.delayDataLoading = true
-      this.axios.get('/api/drc/v2/replication/db/delay', { params: param })
+      this.axios.post('/api/drc/v2/replication/db/delay', {
+        replicationIds: this.replicationIds
+      })
         .then(response => {
           const delays = response.data.data
           const emptyResult = delays == null || !Array.isArray(delays) || delays.length === 0
@@ -258,7 +257,6 @@ export default {
       return this.mhaDbReplications
         .filter(item => item.drcStatus === true)
         .map(item => item.id)
-        .join(',')
     }
   },
   created () {

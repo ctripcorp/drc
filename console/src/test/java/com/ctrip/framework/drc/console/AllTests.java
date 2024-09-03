@@ -61,7 +61,6 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceImpl
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponseV2Test;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
-import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.security.impl.AccountServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.security.impl.MetaAccountServiceImplTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
@@ -116,7 +115,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConfigServiceImplTest.class,
         SwitchServiceImplTest.class,
 
-        DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,
 
         OpenApiServiceImplTest.class,
@@ -134,7 +132,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MessengerServiceV2Test.class,
         MetaGeneratorV5Test.class,
         RowsFilterServiceV2Test.class,
-        MetaCompareServiceImplTest.class,
         CacheMetaServiceImplTest.class,
         DbMetaCorrectServiceImplTest.class,
         MetaInfoServiceV2ImplTest.class,

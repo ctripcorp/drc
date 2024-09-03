@@ -21,17 +21,16 @@ public class RemoteConfig extends AbstractConfig implements Config {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-
     @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
-    
+    private DataCenterService dataCenterService;
+
     private HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
 
     @Override
     public void updateConfig() {
         Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
         String centerRegionUrl = consoleConfig.getCenterRegionUrl();
-        if (localConfigCloudDc.contains(dbClusterSourceProvider.getLocalDcName())) {
+        if (localConfigCloudDc.contains(dataCenterService.getDc())) {
             return;
         }
         if (!StringUtils.isEmpty(centerRegionUrl)) {

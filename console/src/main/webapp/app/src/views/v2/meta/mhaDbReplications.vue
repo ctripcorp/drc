@@ -160,8 +160,8 @@
             :transfer="true"
             :total="total"
             :current.sync="current"
-            :page-size-opts="[10,20,50,100]"
-            :page-size="10"
+            :page-size-opts="[20,50,100,200,1000]"
+            :page-size="20"
             show-total
             show-sizer
             show-elevator
@@ -260,7 +260,6 @@ export default {
         {
           title: '延迟',
           key: 'drcStatus',
-          width: 100,
           align: 'center',
           renderHeader: (h, params) => {
             return h('span', [
@@ -310,6 +309,7 @@ export default {
         {
           title: 'DB 名',
           key: 'srcDbName',
+          width: 300,
           render: (h, params) => {
             return h('p', params.row.src.dbName)
           }
@@ -325,7 +325,7 @@ export default {
         {
           title: '源集群',
           key: 'srcMhaName',
-          width: 300,
+          width: 250,
           render: (h, params) => {
             return h('div', [
               params.row.src.mhaName + ' ',
@@ -340,7 +340,7 @@ export default {
         {
           title: '目标集群',
           key: 'dstMhaName',
-          width: 300,
+          width: 250,
           render: (h, params) => {
             return h('div', [
               params.row.dst.mhaName + ' ',
@@ -362,7 +362,7 @@ export default {
       // page
       total: 0,
       current: 1,
-      size: 10,
+      size: 20,
       // query param
       srcMhaDb: {
         mhaName: this.$route.query.srcMhaName,
@@ -512,18 +512,17 @@ export default {
         })
     },
     getDelay () {
-      const param = {
-        replicationIds: this.replications
-          .filter(item => item.drcStatus === true)
-          .map(item => item.id)
-          .join(',')
-      }
-      if (param.replicationIds.length === 0) {
+      const replicationIds = this.replications
+        .filter(item => item.drcStatus === true)
+        .map(item => item.id)
+      if (replicationIds.length === 0) {
         console.log('skip delay search')
         return
       }
       this.delayDataLoading = true
-      this.axios.get('/api/drc/v2/replication/db/delay', { params: param })
+      this.axios.post('/api/drc/v2/replication/db/delay', {
+        replicationIds: replicationIds
+      })
         .then(response => {
           const delays = response.data.data
           const emptyResult = delays == null || !Array.isArray(delays) || delays.length === 0

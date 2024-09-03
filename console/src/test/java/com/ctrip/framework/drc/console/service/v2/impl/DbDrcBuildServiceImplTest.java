@@ -174,7 +174,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dto4.setReplicationType(1);
 
         when(mhaDbReplicationService.queryMqByMha(eq(srcMha), any())).thenReturn(Lists.newArrayList(dto3, dto4));
-        when(defaultConsoleConfig.getDbApplierConfigureSwitch(anyString())).thenReturn(true);
         when(metaInfoService.getDrcReplicationConfig(anyString(), anyString())).thenReturn(new Drc());
         String json2 = "[{\"clusterList\":[{\"clusterName\":\"mha1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.1\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.2\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db1\"},{\"clusterList\":[{\"clusterName\":\"mha2\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.3\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.4\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db2\"}]";
         List<DbClusterInfoDto> list = JsonUtils.fromJsonToList(json2, DbClusterInfoDto.class);
@@ -208,11 +207,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     }
 
     @Test
-    public void testConfigurable() {
-        Assert.assertTrue(dbDrcBuildService.isDbApplierConfigurable("mha"));
-    }
-
-    @Test
     public void testBuildAppliers() throws Exception {
 
         DrcBuildParam drcBuildParam = new DrcBuildParam();
@@ -223,6 +217,31 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dstBuildParam.setApplierInitGtid("a:123");
         dstBuildParam.setMhaName("mha2");
         dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList("2.113.60.2"), "gtidInit1", "db2")));
+        drcBuildParam.setDstBuildParam(dstBuildParam);
+        dbDrcBuildService.buildDbApplier(drcBuildParam);
+
+        verify(applierTblV3Dao, times(1)).batchInsert(anyList());
+        verify(applierTblV3Dao, times(1)).batchUpdate(anyList());
+
+        verify(applierGroupTblV3Dao, times(1)).batchInsertWithReturnId(anyList());
+        verify(applierGroupTblV3Dao, times(1)).batchUpdate(anyList());
+
+        verify(applierTblV2Dao, never()).insert(anyList());
+        verify(applierGroupTblV2Dao, times(1)).update(any(ApplierGroupTblV2.class));
+        verify(applierGroupTblV2Dao, never()).insertOrReCover(any(), anyString());
+    }
+
+    @Test
+    public void testBuildAppliersEmpty() throws Exception {
+
+        DrcBuildParam drcBuildParam = new DrcBuildParam();
+        DrcBuildBaseParam srcBuildParam = new DrcBuildBaseParam();
+        srcBuildParam.setMhaName("mha1");
+        drcBuildParam.setSrcBuildParam(srcBuildParam);
+        DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
+        dstBuildParam.setApplierInitGtid("a:123");
+        dstBuildParam.setMhaName("mha2");
+        dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList(), "gtidInit1", "db2")));
         drcBuildParam.setDstBuildParam(dstBuildParam);
         dbDrcBuildService.buildDbApplier(drcBuildParam);
 
@@ -424,8 +443,9 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(applierTblV3Dao, times(1)).batchInsert(any());
 
         when(defaultConsoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(true);
+        when(mysqlServiceV2.getMhaExecutedGtid(anyString())).thenReturn("abc:123");
         dbDrcBuildService.switchAppliers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).getMhaAppliers(any(), any());
+        verify(drcBuildServiceV2, times(2)).getMhaAppliers(any(), any());
         verify(applierTblV3Dao, times(2)).batchInsert(any());
     }
 
