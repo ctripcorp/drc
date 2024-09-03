@@ -188,17 +188,6 @@ public class MhaControllerV2 {
         }
     }
     
-    @PostMapping("membersSync")
-    public ApiResult syncMhaMembersInfo(@RequestParam String mhaName) {
-        logger.info("[meta] syncMhaMembersInfo for  {}", mhaName);
-        try {
-            drcBuildServiceV2.syncMhaInfoFormDbaApi(mhaName);
-            return ApiResult.getSuccessInstance(null,"syncMhaMembersInfo success!");
-        } catch (Exception e) {
-            logger.error("[meta] syncMhaMembersInfo for {}", mhaName, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
     
     @GetMapping("shouldOffline")
     public ApiResult getMhasShouldOffline() {
