@@ -30,27 +30,27 @@
               initInfo.srcDc
             }})==>{{ initInfo.dstMhaName }}({{ initInfo.dstDc }})</span>
         </Col>
-        <Col span="2">
-          <Button :loading="dataLoading" style="margin-top: 10px;text-align: right" type="primary" ghost
-                  v-if="!submitted" @click="preBatchUpdate()">批量修改
-          </Button>
+      </Row>
+      <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec;">
+        <Col span="2" style="display: flex;float: left;margin: 5px" >
+          <Dropdown placement="bottom-start">
+            <Button type="default" icon="ios-hammer">
+              操作
+              <Icon type="ios-arrow-down"></Icon>
+            </Button>
+            <template #list>
+              <DropdownMenu >
+                <DropdownItem  @click.native="() => preBatchUpdate()">批量修改（需要先勾选）</DropdownItem>
+                <DropdownItem v-if="dbApplierEmpty" @click.native="() => fillMhaApplier()">一键录入 mha applier</DropdownItem>
+                <DropdownItem v-if="!dbApplierEmpty" @click.native="() => preClearAndUpdateMhaGtid()">切换至 mha 同步模式</DropdownItem>
+              </DropdownMenu>
+            </template>
+          </Dropdown>
         </Col>
-
-        <Col span="4">
-          <Button :loading="dataLoading" style="margin-top: 10px;text-align: right" type="primary" ghost
-                  v-if="!submitted" @click="fillMhaApplier()">一键录入 mha applier
-          </Button>
-        </Col>
-        <Col span="4">
-          <Button :loading="dataLoading" style="margin-top: 10px;text-align: right" type="primary" ghost
-                  v-if="!submitted" @click="preClearAndUpdateMhaGtid()">一键回滚
-          </Button>
-        </Col>
-
       </Row>
       <div :style="{padding: '1px 1px',height: '100%'}">
         <template>
-          <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" :loading="dataLoading" border
+          <Table style="margin-top: 0px" stripe :columns="columns" :data="tableData" :loading="dataLoading" border
                  ref="multipleTable"
                  @on-selection-change="changeSelection">
             <template #applier="{row, index}">
@@ -76,6 +76,9 @@
           </Table>
           <Button :loading="dataLoading" style="margin-top: 10px;text-align: right" type="primary"
                   v-if="!submitted" @click="preSubmit()">提交
+          </Button>
+          <Button :loading="dataLoading" style="margin-top: 10px;margin-left: 20px; text-align: right" type="primary"
+                  v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
           </Button>
           <Modal
             v-model="batchUpdateModal"
@@ -310,12 +313,46 @@ export default {
       updateData: [],
       propertiesJson: {},
       tableData: [],
+      dbApplierDtos: [],
       total: 0,
       size: 5,
       pageSizeOpts: [5, 10, 20, 100]
     }
   },
   methods: {
+    getSwitchParams () {
+      return [{
+        srcMhaName: this.initInfo.srcMhaName,
+        dstMhaName: this.initInfo.dstMhaName,
+        dbNames: this.dbApplierDtos.map((dbApplierDto) => {
+          return dbApplierDto.dbName
+        })
+      }]
+    },
+    switchAppliers () {
+      const params = this.getSwitchParams()
+      console.log(params)
+      this.dataLoading = true
+      this.axios.post('/api/drc/v2/autoconfig/switchAppliers', params)
+        .then(response => {
+          const data = response.data
+          const success = data.status === 0
+          if (success) {
+            this.submitted = true
+            this.$Message.success('提交成功')
+          } else {
+            this.$Message.warning('提交失败: ' + data.message)
+          }
+        })
+        .catch(message => {
+          this.$Message.error('提交异常: ' + message)
+        })
+        .finally(() => {
+          this.$Modal.remove()
+          this.dataLoading = false
+          this.getDbAppliers()
+        })
+    },
     getFilterText (val) {
     },
     changeSelection (val) {
@@ -364,6 +401,16 @@ export default {
         content: '您确定要提交么？',
         onOk: () => {
           this.submitDbAppliers()
+        }
+      })
+    },
+    preSwitchAppliers () {
+      this.$Modal.confirm({
+        title: '自动切换Applier',
+        content: '<p>请确认</p>',
+        loading: true,
+        onOk: () => {
+          this.switchAppliers()
         }
       })
     },
@@ -432,6 +479,7 @@ export default {
           this.$Message.error('查询 db applier 失败!')
         } else {
           this.tableData = response.data.data
+          this.dbApplierDtos = response.data.data
         }
       }).finally(() => {
         this.dataLoading = false
@@ -573,6 +621,17 @@ export default {
       this.getResources()
       this.getDbAppliers()
     })
+  },
+  computed: {
+    dbApplierEmpty () {
+      const dbApplierDtos = this.dbApplierDtos
+      for (const x of dbApplierDtos) {
+        if (x.ips && x.ips.length > 0) {
+          return false
+        }
+      }
+      return true
+    }
   }
 }
 </script>

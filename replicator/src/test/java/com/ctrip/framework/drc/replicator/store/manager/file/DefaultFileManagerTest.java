@@ -630,7 +630,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         List<ByteBuf> events = new ArrayList<>();
         events.add(compositeByteBuf);
-        fileManager.append(events, new TransactionContext(false, bigTransaction.size() / 2));
+        fileManager.append(events, new TransactionContext(false, true));
         Assert.assertTrue(((DefaultFileManager) fileManager).isInBigTransaction());
 
         List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);

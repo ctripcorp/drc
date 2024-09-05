@@ -117,13 +117,12 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
     }
 
     private void put(LogEvent data) {
-        long eventSize = data.getLogEventHeader().getEventSize();
-        if (checkFreeSlotAt(putSequence.get() + 1) && checkTransactionSize(eventSize)) {
+        if (checkNotInBigTransaction()) {
             long current = putSequence.get();
             long next = current + 1;
 
             entries[getIndex(next)] = data;
-            currentTransactionSize += eventSize;
+            currentTransactionSize += data.getLogEventHeader().getEventSize();
             putSequence.set(next);
         } else {
             flush();
@@ -131,14 +130,18 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         }
     }
 
-    private boolean checkTransactionSize(long eventSize) {
+    private boolean checkNotInBigTransaction() {
+        return checkFreeSlotAt(putSequence.get() + 1) && checkTransactionSize();
+    }
+
+    private boolean checkTransactionSize() {
         if (currentTransactionSize == 0) {
             // first event, pass
             return true;
         }
-        boolean pass = MAX_TRANSACTION_SIZE - currentTransactionSize >= eventSize;
+        boolean pass = MAX_TRANSACTION_SIZE >= currentTransactionSize;
         if (!pass) {
-            logger.warn("checkTransactionSize fail, currentTransactionSize: {}, eventSize: {}, eventNum: {}", currentTransactionSize, eventSize,
+            logger.warn("checkTransactionSize fail, currentTransactionSize: {}, eventNum: {}", currentTransactionSize,
                     this.putSequence.get() - this.flushSequence.get());
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.inbound.transaction.big.size", registryKey);
         }
@@ -152,7 +155,8 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         long end = this.putSequence.get();
 
         if (start <= end) {
-            TransactionEvent transaction = getTransactionEvent();
+            boolean inBigTransaction = !this.checkNotInBigTransaction();
+            TransactionEvent transaction = getTransactionEvent(inBigTransaction);
             transaction.addFilterLogEvent();
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
@@ -225,7 +229,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         }
     }
 
-    protected TransactionEvent getTransactionEvent() {
-        return new TransactionEvent();
+    protected TransactionEvent getTransactionEvent(boolean inBigTransaction) {
+        return new TransactionEvent(inBigTransaction);
     }
 }

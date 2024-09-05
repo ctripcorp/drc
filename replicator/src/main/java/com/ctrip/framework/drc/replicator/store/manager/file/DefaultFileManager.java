@@ -18,7 +18,6 @@ import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
-import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
@@ -155,7 +154,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
             indicesEventManager.setEverSeeDdl(true);
         }
-        boolean isOverflowed = context.getEventSize() >= EventTransactionCache.bufferSize;
+        boolean isOverflowed = context.isInBigTransaction();
         checkIndices(false, isOverflowed || this.inBigTransaction);
 
         int totalSize = 0;
