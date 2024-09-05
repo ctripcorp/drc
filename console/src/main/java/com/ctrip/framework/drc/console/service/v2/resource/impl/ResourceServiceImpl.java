@@ -519,17 +519,27 @@ public class ResourceServiceImpl implements ResourceService {
         return handOffResource(param.getSelectedIps(), mhaAvailableResource);
     }
 
+    /**
+     * side effect: will modify instanceNum of availableResource after handoff. Could be used for multiple handoff
+     */
     @Override
     public List<ResourceView> handOffResource(List<String> selectedIps, List<ResourceView> availableResource) {
         List<ResourceView> resultViews = new ArrayList<>();
         List<ResourceView> resourceViews = availableResource.stream()
-                .filter(e -> !selectedIps.contains(e.getIp()))
-                .collect(Collectors.toList());
+                .filter(e -> {
+                    if (selectedIps.contains(e.getIp())) {
+                        e.declineInstanceNum();
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(resourceViews)) {
             return resultViews;
         }
 
         setResourceView(resultViews, resourceViews);
+        Collections.sort(availableResource);
         return resultViews;
     }
 
@@ -1061,15 +1071,23 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
+    /**
+     * side effect: will modify instanceNum of availableResource after handoff. Could be used for multiple handoff
+     */
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
+        Collections.sort(resourceViews);
         if (CollectionUtils.isEmpty(resultViews)) {
-            resultViews.add(resourceViews.get(0));
+            ResourceView firstResource = resourceViews.get(0);
+            resultViews.add(firstResource);
+            firstResource.addInstanceNum();
         }
         ResourceView firstResource = resultViews.get(0);
         ResourceView secondResource = resourceViews.stream().filter(e -> !e.getAz().equals(firstResource.getAz())).findFirst().orElse(null);
         if (secondResource != null) {
             resultViews.add(secondResource);
+            secondResource.addInstanceNum();
         }
+        Collections.sort(resourceViews);
     }
 
     private List<ResourceView> getResourceViews(List<Long> dcIds, String region, int type, String tag) throws SQLException {

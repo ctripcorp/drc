@@ -564,28 +564,14 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
         List<DbApplierDto> newDbAppliers = Lists.newArrayList();
 
-        Iterator<MhaDbReplicationDto> iterator = replicationDtos.iterator();
-        while (iterator.hasNext()) {
-            MhaDbReplicationDto replicationDto = iterator.next();
+        for (MhaDbReplicationDto replicationDto : replicationDtos) {
             String dbName = replicationDto.getSrc().getDbName();
             DbApplierDto dbApplierDto = replicationDto.getDbApplierDto();
             if (switchOnly && (dbApplierDto == null || CollectionUtils.isEmpty(dbApplierDto.getIps()))) {
-                iterator.remove();
                 continue;
             }
             // gtid
-            String newGtid;
-            if (StringUtils.isEmpty(initGtid)) {
-                if ((dbApplierDto == null || StringUtils.isBlank(dbApplierDto.getGtidInit()))) {
-                    throw ConsoleExceptionUtils.message("init gtid required for db: " + dbName);
-                }
-                newGtid = dbApplierDto.getGtidInit();
-            } else {
-                if (dbApplierDto != null && !StringUtils.isBlank(dbApplierDto.getGtidInit())) {
-                    throw ConsoleExceptionUtils.message("already has init gtid, could not reset gtid for db: " + dbName);
-                }
-                newGtid = initGtid;
-            }
+            String newGtid = getInitGtid(initGtid, dbApplierDto, dbName);
             // ips
             List<String> inUseIps = dbApplierDto == null || CollectionUtils.isEmpty(dbApplierDto.getIps()) ? Collections.emptyList() : dbApplierDto.getIps();
             List<ResourceView> resourceViews = resourceService.handOffResource(inUseIps, mhaDbAvailableResource);
@@ -603,6 +589,19 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         drcBuildParam.setDstBuildParam(dstBuildParam);
         this.buildDbApplier(drcBuildParam);
         logger.info("autoConfigDbAppliers success: {}->{} ({});\ninitGtid: {}", srcMha, dstMha, dbNames, initGtid);
+    }
+
+    private String getInitGtid(String givenGtid, DbApplierDto dbApplierDto, String dbName) {
+        if (dbApplierDto != null && !StringUtils.isBlank(dbApplierDto.getGtidInit())) {
+            return dbApplierDto.getGtidInit();
+        }
+
+        if (StringUtils.isBlank(givenGtid)) {
+            throw ConsoleExceptionUtils.message("init gtid required for db: " + dbName);
+        }
+
+        return givenGtid;
+
     }
 
     @Override

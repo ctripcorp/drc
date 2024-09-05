@@ -47,6 +47,9 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
             case TRANSACTION_TABLE_CONFLICT_ROLLBACK:
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.transaction.table.conflict", registryKey);
                 return onSuccess(transaction);
+            case CONNECTION_VALIDATE_MASTER_FAILURE:
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.validate.master.fail", registryKey);
+                return onFailure(transaction);
             default:
                 if (bigTransaction) {
                     logger.error("BIG TRANSACTION error for {}", transaction.identifier());

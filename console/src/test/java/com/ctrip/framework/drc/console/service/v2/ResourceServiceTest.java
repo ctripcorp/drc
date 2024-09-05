@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
@@ -245,7 +246,7 @@ public class ResourceServiceTest {
     }
 
     @Test
-    public void testQueryMhaByReplicator () throws Exception {
+    public void testQueryMhaByReplicator() throws Exception {
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getReplicatorTbls());
         Mockito.when(replicatorGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getReplicatorGroupTbls());
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
@@ -255,7 +256,7 @@ public class ResourceServiceTest {
     }
 
     @Test
-    public void testQueryMhaByMessenger () throws Exception {
+    public void testQueryMhaByMessenger() throws Exception {
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessenger()));
         Mockito.when(messengerGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessengerGroup()));
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMhaTblV2()));
@@ -265,7 +266,7 @@ public class ResourceServiceTest {
     }
 
     @Test
-    public void testQueryMhaReplicationByApplier () throws Exception {
+    public void testQueryMhaReplicationByApplier() throws Exception {
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getApplierTblV2s().get(0)));
         Mockito.when(applierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV2s());
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
@@ -450,4 +451,56 @@ public class ResourceServiceTest {
         Assert.assertEquals(result, 6);
     }
 
+    @Test
+    public void testHandOffMultiple() {
+        List<ResourceView> availableResource = new ArrayList<>();
+        ResourceView r1 = buildResourceView("10.10", "az1", 8L);
+        ResourceView r2 = buildResourceView("10.11", "az1", 10L);
+        availableResource.add(r1);
+        availableResource.add(r2);
+        Collections.sort(availableResource);
+
+        List<ResourceView> resourceViews = resourceService.handOffResource(Lists.newArrayList("10.10"), availableResource);
+        Assert.assertEquals(1, resourceViews.size());
+        Assert.assertSame(r2, resourceViews.get(0));
+        Assert.assertEquals(11L, r2.getInstanceNum().longValue());
+        Assert.assertEquals(7, r1.getInstanceNum().longValue());
+
+        resourceViews = resourceService.handOffResource(Lists.newArrayList(), availableResource);
+        Assert.assertEquals(1, resourceViews.size());
+        Assert.assertSame(r1, resourceViews.get(0));
+        Assert.assertEquals(11L, r2.getInstanceNum().longValue());
+        Assert.assertEquals(8, r1.getInstanceNum().longValue());
+
+        resourceViews = resourceService.handOffResource(Lists.newArrayList("10.11"), availableResource);
+        Assert.assertEquals(1, resourceViews.size());
+        Assert.assertSame(r1, resourceViews.get(0));
+        Assert.assertEquals(10L, r2.getInstanceNum().longValue());
+        Assert.assertEquals(9, r1.getInstanceNum().longValue());
+
+        resourceViews = resourceService.handOffResource(Lists.newArrayList(), availableResource);
+        Assert.assertEquals(1, resourceViews.size());
+        Assert.assertSame(r1, resourceViews.get(0));
+        Assert.assertEquals(10L, r2.getInstanceNum().longValue());
+        Assert.assertEquals(10L, r1.getInstanceNum().longValue());
+
+        resourceService.handOffResource(Lists.newArrayList(), availableResource);
+        resourceService.handOffResource(Lists.newArrayList(), availableResource);
+        Assert.assertEquals(11L, r2.getInstanceNum().longValue());
+        Assert.assertEquals(11L, r1.getInstanceNum().longValue());
+
+        resourceService.handOffResource(Lists.newArrayList(r1.getIp(),r2.getIp()), availableResource);
+        Assert.assertEquals(10L, r2.getInstanceNum().longValue());
+        Assert.assertEquals(10L, r1.getInstanceNum().longValue());
+
+
+    }
+
+    private static ResourceView buildResourceView(String ip, String az1, long instanceNum) {
+        ResourceView resourceView = new ResourceView();
+        resourceView.setIp(ip);
+        resourceView.setAz(az1);
+        resourceView.setInstanceNum(instanceNum);
+        return resourceView;
+    }
 }
