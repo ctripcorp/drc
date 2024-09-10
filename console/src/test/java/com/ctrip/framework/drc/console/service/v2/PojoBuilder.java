@@ -5,17 +5,21 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
+import com.ctrip.framework.drc.console.vo.v2.MhaAzView;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import org.checkerframework.checker.units.qual.A;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by dengquanliang
@@ -569,5 +573,62 @@ public class PojoBuilder {
         tbl.setMessengerFilterId(200L);
 
         return Lists.newArrayList(tbl);
+    }
+
+    public static Map<String, MhaInstanceGroupDto> getMhaInstanceGroups() {
+        MhaInstanceGroupDto dto1 = new MhaInstanceGroupDto();
+        dto1.setMhaName("testMha1");
+        MhaInstanceGroupDto.MySQLInstance master1 = new MhaInstanceGroupDto.MySQLInstance();
+        master1.setIdc("AZ");
+        master1.setIp("ip");
+        master1.setPort(0);
+        dto1.setMaster(master1);
+        MhaInstanceGroupDto.MySQLInstance slave1 = new MhaInstanceGroupDto.MySQLInstance();
+        slave1.setIdc("AZ");
+        slave1.setIp("ip");
+        slave1.setPort(0);
+        dto1.setSlaves(new ArrayList<>(Arrays.asList(slave1)));
+
+        Map<String, MhaInstanceGroupDto> result = new HashMap<>();
+        result.put(dto1.getMhaName(), dto1);
+        return result;
+    }
+
+    public static Drc getDrc() {
+        Applier applier = new Applier();
+        applier.setIp("ip");
+        applier.setPort(0);
+        Replicator replicator = new Replicator();
+        replicator.setIp("ip");
+        replicator.setPort(0);
+        DbCluster dbCluster = new DbCluster();
+        dbCluster.addApplier(applier);
+        dbCluster.addReplicator(replicator);
+        dbCluster.setId("dbClusterId");
+        Dc dc = new Dc();
+        dc.addDbCluster(dbCluster);
+        dc.setId("dcId");
+        Drc drc = new Drc();
+        drc.addDc(dc);
+        return drc;
+    }
+
+    public static MhaAzView getMhaAzView() {
+        MhaAzView view = new MhaAzView();
+        Map<String, Set<String>> az2mhaName = new HashMap<>();
+        Map<String, List<String>> az2DbInstance = new HashMap<>();
+        Map<String, List<String>> az2ReplicatorInstance = new HashMap<>();
+        Map<String, List<String>> az2ApplierInstance = new HashMap<>();
+
+        az2mhaName.put("AZ", Sets.newHashSet("testMha"));
+        az2DbInstance.put("AZ", Lists.newArrayList("ip:port"));
+        az2ReplicatorInstance.put("AZ", Lists.newArrayList("ip:port"));
+        az2ApplierInstance.put("AZ", Lists.newArrayList("ip:port"));
+
+        view.setAz2mhaName(az2mhaName);
+        view.setAz2DbInstance(az2DbInstance);
+        view.setAz2ApplierInstance(az2ApplierInstance);
+        view.setAz2ReplicatorInstance(az2ReplicatorInstance);
+        return view;
     }
 }

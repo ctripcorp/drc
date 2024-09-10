@@ -66,4 +66,6 @@ public interface ResourceService {
 
     ResourceSameAzView checkResourceAz() throws Exception;
 
+    MhaAzView getMhaAzCount() throws Exception;
+
 }

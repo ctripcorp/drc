@@ -2,6 +2,9 @@ package com.ctrip.framework.drc.console.monitor.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
+import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
+import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.vo.v2.MhaAzView;
 import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.google.common.collect.Sets;
@@ -25,6 +28,8 @@ public class MhaSyncStatusCheckTaskTest {
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
     @Mock
     private Reporter reporter;
+    @Mock
+    private ResourceService resourceService;
 
     @Before
     public void setUp() {
@@ -42,7 +47,8 @@ public class MhaSyncStatusCheckTaskTest {
         view.setDbOtterSet(Sets.newHashSet("testOtter"));
 
         Mockito.when(mhaReplicationServiceV2.mhaSyncCount()).thenReturn(view);
+        Mockito.when(resourceService.getMhaAzCount()).thenReturn(PojoBuilder.getMhaAzView());
         task.check();
-        Mockito.verify(reporter,Mockito.times(6)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter,Mockito.times(10)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
     }
 }

@@ -10,23 +10,27 @@ import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.*;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
-import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -94,6 +98,10 @@ public class ResourceServiceImpl implements ResourceService {
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private MetaInfoServiceV2 metaInfoService;
+    @Autowired
+    private DalServiceImpl dalService;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
@@ -1167,5 +1175,105 @@ public class ResourceServiceImpl implements ResourceService {
         PreconditionUtils.checkString(param.getType(), "type requires not empty!");
         PreconditionUtils.checkString(param.getDcName(), "dc requires not empty!");
         PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");
+    }
+
+    @Override
+    public MhaAzView getMhaAzCount() throws Exception {
+        MhaAzView mhaAzView = new MhaAzView();
+        Map<String, Set<String>> az2MhaName = new HashMap<>();
+        Map<String, List<String>> az2DbInstance = new HashMap<>();
+
+        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+
+        for (Map.Entry<String, MhaInstanceGroupDto> instanceEntry : mhaInstanceGroupMap.entrySet()) {
+            MhaInstanceGroupDto mha = instanceEntry.getValue();
+            String mhaMasterIdc = mha.getMaster().getIdc();
+            String mhaMasterIpPort = mha.getMaster().getIp() + ":" + mha.getMaster().getPort();
+            if (az2MhaName.containsKey(mhaMasterIdc)) {
+                az2MhaName.get(mhaMasterIdc).add(mha.getMhaName());
+            } else {
+                az2MhaName.put(mhaMasterIdc, Sets.newHashSet(mha.getMhaName()));
+            }
+            if (az2DbInstance.containsKey(mhaMasterIdc)) {
+                az2DbInstance.get(mhaMasterIdc).add(mhaMasterIpPort);
+            } else {
+                az2DbInstance.put(mhaMasterIdc, Lists.newArrayList(mhaMasterIpPort));
+            }
+
+            for (MhaInstanceGroupDto.MySQLInstance slave : mha.getSlaves()) {
+                String mhaSlaveIdc = slave.getIdc();
+                String mhaSlaveIpPort = slave.getIp() + ":" + slave.getPort();
+                if (az2DbInstance.containsKey(mhaSlaveIdc)) {
+                    az2DbInstance.get(mhaSlaveIdc).add(mhaSlaveIpPort);
+                } else {
+                    az2DbInstance.put(mhaSlaveIdc, Lists.newArrayList(mhaSlaveIpPort));
+                }
+            }
+        }
+
+        mhaAzView.setAz2mhaName(az2MhaName);
+        mhaAzView.setAz2DbInstance(az2DbInstance);
+
+        Drc drc = metaProviderV2.getDrc();
+        if (drc == null) {
+            return mhaAzView;
+        }
+        MhaAzView applierAndReplicatorAzView = getApplierAndReplicatorAz(drc);
+        mhaAzView.setAz2ApplierInstance(applierAndReplicatorAzView.getAz2ApplierInstance());
+        mhaAzView.setAz2ReplicatorInstance(applierAndReplicatorAzView.getAz2ReplicatorInstance());
+        return mhaAzView;
+    }
+
+    private MhaAzView getApplierAndReplicatorAz(Drc drc) throws SQLException {
+        MhaAzView mhaAzView = new MhaAzView();
+        Map<String, List<String>> az2ReplicatorInstance = new HashMap<>();
+        Map<String, List<String>> az2ApplierInstance = new HashMap<>();
+
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
+        Map<String, Long> resourceIp2DcId = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getDcId, (s1, s2) -> s1));
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
+        Map<Long, DcTbl> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, e -> e));
+
+        for (Map.Entry<String, Dc> dcEntry : drc.getDcs().entrySet()) {
+            Dc dc = dcEntry.getValue();
+            for (Map.Entry<String, DbCluster> dbClusterEntry : dc.getDbClusters().entrySet()) {
+                DbCluster dbCluster = dbClusterEntry.getValue();
+                List<Replicator> replicators= dbCluster.getReplicators();
+                for (Replicator replicator : replicators) {
+                    String replicatorIp = replicator.getIp();
+                    String replicatorIpPort = replicator.getIp() + ":" + replicator.getPort();
+                    if (resourceIp2DcId.containsKey(replicatorIp)) {
+                        String az = dcMap.get(resourceIp2DcId.get(replicatorIp)).getDcName();
+                        if (az2ReplicatorInstance.containsKey(az)) {
+                            az2ReplicatorInstance.get(az).add(replicatorIpPort);
+                        } else {
+                            az2ReplicatorInstance.put(az, Lists.newArrayList(replicatorIpPort));
+                        }
+                    } else {
+                        logger.warn("[[tag=getApplierAndReplicatorAz]] get az from replicator {} fail", replicatorIpPort);
+                    }
+                }
+
+                List<Applier> appliers = dbCluster.getAppliers();
+                for (Applier applier : appliers) {
+                    String applierIp = applier.getIp();
+                    String applierIpPort = applier.getIp() + ":" + applier.getPort();
+                    if (resourceIp2DcId.containsKey(applierIp)) {
+                        String az = dcMap.get(resourceIp2DcId.get(applierIp)).getDcName();
+                        if (az2ApplierInstance.containsKey(az)) {
+                            az2ApplierInstance.get(az).add(applierIpPort);
+                        } else {
+                            az2ApplierInstance.put(az, Lists.newArrayList(applierIpPort));
+                        }
+                    } else {
+                        logger.warn("[[tag=getApplierAndReplicatorAz]] get az from applier {} fail",applierIpPort);
+                    }
+                }
+            }
+        }
+
+        mhaAzView.setAz2ApplierInstance(az2ApplierInstance);
+        mhaAzView.setAz2ReplicatorInstance(az2ReplicatorInstance);
+        return mhaAzView;
     }
 }

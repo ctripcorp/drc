@@ -508,6 +508,13 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                 .filter(e -> applierGroupIds.contains(e.getId()))
                 .map(ApplierGroupTblV3::getMhaDbReplicationId).distinct().collect(Collectors.toList());
 
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryAllExist();
+        List<Long> applierGroupV2Ids = applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList());
+        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblV2Dao.queryAllExist();
+        List<Long> applierGroupV2MhaDbRepList = applierGroupTblV2s.stream()
+                .filter(e -> applierGroupV2Ids.contains(e.getId()))
+                .map(ApplierGroupTblV2::getMhaReplicationId).distinct().collect(Collectors.toList());
+
         //db_replication_tbl
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist();
 
@@ -546,23 +553,39 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
         for (DbReplicationTbl dbRepliTbl : dbReplicationTbls) {
             try {
-                if (dbRepliTbl.getReplicationType() == 0) {
+                if (dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())) {
                     MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
                     MhaDbMappingTbl dstMapping = MhaDbMappingMap.get(dbRepliTbl.getDstMhaDbMappingId());
                     MhaReplicationTbl mhaRepli = mhaReplicationMap.get(srcMapping.getMhaId()).get(dstMapping.getMhaId());
-                    MhaDbReplicationTbl mhaDbRepli = mhaDbReplicationMap.get(srcMapping.getId()).get(dstMapping.getId());
-                    if ((mhaRepli.getDrcStatus() == 1 && mhaRepli.getDeleted() == 0) || applierGroupMhaDbRepList.contains(mhaDbRepli.getId())) {
-                        mhaSyncIdSet.add(mhaRepli.getId());
-                        DbTbl srcDb = dbMap.get(srcMapping.getDbId());
-                        dbNameSet.add(srcDb.getDbName());
-                        dbSyncSet.add(dbRepliTbl.getSrcMhaDbMappingId() + ">" + dbRepliTbl.getDstMhaDbMappingId());
-                        if (srcDb.getDbName().contains("shard")) {
-                            dalClusterSet.add(srcDb.getDbName().substring(0,srcDb.getDbName().indexOf("shard")) + "shardbasedb");
-                        } else {
-                            dalClusterSet.add(srcDb.getDbName());
+                    if (mhaDbReplicationMap.containsKey(srcMapping.getId()) && mhaDbReplicationMap.get(srcMapping.getId()).containsKey(dstMapping.getId())) {
+                        MhaDbReplicationTbl mhaDbRepli = mhaDbReplicationMap.get(srcMapping.getId()).get(dstMapping.getId());
+                        if ((mhaRepli.getDrcStatus().equals(1) && mhaRepli.getDeleted().equals(BooleanEnum.FALSE.getCode())) || applierGroupMhaDbRepList.contains(mhaDbRepli.getId())) {
+                            mhaSyncIdSet.add(mhaRepli.getId());
+                            DbTbl srcDb = dbMap.get(srcMapping.getDbId());
+                            dbNameSet.add(srcDb.getDbName());
+                            dbSyncSet.add(dbRepliTbl.getSrcMhaDbMappingId() + ">" + dbRepliTbl.getDstMhaDbMappingId());
+                            if (srcDb.getDbName().contains("shard")) {
+                                dalClusterSet.add(srcDb.getDbName().substring(0,srcDb.getDbName().indexOf("shard")) + "shardbasedb");
+                            } else {
+                                dalClusterSet.add(srcDb.getDbName());
+                            }
+                        }
+                    } else {
+                        logger.warn("[[mhaSyncCount]] srcMapping: {} --> dstMapping: {} in db_replication_tbl but not in mha_db_replication_tbl", srcMapping.getId(), dstMapping.getId());
+                        if ((mhaRepli.getDrcStatus().equals(1) && mhaRepli.getDeleted().equals(BooleanEnum.FALSE.getCode())) ||applierGroupV2MhaDbRepList.contains(mhaRepli.getId())) {
+                            mhaSyncIdSet.add(mhaRepli.getId());
+                            DbTbl srcDb = dbMap.get(srcMapping.getDbId());
+                            dbNameSet.add(srcDb.getDbName());
+                            dbSyncSet.add(dbRepliTbl.getSrcMhaDbMappingId() + ">" + dbRepliTbl.getDstMhaDbMappingId());
+                            if (srcDb.getDbName().contains("shard")) {
+                                dalClusterSet.add(srcDb.getDbName().substring(0,srcDb.getDbName().indexOf("shard")) + "shardbasedb");
+                            } else {
+                                dalClusterSet.add(srcDb.getDbName());
+                            }
                         }
                     }
-                } else if (dbRepliTbl.getReplicationType() == 1) {
+
+                } else if (dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType())) {
                     MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
                     DbTbl srcDb = dbMap.get(srcMapping.getDbId());
                     MhaTblV2 mhaTbl = mhaTblMap.get(srcMapping.getMhaId());
