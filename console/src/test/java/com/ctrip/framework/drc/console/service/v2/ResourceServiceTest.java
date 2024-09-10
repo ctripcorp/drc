@@ -11,12 +11,11 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
+import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
-import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.MhaView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceView;
+import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -79,6 +78,10 @@ public class ResourceServiceTest {
     private MysqlServiceV2 mysqlServiceV2;
     @Mock
     private MetaInfoServiceV2 metaInfoService;
+    @Mock
+    private DalServiceImpl dalService;
+    @Mock
+    private MetaProviderV2 metaProviderV2;
 
     @Before
     public void setUp() {
@@ -502,5 +505,20 @@ public class ResourceServiceTest {
         resourceView.setAz(az1);
         resourceView.setInstanceNum(instanceNum);
         return resourceView;
+    }
+
+    @Test
+    public void testGetMhaAzCount() throws Exception {
+        Mockito.when(dalService.getMhaList(Mockito.any())).thenReturn(PojoBuilder.getMhaInstanceGroups());
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc());
+        Mockito.when(resourceTblDao.queryAllExist()).thenReturn(PojoBuilder.getResourceTbls());
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(PojoBuilder.getDcTbls());
+
+        MhaAzView result = resourceService.getMhaAzCount();
+        Assert.assertEquals(result.getAz2mhaName().size(), 1);
+        Assert.assertEquals(result.getAz2DbInstance().size(), 1);
+        Assert.assertEquals(result.getAz2DbInstance().get("AZ").size(), 2);
+        Assert.assertEquals(result.getAz2ApplierInstance().size(), 1);
+        Assert.assertEquals(result.getAz2ReplicatorInstance().size(), 1);
     }
 }
