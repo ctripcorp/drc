@@ -120,15 +120,16 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
         if (!isDml) {
             if (StringUtils.isNotBlank(schemaName) && EXCLUDED_DB.contains(schemaName.toLowerCase())) {
-                DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
                 String originTableName = ddlResult.getOriTableName();
                 if (type == QueryType.RENAME && StringUtils.isNotBlank(schemaInBinlog)
-                        && !EXCLUDED_DB.contains(schemaInBinlog.toLowerCase())
-                        && mayGhostOps(originTableName)) {
+                        && !EXCLUDED_DB.contains(schemaInBinlog.toLowerCase())) {
                     String dropQuery = String.format(DROP_TABLE, schemaInBinlog, originTableName);
                     DDL_LOGGER.info("[Apply] {} for excluded db from ddl {}", dropQuery, queryString);
                     schemaManager.apply(schemaInBinlog, originTableName, dropQuery, QueryType.ERASE, gtid);
+                    schemaManager.persistDdl(schemaInBinlog, originTableName, dropQuery);
                     schemaManager.refresh(getRelatedTables(results));
+                } else {
+                    DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
                 }
                 return false;
             }

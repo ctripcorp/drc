@@ -46,7 +46,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String ALI = "ali";
 
     private static final String FRA_AWS = "FRA-AWS";
-    private static final String SHA_REGION = "SHA";
+    private static final String SHA_REGION = EnvUtils.pro() ? "SHA" : "NTG";
     private static final String SGP_ALI = "SGP";
     private static final String SHA_ALI = "SHA-ALI";
 
@@ -215,8 +215,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         // fra->sha
         HickWallTrafficContext fraToShaContext = getHickWallTrafficContext(FRA, SHA);
         List<HickWallTrafficEntity> fraToSha = opsApiService.getTrafficFromHickWall(fraToShaContext);
-        sendToKafKa(fraToSha, SGP_ALI_PROVIDER_CONTEXT, FRA_AWS, serviceTypeStorage, CostType.storage, 1);
-        sendToKafKa(fraToSha, SGP_ALI_PROVIDER_CONTEXT, FRA_AWS, serviceTypeFlow, CostType.flow, 9);
+        sendToKafKa(fraToSha, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(fraToSha, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeFlow, CostType.flow, 9);
         sendToCat(fraToSha);
         sendToKafKa(fraToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 

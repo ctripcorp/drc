@@ -11,6 +11,31 @@ import java.util.regex.Pattern;
  */
 public class JavaRegexTest {
 
+
+    @Test
+    public void testRegex2() {
+        Pattern oldTravixRegex = Pattern.compile("(?i)(?<!_TRAVIX)$");
+        Pattern pattern = Pattern.compile("(?i)^(GB_90009)$");
+        Assert.assertTrue(pattern.matcher("GB_90009").find());
+        Assert.assertTrue(pattern.matcher("gb_90009").find());
+
+        Assert.assertFalse(pattern.matcher("").find());
+        Assert.assertFalse(pattern.matcher(" ").find());
+        Assert.assertFalse(pattern.matcher("\n").find());
+        Assert.assertFalse(pattern.matcher("abc").find());
+        Assert.assertFalse(pattern.matcher("gb_90001").find());
+        Assert.assertFalse(pattern.matcher("abcGB_90009").find());
+
+        Assert.assertFalse(pattern.matcher("ABC_TRAVIX").find());
+        Assert.assertFalse(pattern.matcher("ABC_Travix").find());
+        Assert.assertFalse(pattern.matcher("_TRAVIX").find());
+
+
+        Assert.assertFalse(oldTravixRegex.matcher("ABC_TRAVIX").find());
+        Assert.assertFalse(oldTravixRegex.matcher("ABC_Travix").find());
+        Assert.assertFalse(oldTravixRegex.matcher("_TRAVIX").find());
+    }
+
     @Test
     public void testRegex() {
         Pattern pattern = Pattern.compile("^(?!(?i)CN_90001$|CN_90002$|CN_90003$).*$");
