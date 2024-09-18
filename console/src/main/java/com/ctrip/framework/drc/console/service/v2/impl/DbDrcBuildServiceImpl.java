@@ -577,7 +577,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             List<ResourceView> resourceViews = resourceService.handOffResource(inUseIps, mhaDbAvailableResource);
             List<String> newIps = resourceViews.stream().map(ResourceView::getIp).collect(Collectors.toList());
 
-            newDbAppliers.add(new DbApplierDto(newIps, newGtid.trim(), dbName));
+            Integer concurrency = Optional.ofNullable(dbApplierDto).map(DbApplierDto::getConcurrency).orElse(null);
+            newDbAppliers.add(new DbApplierDto(newIps, newGtid.trim(), dbName, concurrency));
         }
         DrcBuildParam drcBuildParam = new DrcBuildParam();
         DrcBuildBaseParam srcBuildParam = new DrcBuildBaseParam();

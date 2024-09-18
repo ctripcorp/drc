@@ -212,7 +212,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
                 throw new IllegalArgumentException("db names is required!");
             }
             String[] split = dbNames.split(",");
-            list = Arrays.stream(split)
+            list = Arrays.stream(split).parallel()
                     .map(String::trim).distinct()
                     .map(dbName -> new DbClusterInfoDto(dbName, getClusterInfoDtosByDbName(dbName)))
                     .collect(Collectors.toList());

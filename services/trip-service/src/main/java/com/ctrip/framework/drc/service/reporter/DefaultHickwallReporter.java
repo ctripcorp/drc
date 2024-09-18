@@ -335,8 +335,8 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         reportResetCounter(entity.getTags(), count, ALTER_TABLE_MEASUREMENT);
     }
 
-    private MetricName getMetricName(Map<String, String> tags, String measurement) {
-        return new MetricName(measurement, tags);
+    protected MetricName getMetricName(Map<String, String> tags, String measurement) {
+        return MetricName.build(measurement).tagged(tags);
     }
 
 }
