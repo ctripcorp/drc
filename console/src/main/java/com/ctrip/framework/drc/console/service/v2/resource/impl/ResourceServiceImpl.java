@@ -1293,6 +1293,9 @@ public class ResourceServiceImpl implements ResourceService {
         ApplierInquirer applierInquirer = ApplierInquirer.getInstance();
         List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
         for (String applierIp : ips) {
+            applierIp = applierIp.replace("[","");
+            applierIp = applierIp.replace("]","");
+            applierIp = applierIp.trim();
             futures.add(applierInquirer.query(applierIp + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT));
         }
         List<ApplierInfoDto> applierInfoDtos = Lists.newArrayList();
