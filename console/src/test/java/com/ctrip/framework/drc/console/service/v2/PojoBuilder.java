@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
 import com.ctrip.framework.drc.console.vo.v2.MhaAzView;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -577,7 +578,7 @@ public class PojoBuilder {
 
     public static Map<String, MhaInstanceGroupDto> getMhaInstanceGroups() {
         MhaInstanceGroupDto dto1 = new MhaInstanceGroupDto();
-        dto1.setMhaName("testMha1");
+        dto1.setMhaName("mha200");
         MhaInstanceGroupDto.MySQLInstance master1 = new MhaInstanceGroupDto.MySQLInstance();
         master1.setIdc("AZ");
         master1.setIp("ip");
@@ -613,22 +614,57 @@ public class PojoBuilder {
         return drc;
     }
 
+    public static Drc getDrc2() {
+        Applier applier = new Applier();
+        applier.setIp("ip");
+        applier.setPort(0);
+        Replicator replicator = new Replicator();
+        replicator.setIp("ip");
+        replicator.setPort(0);
+        replicator.setMaster(true);
+        DbCluster dbCluster = new DbCluster();
+        dbCluster.addApplier(applier);
+        dbCluster.addReplicator(replicator);
+        dbCluster.setId("dbClusterId");
+        Dc dc = new Dc();
+        dc.addDbCluster(dbCluster);
+        dc.setId("dcId");
+        dc.setRegion("sha");
+        Drc drc = new Drc();
+        drc.addDc(dc);
+        return drc;
+    }
+
     public static MhaAzView getMhaAzView() {
         MhaAzView view = new MhaAzView();
         Map<String, Set<String>> az2mhaName = new HashMap<>();
         Map<String, List<String>> az2DbInstance = new HashMap<>();
         Map<String, List<String>> az2ReplicatorInstance = new HashMap<>();
-        Map<String, List<String>> az2ApplierInstance = new HashMap<>();
+        Map<String, List<ApplierInfoDto>> az2ApplierInstance = new HashMap<>();
 
         az2mhaName.put("AZ", Sets.newHashSet("testMha"));
         az2DbInstance.put("AZ", Lists.newArrayList("ip:port"));
         az2ReplicatorInstance.put("AZ", Lists.newArrayList("ip:port"));
-        az2ApplierInstance.put("AZ", Lists.newArrayList("ip:port"));
+        az2ApplierInstance.put("AZ", Lists.newArrayList(new ApplierInfoDto()));
 
         view.setAz2mhaName(az2mhaName);
         view.setAz2DbInstance(az2DbInstance);
         view.setAz2ApplierInstance(az2ApplierInstance);
         view.setAz2ReplicatorInstance(az2ReplicatorInstance);
         return view;
+    }
+
+    public static List<ApplierInfoDto> getApplierInfoDtos() {
+        ApplierInfoDto applier1 = new ApplierInfoDto();
+        applier1.setIp("ip");
+        applier1.setMaster(true);
+        ApplierInfoDto applier2 = new ApplierInfoDto();
+        applier2.setIp("ip");
+        applier2.setMaster(false);
+
+        List<ApplierInfoDto> dtos = Lists.newArrayList();
+        dtos.add(applier1);
+        dtos.add(applier2);
+        return dtos;
     }
 }

@@ -3,9 +3,11 @@ package com.ctrip.framework.drc.console.service.v2.resource;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dengquanliang
@@ -66,6 +68,8 @@ public interface ResourceService {
 
     ResourceSameAzView checkResourceAz() throws Exception;
 
-    MhaAzView getMhaAzCount() throws Exception;
+    MhaAzView getAllInstanceAzInfo() throws Exception;
+
+    Map<String, List<ApplierInfoDto>> getAppliersInAz(String region);
 
 }

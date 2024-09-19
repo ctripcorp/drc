@@ -190,6 +190,10 @@ public class RemoteHttpAspect {
     }
 
     private String getRegionByArgs(Map<String, Object> arguments, PossibleRemote possibleRemote) {
+        if (arguments.containsKey("region") &&
+                consoleConfig.getRegion2dcsMapping().containsKey((String) arguments.get("region"))) {
+            return (String) arguments.get("region");
+        }
         String dcNameByArgs = getDcNameByArgs(arguments, possibleRemote);
         if (StringUtils.isEmpty(dcNameByArgs)) {
             logger.warn("[[tag=remoteHttpAop]] no region find by arguments");

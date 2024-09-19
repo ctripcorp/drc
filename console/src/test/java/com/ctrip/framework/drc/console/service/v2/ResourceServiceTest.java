@@ -14,23 +14,27 @@ import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
+import com.ctrip.framework.drc.console.service.impl.inquirer.ApplierInquirer;
+import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.http.PageReq;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 
 /**
  * Created by dengquanliang
@@ -82,6 +86,8 @@ public class ResourceServiceTest {
     private DalServiceImpl dalService;
     @Mock
     private MetaProviderV2 metaProviderV2;
+    @Mock
+    private ResourceService resourceService2;
 
     @Before
     public void setUp() {
@@ -92,9 +98,9 @@ public class ResourceServiceTest {
 
     @Test
     public void testConfigureResource() throws Exception {
-        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
-        Mockito.when(resourceTblDao.queryByIp(Mockito.anyString())).thenReturn(null);
-        Mockito.when(resourceTblDao.insert(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(dcTblDao.queryByDcName(anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(resourceTblDao.queryByIp(anyString())).thenReturn(null);
+        Mockito.when(resourceTblDao.insert(any(ResourceTbl.class))).thenReturn(0);
 
         ResourceBuildParam param = new ResourceBuildParam();
         param.setAz("AZ");
@@ -103,15 +109,15 @@ public class ResourceServiceTest {
         param.setType("R");
         param.setTag("tag");
         resourceService.configureResource(param);
-        Mockito.verify(resourceTblDao, Mockito.times(1)).insert(Mockito.any(ResourceTbl.class));
-        Mockito.verify(resourceTblDao, Mockito.never()).update(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.times(1)).insert(any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.never()).update(any(ResourceTbl.class));
     }
 
     @Test
     public void testBatchConfigureResource() throws Exception {
-        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(dcTblDao.queryByDcName(anyString())).thenReturn(getDcTbls().get(0));
         Mockito.when(resourceTblDao.queryByIps(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(resourceTblDao.insert(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.insert(any(ResourceTbl.class))).thenReturn(0);
 
         ResourceBuildParam param = new ResourceBuildParam();
         param.setAz("AZ");
@@ -120,7 +126,7 @@ public class ResourceServiceTest {
         param.setType("R");
         param.setTag("tag");
         resourceService.batchConfigureResource(param);
-        Mockito.verify(resourceTblDao, Mockito.never()).update(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.never()).update(any(ResourceTbl.class));
     }
 
     @Test
@@ -128,17 +134,17 @@ public class ResourceServiceTest {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(resourceTblDao.update(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
 
         resourceService.offlineResource(1L);
-        Mockito.verify(resourceTblDao, Mockito.times(1)).update(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.times(1)).update(any(ResourceTbl.class));
     }
 
     @Test(expected = ConsoleException.class)
     public void testOfflineResource01() throws Exception {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(new ReplicatorTbl()));
-        Mockito.when(resourceTblDao.update(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
 
         resourceService.offlineResource(1L);
     }
@@ -148,7 +154,7 @@ public class ResourceServiceTest {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setType(1);
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(resourceTbl);
-        Mockito.when(resourceTblDao.update(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(new ApplierTblV2()));
 
         resourceService.offlineResource(1L);
@@ -157,28 +163,28 @@ public class ResourceServiceTest {
     @Test
     public void testOnlineResource() throws Exception {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
-        Mockito.when(resourceTblDao.update(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
         resourceService.onlineResource(1L);
 
-        Mockito.verify(resourceTblDao, Mockito.times(1)).update(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.times(1)).update(any(ResourceTbl.class));
     }
 
     @Test
     public void testDeactivateResource() throws Exception {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
-        Mockito.when(resourceTblDao.update(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
         resourceService.deactivateResource(1L);
 
-        Mockito.verify(resourceTblDao, Mockito.times(1)).update(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.times(1)).update(any(ResourceTbl.class));
     }
 
     @Test
     public void testRecoverResource() throws Exception {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
-        Mockito.when(resourceTblDao.update(Mockito.any(ResourceTbl.class))).thenReturn(0);
+        Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
         resourceService.recoverResource(1L);
 
-        Mockito.verify(resourceTblDao, Mockito.times(1)).update(Mockito.any(ResourceTbl.class));
+        Mockito.verify(resourceTblDao, Mockito.times(1)).update(any(ResourceTbl.class));
     }
 
     @Test
@@ -201,8 +207,8 @@ public class ResourceServiceTest {
     public void testGetMhaAvailableResource() throws Exception {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
         Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
-        Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
@@ -215,8 +221,8 @@ public class ResourceServiceTest {
     public void testAutoConfigureResource() throws Exception {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
         Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
-        Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
@@ -233,8 +239,8 @@ public class ResourceServiceTest {
     public void testHandOffResource() throws Exception {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
         Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
-        Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
@@ -304,9 +310,9 @@ public class ResourceServiceTest {
 
         Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
-        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
-        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
-        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(any(ReplicatorTbl.class))).thenReturn(1);
         int result = resourceService.migrateResource("ip2", "ip1", 0);
         Assert.assertEquals(result, PojoBuilder.getReplicatorTbls().size());
     }
@@ -321,9 +327,9 @@ public class ResourceServiceTest {
 
         Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
-        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
-        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
-        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(any(ReplicatorTbl.class))).thenReturn(1);
         Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(PojoBuilder.getMhaTblV2()));
         Mockito.when(replicatorGroupTblDao.queryByMhaIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorGroupTbls());
         int result = resourceService.partialMigrateReplicator(new ReplicatorMigrateParam("ip1", "ip2", Lists.newArrayList("mha")));
@@ -343,9 +349,9 @@ public class ResourceServiceTest {
 
         Mockito.when(replicatorGroupTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
-        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
-        Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(2020);
-        Mockito.when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
+        Mockito.when(mysqlServiceV2.getMhaExecutedGtid(anyString())).thenReturn("gtid");
+        Mockito.when(metaInfoService.findAvailableApplierPort(anyString())).thenReturn(2020);
+        Mockito.when(replicatorTblDao.update(any(ReplicatorTbl.class))).thenReturn(1);
         int result = resourceService.migrateSlaveReplicator("ip2", "ip1");
         Assert.assertEquals(result, 1);
     }
@@ -403,14 +409,14 @@ public class ResourceServiceTest {
 
     @Test
     public void testGetResourceViewByIp() throws Exception {
-        Mockito.when(resourceTblDao.queryByIp(Mockito.anyString(), Mockito.anyInt())).thenReturn(getReplicatorResources().get(0));
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getReplicatorResources());
+        Mockito.when(resourceTblDao.queryByIp(anyString(), Mockito.anyInt())).thenReturn(getReplicatorResources().get(0));
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getReplicatorResources());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getReplicatorTbls());
         List<ResourceView> views = resourceService.getResourceViewByIp("ip1");
         Assert.assertEquals(views.size(), 1);
 
-        Mockito.when(resourceTblDao.queryByIp(Mockito.anyString(), Mockito.anyInt())).thenReturn(getApplierResources().get(0));
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getApplierResources());
+        Mockito.when(resourceTblDao.queryByIp(anyString(), Mockito.anyInt())).thenReturn(getApplierResources().get(0));
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getApplierResources());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getMessengers());
         Mockito.when(dbMessengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
@@ -508,17 +514,40 @@ public class ResourceServiceTest {
     }
 
     @Test
-    public void testGetMhaAzCount() throws Exception {
-        Mockito.when(dalService.getMhaList(Mockito.any())).thenReturn(PojoBuilder.getMhaInstanceGroups());
-        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc());
+    public void testGetAllInstanceAzInfo() throws Exception {
+        Mockito.when(dalService.getMhaList(any())).thenReturn(PojoBuilder.getMhaInstanceGroups());
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
         Mockito.when(resourceTblDao.queryAllExist()).thenReturn(PojoBuilder.getResourceTbls());
         Mockito.when(dcTblDao.queryAllExist()).thenReturn(PojoBuilder.getDcTbls());
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(PojoBuilder.getMhaTblV2s());
+        Map<String, Set<String>> regions2DcMap = Maps.newHashMap();
+        regions2DcMap.put("sha", Sets.newHashSet());
+        Mockito.when(consoleConfig.getRegion2dcsMapping()).thenReturn(regions2DcMap);
 
-        MhaAzView result = resourceService.getMhaAzCount();
+        MhaAzView result = resourceService.getAllInstanceAzInfo();
         Assert.assertEquals(result.getAz2mhaName().size(), 1);
         Assert.assertEquals(result.getAz2DbInstance().size(), 1);
         Assert.assertEquals(result.getAz2DbInstance().get("AZ").size(), 2);
-        Assert.assertEquals(result.getAz2ApplierInstance().size(), 1);
+        Assert.assertEquals(result.getAz2ApplierInstance().size(), 0);
         Assert.assertEquals(result.getAz2ReplicatorInstance().size(), 1);
+    }
+
+    @Mock
+    ApplierInquirer inquirer;
+
+
+    @Test
+    public void testGetAppliersInAz() throws Exception {
+        String testRegion = "sha";
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
+        MockedStatic<ApplierInquirer> mockedStatic = Mockito.mockStatic(ApplierInquirer.class);
+        mockedStatic.when(ApplierInquirer::getInstance).thenReturn(inquirer);
+        Future<List<ApplierInfoDto>> mockFuture = Mockito.mock(Future.class);
+        Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getApplierInfoDtos());
+        Mockito.when(inquirer.query(Mockito.anyString())).thenReturn(mockFuture);
+
+        Map<String, List<ApplierInfoDto>> result = resourceService.getAppliersInAz(testRegion);
+        Assert.assertEquals(result.size(), 1);
+        Assert.assertEquals(result.values().size(), 1);
     }
 }

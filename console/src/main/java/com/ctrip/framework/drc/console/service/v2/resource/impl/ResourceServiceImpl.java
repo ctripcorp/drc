@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.service.v2.resource.impl;
 
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.response.ApplierInfoApiRes;
+import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
@@ -18,6 +21,7 @@ import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
+import com.ctrip.framework.drc.console.service.impl.inquirer.ApplierInquirer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -25,11 +29,13 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -44,7 +50,10 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -102,6 +111,8 @@ public class ResourceServiceImpl implements ResourceService {
     private DalServiceImpl dalService;
     @Autowired
     private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private ResourceService resourceService;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
@@ -1178,15 +1189,20 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public MhaAzView getMhaAzCount() throws Exception {
+    public MhaAzView getAllInstanceAzInfo() throws Exception {
         MhaAzView mhaAzView = new MhaAzView();
         Map<String, Set<String>> az2MhaName = new HashMap<>();
         Map<String, List<String>> az2DbInstance = new HashMap<>();
 
         Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+        List<MhaTblV2> drcRelatedMha = mhaTblV2Dao.queryAllExist();
+        List<String> drcRelatedMhaName = drcRelatedMha.stream().map(MhaTblV2::getMhaName).distinct().collect(Collectors.toList());
 
         for (Map.Entry<String, MhaInstanceGroupDto> instanceEntry : mhaInstanceGroupMap.entrySet()) {
             MhaInstanceGroupDto mha = instanceEntry.getValue();
+            if (!drcRelatedMhaName.contains(mha.getMhaName())) {
+                continue;
+            }
             String mhaMasterIdc = mha.getMaster().getIdc();
             String mhaMasterIpPort = mha.getMaster().getIp() + ":" + mha.getMaster().getPort();
             if (az2MhaName.containsKey(mhaMasterIdc)) {
@@ -1218,16 +1234,78 @@ public class ResourceServiceImpl implements ResourceService {
         if (drc == null) {
             return mhaAzView;
         }
-        MhaAzView applierAndReplicatorAzView = getApplierAndReplicatorAz(drc);
-        mhaAzView.setAz2ApplierInstance(applierAndReplicatorAzView.getAz2ApplierInstance());
-        mhaAzView.setAz2ReplicatorInstance(applierAndReplicatorAzView.getAz2ReplicatorInstance());
+
+        mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs());
+        mhaAzView.setAz2ReplicatorInstance(getReplicatorAz(drc));
         return mhaAzView;
     }
 
-    private MhaAzView getApplierAndReplicatorAz(Drc drc) throws SQLException {
-        MhaAzView mhaAzView = new MhaAzView();
+    private Map<String, List<ApplierInfoDto>> getAppliersInAllDcs() throws SQLException {
+        Map<String, Set<String>> regions2DcMap = consoleConfig.getRegion2dcsMapping();
+        List<String> regions = regions2DcMap.keySet().stream().collect(Collectors.toList());
+        Map<String, List<ApplierInfoDto>> infoDtosInAllDc = Maps.newHashMap();
+        for (String region : regions) {
+            Map<String, List<ApplierInfoDto>> infoDtos = resourceService.getAppliersInAz(region);
+            if (infoDtos == null) {
+                List<DcTbl> dcTbls = dcTblDao.queryByRegionName(region);
+                for (DcTbl dcTbl : dcTbls) {
+                    infoDtosInAllDc.put(dcTbl.getDcName(), Lists.newArrayList());
+                }
+            } else {
+                infoDtosInAllDc.putAll(infoDtos);
+            }
+        }
+        return infoDtosInAllDc;
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/resource/getAppliersInAz", responseType = ApplierInfoApiRes.class)
+    public Map<String, List<ApplierInfoDto>> getAppliersInAz(String region) {
+        Map<String, List<ApplierInfoDto>> dc2ApplierInfoDtoMap = Maps.newHashMap();
+        Drc drc = metaProviderV2.getDrc();
+        if (drc == null) {
+            return Maps.newHashMap();
+        }
+        Map<String, Dc> dcMap = drc.getDcs();
+        for (Map.Entry<String, Dc> dcEntry : dcMap.entrySet()) {
+            Dc dc = dcEntry.getValue();
+            if (!region.equals(dc.getRegion())) {
+                continue;
+            }
+            List<String> applierIps = dc.getDbClusters().values().stream()
+                    .flatMap(dbCluster -> dbCluster.getAppliers().stream())
+                    .map(Applier::getIp)
+                    .distinct().collect(Collectors.toList());
+            ApplierInquirer applierInquirer = ApplierInquirer.getInstance();
+            List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
+
+            for (String applierIp : applierIps) {
+                futures.add(applierInquirer.query(applierIp + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT));
+            }
+
+            List<ApplierInfoDto> applierInfoDtos = Lists.newArrayList();
+            for (int i = 0; i < futures.size(); i++) {
+                Future<List<ApplierInfoDto>> future = futures.get(i);
+                try {
+                    List<ApplierInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
+                    applierInfoDtos.addAll(infoDtos);
+                    logger.info("drc.console.inquiry.applier.success: {}", applierIps.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    future.cancel(true);
+                    logger.warn("get applier fail, skip for: {}", applierIps.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
+                    logger.warn("drc.console.inquiry.applier.fail {}", applierIps.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
+                }
+            }
+            List<ApplierInfoDto> masterApplierInfoDtos = applierInfoDtos.stream()
+                    .filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
+            dc2ApplierInfoDtoMap.put(dc.getId(), masterApplierInfoDtos);
+        }
+
+        return dc2ApplierInfoDtoMap;
+    }
+
+    private Map<String, List<String>> getReplicatorAz(Drc drc) throws SQLException {
         Map<String, List<String>> az2ReplicatorInstance = new HashMap<>();
-        Map<String, List<String>> az2ApplierInstance = new HashMap<>();
 
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
         Map<String, Long> resourceIp2DcId = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getDcId, (s1, s2) -> s1));
@@ -1240,6 +1318,9 @@ public class ResourceServiceImpl implements ResourceService {
                 DbCluster dbCluster = dbClusterEntry.getValue();
                 List<Replicator> replicators= dbCluster.getReplicators();
                 for (Replicator replicator : replicators) {
+                    if (!replicator.getMaster()) {
+                        continue;
+                    }
                     String replicatorIp = replicator.getIp();
                     String replicatorIpPort = replicator.getIp() + ":" + replicator.getPort();
                     if (resourceIp2DcId.containsKey(replicatorIp)) {
@@ -1250,30 +1331,11 @@ public class ResourceServiceImpl implements ResourceService {
                             az2ReplicatorInstance.put(az, Lists.newArrayList(replicatorIpPort));
                         }
                     } else {
-                        logger.warn("[[tag=getApplierAndReplicatorAz]] get az from replicator {} fail", replicatorIpPort);
-                    }
-                }
-
-                List<Applier> appliers = dbCluster.getAppliers();
-                for (Applier applier : appliers) {
-                    String applierIp = applier.getIp();
-                    String applierIpPort = applier.getIp() + ":" + applier.getPort();
-                    if (resourceIp2DcId.containsKey(applierIp)) {
-                        String az = dcMap.get(resourceIp2DcId.get(applierIp)).getDcName();
-                        if (az2ApplierInstance.containsKey(az)) {
-                            az2ApplierInstance.get(az).add(applierIpPort);
-                        } else {
-                            az2ApplierInstance.put(az, Lists.newArrayList(applierIpPort));
-                        }
-                    } else {
-                        logger.warn("[[tag=getApplierAndReplicatorAz]] get az from applier {} fail",applierIpPort);
+                        logger.warn("get az from replicator {} fail", replicatorIpPort);
                     }
                 }
             }
         }
-
-        mhaAzView.setAz2ApplierInstance(az2ApplierInstance);
-        mhaAzView.setAz2ReplicatorInstance(az2ReplicatorInstance);
-        return mhaAzView;
+        return az2ReplicatorInstance;
     }
 }

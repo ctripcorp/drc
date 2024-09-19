@@ -23,14 +23,9 @@ public class MhaSyncStatusCheckTaskTest {
     @InjectMocks
     private MhaSyncStatusCheckTask task;
     @Mock
-    private DefaultConsoleConfig consoleConfig;
-    @Mock
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
     @Mock
     private Reporter reporter;
-    @Mock
-    private ResourceService resourceService;
-
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -47,8 +42,7 @@ public class MhaSyncStatusCheckTaskTest {
         view.setDbOtterSet(Sets.newHashSet("testOtter"));
 
         Mockito.when(mhaReplicationServiceV2.mhaSyncCount()).thenReturn(view);
-        Mockito.when(resourceService.getMhaAzCount()).thenReturn(PojoBuilder.getMhaAzView());
         task.check();
-        Mockito.verify(reporter,Mockito.times(10)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter,Mockito.times(6)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
     }
 }

@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.vo.v2;
 
-import java.util.ArrayList;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,7 +13,7 @@ public class MhaAzView {
     Map<String, Set<String>> az2mhaName;
     Map<String, List<String>> az2DbInstance;
     Map<String, List<String>> az2ReplicatorInstance;
-    Map<String, List<String>> az2ApplierInstance;
+    Map<String, List<ApplierInfoDto>> az2ApplierInstance;
 
 
     public Map<String, Set<String>> getAz2mhaName() {
@@ -40,11 +40,11 @@ public class MhaAzView {
         this.az2ReplicatorInstance = az2ReplicatorInstance;
     }
 
-    public Map<String, List<String>> getAz2ApplierInstance() {
+    public Map<String, List<ApplierInfoDto>> getAz2ApplierInstance() {
         return az2ApplierInstance;
     }
 
-    public void setAz2ApplierInstance(Map<String, List<String>> az2ApplierInstance) {
+    public void setAz2ApplierInstance(Map<String, List<ApplierInfoDto>> az2ApplierInstance) {
         this.az2ApplierInstance = az2ApplierInstance;
     }
 }
