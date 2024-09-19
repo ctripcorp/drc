@@ -262,9 +262,9 @@ public class ResourceController {
     }
 
     @GetMapping("getAppliersInAz")
-    public ApiResult<Map<String, List<ApplierInfoDto>>> getAppliersInAz(@RequestParam String region) {
+    public ApiResult<List<ApplierInfoDto>> getAppliersInAz(@RequestParam String region, @RequestParam List<String> ips) {
         try {
-            Map<String, List<ApplierInfoDto>> res = resourceService.getAppliersInAz(region);
+            List<ApplierInfoDto> res = resourceService.getAppliersInAz(region, ips);
             return ApiResult.getSuccessInstance(res);
         } catch (Exception e) {
             logger.error("getAppliersInAz, az={}, fail", region, e);
