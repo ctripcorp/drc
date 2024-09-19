@@ -9,15 +9,19 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MysqlServiceV2Impl;
+import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
+
 
 public class RemoteHttpAspectTest {
 
@@ -41,6 +45,12 @@ public class RemoteHttpAspectTest {
 
     private MysqlServiceV2 proxy;
 
+    @Spy
+    private ResourceServiceImpl resourceServiceSpy;
+
+    private ResourceService proxy2;
+
+
 
     @Before
     public void setUp() throws Exception {
@@ -63,7 +73,41 @@ public class RemoteHttpAspectTest {
         factory.setProxyTargetClass(true);
         factory.addAspect(aop);
         proxy = factory.getProxy();
+
+        AspectJProxyFactory factory2 = new AspectJProxyFactory(resourceServiceSpy);
+        factory2.setProxyTargetClass(true);
+        factory2.addAspect(aop);
+        proxy2 = factory2.getProxy();
     }
+
+    @Test
+    public void testForwardByArgsInResourceService() throws Exception{
+        Map<String, Set<String>> map = Maps.newHashMap();
+        map.put("sha", Sets.newHashSet("sharb"));
+        map.put("sin", Sets.newHashSet("sinaws"));
+        Mockito.when(consoleConfig.getRegion2dcsMapping()).thenReturn(map);
+        Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
+        Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet(""));
+        Map<String, String> map2 = Maps.newHashMap();
+        map2.put("sha", "uri");
+        map2.put("sin", "uri");
+        Mockito.when(consoleConfig.getConsoleRegionUrls()).thenReturn(map2);
+        try {
+            proxy2.getAppliersInAz("sin");
+        } catch (Exception e){
+
+        }
+        Mockito.verify(resourceServiceSpy, Mockito.never()).getAppliersInAz(Mockito.anyString());
+
+        try {
+            proxy2.getAppliersInAz("sha");
+        } catch (Exception e){
+
+        }
+        Mockito.verify(resourceServiceSpy, Mockito.atLeastOnce()).getAppliersInAz(Mockito.anyString());
+    }
+
 
     @Test
     public void testForwardByArgs() throws SQLException {

@@ -201,6 +201,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         AccountServiceImplTest.class,
         MhaSyncStatusCheckTaskTest.class,
         ResourceAzCheckTaskTest.class,
+        InstancesAzCheckTaskTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

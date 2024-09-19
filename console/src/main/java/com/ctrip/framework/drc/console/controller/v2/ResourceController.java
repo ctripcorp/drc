@@ -8,12 +8,14 @@ import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dengquanliang
@@ -245,6 +247,27 @@ public class ResourceController {
             return ApiResult.getSuccessInstance(resourceService.checkResourceAz());
         } catch (Exception e) {
             logger.error("checkResourceAz fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getAllInstanceAzInfo")
+    public ApiResult<ResourceSameAzView> getAllInstanceAz() {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.getAllInstanceAzInfo());
+        } catch (Exception e) {
+            logger.error("getInstanceAz fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getAppliersInAz")
+    public ApiResult<Map<String, List<ApplierInfoDto>>> getAppliersInAz(@RequestParam String region) {
+        try {
+            Map<String, List<ApplierInfoDto>> res = resourceService.getAppliersInAz(region);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getAppliersInAz, az={}, fail", region, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
