@@ -528,7 +528,8 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.getAz2mhaName().size(), 1);
         Assert.assertEquals(result.getAz2DbInstance().size(), 1);
         Assert.assertEquals(result.getAz2DbInstance().get("AZ").size(), 2);
-        Assert.assertEquals(result.getAz2ApplierInstance().size(), 0);
+        Assert.assertEquals(result.getAz2ApplierInstance().size(), 1);
+        Assert.assertEquals(result.getAz2ApplierInstance().get("shaxy").size(), 0);
         Assert.assertEquals(result.getAz2ReplicatorInstance().size(), 1);
     }
 
@@ -546,8 +547,7 @@ public class ResourceServiceTest {
         Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getApplierInfoDtos());
         Mockito.when(inquirer.query(Mockito.anyString())).thenReturn(mockFuture);
 
-        Map<String, List<ApplierInfoDto>> result = resourceService.getAppliersInAz(testRegion);
+        List<ApplierInfoDto> result = resourceService.getAppliersInAz(testRegion, Lists.newArrayList("ip"));
         Assert.assertEquals(result.size(), 1);
-        Assert.assertEquals(result.values().size(), 1);
     }
 }

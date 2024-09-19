@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceI
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
@@ -94,18 +95,18 @@ public class RemoteHttpAspectTest {
         map2.put("sin", "uri");
         Mockito.when(consoleConfig.getConsoleRegionUrls()).thenReturn(map2);
         try {
-            proxy2.getAppliersInAz("sin");
+            proxy2.getAppliersInAz("sin", Lists.newArrayList());
         } catch (Exception e){
 
         }
-        Mockito.verify(resourceServiceSpy, Mockito.never()).getAppliersInAz(Mockito.anyString());
+        Mockito.verify(resourceServiceSpy, Mockito.never()).getAppliersInAz(Mockito.anyString(), Mockito.anyList());
 
         try {
-            proxy2.getAppliersInAz("sha");
+            proxy2.getAppliersInAz("sha", Lists.newArrayList());
         } catch (Exception e){
 
         }
-        Mockito.verify(resourceServiceSpy, Mockito.atLeastOnce()).getAppliersInAz(Mockito.anyString());
+        Mockito.verify(resourceServiceSpy, Mockito.atLeastOnce()).getAppliersInAz(Mockito.anyString(), Mockito.anyList());
     }
 
 

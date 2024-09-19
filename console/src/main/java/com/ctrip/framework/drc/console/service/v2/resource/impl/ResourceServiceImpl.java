@@ -33,6 +33,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1235,24 +1236,52 @@ public class ResourceServiceImpl implements ResourceService {
             return mhaAzView;
         }
 
-        mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs());
+        mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs(drc));
         mhaAzView.setAz2ReplicatorInstance(getReplicatorAz(drc));
         return mhaAzView;
     }
 
-    private Map<String, List<ApplierInfoDto>> getAppliersInAllDcs() throws SQLException {
+    private Map<String, List<ApplierInfoDto>> getAppliersInAllDcs(Drc drc) throws SQLException {
         Map<String, Set<String>> regions2DcMap = consoleConfig.getRegion2dcsMapping();
         List<String> regions = regions2DcMap.keySet().stream().collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
+        Map<Long, String> dcId2dcName = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
+
+        Map<String, Dc> dcMap = drc.getDcs();
+        Set<String> activeApplierIps = Sets.newHashSet();
+        for (Map.Entry<String, Dc> dcEntry : dcMap.entrySet()) {
+            Dc dc = dcEntry.getValue();
+            Set<String> activeApplierIpsInDc = dc.getDbClusters().values().stream()
+                    .flatMap(dbCluster -> dbCluster.getAppliers().stream())
+                    .map(Applier::getIp)
+                    .collect(Collectors.toSet());
+            activeApplierIps.addAll(activeApplierIpsInDc);
+        }
+
+        List<ResourceTbl> activeResourceTbls = resourceTbls.stream()
+                .filter(e -> activeApplierIps.contains(e.getIp())).collect(Collectors.toList());
+        Map<String, List<String>> dcName2Ips = activeResourceTbls.stream()
+                .collect(Collectors.groupingBy(
+                        e -> dcId2dcName.get(e.getDcId()),
+                        Collectors.mapping(ResourceTbl::getIp, Collectors.toList())
+                ));
+
         Map<String, List<ApplierInfoDto>> infoDtosInAllDc = Maps.newHashMap();
         for (String region : regions) {
-            Map<String, List<ApplierInfoDto>> infoDtos = resourceService.getAppliersInAz(region);
-            if (infoDtos == null) {
-                List<DcTbl> dcTbls = dcTblDao.queryByRegionName(region);
-                for (DcTbl dcTbl : dcTbls) {
-                    infoDtosInAllDc.put(dcTbl.getDcName(), Lists.newArrayList());
+            List<String> dcInThisRegion = dcTbls.stream().filter(e -> region.equals(e.getRegionName())).map(DcTbl::getDcName).collect(Collectors.toList());
+            Map<String, List<String>> dcName2IpsInThisRegion = dcName2Ips.entrySet().stream()
+                    .filter(entry -> dcInThisRegion.contains(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+            for (Map.Entry<String, List<String>> entry : dcName2IpsInThisRegion.entrySet()) {
+                List<ApplierInfoDto> infoDtos = resourceService.getAppliersInAz(region, entry.getValue());
+                if (infoDtos == null) {
+                    EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.applier.fail", region + ":" + entry.getValue());
+                    infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
+                } else {
+                    infoDtosInAllDc.put(entry.getKey(), infoDtos);
                 }
-            } else {
-                infoDtosInAllDc.putAll(infoDtos);
             }
         }
         return infoDtosInAllDc;
@@ -1260,48 +1289,29 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/resource/getAppliersInAz", responseType = ApplierInfoApiRes.class)
-    public Map<String, List<ApplierInfoDto>> getAppliersInAz(String region) {
-        Map<String, List<ApplierInfoDto>> dc2ApplierInfoDtoMap = Maps.newHashMap();
-        Drc drc = metaProviderV2.getDrc();
-        if (drc == null) {
-            return Maps.newHashMap();
+    public List<ApplierInfoDto> getAppliersInAz(String region, List<String> ips) {
+        ApplierInquirer applierInquirer = ApplierInquirer.getInstance();
+        List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
+        for (String applierIp : ips) {
+            futures.add(applierInquirer.query(applierIp + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT));
         }
-        Map<String, Dc> dcMap = drc.getDcs();
-        for (Map.Entry<String, Dc> dcEntry : dcMap.entrySet()) {
-            Dc dc = dcEntry.getValue();
-            if (!region.equals(dc.getRegion())) {
-                continue;
+        List<ApplierInfoDto> applierInfoDtos = Lists.newArrayList();
+        for (int i = 0; i < futures.size(); i++) {
+            Future<List<ApplierInfoDto>> future = futures.get(i);
+            try {
+                List<ApplierInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
+                applierInfoDtos.addAll(infoDtos);
+                logger.info("drc.console.inquiry.applier.success: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                future.cancel(true);
+                logger.warn("get applier fail, skip for: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
+                logger.warn("drc.console.inquiry.applier.fail {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
             }
-            List<String> applierIps = dc.getDbClusters().values().stream()
-                    .flatMap(dbCluster -> dbCluster.getAppliers().stream())
-                    .map(Applier::getIp)
-                    .distinct().collect(Collectors.toList());
-            ApplierInquirer applierInquirer = ApplierInquirer.getInstance();
-            List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
-
-            for (String applierIp : applierIps) {
-                futures.add(applierInquirer.query(applierIp + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT));
-            }
-
-            List<ApplierInfoDto> applierInfoDtos = Lists.newArrayList();
-            for (int i = 0; i < futures.size(); i++) {
-                Future<List<ApplierInfoDto>> future = futures.get(i);
-                try {
-                    List<ApplierInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
-                    applierInfoDtos.addAll(infoDtos);
-                    logger.info("drc.console.inquiry.applier.success: {}", applierIps.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    future.cancel(true);
-                    logger.warn("get applier fail, skip for: {}", applierIps.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
-                    logger.warn("drc.console.inquiry.applier.fail {}", applierIps.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
-                }
-            }
-            List<ApplierInfoDto> masterApplierInfoDtos = applierInfoDtos.stream()
-                    .filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
-            dc2ApplierInfoDtoMap.put(dc.getId(), masterApplierInfoDtos);
         }
+        List<ApplierInfoDto> masterApplierInfoDtos = applierInfoDtos.stream()
+                .filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
 
-        return dc2ApplierInfoDtoMap;
+        return masterApplierInfoDtos;
     }
 
     private Map<String, List<String>> getReplicatorAz(Drc drc) throws SQLException {

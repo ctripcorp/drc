@@ -70,6 +70,6 @@ public interface ResourceService {
 
     MhaAzView getAllInstanceAzInfo() throws Exception;
 
-    Map<String, List<ApplierInfoDto>> getAppliersInAz(String region);
+    List<ApplierInfoDto> getAppliersInAz(String region, List<String> dcName2Ips);
 
 }

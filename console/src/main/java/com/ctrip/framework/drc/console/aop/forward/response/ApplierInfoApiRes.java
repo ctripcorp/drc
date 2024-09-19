@@ -10,5 +10,5 @@ import java.util.Map;
  * Created by shiruixin
  * 2024/9/12 15:20
  */
-public class ApplierInfoApiRes extends ApiResult<Map<String, List<ApplierInfoDto>>> {
+public class ApplierInfoApiRes extends ApiResult<List<ApplierInfoDto>> {
 }
