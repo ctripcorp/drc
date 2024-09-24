@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.scanner;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScanner;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.SkipFilter;
@@ -14,10 +16,12 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
  */
 public class ScannerSkipFilter extends SkipFilter {
     private final List<ChannelAttributeKey> channelAttributeKeyList;
+    private final BinlogScanner scanner;
 
     public ScannerSkipFilter(ScannerFilterChainContext context) {
         super(context);
         this.channelAttributeKeyList = context.getChannelAttributeKey();
+        this.scanner = context.getScanner();
     }
 
 
@@ -42,5 +46,10 @@ public class ScannerSkipFilter extends SkipFilter {
     @Override
     protected void skipEvent(OutboundLogEventContext value) {
         value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
+    }
+
+    @Override
+    protected GtidSet getExcludedGtidSet() {
+        return scanner.getGtidSet();
     }
 }

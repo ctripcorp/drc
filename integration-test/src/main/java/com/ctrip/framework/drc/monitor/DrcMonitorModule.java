@@ -246,7 +246,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
 
         if (writeOneTransaction) {
-            new MultiDBWriteInTransactionPairCase().test(sourceSqlOperator, reverseSourceSqlOperator); //write one transaction
+            new MultiTableWriteInTransactionPairCase().test(sourceSqlOperator, reverseSourceSqlOperator); //write one transaction
         }
 
     }
@@ -259,7 +259,6 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     protected void addPairCase() {
         pairCaseManager.addPairCase(new TransactionTableConflictPairCase());
-        pairCaseManager.addPairCase(new MultiDBWriteInTransactionPairCase());
         pairCaseManager.addPairCase(new MultiTableWriteInTransactionPairCase());
         pairCaseManager.addPairCase(new PromiscuousWritePairCase());
         pairCaseManager.addPairCase(new MultiTypeNumberPairCase());

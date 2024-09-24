@@ -40,6 +40,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorComma
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.HeartBeatCommandHandler;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheck;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -49,7 +50,6 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -239,20 +239,16 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         // scanner info
         Map<ConsumeType, List<BinlogScanner>> senderSizeByType = scannerManager.getScanners().stream().collect(Collectors.groupingBy(BinlogScanner::getConsumeType));
         for (Map.Entry<ConsumeType, List<BinlogScanner>> entry : senderSizeByType.entrySet()) {
-            ConsumeType consumeType = entry.getKey();
             List<BinlogScanner> scanners = entry.getValue();
             for (BinlogScanner scanner : scanners) {
                 ReplicatorDetailInfoDto.ScannerDto scannerDto = new ReplicatorDetailInfoDto.ScannerDto();
-                GtidSet scannerFilteredGtidSet = scanner.getFilteredGtidSet();
-                scannerDto.setGtid(scannerFilteredGtidSet.toString());
-                scannerDto.setGtidGap(scannerFilteredGtidSet.subtract(scannerFilteredGtidSet).toString());
+                BinlogPosition binlogPosition = scanner.getBinlogPosition();
+                scannerDto.setBinlogPosition(binlogPosition.toString());
                 scannerDto.setConsumeType(scanner.getConsumeType().name());
                 scannerDto.setCurrentFile(scanner.getCurrentSendingFileName());
-                Set<String> uuiDs = scannerFilteredGtidSet.getUUIDs();
                 List<ReplicatorDetailInfoDto.SenderDto> senders = scanner.getSenders().stream().map(sender -> {
                     ReplicatorDetailInfoDto.SenderDto senderDto = new ReplicatorDetailInfoDto.SenderDto(sender.getApplierName());
-                    GtidSet gtidSet = sender.getGtidSet().filterGtid(uuiDs);
-                    senderDto.setGtid(gtidSet.toString());
+                    senderDto.setBinlogPosition(sender.getBinlogPosition().toString());
                     return senderDto;
                 }).collect(Collectors.toList());
                 scannerDto.setSenders(senders);

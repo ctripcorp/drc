@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.binlog;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 
 import java.util.List;
@@ -15,11 +16,9 @@ public interface BinlogScanner extends Runnable, Lifecycle, Comparable<BinlogSca
 
     List<BinlogSender> getSenders();
 
-    boolean canMerge();
-
     GtidSet getGtidSet();
 
-    GtidSet getFilteredGtidSet();
+    BinlogPosition getBinlogPosition();
 
     ConsumeType getConsumeType();
 

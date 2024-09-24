@@ -438,6 +438,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         return dc;
     }
 
+    // todo by yongnian: optimize
     private String getProperties(List<DbReplicationTbl> dbReplicationTblList, Integer concurrency) throws SQLException {
         List<DbReplicationDto> dbReplicationDto = dbReplicationTblList.stream().map(source -> {
             DbReplicationDto target = new DbReplicationDto();

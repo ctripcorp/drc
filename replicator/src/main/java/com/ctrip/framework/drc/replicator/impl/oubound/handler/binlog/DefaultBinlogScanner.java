@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
-import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.utils.OffsetNotifier;
 import com.ctrip.framework.drc.replicator.impl.oubound.ReplicatorException;
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.AbstractBinlogScanner;
@@ -20,6 +19,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventCo
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.scanner.ScannerFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.scanner.ScannerFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ApplierRegisterCommandHandler;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.BINLOG_SCANNER_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.isIntegrityTest;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
-import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_FILE_PREFIX;
 
 /**
  * @author yongnian
@@ -50,6 +49,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     private final GtidManager gtidManager;
     private final FileManager fileManager;
     private File file;
+    private long fileNum;
     private Filter<OutboundLogEventContext> filterChain;
 
     private static final AtomicInteger atomicInteger = new AtomicInteger(0);
@@ -71,10 +71,15 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     }
 
     @Override
+    public BinlogPosition getBinlogPosition() {
+        return BinlogPosition.from(fileNum, outboundContext.getFileChannelPos());
+    }
+
+    @Override
     public BinlogScanner cloneScanner(List<BinlogSender> senders) {
         try {
             DefaultBinlogScanner newScanner = new DefaultBinlogScanner(this.applierRegisterCommandHandler, this.manager, senders);
-            newScanner.file = file;
+            newScanner.setFile(file);
             newScanner.initialize();
             newScanner.setFileChannel(newScanner.outboundContext);
             newScanner.outboundContext.getFileChannel().position(this.outboundContext.getFileChannelPos());
@@ -90,7 +95,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     protected void doInitialize() throws Exception {
         this.rebuildFilterChain();
         if (file == null) {
-            this.file = this.firstFileToSend();
+            this.setFile(this.firstFileToSend());
         }
         if (this.file == null) {
             throw new ReplicatorException(ResultCode.REPLICATOR_NOT_READY);
@@ -101,6 +106,11 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.serve.binlog", sender.getApplierName());
         }
         fileManager.addObserver(this);
+    }
+
+    private void setFile(File file) {
+        this.file = Objects.requireNonNull(file);
+        this.fileNum = DefaultFileManager.getFileNum(file);
     }
 
     @Override
@@ -147,6 +157,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
             fileChannel.position(DefaultFileManager.LOG_EVENT_START);
         }
         context.setFileChannel(fileChannel);
+        context.setFileSeq(fileNum);
     }
 
     @Override
@@ -166,7 +177,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     public void fileRoll() {
         do {
             String previousFileName = file.getName();
-            file = fileManager.getNextLogFile(file);
+            this.setFile(fileManager.getNextLogFile(file));
             recordGtidSent(file);
             String currentFileName = file.getName();
             logger.info("[Transfer] binlog file from {} to {} for {}", previousFileName, currentFileName, consumeName);
@@ -225,13 +236,14 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
         int waitCount = 0;
         do {
             try {
-                long acquiredOffset = offsetNotifier.await(waitEndPosition, 500);
+                long acquiredOffset = offsetNotifier.await(waitEndPosition, 100);
                 if (acquiredOffset > 0) {
                     return acquiredOffset;
                 }
-                if (++waitCount > 5) {
+                if (++waitCount > 25) {
                     return fileChannel.size();
                 }
+                manager.tryMergeScanner(this);
             } catch (InterruptedException e) {
                 logger.error("[Read] error", e);
                 Thread.currentThread().interrupt();
@@ -359,8 +371,8 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     private void checkFileGaps(File file) {
         try {
             File currentFile = fileManager.getCurrentLogFile();
-            long firstSendFileNum = FileUtil.getFileNumFromName(file.getName(), LOG_FILE_PREFIX);
-            long currentFileNum = FileUtil.getFileNumFromName(currentFile.getName(), LOG_FILE_PREFIX);
+            long firstSendFileNum = DefaultFileManager.getFileNum(file);
+            long currentFileNum = DefaultFileManager.getFileNum(currentFile);
             if (currentFileNum - firstSendFileNum > 10) {
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.gap", consumeName);
             }

@@ -93,9 +93,10 @@ public class DrcBuildControllerV2 {
     @PostMapping("db/applier")
     @LogRecord(type = OperateTypeEnum.MHA_REPLICATION, attr = OperateAttrEnum.UPDATE,
             success = "buildDbApplier with DrcBuildParam: {#param.toString()}")
-    public ApiResult<String> buildDrcDbAppliers(@RequestBody DrcBuildParam param) {
+    public ApiResult<Boolean> buildDrcDbAppliers(@RequestBody DrcBuildParam param) {
         try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.buildDbApplier(param));
+            dbDrcBuildService.buildDbApplier(param);
+            return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

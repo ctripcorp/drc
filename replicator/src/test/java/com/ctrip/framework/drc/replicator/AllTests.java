@@ -29,12 +29,13 @@ import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest
 import com.ctrip.framework.drc.replicator.impl.oubound.DefaultBinlogScannerAndSenderFilterChainTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.BinlogScannerAndSenderTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScannerMergeAlgorithmTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.binlog.MergeAlgorithmV2Test;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKeyTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.SchemaFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.scanner.ScannerSkipFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheckTest;
@@ -110,10 +111,11 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         TypeConvertFilterTest.class,
         TransactionTableFilterTest.class,
         SchemaFilterTest.class,
+        ScannerSkipFilterTest.class,
         DefaultBinlogScannerAndSenderFilterChainTest.class,
         BinlogScannerAndSenderTest.class,
         LocalBinlogScannerManagerTest.class,
-        BinlogScannerMergeAlgorithmTest.class,
+        MergeAlgorithmV2Test.class,
 
         // ddl
         DdlParserTest.class,

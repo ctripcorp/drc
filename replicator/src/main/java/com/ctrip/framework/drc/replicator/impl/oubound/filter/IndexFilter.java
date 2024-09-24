@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.PreviousGtidsLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
+import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScanner;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.scanner.ScannerFilterChainContext;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -16,10 +18,10 @@ import java.util.List;
  */
 public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
-    private GtidSet excludedSet;
+    private final BinlogScanner scanner;
 
-    public IndexFilter(GtidSet excludedSet) {
-        this.excludedSet = excludedSet;
+    public IndexFilter(ScannerFilterChainContext context) {
+        this.scanner = context.getScanner();
     }
 
     @Override
@@ -54,7 +56,7 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
                 }
                 GtidSet secondGtidSet = readPreviousGtids(fileChannel, indices.get(i));
                 GtidSet stepGtidSet = secondGtidSet.subtract(firstGtidSet);
-                if (stepGtidSet.isContainedWithin(excludedSet)) {
+                if (stepGtidSet.isContainedWithin(scanner.getGtidSet())) {
                     logger.info("[GtidSet] update from {} to {}", firstGtidSet, secondGtidSet);
                     firstGtidSet = secondGtidSet;
                 } else {  // restore to last position

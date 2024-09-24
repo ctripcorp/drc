@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.binlog;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -89,8 +88,8 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
         } finally {
             Collections.sort(scannerList);
         }
-        executorService.submit(newScanner);
         BINLOG_SCANNER_LOGGER.info("[createScanner] create sender {}, scanner {}", binlogSenders, newScanner);
+        executorService.submit(newScanner);
     }
 
 
@@ -105,12 +104,22 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
 
     @Override
     public void tryMergeScanner(BinlogScanner src) {
-        ConsumeType consumeType = src.getConsumeType();
-        if (!this.isCollecting(consumeType)) {
+        if (src.getSenders().size() >= DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey)) {
             return;
         }
+        if (!this.isCollecting(src.getConsumeType())) {
+            return;
+        }
+        boolean preCheckMerge = calculate(scannerMap.get(src.getConsumeType())).stream().anyMatch(e -> e.canMerge() && e.isRelated(src));
+        if(!preCheckMerge) {
+            return;
+        }
+        waitMerge(src);
+    }
+
+    private void waitMerge(BinlogScanner src) {
         synchronized (waitMergeScanner) {
-            if (!this.isCollecting(consumeType)) {
+            if (!this.isCollecting(src.getConsumeType())) {
                 return;
             }
             waitMergeScanner.add(src);
@@ -127,89 +136,6 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
 
     private boolean isCollecting(ConsumeType consumeType) {
         return collectingType != null && collectingType == consumeType;
-    }
-
-    static class MergeAlgorithm {
-        BinlogScanner mergeTo;
-        List<BinlogScanner> candidates;
-
-        public MergeAlgorithm(BinlogScanner mergeTo, List<BinlogScanner> candidates) {
-            this.mergeTo = mergeTo;
-            this.candidates = candidates;
-        }
-
-        public static MergeAlgorithm calculate(List<BinlogScanner> scannersList, int maxGtidGap, int maxSenderNumPerScanner) {
-            if (scannersList == null) {
-                return stop();
-            }
-            scannersList = scannersList.stream().filter(BinlogScanner::canMerge).collect(Collectors.toList());
-            while (!CollectionUtils.isEmpty(scannersList)) {
-                // for each loop: find the slowest scanner, and candidates that can merge to it
-                MergeAlgorithm mergeAlgorithm = calculateOnce(scannersList, maxGtidGap, maxSenderNumPerScanner);
-
-                if (mergeAlgorithm.mergeTo == null) {
-                    // no slowest scanner found, cannot merge
-                    return stop();
-                }
-                if (CollectionUtils.isEmpty(mergeAlgorithm.candidates)) {
-                    // no candidates for the slowest scanner, remove it and run next round
-                    scannersList.remove(mergeAlgorithm.mergeTo);
-                    continue;
-                }
-
-                return mergeAlgorithm;
-            }
-            return stop();
-        }
-
-        private static MergeAlgorithm stop() {
-            return new MergeAlgorithm(null, null);
-        }
-
-        public static MergeAlgorithm calculateOnce(List<BinlogScanner> scannersList, int maxGtidGap, int maxSenderNumPerScanner) {
-            scannersList = scannersList.stream().filter(BinlogScanner::canMerge).collect(Collectors.toList());
-            // 1. get slowest scanner
-            GtidSet slowestGtid = GtidSet.getIntersection(scannersList.stream().map(BinlogScanner::getFilteredGtidSet).collect(Collectors.toList()));
-            List<BinlogScanner> slowScanners = scannersList.stream().sorted().filter(e -> e.getFilteredGtidSet().equals(slowestGtid)).collect(Collectors.toList());
-            if (CollectionUtils.isEmpty(slowScanners)) {
-                return stop();
-            }
-            Collections.sort(slowScanners);
-            // mergeTo: slowest scanner with max number of sender
-            BinlogScanner mergeTo = slowScanners.get(slowScanners.size() - 1);
-            scannersList = scannersList.stream().filter(e -> e != mergeTo).collect(Collectors.toList());
-
-            // 2. filter
-            scannersList = scannersList.stream()
-                    .filter(e -> {
-                        // check gtid gap
-                        long gap = e.getFilteredGtidSet().subtract(slowestGtid).getGtidNum();
-                        return gap <= maxGtidGap;
-                    })
-                    .filter(e -> {
-                        // check sender num
-                        return e.getSenders().size() <= mergeTo.getSenders().size();
-                    })
-                    .sorted(Comparator.comparing(e -> e.getFilteredGtidSet().subtract(slowestGtid).getGtidNum()))
-                    .collect(Collectors.toList());
-
-            // 3. collect
-            List<BinlogScanner> candidates = Lists.newArrayList();
-            int finalSize = mergeTo.getSenders().size();
-            for (BinlogScanner scanner : scannersList) {
-                if (scanner.getSenders().size() + finalSize <= maxSenderNumPerScanner) {
-                    candidates.add(scanner);
-                    finalSize += scanner.getSenders().size();
-                }
-            }
-            return new MergeAlgorithm(mergeTo, candidates);
-        }
-
-
-        public boolean canMerge() {
-            return mergeTo != null && !CollectionUtils.isEmpty(candidates);
-        }
-
     }
 
 
@@ -235,7 +161,7 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
         for (ConsumeType consumeType : MERGE_TYPE) {
             List<BinlogScanner> scanners = scannerMap.get(consumeType);
             // pre-check merge possibility, without actually block sending process
-            if (!calculate(scanners).canMerge()) {
+            if (calculate(scanners).stream().noneMatch(MergeAlgorithmV2::canMerge)) {
                 return;
             }
             // start collect waitMergeScanner
@@ -245,9 +171,10 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
                 collectingType = null;
                 synchronized (waitMergeScanner) {
                     try {
-                        while (!waitMergeScanner.isEmpty()) {
-                            long start = System.currentTimeMillis();
-                            MergeAlgorithm mergeAlgorithm = calculate(waitMergeScanner);
+                        long start = System.currentTimeMillis();
+
+                        List<MergeAlgorithmV2> mergeAlgorithms = calculate(waitMergeScanner);
+                        for (MergeAlgorithmV2 mergeAlgorithm : mergeAlgorithms) {
                             if (!mergeAlgorithm.canMerge()) {
                                 break;
                             }
@@ -273,10 +200,10 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
         }
     }
 
-    private MergeAlgorithm calculate(List<BinlogScanner> scanners) {
-        int maxGtidGap = DynamicConfig.getInstance().getMaxGtidGapForMergeScanner();
+    private List<MergeAlgorithmV2> calculate(List<BinlogScanner> scanners) {
+        int maxGtidGap = DynamicConfig.getInstance().getMaxBinlogPositionGapForMergeScanner();
         int maxSenderNumPerScanner = DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey);
-        return MergeAlgorithm.calculate(scanners, maxGtidGap, maxSenderNumPerScanner);
+        return MergeAlgorithmV2.calculateAll(scanners, maxGtidGap, maxSenderNumPerScanner);
     }
 
     private void report() {
