@@ -26,7 +26,7 @@ public interface DbDrcBuildService {
      * @param param drc build param
      * @return drc xml
      */
-    String buildDbApplier(DrcBuildParam param) throws Exception;
+    void buildDbApplier(DrcBuildParam param) throws Exception;
 
     String buildDbMessenger(DrcBuildBaseParam param) throws Exception;
 

@@ -33,14 +33,26 @@
       </Row>
       <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec;">
         <Col span="2" style="display: flex;float: left;margin: 5px" >
+          <Button :loading="dataLoading" style="text-align: right" type="default"
+                  v-if="!submitted" @click="preBatchUpdate()"> 批量修改
+          </Button>
+        </Col>
+        <Col span="2" style="display: flex;float: left;margin: 5px" >
+          <Button icon="md-arrow-up" :loading="dataLoading" style="text-align: right" type="primary"
+                  v-if="!submitted" @click="preSubmit()">提交
+          </Button>
+          <Button icon="md-swap" :loading="dataLoading" style="margin-left: 20px; text-align: right" type="primary"
+                  v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
+          </Button>
+        </Col>
+        <Col span="2" style="display: flex;float: right;margin: 5px" >
           <Dropdown placement="bottom-start">
             <Button type="default" icon="ios-hammer">
-              操作
+              其他操作
               <Icon type="ios-arrow-down"></Icon>
             </Button>
             <template #list>
               <DropdownMenu >
-                <DropdownItem  @click.native="() => preBatchUpdate()">批量修改（需要先勾选）</DropdownItem>
                 <DropdownItem v-if="dbApplierEmpty" @click.native="() => fillMhaApplier()">一键录入 mha applier</DropdownItem>
                 <DropdownItem v-if="!dbApplierEmpty" @click.native="() => preClearAndUpdateMhaGtid()">切换至 mha 同步模式</DropdownItem>
               </DropdownMenu>
@@ -48,100 +60,93 @@
           </Dropdown>
         </Col>
       </Row>
-      <div :style="{padding: '1px 1px',height: '100%'}">
-        <template>
-          <Table style="margin-top: 0px" stripe :columns="columns" :data="tableData" :loading="dataLoading" border
-                 ref="multipleTable"
-                 @on-selection-change="changeSelection">
-            <template #applier="{row, index}">
-              <Select :transfer="true" v-model="tableData[index].ips" multiple style="width: 250px"
+
+      <Table style="margin-top: 0px" stripe :columns="columns" :data="tableData" :loading="dataLoading" border
+             ref="multipleTable"
+             @on-selection-change="changeSelection">
+                    <template #applier="{row, index}">
+                      <Select v-if="showSelectOptionComponent" :transfer="true" v-model="tableData[index].ips" multiple style="width: 250px"
+                              placeholder="选择源集群Applier">
+                        <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
+                            item.az
+                          }}
+                        </Option>
+                      </Select>
+                      <Button v-if="showSelectOptionComponent" :loading="applierDataLoading[index]" type="success" size="small" style="margin-left: 10px"
+                              @click="autoConfigApplier(row, index)">自动录入
+                      </Button>
+                      <span v-if="!showSelectOptionComponent"> {{ tableData[index].ips.join(', ') }}</span>
+                    </template>
+
+                    <template #gtidInit="{row, index}">
+                      <Input v-model="tableData[index].gtidInit" style="width: 80%" :border="false"
+                             placeholder="请输入binlog拉取位点"/>
+                    </template>
+                    <template #concurrency="{row, index}">
+                      <InputNumber :max="150" :min="1" v-model="tableData[index].concurrency" style="width: 90%"
+                             placeholder=""/>
+                    </template>
+      </Table>
+      <Modal
+          v-model="batchUpdateModal"
+          title="请设置 Applier"
+          width="1200px"
+          @on-ok="batchUpdateAppliers">
+        <div :style="{padding: '1px 1px',height: '100%'}">
+          <Form label-position="left" :label-width="100">
+            <FormItem label="Applier">
+              <Select :transfer="true" v-model="target.ips" multiple style="width: 250px"
                       placeholder="选择源集群Applier">
                 <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
                     item.az
                   }}
                 </Option>
               </Select>
-              <Button :loading="applierDataLoading[index]" type="success" size="small" style="margin-left: 10px"
-                      @click="autoConfigApplier(row, index)">自动录入
-              </Button>
-            </template>
-            <template #gtidInit="{row, index}">
-              <Input v-model="tableData[index].gtidInit" style="width: 80%" :border="false"
-                     placeholder="请输入binlog拉取位点"/>
-            </template>
-            <template #concurrency="{row, index}">
-              <InputNumber :max="150" :min="1" v-model="tableData[index].concurrency" style="width: 90%"
-                     placeholder=""/>
-            </template>
-          </Table>
-          <Button :loading="dataLoading" style="margin-top: 10px;text-align: right" type="primary"
-                  v-if="!submitted" @click="preSubmit()">提交
-          </Button>
-          <Button :loading="dataLoading" style="margin-top: 10px;margin-left: 20px; text-align: right" type="primary"
-                  v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
-          </Button>
-          <Modal
-            v-model="batchUpdateModal"
-            title="请设置 Applier"
-            width="1200px"
-            @on-ok="batchUpdateAppliers">
-            <div :style="{padding: '1px 1px',height: '100%'}">
-              <Form label-position="left" :label-width="100">
-                <FormItem label="Applier">
-                  <Select :transfer="true" v-model="target.ips" multiple style="width: 250px"
-                          placeholder="选择源集群Applier">
-                    <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
-                        item.az
-                      }}
-                    </Option>
-                  </Select>
-                </FormItem>
-                <FormItem label="初始同步位点">
-                  <Input v-model="target.gtid" :border="false" style="width: 80%" placeholder="请输入binlog拉取位点"/>
-                </FormItem>
-              </Form>
+            </FormItem>
+            <FormItem label="初始同步位点">
+              <Input v-model="target.gtid" :border="false" style="width: 80%" placeholder="请输入binlog拉取位点"/>
+            </FormItem>
+          </Form>
 
-              <p>
-                <span>共 </span><span
-                style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{
-                  this.updateData.length
-                }}</span>
-                <span> 行数据</span>
-              </p>
+          <p>
+            <span>共 </span><span
+              style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{
+              this.updateData.length
+            }}</span>
+            <span> 行数据</span>
+          </p>
+          <template>
+            <Table style="margin-top: 20px" stripe :columns="updateColumns" :data="updateData" border>
+            </Table>
+          </template>
+        </div>
+      </Modal>
+      <Modal
+          v-model="rollbackModal"
+          title="回滚至 MHA 同步"
+          width="1200px"
+          @on-ok="clearAndUpdateMhaGtid">
+        <div :style="{padding: '1px 1px',height: '100%'}">
+          <p>
+            <span style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">你正在进行回滚操作，将更新mha位点，并清空所有 db applier！</span>
+          </p>
+          <Divider></Divider>
+          <Form style="width: 80%">
+            <FormItem label="当前 DB 同步位点">
               <template>
-                <Table style="margin-top: 20px" stripe :columns="updateColumns" :data="updateData" border>
+                <Table style="margin-top: 20px" stripe :columns="dbGtidColumns" :data="gtidCheck.dbApplied" border>
                 </Table>
               </template>
-            </div>
-          </Modal>
-          <Modal
-            v-model="rollbackModal"
-            title="回滚至 MHA 同步"
-            width="1200px"
-            @on-ok="clearAndUpdateMhaGtid">
-            <div :style="{padding: '1px 1px',height: '100%'}">
-              <p>
-                <span style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">你正在进行回滚操作，将更新mha位点，并清空所有 db applier！</span>
-              </p>
-              <Divider></Divider>
-              <Form style="width: 80%">
-                <FormItem label="当前 DB 同步位点">
-                <template>
-                  <Table style="margin-top: 20px" stripe :columns="dbGtidColumns" :data="gtidCheck.dbApplied" border>
-                  </Table>
-                </template>
-                </FormItem>
-                <FormItem label="当前 Mha 同步位点">
-                  <Input :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaApplied" readonly/>
-                </FormItem>
-                <FormItem label="回滚后，Mha 初始同步位点将被设置为：">
-                  <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaTarget" readonly/>
-                </FormItem>
-              </Form>
-            </div>
-          </Modal>
-        </template>
-      </div>
+            </FormItem>
+            <FormItem label="当前 Mha 同步位点">
+              <Input :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaApplied" readonly/>
+            </FormItem>
+            <FormItem label="回滚后，Mha 初始同步位点将被设置为：">
+              <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaTarget" readonly/>
+            </FormItem>
+          </Form>
+        </div>
+      </Modal>
 
     </Content>
   </base-component>
@@ -631,6 +636,9 @@ export default {
         }
       }
       return true
+    },
+    showSelectOptionComponent () {
+      return this.tableData.length <= 50
     }
   }
 }

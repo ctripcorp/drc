@@ -24,7 +24,7 @@ public class ScannerFilterChainFactory implements FilterChainFactory<ScannerFilt
         ReadFilter readFilter = new ReadFilter(context.getRegisterKey());
         sendFilter.setSuccessor(readFilter);
 
-        IndexFilter indexFilter = new IndexFilter(context.getExcludedSet());
+        IndexFilter indexFilter = new IndexFilter(context);
         readFilter.setSuccessor(indexFilter);
 
         ScannerSkipFilter skipFilter = new ScannerSkipFilter(context);

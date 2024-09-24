@@ -142,7 +142,7 @@
               </Dropdown>
           </Col>
         </Row>
-        <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
+        <Table :loading="dataLoading" stripe border :columns="columns" :resizable="true" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row }" slot="action">
             <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.src.mhaName,row.dst.mhaName,false)">
               查看
@@ -261,6 +261,8 @@ export default {
           title: '延迟',
           key: 'drcStatus',
           align: 'center',
+          width: 150,
+          resizable: true,
           renderHeader: (h, params) => {
             return h('span', [
               h('span', '延迟'),
@@ -309,7 +311,8 @@ export default {
         {
           title: 'DB 名',
           key: 'srcDbName',
-          width: 300,
+          width: 250,
+          resizable: true,
           render: (h, params) => {
             return h('p', params.row.src.dbName)
           }
@@ -317,7 +320,8 @@ export default {
         {
           title: '业务部门',
           key: 'buText',
-          width: 100,
+          width: 150,
+          resizable: true,
           render: (h, params) => {
             return h('span', params.row.src.buName)
           }
@@ -326,6 +330,7 @@ export default {
           title: '源集群',
           key: 'srcMhaName',
           width: 250,
+          resizable: true,
           render: (h, params) => {
             return h('div', [
               params.row.src.mhaName + ' ',
@@ -341,6 +346,7 @@ export default {
           title: '目标集群',
           key: 'dstMhaName',
           width: 250,
+          resizable: true,
           render: (h, params) => {
             return h('div', [
               params.row.dst.mhaName + ' ',

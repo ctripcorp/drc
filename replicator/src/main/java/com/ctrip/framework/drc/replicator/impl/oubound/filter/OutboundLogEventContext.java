@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.server.common.EventReader;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.google.common.collect.Maps;
 import io.netty.buffer.CompositeByteBuf;
 import org.slf4j.Logger;
@@ -22,6 +23,8 @@ public class OutboundLogEventContext {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private FileChannel fileChannel;
+
+    private long fileSeq;
 
     /**
      * cached initial fileChannel position
@@ -64,10 +67,16 @@ public class OutboundLogEventContext {
         this.fileChannelSize = fileChannelSize;
     }
 
+    public BinlogPosition getBinlogPosition() {
+        return BinlogPosition.from(fileSeq, fileChannelPos);
+    }
+
     public FileChannel getFileChannel() {
         return fileChannel;
     }
-
+    public void setFileSeq(long fileSeq) {
+        this.fileSeq = fileSeq;
+    }
     public void setFileChannel(FileChannel fileChannel) {
         this.fileChannel = fileChannel;
     }

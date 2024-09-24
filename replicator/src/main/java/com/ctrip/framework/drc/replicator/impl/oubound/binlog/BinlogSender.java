@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 import io.netty.channel.Channel;
 
@@ -33,4 +34,6 @@ public interface BinlogSender extends Lifecycle {
     boolean concernSchema(String dbName);
 
     boolean concernTable(String tableName);
+
+    BinlogPosition getBinlogPosition();
 }

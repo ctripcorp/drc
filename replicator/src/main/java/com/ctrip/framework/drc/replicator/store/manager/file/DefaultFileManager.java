@@ -241,7 +241,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     @Override
     public File getNextLogFile(File current) {
-        long fileNum = FileUtil.getFileNumFromName(current.getName(), LOG_FILE_PREFIX);
+        long fileNum = getFileNum(current);
         fileNum++;
         String fileName = String.format(LOG_FILE_FORMAT, LOG_FILE_PREFIX, fileNum);
         File nextFile = new File(logDir, fileName);
@@ -880,6 +880,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         gtidManager.updatePurgedGtids(purgedGtid);
         logger.info("[Purged] gtid updated to {}", purgedGtid);
         return true;
+    }
+
+    public static long getFileNum(File file) {
+        return FileUtil.getFileNumFromName(file.getName(), LOG_FILE_PREFIX);
+    }
+
+    public static long getFileNum(String fileName) {
+        return FileUtil.getFileNumFromName(fileName, LOG_FILE_PREFIX);
     }
 
     public static List<String> getReplicators(String dir) {

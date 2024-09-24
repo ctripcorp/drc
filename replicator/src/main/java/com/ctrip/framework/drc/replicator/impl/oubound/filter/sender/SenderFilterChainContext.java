@@ -134,4 +134,9 @@ public class SenderFilterChainContext implements OutFilterChainContext {
     public void setChannel(Channel channel) {
         this.channel = channel;
     }
+
+    @VisibleForTesting
+    public void setConsumeType(ConsumeType consumeType) {
+        this.consumeType = consumeType;
+    }
 }

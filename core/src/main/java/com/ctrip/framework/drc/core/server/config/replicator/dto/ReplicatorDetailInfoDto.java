@@ -67,8 +67,7 @@ public class ReplicatorDetailInfoDto {
     public static class ScannerDto {
         private String consumeType;
         private List<SenderDto> senders;
-        private String gtid;
-        private String gtidGap;
+        private String binlogPosition;
         private String currentFile;
 
         public void setCurrentFile(String currentFile) {
@@ -87,20 +86,14 @@ public class ReplicatorDetailInfoDto {
             this.senders = senders;
         }
 
-        public void setGtidGap(String gtidGap) {
-            this.gtidGap = gtidGap;
+
+
+        public void setBinlogPosition(String binlogPosition) {
+            this.binlogPosition = binlogPosition;
         }
 
-        public String getGtidGap() {
-            return gtidGap;
-        }
-
-        public void setGtid(String gtid) {
-            this.gtid = gtid;
-        }
-
-        public String getGtid() {
-            return gtid;
+        public String getBinlogPosition() {
+            return binlogPosition;
         }
 
         public String getConsumeType() {
@@ -117,10 +110,10 @@ public class ReplicatorDetailInfoDto {
 
     public static class SenderDto {
         private String name;
-        private String gtid;
+        private String binlogPosition;
 
-        public String getGtid() {
-            return gtid;
+        public String getBinlogPosition() {
+            return binlogPosition;
         }
 
         public String getName() {
@@ -131,8 +124,8 @@ public class ReplicatorDetailInfoDto {
             this.name = name;
         }
 
-        public void setGtid(String gtid) {
-            this.gtid = gtid;
+        public void setBinlogPosition(String binlogPosition) {
+            this.binlogPosition = binlogPosition;
         }
 
         public SenderDto(String name) {

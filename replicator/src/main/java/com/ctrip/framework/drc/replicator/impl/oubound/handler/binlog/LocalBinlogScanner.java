@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.binlog.AbstractBinlogScan
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScanner;
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogSender;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ public class LocalBinlogScanner extends AbstractBinlogScanner {
 
     int fakeGtid = 0;
     String uuid = "zyn";
+    BinlogPosition binlogPosition;
 
     public LocalBinlogScanner(AbstractBinlogScannerManager manager, List<BinlogSender> localBinlogSenders) {
         super(manager, localBinlogSenders);
@@ -26,12 +28,22 @@ public class LocalBinlogScanner extends AbstractBinlogScanner {
     }
 
     @Override
+    public String getCurrentSendingFileName() {
+        return "rbinlog.0000000001";
+    }
+
+    @Override
     protected void setFileChannel(OutboundLogEventContext context) {
     }
 
     @Override
     protected void fileRoll() {
 
+    }
+
+    @Override
+    public BinlogPosition getBinlogPosition() {
+        return binlogPosition;
     }
 
     @Override
@@ -58,6 +70,10 @@ public class LocalBinlogScanner extends AbstractBinlogScanner {
     @Override
     protected void readFilePosition(OutboundLogEventContext context) {
         context.reset(0, Long.MAX_VALUE);
+    }
+
+    public void setBinlogPosition(BinlogPosition binlogPosition) {
+        this.binlogPosition = binlogPosition;
     }
 
 }

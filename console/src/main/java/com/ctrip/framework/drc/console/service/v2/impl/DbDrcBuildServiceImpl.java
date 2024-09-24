@@ -216,7 +216,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public String buildDbApplier(DrcBuildParam param) throws Exception {
+    public void buildDbApplier(DrcBuildParam param) throws Exception {
         DrcBuildBaseParam srcBuildParam = param.getSrcBuildParam();
         DrcBuildBaseParam dstBuildParam = param.getDstBuildParam();
         String srcMhaName = srcBuildParam.getMhaName();
@@ -253,14 +253,11 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
 
         // refresh
-        Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
-        String drcString = XmlUtils.formatXML(drc.toString());
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
             logger.error("metaProvider scheduledTask error", e);
         }
-        return drcString;
     }
 
     private BooleanEnum getMhaReplicationStatus(String srcMhaName, String dstMhaName, List<DbApplierDto> mhaDbAppliers) throws Exception {

@@ -4,20 +4,35 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.replicator.impl.oubound.ReplicatorException;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 
 
 /**
  * @author yongnian
  */
 public class SenderOutboundLogEventContext extends OutboundLogEventContext {
+    private final BinlogPosition binlogPosition;
 
-    public void refresh(OutboundLogEventContext origin) {
-        this.reset(origin.getFileChannelPos(), origin.getFileChannelSize());
-        this.setLogEvent(origin.getLogEvent());
-        this.setEventType(origin.getEventType());
-        this.setEventSize(origin.getEventSize());
-        this.setFileChannel(origin.getFileChannel());
-        this.setCompositeByteBuf(origin.getCompositeByteBuf());
+    public SenderOutboundLogEventContext() {
+        this.binlogPosition = BinlogPosition.empty();
+    }
+
+    public boolean refresh(OutboundLogEventContext scannerContext) {
+        if (!binlogPosition.tryMoveForward(scannerContext.getBinlogPosition())) {
+            return false;
+        }
+        this.reset(scannerContext.getFileChannelPos(), scannerContext.getFileChannelSize());
+        this.setLogEvent(scannerContext.getLogEvent());
+        this.setEventType(scannerContext.getEventType());
+        this.setEventSize(scannerContext.getEventSize());
+        this.setFileChannel(scannerContext.getFileChannel());
+        this.setCompositeByteBuf(scannerContext.getCompositeByteBuf());
+        return true;
+    }
+
+    @Override
+    public BinlogPosition getBinlogPosition() {
+        return binlogPosition;
     }
 
     @Override

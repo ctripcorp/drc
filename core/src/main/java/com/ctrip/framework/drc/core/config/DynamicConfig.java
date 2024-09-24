@@ -16,7 +16,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String SCANNER_SENDER_NUM_MAX = "binlog.scanner.sender.max";
     private static final String SCANNER_SENDER_NUM_MAX_KEY = SCANNER_SENDER_NUM_MAX+".%s";
     private static final String SCANNER_NUM_MAX = "binlog.scanner.max";
-    private static final String SCANNER_MERGE_GTID_GAP_MAX = "binlog.scanner.merge.gtid.gap.max";
+    private static final String SCANNER_MERGE_BINLOG_GAP_MAX = "binlog.scanner.merge.binlog.gap.max";
     private static final String SCANNER_MERGE_PERIOD_MILLI = "binlog.scanner.merge.period";
     private static final String SCANNER_SPLIT_EVENT_THRESHOLD = "binlog.scanner.split.event.threshold";
     private static final String CONSOLE_LOG_DELAY_THRESHOLD = "console.log.delay.threshold";
@@ -44,7 +44,9 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String CM_NOTIFY_THREAD = "cm.notify.thread";
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
     private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
-    
+
+    // 100MB
+    public static final int DEFAULT_MERGE_GAP_MAX = 100 * 1024 * 1024;
 
     private DynamicConfig() {}
 
@@ -92,8 +94,8 @@ public class DynamicConfig extends AbstractConfigBean {
         return getIntProperty(SCANNER_NUM_MAX, 100);
     }
 
-    public int getMaxGtidGapForMergeScanner() {
-        return getIntProperty(SCANNER_MERGE_GTID_GAP_MAX, 10000);
+    public int getMaxBinlogPositionGapForMergeScanner() {
+        return getIntProperty(SCANNER_MERGE_BINLOG_GAP_MAX, DEFAULT_MERGE_GAP_MAX);
     }
 
     public int getSnapshotTaskConcurrency() {
