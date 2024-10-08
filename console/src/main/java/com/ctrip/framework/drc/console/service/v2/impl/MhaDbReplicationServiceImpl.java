@@ -662,7 +662,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     }
 
     @Override
-    public void offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
+    public List<MhaDbReplicationTbl> offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
         List<DbReplicationTbl> existDbReplicationTbl = dbReplicationTblDao.queryBySamples(dbReplicationTbls);
         Set<MultiKey> existKey = existDbReplicationTbl.stream().map(StreamUtils::getKey).collect(Collectors.toSet());
         List<MhaDbReplicationTbl> samples = dbReplicationTbls.stream()
@@ -678,6 +678,32 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         mhaDbReplicationTbls = mhaDbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         mhaDbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         mhaDbReplicationTblDao.batchUpdate(mhaDbReplicationTbls);
+        return mhaDbReplicationTbls;
+    }
+
+    @Override
+    public void offlineMhaDbReplicationAndApplierV3(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.offlineMhaDbReplication(dbReplicationTbls);
+        deleteApplierGroupV3(mhaDbReplicationTbls);
+    }
+
+    private void deleteApplierGroupV3(List<MhaDbReplicationTbl> mhaDbReplicationTbls) throws SQLException{
+        List<Long> mhaDbReplicationIds = mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
+        List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryByIds(mhaDbReplicationIds);
+        if (CollectionUtils.isEmpty(applierGroupTblV3s)) {
+            logger.info("applierGroupTblV3s is empty, mhaDbReplicationIds: {}", mhaDbReplicationIds);
+            return;
+        }
+        List<Long> applierGroupTblV3Ids = applierGroupTblV3s.stream().map(ApplierGroupTblV3::getId).collect(Collectors.toList());
+        applierGroupTblV3s.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        logger.info("delete applierGroupTblV3s: {}", applierGroupTblV3Ids);
+        applierGroupTblV3Dao.update(applierGroupTblV3s);
+        List<ApplierTblV3> applierTblV3s = applierTblV3Dao.queryByApplierGroupIds(applierGroupTblV3Ids, BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(applierTblV3s)) {
+            applierTblV3s.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            logger.info("delete applierTblV3s: {}", applierTblV3s);
+            applierTblV3Dao.update(applierTblV3s);
+        }
     }
 
     private void insertAndUpdate(Pair<List<MhaDbReplicationTbl>, List<MhaDbReplicationTbl>> insertsAndUpdates) throws SQLException {
@@ -840,4 +866,6 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
 
         return Pair.from(insertTables, updateTables);
     }
+
+
 }
