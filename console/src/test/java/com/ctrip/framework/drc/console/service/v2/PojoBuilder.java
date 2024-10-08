@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
@@ -182,6 +183,16 @@ public class PojoBuilder {
         mhaReplicationTbl.setId(200L);
         mhaReplicationTbl.setSrcMhaDbMappingId(200L);
         mhaReplicationTbl.setDstMhaDbMappingId(201L);
+        return Lists.newArrayList(mhaReplicationTbl);
+    }
+
+    public static List<MhaDbReplicationTbl> getMhaDbReplicationTbls2() {
+        MhaDbReplicationTbl mhaReplicationTbl = new MhaDbReplicationTbl();
+        mhaReplicationTbl.setDeleted(0);
+        mhaReplicationTbl.setId(200L);
+        mhaReplicationTbl.setSrcMhaDbMappingId(200L);
+        mhaReplicationTbl.setDstMhaDbMappingId(201L);
+        mhaReplicationTbl.setReplicationType(ReplicationTypeEnum.DB_TO_DB.getType());
         return Lists.newArrayList(mhaReplicationTbl);
     }
 

@@ -77,7 +77,7 @@ public interface DrcBuildServiceV2 {
     // switchOnly: true: only switch,not add when replication is empty; false: switch or add
     void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl,
             MhaTblV2 destMhaTbl, String mhaExecutedGtid, boolean switchOnly) throws SQLException;
-    
+
     void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid,boolean switchOnly) throws SQLException;
 
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException;

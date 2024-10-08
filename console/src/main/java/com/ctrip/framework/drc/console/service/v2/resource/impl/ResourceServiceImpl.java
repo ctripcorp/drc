@@ -1191,9 +1191,19 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public MhaAzView getAllInstanceAzInfo() throws Exception {
+        Set<String> dcNameDba = consoleConfig.getDcNameDba();
+
         MhaAzView mhaAzView = new MhaAzView();
-        Map<String, Set<String>> az2MhaName = new HashMap<>();
-        Map<String, List<String>> az2DbInstance = new HashMap<>();
+        Map<String, Set<String>> az2MhaName = dcNameDba.stream()
+                .collect(Collectors.toMap(
+                        k -> k,
+                        v -> Sets.newHashSet()
+                ));
+        Map<String, List<String>> az2DbInstance = dcNameDba.stream()
+                .collect(Collectors.toMap(
+                        k -> k,
+                        v -> Lists.newArrayList()
+                ));
 
         Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
         List<MhaTblV2> drcRelatedMha = mhaTblV2Dao.queryAllExist();
@@ -1318,12 +1328,16 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     private Map<String, List<String>> getReplicatorAz(Drc drc) throws SQLException {
-        Map<String, List<String>> az2ReplicatorInstance = new HashMap<>();
-
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
         Map<String, Long> resourceIp2DcId = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getDcId, (s1, s2) -> s1));
         List<DcTbl> dcTbls = dcTblDao.queryAllExist();
         Map<Long, DcTbl> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, e -> e));
+        List<String> drcDcNames = dcTbls.stream().map(DcTbl::getDcName).distinct().collect(Collectors.toList());
+        Map<String, List<String>> az2ReplicatorInstance = drcDcNames.stream()
+                .collect(Collectors.toMap(
+                        k -> k,
+                        v -> Lists.newArrayList()
+                ));
 
         for (Map.Entry<String, Dc> dcEntry : drc.getDcs().entrySet()) {
             Dc dc = dcEntry.getValue();

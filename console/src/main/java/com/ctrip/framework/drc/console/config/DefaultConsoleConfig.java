@@ -155,6 +155,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
     private static String DRC_ADMIN_TOKEN = "drc.admin.token";
 
+    private static String DB_MIGRATION_SWITCH = "db.migration.switch";
+    private static String DC_NAME_DBA = "dc.name.dba";
+    private static String DEFAULT_DC_NAME_DBA = "sharb,shaxy,sha-ali,ntgxh,shafq,other";
+
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
     }
@@ -694,5 +698,15 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getNewDrcDefaultDbApplierMode() {
         return getBooleanProperty(BUILD_DRC_DEFAULT_DB_APPLIER_SWITCH, true);
+    }
+
+    public boolean getDbMigrationSwitch() {
+        return getBooleanProperty(DB_MIGRATION_SWITCH,false);
+    }
+
+    public Set<String> getDcNameDba() {
+        String dbNameDba = getProperty(DC_NAME_DBA, DEFAULT_DC_NAME_DBA);
+        logger.info("dc name dba: {}", dbNameDba);
+        return Sets.newHashSet(dbNameDba.split(","));
     }
 }

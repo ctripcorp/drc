@@ -57,6 +57,7 @@ import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.MigrationTaskManagerTest;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImplV2Test;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceImplV2Test;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponseV2Test;
@@ -144,6 +145,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ResourceServiceTest.class,
         DbMigrationServiceImplTest.class,
         DbMigrationServiceTest.class,
+        DbMigrationServiceImplV2Test.class,
+        DbMigrationServiceV2Test.class,
         DbaApiServiceTest.class,
         DbaApiServiceImplV2Test.class,
         DbaClusterInfoResponseV2Test.class,

@@ -9,10 +9,7 @@ import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
-import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
@@ -25,8 +22,10 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
@@ -553,6 +552,70 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void autoConfigDbAppliers(MhaDbReplicationTbl mhaDbReplication, ApplierGroupTblV3 applierGroup,MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String dbExecutedGtid, Integer concurrency, boolean switchOnly) throws SQLException {
+        List<ApplierTblV3> existAppliers = applierTblV3Dao.queryByApplierGroupId(applierGroup.getId(), BooleanEnum.FALSE.getCode());
+        if (switchOnly && CollectionUtils.isEmpty(existAppliers)) {
+            logger.info("[[mha={}, mhaDbReplication={}]] appliers not exist,do nothing when switchOnly", destMhaTbl.getMhaName(), mhaDbReplication.getId());
+            return;
+        }
+        // applier group gtid
+        if (!StringUtils.isBlank(dbExecutedGtid)) {
+            applierGroup.setGtidInit(dbExecutedGtid);
+            applierGroup.setConcurrency(concurrency);
+            applierGroupTblV3Dao.update(applierGroup);
+            logger.info("[[mha={}, mhaDbReplication={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaDbReplication.getId(), dbExecutedGtid);
+        }
+        // mha replication
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), destMhaTbl.getId());
+        if (mhaReplicationTbl.getDrcStatus() == 0) {
+            mhaReplicationTbl.setDrcStatus(1);
+            mhaReplicationTblDao.update(mhaReplicationTbl);
+            logger.info("[[mha={}]] autoConfigAppliers update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
+        }
+
+        // appliers
+        List<Long> inUseResourceId = existAppliers.stream().map(ApplierTblV3::getResourceId).collect(Collectors.toList());
+        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+
+        ResourceSelectParam selectParam = new ResourceSelectParam();
+        selectParam.setType(ModuleEnum.APPLIER.getCode());
+        selectParam.setMhaName(destMhaTbl.getMhaName());
+        selectParam.setSelectedIps(inUseIps);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            logger.error("[[mha={}, mhaDbReplication={}]] autoConfigAppliers failed", destMhaTbl.getMhaName(), mhaDbReplication.getId());
+            throw new ConsoleException("autoConfigAppliers failed!");
+        }
+        // insert new appliers
+        List<ApplierTblV3> insertAppliers = resourceViews.stream()
+                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
+                .map(e -> buildApplierTblV3(applierGroup, e))
+                .collect(Collectors.toList());
+
+        // delete old appliers
+        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+        List<ApplierTblV3> deleteAppliers = existAppliers.stream()
+                .filter(e -> !newResourceId.contains(e.getResourceId()))
+                .collect(Collectors.toList());
+        deleteAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        applierTblV3Dao.batchInsert(insertAppliers);
+        applierTblV3Dao.batchUpdate(deleteAppliers);
+        logger.info("[[mha={}, mhaDbReplication={}]] autoConfigAppliers success", destMhaTbl.getMhaName(), mhaDbReplication.getId());
+    }
+
+    private static ApplierTblV3 buildApplierTblV3(ApplierGroupTblV3 applierGroup, ResourceView resourceView) {
+        ApplierTblV3 applierTbl = new ApplierTblV3();
+        applierTbl.setApplierGroupId(applierGroup.getId());
+        applierTbl.setResourceId(resourceView.getResourceId());
+        applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+        applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+        applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return applierTbl;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid,boolean switchOnly) throws Exception {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha(srcMha, dstMha, dbNames);
         this.setMhaDbAppliers(replicationDtos);
@@ -600,6 +663,18 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
         return givenGtid;
 
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void autoConfigDbAppliersWithRealTimeGtid(MhaDbReplicationTbl mhaDbReplication, ApplierGroupTblV3 applierGroup,
+                                                     MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, Integer concurrency) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
+            throw new ConsoleException("getMhaExecutedGtid failed!");
+        }
+        this.autoConfigDbAppliers(mhaDbReplication, applierGroup, srcMhaTbl, destMhaTbl, mhaExecutedGtid, concurrency, false);
     }
 
     @Override

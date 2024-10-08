@@ -290,6 +290,17 @@ public class MockEntityBuilder {
         
     }
 
+    public static MhaDbReplicationTbl buildMhaDbReplicationTbl(Long pk, MhaDbMappingTbl srcMapping, MhaDbMappingTbl destMapping, Integer type) {
+        MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+        mhaDbReplicationTbl.setId(pk);
+        mhaDbReplicationTbl.setSrcMhaDbMappingId(srcMapping.getId());
+        mhaDbReplicationTbl.setDstMhaDbMappingId(destMapping.getId());
+        mhaDbReplicationTbl.setReplicationType(type);
+        mhaDbReplicationTbl.setDeleted(0);
+        return mhaDbReplicationTbl;
+
+    }
+
     public static ApplierGroupTblV3 buildDbApplierGroup(long pk, Long mhdDbReplicationId) {
         ApplierGroupTblV3 applierGroupTbl = new ApplierGroupTblV3();
         applierGroupTbl.setId(pk);

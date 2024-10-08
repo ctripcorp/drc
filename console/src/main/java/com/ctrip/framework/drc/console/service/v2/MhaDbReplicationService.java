@@ -40,7 +40,9 @@ public interface MhaDbReplicationService {
     /**
      * after delete dbReplicationTbls
      */
-    void offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
+    List<MhaDbReplicationTbl> offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
+
+    void offlineMhaDbReplicationAndApplierV3(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
 
     boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
 
