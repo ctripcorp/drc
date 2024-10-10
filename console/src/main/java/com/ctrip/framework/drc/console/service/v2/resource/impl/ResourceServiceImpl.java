@@ -1191,7 +1191,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public MhaAzView getAllInstanceAzInfo() throws Exception {
-        Set<String> dcNameDba = consoleConfig.getDcNameDba();
+        Set<String> dcNameDba = consoleConfig.getDbaDc2DrcDcMap().keySet();
 
         MhaAzView mhaAzView = new MhaAzView();
         Map<String, Set<String>> az2MhaName = dcNameDba.stream()
