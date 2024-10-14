@@ -21,6 +21,9 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     private static final String CONFLICT_LOG_BRIEF_REPORT_SIZE = "conflict.log.brief.report.size";
     private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
 
+    private static final String MQ_APPLY_COUNT = "mq.apply.count";
+    public static final int DEFAULT_MQ_APPLY_COUNT = 100;
+
 
     private ApplierDynamicConfig() {}
     
@@ -58,5 +61,9 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
 
     public int getApplierInstanceModifyThread() {
         return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 5);
+    }
+
+    public int getMqApplyCount() {
+        return getIntProperty(MQ_APPLY_COUNT, DEFAULT_MQ_APPLY_COUNT);
     }
 }

@@ -10,8 +10,10 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
+import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by jixinwang on 2022/10/12
@@ -38,6 +42,15 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     public MqMetricsActivity mqMetricsActivity;
 
     private int rowsSize;
+
+    private static final Map<String, AtomicInteger> activeThreadsMap = Maps.newConcurrentMap();
+
+    public static int getConcurrency(String registryKey) {
+        return activeThreadsMap.containsKey(registryKey) ? activeThreadsMap.get(registryKey).get() : 0;
+    }
+
+    @InstanceConfig(path = "registryKey")
+    public String registryKey;
 
     @Override
     public void doInitialize() throws Exception {
@@ -75,11 +88,15 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
     private void sendEventDatas(List<EventData> eventDatas) {
         List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
+        AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
+        atomicInteger.getAndIncrement();
         for (Producer producer : producers) {
             producer.send(eventDatas);
             rowsSize += eventDatas.size();
             reportHickWall(eventDatas, producer.getTopic());
         }
+        atomicInteger.getAndDecrement();
+
         if (progress != null) {
             progress.tick();
         }

@@ -13,8 +13,10 @@ import java.util.Map;
 public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boolean> {
 
     private static final String measurement = "fx.drc.messenger.produce";
+    private static final String measurementMessengerActive = "fx.drc.messenger.active";
 
     private Map<String, String> tags = Maps.newHashMap();
+    private Map<String, String> tagsMessengerActive = Maps.newHashMap();
 
     @InstanceConfig(path = "cluster")
     public String cluster = "unset";
@@ -28,16 +30,23 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
         super.doInitialize();
         tags.put("clusterName", cluster);
         tags.put("srcMhaName", srcMhaName);
+        tagsMessengerActive.put("clusterName", cluster);
+        tagsMessengerActive.put("srcMhaName", srcMhaName);
     }
 
     @Override
     public MqMonitorContext doTask(MqMonitorContext context) {
-        tags.put("db", context.getDbName());
-        tags.put("table", context.getTableName());
-        tags.put("type", context.getEventType().name());
-        tags.put("dcTag", context.getDcTag().getName());
-        tags.put("topic", context.getTopic());
-        DefaultReporterHolder.getInstance().reportResetCounter(tags, (long)context.getValue(), measurement);
+        if (context.getMetricName() != null && context.getMetricName().contains("messenger.active")) {
+            tagsMessengerActive.put("registryKey", context.getRegistryKey());
+            DefaultReporterHolder.getInstance().reportMessengerDelay(tagsMessengerActive, (long)context.getValue(), measurementMessengerActive);
+        } else {
+            tags.put("db", context.getDbName());
+            tags.put("table", context.getTableName());
+            tags.put("type", context.getEventType().name());
+            tags.put("dcTag", context.getDcTag().getName());
+            tags.put("topic", context.getTopic());
+            DefaultReporterHolder.getInstance().reportResetCounter(tags, (long) context.getValue(), measurement);
+        }
         return finish(context);
     }
 
@@ -50,4 +59,9 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
         trySubmit(mqMonitorContext);
     }
 
+    @Override
+    public void doStop() {
+        super.doStop();
+        DefaultReporterHolder.getInstance().removeRegister(measurementMessengerActive);
+    }
 }

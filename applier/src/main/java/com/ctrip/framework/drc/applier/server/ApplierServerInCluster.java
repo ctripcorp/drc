@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.server;
 
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
@@ -36,6 +37,9 @@ public class ApplierServerInCluster extends ApplierServer {
         switch (ApplyMode.getApplyMode(config.getApplyMode())) {
             case transaction_table:
                 applyConcurrency = TRANSACTION_TABLE_APPLY_COUNT;
+                break;
+            case mq:
+                applyConcurrency = ApplierDynamicConfig.getInstance().getMqApplyCount();
                 break;
             default:
                 applyConcurrency = DEFAULT_APPLY_COUNT;

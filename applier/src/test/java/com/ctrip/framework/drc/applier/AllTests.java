@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier;
 
 import com.ctrip.framework.drc.applier.activity.event.ApplierDumpEventActivityTest;
 import com.ctrip.framework.drc.applier.activity.event.TransactionTableApplierDumpEventActivityTest;
+import com.ctrip.framework.drc.applier.activity.monitor.MqMetricsActivityTest;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivityTest;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnectorTest;
 import com.ctrip.framework.drc.applier.confirmed.ConfirmedTests;
@@ -12,6 +13,7 @@ import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTest;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTestWithMockedEvents;
 import com.ctrip.framework.drc.applier.mq.MqPositionResourceTest;
+import com.ctrip.framework.drc.applier.mq.MqProviderResourceTest;
 import com.ctrip.framework.drc.applier.resource.TransactionTableResourceTest;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResourceInnerBucketTest;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResourceInnerChartTest;
@@ -104,10 +106,12 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         ApplierDumpEventActivityTest.class,
         TransactionTableApplierDumpEventActivityTest.class,
         ReportConflictActivityTest.class,
+        MqMetricsActivityTest.class,
 
         //mq
         MqPositionResourceTest.class,
-        MqTransactionContextResourceTest.class
+        MqTransactionContextResourceTest.class,
+        MqProviderResourceTest.class
 })
 public class AllTests {
 
