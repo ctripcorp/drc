@@ -51,4 +51,6 @@ public interface MhaDbReplicationService {
     List<MhaDbDelayInfoDto> getReplicationDelays(List<Long> replicationIds);
 
     List<MhaDbReplicationDto> queryByDbNames(List<String> dbNames, ReplicationTypeEnum typeEnum);
+
+    List<MhaDbReplicationDto> queryByDbNamesAndMhaNames(List<String> dbNames, List<String> relateMhas, ReplicationTypeEnum typeEnum);
 }

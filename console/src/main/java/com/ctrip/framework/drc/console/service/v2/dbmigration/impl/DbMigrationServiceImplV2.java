@@ -1535,7 +1535,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
     private Pair<String,Boolean> isRelatedDelaySmallDbGranularity(List<String> dbNames, List<String> mhas) {
         try {
             // 1. get mha db replication delay info
-            List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, DB_TO_DB);
+            List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNamesAndMhaNames(dbNames, mhas, DB_TO_DB);
             mhaDbReplicationDtos = mhaDbReplicationDtos.stream().filter(e -> Boolean.TRUE.equals(e.getDrcStatus())).collect(Collectors.toList());
             List<Long> all = mhaDbReplicationDtos.stream().map(MhaDbReplicationDto::getId).collect(Collectors.toList());
             List<MhaDbDelayInfoDto> mhaDbReplicationDelays = mhaDbReplicationService.getReplicationDelays(all);

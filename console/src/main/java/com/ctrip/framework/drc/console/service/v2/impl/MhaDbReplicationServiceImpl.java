@@ -494,6 +494,32 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         }
     }
 
+    @Override
+    public List<MhaDbReplicationDto> queryByDbNamesAndMhaNames(List<String> dbNames, List<String> relateMhas, ReplicationTypeEnum typeEnum) {
+        try {
+            List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
+            List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).distinct().collect(Collectors.toList());
+            List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(relateMhas, BooleanEnum.FALSE.getCode());
+            List<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).distinct().collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(dbIds, mhaIds);
+
+            List<Long> relatedMappingTbls = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(relatedMappingTbls)) {
+                return Collections.emptyList();
+            }
+
+            // 2 query dbReplications/mhaDbReplication by (src -> dst) mapping id
+            MhaDbReplicationQuery mhaDbReplicationQuery = new MhaDbReplicationQuery();
+            mhaDbReplicationQuery.setRelatedMappingList(relatedMappingTbls);
+            mhaDbReplicationQuery.setType(typeEnum.getType());
+            List<MhaDbReplicationTbl> replicationTbls = mhaDbReplicationTblDao.query(mhaDbReplicationQuery);
+
+            return convert(replicationTbls);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
     /**
      * @return (failsafe) empty list if query fail
      */
