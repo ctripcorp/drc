@@ -47,6 +47,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         context.updateGtid(gtid);
         MqProvider mockProvider = Mockito.mock(MqProvider.class);
         context.mqProvider = mockProvider;
+        context.registryKey = "registryKey";
 
         MqMetricsActivity mockMetricsActivity = Mockito.mock(MqMetricsActivity.class);
         context.mqMetricsActivity = mockMetricsActivity;

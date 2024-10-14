@@ -14,6 +14,14 @@ public class MqMonitorContext {
     private EventType eventType;
     private DcTag dcTag;
     private String topic;
+    private String metricName;
+    private String registryKey;
+
+    public MqMonitorContext(int value, String registryKey, String metricName) {
+        this.value = value;
+        this.registryKey = registryKey;
+        this.metricName = metricName;
+    }
 
     public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic) {
         this.dbName = dbName;
@@ -70,5 +78,21 @@ public class MqMonitorContext {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String getMetricName() {
+        return metricName;
+    }
+
+    public void setMetricName(String metricName) {
+        this.metricName = metricName;
+    }
+
+    public String getRegistryKey() {
+        return registryKey;
+    }
+
+    public void setRegistryKey(String registryKey) {
+        this.registryKey = registryKey;
     }
 }
