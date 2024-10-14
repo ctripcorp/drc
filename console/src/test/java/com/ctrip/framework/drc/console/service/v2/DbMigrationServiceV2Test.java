@@ -404,7 +404,7 @@ public class DbMigrationServiceV2Test {
             Mockito.when(mhaDbReplicationService.getReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelayDbMode());
             MhaDbReplicationDto dto = new MhaDbReplicationDto();
             dto.setDrcStatus(Boolean.TRUE);
-            Mockito.when(mhaDbReplicationService.queryByDbNames(Mockito.anyList(),Mockito.eq(ReplicationTypeEnum.DB_TO_DB))).thenReturn(Lists.newArrayList(dto));
+            Mockito.when(mhaDbReplicationService.queryByDbNamesAndMhaNames(Mockito.anyList(),Mockito.anyList(),Mockito.eq(ReplicationTypeEnum.DB_TO_DB))).thenReturn(Lists.newArrayList(dto));
 
 
             Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
