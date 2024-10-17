@@ -40,8 +40,6 @@ public class OutboundLogEventContext {
 
     private long eventSize;
 
-    private boolean noRewrite = false;
-
     private boolean rewrite;
 
     private CompositeByteBuf compositeByteBuf;
@@ -57,6 +55,8 @@ public class OutboundLogEventContext {
     private String gtid;
 
     private boolean everSeeGtid;
+
+    private boolean inExcludeGroup = false;
 
     public OutboundLogEventContext() {
     }
@@ -153,14 +153,6 @@ public class OutboundLogEventContext {
         this.skipEvent = skipEvent;
     }
 
-    public boolean isNoRewrite() {
-        return noRewrite;
-    }
-
-    public void setNoRewrite(boolean noRewrite) {
-        this.noRewrite = noRewrite;
-    }
-
     public void setGtid(String gtid) {
         this.gtid = gtid;
     }
@@ -175,6 +167,14 @@ public class OutboundLogEventContext {
 
     public void setEverSeeGtid(boolean everSeeGtid) {
         this.everSeeGtid = everSeeGtid;
+    }
+
+    public boolean isInExcludeGroup() {
+        return inExcludeGroup;
+    }
+
+    public void setInExcludeGroup(boolean inExcludeGroup) {
+        this.inExcludeGroup = inExcludeGroup;
     }
 
     public void reset(long fileChannelPos, long fileChannelSize) {

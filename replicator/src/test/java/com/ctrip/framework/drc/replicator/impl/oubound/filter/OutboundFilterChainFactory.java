@@ -131,7 +131,6 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             clone.setLogEvent(value.logEvent);
             clone.setCause(value.getCause());
             clone.setSkipEvent(value.isSkipEvent());
-            clone.setNoRewrite(value.isNoRewrite());
             clone.setGtid(value.getGtid());
             clone.setEverSeeGtid(value.isEverSeeGtid());
             return clone;
@@ -490,7 +489,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
             inExcludeGroup = skipEvent(excludedSet, eventType, gtidLogEvent.getGtid());
             if (inExcludeGroup) {
-                GTID_LOGGER.info("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", previousGtid, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
+                GTID_LOGGER.debug("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", previousGtid, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
                 value.setSkipEvent(true);
                 long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();

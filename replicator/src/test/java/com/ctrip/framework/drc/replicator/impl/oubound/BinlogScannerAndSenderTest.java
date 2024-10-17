@@ -32,7 +32,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.Attribute;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -62,6 +61,8 @@ public class BinlogScannerAndSenderTest {
     private int firstTransactionId = 957362561;
     public static final String BINLOG_PATH = "/rbinlog.0000000001";
     public static final boolean CHECK_REPLICATOR_SLAVE = true;
+    public static final boolean CHECK_NOT_EXIST_DB = true;
+
     private static final boolean SCHEDULE_CLOSE_GATE = true;
 
     private final List<ConsumeType> types = Lists.newArrayList(ConsumeType.Applier, ConsumeType.Messenger);
@@ -83,14 +84,8 @@ public class BinlogScannerAndSenderTest {
     private File file;
 
     private String getRandomGtid() {
-        int i = new Random().nextInt(1000) + firstTransactionId;
+        int i = new Random().nextInt(20000) + firstTransactionId;
         return UUID + ":1-" + i;
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.openMocks(this);
-        initialize();
     }
 
 
@@ -111,19 +106,39 @@ public class BinlogScannerAndSenderTest {
         }
     }
 
+    @Test
+    public void test() throws Exception {
+        int round = 3;
+        for (int i = 1; i <= round; i++) {
+            long before = System.currentTimeMillis();
+            System.out.printf("-------test start [%d/%d] -------%n", i, round);
+            testStart();
+            long cost = System.currentTimeMillis() - before;
+            System.out.printf("-------test success [%d/%d] cost = %d ms-------%n", i, round, cost);
+        }
+    }
 
     /**
      * 1.merge 后，从gtid开始同步 (
      *
      * @throws InterruptedException
      */
-    @Test
-    public void testStart() throws InterruptedException {
+    public void testStart() throws Exception {
+        MockitoAnnotations.openMocks(this);
+        initialize();
+
         int i = 1;
         if (CHECK_REPLICATOR_SLAVE) {
             String randomGtid = getRandomGtid();
             startSlaveDump(randomGtid);
             startSlaveDumpBefore(randomGtid);
+        }
+
+        if (CHECK_NOT_EXIST_DB) {
+            String randomGtid = getRandomGtid();
+            String dbName = "some_xxx_db_not_exist";
+            startDumpToTest(0, dbName, randomGtid);
+            startDumpBefore(0, dbName, randomGtid);
         }
 
         if (CHECK_INTEGRATION_TEST_DB) {
@@ -150,8 +165,11 @@ public class BinlogScannerAndSenderTest {
     }
 
 
-    private void waitAndCheckResult() throws InterruptedException {
+    private void waitAndCheckResult() throws Exception {
         int parallelNum = PARALLEL_NUM * types.size() * 2;
+        if (CHECK_NOT_EXIST_DB) {
+            parallelNum += types.size();
+        }
         if (CHECK_REPLICATOR_SLAVE) {
             parallelNum += 1;
         }
@@ -160,10 +178,13 @@ public class BinlogScannerAndSenderTest {
         List<OutboundFilterChainFactory.OldLocalSendFilter> oldSendFilters = getOldLocalSendFilters(dumpTasks);
         Assert.assertEquals(parallelNum, oldSendFilters.size());
 
+        Set<String> requiredApplierNames = dumpTasks.stream().map(ApplierRegisterCommandHandlerBefore.DumpTask::getApplierName).collect(Collectors.toSet());
         // new
         DefaultBinlogScannerManager scannerManager = (DefaultBinlogScannerManager) applierRegisterCommandHandler.getBinlogScannerManager();
         List<LocalSendFilter> newSendFilters = getNewLocalSendFilters(scannerManager);
-        Assert.assertEquals(parallelNum, newSendFilters.size());
+        Set<String> exitApplierNames = newSendFilters.stream().map(LocalSendFilter::getName).collect(Collectors.toSet());
+        requiredApplierNames.removeAll(exitApplierNames);
+        Assert.assertEquals(requiredApplierNames.toString(), parallelNum, newSendFilters.size());
 
         // wait end
         while (!scannerManager.isScannerEmpty() || dumpTasks.stream().anyMatch(ApplierRegisterCommandHandlerBefore.DumpTask::loop)) {
@@ -184,6 +205,8 @@ public class BinlogScannerAndSenderTest {
         System.out.println("before: " + JsonUtils.toJson(oldMap));
         Assert.assertEquals(String.join("\n", errors), 0, errors.size());
         Assert.assertEquals(configsDiff.toString(), oldMap, newMap);
+        applierRegisterCommandHandler.dispose();
+        applierRegisterCommandHandlerBefore.dispose();
     }
 
     private void test(List<? extends LocalHistoryForTest> sendFilters, Map<ConsumeType, Map<LogEventType, Set<LogEventType>>> fsmByConsumeType, List<String> errors, Map<String, Map<LogEventType, Integer>> allMap) {
@@ -240,9 +263,9 @@ public class BinlogScannerAndSenderTest {
         fsm.put(drc_ddl_log_event, Sets.newHashSet(drc_table_map_log_event, gtid_log_event, xid_log_event, drc_ddl_log_event));
         fsm.put(drc_table_map_log_event, Sets.newHashSet(xid_log_event, drc_table_map_log_event, drc_schema_snapshot_log_event, drc_uuid_log_event, gtid_log_event, drc_ddl_log_event));
         fsm.put(drc_schema_snapshot_log_event, Sets.newHashSet(drc_uuid_log_event));
-        fsm.put(drc_uuid_log_event, Sets.newHashSet(drc_ddl_log_event, gtid_log_event));
+        fsm.put(drc_uuid_log_event, Sets.newHashSet(drc_ddl_log_event, gtid_log_event, format_description_log_event));
         fsm.put(format_description_log_event, Sets.newHashSet(previous_gtids_log_event));
-        fsm.put(previous_gtids_log_event, Sets.newHashSet(drc_table_map_log_event, gtid_log_event));
+        fsm.put(previous_gtids_log_event, Sets.newHashSet(drc_table_map_log_event, gtid_log_event, drc_uuid_log_event));
         return fsm;
     }
 
@@ -254,6 +277,7 @@ public class BinlogScannerAndSenderTest {
         fsm.computeIfAbsent(drc_filter_log_event, k -> Sets.newHashSet()).add(drc_filter_log_event);
         fsm.computeIfAbsent(drc_filter_log_event, k -> Sets.newHashSet()).add(drc_ddl_log_event);
         fsm.computeIfAbsent(drc_filter_log_event, k -> Sets.newHashSet()).add(drc_gtid_log_event);
+        fsm.computeIfAbsent(drc_filter_log_event, k -> Sets.newHashSet()).add(format_description_log_event);
         fsm.computeIfAbsent(gtid_log_event, k -> Sets.newHashSet()).add(query_log_event);
         fsm.computeIfAbsent(drc_table_map_log_event, k -> Sets.newHashSet()).add(query_log_event);
         fsm.computeIfAbsent(drc_table_map_log_event, k -> Sets.newHashSet()).add(drc_filter_log_event);
@@ -304,6 +328,7 @@ public class BinlogScannerAndSenderTest {
             context.setChannel(mockChannel("11.22.33.44", SCHEDULE_CLOSE_GATE, e.getApplierName()));
             context.setRegisterKey(e.getApplierName());
             context.setConsumeType(e.getConsumeType());
+            context.setBinlogSender(e);
             LocalSendFilter local = new LocalSendFilter(context);
             e.getFilterChain().setSuccessor(local);
             local.setSuccessor(rest);
@@ -506,7 +531,7 @@ public class BinlogScannerAndSenderTest {
         if (consumeType == ConsumeType.Applier) {
             return "mha2.mha1." + dbName;
         } else if (consumeType == ConsumeType.Messenger) {
-            return "mha1." + dbName;
+            return "drc_mq.mha1." + dbName;
         }
         return null;
     }

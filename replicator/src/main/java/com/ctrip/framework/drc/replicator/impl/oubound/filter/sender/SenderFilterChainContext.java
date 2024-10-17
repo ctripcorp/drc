@@ -139,4 +139,8 @@ public class SenderFilterChainContext implements OutFilterChainContext {
     public void setConsumeType(ConsumeType consumeType) {
         this.consumeType = consumeType;
     }
+    @VisibleForTesting
+    public void setBinlogSender(BinlogSender binlogSender) {
+        this.binlogSender = binlogSender;
+    }
 }

@@ -104,10 +104,10 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
 
     @Override
     public void tryMergeScanner(BinlogScanner src) {
-        if (src.getSenders().size() >= DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey)) {
+        if (!this.isCollecting(src.getConsumeType())) {
             return;
         }
-        if (!this.isCollecting(src.getConsumeType())) {
+        if (src.getSenders().size() >= DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey)) {
             return;
         }
         boolean preCheckMerge = calculate(scannerMap.get(src.getConsumeType())).stream().anyMatch(e -> e.canMerge() && e.isRelated(src));
@@ -277,6 +277,9 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
         this.clearReporter();
         if (mergeService != null) {
             this.mergeService.shutdown();
+        }
+        if (executorService != null) {
+            this.executorService.shutdown();
         }
     }
 

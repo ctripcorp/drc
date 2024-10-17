@@ -12,8 +12,7 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.context.FilterChainContext;
 import org.apache.commons.lang3.StringUtils;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_gtid_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isDrcGtidLogEvent;
 import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isOriginGtidLogEvent;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
@@ -29,8 +28,6 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
 
     protected String previousGtid = StringUtils.EMPTY;
 
-    protected boolean inExcludeGroup = false;
-
     private String registerKey;
 
     public SkipFilter(FilterChainContext context) {
@@ -38,7 +35,7 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
         this.registerKey = context.getRegisterKey();
     }
 
-    protected abstract void channelHandleEvent(LogEventType eventType);
+    protected abstract void channelHandleEvent(OutboundLogEventContext value, LogEventType eventType);
 
     protected abstract void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset);
 
@@ -57,7 +54,7 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
             handleNonGtidEvent(value, eventType);
         }
 
-        channelHandleEvent(eventType);
+        channelHandleEvent(value, eventType);
 
         return doNext(value, value.isSkipEvent());
     }
@@ -70,8 +67,8 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
         previousGtid = value.getGtid();
 
         Gtid gtid = Gtid.from(gtidLogEvent);
-        inExcludeGroup = skipEvent(eventType, gtid);
-        if (inExcludeGroup) {
+        this.skipEvent(value, eventType, gtid);
+        if (value.isInExcludeGroup()) {
             GTID_LOGGER.debug("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", value.getGtid(), gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
             value.setSkipEvent(true);
@@ -83,26 +80,26 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
     }
 
     private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
-        if (inExcludeGroup && !LogEventUtils.isSlaveConcerned(eventType)) {
+        if (value.isInExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
             skipEvent(value);
             value.setSkipEvent(true);
             //skip all transaction, clear in_exclude_group
             if (xid_log_event == eventType) {
                 GTID_LOGGER.debug("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
-                inExcludeGroup = false;
+                value.setInExcludeGroup(false);
             }
         }
     }
 
-    private boolean skipEvent( LogEventType eventType, Gtid gtid) {
+    private void skipEvent(OutboundLogEventContext value, LogEventType eventType, Gtid gtid) {
         if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
-            return true;
+            value.setInExcludeGroup(true);
+            return;
         }
-        GtidSet excludedSet = this.getExcludedGtidSet();
         if (LogEventUtils.isGtidLogEvent(eventType)) {
-            return gtid.isContainedWithin(excludedSet);
+            GtidSet excludedSet = this.getExcludedGtidSet();
+            value.setInExcludeGroup(value.isInExcludeGroup() || gtid.isContainedWithin(excludedSet));
         }
-        return inExcludeGroup;
     }
 
     protected void logGtid(String gtidForLog, LogEventType eventType) {

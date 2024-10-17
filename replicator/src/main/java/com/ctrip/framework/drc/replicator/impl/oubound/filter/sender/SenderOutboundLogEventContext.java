@@ -18,7 +18,7 @@ public class SenderOutboundLogEventContext extends OutboundLogEventContext {
     }
 
     public boolean refresh(OutboundLogEventContext scannerContext) {
-        if (!binlogPosition.tryMoveForward(scannerContext.getBinlogPosition())) {
+        if (!updatePosition(scannerContext.getBinlogPosition())) {
             return false;
         }
         this.reset(scannerContext.getFileChannelPos(), scannerContext.getFileChannelSize());
@@ -28,6 +28,10 @@ public class SenderOutboundLogEventContext extends OutboundLogEventContext {
         this.setFileChannel(scannerContext.getFileChannel());
         this.setCompositeByteBuf(scannerContext.getCompositeByteBuf());
         return true;
+    }
+
+    public boolean updatePosition(BinlogPosition scannerBinlogPosition) {
+        return this.binlogPosition.tryMoveForward(scannerBinlogPosition);
     }
 
     @Override

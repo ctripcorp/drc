@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.server.common.SizeNotEnoughException;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.replicator.impl.oubound.ReplicatorException;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,6 +197,8 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     public void notifySenders(OutboundLogEventContext context) throws Exception {
         if (!this.isConcern(context)) {
+            final BinlogPosition binlogPosition = context.getBinlogPosition();
+            senders.forEach(sender -> sender.updatePosition(binlogPosition));
             return;
         }
         this.preSend(context);

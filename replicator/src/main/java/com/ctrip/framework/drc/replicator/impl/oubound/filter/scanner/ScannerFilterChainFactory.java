@@ -10,7 +10,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.*;
  * @author yongnian
  * <p>
  * preFilter
- * ReadFilter -> IndexFilter -> ScannerSkipFilter -> TypeFilter -> ScannerSchemaFilter -> ScannerTableNameFilter
+ * ReadFilter -> IndexFilter -> TypeFilter -> ScannerSchemaFilter -> ScannerSkipFilter -> ScannerTableNameFilter
  * <p>
  * postFilter
  * ScannerPositionFilter
@@ -27,18 +27,21 @@ public class ScannerFilterChainFactory implements FilterChainFactory<ScannerFilt
         IndexFilter indexFilter = new IndexFilter(context);
         readFilter.setSuccessor(indexFilter);
 
-        ScannerSkipFilter skipFilter = new ScannerSkipFilter(context);
-        indexFilter.setSuccessor(skipFilter);
-
         TypeFilter consumeTypeFilter = new TypeFilter(context.getConsumeType());
-        skipFilter.setSuccessor(consumeTypeFilter);
+        indexFilter.setSuccessor(consumeTypeFilter);
 
         if (ConsumeType.Replicator != context.getConsumeType()) {
             ScannerSchemaFilter schemaFilter = new ScannerSchemaFilter(context);
             consumeTypeFilter.setSuccessor(schemaFilter);
 
+            ScannerSkipFilter skipFilter = new ScannerSkipFilter(context);
+            schemaFilter.setSuccessor(skipFilter);
+
             ScannerTableNameFilter tableNameFilter = new ScannerTableNameFilter(context);
-            schemaFilter.setSuccessor(tableNameFilter);
+            skipFilter.setSuccessor(tableNameFilter);
+        } else {
+            ScannerSkipFilter skipFilter = new ScannerSkipFilter(context);
+            consumeTypeFilter.setSuccessor(skipFilter);
         }
 
         return sendFilter;
