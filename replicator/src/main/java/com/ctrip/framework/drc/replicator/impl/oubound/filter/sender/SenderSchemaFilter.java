@@ -18,7 +18,7 @@ public class SenderSchemaFilter extends SchemaFilter {
     }
 
     @Override
-    protected boolean concern(String schema, int eventCount) {
+    protected boolean concern(String schema, int eventCount, boolean noRowsEvent) {
         return sender.concernSchema(schema);
     }
 

@@ -43,7 +43,7 @@ public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEve
         FilterLogEvent filterLogEvent = value.readFilterEvent();
         value.setLogEvent(filterLogEvent);
         previousSchema = filterLogEvent.getSchemaNameLowerCaseV2();
-        inExcludeGroup = !this.concern(previousSchema, filterLogEvent.getEventCount());
+        inExcludeGroup = !this.concern(previousSchema, filterLogEvent.getEventCount(), filterLogEvent.isNoRowsEvent());
         if (inExcludeGroup) {
             long nextTransactionOffset = filterLogEvent.getNextTransactionOffset();
             if (nextTransactionOffset > 0) {
@@ -74,7 +74,7 @@ public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEve
 
     public abstract void skipEvent(OutboundLogEventContext value);
 
-    protected abstract boolean concern(String schema, int eventCount);
+    protected abstract boolean concern(String schema, int eventCount, boolean noRowsEvent);
 
     protected abstract void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset);
 

@@ -56,7 +56,7 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  */
 public class DefaultFileManagerTest extends AbstractTransactionTest {
 
-    public static final int FILTER_LOG_EVENT_SIZE = 45;
+    public static final int FILTER_LOG_EVENT_SIZE = 49;
     private int purgeSize = 5;
 
     private GtidManager gtidManager;

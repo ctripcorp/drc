@@ -31,7 +31,10 @@ public class ScannerSchemaFilter extends SchemaFilter {
     }
 
     @Override
-    protected boolean concern(String schema, int eventCount) {
+    protected boolean concern(String schema, int eventCount, boolean noRowsEvent) {
+        if (noRowsEvent) {
+            return false;
+        }
         splitBigTransactionIfNeeded(schema, eventCount);
         return senders.stream().anyMatch(sender -> sender.concernSchema(schema));
     }
