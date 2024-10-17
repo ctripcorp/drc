@@ -37,22 +37,25 @@ public class ScannerSkipFilterTest {
         ScannerSkipFilter scannerSkipFilter = new ScannerSkipFilter(context);
 
         // 1. test excluded gtid
-        OutboundLogEventContext value = getGtidContextWithoutOffest(uuid, 100);
+        OutboundLogEventContext value = new OutboundLogEventContext();
+        value = getGtidContextWithoutOffest(value,uuid, 100);
         scannerSkipFilter.doFilter(value);
         verify(value.getFileChannel(), times(0)).position(anyLong());
         Assert.assertTrue(value.isSkipEvent());
 
-        value = getTableMapContext();
+        value = getTableMapContext(value);
         scannerSkipFilter.doFilter(value);
         verify(value.getFileChannel(), times(1)).position(tableMapEventSize - eventHeaderLengthVersionGt1);
         Assert.assertTrue(value.isSkipEvent());
 
-        value = getXid();
+        value = getXid(value);
         scannerSkipFilter.doFilter(value);
         verify(value.getFileChannel(), times(1)).position(xidEventSize - eventHeaderLengthVersionGt1);
         Assert.assertTrue(value.isSkipEvent());
 
-        value = getGtidContextWithoutOffest(uuid, 101);
+        value.reset(0,0);
+        Assert.assertFalse(value.isSkipEvent());
+        value = getGtidContextWithoutOffest(value,uuid, 101);
         scannerSkipFilter.doFilter(value);
         verify(value.getFileChannel(), times(0)).position(anyLong());
         Assert.assertFalse(value.isSkipEvent());
@@ -114,11 +117,11 @@ public class ScannerSkipFilterTest {
             verify(value.getFileChannel(), times(0)).position(anyLong());
             Assert.assertFalse(value.isSkipEvent());
 
-            value = getTableMapContext();
+            value = getTableMapContext(value);
             scannerSkipFilter.doFilter(value);
             Assert.assertFalse(value.isSkipEvent());
 
-            value = getXid();
+            value = getXid(value);
             scannerSkipFilter.doFilter(value);
             Assert.assertFalse(value.isSkipEvent());
         }
@@ -136,11 +139,11 @@ public class ScannerSkipFilterTest {
             verify(value.getFileChannel(), times(0)).position(anyLong());
             Assert.assertFalse(value.isSkipEvent());
 
-            value = getTableMapContext();
+            value = getTableMapContext(value);
             scannerSkipFilter.doFilter(value);
             Assert.assertFalse(value.isSkipEvent());
 
-            value = getXid();
+            value = getXid(value);
             scannerSkipFilter.doFilter(value);
             Assert.assertFalse(value.isSkipEvent());
         }
@@ -150,28 +153,24 @@ public class ScannerSkipFilterTest {
 
     int xidEventSize = 1805;
 
-    private OutboundLogEventContext getXid() {
-        OutboundLogEventContext value = new OutboundLogEventContext();
+    private OutboundLogEventContext getXid(OutboundLogEventContext value) {
         value.setEventType(LogEventType.xid_log_event);
         value.setLogEvent(new XidLogEvent());
         value.setFileChannel(mock(FileChannel.class));
         value.setEventSize(xidEventSize);
         value.setFileChannelPos(fileChannelPos);
 
-        Assert.assertFalse(value.isSkipEvent());
         return value;
     }
 
     int tableMapEventSize = 4185;
 
-    private OutboundLogEventContext getTableMapContext() {
-        OutboundLogEventContext value = new OutboundLogEventContext();
+    private OutboundLogEventContext getTableMapContext(OutboundLogEventContext value) {
         value.setEventType(LogEventType.table_map_log_event);
         value.setLogEvent(new TableMapLogEvent());
         value.setFileChannel(mock(FileChannel.class));
         value.setEventSize(tableMapEventSize);
         value.setFileChannelPos(fileChannelPos);
-        Assert.assertFalse(value.isSkipEvent());
 
         return value;
     }
@@ -189,12 +188,10 @@ public class ScannerSkipFilterTest {
         value.setEventSize(gtidEventSize);
         value.setFileChannelPos(fileChannelPos);
 
-        Assert.assertFalse(value.isSkipEvent());
         return value;
     }
 
-    private OutboundLogEventContext getGtidContextWithoutOffest(String uuid, int id) {
-        OutboundLogEventContext value = new OutboundLogEventContext();
+    private OutboundLogEventContext getGtidContextWithoutOffest(OutboundLogEventContext value,String uuid, int id) {
         value.setEventType(LogEventType.gtid_log_event);
         GtidLogEvent logEvent = new GtidLogEvent(uuid + ":" + id);
         value.setLogEvent(logEvent);
@@ -202,7 +199,6 @@ public class ScannerSkipFilterTest {
         value.setEventSize(gtidEventSize);
         value.setFileChannelPos(fileChannelPos);
 
-        Assert.assertFalse(value.isSkipEvent());
         return value;
     }
 }

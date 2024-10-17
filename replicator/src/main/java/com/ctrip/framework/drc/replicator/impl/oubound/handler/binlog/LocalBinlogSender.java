@@ -63,6 +63,14 @@ public class LocalBinlogSender extends AbstractLifecycle implements BinlogSender
     }
 
     @Override
+    public void updatePosition(BinlogPosition binlogPosition) {
+    }
+
+    @Override
+    public void refreshInExcludedGroup(OutboundLogEventContext scannerContext) {
+    }
+
+    @Override
     public boolean concernTable(String tableName) {
         return aviatorFilter.filter(tableName);
     }

@@ -162,6 +162,17 @@ public class DefaultBinlogSender extends AbstractLifecycle implements BinlogSend
         }
     }
 
+    @Override
+    public void updatePosition(BinlogPosition binlogPosition) {
+        senderContext.updatePosition(binlogPosition);
+    }
+
+    @Override
+    public void refreshInExcludedGroup(OutboundLogEventContext scannerContext) {
+        if (senderContext.getBinlogPosition().canMoveForward(scannerContext.getBinlogPosition())) {
+            senderContext.setInExcludeGroup(scannerContext.isInExcludeGroup());
+        }
+    }
 
     @Override
     public ConsumeType getConsumeType() {

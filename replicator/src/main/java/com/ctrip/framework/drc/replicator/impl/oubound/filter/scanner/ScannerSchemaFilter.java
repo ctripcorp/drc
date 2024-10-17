@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.scanner;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogScanner;
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogSender;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
@@ -33,6 +34,7 @@ public class ScannerSchemaFilter extends SchemaFilter {
     @Override
     protected boolean concern(String schema, int eventCount, boolean noRowsEvent) {
         if (noRowsEvent) {
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.noRowsEvent.filtered", schema);
             return false;
         }
         splitBigTransactionIfNeeded(schema, eventCount);
@@ -48,7 +50,8 @@ public class ScannerSchemaFilter extends SchemaFilter {
     @Override
     protected void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset) {
         value.skipPositionAfterReadEvent(nextTransactionOffset);
-        inExcludeGroup = false;
+        value.setInExcludeGroup(false);
+        scanner.getSenders().forEach(sender -> sender.refreshInExcludedGroup(value));
     }
 
     @Override

@@ -32,12 +32,16 @@ public class BinlogPosition implements Comparable<BinlogPosition> {
     }
 
     public boolean tryMoveForward(BinlogPosition binlogPosition) {
-        if (this.compareTo(binlogPosition) >= 0) {
+        if (!canMoveForward(binlogPosition)) {
             return false;
         }
         this.position = binlogPosition.position;
         this.fileSeq = binlogPosition.fileSeq;
         return true;
+    }
+
+    public boolean canMoveForward(BinlogPosition other) {
+        return this.compareTo(other) < 0;
     }
 
     public boolean tryMoveForward(long position) {

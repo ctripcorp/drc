@@ -9,8 +9,7 @@ import com.google.common.collect.Sets;
 
 import java.util.Set;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent.UNKNOWN;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
@@ -21,7 +20,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGE
 public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
     private final String registerKey;
-    protected boolean inExcludeGroup = false;
     private String previousSchema;
 
     public SchemaFilter(FilterChainContext context) {
@@ -43,8 +41,8 @@ public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEve
         FilterLogEvent filterLogEvent = value.readFilterEvent();
         value.setLogEvent(filterLogEvent);
         previousSchema = filterLogEvent.getSchemaNameLowerCaseV2();
-        inExcludeGroup = !this.concern(previousSchema, filterLogEvent.getEventCount(), filterLogEvent.isNoRowsEvent());
-        if (inExcludeGroup) {
+        value.setInExcludeGroup(!this.concern(previousSchema, filterLogEvent.getEventCount(), filterLogEvent.isNoRowsEvent()));
+        if (value.isInExcludeGroup()) {
             long nextTransactionOffset = filterLogEvent.getNextTransactionOffset();
             if (nextTransactionOffset > 0) {
                 this.skipTransaction(value, nextTransactionOffset);
@@ -61,13 +59,13 @@ public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEve
 
     private void handleNonFilterLogEvent(OutboundLogEventContext value) {
         LogEventType eventType = value.getEventType();
-        if (inExcludeGroup && !LogEventUtils.isSlaveConcerned(eventType)) {
+        if (value.isInExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
             skipEvent(value);
             value.setSkipEvent(true);
             //skip all transaction, clear in_exclude_group
             if (xid_log_event == eventType) {
                 GTID_LOGGER.debug("[Reset] in_exclude_group to false, previous schema:{}", previousSchema);
-                inExcludeGroup = false;
+                value.setInExcludeGroup(false);
             }
         }
     }

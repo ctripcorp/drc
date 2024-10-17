@@ -21,6 +21,10 @@ public interface BinlogSender extends Lifecycle {
 
     Channel getChannel();
 
+    void updatePosition(BinlogPosition binlogPosition);
+
+    void refreshInExcludedGroup(OutboundLogEventContext scannerContext);
+
     ConsumeType getConsumeType();
 
     String getNameFilter();

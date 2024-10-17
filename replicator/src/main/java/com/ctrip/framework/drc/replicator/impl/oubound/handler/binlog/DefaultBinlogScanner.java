@@ -158,6 +158,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
         }
         context.setFileChannel(fileChannel);
         context.setFileSeq(fileNum);
+        context.setFileChannelPos(fileChannel.position());
     }
 
     @Override
