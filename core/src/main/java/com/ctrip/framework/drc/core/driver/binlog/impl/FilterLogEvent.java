@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
+import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 
@@ -25,16 +26,13 @@ public class FilterLogEvent extends AbstractLogEvent {
     private String schemaName = UNKNOWN;
     private String lastTableName = UNKNOWN;
     private int eventCount = 0;
+    private Integer rowsEventCount = null;
     private long nextTransactionOffset = 0;
 
     public FilterLogEvent() {
     }
 
-    public void encode(String schemaName, long nextTransactionOffset) {
-        encode(schemaName, UNKNOWN, 0, nextTransactionOffset);
-    }
-
-    public void encode(String schemaName, String lastTableName, int eventCount, long nextTransactionOffset) {
+    public void encode(String schemaName, String lastTableName, int eventCount, Integer rowsEventCount, long nextTransactionOffset) {
         if (schemaName == null) {
             schemaName = UNKNOWN;
         }
@@ -45,6 +43,7 @@ public class FilterLogEvent extends AbstractLogEvent {
         this.nextTransactionOffset = nextTransactionOffset;
         this.lastTableName = lastTableName;
         this.eventCount = eventCount;
+        this.rowsEventCount = rowsEventCount;
         final byte[] payloadBytes = payloadToBytes();
         final int payloadLength = payloadBytes.length;
 
@@ -66,6 +65,9 @@ public class FilterLogEvent extends AbstractLogEvent {
             ByteHelper.writeIntLittleEndian((int) nextTransactionOffset, out);
             ByteHelper.writeVariablesLengthStringDefaultCharset(lastTableName, out);
             ByteHelper.writeIntLittleEndian(eventCount, out);
+            if (rowsEventCount != null) {
+                ByteHelper.writeIntLittleEndian(rowsEventCount, out);
+            }
             return out.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException("FilterLogEvent payloadToByte error", e);
@@ -87,11 +89,17 @@ public class FilterLogEvent extends AbstractLogEvent {
         final ByteBuf payloadBuf = getPayloadBuf();
         this.schemaName = readVariableLengthStringDefaultCharset(payloadBuf);
         this.nextTransactionOffset = payloadBuf.readUnsignedIntLE();
+        this.lastTableName = readVariableLengthStringDefaultCharset(payloadBuf);
+        this.eventCount = (int) payloadBuf.readUnsignedIntLE();
         if (hasRemaining(payloadBuf)) {
-            this.lastTableName = readVariableLengthStringDefaultCharset(payloadBuf);
-            this.eventCount = (int) payloadBuf.readUnsignedIntLE();
+            this.rowsEventCount = (int) payloadBuf.readUnsignedIntLE();
         }
         return this;
+    }
+
+    @Override
+    public boolean hasRemaining(ByteBuf payloadBuf) {
+        return payloadBuf.readableBytes() >= 4;
     }
 
     public long getNextTransactionOffset() {
@@ -120,5 +128,14 @@ public class FilterLogEvent extends AbstractLogEvent {
 
     public int getEventCount() {
         return eventCount;
+    }
+
+    public boolean isNoRowsEvent() {
+        return rowsEventCount != null && rowsEventCount == 0;
+    }
+
+    @VisibleForTesting
+    public Integer getRowsEventCount() {
+        return rowsEventCount;
     }
 }
