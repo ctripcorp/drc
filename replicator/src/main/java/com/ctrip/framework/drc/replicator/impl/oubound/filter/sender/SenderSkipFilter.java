@@ -19,7 +19,7 @@ public class SenderSkipFilter extends SkipFilter {
 
     @Override
     protected void channelHandleEvent(OutboundLogEventContext value, LogEventType eventType) {
-        if (value.isInExcludeGroup()) {
+        if (value.isInGtidExcludeGroup()) {
             channelAttributeKey.handleEvent(false);
         } else {
             channelAttributeKey.handleEvent(true);

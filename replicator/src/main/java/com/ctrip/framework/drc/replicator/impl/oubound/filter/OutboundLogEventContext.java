@@ -56,7 +56,8 @@ public class OutboundLogEventContext {
 
     private boolean everSeeGtid;
 
-    private boolean inExcludeGroup = false;
+    private boolean inSchemaExcludeGroup = false;
+    private boolean inGtidExcludeGroup = false;
 
     public OutboundLogEventContext() {
     }
@@ -169,12 +170,20 @@ public class OutboundLogEventContext {
         this.everSeeGtid = everSeeGtid;
     }
 
-    public boolean isInExcludeGroup() {
-        return inExcludeGroup;
+    public boolean isInSchemaExcludeGroup() {
+        return inSchemaExcludeGroup;
     }
 
-    public void setInExcludeGroup(boolean inExcludeGroup) {
-        this.inExcludeGroup = inExcludeGroup;
+    public void setInSchemaExcludeGroup(boolean inSchemaExcludeGroup) {
+        this.inSchemaExcludeGroup = inSchemaExcludeGroup;
+    }
+
+    public void setInGtidExcludeGroup(boolean inGtidExcludeGroup) {
+        this.inGtidExcludeGroup = inGtidExcludeGroup;
+    }
+
+    public boolean isInGtidExcludeGroup() {
+        return inGtidExcludeGroup;
     }
 
     public void reset(long fileChannelPos, long fileChannelSize) {

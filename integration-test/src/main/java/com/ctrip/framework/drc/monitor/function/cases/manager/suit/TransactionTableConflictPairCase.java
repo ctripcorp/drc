@@ -72,7 +72,7 @@ public class TransactionTableConflictPairCase extends AbstractMultiWriteInTransa
             List<GtidSet.Interval> intervals = gtidSet.getUUIDSet(uuid).getIntervals();
             Long gno = intervals.get(intervals.size() - 1).getEnd() + 1;
             Long id = gno % (TRANSACTION_TABLE_SIZE);
-            String sql = String.format("insert `drcmonitordb`.`gtid_executed` (server_uuid, id, gno) value ('%s', % d, % d) on duplicate key update `gno` = %d;", uuid, id, gno, gno);
+            String sql = String.format("insert `drcmonitordb`.`tx_drc1` (server_uuid, id, gno) value ('%s', % d, % d) on duplicate key update `gno` = %d;", uuid, id, gno, gno);
             WriteExecution writeExecution = new SingleInsertExecution(sql);
             InsertCase insertCase = new MultiStatementWriteCase(writeExecution);
             if (!(dst instanceof ReadWriteSqlOperator)) {

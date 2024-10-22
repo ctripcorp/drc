@@ -68,7 +68,7 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
 
         Gtid gtid = Gtid.from(gtidLogEvent);
         this.skipEvent(value, eventType, gtid);
-        if (value.isInExcludeGroup()) {
+        if (value.isInGtidExcludeGroup()) {
             GTID_LOGGER.debug("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", value.getGtid(), gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
             value.setSkipEvent(true);
@@ -80,25 +80,25 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
     }
 
     private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
-        if (value.isInExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
+        if (value.isInGtidExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
             skipEvent(value);
             value.setSkipEvent(true);
             //skip all transaction, clear in_exclude_group
             if (xid_log_event == eventType) {
                 GTID_LOGGER.debug("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
-                value.setInExcludeGroup(false);
+                value.setInGtidExcludeGroup(false);
             }
         }
     }
 
     private void skipEvent(OutboundLogEventContext value, LogEventType eventType, Gtid gtid) {
         if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
-            value.setInExcludeGroup(true);
+            value.setInGtidExcludeGroup(true);
             return;
         }
         if (LogEventUtils.isGtidLogEvent(eventType)) {
             GtidSet excludedSet = this.getExcludedGtidSet();
-            value.setInExcludeGroup(value.isInExcludeGroup() || gtid.isContainedWithin(excludedSet));
+            value.setInGtidExcludeGroup(gtid.isContainedWithin(excludedSet));
         }
     }
 

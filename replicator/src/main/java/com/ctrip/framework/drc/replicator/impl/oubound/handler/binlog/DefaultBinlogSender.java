@@ -170,7 +170,8 @@ public class DefaultBinlogSender extends AbstractLifecycle implements BinlogSend
     @Override
     public void refreshInExcludedGroup(OutboundLogEventContext scannerContext) {
         if (senderContext.getBinlogPosition().canMoveForward(scannerContext.getBinlogPosition())) {
-            senderContext.setInExcludeGroup(scannerContext.isInExcludeGroup());
+            senderContext.setInSchemaExcludeGroup(scannerContext.isInSchemaExcludeGroup());
+            senderContext.setInGtidExcludeGroup(scannerContext.isInGtidExcludeGroup());
         }
     }
 

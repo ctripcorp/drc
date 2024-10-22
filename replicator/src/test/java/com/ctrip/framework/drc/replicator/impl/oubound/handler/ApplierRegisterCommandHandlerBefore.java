@@ -89,7 +89,7 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
     @Override
     public synchronized void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
         ApplierDumpCommandPacket dumpCommandPacket = (ApplierDumpCommandPacket) serverCommandPacket;
-        logger.info("[Receive] command code is {}", COM_APPLIER_BINLOG_DUMP_GTID.name());
+        logger.debug("[Receive] command code is {}", COM_APPLIER_BINLOG_DUMP_GTID.name());
         String applierName = dumpCommandPacket.getApplierName();
         Channel channel = nettyClient.channel();
         InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
@@ -128,7 +128,7 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
         for (Map.Entry<ApplierKey, NettyClient> applierKey : applierKeys.entrySet()) {
             try {
                 applierKey.getValue().channel().close();
-                logger.info("[NettyClient] close for {} in ApplierRegisterCommandHandler", applierKey.getKey());
+                logger.debug("[NettyClient] close for {} in ApplierRegisterCommandHandler", applierKey.getKey());
             } catch (Exception e) {
                 logger.error("applierKey close NettyClient error", e);
             }
@@ -224,20 +224,20 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.applierRegion = dumpCommandPacket.getRegion();
             this.ip = ip;
-            logger.info("[ConsumeType] is {}, [properties] is {}, [replicatorRegion] is {}, [applierRegion] is {}, for {} from {}", consumeType.name(), properties, replicatorRegion, applierRegion, applierName, ip);
+            logger.debug("[ConsumeType] is {}, [properties] is {}, [replicatorRegion] is {}, [applierRegion] is {}, for {} from {}", consumeType.name(), properties, replicatorRegion, applierRegion, applierName, ip);
             channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
-                HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
+                HEARTBEAT_LOGGER.debug("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
             }
             this.gate = channelAttributeKey.getGate();
 
             String filter = dumpCommandPacket.getNameFilter();
-            logger.info("[Filter] before init name filter, applier name is: {}, filter is: {}", applierName, filter);
+            logger.debug("[Filter] before init name filter, applier name is: {}, filter is: {}", applierName, filter);
             if (StringUtils.isNotBlank(filter)) {
                 this.nameFilter = filter;
                 this.aviatorFilter = new AviatorRegexFilter(filter);
-                logger.info("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
+                logger.debug("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
             }
 
             filterChain = new OutboundFilterChainFactory().createFilterChain(
@@ -264,7 +264,7 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
             String currentUuid = gtidManager.getCurrentUuid();
             GtidSet masterGtidSet = excludedSet.filterGtid(Sets.newHashSet(currentUuid));
             boolean masterGtidSetCheck = masterGtidSet.isContainedWithin(executedGtids);
-            logger.info("[GtidSet][{}][{}] check master gtidset result: {}, master gtidset: {}, executed gtidset: {}",
+            logger.debug("[GtidSet][{}][{}] check master gtidset result: {}, master gtidset: {}, executed gtidset: {}",
                     consumeName, consumeType, masterGtidSetCheck, masterGtidSet, executedGtids);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.master.uuid",
                     consumeName + "-" + consumeType + ":" + masterGtidSetCheck);
@@ -342,7 +342,7 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
             // 1、clone gtid
             GtidSet clonedExcludedSet = excludedSet.clone();
             GtidSet filteredExcludedSet = excludedSet.filterGtid(gtidManager.getUuids());
-            logger.info("[GtidSet] filter : excludedSet {}, filteredExcludedSet {}", excludedSet, filteredExcludedSet);
+            logger.debug("[GtidSet] filter : excludedSet {}, filteredExcludedSet {}", excludedSet, filteredExcludedSet);
 
             // 2、check gtid
             if (!check(clonedExcludedSet)) {

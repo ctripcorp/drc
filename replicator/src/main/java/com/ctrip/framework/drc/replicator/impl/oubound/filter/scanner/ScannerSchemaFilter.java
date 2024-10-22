@@ -50,7 +50,7 @@ public class ScannerSchemaFilter extends SchemaFilter {
     @Override
     protected void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset) {
         value.skipPositionAfterReadEvent(nextTransactionOffset);
-        value.setInExcludeGroup(false);
+        value.setInSchemaExcludeGroup(false);
         scanner.getSenders().forEach(sender -> sender.refreshInExcludedGroup(value));
     }
 

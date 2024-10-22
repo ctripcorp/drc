@@ -165,6 +165,8 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
             if (table_map_log_event == eventType) {
                 filterTableMapEvent(value);
+            } else if(drc_table_map_log_event == eventType){
+                filterDrcTableMapEvent(value);
             } else if (LogEventUtils.isRowsEvent(eventType)) {
                 filterRowsEvent(value);
             } else if (xid_log_event == value.getEventType()) {
@@ -174,6 +176,14 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
             lastEventType = eventType;
             return doNext(value, value.isSkipEvent());
+        }
+
+        private void filterDrcTableMapEvent(OutboundLogEventContext value) {
+            TableMapLogEvent tableMapLogEvent = value.readTableMapEvent();
+            if (shouldSkipTableMapEvent(tableMapLogEvent.getSchemaNameDotTableName())) {
+                value.setSkipEvent(true);
+                GTID_LOGGER.debug("[Skip] drc table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
+            }
         }
 
         private void filterTableMapEvent(OutboundLogEventContext value) {
@@ -272,14 +282,14 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
                 String[] schemaAndTable = schemaDotTableName.split("\\\\.");
                 if (schemaAndTable.length > 1) {
                     schemas.add(schemaAndTable[0].toLowerCase());
-                    logger.info("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable[0]);
+                    logger.debug("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable[0]);
                     continue;
                 }
 
                 String[] schemaAndTable2 = schemaDotTableName.split("\\.");
                 if (schemaAndTable2.length > 1) {
                     schemas.add(schemaAndTable2[0].toLowerCase());
-                    logger.info("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable2[0]);
+                    logger.debug("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable2[0]);
                 }
             }
         }
@@ -513,7 +523,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
                 //skip all transaction, clear in_exclude_group
                 if (xid_log_event == eventType) {
-                    GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
+                    GTID_LOGGER.debug("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
                     inExcludeGroup = false;
                 }
             }
