@@ -131,7 +131,8 @@ public class FilterLogEvent extends AbstractLogEvent {
     }
 
     public boolean isNoRowsEvent() {
-        return rowsEventCount != null && rowsEventCount == 0;
+        return rowsEventCount != null && rowsEventCount == 0
+                && UNKNOWN.equalsIgnoreCase(schemaName); // non-ddl event
     }
 
     @VisibleForTesting

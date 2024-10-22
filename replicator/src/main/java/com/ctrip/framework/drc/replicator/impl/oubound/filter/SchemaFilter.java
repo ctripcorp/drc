@@ -41,8 +41,8 @@ public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEve
         FilterLogEvent filterLogEvent = value.readFilterEvent();
         value.setLogEvent(filterLogEvent);
         previousSchema = filterLogEvent.getSchemaNameLowerCaseV2();
-        value.setInExcludeGroup(!this.concern(previousSchema, filterLogEvent.getEventCount(), filterLogEvent.isNoRowsEvent()));
-        if (value.isInExcludeGroup()) {
+        value.setInSchemaExcludeGroup(!this.concern(previousSchema, filterLogEvent.getEventCount(), filterLogEvent.isNoRowsEvent()));
+        if (value.isInSchemaExcludeGroup()) {
             long nextTransactionOffset = filterLogEvent.getNextTransactionOffset();
             if (nextTransactionOffset > 0) {
                 this.skipTransaction(value, nextTransactionOffset);
@@ -59,13 +59,13 @@ public abstract class SchemaFilter extends AbstractLogEventFilter<OutboundLogEve
 
     private void handleNonFilterLogEvent(OutboundLogEventContext value) {
         LogEventType eventType = value.getEventType();
-        if (value.isInExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
+        if (value.isInSchemaExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
             skipEvent(value);
             value.setSkipEvent(true);
             //skip all transaction, clear in_exclude_group
             if (xid_log_event == eventType) {
                 GTID_LOGGER.debug("[Reset] in_exclude_group to false, previous schema:{}", previousSchema);
-                value.setInExcludeGroup(false);
+                value.setInSchemaExcludeGroup(false);
             }
         }
     }

@@ -27,7 +27,7 @@ public class ScannerSkipFilter extends SkipFilter {
 
     @Override
     protected void channelHandleEvent(OutboundLogEventContext value, LogEventType eventType) {
-        if (value.isInExcludeGroup()) {
+        if (value.isInGtidExcludeGroup()) {
             for (ChannelAttributeKey channelAttributeKey : channelAttributeKeyList) {
                 // scanner skip all
                 channelAttributeKey.handleEvent(false);
@@ -39,14 +39,17 @@ public class ScannerSkipFilter extends SkipFilter {
     @Override
     protected void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset) {
         value.skipPositionAfterReadEvent(nextTransactionOffset);
-        value.setInExcludeGroup(false);
+        value.setInGtidExcludeGroup(false);
+        value.setInSchemaExcludeGroup(false);
         scanner.getSenders().forEach(sender -> sender.refreshInExcludedGroup(value));
     }
 
 
     @Override
     protected void skipEvent(OutboundLogEventContext value) {
-        value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
+        if (value.getLogEvent() == null) {
+            value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
+        }
     }
 
     @Override

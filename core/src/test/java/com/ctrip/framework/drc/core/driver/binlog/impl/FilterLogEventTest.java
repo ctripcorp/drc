@@ -154,6 +154,10 @@ public class FilterLogEventTest {
     public void testRowsEventNumNull() {
         FilterLogEvent filterLogEvent = new FilterLogEvent();
         filterLogEvent.encode("DRC1", "TABLE1", 20, 0, 100);
+        Assert.assertFalse(filterLogEvent.isNoRowsEvent());
+        Assert.assertEquals(Integer.valueOf(0), filterLogEvent.getRowsEventCount());
+
+        filterLogEvent.encode(FilterLogEvent.UNKNOWN, FilterLogEvent.UNKNOWN, 20, 0, 100);
         Assert.assertTrue(filterLogEvent.isNoRowsEvent());
         Assert.assertEquals(Integer.valueOf(0), filterLogEvent.getRowsEventCount());
 

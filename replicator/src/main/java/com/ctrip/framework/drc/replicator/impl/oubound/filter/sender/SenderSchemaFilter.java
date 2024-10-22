@@ -14,7 +14,7 @@ public class SenderSchemaFilter extends SchemaFilter {
 
     @Override
     protected void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset) {
-        value.setInExcludeGroup(true);
+        value.setInSchemaExcludeGroup(true);
     }
 
     @Override

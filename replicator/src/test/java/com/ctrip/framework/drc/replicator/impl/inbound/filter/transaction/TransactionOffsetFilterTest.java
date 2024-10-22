@@ -53,15 +53,38 @@ public class TransactionOffsetFilterTest {
 
         GtidLogEvent gtidLogEvent = getGtidLogEvent(50);
         transactionEvent.addLogEvent(gtidLogEvent);
-        transactionEvent.addLogEvent(getTableMapLogEvent(100L));
-        transactionEvent.addLogEvent(getTableMapLogEvent(100L));
+        transactionEvent.addLogEvent(getRowsQueryEvent(100));
         transactionEvent.addLogEvent(getXidLogEvent(50));
         ddlIndexFilter.doFilter(transactionEvent);
         FilterLogEvent filterLogEvent = (FilterLogEvent) transactionEvent.getEvents().get(0);
         Assert.assertTrue(filterLogEvent.isNoRowsEvent());
 
+        Assert.assertEquals(50 + 100 + 50, filterLogEvent.getNextTransactionOffset());
+        verify(gtidLogEvent, times(1)).setNextTransactionOffsetAndUpdateEventSize(eq(150L));
+    }
+
+    @Test
+    public void testDdlPersistDrcTableMapEvent() {
+        TransactionOffsetFilter transactionOffsetFilter = new TransactionOffsetFilter();
+
+        DdlIndexFilter ddlIndexFilter = new DdlIndexFilter();
+        ddlIndexFilter.setSuccessor(transactionOffsetFilter);
+
+
+        TransactionEvent transactionEvent = new TransactionEvent();
+        transactionEvent.addFilterLogEvent();
+
+        GtidLogEvent gtidLogEvent = getGtidLogEvent(50);
+        transactionEvent.addLogEvent(gtidLogEvent);
+        transactionEvent.addLogEvent(getDdlEvent(100));
+        transactionEvent.addLogEvent(getDrcTableMapLogEvent(100));
+        transactionEvent.addLogEvent(getXidLogEvent(50));
+        ddlIndexFilter.doFilter(transactionEvent);
+        FilterLogEvent filterLogEvent = (FilterLogEvent) transactionEvent.getEvents().get(0);
+        Assert.assertFalse(filterLogEvent.isNoRowsEvent());
+        Assert.assertFalse(transactionEvent.canSkipParseTransaction());
         Assert.assertEquals(50 + 100 + 100 + 50, filterLogEvent.getNextTransactionOffset());
-        verify(gtidLogEvent, times(1)).setNextTransactionOffsetAndUpdateEventSize(eq(250L));
+        verify(gtidLogEvent, times(1)).setNextTransactionOffsetAndUpdateEventSize(eq(0L));
     }
 
     private static TableMapLogEvent getTableMapLogEvent(long size) {
@@ -73,6 +96,17 @@ public class TransactionOffsetFilterTest {
         when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
         return tableMapLogEvent;
     }
+
+    private static TableMapLogEvent getDrcTableMapLogEvent(long size) {
+        TableMapLogEvent tableMapLogEvent = mock(TableMapLogEvent.class);
+        when(tableMapLogEvent.getTableName()).thenReturn("mockTable");
+        when(tableMapLogEvent.getSchemaName()).thenReturn("mockDB");
+        LogEventHeader logEventHeader = getLogEventHeader(LogEventType.drc_table_map_log_event.getType(), size);
+        when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
+        when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.drc_table_map_log_event);
+        return tableMapLogEvent;
+    }
+
 
     private static LogEventHeader getLogEventHeader(int eventType, long size) {
         LogEventHeader logEventHeader = mock(LogEventHeader.class);
@@ -105,6 +139,22 @@ public class TransactionOffsetFilterTest {
         when(mock.getLogEventHeader()).thenReturn(logEventHeader);
         when(mock.getLogEventType()).thenReturn(LogEventType.gtid_log_event);
 
+        return mock;
+    }
+
+    private static RowsQueryLogEvent getRowsQueryEvent(int size) {
+        RowsQueryLogEvent mock = mock(RowsQueryLogEvent.class);
+        LogEventHeader logEventHeader = getLogEventHeader(LogEventType.rows_query_log_event.getType(), (long) size);
+        when(mock.getLogEventHeader()).thenReturn(logEventHeader);
+        when(mock.getLogEventType()).thenReturn(LogEventType.rows_query_log_event);
+
+        return mock;
+    }
+    private static DrcDdlLogEvent getDdlEvent(int size) {
+        DrcDdlLogEvent mock = mock(DrcDdlLogEvent.class);
+        LogEventHeader logEventHeader = getLogEventHeader(LogEventType.drc_ddl_log_event.getType(), (long) size);
+        when(mock.getLogEventHeader()).thenReturn(logEventHeader);
+        when(mock.getLogEventType()).thenReturn(LogEventType.drc_ddl_log_event);
         return mock;
     }
 }
