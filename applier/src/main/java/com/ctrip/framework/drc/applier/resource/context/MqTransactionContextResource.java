@@ -90,12 +90,15 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
         AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
         atomicInteger.getAndIncrement();
-        for (Producer producer : producers) {
-            producer.send(eventDatas);
-            rowsSize += eventDatas.size();
-            reportHickWall(eventDatas, producer.getTopic());
+        try {
+            for (Producer producer : producers) {
+                producer.send(eventDatas);
+                rowsSize += eventDatas.size();
+                reportHickWall(eventDatas, producer.getTopic());
+            }
+        } finally {
+            atomicInteger.getAndDecrement();
         }
-        atomicInteger.getAndDecrement();
 
         if (progress != null) {
             progress.tick();

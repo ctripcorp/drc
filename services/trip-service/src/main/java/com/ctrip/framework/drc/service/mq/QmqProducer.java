@@ -12,6 +12,7 @@ import muise.ctrip.canal.DataChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
+import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
@@ -67,7 +68,17 @@ public class QmqProducer extends AbstractProducer {
         for (EventData eventData : eventDatas) {
             Message message = generateMessage(eventData);
             long start = System.nanoTime();
-            provider.sendMessage(message);
+            provider.sendMessage(message, new MessageSendStateListener() {
+                @Override
+                public void onSuccess(Message message) {
+
+                }
+
+                @Override
+                public void onFailed(Message message) {
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.send.onfail", topic);
+                }
+            });
             loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, message.getStringProperty(DATA_CHANGE));
         }
     }
