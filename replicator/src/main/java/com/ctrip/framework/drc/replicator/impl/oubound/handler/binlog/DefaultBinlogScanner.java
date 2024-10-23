@@ -84,6 +84,8 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
             newScanner.setFileChannel(newScanner.outboundContext);
             newScanner.outboundContext.getFileChannel().position(this.outboundContext.getFileChannelPos());
             newScanner.outboundContext.setFileChannelPos(this.outboundContext.getFileChannelPos());
+            newScanner.outboundContext.setInSchemaExcludeGroup(this.outboundContext.isInSchemaExcludeGroup());
+            newScanner.outboundContext.setInGtidExcludeGroup(this.outboundContext.isInGtidExcludeGroup());
             return newScanner;
         } catch (Exception e) {
             BINLOG_SCANNER_LOGGER.error("unlikely: cloneScanner error. ", e);
