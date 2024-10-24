@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.monitor.reporter.CatEventMonitor;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +20,11 @@ public class ShowMasterGtidReader implements GtidReader {
 
     protected static final String ALI_RDS = "/*FORCE_MASTER*/";
 
-    private static final String EXECUTED_GTID = ALI_RDS + "show global variables like \"gtid_executed\";";
+    private static final String EXECUTED_GTID = ALI_RDS + "SELECT @@GLOBAL.gtid_executed;";
 
-    private static final int EXECUTED_GTID_INDEX = 2;
+    private static final String EXECUTED_GTID_OLD = ALI_RDS + "show global variables like \"gtid_executed\";";
+
+    private static final int EXECUTED_GTID_INDEX = 1;
 
     @Override
     public String getExecutedGtids(Connection connection) throws Exception {
@@ -30,8 +34,25 @@ public class ShowMasterGtidReader implements GtidReader {
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private String select(Connection connection, String sql, int index) throws SQLException {
         try (Statement statement = connection.createStatement()) {
+            if (DynamicConfig.getInstance().getOldGtidSqlSwitch()) {
+                try (ResultSet resultSet = statement.executeQuery(EXECUTED_GTID_OLD)) {
+                    if (resultSet.next()) {
+                        return resultSet.getString(2);
+                    }
+                }
+            }
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 if (resultSet.next()) {
+                    try (ResultSet resultSetOld = statement.executeQuery(EXECUTED_GTID_OLD)) {
+                        if (resultSetOld.next()) {
+                            String oldResult = resultSetOld.getString(2);
+                            String newResult = resultSet.getString(index);
+                            if (newResult != null && !newResult.equals(oldResult)) {
+                                logger.warn("gtid query result different, newResult: {}. oldResult: {}", newResult, oldResult);
+                                CatEventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
+                            }
+                        }
+                    }
                     return resultSet.getString(index);
                 }
             }

@@ -45,6 +45,8 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
     private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
 
+    private static final String OLD_QTID_SQL_SWITCH = "old.gtid.sql.switch";
+
     // 100MB
     public static final int DEFAULT_MERGE_GAP_MAX = 100 * 1024 * 1024;
 
@@ -156,6 +158,10 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public boolean getCMNotifyHttpsSwitch() {
         return getBooleanProperty(CM_NOTIFY_HTTPS_SWITCH, false);
+    }
+
+    public boolean getOldGtidSqlSwitch() {
+        return getBooleanProperty(OLD_QTID_SQL_SWITCH, false);
     }
     
 }
