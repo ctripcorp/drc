@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.framework.drc.core.monitor.reporter.CatEventMonitor;
+import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +43,14 @@ public class ShowMasterGtidReader implements GtidReader {
             }
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 if (resultSet.next()) {
-                    try (ResultSet resultSetOld = statement.executeQuery(EXECUTED_GTID_OLD)) {
+                    try (Statement statementOld = connection.createStatement();
+                         ResultSet resultSetOld = statementOld.executeQuery(EXECUTED_GTID_OLD)) {
                         if (resultSetOld.next()) {
                             String oldResult = resultSetOld.getString(2);
                             String newResult = resultSet.getString(index);
                             if (newResult != null && !newResult.equals(oldResult)) {
+                                EventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
                                 logger.warn("gtid query result different, newResult: {}. oldResult: {}", newResult, oldResult);
-                                CatEventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
                             }
                         }
                     }
