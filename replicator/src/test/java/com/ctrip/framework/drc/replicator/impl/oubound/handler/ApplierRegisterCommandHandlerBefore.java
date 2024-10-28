@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.utils.OffsetNotifier;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.OldOutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
@@ -205,9 +206,9 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
 
         private ChannelAttributeKey channelAttributeKey;
 
-        private Filter<OutboundLogEventContext> filterChain;
+        private Filter<OldOutboundLogEventContext> filterChain;
 
-        private OutboundLogEventContext outboundContext = new OutboundLogEventContext();
+        private OldOutboundLogEventContext outboundContext = new OldOutboundLogEventContext();
 
         private GtidSet gtidAlreadySent = new GtidSet("");
         public String getApplierName() {
@@ -435,7 +436,7 @@ public class ApplierRegisterCommandHandlerBefore extends AbstractServerCommandHa
             }
         }
 
-        public Filter<OutboundLogEventContext> getFilterChain() {
+        public Filter<OldOutboundLogEventContext> getFilterChain() {
             return filterChain;
         }
 

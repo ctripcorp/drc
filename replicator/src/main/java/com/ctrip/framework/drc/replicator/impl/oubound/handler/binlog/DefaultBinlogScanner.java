@@ -72,7 +72,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
 
     @Override
     public BinlogPosition getBinlogPosition() {
-        return BinlogPosition.from(fileNum, outboundContext.getFileChannelPos());
+        return outboundContext.getBinlogPosition();
     }
 
     @Override
@@ -82,8 +82,9 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
             newScanner.setFile(file);
             newScanner.initialize();
             newScanner.setFileChannel(newScanner.outboundContext);
-            newScanner.outboundContext.getFileChannel().position(this.outboundContext.getFileChannelPos());
-            newScanner.outboundContext.setFileChannelPos(this.outboundContext.getFileChannelPos());
+            long fileChannelPos = this.outboundContext.getFileChannelPos();
+            newScanner.outboundContext.rePositionFileChannel(fileChannelPos);
+            newScanner.outboundContext.setFileChannelPos(fileChannelPos);
             newScanner.outboundContext.setInSchemaExcludeGroup(this.outboundContext.isInSchemaExcludeGroup());
             newScanner.outboundContext.setInGtidExcludeGroup(this.outboundContext.isInGtidExcludeGroup());
             return newScanner;
@@ -112,7 +113,6 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
 
     private void setFile(File file) {
         this.file = Objects.requireNonNull(file);
-        this.fileNum = DefaultFileManager.getFileNum(file);
     }
 
     @Override
@@ -155,20 +155,19 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     protected void setFileChannel(OutboundLogEventContext context) throws IOException {
         RandomAccessFile raf = new RandomAccessFile(file, "r");
         FileChannel fileChannel = raf.getChannel();
-        if (fileChannel.position() == 0) {
-            fileChannel.position(DefaultFileManager.LOG_EVENT_START);
-        }
         context.setFileChannel(fileChannel);
-        context.setFileSeq(fileNum);
-        context.setFileChannelPos(fileChannel.position());
+        if (fileChannel.position() == 0) {
+            context.rePositionFileChannel(DefaultFileManager.LOG_EVENT_START);
+        }
+        context.setFileSeq(DefaultFileManager.getFileNum(file));
     }
 
     @Override
     protected void readFilePosition(OutboundLogEventContext context) throws IOException {
         FileChannel fileChannel = context.getFileChannel();
-        long position = fileChannel.position();
+        long position = context.getFileChannelPosAfterRead();
         long endPosition = getBinlogEndPos(fileChannel, position);
-        context.reset(position, endPosition);
+        context.reset(endPosition);
     }
 
     @Override
@@ -246,7 +245,7 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
                 if (++waitCount > 25) {
                     return fileChannel.size();
                 }
-                manager.tryMergeScanner(this);
+                manager.tryMergeScanner(this, "waitNewEvents");
             } catch (InterruptedException e) {
                 logger.error("[Read] error", e);
                 Thread.currentThread().interrupt();
@@ -387,6 +386,11 @@ public class DefaultBinlogScanner extends AbstractBinlogScanner implements GtidO
     @Override
     protected boolean isConcern(OutboundLogEventContext context) {
         return !context.isSkipEvent();
+    }
+
+    @Override
+    public boolean canNotMerge() {
+        return outboundContext.isInGtidExcludeGroup();
     }
 
     @VisibleForTesting

@@ -199,13 +199,14 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
         if (!this.isConcern(context)) {
             final BinlogPosition binlogPosition = context.getBinlogPosition();
             senders.forEach(sender -> sender.updatePosition(binlogPosition));
+            manager.tryMergeScanner(this, "notifySendersSkip");
             return;
         }
         this.preSend(context);
         for (BinlogSender sender : senders) {
             sender.send(context);
         }
-        manager.tryMergeScanner(this);
+        manager.tryMergeScanner(this, "notifySenders");
     }
 
     protected void preSend(OutboundLogEventContext context) {
@@ -258,6 +259,10 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     protected abstract void readFilePosition(OutboundLogEventContext context) throws IOException;
 
+    @Override
+    public boolean canNotMerge() {
+        return false;
+    }
 
     @Override
     public int compareTo(BinlogScanner another) {

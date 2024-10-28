@@ -9,8 +9,6 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.SkipFilter;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
-
 /**
  * @author yongnian
  */
@@ -48,7 +46,7 @@ public class ScannerSkipFilter extends SkipFilter {
     @Override
     protected void skipEvent(OutboundLogEventContext value) {
         if (value.getLogEvent() == null) {
-            value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
+            value.skipEvent();
         }
     }
 
