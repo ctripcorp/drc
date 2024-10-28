@@ -9,8 +9,6 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.SchemaFilter;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
-
 /**
  * @author yongnian
  */
@@ -28,7 +26,7 @@ public class ScannerSchemaFilter extends SchemaFilter {
 
     @Override
     public void skipEvent(OutboundLogEventContext value) {
-        value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
+        value.skipEvent();
     }
 
     @Override

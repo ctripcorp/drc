@@ -48,38 +48,41 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
 
         List<Long> indices = indexLogEvent.getIndices();
         if (indices.size() > 1) {
-            GtidSet firstGtidSet = readPreviousGtids(fileChannel, indices.get(0));
+            GtidSet firstGtidSet = readPreviousGtids(value, indices.get(0));
             for (int i = 1; i < indices.size(); ++i) {
                 if (indices.get(i).equals(indices.get(i - 1))) {
-                    restorePosition(fileChannel, indices.get(i - 1), currentPosition);
+                    restorePosition(value, indices.get(i - 1), currentPosition);
                     break;
                 }
-                GtidSet secondGtidSet = readPreviousGtids(fileChannel, indices.get(i));
+                GtidSet secondGtidSet = readPreviousGtids(value, indices.get(i));
                 GtidSet stepGtidSet = secondGtidSet.subtract(firstGtidSet);
                 if (stepGtidSet.isContainedWithin(scanner.getGtidSet())) {
                     logger.info("[GtidSet] update from {} to {}", firstGtidSet, secondGtidSet);
                     firstGtidSet = secondGtidSet;
                 } else {  // restore to last position
-                    restorePosition(fileChannel, indices.get(i - 1), currentPosition);
+                    restorePosition(value, indices.get(i - 1), currentPosition);
                     break;
                 }
             }
         }
     }
 
-    private void restorePosition(FileChannel fileChannel, long restorePosition, long currentPosition) throws IOException {
+    private void restorePosition(OutboundLogEventContext value, long restorePosition, long currentPosition) throws IOException {
         logger.info("restorePosition is {} and currentPosition is {}", restorePosition, currentPosition);
         restorePosition = Math.max(restorePosition, currentPosition);
-        fileChannel.position(restorePosition);
+        value.rePositionFileChannel(restorePosition);
+        value.setFileChannelPos(restorePosition);
         logger.info("[restorePosition] set to {} finally", restorePosition);
     }
 
-    private GtidSet readPreviousGtids(FileChannel fileChannel, long position) throws IOException {
+
+    private GtidSet readPreviousGtids(OutboundLogEventContext value, long position) throws IOException {
         PreviousGtidsLogEvent previousGtidsLogEvent = new PreviousGtidsLogEvent();
         try {
-            fileChannel.position(position);
+            value.rePositionFileChannel(position);
             logger.info("[Update] position of fileChannel to {}", position);
-            EventReader.readEvent(fileChannel, previousGtidsLogEvent);
+            EventReader.readEvent(value.getFileChannel(), previousGtidsLogEvent);
+            value.setFileChannelPosAfterRead(value.getFileChannel().position());
             return previousGtidsLogEvent.getGtidSet();
         } finally {
             previousGtidsLogEvent.release();

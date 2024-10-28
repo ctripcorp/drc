@@ -46,13 +46,13 @@ public class ScannerSkipFilterTest {
         value = getTableMapContext(value);
         value.setLogEvent(null);
         scannerSkipFilter.doFilter(value);
-        verify(value.getFileChannel(), times(1)).position(tableMapEventSize - eventHeaderLengthVersionGt1);
+        verify(value.getFileChannel(), times(1)).position(fileChannelPos+tableMapEventSize );
         Assert.assertTrue(value.isSkipEvent());
 
         value = getXid(value);
         value.setLogEvent(null);
         scannerSkipFilter.doFilter(value);
-        verify(value.getFileChannel(), times(1)).position(xidEventSize - eventHeaderLengthVersionGt1);
+        verify(value.getFileChannel(), times(1)).position(fileChannelPos+xidEventSize );
         Assert.assertTrue(value.isSkipEvent());
 
         value.reset(0,0);

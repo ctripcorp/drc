@@ -22,6 +22,8 @@ public interface BinlogScanner extends Runnable, Lifecycle, Comparable<BinlogSca
 
     ConsumeType getConsumeType();
 
+    boolean canNotMerge();
+
     String getName();
 
     String getCurrentSendingFileName();

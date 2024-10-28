@@ -103,25 +103,29 @@ public abstract class AbstractBinlogScannerManager implements BinlogScannerManag
     }
 
     @Override
-    public void tryMergeScanner(BinlogScanner src) {
+    public void tryMergeScanner(BinlogScanner src, String mergeSource) {
         if (!this.isCollecting(src.getConsumeType())) {
+            return;
+        }
+        if (src.canNotMerge()) {
             return;
         }
         if (src.getSenders().size() >= DynamicConfig.getInstance().getMaxSenderNumPerScanner(registryKey)) {
             return;
         }
         boolean preCheckMerge = calculate(scannerMap.get(src.getConsumeType())).stream().anyMatch(e -> e.canMerge() && e.isRelated(src));
-        if(!preCheckMerge) {
+        if (!preCheckMerge) {
             return;
         }
-        waitMerge(src);
+        waitMerge(src, mergeSource);
     }
 
-    private void waitMerge(BinlogScanner src) {
+    private void waitMerge(BinlogScanner src, String mergeSource) {
         synchronized (waitMergeScanner) {
             if (!this.isCollecting(src.getConsumeType())) {
                 return;
             }
+            logger.info("{} wait merge from {}", src, mergeSource);
             waitMergeScanner.add(src);
             try {
                 while (waitMergeScanner.contains(src)) {

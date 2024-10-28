@@ -69,7 +69,7 @@ public class LocalBinlogScanner extends AbstractBinlogScanner {
 
     @Override
     protected void readFilePosition(OutboundLogEventContext context) {
-        context.reset(0, Long.MAX_VALUE);
+        context.reset(Long.MAX_VALUE);
     }
 
     public void setBinlogPosition(BinlogPosition binlogPosition) {

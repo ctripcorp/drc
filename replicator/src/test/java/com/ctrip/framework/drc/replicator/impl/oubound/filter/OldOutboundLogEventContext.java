@@ -18,8 +18,7 @@ import java.util.Map;
  * @Author limingdong
  * @create 2022/4/22
  */
-public class OutboundLogEventContext {
-
+public class OldOutboundLogEventContext{
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private FileChannel fileChannel;
@@ -30,7 +29,6 @@ public class OutboundLogEventContext {
      * cached initial fileChannel position
      */
     private long fileChannelPos;
-    private long fileChannelPosAfterRead;
 
     /**
      * cached initial fileChannel size
@@ -60,32 +58,22 @@ public class OutboundLogEventContext {
     private boolean inSchemaExcludeGroup = false;
     private boolean inGtidExcludeGroup = false;
 
-    public OutboundLogEventContext() {
+    public OldOutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, long fileChannelSize) {
+    public OldOutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, long fileChannelSize) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
         this.fileChannelSize = fileChannelSize;
     }
 
     public BinlogPosition getBinlogPosition() {
-        return BinlogPosition.from(fileSeq, fileChannelPosAfterRead);
+        return BinlogPosition.from(fileSeq, fileChannelPos);
     }
 
     public FileChannel getFileChannel() {
         return fileChannel;
     }
-
-    public void rePositionFileChannel(long newPosition) throws IOException {
-        fileChannel.position(newPosition);
-        this.fileChannelPosAfterRead = newPosition;
-    }
-
-    public void setFileChannelPosAfterRead(long fileChannelPosAfterRead) {
-        this.fileChannelPosAfterRead = fileChannelPosAfterRead;
-    }
-
     public void setFileSeq(long fileSeq) {
         this.fileSeq = fileSeq;
     }
@@ -119,10 +107,6 @@ public class OutboundLogEventContext {
 
     public long getFileChannelPos() {
         return fileChannelPos;
-    }
-
-    public long getFileChannelPosAfterRead() {
-        return fileChannelPosAfterRead;
     }
 
     public boolean isRewrite() {
@@ -210,20 +194,10 @@ public class OutboundLogEventContext {
         this.logEvent = null;
     }
 
-    public void reset(long fileChannelSize) {
-        this.cause = null;
-        this.fileChannelPos = fileChannelPosAfterRead;
-        this.fileChannelSize = fileChannelSize;
-        this.skipEvent = false;
-        this.rewrite = false;
-        this.logEvent = null;
-    }
-
     public DrcIndexLogEvent readIndexLogEvent() {
         if (logEvent == null) {
             DrcIndexLogEvent drcIndexLogEvent = new DrcIndexLogEvent();
             EventReader.readEvent(fileChannel, eventSize, drcIndexLogEvent, compositeByteBuf);
-            afterReadEvent();
             logEvent = drcIndexLogEvent;
         }
 
@@ -234,7 +208,6 @@ public class OutboundLogEventContext {
         if (logEvent == null) {
             GtidLogEvent gtidLogEvent = new GtidLogEvent();
             EventReader.readEvent(fileChannel, eventSize, gtidLogEvent, compositeByteBuf);
-            afterReadEvent();
             logEvent = gtidLogEvent;
         }
 
@@ -245,7 +218,6 @@ public class OutboundLogEventContext {
         if (logEvent == null) {
             FilterLogEvent filterLogEvent = new FilterLogEvent();
             EventReader.readEvent(fileChannel, eventSize, filterLogEvent, compositeByteBuf);
-            afterReadEvent();
             logEvent = filterLogEvent;
         }
 
@@ -256,7 +228,6 @@ public class OutboundLogEventContext {
         if (logEvent == null) {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, compositeByteBuf);
-            afterReadEvent();
             logEvent = tableMapLogEvent;
         }
 
@@ -267,15 +238,10 @@ public class OutboundLogEventContext {
         if (logEvent == null) {
             AbstractRowsEvent rowsEvent = newRowsEvent(eventType);
             EventReader.readEvent(fileChannel, eventSize, rowsEvent, compositeByteBuf);
-            afterReadEvent();
             logEvent = rowsEvent;
         }
 
         return (AbstractRowsEvent) logEvent;
-    }
-
-    public void afterReadEvent() {
-        fileChannelPosAfterRead = fileChannelPos + eventSize;
     }
 
     protected AbstractRowsEvent newRowsEvent(LogEventType eventType) {
@@ -296,9 +262,9 @@ public class OutboundLogEventContext {
         return rowsEvent;
     }
 
-    public void skipEvent() {
+    public void skipPosition(Long skipSize) {
         try {
-            rePositionFileChannel(fileChannelPos + eventSize);
+            fileChannel.position(fileChannel.position() + skipSize);
         } catch (IOException e) {
             logger.error("skip position error:", e);
             setCause(e);
@@ -308,11 +274,13 @@ public class OutboundLogEventContext {
 
     /**
      * To save extra fileChannel.position() call
+     *
+     * @see OutboundLogEventContext#skipPosition(Long)
      */
     public void skipPositionAfterReadEvent(Long skipSize) {
         try {
             // After read event body, fileChannelPos + eventSize == fileChannel.position()
-            rePositionFileChannel(fileChannelPos + eventSize + skipSize);
+            fileChannel.position(fileChannelPos + eventSize + skipSize);
         } catch (IOException e) {
             logger.error("skip position error:", e);
             setCause(e);

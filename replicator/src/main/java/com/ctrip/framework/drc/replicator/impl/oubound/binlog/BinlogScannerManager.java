@@ -16,7 +16,7 @@ public interface BinlogScannerManager extends Disposable {
 
     void createScanner(List<BinlogSender> binlogSenders) throws Exception;
 
-    void tryMergeScanner(BinlogScanner scanner);
+    void tryMergeScanner(BinlogScanner src, String mergeSource);
 
     void removeScanner(BinlogScanner scanner, boolean removeSender);
 

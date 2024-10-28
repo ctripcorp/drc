@@ -60,8 +60,13 @@ public class LocalSendFilter extends SendFilter implements LocalHistoryForTest {
         clone.setSkipEvent(value.isSkipEvent());
         clone.setGtid(value.getGtid());
         clone.setEverSeeGtid(value.isEverSeeGtid());
+        clone.setFileSeq(value.getBinlogPosition().getFileSeq());
+        clone.setFileChannelPosAfterRead(value.getBinlogPosition().getPosition());
         return clone;
     }
 
-
+    @Override
+    public void clearHistory() {
+        historyMap.clear();
+    }
 }

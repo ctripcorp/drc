@@ -40,7 +40,7 @@ public class SenderOutboundLogEventContext extends OutboundLogEventContext {
     }
 
     @Override
-    public void skipPosition(Long skipSize) {
+    public void skipEvent() {
         throw new ReplicatorException(ResultCode.UNKNOWN_ERROR, this);
     }
 

@@ -54,6 +54,7 @@ import static org.mockito.Mockito.when;
 
 public class BinlogScannerAndSenderTest {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final int ROUND = 3;
 
     /*
        needed if change binlog file
@@ -73,7 +74,7 @@ public class BinlogScannerAndSenderTest {
     private final List<ConsumeType> types = Lists.newArrayList(ConsumeType.Applier, ConsumeType.Messenger);
 
     // if something goes wrong, open this to check detail
-    private static final boolean CHECK_HISTORY_DETAIL = false;
+    private static final boolean CHECK_HISTORY_DETAIL = true;
     private static final int PARALLEL_NUM = 10;
     protected File logDir = new File(LOG_PATH + "scanner.test");
 
@@ -81,10 +82,9 @@ public class BinlogScannerAndSenderTest {
     private ApplierRegisterCommandHandler applierRegisterCommandHandler;
     private ApplierRegisterCommandHandlerBefore applierRegisterCommandHandlerBefore;
     private File file;
-
     @Test
     public void test() throws Exception {
-        int round = 3;
+        int round = ROUND;
         for (int i = 1; i <= round; i++) {
             long before = System.currentTimeMillis();
             System.out.printf("-------test start [%d/%d] -------%n", i, round);
@@ -113,6 +113,8 @@ public class BinlogScannerAndSenderTest {
         setFile();
         applierRegisterCommandHandler = getApplierRegisterCommandHandler();
         applierRegisterCommandHandlerBefore = getApplierRegisterCommandHandler2();
+
+        openTimeMill = System.currentTimeMillis() + 1000;
     }
 
     private void setFile() {
@@ -237,8 +239,14 @@ public class BinlogScannerAndSenderTest {
         MapDifference<String, Object> configsDiff = getDifference(newMap, oldMap);
         Assert.assertEquals(String.join("\n", errors), 0, errors.size());
         Assert.assertEquals(configsDiff.toString(), oldMap, newMap);
+
+        // release
         applierRegisterCommandHandler.dispose();
         applierRegisterCommandHandlerBefore.dispose();
+        newSendFilters.forEach(LocalSendFilter::clearHistory);
+        oldSendFilters.forEach(LocalHistoryForTest::clearHistory);
+        newMap.clear();
+        oldMap.clear();
     }
 
     private static MapDifference<String, Object> getDifference(Map<String, Map<LogEventType, Integer>> newMap, Map<String, Map<LogEventType, Integer>> oldMap) {
@@ -273,12 +281,10 @@ public class BinlogScannerAndSenderTest {
                 OutboundLogEventContext now = history.get(i);
                 LogEventType eventType = pre.getEventType();
                 LogEventType nowType = now.getEventType();
-                if (CHECK_HISTORY_DETAIL) {
-                    logger.info("{} {} {} {}", sendFilter.getName(), now.getGtid(), eventType, nowType);
-                }
                 if (!fsm.getOrDefault(eventType, Collections.emptySet()).contains(nowType)) {
                     String message = name + ": " + eventType + " " + nowType + " cannot go to ";
                     errors.add(message);
+                    logger.info("{} {} {} {} [{}] -> [{}]", sendFilter.getName(), now.getGtid(), eventType, nowType, pre.getBinlogPosition(), now.getBinlogPosition());
                 }
             }
 
@@ -530,20 +536,39 @@ public class BinlogScannerAndSenderTest {
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(key);
         when(channel.closeFuture()).thenReturn(channelFuture);
 
-        if (scheduleGate) {
-            int closeDelay = new Random().nextInt(5000);
-            scheduledExecutorService.schedule(() -> {
-                System.out.println("schedule close gate: " + applierName);
-                gate.scheduleClose();
-                int openDelay = new Random().nextInt(2000);
-                scheduledExecutorService.schedule(() -> {
-                    System.out.println("open gate: " + applierName);
-                    gate.open();
-                }, openDelay, TimeUnit.MILLISECONDS);
-            }, closeDelay, TimeUnit.MILLISECONDS);
 
+        scheduleOpen(applierName, gate);
+        if (scheduleGate) {
+            scheduleClose(applierName, gate);
         }
         return channel;
+    }
+
+    private static void scheduleClose(String applierName, ScheduleCloseGate gate) {
+        int closeDelay = new Random().nextInt(5000);
+        scheduledExecutorService.schedule(() -> {
+            System.out.println("schedule close gate: " + applierName);
+            gate.scheduleClose();
+            int openDelay = new Random().nextInt(2000);
+            scheduledExecutorService.schedule(() -> {
+                System.out.println("open gate: " + applierName);
+                gate.open();
+            }, openDelay, TimeUnit.MILLISECONDS);
+        }, closeDelay, TimeUnit.MILLISECONDS);
+    }
+
+    private static long openTimeMill = 0L;
+
+    private static void scheduleOpen(String applierName, ScheduleCloseGate gate) {
+        long openDelay = openTimeMill - System.currentTimeMillis();
+        if (openDelay < 0) {
+            throw new IllegalStateException("open delay < 0");
+        }
+        gate.close();
+        scheduledExecutorService.schedule(() -> {
+            System.out.println("schedule close gate: " + applierName);
+            gate.open();
+        }, openDelay, TimeUnit.MILLISECONDS);
     }
 
     protected static String getDelayMonitorRegex(int applyMode, String includeDbs) {

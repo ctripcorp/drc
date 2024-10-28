@@ -30,7 +30,7 @@ public class ScannerPositionFilter extends AbstractPostLogEventFilter<OutboundLo
 
         if (value.getLogEvent() == null) {
             try {
-                value.getFileChannel().position(value.getFileChannelPos() + value.getEventSize());
+                value.rePositionFileChannel(value.getFileChannelPos() + value.getEventSize());
             } catch (IOException e) {
                 logger.error("skip position error:", e);
                 throw new ReplicatorException(ResultCode.REPLICATOR_SEND_BINLOG_ERROR);

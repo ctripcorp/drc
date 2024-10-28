@@ -10,4 +10,6 @@ public interface LocalHistoryForTest {
     String getName();
 
     ConsumeType getConsumeType();
+
+    void clearHistory();
 }
