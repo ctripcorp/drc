@@ -1,18 +1,14 @@
 package com.ctrip.framework.drc.console.controller.v1;
 
-import static com.ctrip.framework.drc.console.service.broadcast.HttpNotificationBroadCast.NEED_BROADCAST;
-
 import com.ctrip.framework.drc.console.service.SwitchService;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.config.console.dto.ClusterConfigDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import static com.ctrip.framework.drc.console.service.broadcast.HttpNotificationBroadCast.NEED_BROADCAST;
 
 /**
  * @author shenhaibo
@@ -46,7 +42,7 @@ public class SwitchController {
             logger.error("[Notification] notify master db error", e);
             return ApiResult.getFailInstance(Boolean.FALSE);
         }
-        
+
     }
 
     /**
@@ -56,7 +52,7 @@ public class SwitchController {
     @RequestMapping(value = "clusters/{clusterId}/replicators/master", method = RequestMethod.PUT)
     public ApiResult<Boolean> notifyMasterReplicator(
             @RequestParam(defaultValue = NEED_BROADCAST) String broadcast,
-            @PathVariable String clusterId, 
+            @PathVariable String clusterId,
             @RequestBody(required = false) String endpoint) {
         try {
             boolean broadcastFlag = Boolean.parseBoolean(broadcast);
@@ -68,5 +64,31 @@ public class SwitchController {
             return ApiResult.getFailInstance(Boolean.FALSE);
         }
     }
-  
+
+
+    @RequestMapping(value = "clusters/dbs/master", method = RequestMethod.PUT)
+    public ApiResult notifyMasterDb(@RequestBody ClusterConfigDto clusterConfigDto) {
+        try {
+            logger.info("switchUpdateDb broadcast: {}, clusters: {}", clusterConfigDto.isFirstHand(), clusterConfigDto.getClusterMap());
+            switchService.switchUpdateDb(clusterConfigDto);
+            return ApiResult.getSuccessInstance(Boolean.TRUE);
+        }catch (Exception e) {
+            logger.error("[Notification] notify master db error", e);
+            return ApiResult.getFailInstance(Boolean.FALSE);
+        }
+
+    }
+
+    @RequestMapping(value = "clusters/replicators/master", method = RequestMethod.PUT)
+    public ApiResult notifyMasterReplicator(@RequestBody ClusterConfigDto clusterConfigDto) {
+        try {
+            logger.info("switchListenReplicator broadcast: {}, clusters: {}", clusterConfigDto.isFirstHand(), clusterConfigDto.getClusterMap());
+            switchService.switchListenReplicator(clusterConfigDto);
+            return ApiResult.getSuccessInstance(Boolean.TRUE);
+        }catch (Exception e) {
+            logger.error("[Notification] notify master replicator error", e);
+            return ApiResult.getFailInstance(Boolean.FALSE);
+        }
+
+    }
 }

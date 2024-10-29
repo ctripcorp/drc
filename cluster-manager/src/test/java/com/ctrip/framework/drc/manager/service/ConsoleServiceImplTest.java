@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import java.util.Map;
 
@@ -30,6 +31,12 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
     @Mock
     private ClusterManagerConfig clusterManagerConfig;
 
+    @Mock
+    private MysqlConsoleNotifier mysqlConsoleNotifier;
+
+    @Mock
+    private ReplicatorConsoleNotifier replicatorConsoleNotifier;
+
     private Map<String, RegionInfo> regionInfoMap = Maps.newConcurrentMap();
 
     @Before
@@ -46,10 +53,11 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
     }
 
     @Test
-    public void replicatorActiveElected() {
+    public void replicatorActiveElected() throws Exception {
         regionInfoMap.clear();
         regionInfoMap.put(REGION, new RegionInfo("http://127.0.0.1:8080"));
         when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
+        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(false);
         when(dataCenterService.getRegion()).thenReturn(REGION);
 
         consoleService.replicatorActiveElected(CLUSTER_ID, null);
@@ -71,6 +79,7 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
         regionInfoMap.clear();
         regionInfoMap.put(TARGET_DC, new RegionInfo("http://127.0.0.1:8080"));
         when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
+        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(false);
         when(dataCenterService.getRegion()).thenReturn(REGION);
         consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
         verify(clusterManagerConfig, times(1)).getConsoleRegionInfos();
@@ -81,6 +90,23 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
         regionInfoMap.put(DC, new RegionInfo("http://127.0.0.1:8080"));
         consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
         verify(clusterManagerConfig, times(3)).getConsoleRegionInfos();
+    }
+
+    @Test
+    public void batchNotifyReplicatorMasterChanged() throws Exception {
+        doNothing().when(replicatorConsoleNotifier).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
+        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(true);
+        consoleService.replicatorActiveElected(CLUSTER_ID, newReplicator);
+        verify(replicatorConsoleNotifier, times(1)).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
+    }
+
+    @Test
+    public void batchNotifyMysqlMasterChanged() throws Exception {
+
+        doNothing().when(mysqlConsoleNotifier).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
+        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(true);
+        consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
+        verify(mysqlConsoleNotifier, times(1)).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
     }
 
 }

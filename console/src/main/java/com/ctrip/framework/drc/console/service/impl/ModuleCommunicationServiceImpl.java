@@ -30,14 +30,14 @@ public class ModuleCommunicationServiceImpl implements ModuleCommunicationServic
 
     @Override
     public Replicator getActiveReplicator(String dc, String clusterId) {
-        try {
-            String cmMetaServerAddress = config.getCMMetaServerAddress(dc);
-            if (StringUtils.isNotBlank(cmMetaServerAddress)) {
-                String activeReplicatorPath = getActiveReplicatorPath(cmMetaServerAddress);
+        String cmMetaServerAddress = config.getCMMetaServerAddress(dc);
+        if (StringUtils.isNotBlank(cmMetaServerAddress)) {
+            String activeReplicatorPath = getActiveReplicatorPath(cmMetaServerAddress);
+            try {
                 return HttpUtils.get(activeReplicatorPath, Replicator.class, clusterId);
+            } catch (Exception e) {
+                logger.error("[[registryKey={},dc={},url={}]]getActiveReplicator error, ", clusterId, dc, activeReplicatorPath, e);
             }
-        } catch(Exception e) {
-            logger.error("[[registryKey={},dc={}]]getActiveReplicator, ", clusterId, dc, e);
         }
         return null;
     }
