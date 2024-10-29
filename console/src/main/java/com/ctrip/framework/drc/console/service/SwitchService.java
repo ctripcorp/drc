@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.service;
 
+import com.ctrip.framework.drc.core.server.config.console.dto.ClusterConfigDto;
+
 /**
  * @author shenhaibo
  * @version 1.0
@@ -9,4 +11,8 @@ public interface SwitchService {
     void switchUpdateDb(String cluster, String endpoint,boolean firstHand);
 
     void switchListenReplicator(String clusterId, String endpoint,boolean firstHand);
+
+    void switchUpdateDb(ClusterConfigDto clusterConfigDto) throws Exception;
+
+    void switchListenReplicator(ClusterConfigDto clusterConfigDto);
 }

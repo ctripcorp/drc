@@ -330,6 +330,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     public void switchListenReplicator(String clusterId, String newReplicatorIp,
             int newReplicatorPort) {
+        logger.info("[[monitor=delaylisten]] switchListenReplicator for cluster: {}, {}:{}", clusterId, newReplicatorIp, newReplicatorPort);
         if (!markProcessingListenServer(clusterId)) {
             logger.error(
                     "[[monitor=delaylisten]] switch replicator listen fail for cluster: {} due to already in processingListenServer",
@@ -342,8 +343,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                     StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
                     DelayMonitorSlaveConfig oldConfig = delayMonitorServer.getConfig();
                     updateMasterReplicatorIfChange(delayMonitorServer.getConfig().getDestMha(), newReplicatorIp);
-                    if (!oldConfig.getIp().equalsIgnoreCase(newReplicatorIp)
-                            || oldConfig.getPort() != newReplicatorPort) {
+                    if (!oldConfig.getIp().equalsIgnoreCase(newReplicatorIp) || oldConfig.getPort() != newReplicatorPort) {
                         logger.info(
                                 "[[monitor=delaylisten]] switch replicator listen for cluster: {}, old endpoint({}:{}), new endpoint({}:{})",
                                 clusterId, oldConfig.getIp(), oldConfig.getPort(), newReplicatorIp,
@@ -368,6 +368,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 }
             });
         } else {
+            logger.warn("[[monitor=delaylisten]] delayMonitorServerMap not contain: {}", clusterId);
             clearProcessingListenServer(clusterId);
         }
     }

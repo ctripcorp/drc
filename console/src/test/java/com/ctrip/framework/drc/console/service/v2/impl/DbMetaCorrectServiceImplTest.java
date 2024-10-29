@@ -19,17 +19,14 @@ import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.sql.SQLException;
-import java.util.List;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
+
+import java.sql.SQLException;
+import java.util.List;
 
 public class DbMetaCorrectServiceImplTest {
 
@@ -232,6 +229,22 @@ public class DbMetaCorrectServiceImplTest {
         Assert.assertEquals(0,apiResult.getData());
         apiResult = dbMetaCorrectService.mhaMasterDbChange("mha", "ip1", 1);
         Assert.assertEquals(2,apiResult.getData());
+    }
+
+    @Test
+    public void testBatchMhaMasterDbChange() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(MockEntityBuilder.buildMhaTblV2()));
+        Mockito.when(machineTblDao.queryByMhaIds(Mockito.anyList())).thenReturn(MockEntityBuilder.buildMachineTbls());
+        Mockito.when(machineTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        MhaInstanceGroupDto mhaInstanceGroupDto = new MhaInstanceGroupDto();
+        mhaInstanceGroupDto.setMhaName("mha");
+        MhaInstanceGroupDto.MySQLInstance master = new MhaInstanceGroupDto.MySQLInstance();
+        master.setIp("ip");
+        master.setPort(1);
+        mhaInstanceGroupDto.setMaster(master);
+
+        dbMetaCorrectService.batchMhaMasterDbChange(Lists.newArrayList(mhaInstanceGroupDto));
     }
 
     @Test
