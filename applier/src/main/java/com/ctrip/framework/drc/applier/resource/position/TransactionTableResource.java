@@ -47,7 +47,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     private static final String INSERT_TRANSACTION_SQL = "insert into `drcmonitordb`.`%s`(`id`, `server_uuid`, `gno`) values(?, ?, ?);";
     private String INSERT_TRANSACTION_TABLE;
 
-    private static final int RETRY_TIME = 10;
+    private static final int RETRY_TIME = 1;
 
     private static final int MERGE_THRESHOLD = 60;
 

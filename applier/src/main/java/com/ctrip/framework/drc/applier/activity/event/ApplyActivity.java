@@ -60,6 +60,10 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
 
         switch (transaction.apply(accurate)) {
             case COMMUNICATION_FAILURE:
+                if (isStopped()) {
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.transaction.table.connect.fail", registryKey);
+                    return onFailure(transaction);
+                }
                 return retry(transaction, 1, TimeUnit.SECONDS);
             case DEADLOCK:
                 return onDeadLock(transaction);

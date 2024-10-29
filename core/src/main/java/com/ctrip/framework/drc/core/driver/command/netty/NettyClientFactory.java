@@ -127,6 +127,9 @@ public class NettyClientFactory extends AbstractStartStoppable implements Pooled
                 if (!future.isSuccess()) {
                     logger.info("[Close] {} fail for {}", target, p.getObject());
                 }
+                if (future.isSuccess()) {
+                    logger.info("[Close] {} success for {}", target, p.getObject());
+                }
             });
         } catch (Exception e) {
             logger.error("[destroyObject] error", e);
