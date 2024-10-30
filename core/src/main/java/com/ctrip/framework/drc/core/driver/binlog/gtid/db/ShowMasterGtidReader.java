@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -31,36 +32,61 @@ public class ShowMasterGtidReader implements GtidReader {
         return select(connection, EXECUTED_GTID, EXECUTED_GTID_INDEX);
     }
 
-    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+
     private String select(Connection connection, String sql, int index) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
+        try {
+            String oldResult = selectResult(connection, EXECUTED_GTID_OLD, 2);
             if (DynamicConfig.getInstance().getOldGtidSqlSwitch()) {
-                try (ResultSet resultSet = statement.executeQuery(EXECUTED_GTID_OLD)) {
-                    if (resultSet.next()) {
-                        return resultSet.getString(2);
-                    }
-                }
+                return oldResult;
             }
-            try (ResultSet resultSet = statement.executeQuery(sql)) {
-                if (resultSet.next()) {
-                    try (Statement statementOld = connection.createStatement();
-                         ResultSet resultSetOld = statementOld.executeQuery(EXECUTED_GTID_OLD)) {
-                        if (resultSetOld.next()) {
-                            String oldResult = resultSetOld.getString(2);
-                            String newResult = resultSet.getString(index);
-                            if (newResult != null && !newResult.equals(oldResult)) {
-                                EventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
-                                logger.warn("gtid query result different, newResult: {}. oldResult: {}", newResult, oldResult);
-                            }
-                        }
-                    }
-                    return resultSet.getString(index);
-                }
-            }
+            String newResult = selectResult(connection, sql, index);
+            this.compareGtid(oldResult, newResult);
+            return newResult;
         } catch (SQLException e) {
             logger.warn("execute select sql error, sql is: {}", sql, e);
             throw e;
         }
-        return StringUtils.EMPTY;
     }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    private String selectResult(Connection connection, String sql, int index) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            if (resultSet.next()) {
+                return resultSet.getString(index);
+            } else {
+                return StringUtils.EMPTY;
+            }
+        }
+    }
+
+    public boolean compareGtid(String oldResult, String newResult) {
+        try {
+            GtidSet oldGtidSet = new GtidSet(oldResult);
+            GtidSet newGtidSet = new GtidSet(newResult);
+            if (!oldGtidSet.isContainedWithin(newGtidSet)) {
+                EventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
+                logger.warn("gtid query result different, not contained, newResult: {}. oldResult: {}", newResult, oldResult);
+                return false;
+            } else if (!newGtidSet.getUUIDs().equals(oldGtidSet.getUUIDs())) {
+                EventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
+                logger.warn("gtid query result different, uuid different, newResult: {}. oldResult: {}", newResult, oldResult);
+                return false;
+            }else if (newGtidSet.subtract(oldGtidSet).getGtidNum() >= 1000) {
+                EventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
+                logger.warn("gtid query result different, getGtidNum >= 1000, newResult: {}. oldResult: {}", newResult, oldResult);
+                return false;
+            } else if (oldGtidSet.getUUIDs().size() == 0 || newGtidSet.getUUIDs().size() == 0) {
+                EventMonitor.DEFAULT.logEvent("gtid.query.different", oldResult);
+                logger.warn("gtid query result different, gtidset empty, newResult: {}. oldResult: {}", newResult, oldResult);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            EventMonitor.DEFAULT.logEvent("gtid.query.different.exception", oldResult);
+            logger.warn("gtid query result different, newResult: {}. oldResult: {}, exception cause: {}", newResult, oldResult, e.getCause());
+            return false;
+        }
+    }
+
 }
