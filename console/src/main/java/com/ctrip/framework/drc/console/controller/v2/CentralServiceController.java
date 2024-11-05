@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
+import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -62,12 +63,12 @@ public class CentralServiceController {
             return ApiResult.getFailInstance(null, "getMhaDbReplications fail");
         }
     }
-    
+
     @GetMapping("uuid")
-    public ApiResult getUuidInMetaDb(@RequestParam String mhaName,@RequestParam String ip,@RequestParam Integer port) {
+    public ApiResult getUuidInMetaDb(@RequestParam String mhaName, @RequestParam String ip, @RequestParam Integer port) {
         try {
             logger.info("[[tag=centralService]] getUuidInMetaDb");
-            String uuid = centralService.getUuidInMetaDb(mhaName,ip,port);
+            String uuid = centralService.getUuidInMetaDb(mhaName, ip, port);
             return ApiResult.getSuccessInstance(uuid);
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getUuidInMetaDb fail, mhaName: {}, ip: {}, port: {}", mhaName, ip, port, e);
@@ -90,12 +91,23 @@ public class CentralServiceController {
     @GetMapping("mhaAccounts")
     public ApiResult getMhaAccounts(@RequestParam String mhaName) {
         try {
-            logger.info("getMhaAccounts,mha:{}",mhaName);
+            logger.info("getMhaAccounts,mha:{}", mhaName);
             return ApiResult.getSuccessInstance(centralService.getMhaAccounts(mhaName));
         } catch (Throwable e) {
-            logger.info("getMhaAccounts fail,mha:{}",mhaName);
+            logger.info("getMhaAccounts fail,mha:{}", mhaName);
             return ApiResult.getFailInstance(null, "getMhaAccounts fail" + mhaName);
         }
     }
-    
+
+    @PostMapping("replicator")
+    public ApiResult updateMasterReplicatorIfChange(@RequestBody MhaReplicatorEntity requestBody) {
+        try {
+            logger.info("[updateMasterReplicatorIfChange] requestBody: {}", requestBody);
+            return ApiResult.getSuccessInstance(centralService.updateMasterReplicatorIfChange(requestBody));
+        } catch (Throwable e) {
+            logger.info("updateMasterReplicatorIfChange fail,requestBody:{}, {}", requestBody);
+            return ApiResult.getFailInstance(null, "updateMasterReplicatorIfChange fail: " + requestBody);
+        }
+    }
+
 }

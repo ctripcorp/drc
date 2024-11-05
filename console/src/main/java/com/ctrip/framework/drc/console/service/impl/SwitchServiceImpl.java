@@ -103,7 +103,7 @@ public class SwitchServiceImpl implements SwitchService {
         for (Map.Entry<String, String> entry : clusterConfigDto.getClusterMap().entrySet()) {
             logger.info("switchListenReplicator firstHand:{}, clusterId: {}, endpoint: {}", clusterConfigDto.isFirstHand(), entry.getKey(), entry.getValue());
             String[] split = entry.getValue().split(":");
-            executorService.submit(() -> listenReplicatorTask.switchListenReplicator(entry.getKey(), split[0], Integer.parseInt(split[1])));
+            listenReplicatorTask.switchListenReplicator(entry.getKey(), split[0], Integer.parseInt(split[1]));
         }
         if (clusterConfigDto.isFirstHand()) {
             ClusterConfigDto copyDto = new ClusterConfigDto(clusterConfigDto.getClusterMap(), false);

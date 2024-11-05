@@ -52,27 +52,6 @@ public class DbMetaCorrectServiceImplTest {
         Mockito.when(accountService.getAccount(Mockito.any(MhaTblV2.class), Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("user", "password"));
     }
 
-    @Test
-    public void testUpdateMasterReplicatorIfChange() throws SQLException {
-        MhaTblV2 mhaTblV2 = MockEntityBuilder.buildMhaTblV2();
-        ReplicatorGroupTbl rGroupTbl = MockEntityBuilder.buildReplicatorGroupTbl();
-        List<ReplicatorTbl> replicatorTbls = MockEntityBuilder.buildReplicatorTbls();
-        ResourceTbl resourceTbl1 = MockEntityBuilder.buildResourceTbl();
-        resourceTbl1.setIp("ip1");
-        ResourceTbl resourceTbl2 = MockEntityBuilder.buildResourceTbl();
-        resourceTbl2.setIp("ip2");
-        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"))).thenReturn(mhaTblV2);
-        Mockito.when(rGroupTblDao.queryByMhaId(Mockito.eq(1L))).thenReturn(rGroupTbl);
-        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(),Mockito.anyInt())).thenReturn(replicatorTbls);
-        Mockito.when(resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl1);
-        Mockito.when(resourceTblDao.queryByPk(Mockito.eq(2L))).thenReturn(resourceTbl2);
-        Mockito.when(replicatorTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[] {1,1});
-
-        boolean b = dbMetaCorrectService.updateMasterReplicatorIfChange("mha", "ip2");
-        boolean b1 = dbMetaCorrectService.updateMasterReplicatorIfChange("mha", "ip2");
-        Assert.assertTrue(b);
-        Assert.assertFalse(b1);
-    }
 
     @Test
     public void testMhaInstancesChange() throws Exception {

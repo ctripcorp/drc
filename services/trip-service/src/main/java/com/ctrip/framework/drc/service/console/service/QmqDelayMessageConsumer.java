@@ -48,6 +48,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     
     private Set<String> dcsRelated = Sets.newHashSet();
     private volatile Set<String> mhasRelated = Sets.newHashSet();
+    private volatile boolean running = true;
     
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
@@ -80,6 +81,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     @Override
     public boolean stopListen() {
+        running = false;
         if (listenerHolder == null) {
             return false;
         }
@@ -91,6 +93,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     @Override
     public boolean resumeListen(){
+        running = true;
         if (listenerHolder == null) {
             return false;
         }
@@ -99,7 +102,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     }
 
     private void processMessage(Message message) {
-        logger.info("[[monitor=delay,mha={}]] consumer message " + message.getMessageId());
+        logger.info("[[monitor=delay]] consumer message: {}" + message.getMessageId());
         long receiveTime = System.currentTimeMillis();
         String dataChangeJson = message.getStringProperty("dataChange");
         DataChangeMessage dataChange = JsonUtils.fromJson(dataChangeJson, DataChangeMessage.class);
@@ -126,10 +129,13 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
+            if (!running) {
+                logger.info("[[monitor=delay]] messenger consumer listener is stop, mha={}, delay={}", mhaName, delayTime);
+                return;
+            }
             DefaultReporterHolder.getInstance().reportMessengerDelay(
                     mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
-            logger.info("[[monitor=delay,mha={}]] report messenger delay:{} ms", mhaName, delayTime);
-
+            logger.info("[[monitor=delay,mha={},messageId={}]] report messenger delay:{} ms", mhaName, message.getMessageId(), delayTime);
 
             receiveTimeMap.put(mhaInfo,receiveTime);
         } else {

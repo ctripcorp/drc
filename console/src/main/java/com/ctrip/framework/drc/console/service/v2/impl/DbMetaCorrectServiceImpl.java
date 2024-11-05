@@ -69,41 +69,6 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
 
-
-    @Override
-    public boolean updateMasterReplicatorIfChange(String mhaName, String newIp) throws SQLException{
-        logger.info("[updateMasterReplicatorIfChange] mhaName: {}, newIp: {}", mhaName, newIp);
-        Map<String, ReplicatorTbl> replicators = getIpReplicatorMap(mhaName);
-        List<ReplicatorTbl> rTblsToBeUpdated = Lists.newArrayList();
-        for (Entry<String, ReplicatorTbl> entry : replicators.entrySet()) {
-            String ip = entry.getKey();
-            ReplicatorTbl replicatorTbl = entry.getValue();
-            if (newIp.equalsIgnoreCase(ip) && BooleanEnum.FALSE.getCode().equals(replicatorTbl.getMaster())) {
-                replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
-                rTblsToBeUpdated.add(replicatorTbl);
-            }
-            if (!newIp.equalsIgnoreCase(ip) && BooleanEnum.TRUE.getCode().equals(replicatorTbl.getMaster())) {
-                replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
-                rTblsToBeUpdated.add(replicatorTbl);
-            }
-        }
-        if (rTblsToBeUpdated.size() > 0) {
-            try {
-                int[] ints = replicatorTblDao.batchUpdate(rTblsToBeUpdated);
-                String updateRes = StringUtils.join(ints, ",");
-                logger.info("update replicator master, mhaName: {}, newIp: {}", mhaName, newIp);
-                DefaultEventMonitorHolder.getInstance()
-                        .logEvent("DRC.replicator.master", String.format("%s:%s",mhaName, newIp));
-                return true;
-            } catch (SQLException e) {
-                logger.error("Fail update master replicator({}), ", newIp, e);
-            }
-        } else {
-            logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
-        }
-        return false;
-    }
-    
     @Override
     public void mhaInstancesChange(MhaInstanceGroupDto mhaInstanceGroupDto, MhaTblV2 mhaTblV2) throws Exception {
         String mhaName = mhaInstanceGroupDto.getMhaName();
