@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DrcReplicatorWrapper
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnector;
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
+import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
@@ -509,31 +510,29 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         for (String id : delayMonitorServerMap.keySet()) {
             StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(id);
             DelayMonitorSlaveConfig config = delayMonitorServer.getConfig();
-            logger.debug("request CM for real master R for {} in {}", id, config.getDestDc());
+            logger.info("pollDetectReplicators cluster: {}", id);
             Replicator activeReplicator = moduleCommunicationService.getActiveReplicator(
                     config.getDestDc(), id);
             if (null != activeReplicator) {
                 String ip = activeReplicator.getIp();
                 Integer applierPort = activeReplicator.getApplierPort();
-                log(config, "realR ip:" + ip + ", port: " + applierPort, INFO, null);
+                logger.info("pollDetectReplicators cluster: {}, replicator: {}", id, ip + ":" + applierPort);
                 switchListenReplicator(id, ip, applierPort);
             } else {
-                log(config, "Fail to get realR(oldR is in tags), check next round", INFO, null);
+                logger.warn("pollDetectReplicators fail, cluster: {}", id);
             }
         }
     }
     
     protected void updateMasterReplicatorIfChange(String mhaName,String newReplicatorIp) {
-        if ("on".equalsIgnoreCase(consoleConfig.getUpdateReplicatorSwitch())) {
-            monitorMasterRExecutorService.submit(() -> {
-                try {
-                    dbMetaCorrectService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
-                } catch (Throwable t) {
-                    logger.error("updateMasterReplicatorIfChange error mha:{},newRIp:{}",
-                            mhaName,newReplicatorIp,t);
-                }
-            });
-        }
+        monitorMasterRExecutorService.submit(() -> {
+            try {
+                centralService.updateMasterReplicatorIfChange(new MhaReplicatorEntity(mhaName, newReplicatorIp));
+            } catch (Throwable t) {
+                logger.error("updateMasterReplicatorIfChange error mha:{},newRIp:{}",
+                        mhaName,newReplicatorIp,t);
+            }
+        });
     }
     
 }
