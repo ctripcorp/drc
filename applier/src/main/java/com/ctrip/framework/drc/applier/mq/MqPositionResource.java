@@ -58,6 +58,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     @Override
     protected void doInitialize() throws Exception {
+        loggerMsg.info("[MQ][{}] persist mq position when mq position resource initialize", registryKey);
         initZkClient();
         String filePositionPath = APPLIER_PATH + registryKey;
         positionFile = new File(filePositionPath);
@@ -88,6 +89,9 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
         }
         GtidSet gtidSetFromZk = new GtidSet(getPositionFromZk());
         GtidSet gtidSetFromFile = new GtidSet(getPositionFromFile());
+
+        logger.info("[{}][NETWORK GTID] from zk: {}", registryKey, gtidSetFromZk);
+        logger.info("[{}][NETWORK GTID] from file: {}", registryKey, gtidSetFromFile);
         return gtidSetFromZk.union(gtidSetFromFile).toString();
     }
 
@@ -110,11 +114,11 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
         Boolean res = new RetryTask<>(new ZkPositionUpdateTask(), RETRY_TIME).call();
         if (res == null) {
             loggerMsg.error("[MQ][{}] persist position in zk error", registryKey);
-            try {
-                updatePositionInFile();
-            } catch (IOException e) {
-                loggerMsg.error("[MQ][{}] persist position error", registryKey);
-            }
+        }
+        try {
+            updatePositionInFile();
+        } catch (IOException e) {
+            loggerMsg.error("[MQ][{}] persist position error", registryKey);
         }
     }
 
@@ -198,17 +202,28 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     @Override
     protected void doDispose() throws Exception {
-        new ZkPositionUpdateTask().call();
-        updatePositionInFile();
-        loggerMsg.info("[MQ][{}] persist mq position when mq position resource dispose", registryKey);
-
-        if (gtidService != null) {
-            gtidService.shutdown();
-            gtidService = null;
+        try {
+            loggerMsg.info("[MQ][{}] persist mq position to zk when dispose", registryKey);
+            new ZkPositionUpdateTask().call();
+        } catch (Exception e) {
+            loggerMsg.error("[MQ][{}] persist mq position to zk when dispose error, {}", registryKey, e);
         }
-        if (scheduledExecutorService != null) {
-            scheduledExecutorService.shutdown();
-            scheduledExecutorService = null;
+
+        try {
+            updatePositionInFile();
+        } catch (Exception e) {
+            loggerMsg.error("[MQ][{}] persist mq position to file when dispose error, {}", registryKey, e);
+        } finally {
+            loggerMsg.info("[MQ][{}] persist mq position when mq position resource dispose", registryKey);
+
+            if (gtidService != null) {
+                gtidService.shutdown();
+                gtidService = null;
+            }
+            if (scheduledExecutorService != null) {
+                scheduledExecutorService.shutdown();
+                scheduledExecutorService = null;
+            }
         }
     }
 
