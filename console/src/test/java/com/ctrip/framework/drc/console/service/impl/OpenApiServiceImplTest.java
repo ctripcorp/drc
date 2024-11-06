@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
+import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.utils.FileUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -96,6 +97,22 @@ public class OpenApiServiceImplTest {
 
         List<DrcDbInfo> allDrcDbInfo = openApiService.getDrcDbInfos(null);
         Assert.assertNotEquals(0, allDrcDbInfo.size());
+
+        String expected = "[{\"db\":\"drc\\\\d\",\"table\":\".*\",\"srcMha\":\"fat-fx-drc2\",\"destMha\":\"fat-fx-drc1\",\"srcRegion\":\"ntgxy\",\"destRegion\":\"ntgxh\",\"rowsFilterConfigs\":[],\"columnsFilterConfigs\":[]},{\"db\":\"bbzbbzdrcbenchmarktmpdb\",\"table\":\"benchmark\",\"srcMha\":\"fat-fx-drc2\",\"destMha\":\"fat-fx-drc1\",\"srcRegion\":\"ntgxy\",\"destRegion\":\"ntgxh\",\"rowsFilterConfigs\":[{\"mode\":\"trip_udl\",\"tables\":\"bbzbbzdrcbenchmarktmpdb\\\\.row_filter\",\"configs\":{\"parameterList\":[{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}}],\"columnsFilterConfigs\":[]},{\"db\":\"drc\\\\d\",\"table\":\".*\",\"srcMha\":\"fat-fx-drc1\",\"destMha\":\"fat-fx-drc2\",\"srcRegion\":\"ntgxh\",\"destRegion\":\"ntgxy\",\"rowsFilterConfigs\":[],\"columnsFilterConfigs\":[]},{\"db\":\"bbzbbzdrcbenchmarktmpdb\",\"table\":\"benchmark\",\"srcMha\":\"fat-fx-drc1\",\"destMha\":\"fat-fx-drc2\",\"srcRegion\":\"ntgxh\",\"destRegion\":\"ntgxy\",\"rowsFilterConfigs\":[{\"mode\":\"trip_udl\",\"tables\":\"bbzbbzdrcbenchmarktmpdb\\\\.row_filter\",\"configs\":{\"parameterList\":[{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}}],\"columnsFilterConfigs\":[]}]";
+        Assert.assertEquals(expected, Codec.DEFAULT.encode(allDrcDbInfo));
+    }
+
+    @Test
+    public void testGetDrcDbInfoForDb() throws Exception {
+        Drc drc = DefaultSaxParser.parse(FileUtils.getFileInputStream("api/open_api_meta.xml"));
+        Mockito.doReturn(drc).when(metaProviderV2).getDrc();
+
+        List<DrcDbInfo> dbInfos = openApiService.getDrcDbInfos("bbzbbzdrcbenchmarktmpdb");
+        String expected = "[{\"db\":\"bbzbbzdrcbenchmarktmpdb\",\"table\":\"benchmark\",\"srcMha\":\"fat-fx-drc2\",\"destMha\":\"fat-fx-drc1\",\"srcRegion\":\"ntgxy\",\"destRegion\":\"ntgxh\",\"rowsFilterConfigs\":[{\"mode\":\"trip_udl\",\"tables\":\"bbzbbzdrcbenchmarktmpdb\\\\.row_filter\",\"configs\":{\"parameterList\":[{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}}],\"columnsFilterConfigs\":[]},{\"db\":\"bbzbbzdrcbenchmarktmpdb\",\"table\":\"benchmark\",\"srcMha\":\"fat-fx-drc1\",\"destMha\":\"fat-fx-drc2\",\"srcRegion\":\"ntgxh\",\"destRegion\":\"ntgxy\",\"rowsFilterConfigs\":[{\"mode\":\"trip_udl\",\"tables\":\"bbzbbzdrcbenchmarktmpdb\\\\.row_filter\",\"configs\":{\"parameterList\":[{\"columns\":[\"uid\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}}],\"columnsFilterConfigs\":[]}]";
+        Assert.assertEquals(expected, Codec.DEFAULT.encode(dbInfos));
+        List<DrcDbInfo> dbInfos2 = openApiService.getDrcDbInfos("notExist");
+        Assert.assertEquals(0,dbInfos2.size());
+
     }
 
 
