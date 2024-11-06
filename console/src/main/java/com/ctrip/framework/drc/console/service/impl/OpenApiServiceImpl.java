@@ -116,6 +116,9 @@ public class OpenApiServiceImpl implements OpenApiService {
                                     res.add(drcDbInfo);
                                 }
                             }
+                            if (dbInfoMap.isEmpty()) {
+                                continue;
+                            }
 
                             processProperties(applier, dbInfoMap, destMha);
                         } else {
