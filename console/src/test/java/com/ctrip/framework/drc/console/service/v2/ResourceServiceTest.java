@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.service.impl.inquirer.ApplierInquirer;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
 import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.google.common.collect.Lists;
@@ -531,6 +532,7 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.getAz2ApplierInstance().size(), 1);
         Assert.assertEquals(result.getAz2ApplierInstance().get("shaxy").size(), 0);
         Assert.assertEquals(result.getAz2ReplicatorInstance().size(), 2);
+        Assert.assertEquals(result.getAz2DrcDb().size(), 1);
     }
 
     @Mock
@@ -549,5 +551,67 @@ public class ResourceServiceTest {
 
         List<ApplierInfoDto> result = resourceService.getAppliersInAz(testRegion, Lists.newArrayList("ip"));
         Assert.assertEquals(result.size(), 1);
+    }
+
+    @Test
+    public void testMhaRelatedDrcDb() {
+        Map<String, Set<String>> az2MhaName = Maps.newHashMap();
+        Set<String> rbmhas = Sets.newHashSet("mha1");
+        az2MhaName.put("dcId",rbmhas);
+
+        Drc drc = new Drc();
+
+        Map<String, Set<String>> result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 0);
+
+
+        Dc dc = new Dc();
+        dc.setId("dcId");
+        drc.addDc(dc);
+        result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 0);
+
+        DbCluster dbCluster = new DbCluster();
+        dc.addDbCluster(dbCluster);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 0);
+
+        Applier applier = new Applier();
+        applier.setTargetMhaName("mha1");
+        applier.setIncludedDbs("includeDb");
+        dbCluster.addApplier(applier);
+
+        result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 1);
+
+        dbCluster.setMhaName("mha1");
+        applier.setTargetMhaName("mha2");
+        result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 1);
+
+        Applier applier2 = new Applier();
+        applier2.setParent(dbCluster);
+        applier2.setIncludedDbs("includeDb2");
+        dbCluster.addApplier(applier2);
+        result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 2);
+
+        Applier applier3 = new Applier();
+        applier3.setNameFilter("fncaggregatemerchantcontractshard00db\\.(?!qmq_msg_queue).*,fncaggregatemerchantcontractshard01db\\.(?!qmq_msg_queue).*");
+        dbCluster.addApplier(applier3);
+        result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 4);
+
+        applier3.setNameFilter("");
+        result = resourceService.mhaRelatedDrcDb(az2MhaName,drc);
+        Assert.assertEquals(result.size(),1);
+        Assert.assertEquals(result.get("dcId").size(), 2);
+
     }
 }

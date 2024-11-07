@@ -1192,6 +1192,7 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public MhaAzView getAllInstanceAzInfo() throws Exception {
         Set<String> dcNameDba = consoleConfig.getDbaDc2DrcDcMap().keySet();
+        Drc drc = metaProviderV2.getDrc();
 
         MhaAzView mhaAzView = new MhaAzView();
         Map<String, Set<String>> az2MhaName = dcNameDba.stream()
@@ -1241,7 +1242,9 @@ public class ResourceServiceImpl implements ResourceService {
         mhaAzView.setAz2mhaName(az2MhaName);
         mhaAzView.setAz2DbInstance(az2DbInstance);
 
-        Drc drc = metaProviderV2.getDrc();
+        Map<String, Set<String>> az2DrcDb = mhaRelatedDrcDb(az2MhaName, drc);
+        mhaAzView.setAz2DrcDb(az2DrcDb);
+
         if (drc == null) {
             return mhaAzView;
         }
@@ -1249,6 +1252,45 @@ public class ResourceServiceImpl implements ResourceService {
         mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs(drc));
         mhaAzView.setAz2ReplicatorInstance(getReplicatorAz(drc));
         return mhaAzView;
+    }
+
+    public Map<String, Set<String>> mhaRelatedDrcDb(Map<String, Set<String>> az2MhaName, Drc drc) {
+        Map<String, Set<String>> az2DrcDb = Maps.newHashMap();
+        if (drc == null) {
+            return az2DrcDb;
+        }
+        List<DbCluster> allDbClusters = drc.getDcs().values().stream()
+                .flatMap(dc -> dc.getDbClusters().values().stream())
+                .collect(Collectors.toList());
+        for (Map.Entry<String, Set<String>> entry : az2MhaName.entrySet()) {
+            String dc = entry.getKey();
+            Set<String> mhaNames = entry.getValue();
+            Set<String> relateDbs = allDbClusters.stream()
+                    .filter(dbCluster -> !CollectionUtils.isEmpty(dbCluster.getAppliers()))
+                    .flatMap(dbCluster -> dbCluster.getAppliers().stream())
+                    .filter(applier -> mhaNames.contains(applier.getTargetMhaName()) || mhaNames.contains(applier.parent().getMhaName()))
+                    .filter(applier -> applier.getIncludedDbs() != null)
+                    .map(applier -> applier.getIncludedDbs().split(","))
+                    .flatMap(Arrays::stream)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+
+            Set<String> relateDbsInMhaMode = allDbClusters.stream()
+                    .filter(dbCluster -> !CollectionUtils.isEmpty(dbCluster.getAppliers()))
+                    .flatMap(dbCluster -> dbCluster.getAppliers().stream())
+                    .filter(applier -> mhaNames.contains(applier.getTargetMhaName()) || mhaNames.contains(applier.parent().getMhaName()))
+                    .filter(applier -> applier.getIncludedDbs() == null && applier.getNameFilter() != null)
+                    .map(applier -> applier.getNameFilter().split(","))
+                    .flatMap(Arrays::stream)
+                    .map(s -> s.split("\\\\.")[0])
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
+
+            relateDbs.addAll(relateDbsInMhaMode);
+            az2DrcDb.put(dc, relateDbs);
+        }
+        return az2DrcDb;
     }
 
     private Map<String, List<ApplierInfoDto>> getAppliersInAllDcs(Drc drc) throws SQLException {

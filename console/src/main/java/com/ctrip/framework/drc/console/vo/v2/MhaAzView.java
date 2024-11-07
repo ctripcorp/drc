@@ -14,6 +14,7 @@ public class MhaAzView {
     Map<String, List<String>> az2DbInstance;
     Map<String, List<String>> az2ReplicatorInstance;
     Map<String, List<ApplierInfoDto>> az2ApplierInstance;
+    Map<String, Set<String>> az2DrcDb;
 
 
     public Map<String, Set<String>> getAz2mhaName() {
@@ -46,5 +47,13 @@ public class MhaAzView {
 
     public void setAz2ApplierInstance(Map<String, List<ApplierInfoDto>> az2ApplierInstance) {
         this.az2ApplierInstance = az2ApplierInstance;
+    }
+
+    public Map<String, Set<String>> getAz2DrcDb() {
+        return az2DrcDb;
+    }
+
+    public void setAz2DrcDb(Map<String, Set<String>> az2DrcDb) {
+        this.az2DrcDb = az2DrcDb;
     }
 }
