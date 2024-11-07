@@ -652,16 +652,19 @@ public class PojoBuilder {
         Map<String, List<String>> az2DbInstance = new HashMap<>();
         Map<String, List<String>> az2ReplicatorInstance = new HashMap<>();
         Map<String, List<ApplierInfoDto>> az2ApplierInstance = new HashMap<>();
+        Map<String, Set<String>> az2DrcDbs = new HashMap<>();
 
         az2mhaName.put("AZ", Sets.newHashSet("testMha"));
         az2DbInstance.put("AZ", Lists.newArrayList("ip:port"));
         az2ReplicatorInstance.put("AZ", Lists.newArrayList("ip:port"));
         az2ApplierInstance.put("AZ", Lists.newArrayList(new ApplierInfoDto()));
+        az2DrcDbs.put("AZ", Sets.newHashSet("testDb"));
 
         view.setAz2mhaName(az2mhaName);
         view.setAz2DbInstance(az2DbInstance);
         view.setAz2ApplierInstance(az2ApplierInstance);
         view.setAz2ReplicatorInstance(az2ReplicatorInstance);
+        view.setAz2DrcDb(az2DrcDbs);
         return view;
     }
 

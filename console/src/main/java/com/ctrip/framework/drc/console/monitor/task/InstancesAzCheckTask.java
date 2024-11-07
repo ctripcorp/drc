@@ -102,5 +102,16 @@ public class InstancesAzCheckTask extends AbstractLeaderAwareMonitor {
             reporter.resetReportCounter(tag, (long)applierInDc.size(), MHA_DC_STATUS_MEASUREMENT);
             CONSOLE_MONITOR_LOGGER.info("[[monitor=InstancesAzCheckTask]] {} applier in dc {}", applierInDc.size(), dcName);
         }
+
+        for (Map.Entry<String, Set<String>> entry : mhaAzView.getAz2DrcDb().entrySet()) {
+            String dcName = entry.getKey();
+            Set<String> dcRelatedDbs = entry.getValue();
+            tag = new HashMap<>();
+            tag.put("type", "drc_db");
+            tag.put("dc",dcName);
+            reporter.resetReportCounter(tag, (long)dcRelatedDbs.size(), MHA_DC_STATUS_MEASUREMENT);
+            CONSOLE_MONITOR_LOGGER.info("[[monitor=InstancesAzCheckTask]] {} drc related dbs in dc {}", dcRelatedDbs.size(), dcName);
+        }
+
     }
 }
