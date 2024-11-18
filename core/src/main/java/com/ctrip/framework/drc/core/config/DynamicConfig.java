@@ -163,5 +163,5 @@ public class DynamicConfig extends AbstractConfigBean {
     public boolean getOldGtidSqlSwitch() {
         return getBooleanProperty(OLD_QTID_SQL_SWITCH, false);
     }
-    
+
 }

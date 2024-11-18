@@ -447,6 +447,10 @@ public class MetaGeneratorV5 {
                 srcTables.add(tableName);
                 mqConfig.setTable(tableName);
                 mqConfig.setTopic(dbReplicationTbl.getDstLogicTableName());
+                MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblsByMappingIdMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), null);
+                if (mhaDbMappingTbl != null) {
+                    mqConfig.setSubenv(mhaDbMappingTbl.getSubenv());
+                }
                 mqConfigs.add(mqConfig);
             }
 

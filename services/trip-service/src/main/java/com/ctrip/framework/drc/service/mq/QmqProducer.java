@@ -7,8 +7,11 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
+import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.dianping.cat.Cat;
 import muise.ctrip.canal.DataChange;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
@@ -21,6 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.MESSENGER_DELAY_MONITOR_TOPIC;
+import static qunar.tc.qmq.utils.SubjectBranchUtils.SUB_ENV;
 
 /**
  * Created by jixinwang on 2022/10/17
@@ -45,12 +51,18 @@ public class QmqProducer extends AbstractProducer {
 
     private String orderKey;
 
+    private String qmqTraceSubenv;
+
+    private static boolean subenvSwitch;
+
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
+        this.qmqTraceSubenv = mqConfig.getSubenv();
+        this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
         init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
@@ -65,22 +77,30 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void send(List<EventData> eventDatas) {
-        for (EventData eventData : eventDatas) {
-            Message message = generateMessage(eventData);
-            long start = System.nanoTime();
-            provider.sendMessage(message, new MessageSendStateListener() {
-                @Override
-                public void onSuccess(Message message) {
-
-                }
-
-                @Override
-                public void onFailed(Message message) {
-                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.send.onfail", topic);
-                }
-            });
-            loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, message.getStringProperty(DATA_CHANGE));
+        if (subenvSwitch && !StringUtils.isEmpty(qmqTraceSubenv) && !MESSENGER_DELAY_MONITOR_TOPIC.equals(topic)) {
+            Cat.getTraceContext(true).add(SUB_ENV, qmqTraceSubenv);
         }
+        try {
+            for (EventData eventData : eventDatas) {
+                Message message = generateMessage(eventData);
+                long start = System.nanoTime();
+                provider.sendMessage(message, new MessageSendStateListener() {
+                    @Override
+                    public void onSuccess(Message message) {
+
+                    }
+
+                    @Override
+                    public void onFailed(Message message) {
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.send.onfail", topic);
+                    }
+                });
+                loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, message.getStringProperty(DATA_CHANGE));
+            }
+        } finally {
+            Cat.getTraceContext(true).remove(SUB_ENV);
+        }
+
     }
 
     @VisibleForTesting

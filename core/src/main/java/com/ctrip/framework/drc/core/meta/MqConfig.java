@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.meta;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * @ClassName MqConfig
  * @Author haodongPan
@@ -29,7 +31,10 @@ public class MqConfig {
     private String orderKey;
     // qmq send message delayTime, unit:second
     private long delayTime;
-    
+    // send message for target subenv
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String subenv;
+
 
     @Override
     public String toString() {
@@ -125,5 +130,13 @@ public class MqConfig {
 
     public void setProcessor(String processor) {
         this.processor = processor;
+    }
+
+    public String getSubenv() {
+        return subenv;
+    }
+
+    public void setSubenv(String subenv) {
+        this.subenv = subenv;
     }
 }

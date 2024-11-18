@@ -61,6 +61,13 @@ public class MhaDbMappingTbl implements DalPojo {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+    /**
+     * 子环境
+     */
+    @Column(name = "subenv")
+    @Type(value = Types.VARCHAR)
+    private String subenv;
+
     public Long getId() {
         return id;
     }
@@ -109,4 +116,11 @@ public class MhaDbMappingTbl implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    public String getSubenv() {
+        return subenv;
+    }
+
+    public void setSubenv(String subenv) {
+        this.subenv = subenv;
+    }
 }
