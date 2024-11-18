@@ -675,6 +675,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryBySrcMappingIds(mhaDbMappingIds, ReplicationTypeEnum.DB_TO_MQ.getType());
         List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
         Map<Long, Long> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+        Map<Long, MhaDbMappingTbl> mhaDbMappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
         Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
 
         Set<String> srcTables = new HashSet<>();
@@ -701,6 +702,10 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             srcTables.add(tableName);
             mqConfig.setTable(tableName);
             mqConfig.setTopic(dbReplicationTbl.getDstLogicTableName());
+            MhaDbMappingTbl mappingTbl = mhaDbMappingTblMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), null);
+            if (mappingTbl != null) {
+                mqConfig.setSubenv(mappingTbl.getSubenv());
+            }
             // processor is null
             mqConfigs.add(mqConfig);
 

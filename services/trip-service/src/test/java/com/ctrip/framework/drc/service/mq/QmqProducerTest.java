@@ -6,9 +6,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
+import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import qunar.tc.qmq.Message;
 
 import java.util.List;
@@ -26,7 +29,12 @@ public class QmqProducerTest {
     private String table = "table";
 
     @Test
-    public void generateMessage() {
+    public void generateMessage()  {
+        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
+        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
+        MockedStatic<TripServiceDynamicConfig> theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
+        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
+
         MqConfig config = new MqConfig();
         config.setTopic("drc.test.topic");
         config.setOrder(true);
