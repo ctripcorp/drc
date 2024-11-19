@@ -754,7 +754,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 throw ConsoleExceptionUtils.message(oldMha + "mha not exist,can't copyMhaProperties");
             }
             copyMhaProperties(mhaTobeInit,oldMhaTbl);
-            mhaId = mhaTblDao.insertWithReturnId(mhaTobeInit);
+            MhaTblV2 sameNameMhaAsNewMhaButDeleted = mhaTblDao.queryByMhaName(newMha, BooleanEnum.TRUE.getCode());
+            if (sameNameMhaAsNewMhaButDeleted != null) {
+                mhaId = sameNameMhaAsNewMhaButDeleted.getId();
+                mhaTobeInit.setId(mhaId);
+                mhaTblDao.update(mhaTobeInit);
+            } else {
+                mhaId = mhaTblDao.insertWithReturnId(mhaTobeInit);
+            }
             logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{},copyMhaProperties from:{}", newMha, mhaId,oldMha);
         } else {
             mhaId = initMhaAndAccount(mhaTobeInit, memberlist.stream().map(MemberInfo::toMachineDto).collect(Collectors.toList()));

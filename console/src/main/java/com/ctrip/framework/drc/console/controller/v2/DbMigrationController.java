@@ -4,7 +4,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
-import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.*;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.core.http.PageResult;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -301,6 +302,29 @@ public class DbMigrationController {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("preStartReplicator fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("mhaDbReplicationDelay")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MhaApplierDto>> getDelay(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            List<MhaApplierDto> delay = dbMigrationServiceV2.getMhaDbReplicationDelayFromMigrateTask(taskId);
+            return ApiResult.getSuccessInstance(delay);
+        } catch (Exception e) {
+            logger.error("getDelay fail", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("cleanApplierDirtyData")
+    public ApiResult<Map<String, List<Long>>> cleanApplierDirtyData (@RequestParam(name = "showOnly", defaultValue = "true") boolean showOnly) {
+        try {
+            Map<String, List<Long>> result =  dbMigrationServiceV2.cleanApplierDirtyData(showOnly);
+            return ApiResult.getSuccessInstance(result);
+        } catch (Exception e) {
+            logger.error("cleanApplierDirtyData fail", e);
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }

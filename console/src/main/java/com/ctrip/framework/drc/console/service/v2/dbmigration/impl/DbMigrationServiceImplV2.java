@@ -1628,4 +1628,72 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInDestPairs = Lists.newArrayList();
         List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs = Lists.newArrayList();
     }
+
+    public List<MhaApplierDto> getMhaDbReplicationDelayFromMigrateTask(Long taskId) throws SQLException {
+        MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
+        if (migrationTaskTbl == null) {
+            return Lists.newArrayList();
+        }
+        List<String> dbNames = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class);
+        String oldMha = migrationTaskTbl.getOldMha();
+        String newMha = migrationTaskTbl.getNewMha();
+
+        List<MhaDbReplicationDto> mhaDbReplicationDtosAll = mhaDbReplicationService.queryByDbNamesAndMhaNames(dbNames, Lists.newArrayList(oldMha,newMha), DB_TO_DB);
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationDtosAll.stream().filter(e -> Boolean.TRUE.equals(e.getDrcStatus())).collect(Collectors.toList());
+        List<Long> all = mhaDbReplicationDtos.stream().map(MhaDbReplicationDto::getId).collect(Collectors.toList());
+        List<MhaDbDelayInfoDto> mhaDbReplicationDelays = mhaDbReplicationService.getReplicationDelays(all);
+        Map<String, MhaDbDelayInfoDto> delayMap = mhaDbReplicationDelays.stream()
+                .collect(Collectors.toMap(delayDto -> delayDto.getSrcMha()+"."+delayDto.getDstMha()+"."+delayDto.getDbName(), Function.identity()));
+
+        List<MhaApplierDto> mhaApplierDtos = mhaDbReplicationDtosAll.stream()
+                .map(dto -> {
+                    String key = dto.getSrc().getMhaName()+"."+dto.getDst().getMhaName()+"."+dto.getSrc().getDbName();
+                    if (delayMap.containsKey(key)) {
+                        MhaApplierDto applierDto = MhaApplierDto.from(dto, delayMap.get(key));
+                        return applierDto;
+                    } else {
+                        return MhaApplierDto.from(dto, null);
+                    }
+                }).collect(Collectors.toList());
+        return mhaApplierDtos;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public Map<String, List<Long>> cleanApplierDirtyData(boolean showonly) throws SQLException{
+        Map<String, List<Long>> dirtyAGroupAndApplier = Maps.newHashMap();
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAll();
+        List<MhaDbReplicationTbl> deletedMhaDbReplications = mhaDbReplicationTbls.stream().filter(e -> BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList());
+        List<Long> deletedMhaDbReplicationIds = deletedMhaDbReplications.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
+        List<ApplierGroupTblV3> dirtyApplierGroups = applierGroupTblV3Dao.queryByMhaDbReplicationIds(deletedMhaDbReplicationIds);
+        if (!CollectionUtils.isEmpty(dirtyApplierGroups)) {
+            List<Long> dirtyApplierGroupIds = dirtyApplierGroups.stream().map(ApplierGroupTblV3::getId).collect(Collectors.toList());
+            dirtyAGroupAndApplier.put("dirtyAGroup", dirtyApplierGroupIds);
+            List<ApplierTblV3> dirtyAppliers = applierTblV3Dao.queryByApplierGroupIds(dirtyApplierGroupIds, BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(dirtyAppliers)) {
+                List<Long> dirtyApplierIds = dirtyAppliers.stream().map(ApplierTblV3::getId).collect(Collectors.toList());
+                dirtyAGroupAndApplier.put("dirtyApplier", dirtyApplierIds);
+                if (!showonly) {
+                    logger.info("delete dirty appliers:" + dirtyApplierIds.toString());
+                    dirtyAppliers.forEach(e -> {
+                        e.setDeleted(BooleanEnum.TRUE.getCode());
+                    });
+                    applierTblV3Dao.update(dirtyAppliers);
+                }
+            } else {
+                dirtyAGroupAndApplier.put("dirtyApplier", Lists.newArrayList());
+            }
+
+            if (!showonly) {
+                logger.info("delete dirty applier groups:" + dirtyApplierGroups.toString());
+                dirtyApplierGroups.forEach(e -> {
+                    e.setDeleted(BooleanEnum.TRUE.getCode());
+                });
+                applierGroupTblV3Dao.update(dirtyApplierGroups);
+            }
+        } else {
+            dirtyAGroupAndApplier.put("dirtyAGroup", Lists.newArrayList());
+        }
+        return dirtyAGroupAndApplier;
+    }
 }

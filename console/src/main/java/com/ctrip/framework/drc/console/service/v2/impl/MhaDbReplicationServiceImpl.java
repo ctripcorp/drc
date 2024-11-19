@@ -715,7 +715,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
 
     private void deleteApplierGroupV3(List<MhaDbReplicationTbl> mhaDbReplicationTbls) throws SQLException{
         List<Long> mhaDbReplicationIds = mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
-        List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryByIds(mhaDbReplicationIds);
+        List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryByMhaDbReplicationIds(mhaDbReplicationIds);
         if (CollectionUtils.isEmpty(applierGroupTblV3s)) {
             logger.info("applierGroupTblV3s is empty, mhaDbReplicationIds: {}", mhaDbReplicationIds);
             return;

@@ -14,7 +14,9 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
-import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.*;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -30,10 +32,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
 import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
@@ -96,6 +100,8 @@ public class DbMigrationServiceImplV2Test {
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Mock
     private ApplierTblV3Dao applierTblV3Dao;
+    @Mock
+    private MessengerServiceV2 messengerServiceV2;
 
 
     // init tblEntity  mhaTbls & mhaReplicationTbls & dbTbls & mhaDbMappingTbls & dbReplicationTbls & filterMapping
@@ -563,4 +569,42 @@ public class DbMigrationServiceImplV2Test {
         return dbMigrationParam;
     }
 
+    @Test
+    public void testGetMhaDbReplicationDelayFromMigrateTask() throws Exception {
+        Mockito.when(migrationTaskTblDao.queryById(Mockito.eq(1L))).thenReturn(migrationTaskTbl);
+        mockNormalPreStartCopyAllDbReplication();
+        MhaDbReplicationDto dto = new MhaDbReplicationDto();
+        MhaDbReplicationDto dto2 = new MhaDbReplicationDto();
+        MhaDbDto oldMha = new MhaDbDto(1L, "oldmha","db");
+        MhaDbDto newMha = new MhaDbDto(2L, "newMha","db");
+        MhaDbDto dstMha = new MhaDbDto(3L, "dstMha","db");
+        dto.setSrc(oldMha);
+        dto.setDst(dstMha);
+        dto.setDrcStatus(Boolean.FALSE);
+        dto2.setSrc(newMha);
+        dto2.setDst(dstMha);
+        dto2.setDrcStatus(Boolean.TRUE);
+        List<MhaDbReplicationDto> mhaDbReplicationDtosAll = Lists.newArrayList(dto,dto2);
+        Mockito.when(mhaDbReplicationService.queryByDbNamesAndMhaNames(Mockito.anyList(),Mockito.anyList(),Mockito.eq(DB_TO_DB))).thenReturn(mhaDbReplicationDtosAll);
+
+        MhaDbDelayInfoDto mhaDbDelayInfoDto = new MhaDbDelayInfoDto();
+        mhaDbDelayInfoDto.setDbName("db");
+        mhaDbDelayInfoDto.setSrcMha("newMha");
+        mhaDbDelayInfoDto.setDstMha("dstMha");
+        Mockito.when(mhaDbReplicationService.getReplicationDelays(Mockito.anyList())).thenReturn(Lists.newArrayList(mhaDbDelayInfoDto));
+
+        List<MhaApplierDto> mhaApplierDtos = dbMigrationService.getMhaDbReplicationDelayFromMigrateTask(1L);
+        Assert.assertEquals(mhaApplierDtos.size(),2);
+    }
+
+
+    @Test
+    public void testCleanApplierDirtyData() throws Exception{
+        Mockito.when(mhaDbReplicationTblDao.queryAll()).thenReturn(PojoBuilder.getMhaDbReplicationTbls());
+        Mockito.when(applierGroupTblV3Dao.queryByMhaDbReplicationIds(Mockito.anyList())).thenReturn(PojoBuilder.getApplierGroupTblV3s());
+        Mockito.when(applierTblV3Dao.queryByApplierGroupIds(Mockito.anyList(), Mockito.eq(0))).thenReturn(PojoBuilder.getApplierTblV3s());
+
+        Map<String, List<Long>> result = dbMigrationService.cleanApplierDirtyData(false);
+        Assert.assertEquals(2,result.size());
+    }
 }
