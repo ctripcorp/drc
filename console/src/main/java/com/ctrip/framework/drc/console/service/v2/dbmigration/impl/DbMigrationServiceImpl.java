@@ -43,11 +43,8 @@ import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MigrationTaskTblDao;
-import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
-import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
-import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
-import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
@@ -1654,4 +1651,14 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs = Lists.newArrayList();
     }
 
+    @Override
+    public List<MhaApplierDto> getMhaDbReplicationDelayFromMigrateTask(Long taskId) throws SQLException {
+        return List.of();
+    }
+
+
+    @Override
+    public Map<String, List<Long>> cleanApplierDirtyData(boolean showonly) throws SQLException {
+        return null;
+    }
 }

@@ -149,7 +149,37 @@ export default {
         ])
       }
     }
-
+    function renderDbDelay () {
+      return (h, params) => {
+        const delay = params.row.mhaDbDelayInfoDto.delay
+        let color
+        let text
+        const extraInfo = ''
+        if (delay != null && delay < 10000) {
+          color = 'blue'
+          text = prettyMilliseconds(delay)
+        } else {
+          color = 'volcano'
+          if (delay) {
+            text = prettyMilliseconds(delay)
+          } else {
+            text = '查询失败'
+          }
+        }
+        return h('div', [
+          h('Tag', {
+            props: {
+              color: color
+            }
+          }, text),
+          h('div', {
+            style: {
+              'white-space': 'pre-wrap'
+            }
+          }, extraInfo)
+        ])
+      }
+    }
     return {
       detailColumn: [
         {
@@ -159,8 +189,8 @@ export default {
           align: 'center',
           render: (h, params) => {
             const row = params.row
-            const color = row.status === 1 ? 'blue' : 'volcano'
-            const text = row.status === 1 ? '已接入' : '未接入'
+            const color = row.mhaDbReplicationDto.drcStatus ? 'blue' : 'volcano'
+            const text = row.mhaDbReplicationDto.drcStatus ? '已接入' : '未接入'
             return h('Tag', {
               props: {
                 color: color
@@ -173,7 +203,7 @@ export default {
           width: 150,
           key: 'id',
           render: (h, params) => {
-            return h('p', params.row.srcMha.name)
+            return h('p', params.row.mhaDbReplicationDto.src.mhaName)
           }
         },
         {
@@ -181,19 +211,19 @@ export default {
           width: 150,
           key: 'id',
           render: (h, params) => {
-            return h('p', params.row.dstMha.name)
+            return h('p', params.row.mhaDbReplicationDto.dst.mhaName)
           }
         },
         {
           title: 'delay',
           key: 'delay',
-          render: renderDelay()
+          render: renderDbDelay()
         },
         {
-          title: 'dbs',
-          key: 'dbs',
+          title: 'dbName',
+          key: 'dbName',
           render: (h, params) => {
-            return h('p', params.row.dbs.join(','))
+            return h('p', params.row.mhaDbReplicationDto.src.dbName)
           }
         }
       ],
@@ -436,15 +466,10 @@ export default {
         this.getMigrationTasks()
       })
     },
-    getMhaReplicationDetail: function (row) {
+    getMhaDbReplicationDetail: function (row) {
       this.replicationDetail.mhaReplicationDataLoading = true
       this.replicationDetail.data = []
-      this.axios.get('/api/drc/v2/replication/relatedReplicationDelay', {
-        params: {
-          mhas: [row.oldMha, row.newMha].join(','),
-          dbs: row.dbs.join(',')
-        }
-      }).then(response => {
+      this.axios.get('/api/drc/v2/migration/mhaDbReplicationDelay?taskId=' + row.id).then(response => {
         if (response.data.status === 1) {
           this.$Message.warning('查询异常: ' + response.data.message)
           return
@@ -483,7 +508,7 @@ export default {
     getDetail (row, index) {
       this.replicationDetail.show = true
       this.replicationDetail.row = row
-      this.getMhaReplicationDetail(row)
+      this.getMhaDbReplicationDetail(row)
       this.getMhaMessengerDetail(row)
     },
     getHistoryLog (row, index) {

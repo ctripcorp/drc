@@ -1,12 +1,14 @@
 package com.ctrip.framework.drc.console.service.v2.dbmigration;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
-import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.*;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName DbMigrationService
@@ -56,4 +58,7 @@ public interface DbMigrationService {
     
     void checkMhaConfig(String oldMha, String newMha, java.util.Set<String> ignoreConfigName) throws com.ctrip.framework.drc.console.exception.ConsoleException;
 
+    List<MhaApplierDto> getMhaDbReplicationDelayFromMigrateTask(Long taskId) throws SQLException;
+
+    Map<String, List<Long>> cleanApplierDirtyData(boolean showonly) throws SQLException;
 }
