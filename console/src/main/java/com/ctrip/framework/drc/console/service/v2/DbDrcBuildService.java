@@ -42,6 +42,7 @@ public interface DbDrcBuildService {
 
     void switchAppliers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
     void switchMessengers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
+    void switchMessengersM(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
 
     // switchOnly: true: only switch,not add when replication is empty; false: switch or add
     void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid,boolean switchOnly) throws Exception;

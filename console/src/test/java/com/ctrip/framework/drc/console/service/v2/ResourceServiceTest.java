@@ -531,6 +531,8 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.getAz2DbInstance().get("AZ").size(), 2);
         Assert.assertEquals(result.getAz2ApplierInstance().size(), 1);
         Assert.assertEquals(result.getAz2ApplierInstance().get("shaxy").size(), 0);
+        Assert.assertEquals(result.getAz2MessengerInstance().size(), 1);
+        Assert.assertEquals(result.getAz2MessengerInstance().get("shaxy").size(), 0);
         Assert.assertEquals(result.getAz2ReplicatorInstance().size(), 2);
         Assert.assertEquals(result.getAz2DrcDb().size(), 1);
     }

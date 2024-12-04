@@ -20,7 +20,7 @@ import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.
  * @Author Slight
  * Apr 19, 2020
  */
-public class BatchTransactionContextResource extends TransactionContextResource implements TransactionContext, BigTransactionAware {
+public class BatchTransactionContextResource extends ApplierTransactionContextResource implements TransactionContext, BigTransactionAware {
 
     private static final Logger loggerBatch = LoggerFactory.getLogger("BATCH");
 

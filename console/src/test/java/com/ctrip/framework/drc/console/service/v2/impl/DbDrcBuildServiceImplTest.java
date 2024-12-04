@@ -461,6 +461,18 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any(MhaTblV2.class),anyBoolean());
     }
 
+    @Test
+    public void testSwitchMessengersM() throws Exception {
+        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
+        DbApplierSwitchReqDto req2 = new DbApplierSwitchReqDto();
+        req2.setDbNames(Lists.newArrayList("aadb1"));
+        req2.setSrcMhaName("mha2");
+        reqDtos.add(req2);
+
+        dbDrcBuildService.switchMessengersM(reqDtos);
+        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtidM(any(MhaTblV2.class),anyBoolean());
+    }
+
 
     @Test(expected = IllegalArgumentException.class)
     public void testSwitchMessengersDbMessengerNotSupport() throws Exception {

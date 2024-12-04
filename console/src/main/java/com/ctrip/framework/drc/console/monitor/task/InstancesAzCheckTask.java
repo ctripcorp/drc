@@ -7,6 +7,8 @@ import com.ctrip.framework.drc.console.vo.v2.MhaAzView;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -95,12 +97,22 @@ public class InstancesAzCheckTask extends AbstractLeaderAwareMonitor {
 
         for (Map.Entry<String, List<ApplierInfoDto>> entry : mhaAzView.getAz2ApplierInstance().entrySet()) {
             String dcName = entry.getKey();
-            List<ApplierInfoDto> applierInDc = entry.getValue();
+            List<? extends FetcherInfoDto> applierInDc = entry.getValue();
             tag = new HashMap<>();
             tag.put("type", "applier");
             tag.put("dc",dcName);
             reporter.resetReportCounter(tag, (long)applierInDc.size(), MHA_DC_STATUS_MEASUREMENT);
             CONSOLE_MONITOR_LOGGER.info("[[monitor=InstancesAzCheckTask]] {} applier in dc {}", applierInDc.size(), dcName);
+        }
+
+        for (Map.Entry<String, List<MessengerInfoDto>> entry : mhaAzView.getAz2MessengerInstance().entrySet()) {
+            String dcName = entry.getKey();
+            List<? extends FetcherInfoDto> messengerInDc = entry.getValue();
+            tag = new HashMap<>();
+            tag.put("type", "messenger");
+            tag.put("dc",dcName);
+            reporter.resetReportCounter(tag, (long)messengerInDc.size(), MHA_DC_STATUS_MEASUREMENT);
+            CONSOLE_MONITOR_LOGGER.info("[[monitor=InstancesAzCheckTask]] {} messenger in dc {}", messengerInDc.size(), dcName);
         }
 
         for (Map.Entry<String, Set<String>> entry : mhaAzView.getAz2DrcDb().entrySet()) {

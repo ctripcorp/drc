@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.event;
 import com.ctrip.framework.drc.applier.resource.context.DecryptedTransactionContextResource;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.fetcher.event.ApplierTableMapEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;

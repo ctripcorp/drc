@@ -31,6 +31,6 @@ public class InstancesAzCheckTaskTest {
     public void testScheduledTask () throws Exception {
         Mockito.when(resourceService.getAllInstanceAzInfo()).thenReturn(PojoBuilder.getMhaAzView());
         task.check();
-        Mockito.verify(reporter,Mockito.times(5)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter,Mockito.times(6)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
     }
 }

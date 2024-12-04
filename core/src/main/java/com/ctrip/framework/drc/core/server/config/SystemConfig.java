@@ -25,6 +25,8 @@ public class SystemConfig {
 
     public static final String APPLIER_PATH = OPT_PATH + DATA_PATH + "/applier/";
 
+    public static final String MESSENGER_PATH = OPT_PATH + DATA_PATH + "/applier/"; //TODO srx change with cm and zk
+
     public static final String VALIDATION_PATH = OPT_PATH + DATA_PATH + "/validation/";
 
     public static final String LOCAL_CONFIG_PATH = DATA_PATH + "/config/";

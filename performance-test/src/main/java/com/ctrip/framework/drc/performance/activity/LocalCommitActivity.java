@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.performance.activity;
 
-import com.ctrip.framework.drc.applier.activity.event.CommitActivity;
-import com.ctrip.framework.drc.applier.event.transaction.Transaction;
+import com.ctrip.framework.drc.fetcher.activity.event.CommitActivity;
+import com.ctrip.framework.drc.fetcher.event.transaction.ApplyTransaction;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.enums.DirectionEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -35,7 +35,7 @@ public class LocalCommitActivity extends CommitActivity {
     }
 
     @Override
-    public Transaction doTask(Transaction transaction) throws InterruptedException {
+    public ApplyTransaction doTask(ApplyTransaction transaction) throws InterruptedException {
         commitMonitorReport.addOneCount();
         return super.doTask(transaction);
     }

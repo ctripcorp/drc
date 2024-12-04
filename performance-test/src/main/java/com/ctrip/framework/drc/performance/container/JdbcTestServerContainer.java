@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.performance.container;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.server.ApplierServerInCluster;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherConfigDto;
 import com.ctrip.framework.drc.performance.impl.server.JdbcTestServer;
 
 /**
@@ -11,7 +12,7 @@ import com.ctrip.framework.drc.performance.impl.server.JdbcTestServer;
 public class JdbcTestServerContainer extends ApplierServerContainer {
 
     @Override
-    protected ApplierServerInCluster getApplierServer(ApplierConfigDto config) throws Exception {
-        return new JdbcTestServer(config);
+    protected ApplierServerInCluster getFetcherServer(FetcherConfigDto config) throws Exception {
+        return new JdbcTestServer((ApplierConfigDto)config);
     }
 }

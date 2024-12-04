@@ -246,6 +246,10 @@ export default {
                 text = 'A'
                 type = 'success'
                 break
+              case 7:
+                text = 'M'
+                type = 'warning'
+                break
               default:
                 text = '无'
                 disabled = true
@@ -328,6 +332,10 @@ export default {
         {
           name: 'Applier',
           val: 1
+        },
+        {
+          name: 'Messenger',
+          val: 7
         }
       ],
       activeList: [
@@ -490,7 +498,8 @@ export default {
           ip: '',
           tag: '',
           az: '',
-          resourceId: null
+          resourceId: null,
+          type: null
         },
         migrateDataList: [],
         tableData: [],
@@ -727,14 +736,26 @@ export default {
       }
       const oldIp = this.migrateApplierInfo.oldIpInfo.ip
       this.migrateApplierInfo.loading2 = true
-      this.axios.post('/api/drc/v2/resource/migrate/applier?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
-        if (res.data.status === 0) {
-          this.migrateApplierInfo.tableData = res.data.data
-          this.$Message.success('共迁移' + res.data.data + '个实例')
-        } else {
-          this.$Message.error('迁移失败' + res.data.message)
-        }
-      })
+      const type = this.migrateApplierInfo.oldIpInfo.type
+      if (type === 1) {
+        this.axios.post('/api/drc/v2/resource/migrate/applier?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      } else {
+        this.axios.post('/api/drc/v2/resource/migrate/messenger?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      }
       this.migrateApplierInfo.loading2 = false
     },
     migrateApplier () {
@@ -831,6 +852,8 @@ export default {
         this.showMigrateReplicator(row)
       } else if (row.type === 1) {
         this.showMigrateApplier(row)
+      } else if (row.type === 7) {
+        this.showMigrateApplier(row)
       }
     },
     showMigrateApplier (row) {
@@ -838,7 +861,8 @@ export default {
         ip: row.ip,
         tag: row.tag,
         az: row.az,
-        resourceId: row.resourceId
+        resourceId: row.resourceId,
+        type: row.type
       }
       this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
         if (res.data.status === 0) {
@@ -922,6 +946,8 @@ export default {
       if (row.type === 0) {
         this.getRelatedMha(row)
       } else if (row.type === 1) {
+        this.getRelatedMhaReplication(row)
+      } else if (row.type === 7) {
         this.getRelatedMhaReplication(row)
       }
     },

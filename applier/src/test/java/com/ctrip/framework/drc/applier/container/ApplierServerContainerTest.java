@@ -81,11 +81,11 @@ public class ApplierServerContainerTest {
     public void testRelease() throws Exception {
         ApplierConfigDto config = getApplierConfigDto();
         ApplierServerInCluster applierServerInCluster = new ApplierServerInCluster(config);
-        applierServerContainer.servers.put("test_cluster", new ApplierServerInCluster(config));
+        applierServerContainer.getServers().put("test_cluster", new ApplierServerInCluster(config));
         applierServerInCluster.initialize();
         applierServerInCluster.start();
 
-        ApplierServerInCluster serverInCluster = applierServerContainer.servers.values().iterator().next();
+        ApplierServerInCluster serverInCluster = (ApplierServerInCluster) applierServerContainer.getServers().values().iterator().next();
         DataSourceResource dataSourceResource = serverInCluster.getDataSourceResource();
         dataSourceResource.executor = new Executor() {
             @Override

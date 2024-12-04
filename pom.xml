@@ -20,6 +20,7 @@
         <module>core</module>
         <module>replicator</module>
         <module>applier</module>
+        <module>messenger</module>
         <module>integration-test</module>
         <module>cluster-manager</module>
         <module>console</module>
@@ -135,6 +136,11 @@
             <dependency>
                 <groupId>com.ctrip.framework.drc</groupId>
                 <artifactId>applier</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ctrip.framework.drc</groupId>
+                <artifactId>messenger</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

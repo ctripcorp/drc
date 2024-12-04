@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.resource;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -69,6 +70,7 @@ public interface ResourceService {
 
     MhaAzView getAllInstanceAzInfo() throws Exception;
 
-    List<ApplierInfoDto> getAppliersInAz(String region, List<String> dcName2Ips);
+    List<ApplierInfoDto> getAppliersInAz(String region, List<String> ips);
 
+    List<MessengerInfoDto> getMessengersInAz(String region, List<String> ips);
 }

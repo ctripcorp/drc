@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.activity.replicator.converter.TransactionTableApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTable;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
@@ -13,7 +13,7 @@ import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 
-import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
+import static com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 /**
  * Created by jixinwang on 2021/8/20

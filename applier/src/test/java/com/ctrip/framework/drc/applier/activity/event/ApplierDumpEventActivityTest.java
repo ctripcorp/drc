@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
-import com.ctrip.framework.drc.applier.event.ApplierDrcUuidLogEvent;
-import com.ctrip.framework.drc.applier.event.ApplierPreviousGtidsLogEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcUuidLogEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierPreviousGtidsLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
