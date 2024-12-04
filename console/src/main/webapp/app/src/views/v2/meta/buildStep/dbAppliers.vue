@@ -31,7 +31,7 @@
             }})==>{{ initInfo.dstMhaName }}({{ initInfo.dstDc }})</span>
         </Col>
       </Row>
-      <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec;">
+      <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec; justify-content: space-between;">
         <Col span="2" style="display: flex;float: left;margin: 5px" >
           <Button :loading="dataLoading" style="text-align: right" type="default"
                   v-if="!submitted" @click="preBatchUpdate()"> 批量修改
@@ -45,7 +45,7 @@
                   v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
           </Button>
         </Col>
-        <Col span="2" style="display: flex;float: right;margin: 5px" >
+        <Col span="3" style="display: flex;float: right;margin: 5px; margin-left: auto; " >
           <Dropdown placement="bottom-start">
             <Button type="default" icon="ios-hammer">
               其他操作

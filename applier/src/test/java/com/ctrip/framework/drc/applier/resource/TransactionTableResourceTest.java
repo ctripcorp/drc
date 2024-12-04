@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.applier.resource;
 
 import com.ctrip.framework.drc.applier.confirmed.mysql.ConflictTest;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import org.apache.commons.lang3.StringUtils;

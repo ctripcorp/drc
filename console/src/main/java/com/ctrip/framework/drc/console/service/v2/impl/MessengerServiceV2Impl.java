@@ -1019,6 +1019,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         requestBody.put("bu", dto.getBu());
         requestBody.put("creator", "drc");
         requestBody.put("emailGroup", "rdkjdrc@Ctrip.com");
+        requestBody.put("remark", "drc");
         QmqApiResponse response = HttpUtils.post(topicApplicationUrl, getQmqApiHeader(), requestBody, QmqApiResponse.class);
 
         if (response.getStatus() == 0) {

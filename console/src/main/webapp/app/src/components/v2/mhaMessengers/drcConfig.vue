@@ -15,7 +15,7 @@
         </FormItem>
         <FormItem  v-if="showMhaApplierConfig()" label="选择Messenger" prop="messenger">
           <Select v-model="drc.messengers" multiple style="width: 250px" placeholder="选择集群Messenger">
-            <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
+            <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }}  [{{ item.type === 1 ? 'A' : (item.type === 7 ? 'M' : '') }}] —— {{ item.az }}
             </Option>
           </Select>
           &nbsp;
@@ -171,7 +171,7 @@ export default {
         replicators: {},
         messengers: {},
         replicatorList: {},
-        messengerList: {},
+        messengerList: [],
         dbMessengerSwitch: true,
         dbMessengerList: []
       }
@@ -187,22 +187,41 @@ export default {
         })
     },
     autoConfigMessenger () {
-      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=1' + '&selectedIps=' + this.drc.messengers)
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=7' + '&selectedIps=' + this.drc.messengers)
         .then(response => {
           console.log(response.data)
           this.drc.messengers = []
           response.data.data.forEach(ip => this.drc.messengers.push(ip.ip))
         })
     },
-    getResources () {
+    async getResources () {
+      this.drc.messengerList = []
       this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=0')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorList = response.data.data
         })
-      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=1')
+      await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=1')
         .then(response => {
-          this.drc.messengerList = response.data.data
+          const applierData = response.data.data
+          applierData.forEach(a => {
+            const existItem = this.drc.messengerList.find(existing => existing.ip === a.ip)
+            if (!existItem) {
+              this.drc.messengerList.push(a)
+            }
+          })
+          // this.drc.messengerList = { ...this.drc.messengerList, ...response.data.data }
+        })
+      await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=7')
+        .then(response => {
+          const applierData = response.data.data
+          applierData.forEach(a => {
+            const existItem = this.drc.messengerList.find(existing => existing.ip === a.ip)
+            if (!existItem) {
+              this.drc.messengerList.push(a)
+            }
+          })
+          // this.drc.messengerList = { ...this.drc.messengerList, ...response.data.data }
         })
       this.axios.get('/api/drc/v2/config/mha/dbMessenger?mhaName=' + this.drc.mhaName + '&type=1')
         .then(response => {

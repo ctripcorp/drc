@@ -1,27 +1,20 @@
 package com.ctrip.framework.drc.applier.container;
 
-import com.ctrip.framework.drc.applier.activity.event.ApplierDumpEventActivity;
-import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
-import com.ctrip.framework.drc.applier.server.*;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
-import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.InfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.*;
+import com.ctrip.framework.drc.fetcher.container.FetcherServerContainer;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.applier.server.*;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.google.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -29,9 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -40,139 +31,26 @@ import java.util.stream.Collectors;
  * Nov 07, 2019
  */
 @Component
-public class ApplierServerContainer extends AbstractResourceManager implements ApplicationRunner {
+public class ApplierServerContainer extends FetcherServerContainer {
 
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    protected ApplierWatcher watcher;
 
-    private ExecutorService taskExecutorService = ThreadUtils.newCachedThreadPool("ApplierServerContainer");
-
-    protected ConcurrentHashMap<String, ApplierServerInCluster> servers
-            = new ConcurrentHashMap<>();
-
-    private ApplierWatcher watcher;
-
-    public boolean addServer(ApplierConfigDto config) throws Exception {
-        String clusterKey = config.getRegistryKey();
-        if (servers.containsKey(clusterKey)) {
-            logger.info("applier servers contains {}", clusterKey);
-            ApplierServerInCluster activeServer = servers.get(clusterKey);
-            if (activeServer.config.equalsIgnoreProperties(config)) {
-                if (!activeServer.config.equalsProperties(config)) {
-                    ApplierServerInCluster server = servers.get(clusterKey);
-                    ApplierDumpEventActivity dumpEventActivity = server.getDumpEventActivity();
-                    if (dumpEventActivity != null) {
-                        dumpEventActivity.changeProperties(config);
-                        logger.info("new properties received, going to reconnect, old config: {}\n new config: {}", activeServer.config, config);
-                        return true;
-                    } else {
-                        logger.info("new properties received, dumpEventActivity is null");
-                    }
-                } else {
-                    logger.info("old config equals new config: {}", config);
-                    return false;
-                }
-            } else {
-                logger.info("same cluster, new config received, going to stop & dispose old applier server: " +
-                        "\n" + activeServer.config + "\n" + config);
-                doRemoveServer(activeServer);
-                doAddServer(config);
-                return true;
-            }
-        }
-        
-        logger.info("applier servers does not contain {}", clusterKey);
-        createFile(clusterKey);
-        doAddServer(config);
-        return true;
-    }
-
-    protected void doAddServer(ApplierConfigDto config) throws Exception {
-        String clusterKey = config.getRegistryKey();
-        ApplierServerInCluster newServer = getApplierServer(config);
-        newServer.initialize();
-        newServer.start();
-        logger.info("applier servers put cluster: {}", clusterKey);
-        ApplierServerInCluster server = servers.put(clusterKey, newServer);
-        if (server != null && server.canStop()) {
-            logger.warn("remove redundant instance for: {}, removed config: {}, added config: {}", clusterKey, server.getConfig(), config);
-            doRemoveServer(server);
-        }
-    }
-
-    protected ApplierServerInCluster getApplierServer(ApplierConfigDto config) throws Exception {
+    @Override
+    protected FetcherServer getFetcherServer(FetcherConfigDto config) throws Exception {
         ApplyMode applyMode = ApplyMode.getApplyMode(config.getApplyMode());
         logger.info("start to add applier servers for {}, apply mode is: {}", config.getRegistryKey(), applyMode.getName());
         switch (applyMode) {
             case transaction_table:
             case db_transaction_table:
-                return new TransactionTableApplierServerInCluster(config);
-            case mq:
-            case db_mq:
-                return new MqServerInCluster(config);
+                return new TransactionTableApplierServerInCluster((ApplierConfigDto)config);
             default:
-                return new ApplierServerInCluster(config);
+                return new ApplierServerInCluster((ApplierConfigDto)config);
         }
     }
 
-    private void doRemoveServer(ApplierServer server) throws Exception {
-        if (server != null && !server.isDisposed()) {
-            server.stop();
-            server.dispose();
-        } else {
-            String name = server == null ? null : server.getName();
-            String status = server == null ? null : server.getPhaseName();
-            logger.info("ignore server remove, name: {}, status: {}", name, status);
-        }
-    }
 
-    public void removeServer(String registryKey, boolean deleted) throws Exception {
-        ApplierServer server = servers.remove(registryKey);
-        try {
-            doRemoveServer(server);
-        } catch (Exception e) {
-            logger.error("remove server:{} for registryKey:{} error", server, registryKey);
-        }
-        if (deleted) {
-            clearResource(registryKey);
-        }
-    }
-
-    private void createFile(String registryKey) {
-        taskExecutorService.submit(() -> {
-            DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.applier.file.touch", registryKey, new Task() {
-                @Override
-                public void go() {
-                    try {
-                        File file = new File(SystemConfig.APPLIER_PATH + FilenameUtils.normalize(registryKey));
-                        if (!file.exists()) {
-                            Files.createParentDirs(file);
-                            Files.touch(file);
-                            logger.info("create file for {}", registryKey);
-                        } else {
-                            logger.info("skip touch file for {}", registryKey);
-                        }
-                    } catch (Throwable t) {
-                        logger.error("[Touch] file for {} error", registryKey, t);
-                    }
-                }
-            });
-
-        });
-    }
-
-    private void clearResource(String registryKey) {
-        LeaderElector leaderElector = zkLeaderElectors.remove(registryKey);
-        deleteFile(registryKey);
-        if (leaderElector != null) {
-            try {
-                leaderElector.stop();
-            } catch (Exception e) {
-                logger.error("LeaderElector stop error for {}", registryKey, e);
-            }
-        }
-    }
-
-    private void deleteFile(String registryKey) {
+    @Override
+    protected void deleteFile(String registryKey) {
         try {
             File file = new File(SystemConfig.APPLIER_PATH + FilenameUtils.normalize(registryKey));
             file.delete();
@@ -182,12 +60,6 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         }
     }
 
-    public synchronized LeaderElector registerServer(String registryKey) {  // Idempotent
-        createFile(registryKey);
-        LeaderElector leaderElector = getLeaderElector(registryKey);
-        logger.info("[Register] {} end", registryKey);
-        return leaderElector;
-    }
 
     @Override
     public void run(ApplicationArguments applicationArguments) throws Exception {
@@ -223,7 +95,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                 return;
             }
             CountDownLatch countDownLatch = new CountDownLatch(serverSize);
-            for (Map.Entry<String, ApplierServerInCluster> entry : servers.entrySet()) { //fix set gtid_next slow
+            for (Map.Entry<String, FetcherServer> entry : servers.entrySet()) { //fix set gtid_next slow
                 String registryKey = entry.getKey();
                 taskExecutorService.submit(new ResourceReleaseTask(entry.getKey(), entry.getValue(), zkLeaderElectors.get(registryKey), countDownLatch));
             }
@@ -235,18 +107,35 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         }
     }
 
-    public boolean containServer(String registryKey) {
-        return servers.containsKey(registryKey);
+    @Override
+    protected void createFile(String registryKey) {
+        taskExecutorService.submit(() -> {
+            DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.applier.file.touch", registryKey, new Task() {
+                @Override
+                public void go() {
+                    try {
+                        File file = new File(SystemConfig.APPLIER_PATH + FilenameUtils.normalize(registryKey));
+                        if (!file.exists()) {
+                            Files.createParentDirs(file);
+                            Files.touch(file);
+                            logger.info("create file for {}", registryKey);
+                        } else {
+                            logger.info("skip touch file for {}", registryKey);
+                        }
+                    } catch (Throwable t) {
+                        logger.error("[Touch] file for {} error", registryKey, t);
+                    }
+                }
+            });
+
+        });
     }
 
-    public ApplierServer getServer(String registryKey) {
-        return servers.get(registryKey);
-    }
-
+    @Override
     public List<ApplierInfoDto> getInfo() {
         List<ApplierInfoDto> list = new ArrayList<>();
         // applier master
-        for (ApplierServerInCluster server : servers.values()) {
+        for (FetcherServer server : servers.values()) {
             ApplierInfoDto dto = new ApplierInfoDto();
             dto.setIp(server.config.ip);
             dto.setPort(server.config.port);
@@ -270,27 +159,16 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         return list;
     }
 
-    class ResourceReleaseTask implements Runnable {
+    class ResourceReleaseTask extends AbstractResourceReleaseTask {
 
-        private String registryKey;
-
-        private ApplierServerInCluster serverInCluster;
-
-        private LeaderElector leaderElector;
-
-        private CountDownLatch countDownLatch;
-
-        public ResourceReleaseTask(String registryKey, ApplierServerInCluster serverInCluster, LeaderElector leaderElector, CountDownLatch countDownLatch) {
-            this.registryKey = registryKey;
-            this.serverInCluster = serverInCluster;
-            this.leaderElector = leaderElector;
-            this.countDownLatch = countDownLatch;
+        public ResourceReleaseTask(String registryKey, FetcherServer serverInCluster, LeaderElector leaderElector, CountDownLatch countDownLatch) {
+            super(registryKey, serverInCluster, leaderElector, countDownLatch);
         }
 
         @Override
         public void run() {
             try {
-                DataSourceResource dataSourceResource = serverInCluster.getDataSourceResource(); //resource just has initialize and dispose
+                DataSourceResource dataSourceResource = ((ApplierServerInCluster) serverInCluster).getDataSourceResource(); //resource just has initialize and dispose
                 if (dataSourceResource != null) {
                     dataSourceResource.dispose();
                     logger.info("close datasource for {}", registryKey);
@@ -301,13 +179,6 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                 if (transactionTableResource != null) {
                     transactionTableResource.dispose();
                     logger.info("dispose transaction for {} before shutdown", registryKey);
-                }
-
-                // persist mq position
-                MqPositionResource mqPositionResource = serverInCluster.getMqPositionResource();
-                if (mqPositionResource != null) {
-                    mqPositionResource.dispose();
-                    logger.info("dispose mq position for {} before shutdown", registryKey);
                 }
 
                 if (leaderElector != null) {

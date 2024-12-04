@@ -1,13 +1,13 @@
 package com.ctrip.framework.drc.performance.impl.server;
 
-import com.ctrip.framework.drc.applier.activity.event.ApplierGroupActivity;
-import com.ctrip.framework.drc.applier.activity.event.DispatchActivity;
+import com.ctrip.framework.drc.fetcher.activity.event.ApplierGroupActivity;
+import com.ctrip.framework.drc.fetcher.activity.event.DispatchActivity;
 import com.ctrip.framework.drc.applier.activity.event.TransactionTableApplyActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
-import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
-import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMResource;
+import com.ctrip.framework.drc.fetcher.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
 import com.ctrip.framework.drc.applier.server.ApplierServerInCluster;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;

@@ -552,6 +552,31 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void switchMessengersM(List<DbApplierSwitchReqDto> reqDtos) throws Exception {
+        for (DbApplierSwitchReqDto reqDto : reqDtos) {
+            String mhaName = reqDto.getSrcMhaName();
+            MhaTblV2 srcMha = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+            if (srcMha == null) {
+                throw ConsoleExceptionUtils.message("mha not exist: " + mhaName);
+            }
+
+            List<DbApplierDto> mhaDbMessengers = this.getMhaDbMessengers(mhaName);
+            boolean dbApplyMode = getDbDrcStatus(mhaDbMessengers.stream());
+
+            if (dbApplyMode) {
+                throw new IllegalArgumentException("db messenger not support yet");
+            }
+            String messengerGtidExecuted = messengerServiceV2.getMessengerGtidExecuted(mhaName);
+            if (StringUtils.isBlank(messengerGtidExecuted)) {
+                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtidM(srcMha, reqDto.isSwitchOnly());
+            } else {
+                drcBuildServiceV2.autoConfigMessengerM(srcMha, null, reqDto.isSwitchOnly());
+            }
+        }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoConfigDbAppliers(MhaDbReplicationTbl mhaDbReplication, ApplierGroupTblV3 applierGroup,MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String dbExecutedGtid, Integer concurrency, boolean switchOnly) throws SQLException {
         List<ApplierTblV3> existAppliers = applierTblV3Dao.queryByApplierGroupId(applierGroup.getId(), BooleanEnum.FALSE.getCode());
         if (switchOnly && CollectionUtils.isEmpty(existAppliers)) {

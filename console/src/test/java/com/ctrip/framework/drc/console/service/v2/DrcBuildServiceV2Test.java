@@ -638,6 +638,23 @@ public class DrcBuildServiceV2Test {
         }));
     }
 
+    @Test
+    public void testAutoConfigMessengersWithRealTimeGtidM() throws Exception {
+        String gtid = "abc-zyn-test:1235";
+        when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn(gtid);
+        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(1L, 1L));
+        when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
+        when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
+                ModuleEnum.APPLIER.getCode()));
+        when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
+        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtidM(MockEntityBuilder.buildMhaTblV2(),Mockito.anyBoolean());
+        Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(messengerGroupTblDao,Mockito.times(1)).update((MessengerGroupTbl) Mockito.argThat(e->{
+            MessengerGroupTbl group = (MessengerGroupTbl) e;
+            return group.getGtidExecuted().equals(gtid);
+        }));
+    }
+
 
     @Test
     public void testAutoConfigMessengers() throws Exception {
@@ -658,6 +675,30 @@ public class DrcBuildServiceV2Test {
                 ModuleEnum.APPLIER.getCode()));
         when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessenger(MockEntityBuilder.buildMhaTblV2(),null,false);
+        Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(messengerTblDao,Mockito.times(1)).batchUpdate(Mockito.argThat(e->e.stream().allMatch(tbl-> Objects.equals(tbl.getDeleted(), BooleanEnum.TRUE.getCode()))));
+        Mockito.verify(messengerGroupTblDao,Mockito.never()).update((MessengerGroupTbl) Mockito.anyObject());
+    }
+
+    @Test
+    public void testAutoConfigMessengersM() throws Exception {
+        String gtid = "abc-zyn-test:1235";
+        MessengerGroupTbl value = MockEntityBuilder.buildMessengerGroupTbl(1L, 1L);
+        value.setGtidExecuted(gtid);
+        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(value);
+        when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setResourceId(1001L);
+        messengerTbl.setId(101L);
+        when(messengerTblDao.queryByGroupId(Mockito.eq(1L))).thenReturn(Lists.newArrayList(messengerTbl));
+        ResourceTbl resourceTbl = new ResourceTbl();
+        resourceTbl.setId(1001L);
+        resourceTbl.setIp("10.12.13.14");
+        when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(resourceTbl));
+        when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
+                ModuleEnum.APPLIER.getCode()));
+        when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
+        drcBuildServiceV2.autoConfigMessengerM(MockEntityBuilder.buildMhaTblV2(),null,false);
         Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
         Mockito.verify(messengerTblDao,Mockito.times(1)).batchUpdate(Mockito.argThat(e->e.stream().allMatch(tbl-> Objects.equals(tbl.getDeleted(), BooleanEnum.TRUE.getCode()))));
         Mockito.verify(messengerGroupTblDao,Mockito.never()).update((MessengerGroupTbl) Mockito.anyObject());

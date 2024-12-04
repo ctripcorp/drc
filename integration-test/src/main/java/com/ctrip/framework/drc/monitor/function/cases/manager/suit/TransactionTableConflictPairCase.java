@@ -19,7 +19,7 @@ import com.google.common.collect.Lists;
 import java.sql.ResultSet;
 import java.util.List;
 
-import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
+import static com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 
 public class TransactionTableConflictPairCase extends AbstractMultiWriteInTransactionPairCase implements PairCase<ReadWriteSqlOperator, ReadSqlOperator<ReadResource>> {

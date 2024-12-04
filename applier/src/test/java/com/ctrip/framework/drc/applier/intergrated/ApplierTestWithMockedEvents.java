@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.config.TestConfig;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcTableMapEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.system.AbstractActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;

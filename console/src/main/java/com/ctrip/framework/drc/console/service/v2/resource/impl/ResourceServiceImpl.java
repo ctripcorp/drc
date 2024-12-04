@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.resource.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.ApplierInfoApiRes;
+import com.ctrip.framework.drc.console.aop.forward.response.MessengerInfoApiRes;
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
@@ -22,6 +23,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.inquirer.ApplierInquirer;
+import com.ctrip.framework.drc.console.service.impl.inquirer.MessengerInquirer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -30,6 +32,8 @@ import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
@@ -204,6 +208,12 @@ public class ResourceServiceImpl implements ResourceService {
                     || !CollectionUtils.isEmpty(messengerTbls) || !CollectionUtils.isEmpty(messengerTblsV3)) {
                 throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
             }
+        } else if (resourceTbl.getType().equals(ModuleEnum.MESSENGER.getCode())) {
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+            List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+            if (!CollectionUtils.isEmpty(messengerTbls) || !CollectionUtils.isEmpty(messengerTblsV3)) {
+                throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
+            }
         }
 
         resourceTbl.setDeleted(BooleanEnum.TRUE.getCode());
@@ -306,6 +316,9 @@ public class ResourceServiceImpl implements ResourceService {
             messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
             messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
             applierTblV3s = dbApplierTblDao.queryByResourceIds(resourceIds);
+        } else if (resourceTbl.getType() == ModuleEnum.MESSENGER.getCode()) {
+            messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
+            messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
         }
 
 
@@ -328,8 +341,8 @@ public class ResourceServiceImpl implements ResourceService {
             return new ArrayList<>();
         }
 
-        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode()) {
-            logger.info("resource type: {} can only be replicator or applier", type);
+        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+            logger.info("resource type: {} can only be replicator or applier or messenger", type);
             return new ArrayList<>();
         }
         DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
@@ -386,6 +399,8 @@ public class ResourceServiceImpl implements ResourceService {
             resourceViewsInUse.addAll(getReplicatorsInUse(mhaTbl.getId()));
         } else if (type == ModuleEnum.APPLIER.getCode()) {
             resourceViewsInUse.addAll(getAppliersInUse(mhaTbl.getId()));
+            resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
+        } else if (type == ModuleEnum.MESSENGER.getCode()) {
             resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
         }
 
@@ -713,6 +728,8 @@ public class ResourceServiceImpl implements ResourceService {
             return migrateReplicator(newIp, oldIp, null);
         } else if (type == ModuleEnum.APPLIER.getCode()) {
             return migrateApplier(newIp, oldIp);
+        } else if (type == ModuleEnum.MESSENGER.getCode()) {
+            return migrateMessenger(newIp, oldIp);
         }
         throw ConsoleExceptionUtils.message("type not supported!");
     }
@@ -1079,6 +1096,21 @@ public class ResourceServiceImpl implements ResourceService {
         return result;
     }
 
+    private int migrateMessenger(String newIp, String oldIp) throws Exception {
+        ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
+        ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
+        checkMigrateResource(newResource, oldResource, ModuleEnum.MESSENGER.getCode());
+
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+        List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
+
+        int result =  0;
+        result += migrateMessenger(newResource, messengerTbls);
+        result += migrateDbMessenger(newResource, messengerTblsV3);
+
+        return result;
+    }
+
     private void checkMigrateResource(ResourceTbl newResource, ResourceTbl oldResource, int type) {
         if (newResource == null || oldResource == null) {
             throw ConsoleExceptionUtils.message("newIp or oldIp not exist");
@@ -1131,6 +1163,11 @@ public class ResourceServiceImpl implements ResourceService {
             messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
             dbMessengerMap = messengerTblsV3.stream().collect(Collectors.groupingBy(MessengerTblV3::getResourceId, Collectors.counting()));
             dbApplierMap = dbAplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getResourceId, Collectors.counting()));
+        } else if (type == ModuleEnum.MESSENGER.getCode()) {
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
+            List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
+            messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
+            dbMessengerMap = messengerTblsV3.stream().collect(Collectors.groupingBy(MessengerTblV3::getResourceId, Collectors.counting()));
         }
 
         List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap, dbApplierMap, messengerMap, dbMessengerMap);
@@ -1169,6 +1206,10 @@ public class ResourceServiceImpl implements ResourceService {
                 long dbApplierNum = dbApplierMap.getOrDefault(source.getId(), 0L);
                 long dbMessengerNum = dbMessengerMap.getOrDefault(source.getId(), 0L);
                 target.setInstanceNum(applierNum + messengerNum + dbApplierNum + dbMessengerNum);
+            } else if (source.getType().equals(ModuleEnum.MESSENGER.getCode())) {
+                long messengerNum = messengerMap.getOrDefault(source.getId(), 0L);
+                long dbMessengerNum = dbMessengerMap.getOrDefault(source.getId(), 0L);
+                target.setInstanceNum(messengerNum + dbMessengerNum);
             }
             return target;
         }).collect(Collectors.toList());
@@ -1249,7 +1290,8 @@ public class ResourceServiceImpl implements ResourceService {
             return mhaAzView;
         }
 
-        mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs(drc));
+        mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs(drc, ModuleEnum.APPLIER.getCode()));
+        mhaAzView.setAz2MessengerInstance(getAppliersInAllDcs(drc, ModuleEnum.MESSENGER.getCode()));
         mhaAzView.setAz2ReplicatorInstance(getReplicatorAz(drc));
         return mhaAzView;
     }
@@ -1293,7 +1335,10 @@ public class ResourceServiceImpl implements ResourceService {
         return az2DrcDb;
     }
 
-    private Map<String, List<ApplierInfoDto>> getAppliersInAllDcs(Drc drc) throws SQLException {
+    /**
+     * available for both applier and messenger
+     */
+    private Map<String, List<? extends FetcherInfoDto>> getAppliersInAllDcs(Drc drc, int type) throws SQLException {
         Map<String, Set<String>> regions2DcMap = consoleConfig.getRegion2dcsMapping();
         List<String> regions = regions2DcMap.keySet().stream().collect(Collectors.toList());
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
@@ -1304,10 +1349,18 @@ public class ResourceServiceImpl implements ResourceService {
         Set<String> activeApplierIps = Sets.newHashSet();
         for (Map.Entry<String, Dc> dcEntry : dcMap.entrySet()) {
             Dc dc = dcEntry.getValue();
-            Set<String> activeApplierIpsInDc = dc.getDbClusters().values().stream()
-                    .flatMap(dbCluster -> dbCluster.getAppliers().stream())
-                    .map(Applier::getIp)
-                    .collect(Collectors.toSet());
+            Set<String> activeApplierIpsInDc = Sets.newHashSet();
+            if (ModuleEnum.APPLIER.getCode() == type) {
+                activeApplierIpsInDc = dc.getDbClusters().values().stream()
+                        .flatMap(dbCluster -> dbCluster.getAppliers().stream())
+                        .map(Applier::getIp)
+                        .collect(Collectors.toSet());
+            } else if (ModuleEnum.MESSENGER.getCode() == type) {
+                activeApplierIpsInDc = dc.getDbClusters().values().stream()
+                        .flatMap(dbCluster -> dbCluster.getMessengers().stream())
+                        .map(Messenger::getIp)
+                        .collect(Collectors.toSet());
+            }
             activeApplierIps.addAll(activeApplierIpsInDc);
         }
 
@@ -1319,7 +1372,7 @@ public class ResourceServiceImpl implements ResourceService {
                         Collectors.mapping(ResourceTbl::getIp, Collectors.toList())
                 ));
 
-        Map<String, List<ApplierInfoDto>> infoDtosInAllDc = Maps.newHashMap();
+        Map<String, List<? extends FetcherInfoDto>> infoDtosInAllDc = Maps.newHashMap();
         for (String region : regions) {
             List<String> dcInThisRegion = dcTbls.stream().filter(e -> region.equals(e.getRegionName())).map(DcTbl::getDcName).collect(Collectors.toList());
             Map<String, List<String>> dcName2IpsInThisRegion = dcName2Ips.entrySet().stream()
@@ -1327,12 +1380,23 @@ public class ResourceServiceImpl implements ResourceService {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             for (Map.Entry<String, List<String>> entry : dcName2IpsInThisRegion.entrySet()) {
-                List<ApplierInfoDto> infoDtos = resourceService.getAppliersInAz(region, entry.getValue());
-                if (infoDtos == null) {
-                    EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.applier.fail", region + ":" + entry.getValue());
-                    infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
-                } else {
-                    infoDtosInAllDc.put(entry.getKey(), infoDtos);
+                if (ModuleEnum.APPLIER.getCode() == type) {
+                    List<ApplierInfoDto> infoDtos = resourceService.getAppliersInAz(region, entry.getValue());
+                    if (infoDtos == null) {
+                        EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.applier.fail", region + ":" + entry.getValue());
+                        infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
+                    } else {
+                        infoDtosInAllDc.put(entry.getKey(), infoDtos);
+                    }
+                }
+                if (ModuleEnum.MESSENGER.getCode() == type) {
+                    List<MessengerInfoDto> infoDtos = resourceService.getMessengersInAz(region, entry.getValue());
+                    if (infoDtos == null) {
+                        EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.messenger.fail", region + ":" + entry.getValue());
+                        infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
+                    } else {
+                        infoDtosInAllDc.put(entry.getKey(), infoDtos);
+                    }
                 }
             }
         }
@@ -1367,6 +1431,36 @@ public class ResourceServiceImpl implements ResourceService {
                 .filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
 
         return masterApplierInfoDtos;
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/resource/getMessengersInAz", responseType = MessengerInfoApiRes.class)
+    public List<MessengerInfoDto> getMessengersInAz(String region, List<String> ips) {
+        MessengerInquirer messengerInquirer = MessengerInquirer.getInstance();
+        List<Future<List<MessengerInfoDto>>> futures = Lists.newArrayList();
+        for (String messengerIp : ips) {
+            messengerIp = messengerIp.replace("[","");
+            messengerIp = messengerIp.replace("]","");
+            messengerIp = messengerIp.trim();
+            futures.add(messengerInquirer.query(messengerIp + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT));
+        }
+        List<MessengerInfoDto> messengerInfoDtos = Lists.newArrayList();
+        for (int i = 0; i < futures.size(); i++) {
+            Future<List<MessengerInfoDto>> future = futures.get(i);
+            try {
+                List<MessengerInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
+                messengerInfoDtos.addAll(infoDtos);
+                logger.info("drc.console.inquiry.messenger.success: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                future.cancel(true);
+                logger.warn("get messenger fail, skip for: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT);
+                logger.warn("drc.console.inquiry.messenger.fail {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT);
+            }
+        }
+        List<MessengerInfoDto> masterMessengerInfoDtos = messengerInfoDtos.stream()
+                .filter(messengerInfoDto -> Boolean.TRUE.equals(messengerInfoDto.getMaster())).collect(Collectors.toList());
+
+        return masterMessengerInfoDtos;
     }
 
     private Map<String, List<String>> getReplicatorAz(Drc drc) throws SQLException {

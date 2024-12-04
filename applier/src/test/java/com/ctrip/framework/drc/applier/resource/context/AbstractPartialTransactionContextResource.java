@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource;
 import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,9 +20,9 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Random;
 
+import static com.ctrip.framework.drc.applier.resource.context.ApplierTransactionContextResource.COMMIT;
+import static com.ctrip.framework.drc.applier.resource.context.ApplierTransactionContextResource.ROLLBACK;
 import static com.ctrip.framework.drc.applier.resource.context.BatchTransactionContextResource.MAX_BATCH_EXECUTE_SIZE;
-import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.COMMIT;
-import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.ROLLBACK;
 
 /**
  * @Author limingdong
@@ -33,7 +34,7 @@ public abstract class AbstractPartialTransactionContextResource {
 
     protected BatchPreparedStatementExecutor batchPreparedStatementExecutor;
 
-    protected TransactionContextResource parent = new BatchTransactionContextResource();
+    protected ApplierTransactionContextResource parent = new BatchTransactionContextResource();
 
     @Mock
     protected DataSource dataSource;
@@ -166,7 +167,7 @@ public abstract class AbstractPartialTransactionContextResource {
         Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * coefficient)).prepareStatement(Mockito.matches("DELETE FROM `2`.`2`"));
     }
 
-    protected TransactionContextResource getBatchPreparedStatementExecutor(TransactionContextResource parent) {
+    protected TransactionContextResource getBatchPreparedStatementExecutor(ApplierTransactionContextResource parent) {
         return new PartialTransactionContextResource(parent, true);
     }
 

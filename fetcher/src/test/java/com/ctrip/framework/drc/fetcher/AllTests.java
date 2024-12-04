@@ -8,8 +8,7 @@ import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivityTest;
 import com.ctrip.framework.drc.fetcher.activity.replicator.driver.FetcherConnectionTest;
 import com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.FetcherBinlogDumpGtidCommandHandlerTest;
 import com.ctrip.framework.drc.fetcher.event.*;
-import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResourceTest;
-import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemoryResourceTest;
+import com.ctrip.framework.drc.fetcher.resource.condition.*;
 import com.ctrip.framework.drc.fetcher.resource.context.*;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResourceTest;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResourceTest;
@@ -56,6 +55,11 @@ import org.junit.runners.Suite;
         CapacityResourceTest.class,
         ListenableDirectMemoryResourceTest.class,
         TransformerContextResourceTest.class,
+        //Resource Condition
+        LWMResourceInnerBucketTest.class,
+        LWMResourceInnerChartTest.class,
+        LWMResourceTest.class,
+        ProgressResourceTest.class,
 
         //Thread
         ExecutorResourceTest.class,
