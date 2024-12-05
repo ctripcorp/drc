@@ -2,8 +2,14 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
@@ -17,18 +23,17 @@ import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
-import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
-import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
-import com.ctrip.framework.drc.console.utils.*;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MultiKey;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigConflictTable;
-import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
-import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
@@ -37,13 +42,11 @@ import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
-import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -52,7 +55,6 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
-import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
@@ -62,7 +64,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1065,6 +1066,37 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         return true;
     }
 
+    private boolean initProducerM(MqConfigDto dto, String dcNameForMha) {
+        if (defaultConsoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
+            logger.info("[[tag=qmqInit]] localConfigCloudDc init qmq topic:{}", dto.getTopic());
+            return true;
+        }
+        String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl(dcNameForMha);
+        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
+        requestBody.put("appCode", "100059182");
+        requestBody.put("subject", dto.getTopic());
+        requestBody.put("durable", false);
+        requestBody.put("tableStrategy", 0);
+        requestBody.put("qpsAvg", 1000);
+        requestBody.put("qpsMax", 5000);
+        requestBody.put("msgLength", 1000);
+        requestBody.put("platform", 1);
+        requestBody.put("creator", "drc");
+        requestBody.put("remark", "binlog_dataChange_message");
+
+        QmqApiResponse response = HttpUtils.post(producerApplicationUrl, getQmqApiHeader(), requestBody, QmqApiResponse.class);
+        if (response.getStatus() == 0) {
+            logger.info("[[tag=qmqInit]] init qmq producer(100059182) success,topic:{}", dto.getTopic());
+        } else if (StringUtils.isNotBlank(response.getStatusMsg())
+                && response.getStatusMsg().contains("already existed")) {
+            logger.info("[[tag=qmqInit]] init success,qmq producer(100059182) already existed,topic:{}", dto.getTopic());
+        } else {
+            logger.error("[[tag=qmqInit]] init qmq producer(100059182) fail,MqConfigDto:{}", dto);
+            return false;
+        }
+        return true;
+    }
+
     private Map<String, String> getQmqApiHeader() {
         Map<String,String> header = new HashMap<>();
         header.put("ApiToken", domainConfig.getQmqApiToken());
@@ -1084,6 +1116,9 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
         if (!this.initProducer(dto, dcName)) {
             throw new IllegalArgumentException("init producer error");
+        }
+        if (!this.initProducerM(dto, dcName)) {
+            throw new IllegalArgumentException("init producer(100059182) error");
         }
     }
 
