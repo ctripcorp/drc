@@ -1,22 +1,19 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
-import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
-import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
-import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.http.PageResult;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -52,4 +49,6 @@ public interface MessengerServiceV2 {
     List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs);
 
     List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList);
+
+    Map<String, Set<String>> registerMessengerAppAsQMQProducer(boolean showOnly, boolean changeAll, String topic, String registDc) throws SQLException;
 }

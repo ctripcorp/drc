@@ -1097,6 +1097,89 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         return true;
     }
 
+    @Override
+    public Map<String, Set<String>> registerMessengerAppAsQMQProducer(boolean showOnly,  boolean changeAll, String topicName, String registDc) throws SQLException{
+        Map<String, Set<String>> result = Maps.newHashMap();
+
+        List<DbReplicationTbl> mqDbReplicationTbls = dbReplicationTblDao.queryAllExist().stream()
+                .filter(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType()))
+                .collect(Collectors.toList());
+
+        Map<String, List<DbReplicationTbl>> topic2DbReplicationTbls = mqDbReplicationTbls.stream()
+                .collect(Collectors.groupingBy(DbReplicationTbl::getDstLogicTableName));
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+        Map<Long, MhaDbMappingTbl> mappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> e));
+        List<MhaTblV2> allMhas = mhaTblV2Dao.queryAllExist();
+        Map<Long, MhaTblV2> mhaTblV2Map =  allMhas.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
+        Map<String, Set<String>> topic2DcNames = Maps.newHashMap();
+        topic2DbReplicationTbls.forEach((topic,v) -> {
+            for (DbReplicationTbl replicationTbl : v) {
+                Long srcMappingId = replicationTbl.getSrcMhaDbMappingId();
+                if (!mappingTblMap.containsKey(srcMappingId)) {
+                    continue;
+                }
+                MhaDbMappingTbl mappingTbl = mappingTblMap.get(srcMappingId);
+                if (!mhaTblV2Map.containsKey(mappingTbl.getMhaId())) {
+                    continue;
+                }
+                MhaTblV2 mha = mhaTblV2Map.get(mappingTbl.getMhaId());
+                String dcName = this.getDcName(mha);
+                topic2DcNames.putIfAbsent(topic, Sets.newHashSet());
+                topic2DcNames.get(topic).add(dcName);
+            }
+        });
+
+        if (showOnly) {
+            Set<String> allUsingTopics = topic2DcNames.entrySet().stream()
+                            .flatMap(e -> e.getValue().stream().map(v -> e.getKey() + ":" + v)).collect(Collectors.toSet());
+            result.put("success", allUsingTopics);
+            return result;
+        }
+
+        if (!changeAll) {
+            Set<String> dcs = Sets.newHashSet();
+            if (!registDc.isEmpty()) {
+                dcs.add(registDc);
+            } else {
+                dcs = topic2DcNames.get(topicName);
+            }
+            if (CollectionUtils.isEmpty(dcs)) {
+                result.put("fail", Sets.newHashSet(topicName));
+                return result;
+            }
+            try {
+                MqConfigDto dto = new MqConfigDto();
+                dto.setTopic(topicName);
+                for (String dcName : dcs) {
+                    this.initProducerM(dto, dcName);
+                }
+                result.put("success", Sets.newHashSet(topicName + ":" + String.join(",",dcs)));
+            } catch (Exception e) {
+                logger.error("[tag=registerMessengerAppAsQMQProducer]" + e.getMessage());
+                result.put("fail", Sets.newHashSet(topicName + ":" + String.join(",",dcs)));
+            }
+            return result;
+        }
+
+        for (Map.Entry<String, Set<String>> entry : topic2DcNames.entrySet()) {
+            try {
+                MqConfigDto dto = new MqConfigDto();
+                dto.setTopic(entry.getKey());
+                for (String dcName : entry.getValue()) {
+                    this.initProducerM(dto, dcName);
+                }
+                result.putIfAbsent("success", Sets.newHashSet());
+                result.get("success").add(entry.getKey() + ":" + String.join(",", entry.getValue()));
+            } catch (Exception e) {
+                logger.error("[tag=registerMessengerAppAsQMQProducer]" + e.getMessage());
+                result.putIfAbsent("fail", Sets.newHashSet());
+                result.get("fail").add(entry.getKey() + ":" + String.join(",", entry.getValue()));
+            }
+        }
+
+        return result;
+    }
+
     private Map<String, String> getQmqApiHeader() {
         Map<String,String> header = new HashMap<>();
         header.put("ApiToken", domainConfig.getQmqApiToken());

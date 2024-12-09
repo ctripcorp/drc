@@ -10,10 +10,8 @@ import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MessengerFilterTbl;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MessengerFilterTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.impl.MessengerServiceV2Impl;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.MqConfig;
@@ -30,6 +28,8 @@ import org.mockito.MockitoAnnotations;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -57,6 +57,10 @@ public class MessengerServiceV2Test {
     private DbTblDao dbTblDao;
     @Mock
     private MessengerFilterTblDao messengerFilterTblDao;
+    @Mock
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Mock
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
     @Before
     public void setUp(){
@@ -95,6 +99,23 @@ public class MessengerServiceV2Test {
         tbl.setDbReplicationId(0L);
         tbl.setMessengerFilterId(1L);
         return Lists.newArrayList(tbl);
+    }
+
+    @Test
+    public void testRegisterMessengerAppAsQMQProducer() throws SQLException {
+        Mockito.when(dbReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getDbReplicationTbls());
+        Mockito.when(mhaDbMappingTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaDbMappingTbls2());
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(PojoBuilder.getMhaTblV2s());
+        DcDo dcDo = new DcDo();
+        dcDo.setDcId(200L);
+        dcDo.setDcName("dcName");
+        Mockito.when(metaInfoServiceV2.queryAllDcWithCache()).thenReturn(Lists.newArrayList(dcDo));
+        Map<String, Set<String>> res = messengerService.registerMessengerAppAsQMQProducer(true,false,"","");
+        Assert.assertEquals(res.get("success").size(),1);
+        res = messengerService.registerMessengerAppAsQMQProducer(false,false,"topic","");
+        Assert.assertEquals(res.get("fail").size(),1);
+        res = messengerService.registerMessengerAppAsQMQProducer(false,true,"","");
+        Assert.assertEquals(res.get("fail").size(),1);
     }
 
 }
