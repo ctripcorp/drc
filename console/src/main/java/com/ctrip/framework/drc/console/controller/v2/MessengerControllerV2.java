@@ -13,13 +13,10 @@ import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
-import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
-import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.PageResult;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,4 +215,20 @@ public class MessengerControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @GetMapping("registerMessengerAppAsQMQProducer")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Map<String, Set<String>>> registerMessengerAppAsQMQProducer(@RequestParam(name = "showOnly") boolean showOnly,
+                                                                                 @RequestParam(name = "changeAll") boolean changeAll,
+                                                                                 @RequestParam(name = "topic") String topic,
+                                                                                 @RequestParam(name = "dcName") String dcName) {
+        try {
+            Map<String, Set<String>> res = messengerService.registerMessengerAppAsQMQProducer(showOnly, changeAll, topic, dcName);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Throwable e) {
+            logger.error("registerMessengerAppAsQMQProducer error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
 }
