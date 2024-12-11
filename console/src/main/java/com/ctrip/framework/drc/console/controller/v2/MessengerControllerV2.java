@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
-import com.ctrip.framework.drc.console.dao.entity.BuTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
@@ -14,6 +12,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MessengerDelayQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -39,26 +38,12 @@ public class MessengerControllerV2 {
     @Autowired
     MetaInfoServiceV2 metaInfoServiceV2;
 
-    @GetMapping("all")
-    @SuppressWarnings("unchecked")
-    public ApiResult<List<MessengerVo>> getAllMessengerVos() {
-        try {
-            List<MhaTblV2> messengerMhaTbls = messengerService.getAllMessengerMhaTbls();
-            List<MessengerVo> messengerVoList = getMessengerVos(messengerMhaTbls);
-            return ApiResult.getSuccessInstance(messengerVoList);
-        } catch (Throwable e) {
-            logger.error("getAllMessengerVos exception", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("query")
     @SuppressWarnings("unchecked")
     public ApiResult<List<MessengerVo>> queryMessengerVos(MessengerQueryDto queryDto) {
         logger.info("[meta] MessengerQueryDto :{}", queryDto.toString());
         try {
-            List<MhaTblV2> messengerMhaTbls = messengerService.getMessengerMhaTbls(queryDto);
-            List<MessengerVo> messengerVoList = getMessengerVos(messengerMhaTbls);
+            List<MessengerVo> messengerVoList = messengerService.getMessengerMhaTbls(queryDto);
             return ApiResult.getSuccessInstance(messengerVoList);
         } catch (Throwable e) {
             logger.error("queryMessengerVos exception", e);
@@ -66,22 +51,7 @@ public class MessengerControllerV2 {
         }
     }
 
-    private List<MessengerVo> getMessengerVos(List<MhaTblV2> messengerMhaTbls) {
-        List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
-        Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
 
-        // convert
-        return messengerMhaTbls.stream().map(mhaDto -> {
-            MessengerVo messengerVo = new MessengerVo();
-            messengerVo.setMhaName(mhaDto.getMhaName());
-            BuTbl buTbl = buMap.get(mhaDto.getBuId());
-            if (buTbl != null) {
-                messengerVo.setBu(buTbl.getBuName());
-            }
-            messengerVo.setMonitorSwitch(mhaDto.getMonitorSwitch());
-            return messengerVo;
-        }).collect(Collectors.toList());
-    }
 
     @DeleteMapping("deleteMha")
     @SuppressWarnings("unchecked")
@@ -189,16 +159,24 @@ public class MessengerControllerV2 {
         }
     }
 
-    @GetMapping("delay")
+    @PostMapping("delay")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestParam(name = "mhas") List<String> mhas,
-                                                                           @RequestParam(name = "dbs") List<String> dbs) {
-        if (CollectionUtils.isEmpty(mhas) || CollectionUtils.isEmpty(dbs)) {
+    public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestBody MessengerDelayQueryDto queryDto) {
+        List<String> mhas = queryDto.getMhas();
+        List<String> dbs = queryDto.getDbs();
+        if (CollectionUtils.isEmpty(mhas)) {
             return ApiResult.getSuccessInstance(Collections.emptyList());
         }
         try {
-            List<MhaMessengerDto> res = messengerService.getRelatedMhaMessenger(mhas, dbs);
-            List<MhaDelayInfoDto> mhaReplicationDelays = messengerService.getMhaMessengerDelays(res);
+            List<MhaMessengerDto> res;
+            List<MhaDelayInfoDto> mhaReplicationDelays;
+            if (queryDto.getNoNeedDbAndSrcTime()) {
+                res = mhas.stream().map(MhaMessengerDto::from).collect(Collectors.toList());
+                mhaReplicationDelays = messengerService.getMhaMessengerDelaysWithoutSrcTime(res);
+            } else {
+                res = messengerService.getRelatedMhaMessenger(mhas, dbs);
+                mhaReplicationDelays = messengerService.getMhaMessengerDelays(res);
+            }
             Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(Objects::nonNull).collect(Collectors.toMap(
                             MhaDelayInfoDto::getSrcMha,
                             Function.identity()

@@ -5,10 +5,8 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
-import com.ctrip.framework.drc.console.vo.v2.MhaApplierOfflineView;
 import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.http.PageResult;
-import com.ctrip.xpipe.tuple.Pair;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -63,11 +61,6 @@ public interface MhaReplicationServiceV2 {
     Map<String, String> parseConfigFileGtidContent(String configText);
 
     /**
-     * update applier group gtid property according to qConfig
-     */
-    Pair<Integer,List<String>> synApplierGtidInfoFromQConfig(String configText, boolean update);
-
-    /**
      * query all mha replication that has db drc
      */
     List<MhaReplicationTbl> queryAllHasActiveMhaDbReplications();
@@ -77,7 +70,4 @@ public interface MhaReplicationServiceV2 {
      */
     MhaSyncView mhaSyncCount() throws SQLException;
 
-    MhaApplierOfflineView getMhaApplierShouldOffline() throws SQLException;
-
-    int offlineMhaAppliers() throws SQLException;
 }

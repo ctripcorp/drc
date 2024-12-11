@@ -212,12 +212,11 @@ export default {
       this.$Message.info('还未上线，敬请期待')
     },
     async getMhaMessengerDelay () {
-      const param = {
-        mhas: this.mhaMqDtos.srcMha.name,
-        dbs: this.mhaMqDtos.mhaDbReplications.map(item => item.src.dbName).join(',')
-      }
       this.delayDataLoading = true
-      this.axios.get('/api/drc/v2/messenger/delay', { params: param })
+      this.axios.post('/api/drc/v2/messenger/delay', {
+        mhas: [this.mhaMqDtos.srcMha.name],
+        dbs: this.mhaMqDtos.mhaDbReplications.map(item => item.src.dbName)
+      })
         .then(response => {
           const delays = response.data.data[0].delayInfoDto.delay
           this.$set(this.mhaMqDtos, 'delay', delays)

@@ -87,10 +87,6 @@ public class CommonDataInit {
     @Mock
     ReplicatorGroupTblDao replicatorGroupTblDao;
     @Mock
-    ApplierGroupTblV2Dao applierGroupTblV2Dao;
-    @Mock
-    ApplierTblV2Dao applierTblV2Dao;
-    @Mock
     MessengerServiceV2 messengerService;
     @InjectMocks
     MetaInfoServiceV2Impl metaInfoServiceV2Impl;
@@ -264,28 +260,9 @@ public class CommonDataInit {
             return applierTblV3s.stream().filter(e -> ids.contains(e.getApplierGroupId())).collect(Collectors.toList());
         });
 
-        // ApplierTblV2
-        List<ApplierTblV2> applierTblV2s = this.getData("ApplierTblV2.json", ApplierTblV2.class);
-        when(applierTblV2Dao.queryByApplierGroupId(anyLong(), anyInt())).thenAnswer(i -> {
-            Long applierGroupID = i.getArgument(0, Long.class);
-            Integer deleted = i.getArgument(1, Integer.class);
-
-            return applierTblV2s.stream()
-                    .filter(e -> applierGroupID.equals(e.getApplierGroupId()) && deleted.equals(e.getDeleted()))
-                    .collect(Collectors.toList());
-        });
 
 
-        // ApplierGroupTblV2
-        List<ApplierGroupTblV2> applierGroupTblV2s = this.getData("ApplierGroupTblV2.json", ApplierGroupTblV2.class);
-        when(applierGroupTblV2Dao.queryByMhaReplicationId(anyLong(), anyInt())).thenAnswer(i -> {
-            Long mhaReplicationId = i.getArgument(0, Long.class);
-            Integer deleted = i.getArgument(1, Integer.class);
 
-            return applierGroupTblV2s.stream()
-                    .filter(e -> mhaReplicationId.equals(e.getMhaReplicationId()) && deleted.equals(e.getDeleted()))
-                    .findFirst().orElse(null);
-        });
 
         // ResourceTbl
         List<ResourceTbl> resourceTbls = this.getData("ResourceTbl.json", ResourceTbl.class);
@@ -690,8 +667,6 @@ public class CommonDataInit {
 
 
         // queryALlExist
-        when(applierTblV2Dao.queryAllExist()).thenReturn(applierTblV2s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
-        when(applierGroupTblV2Dao.queryAllExist()).thenReturn(applierGroupTblV2s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
         when(messengerGroupTblDao.queryAllExist()).thenReturn(messengerGroupTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
         when(messengerTblDao.queryAllExist()).thenReturn(messengerTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
         when(dbReplicationTblDao.queryAllExist()).thenReturn(dbReplicationTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));

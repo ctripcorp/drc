@@ -72,11 +72,6 @@ public class ResourceAzCheckTask extends AbstractLeaderAwareMonitor  {
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ResourceAzCheckTask]] applierDbListCount: {}", view.getApplierDbList().size());
 
         tag = new HashMap<>();
-        tag.put("type","applierMhaReplication");
-        reporter.resetReportCounter(tag, (long)view.getApplierMhaReplicationList().size() , RESOURCE_AZ_ERROR_NUM_MEASUREMENT);
-        CONSOLE_MONITOR_LOGGER.info("[[monitor=ResourceAzCheckTask]] applierMhaReplicationListCount: {}", view.getApplierMhaReplicationList().size());
-
-        tag = new HashMap<>();
         tag.put("type","messengerMha");
         reporter.resetReportCounter(tag, (long)view.getMessengerMhaList().size() , RESOURCE_AZ_ERROR_NUM_MEASUREMENT);
         CONSOLE_MONITOR_LOGGER.info("[[monitor=ResourceAzCheckTask]] messengerMhaListCount: {}", view.getMessengerMhaList().size());

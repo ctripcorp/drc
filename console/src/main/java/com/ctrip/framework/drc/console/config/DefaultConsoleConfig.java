@@ -28,7 +28,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
     public static String KEY_DC_INFOS = "drc.dcinfos";
-    public static final String SWITCH_META_ROLL_BACK = "switch.meta.roll.back";
     public static final String SWITCH_CM_REGION_URL = "switch.cm.region.url";
     public static final String SWITCH_ON = "on";
     public static final String SWITCH_OFF = "off";
@@ -38,8 +37,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public static String DBA_DC_INFOS = "dba.dcinfos";
 
     public static String CONSOLE_DC_INFOS = "drc.console.dcinfos";
-
-    public static String VALIDATION_DC_INFOS = "drc.validation.dcinfos";
 
     public static String CONSOLE_DC_ENDPOINT_INFOS = "drc.console.dcinfos.endpoint";
 
@@ -70,8 +67,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private String defaultConsoleDcInfos = "{}";
 
-    private String defaultValidationDcInfos = "{}";
-
     private String defaultMhaDalClusterInfos = "{}";
 
     private String DEFAULT_MAPPING_INFOS = "{}";
@@ -94,17 +89,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
 
-    private static final String UPDATE_REPLICATOR_MASTER_SWITCH = "update.replicator.master.switch";
-    
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
     private static String VPC_MHA = "vpc.mha";
 
-    private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
-    private static int DEFAULT_META_COMPARE_PARALLEL = 10;
-    private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
-    private static String META_COMPARE_SWITCH = "meta.compare.switch";
     private static String META_REALTIME_SWITCH = "meta.realtime";
 
     private static final String CONFLICT_LOG_RECORD_SWITCH = "conflict.log.record.switch";
@@ -141,7 +130,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String ACCOUNT_FROM_METE_SWITCH = "account.from.meta.switch";
     private static final String DBA_API_PWD_CHANGE_URL = "dba.api.pwd.change.url";
     private static final String ALLOW_AMBIGUOUS_MHA_SWITCH = "allow.ambiguous.mha.switch";
-    private static final String BUILD_DRC_DEFAULT_DB_APPLIER_SWITCH = "build.drc.default.dbapply.switch";
 
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
@@ -154,8 +142,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_PANEL_URL = "console.panel.url";
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
     private static String DRC_ADMIN_TOKEN = "drc.admin.token";
-
-    private static String DB_MIGRATION_SWITCH = "db.migration.switch";
 
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
@@ -368,25 +354,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return result;
     }
 
-    public String getValidationDomain(String dc) {
-        Map<String, String> validationDcInfos = getValidationDcInfoMapping();
-        return validationDcInfos.get(dc);
-    }
-
-    private Map<String, String> getValidationDcInfoMapping() {
-        String dcInfoStr = getProperty(VALIDATION_DC_INFOS, defaultValidationDcInfos);
-        logger.info("validation dcInfos {}={}", VALIDATION_DC_INFOS, dcInfoStr);
-        Map<String, String> validationDcInfos = JsonCodec.INSTANCE.decode(dcInfoStr, new GenericTypeReference<Map<String, String>>() {});
-
-        Map<String, String> result = Maps.newConcurrentMap();
-        for(Map.Entry<String, String> entry : validationDcInfos.entrySet()){
-            result.put(entry.getKey(), entry.getValue().toLowerCase());
-        }
-
-        logger.debug("[getValidationDcInfoMapping]{}", result);
-        return result;
-    }
-
     private Map<String, String> getConsoleDcInfoMapping() {
         String dcInfoStr = getProperty(CONSOLE_DC_INFOS, defaultConsoleDcInfos);
         logger.info("console dcInfos {}={}", CONSOLE_DC_INFOS, dcInfoStr);
@@ -516,33 +483,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(SWITCH_CM_REGION_URL,DEFAULT_SWITCH_CM_REGION_URL);
     }
 
-    public String getSwitchMetaRollBack() {
-        return getProperty(SWITCH_META_ROLL_BACK,SWITCH_OFF);
-    }
-
-    public String getUpdateReplicatorSwitch() {
-        return getProperty(UPDATE_REPLICATOR_MASTER_SWITCH,SWITCH_OFF);
-    }
-
     public int getAvailablePortSize() {
         return getIntProperty(AVAILABLE_PORT_SIZE,DEFAULT_AVAILABLE_PORT_SIZE);
-    }
-
-    public int getMetaCompareParallel() {
-        return getIntProperty(META_COMPARE_PARALLEL,DEFAULT_META_COMPARE_PARALLEL);
-    }
-
-    public boolean getCostTimeTraceSwitch() {
-        return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
     }
 
 
     public String getNewDrcConfigSwitch() {
         return getProperty(NEW_DRC_CONFIG_SWITCH, SWITCH_OFF);
-    }
-
-    public String getMetaCompareSwitch() {
-        return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
     }
 
 
@@ -692,14 +639,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getDrcAdminToken() {
         return getProperty(DRC_ADMIN_TOKEN,"");
-    }
-
-    public boolean getNewDrcDefaultDbApplierMode() {
-        return getBooleanProperty(BUILD_DRC_DEFAULT_DB_APPLIER_SWITCH, true);
-    }
-
-    public boolean getDbMigrationSwitch() {
-        return getBooleanProperty(DB_MIGRATION_SWITCH,false);
     }
 
 }

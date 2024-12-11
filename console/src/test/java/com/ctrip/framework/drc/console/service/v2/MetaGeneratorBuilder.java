@@ -165,15 +165,6 @@ public class MetaGeneratorBuilder {
         return Lists.newArrayList(mhaReplicationTbl);
     }
 
-    public static List<ApplierGroupTblV2> getApplierGroupTbls() {
-        ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
-        applierGroupTbl.setDeleted(0);
-        applierGroupTbl.setId(100L);
-        applierGroupTbl.setGtidInit("applierGtId");
-        applierGroupTbl.setMhaReplicationId(100L);
-        return Lists.newArrayList(applierGroupTbl);
-    }
-
     public static List<MhaDbMappingTbl> getMhaDbMappingTbls() {
         MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
         mhaDbMappingTbl.setDeleted(0);
@@ -214,17 +205,6 @@ public class MetaGeneratorBuilder {
 //        tbl.setDstLogicTableName("topic");
 //        tbl.setId(2L);
 //        tbl.setReplicationType(1);
-        return Lists.newArrayList(tbl);
-    }
-
-    public static List<ApplierTblV2> getApplierTbls() {
-        ApplierTblV2 tbl = new ApplierTblV2();
-        tbl.setId(100L);
-        tbl.setDeleted(0);
-        tbl.setResourceId(Long.valueOf(ModuleEnum.APPLIER.getCode() + 100));
-        tbl.setMaster(1);
-        tbl.setPort(2020);
-        tbl.setApplierGroupId(100L);
         return Lists.newArrayList(tbl);
     }
 

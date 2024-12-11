@@ -11,7 +11,6 @@ public class ResourceSameAzView {
 
     private List<String> replicatorMhaList;
     private List<String> applierDbList;
-    private List<MhaReplicationView> applierMhaReplicationList;
     private List<String> messengerMhaList;
 
     public List<String> getReplicatorMhaList() {
@@ -28,14 +27,6 @@ public class ResourceSameAzView {
 
     public void setApplierDbList(List<String> applierDbList) {
         this.applierDbList = applierDbList;
-    }
-
-    public List<MhaReplicationView> getApplierMhaReplicationList() {
-        return applierMhaReplicationList;
-    }
-
-    public void setApplierMhaReplicationList(List<MhaReplicationView> applierMhaReplicationList) {
-        this.applierMhaReplicationList = applierMhaReplicationList;
     }
 
     public List<String> getMessengerMhaList() {

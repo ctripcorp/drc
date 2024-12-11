@@ -8,11 +8,9 @@ import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
 import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 
 public interface DbDrcBuildService {
 
@@ -31,14 +29,6 @@ public interface DbDrcBuildService {
     void buildDbApplier(DrcBuildParam param) throws Exception;
 
     String buildDbMessenger(DrcBuildBaseParam param) throws Exception;
-
-    GtidSet getMhaDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException;
-
-    Map<String, GtidSet> getDbDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException;
-
-    String getMhaDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName);
-
-    String getDbDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName);
 
     void switchAppliers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
     void switchMessengers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;

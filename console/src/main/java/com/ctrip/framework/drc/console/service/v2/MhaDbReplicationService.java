@@ -35,7 +35,7 @@ public interface MhaDbReplicationService {
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
     void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException;
     void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames) throws SQLException;
-    void offlineMhaDbReplication(String mhaName, String mhaName1);
+    void offlineMhaDbReplication(String srcMhaName, String dstMhaName);
 
     /**
      * after delete dbReplicationTbls

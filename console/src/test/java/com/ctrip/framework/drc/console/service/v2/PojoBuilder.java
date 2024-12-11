@@ -136,22 +136,6 @@ public class PojoBuilder {
     }
 
 
-    public static List<ApplierTblV2> getApplierTblV2s() {
-        List<ApplierTblV2> applierTbls = new ArrayList<>();
-        for (int i = 200; i <= 201; i++) {
-            ApplierTblV2 applierTbl = new ApplierTblV2();
-            applierTbl.setApplierGroupId(200L);
-            applierTbl.setDeleted(0);
-            applierTbl.setId(Long.valueOf(i));
-            applierTbl.setMaster(1);
-            applierTbls.add(applierTbl);
-            applierTbl.setMaster(1);
-            applierTbl.setPort(80);
-            applierTbl.setResourceId(200L);
-        }
-        return applierTbls;
-    }
-
     public static List<ApplierTblV3> getApplierTblV3s() {
         List<ApplierTblV3> applierTbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {
@@ -436,15 +420,6 @@ public class PojoBuilder {
         tbl1.setDatachangeLasttime(new Timestamp(System.currentTimeMillis()));
 
         return Lists.newArrayList(tbl1);
-    }
-
-    public static List<ApplierGroupTblV2> getApplierGroupTblV2s() {
-        ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
-        applierGroupTbl.setDeleted(0);
-        applierGroupTbl.setId(200L);
-        applierGroupTbl.setGtidInit("applierGtId");
-        applierGroupTbl.setMhaReplicationId(200L);
-        return Lists.newArrayList(applierGroupTbl);
     }
 
     public static List<ApplierGroupTblV3> getApplierGroupTblV3s() {

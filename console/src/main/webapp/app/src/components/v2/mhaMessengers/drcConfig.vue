@@ -172,7 +172,7 @@ export default {
         messengers: {},
         replicatorList: {},
         messengerList: [],
-        dbMessengerSwitch: true,
+        dbMessengerSwitch: false,
         dbMessengerList: []
       }
     }

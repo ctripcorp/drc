@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.TaskQueueActivity;
 import com.google.common.collect.Maps;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -62,6 +63,15 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
     @Override
     public void doStop() {
         super.doStop();
-        DefaultReporterHolder.getInstance().removeRegister(measurementMessengerActive);
+        Map<String, String> matchTags = getMatchTags();
+        DefaultReporterHolder.getInstance().removeRegister(measurement, matchTags);
+        DefaultReporterHolder.getInstance().removeRegister(measurementMessengerActive, matchTags);
+    }
+
+    private Map<String, String> getMatchTags() {
+        Map<String, String> kvs = new HashMap<>();
+        kvs.put("srcMhaName", srcMhaName);
+        kvs.put("clusterName", cluster);
+        return kvs;
     }
 }

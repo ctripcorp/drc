@@ -113,15 +113,6 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @GetMapping("mha/applier")
-    public ApiResult<List<String>> getMhaAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            return ApiResult.getSuccessInstance(drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("mha/dbApplier")
     public ApiResult<List<DbApplierDto>> getMhaDbAppliers(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
         try {
@@ -131,57 +122,12 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @GetMapping("mha/dbApplier/gtidTruncated")
-    public ApiResult<String> getMhaDrcExecutedGtidTruncate(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDrcExecutedGtidTruncate(srcMhaName, dstMhaName));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
 
-    @GetMapping("mha/dbApplier/dbGtidTruncated")
-    public ApiResult<String> getDbDrcExecutedGtidTruncate(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.getDbDrcExecutedGtidTruncate(srcMhaName, dstMhaName));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @GetMapping("mha/dbApplier/gtid")
-    public ApiResult<String> getMhaDrcExecutedGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDrcExecutedGtid(srcMhaName, dstMhaName).toString());
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @GetMapping("mha/dbApplier/dbGtid")
-    public ApiResult<String> getDbDrcExecutedGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            Map<String, GtidSet> dbDrcExecutedGtid = dbDrcBuildService.getDbDrcExecutedGtid(srcMhaName, dstMhaName);
-            Map<String, String> map = dbDrcExecutedGtid.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
-            return ApiResult.getSuccessInstance(map);
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
 
     @GetMapping("mha/dbMessenger")
     public ApiResult<List<DbApplierDto>> getMhaDbMessengers(@RequestParam String mhaName) {
         try {
             return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbMessengers(mhaName));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @GetMapping("mha/applierGtid")
-    public ApiResult<String> getApplierGtid(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            return ApiResult.getSuccessInstance(drcBuildServiceV2.getApplierGtid(srcMhaName, dstMhaName));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

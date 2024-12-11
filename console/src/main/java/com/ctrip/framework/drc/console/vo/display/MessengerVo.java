@@ -7,9 +7,27 @@ package com.ctrip.framework.drc.console.vo.display;
  * @Version: $
  */
 public class MessengerVo {
+    private Long mhaId;
     private String mhaName;
     private String bu;
     private int monitorSwitch;
+    private Integer drcStatus;
+
+    public Long getMhaId() {
+        return mhaId;
+    }
+
+    public void setMhaId(Long mhaId) {
+        this.mhaId = mhaId;
+    }
+
+    public Integer getDrcStatus() {
+        return drcStatus;
+    }
+
+    public void setDrcStatus(Integer drcStatus) {
+        this.drcStatus = drcStatus;
+    }
 
     public String getMhaName() {
         return mhaName;

@@ -38,13 +38,12 @@ public class ResourceAzCheckTaskTest {
     public void testScheduledTask () throws Exception {
         ResourceSameAzView view = new ResourceSameAzView();
         view.setApplierDbList(new ArrayList<>(Collections.singletonList("testApplierDb")));
-        view.setApplierMhaReplicationList(new ArrayList<>(Collections.singletonList(new MhaReplicationView())));
         view.setMessengerMhaList(new ArrayList<>(Collections.singletonList("testMessengerMha")));
         view.setReplicatorMhaList(new ArrayList<>(Collections.singletonList("testReplicatorMha")));
 
         Mockito.when(resourceService.checkResourceAz()).thenReturn(view);
         task.check();
-        Mockito.verify(reporter,Mockito.times(4)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(reporter,Mockito.times(3)).resetReportCounter(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
     }
 
 }

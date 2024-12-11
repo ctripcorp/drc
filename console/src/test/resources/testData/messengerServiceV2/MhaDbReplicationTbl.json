@@ -52,5 +52,14 @@
     "deleted": 0,
     "createTime": "2032-09-02 15:34:11",
     "datachangeLasttime": "2017-08-13 09:57:09"
+  },
+  {
+    "id": 7,
+    "srcMhaDbMappingId": 3,
+    "dstMhaDbMappingId": 1,
+    "replicationType": 0,
+    "deleted": 0,
+    "createTime": "2032-09-02 15:34:11",
+    "datachangeLasttime": "2017-08-13 09:57:09"
   }
 ]

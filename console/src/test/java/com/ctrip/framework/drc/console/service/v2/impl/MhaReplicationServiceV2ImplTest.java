@@ -8,10 +8,8 @@ import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
-import com.ctrip.framework.drc.console.vo.v2.MhaApplierOfflineView;
 import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.http.PageResult;
-import com.ctrip.xpipe.tuple.Pair;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
@@ -168,52 +166,38 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
 
     @Test
     public void testDeleteMhaReplication() throws SQLException, IOException {
-//        Mockito.when(mhaTblV2Dao.queryByPk(Mockito.eq(1L))).thenReturn();
-//        Mockito.when(mhaTblV2Dao.queryByPk(Mockito.eq(2L))).thenReturn(null);
-//        Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.eq(1L))).thenReturn(null);
-//        Mockito.when(dbReplicationTblDao.queryBySrcMappingIds(Mockito.eq(Lists.newArrayList(1L)),Mockito.eq(ReplicationTypeEnum.DB_TO_DB.getType()))).thenReturn(null);
-//        Mockito.when(applierGroupTblV2Dao.queryByMhaReplicationId()).thenReturn(null);
-//        Mockito.when(applierTblV2Dao.queryByApplierGroupId()).thenReturn(null);
-//        Mockito.when(messengerGroupTblDao.queryByMhaId()).thenReturn(null);
-//        Mockito.when(replicatorGroupTblDao.queryByMhaId()).thenReturn(null);
-//        Mockito.when(replicatorTblDao.queryByRGroupIds()).thenReturn(null);
-//        Mockito.when(mhaReplicationTblDao.queryByRelatedMhaId()).thenReturn(null);
-//        Mockito.when(dbReplicationTblDao.queryBySrcMappingIds(Mockito.eq(Lists.newArrayList(1L)),Mockito.eq(ReplicationTypeEnum.DB_TO_DB.getType()))).thenReturn(null);
         // change default mock data;
         reMock("/testData/mhaReplicationDeleteCase/");
-        // mock update
-        Mockito.when(mhaReplicationTblDao.update(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
-        Mockito.when(mhaTblV2Dao.update(Mockito.anyList())).thenReturn(new int[]{1});
-        Mockito.when(mhaServiceV2.offlineMha(Mockito.anyString())).thenReturn(true);
-
-        // case 1 dbReplication not empty 
         try {
-            boolean b = mhaReplicationServiceV2.deleteMhaReplication(1L);
-        } catch (ConsoleException e) {
-            Assert.assertTrue(e.getMessage().contains("DbReplications not empty!"));
-        }
-        // case 2 applier not empty
-        try {
-            boolean b = mhaReplicationServiceV2.deleteMhaReplication(2L);
-        } catch (ConsoleException e) {
-            Assert.assertTrue(e.getMessage().contains(":Applier not empty"));
-        }
-        // case 3 messenger not empty, not delete mha  mha3
-        // case 4 messenger empty, delete mha but replicator not empty mha4
-        try {
-            boolean b = mhaReplicationServiceV2.deleteMhaReplication(3L);
-        } catch (ConsoleException e) {
-            Assert.assertTrue(e.getMessage().contains("Replicator not empty!"));
-        }
+            // mock update
+            Mockito.when(mhaReplicationTblDao.update(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
+            Mockito.when(mhaTblV2Dao.update(Mockito.anyList())).thenReturn(new int[]{1});
+            Mockito.when(mhaServiceV2.offlineMha(Mockito.anyString())).thenReturn(true);
 
-        // case 5 messenger empty, delete mha and replicator empty
-        // delete mha6 , mha5 has other replication
+            // case 1 dbReplication not empty
+            try {
+                boolean b = mhaReplicationServiceV2.deleteMhaReplication(1L);
+            } catch (ConsoleException e) {
+                Assert.assertTrue(e.getMessage().contains("DbReplications not empty!"));
+            }
 
-        boolean b = mhaReplicationServiceV2.deleteMhaReplication(4L);
-        verify(mhaReplicationTblDao, Mockito.times(1)).update(Mockito.any(MhaReplicationTbl.class));
-        verify(mhaServiceV2, Mockito.times(1)).offlineMha(Mockito.eq("mha6"));
+            // case 2 messenger not empty, not delete mha  mha3
+            // case 3 messenger empty, delete mha but replicator not empty mha4
+            try {
+                boolean b = mhaReplicationServiceV2.deleteMhaReplication(3L);
+            } catch (ConsoleException e) {
+                Assert.assertTrue(e.getMessage().contains("Replicator not empty!"));
+            }
 
-        releaseMockConfig();
+            // case 4 messenger empty, delete mha and replicator empty
+            // delete mha6 , mha5 has other replication
+            boolean b = mhaReplicationServiceV2.deleteMhaReplication(4L);
+            verify(mhaReplicationTblDao, Mockito.times(1)).update(Mockito.any(MhaReplicationTbl.class));
+            verify(mhaServiceV2, Mockito.times(1)).offlineMha(Mockito.eq("mha6"));
+
+        } finally {
+            releaseMockConfig();
+        }
     }
 
 
@@ -244,45 +228,6 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
     }
 
 
-    @Test
-    public void testSynConfigGtidAlreadyExistException() {
-        String input = "mha_dalcluster.mha2.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-        Integer count = result.getKey();
-        List<String> messages = result.getValue();
-        Assert.assertEquals(1, count.intValue());
-        Assert.assertEquals(1, messages.size());
-    }
-
-    @Test
-    public void testSynConfigMhaNotExist() {
-        String input = "mha_dalcluster.mha2NotExist.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-        Integer count = result.getKey();
-        List<String> messages = result.getValue();
-        Assert.assertEquals(0, count.intValue());
-        Assert.assertTrue(messages.size() > 0);
-    }
-
-    @Test
-    public void testSynConfigMhaReplicationNotExist() {
-        String input = "mha_dalcluster.mha2.mha3.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-        Integer count = result.getKey();
-        List<String> messages = result.getValue();
-        Assert.assertEquals(0, count.intValue());
-        Assert.assertTrue(messages.size() > 0);
-    }
-
-    @Test
-    public void testSynConfi2g() {
-        String input = "mha_dalcluster.mha3.mha1.purgedgtid=ec4b75e5-2a12-11eb-a3d3-506b4b47803c:1-589347286,ece065e2-454c-11eb-bd4c-506b4b4776ec:1-79225977\n";
-        Pair<Integer, List<String>> result = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(input, false);
-        Integer count = result.getKey();
-        List<String> messages = result.getValue();
-        Assert.assertEquals(1, count.intValue());
-        Assert.assertEquals(0, messages.size());
-    }
 
     @Test
     public void test() {
@@ -314,19 +259,4 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
 
     }
 
-    @Test
-    public void testGetOfflineApplier() throws SQLException {
-        MhaApplierOfflineView res = mhaReplicationServiceV2.getMhaApplierShouldOffline();
-        Assert.assertNotNull(res);
-        Assert.assertEquals(2, res.getMhaReplicationWithMhaApplierCount());
-        Assert.assertEquals(1, res.getMhaReplicationWithDbApplierCount());
-        Assert.assertEquals(res.getMhaReplicationWithBothMhaApplierAndDbApplierIds().size(), res.getMhaReplicationWithBothMhaApplierAndDbApplierCount());
-    }
-
-    @Test
-    public void testOfflineApplier() throws SQLException {
-        int count = mhaReplicationServiceV2.offlineMhaAppliers();
-        Assert.assertEquals(2, count);
-        verify(applierTblV2Dao,times(1)).batchUpdate(any());
-    }
 }

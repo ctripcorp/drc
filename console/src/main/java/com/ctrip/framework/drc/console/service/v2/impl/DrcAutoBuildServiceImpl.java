@@ -69,8 +69,6 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblDao;
-    @Autowired
     private RegionTblDao regionTblDao;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
@@ -635,11 +633,11 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
         MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMhaTbl = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
-        
+
         drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
         drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(dstMhaTbl, param.getDstMachines());
     }
-    
+
     public void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
         // 1.(if needed) build mha, mha replication
         DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(
@@ -700,23 +698,11 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
                 .filter(param.getDbName()::contains)
                 .collect(Collectors.toList());
 
-        boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
-        if (!dbApplyMode && consoleConfig.getNewDrcDefaultDbApplierMode()) {
-            // new drc, use db applier mode
-            List<String> mhaAppliers = drcBuildService.getMhaAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName());
-            dbApplyMode = CollectionUtils.isEmpty(mhaAppliers);
-        }
-        boolean drcConfigEmpty;
-        boolean drcOff;
-        if (dbApplyMode) {
-            if (dbApplyingDbNames.size() != 0 && dbApplyingDbNames.size() != param.getDbName().size()) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_APPLIERS_NOT_CONSISTENT);
-            }
-            drcConfigEmpty = existDbReplication.stream().noneMatch(e -> param.getDbName().contains(e.getDbName()));
-            drcOff = dbApplyingDbNames.size() == 0;
-        } else {
-            drcConfigEmpty = CollectionUtils.isEmpty(existDbReplication);
-            drcOff = !BooleanEnum.TRUE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
+        boolean drcConfigEmpty = existDbReplication.stream().noneMatch(e -> param.getDbName().contains(e.getDbName()));
+        boolean drcOff = dbApplyingDbNames.isEmpty();
+
+        if (!drcOff && dbApplyingDbNames.size() != param.getDbName().size()) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_APPLIERS_NOT_CONSISTENT);
         }
         if (drcOff && !drcConfigEmpty) {
             throw ConsoleExceptionUtils.message("drc has db replication but is stopped. could not auto build.");
@@ -742,12 +728,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
         // 5. auto config appliers
         String applierGtid = newDrc ? gtidInit : null;
-        if (dbApplyMode) {
-            dbDrcBuildService.autoConfigDbAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), Lists.newArrayList(param.getDbName()), applierGtid,false);
-        } else {
-            applierGroupTblDao.insertOrReCover(srcToDstMhaReplication.getId(), null);
-            drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, applierGtid, false);
-        }
+        dbDrcBuildService.autoConfigDbAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), Lists.newArrayList(param.getDbName()), applierGtid, false);
 
         // 6. end
         logger.info("build success: {}", param);

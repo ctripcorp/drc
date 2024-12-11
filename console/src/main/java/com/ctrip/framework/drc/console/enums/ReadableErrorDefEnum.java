@@ -45,6 +45,7 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     DRC_TABLE_NOT_MATCH_BETWEEN_SRC_AND_DST("DRC_TABLE_NOT_MATCH","tables in src and dst not match"),
     DRC_TABLE_EMPTY("DRC_TABLE_EMPTY","table not found"),
 
+    MHA_DB_REPLICATION_DELETE_NOT_ALLOW_FOR_EXIST_APPLIER("MHA_DB_REPLICATION_DELETE_NOT_ALLOW_FOR_EXIST_APPLIER", "delete mha db replication not allow with existing applier/messenger"),
 
     TIMEOUT_EXCEPTION("TIMEOUT_EXCEPTION", "timeout"),
 

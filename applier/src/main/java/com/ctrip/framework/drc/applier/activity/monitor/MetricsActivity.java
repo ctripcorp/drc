@@ -7,15 +7,20 @@ import com.ctrip.framework.drc.fetcher.system.MetricReporter;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.TaskQueueActivity;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Metric, Boolean> implements MetricReporter {
 
     private UnidirectionalEntity unidirectionalEntity;
 
     private Map<String, String> instanceTags;
+
+    private final Set<String> seenMeasurements = Sets.newConcurrentHashSet();
 
     @InstanceConfig(path = "appid")
     public long appid = 0;
@@ -98,10 +103,28 @@ public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Metric, B
         } else {
             DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, metric.value, measurement);
         }
+        seenMeasurements.add(measurement);
         return finish(metric);
     }
 
-   
+    @Override
+    public void doStop() {
+        Map<String, String> tagKvs = getMatchTags();
+        for (String seenMeasurement : seenMeasurements) {
+            DefaultReporterHolder.getInstance().removeRegister(seenMeasurement, tagKvs);
+        }
+        seenMeasurements.clear();
+    }
+
+    private Map<String, String> getMatchTags() {
+        Map<String, String> tagKvs = new HashMap<>();
+        tagKvs.put("srcMha", srcMhaName);
+        tagKvs.put("destMha", destMhaName);
+        if (ApplyMode.db_transaction_table == ApplyMode.getApplyMode(applyMode)) {
+            tagKvs.put("db", includedDbs);
+        }
+        return tagKvs;
+    }
 
     @Override
     public void report(String name, Map<String,String> tags, long value) {

@@ -487,11 +487,9 @@ export default {
     getMhaMessengerDetail: function (row) {
       this.replicationDetail.messengerDataLoading = true
       this.replicationDetail.messengerData = []
-      this.axios.get('/api/drc/v2/messenger/delay', {
-        params: {
-          mhas: [row.oldMha, row.newMha].join(','),
-          dbs: row.dbs.join(',')
-        }
+      this.axios.post('/api/drc/v2/messenger/delay', {
+        mhas: [row.oldMha, row.newMha],
+        dbs: row.dbs
       }).then(response => {
         if (response.data.status === 1) {
           this.$Message.warning('查询异常: ' + response.data.message)

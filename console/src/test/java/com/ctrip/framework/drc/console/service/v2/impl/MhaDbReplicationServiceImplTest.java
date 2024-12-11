@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
@@ -43,9 +44,15 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         super.setUp();
     }
 
+    @Test(expected = ConsoleException.class)
+    public void testOfflineMhaDbReplicationHasApplieres() throws SQLException {
+        mhaDbReplicationService.offlineMhaDbReplication("mha1","mha2");
+        verify(mhaDbReplicationTblDao,times(1)).batchUpdate(anyList());
+    }
+
     @Test
     public void testOfflineMhaDbReplication() throws SQLException {
-        mhaDbReplicationService.offlineMhaDbReplication("mha1","mha2");
+        mhaDbReplicationService.offlineMhaDbReplication("mha2","mha1");
         verify(mhaDbReplicationTblDao,times(1)).batchUpdate(anyList());
     }
 
@@ -75,6 +82,7 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         Assert.assertEquals("mha2", replicationDtos.get(0).getDst().getMhaName());
         Assert.assertFalse(StringUtils.isBlank(replicationDtos.get(0).getDst().getDbName()));
         Assert.assertNotNull(replicationDtos.get(0).getDst().getMhaDbMappingId());
+        Assert.assertTrue(replicationDtos.stream().anyMatch(e->Boolean.TRUE.equals(e.getDrcStatus())));
     }
 
     @Test
@@ -134,14 +142,14 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     @Test
     public void testQueryByDbNames(){
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList("db1", "db2"), ReplicationTypeEnum.DB_TO_DB);
-        Assert.assertEquals(2, replicationDtos.size());
+        Assert.assertEquals(3, replicationDtos.size());
         System.out.println(replicationDtos);
     }
 
     @Test
     public void testQueryByDbNames2(){
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNamesAndMhaNames(Lists.newArrayList("db1", "db2"), Lists.newArrayList("mha1"), ReplicationTypeEnum.DB_TO_DB);
-        Assert.assertEquals(2, replicationDtos.size());
+        Assert.assertEquals(3, replicationDtos.size());
         System.out.println(replicationDtos);
     }
 

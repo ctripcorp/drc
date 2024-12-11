@@ -4,8 +4,10 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
@@ -14,13 +16,13 @@ import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.inquirer.ApplierInquirer;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.service.inquirer.ApplierInfoInquirer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -50,8 +52,6 @@ public class ResourceServiceTest {
     @Mock
     private ReplicatorTblDao replicatorTblDao;
     @Mock
-    private ApplierTblV2Dao applierTblDao;
-    @Mock
     private DcTblDao dcTblDao;
     @Mock
     private MhaTblV2Dao mhaTblV2Dao;
@@ -59,8 +59,6 @@ public class ResourceServiceTest {
     private MessengerTblDao messengerTblDao;
     @Mock
     private ReplicatorGroupTblDao replicatorGroupTblDao;
-    @Mock
-    private ApplierGroupTblV2Dao applierGroupTblDao;
     @Mock
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Mock
@@ -134,7 +132,6 @@ public class ResourceServiceTest {
     public void testOfflineResource() throws Exception {
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(getResourceTbls().get(0));
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
 
         resourceService.offlineResource(1L);
@@ -156,7 +153,7 @@ public class ResourceServiceTest {
         resourceTbl.setType(1);
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(resourceTbl);
         Mockito.when(resourceTblDao.update(any(ResourceTbl.class))).thenReturn(0);
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(new ApplierTblV2()));
+        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(new ApplierTblV3()));
 
         resourceService.offlineResource(1L);
     }
@@ -194,7 +191,6 @@ public class ResourceServiceTest {
         param.setPageReq(new PageReq());
         Mockito.when(resourceTblDao.queryByParam(param)).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
         List<ResourceView> result = resourceService.getResourceView(param);
         Assert.assertEquals(result.size(), getResourceTbls().size());
@@ -211,7 +207,6 @@ public class ResourceServiceTest {
         Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
         Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
         List<ResourceView> result = resourceService.getMhaAvailableResource("mha", 0);
@@ -225,7 +220,6 @@ public class ResourceServiceTest {
         Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
         Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
         ResourceSelectParam param = new ResourceSelectParam();
@@ -243,7 +237,6 @@ public class ResourceServiceTest {
         Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
         Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
         ResourceSelectParam param = new ResourceSelectParam();
@@ -275,17 +268,6 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.size(), 1);
     }
 
-    @Test
-    public void testQueryMhaReplicationByApplier() throws Exception {
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getApplierTblV2s().get(0)));
-        Mockito.when(applierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV2s());
-        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
-        Mockito.when(mhaReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaReplicationTbls());
-        Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
-
-        List<ApplierReplicationView> result = resourceService.queryMhaReplicationByApplier(1L);
-        Assert.assertEquals(result.size(), getMhaReplicationTbls().size());
-    }
 
     @Test
     public void testQueryMhaDbReplicationByApplier() throws Exception {
@@ -362,23 +344,20 @@ public class ResourceServiceTest {
         List<ResourceTbl> resourceTbls = getApplierResources();
         Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip1"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
         Mockito.when(resourceTblDao.queryByIp(Mockito.eq("ip2"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getApplierTblV2s());
         Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(PojoBuilder.getApplierTblV3s());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
         Mockito.when(dbMessengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
-        Mockito.when(applierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV2s());
         Mockito.when(dbApplierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV3s());
         Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
         Mockito.when(dbMessengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
-        Mockito.when(applierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(dbApplierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(dbMessengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
 
         int result = resourceService.migrateResource("ip2", "ip1", 1);
-        Assert.assertEquals(result, 5);
+        Assert.assertEquals(result, 3);
     }
 
     @Test
@@ -386,12 +365,10 @@ public class ResourceServiceTest {
         Mockito.when(resourceTblDao.queryAllExist()).thenReturn(PojoBuilder.getResourceTbls());
         Mockito.when(dbApplierTblDao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV3s());
         Mockito.when(dbTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getDbTbls().get(0));
-        Mockito.when(applierTblDao.queryAllExist()).thenReturn(PojoBuilder.getApplierTblV2s());
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.getMhaTblV2());
         Mockito.when(messengerTblDao.queryAllExist()).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
         Mockito.when(replicatorTblDao.queryAllExist()).thenReturn(PojoBuilder.getReplicatorTbls());
         Mockito.when(mhaTblV2Dao.queryAll()).thenReturn(PojoBuilder.getMhaTblV2s());
-        Mockito.when(applierGroupTblDao.queryAll()).thenReturn(PojoBuilder.getApplierGroupTblV2s());
         Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(PojoBuilder.getMhaReplicationTbls());
         Mockito.when(replicatorGroupTblDao.queryAll()).thenReturn(PojoBuilder.getReplicatorGroupTbls());
         Mockito.when(messengerGroupTblDao.queryAll()).thenReturn(PojoBuilder.getMessengerGroups());
@@ -402,7 +379,6 @@ public class ResourceServiceTest {
 
         ResourceSameAzView result = resourceService.checkResourceAz();
         Assert.assertEquals(result.getApplierDbList().size(), 1);
-        Assert.assertEquals(result.getApplierMhaReplicationList().size(), 1);
         Assert.assertEquals(result.getMessengerMhaList().size(), 1);
         Assert.assertEquals(result.getReplicatorMhaList().size(), 1);
 
@@ -418,7 +394,6 @@ public class ResourceServiceTest {
 
         Mockito.when(resourceTblDao.queryByIp(anyString(), Mockito.anyInt())).thenReturn(getApplierResources().get(0));
         Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getApplierResources());
-        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getMessengers());
         Mockito.when(dbMessengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
@@ -442,23 +417,20 @@ public class ResourceServiceTest {
         Mockito.when(resourceTblDao.queryByIp(Mockito.eq("newIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
         Mockito.when(resourceTblDao.queryByIp(Mockito.eq("oldIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
 
-        Mockito.when(applierTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
         Mockito.when(messengerTblDao.queryByIds(Mockito.anyList())).thenReturn(getMessengers());
         Mockito.when(dbMessengerTblDao.queryByIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(dbApplierTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
 
-        Mockito.when(applierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV2s());
         Mockito.when(dbApplierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV3s());
         Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
         Mockito.when(dbMessengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
-        Mockito.when(applierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(dbApplierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(dbMessengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
 
         int result = resourceService.partialMigrateApplier(param);
-        Assert.assertEquals(result, 6);
+        Assert.assertEquals(result, 4);
     }
 
     @Test
@@ -538,15 +510,15 @@ public class ResourceServiceTest {
     }
 
     @Mock
-    ApplierInquirer inquirer;
+    ApplierInfoInquirer inquirer;
 
 
     @Test
     public void testGetAppliersInAz() throws Exception {
         String testRegion = "sha";
         Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
-        MockedStatic<ApplierInquirer> mockedStatic = Mockito.mockStatic(ApplierInquirer.class);
-        mockedStatic.when(ApplierInquirer::getInstance).thenReturn(inquirer);
+        MockedStatic<ApplierInfoInquirer> mockedStatic = Mockito.mockStatic(ApplierInfoInquirer.class);
+        mockedStatic.when(ApplierInfoInquirer::getInstance).thenReturn(inquirer);
         Future<List<ApplierInfoDto>> mockFuture = Mockito.mock(Future.class);
         Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getApplierInfoDtos());
         Mockito.when(inquirer.query(Mockito.anyString())).thenReturn(mockFuture);

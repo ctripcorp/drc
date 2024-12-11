@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
@@ -19,13 +18,11 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -33,7 +30,6 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -214,7 +210,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         srcBuildParam.setMhaName("mha1");
         drcBuildParam.setSrcBuildParam(srcBuildParam);
         DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
-        dstBuildParam.setApplierInitGtid("a:123");
         dstBuildParam.setMhaName("mha2");
         dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList("2.113.60.2"), "gtidInit1", "db2")));
         drcBuildParam.setDstBuildParam(dstBuildParam);
@@ -226,9 +221,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(applierGroupTblV3Dao, times(1)).batchInsertWithReturnId(anyList());
         verify(applierGroupTblV3Dao, times(1)).batchUpdate(anyList());
 
-        verify(applierTblV2Dao, never()).insert(anyList());
-        verify(applierGroupTblV2Dao, times(1)).update(any(ApplierGroupTblV2.class));
-        verify(applierGroupTblV2Dao, never()).insertOrReCover(any(), anyString());
     }
 
     @Test
@@ -239,7 +231,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         srcBuildParam.setMhaName("mha1");
         drcBuildParam.setSrcBuildParam(srcBuildParam);
         DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
-        dstBuildParam.setApplierInitGtid("a:123");
         dstBuildParam.setMhaName("mha2");
         dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList(), "gtidInit1", "db2")));
         drcBuildParam.setDstBuildParam(dstBuildParam);
@@ -251,9 +242,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(applierGroupTblV3Dao, times(1)).batchInsertWithReturnId(anyList());
         verify(applierGroupTblV3Dao, times(1)).batchUpdate(anyList());
 
-        verify(applierTblV2Dao, never()).insert(anyList());
-        verify(applierGroupTblV2Dao, times(1)).update(any(ApplierGroupTblV2.class));
-        verify(applierGroupTblV2Dao, never()).insertOrReCover(any(), anyString());
     }
 
 
@@ -275,23 +263,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(messengerGroupTblDao, never()).upsertIfNotExist(any(), any(), any());
     }
 
-    @Test
-    public void testGetMhaInitGtidWhenRollbackFromDbApply() throws SQLException {
-        HashMap<String, String> map = Maps.newHashMap();
-        map.put("db1", "a:1-150,abc:1-100");
-        map.put("db2", "abc:1-10");
-        when(mysqlServiceV2.getMhaDbAppliedGtid(anyString())).thenReturn(map);
-        String gtid = dbDrcBuildService.getDbDrcExecutedGtidTruncate("mha1", "mha2");
-        Assert.assertEquals("a:1-110,abc:1-10", gtid);
-    }
 
-    @Test
-    public void testGetDbAppliersInitGtid() throws SQLException {
-        HashMap<String, String> map = Maps.newHashMap();
-        when(mysqlServiceV2.getMhaAppliedGtid(anyString())).thenReturn("a:1-150,b:1-20");
-        String gtid = dbDrcBuildService.getMhaDrcExecutedGtidTruncate("mha1", "mha2");
-        Assert.assertEquals("a:1-150,b:1-20", gtid);
-    }
 
 
     @Test
@@ -436,17 +408,10 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         req2.setSrcMhaName("mha2");
         req2.setDstMhaName("mha1");
         reqDtos.add(req2);
-
-        when(defaultConsoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(false);
-        dbDrcBuildService.switchAppliers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
-        verify(applierTblV3Dao, times(1)).batchInsert(any());
-
-        when(defaultConsoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(true);
         when(mysqlServiceV2.getMhaExecutedGtid(anyString())).thenReturn("abc:123");
+
         dbDrcBuildService.switchAppliers(reqDtos);
-        verify(drcBuildServiceV2, times(2)).getMhaAppliers(any(), any());
-        verify(applierTblV3Dao, times(2)).batchInsert(any());
+        verify(applierTblV3Dao, times(1)).batchInsert(any());
     }
 
     @Test
