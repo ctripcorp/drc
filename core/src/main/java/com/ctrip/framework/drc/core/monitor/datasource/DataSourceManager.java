@@ -110,6 +110,7 @@ public class DataSourceManager extends AbstractDataSource {
         poolProperties.setConnectionProperties(timeout);
 
         poolProperties.setValidationInterval(30000);
+        poolProperties.setIgnoreExceptionOnPreLoad(true);
 
         return poolProperties;
     }
