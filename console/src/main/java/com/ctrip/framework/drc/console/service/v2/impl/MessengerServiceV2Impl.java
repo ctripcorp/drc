@@ -6,10 +6,7 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
@@ -21,6 +18,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DrcStatusEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
@@ -33,6 +31,7 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigConflictTable;
+import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
@@ -90,7 +89,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private static final Logger logger = LoggerFactory.getLogger(MessengerServiceV2Impl.class);
     private final TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance();
     private DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
-    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "mhaReplicationService");
+    private final ExecutorService executorService = ThreadUtils.newCachedThreadPool("messengerServiceV2");
     private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
 
     @Autowired
@@ -195,6 +194,16 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     @Override
     public List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList) {
+        return getMhaMessengerDelays(messengerDtoList, true);
+    }
+
+    @Override
+    public List<MhaDelayInfoDto> getMhaMessengerDelaysWithoutSrcTime(List<MhaMessengerDto> messengerDtoList) {
+        return getMhaMessengerDelays(messengerDtoList, false);
+    }
+
+
+    public List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList, boolean needSrcTime) {
         if (CollectionUtils.isEmpty(messengerDtoList)) {
             return Collections.emptyList();
         }
@@ -210,7 +219,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 list.add(() -> {
                     String mhaName = dto.getSrcMha().getName();
                     HickWallMessengerDelayEntity delayEntity = hickWallMap.get(mhaName);
-                    return this.getMhaMessengerDelay(mhaName, delayEntity);
+                    return this.getMhaMessengerDelay(mhaName, delayEntity, needSrcTime);
                 });
             }
 
@@ -225,9 +234,16 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
     }
 
-    private MhaDelayInfoDto getMhaMessengerDelay(String mha, HickWallMessengerDelayEntity delayEntity) {
+    private MhaDelayInfoDto getMhaMessengerDelay(String mha, HickWallMessengerDelayEntity delayEntity, boolean needSrcTime) {
         MhaDelayInfoDto delayInfoDto = new MhaDelayInfoDto();
         delayInfoDto.setSrcMha(mha);
+        if (!needSrcTime) {
+            if (delayEntity != null) {
+                delayInfoDto.setSrcTime(delayEntity.getDelay());
+                delayInfoDto.setDstTime(0L);
+            }
+            return delayInfoDto;
+        }
 
         // query receive time
         Long updateTime = mysqlServiceV2.getDelayUpdateTime(mha, mha);
@@ -246,25 +262,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     }
 
     @Override
-    public List<MhaTblV2> getAllMessengerMhaTbls() {
-        try {
-            MessengerGroupTbl sample = new MessengerGroupTbl();
-            sample.setDeleted(BooleanEnum.FALSE.getCode());
-            List<MessengerGroupTbl> messengers = messengerGroupTblDao.queryBy(sample);
-            List<Long> mhaIdList = messengers.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
-            Map<Long, MhaTblV2> mhaTblV2Map = mhaTblV2Dao.queryByIds(mhaIdList).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
-
-            return messengers.stream()
-                    .sorted(Comparator.comparing(MessengerGroupTbl::getDatachangeLasttime).reversed()) // order by .. desc
-                    .map(e -> mhaTblV2Map.get(e.getMhaId())).filter(Objects::nonNull).collect(Collectors.toList());
-        } catch (SQLException e) {
-            logger.error("queryAllBu exception", e);
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
-    }
-
-    @Override
-    public List<MhaTblV2> getMessengerMhaTbls(MessengerQueryDto queryDto) {
+    public List<MessengerVo> getMessengerMhaTbls(MessengerQueryDto queryDto) {
         try {
             MhaQueryDto mha = queryDto.getMha();
             MessengerGroupTbl sample = new MessengerGroupTbl();
@@ -322,13 +320,49 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             List<Long> mhaIdList = messengerGroups.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
             Map<Long, MhaTblV2> mhaTblV2Map = mhaTblV2Dao.queryByIds(mhaIdList).stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
 
-            return messengerGroups.stream()
-                    .sorted(Comparator.comparing(MessengerGroupTbl::getDatachangeLasttime).reversed()) // order by .. desc
-                    .map(e -> mhaTblV2Map.get(e.getMhaId())).filter(Objects::nonNull).collect(Collectors.toList());
+            // filter by drc status
+            List<MessengerVo> messengerVos = getMessengerVos(messengerGroups, mhaTblV2Map);
+            if (queryDto.getDrcStatus() != null) {
+                messengerVos = messengerVos.stream().filter(e -> Objects.equals(e.getDrcStatus(), queryDto.getDrcStatus())).collect(Collectors.toList());
+            }
+            return messengerVos;
         } catch (SQLException e) {
             logger.error("queryAllBu exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    private List<MessengerVo> getMessengerVos(List<MessengerGroupTbl> messengerGroups, Map<Long, MhaTblV2> mhaTblV2Map) throws SQLException {
+        List<Long> groupIds = messengerGroups.stream().map(MessengerGroupTbl::getId).collect(Collectors.toList());
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(groupIds);
+        Set<Long> groupIdsWithMessenger = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).collect(Collectors.toSet());
+        List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
+        Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
+
+        return messengerGroups.stream()
+                .sorted(Comparator.comparing(MessengerGroupTbl::getDatachangeLasttime).reversed()) // order by .. desc
+                .map(e -> {
+                    MhaTblV2 mhaTblV2 = mhaTblV2Map.get(e.getMhaId());
+                    if (mhaTblV2 == null) {
+                        return null;
+                    }
+                    return getMessengerVo(mhaTblV2, buMap, groupIdsWithMessenger.contains(e.getId()));
+                }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+
+    private static MessengerVo getMessengerVo(MhaTblV2 mhaTblV2, Map<Long, BuTbl> buMap, boolean withMessenger) {
+        MessengerVo messengerVo = new MessengerVo();
+        messengerVo.setMhaName(mhaTblV2.getMhaName());
+        messengerVo.setMhaId(mhaTblV2.getId());
+        BuTbl buTbl = buMap.get(mhaTblV2.getBuId());
+        if (buTbl != null) {
+            messengerVo.setBu(buTbl.getBuName());
+        }
+        messengerVo.setMonitorSwitch(mhaTblV2.getMonitorSwitch());
+        int drcStatus = withMessenger ? DrcStatusEnum.STARTED.getCode() : DrcStatusEnum.STOP.getCode();
+        messengerVo.setDrcStatus(drcStatus);
+        return messengerVo;
     }
 
     @Override
@@ -776,7 +810,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
-    
+
 
     @Override
     public void processAddMqConfig(MqConfigDto dto) throws Exception {

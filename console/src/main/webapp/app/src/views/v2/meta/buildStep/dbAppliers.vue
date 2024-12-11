@@ -53,8 +53,6 @@
             </Button>
             <template #list>
               <DropdownMenu >
-                <DropdownItem v-if="dbApplierEmpty" @click.native="() => fillMhaApplier()">一键录入 mha applier</DropdownItem>
-                <DropdownItem v-if="!dbApplierEmpty" @click.native="() => preClearAndUpdateMhaGtid()">切换至 mha 同步模式</DropdownItem>
               </DropdownMenu>
             </template>
           </Dropdown>
@@ -500,65 +498,6 @@ export default {
       this.updateData = multiData
       this.target.ips = []
       this.target.gtid = ''
-    },
-    fillMhaApplier () {
-      this.dataLoading = true
-      Promise.all([
-        this.axios.get('/api/drc/v2/config/mha/applier?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName),
-        this.axios.get('/api/drc/v2/config/mha/dbApplier/gtidTruncated?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
-      ])
-        .then(async ([res1, res2]) => {
-          console.log('res1', res1)
-          console.log('res2', res2)
-          if (res1.data.status !== 0 || res2.data.status !== 0) {
-            this.$Message.error('查询 mha applier 信息失败')
-            return
-          }
-          const ips = res1.data.data
-          const gtid = res2.data.data
-          this.tableData.forEach(row => {
-            row.ips = ips
-            row.gtidInit = gtid
-          })
-        })
-        .finally(() => {
-          this.dataLoading = false
-        })
-    },
-    preClearAndUpdateMhaGtid () {
-      // 1. get gtid infos
-      this.dataLoading = true
-      Promise.all([
-        this.axios.get('/api/drc/v2/config/mha/dbApplier/gtid?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName),
-        this.axios.get('/api/drc/v2/config/mha/dbApplier/dbGtid?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName),
-        this.axios.get('/api/drc/v2/config/mha/dbApplier/dbGtidTruncated?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
-      ])
-        .then(async ([res1, res2, res3]) => {
-          console.log('res1', res1)
-          console.log('res2', res2)
-          console.log('res3', res3)
-          if (res1.data.status !== 0 || res2.data.status !== 0 || res3.data.status !== 0) {
-            this.$Message.error('查询 gtid 信息失败')
-            return
-          }
-          this.gtidCheck.mhaApplied = res1.data.data
-          this.gtidCheck.dbApplied = extract(res2.data.data)
-          this.gtidCheck.mhaTarget = res3.data.data
-          this.rollbackModal = true
-        })
-        .finally(() => {
-          this.dataLoading = false
-        })
-
-      function extract (data) {
-        const ret = []
-        for (const [key, value] of Object.entries(data)) {
-          if (value && value.length > 0) {
-            ret.push({ dbName: key, gtidInit: value })
-          }
-        }
-        return ret
-      }
     },
     clearAndUpdateMhaGtid () {
       // 1. clear db applier

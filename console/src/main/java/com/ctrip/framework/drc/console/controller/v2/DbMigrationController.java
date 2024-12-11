@@ -46,21 +46,16 @@ public class DbMigrationController {
 
     private static final Logger logger = LoggerFactory.getLogger(DbMigrationController.class);
     @Autowired
-    @Qualifier("dbMigrationServiceImpl")
-    private DbMigrationService dbMigrationService;
-    @Autowired
     @Qualifier("dbMigrationServiceImplV2")
     private DbMigrationService dbMigrationServiceV2;
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
 
-    
+
     @DeleteMapping("abandon")
     @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE,operator = "admin",
             success = "abandonMigrationTask with taskId:{#taskId}")
     public ApiResult abandonMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
-            if (dbMigrationService.abandonTask(taskId)) {
+            if (dbMigrationServiceV2.abandonTask(taskId)) {
                 return ApiResult.getInstance(null,0,"abandonMigrationTask: " + taskId + " success!");
             } else {
                 return ApiResult.getInstance(null,1,"abandonMigrationTask: " + taskId + " fail!");
@@ -79,12 +74,7 @@ public class DbMigrationController {
             success = "dbMigrationCheckAndInit with DbMigrationParam:{#dbMigrationParam.toString()}")
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
-            Pair<String, Long> tipsAndTaskId;
-            if (consoleConfig.getDbMigrationSwitch()) {
-                tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam);
-            } else {
-                tipsAndTaskId = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
-            }
+            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam);
             if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null,2,"no dbDrcRelated");
             } else {
@@ -104,12 +94,7 @@ public class DbMigrationController {
             success = "preStartDbMigrationTask with taskId:{#taskId}")
     public ApiResult preStartDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
-            boolean preStartResult;
-            if (consoleConfig.getDbMigrationSwitch()) {
-                preStartResult = dbMigrationServiceV2.preStartDbMigrationTask(taskId);
-            } else {
-                preStartResult = dbMigrationService.preStartDbMigrationTask(taskId);
-            }
+            boolean preStartResult = dbMigrationServiceV2.preStartDbMigrationTask(taskId);
             if (preStartResult) {
                 return ApiResult.getInstance(null,0,"exStartDbMigrationTask: " + taskId + " success!");
             } else {
@@ -129,12 +114,7 @@ public class DbMigrationController {
             success = "cancelDbMigrationTask with taskId:{#taskId}")
     public ApiResult cancelDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
-            boolean cancelResult;
-            if (consoleConfig.getDbMigrationSwitch()) {
-                cancelResult = dbMigrationServiceV2.cancelTask(taskId);
-            } else {
-                cancelResult = dbMigrationService.cancelTask(taskId);
-            }
+            boolean cancelResult = dbMigrationServiceV2.cancelTask(taskId);
             if (cancelResult) {
                 return ApiResult.getInstance(null,0,"cancelDbMigrationTask: " + taskId + " success!");
             } else {
@@ -157,12 +137,7 @@ public class DbMigrationController {
             success = "startDbMigrationTask with taskId:{#taskId}")
     public ApiResult startDbMigrationTask (@RequestParam(name = "taskId") Long taskId) {
         try {
-            boolean startResult;
-            if (consoleConfig.getDbMigrationSwitch()) {
-                startResult = dbMigrationServiceV2.startDbMigrationTask(taskId);
-            } else {
-                startResult = dbMigrationService.startDbMigrationTask(taskId);
-            }
+            boolean startResult = dbMigrationServiceV2.startDbMigrationTask(taskId);
             if (startResult) {
                 return ApiResult.getInstance(null,+
                         0,"startDbMigrationTask " + taskId + " success!");
@@ -184,11 +159,7 @@ public class DbMigrationController {
     public ApiResult<String> refreshAndGetTaskStatus(@RequestParam(name = "taskId") Long taskId, @RequestParam boolean careNewMha) {
         try {
             Pair<String, String> statusAndTips;
-            if (consoleConfig.getDbMigrationSwitch()) {
-                statusAndTips = dbMigrationServiceV2.getAndUpdateTaskStatus(taskId,careNewMha);
-            } else {
-                statusAndTips = dbMigrationService.getAndUpdateTaskStatus(taskId,careNewMha);
-            }
+            statusAndTips = dbMigrationServiceV2.getAndUpdateTaskStatus(taskId,careNewMha);
             String tip = statusAndTips.getLeft();
             String status = statusAndTips.getRight();
             if (StringUtils.isEmpty(status)) {
@@ -210,7 +181,7 @@ public class DbMigrationController {
         }
         try {
             queryDto.clean();
-            PageResult<MigrationTaskTbl> tblPageResult = dbMigrationService.queryByPage(queryDto);
+            PageResult<MigrationTaskTbl> tblPageResult = dbMigrationServiceV2.queryByPage(queryDto);
             if (tblPageResult.getTotalCount() == 0) {
                 return ApiResult.getSuccessInstance(PageResult.emptyResult());
             }
@@ -241,11 +212,7 @@ public class DbMigrationController {
             success = "offlineOldDrcConfig with taskId:{#taskId}")
     public ApiResult<String> offlineOldDrcConfig(@RequestParam long taskId) {
         try {
-            if (consoleConfig.getDbMigrationSwitch()) {
-                dbMigrationServiceV2.offlineOldDrcConfig(taskId);
-            } else {
-                dbMigrationService.offlineOldDrcConfig(taskId);
-            }
+            dbMigrationServiceV2.offlineOldDrcConfig(taskId);
             return ApiResult.getSuccessInstance("success");
         } catch (Exception e) {
             return ApiResult.getFailInstance("fail", e.getMessage());
@@ -257,11 +224,7 @@ public class DbMigrationController {
             success = "rollBackNewDrcConfig with taskId:{#taskId}")
     public ApiResult<String> rollBackNewDrcConfig(@RequestParam long taskId) {
         try {
-            if (consoleConfig.getDbMigrationSwitch()) {
-                dbMigrationServiceV2.rollBackNewDrcConfig(taskId);
-            } else {
-                dbMigrationService.rollBackNewDrcConfig(taskId);
-            }
+            dbMigrationServiceV2.rollBackNewDrcConfig(taskId);
             return ApiResult.getSuccessInstance("success");
         } catch (Exception e) {
             return ApiResult.getFailInstance("fail", e.getMessage());
@@ -273,7 +236,7 @@ public class DbMigrationController {
             success = "deleteReplicator with mhaName:{#mhaName}")
     public ApiResult<String> deleteReplicator(@RequestParam String mhaName) {
         try {
-            dbMigrationService.deleteReplicator(mhaName);
+            dbMigrationServiceV2.deleteReplicator(mhaName);
             return ApiResult.getSuccessInstance("success");
         } catch (Exception e) {
             return ApiResult.getFailInstance("fail", e.getMessage());
@@ -285,7 +248,7 @@ public class DbMigrationController {
             success = "migrateMhaReplication with newMha:{#newMha}, oldMha:{#oldMha}")
     public ApiResult<Boolean> migrateMhaReplication(@RequestParam String newMha, @RequestParam String oldMha) {
         try {
-            dbMigrationService.migrateMhaReplication(newMha, oldMha);
+            dbMigrationServiceV2.migrateMhaReplication(newMha, oldMha);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("migrateMhaReplication fail", e);
@@ -298,7 +261,7 @@ public class DbMigrationController {
             success = "preStartReplicator with newMha:{#newMha}, oldMha:{#oldMha}")
     public ApiResult<Boolean> preStartReplicator(@RequestParam String newMha, @RequestParam String oldMha) {
         try {
-            dbMigrationService.preStartReplicator(newMha, oldMha);
+            dbMigrationServiceV2.preStartReplicator(newMha, oldMha);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("preStartReplicator fail", e);

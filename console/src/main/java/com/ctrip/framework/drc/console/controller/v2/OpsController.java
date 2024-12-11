@@ -61,15 +61,7 @@ public class OpsController {
         }
     }
 
-    @PostMapping("gtid/gapCompensate")
-    public ApiResult gapCompensate(@RequestBody GtidCompensateParam gtidCompensateParam) {
-        try {
-            return  ApiResult.getSuccessInstance(drcBuildServiceV2.compensateGtidGap(gtidCompensateParam));
-        } catch (Exception e) {
-            logger.error("gapCompensate error", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
+
 
     @PostMapping("account/passwordToken")
     public ApiResult initMhaPasswordToken(@RequestBody List<String> mhas) {

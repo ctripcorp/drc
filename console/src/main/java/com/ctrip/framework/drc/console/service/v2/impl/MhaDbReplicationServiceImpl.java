@@ -104,7 +104,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
-    
+
     @Override
     public List<MhaDbReplicationTbl> queryBySrcMha(String srcMhaName) throws SQLException {
         MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
@@ -112,7 +112,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             return Collections.emptyList();
         }
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(srcMhaTbl.getId());
-        if(CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+        if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
             return Collections.emptyList();
         }
         MhaDbReplicationQuery mhaDbReplicationQuery = new MhaDbReplicationQuery();
@@ -339,6 +339,9 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
     }
 
     private List<MhaDbReplicationDto> convert(List<MhaDbReplicationTbl> replicationTbls, boolean fillDrcStatus, boolean fillTransmissionType) throws SQLException {
+        if (CollectionUtils.isEmpty(replicationTbls)) {
+            return Collections.emptyList();
+        }
         List<Long> ids = replicationTbls.stream().flatMap(e -> Stream.of(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId())).collect(Collectors.toList());
         List<MhaDbMappingTbl> mappingTbls = mhaDbMappingTblDao.queryByIds(ids);
         List<MhaTblV2> mhaTbls = mhaTblV2Dao.queryByIds(mappingTbls.stream().map(MhaDbMappingTbl::getMhaId).collect(Collectors.toList()));
@@ -676,10 +679,23 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         this.insertAndUpdate(this.getInsertsAndUpdatesBySample(samples));
     }
 
+
+    private void checkBeforeOffline(List<MhaDbReplicationTbl> mhaDbReplicationTbls) throws SQLException {
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = this.convert(mhaDbReplicationTbls, true, false);
+        if (mhaDbReplicationDtos.stream().anyMatch(e -> Boolean.TRUE.equals(e.getDrcStatus()))) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.MHA_DB_REPLICATION_DELETE_NOT_ALLOW_FOR_EXIST_APPLIER);
+        }
+    }
+
     @Override
-    public void offlineMhaDbReplication(String mhaName, String mhaName1) {
+    public void offlineMhaDbReplication(String srcMhaName, String dstMhaName) {
         try {
-            List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.getMhaDbReplicationTbls(mhaName, mhaName1, null);
+            List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.getMhaDbReplicationTbls(srcMhaName, dstMhaName, null);
+            if (CollectionUtils.isEmpty(mhaDbReplicationTbls)) {
+                return;
+            }
+            this.checkBeforeOffline(mhaDbReplicationTbls);
+
             mhaDbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             mhaDbReplicationTblDao.batchUpdate(mhaDbReplicationTbls);
         } catch (SQLException e) {
@@ -689,6 +705,10 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
 
     @Override
     public List<MhaDbReplicationTbl> offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
+        return offlineMhaDbReplication(dbReplicationTbls, true);
+    }
+
+    private List<MhaDbReplicationTbl> offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls, boolean checkExistingApplier) throws SQLException {
         List<DbReplicationTbl> existDbReplicationTbl = dbReplicationTblDao.queryBySamples(dbReplicationTbls);
         Set<MultiKey> existKey = existDbReplicationTbl.stream().map(StreamUtils::getKey).collect(Collectors.toSet());
         List<MhaDbReplicationTbl> samples = dbReplicationTbls.stream()
@@ -702,6 +722,10 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
                 }).filter(StreamUtils.distinctByKey(StreamUtils::getKey)).collect(Collectors.toList());
         List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryBySamples(samples);
         mhaDbReplicationTbls = mhaDbReplicationTbls.stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        if (checkExistingApplier) {
+            this.checkBeforeOffline(mhaDbReplicationTbls);
+        }
         mhaDbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         mhaDbReplicationTblDao.batchUpdate(mhaDbReplicationTbls);
         return mhaDbReplicationTbls;
@@ -709,11 +733,11 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
 
     @Override
     public void offlineMhaDbReplicationAndApplierV3(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
-        List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.offlineMhaDbReplication(dbReplicationTbls);
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = this.offlineMhaDbReplication(dbReplicationTbls,false);
         deleteApplierGroupV3(mhaDbReplicationTbls);
     }
 
-    private void deleteApplierGroupV3(List<MhaDbReplicationTbl> mhaDbReplicationTbls) throws SQLException{
+    private void deleteApplierGroupV3(List<MhaDbReplicationTbl> mhaDbReplicationTbls) throws SQLException {
         List<Long> mhaDbReplicationIds = mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
         List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryByMhaDbReplicationIds(mhaDbReplicationIds);
         if (CollectionUtils.isEmpty(applierGroupTblV3s)) {

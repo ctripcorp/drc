@@ -17,7 +17,6 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DisposableFeature;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
-import com.ctrip.framework.drc.console.vo.v2.MhaApplierOfflineView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -238,30 +237,6 @@ public class MhaControllerV2 {
         }
     }
 
-    @GetMapping("mhaApplierShouldOffline")
-    @DisposableFeature
-    public ApiResult getMhaApplierShouldOffline() {
-        try {
-            MhaApplierOfflineView mhaApplierShouldOffline = mhaReplicationServiceV2.getMhaApplierShouldOffline();
-            mhaApplierShouldOffline.setAppliers(null);
-            return ApiResult.getSuccessInstance(mhaApplierShouldOffline);
-        } catch (Exception e) {
-            logger.error("getMhaApplierShouldOffline error", e);
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
-
-    @DeleteMapping("mhaAppliers")
-    @DisposableFeature
-    public ApiResult offlineMhaAppliers() {
-        try {
-            int offlineNum = mhaReplicationServiceV2.offlineMhaAppliers();
-            return ApiResult.getSuccessInstance(offlineNum);
-        } catch (Exception e) {
-            logger.error("offlineMhaAppliers error", e);
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
 
     @GetMapping("machine/shouldOffline")
     public ApiResult getMachineShouldOffline() {

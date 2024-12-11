@@ -103,11 +103,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     @Autowired
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
-    @Autowired
     private ApplierTblV3Dao applierTblV3Dao;
-    @Autowired
-    private ApplierTblV2Dao applierTblV2Dao;
     @Autowired
     private MessengerGroupTblV3Dao messengerGroupTblV3Dao;
     @Autowired
@@ -586,7 +582,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                     .map(DbCluster::getMhaName)
                     .filter(mhaName -> !drcRelatedMha.contains(mhaName))
                     .collect(Collectors.toList());
-            dcToMhaMap.put(dc.getRegion(), mhasWithReplicatorButNoDrc);
+            dcToMhaMap.computeIfAbsent(dc.getRegion(), (key) -> Lists.newArrayList())
+                    .addAll(mhasWithReplicatorButNoDrc);
         }
         return dcToMhaMap;
     }
@@ -657,19 +654,9 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
         List<MhaReplicationTbl> mhaReplicationTblsToDelete = mhaReplicationTblDao.queryByRelatedMhaId(mhaIds);
         if (!CollectionUtils.isEmpty(mhaReplicationTblsToDelete)) {
-            List<Long> mhaReplicationIds = mhaReplicationTblsToDelete.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList());
-            // applier
-            List<ApplierGroupTblV2> applierGroupTblV2sToDelete = applierGroupTblV2Dao.queryByMhaReplicationIds(mhaReplicationIds);
-            List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupIds(applierGroupTblV2sToDelete.stream().map(ApplierGroupTblV2::getId).collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
-            if (!CollectionUtils.isEmpty(applierTblV2s)) {
-                List<Long> groupIds = applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList());
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha applier still exist for group:  " + groupIds);
-            }
             // update
             mhaReplicationTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             mhaReplicationTblDao.batchUpdate(mhaReplicationTblsToDelete);
-            applierGroupTblV2sToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            applierGroupTblV2Dao.batchUpdate(applierGroupTblV2sToDelete);
         }
         // messenger
         List<MessengerGroupTbl> messengerGroupTblsToDelete = messengerGroupTblDao.queryByMhaIds(mhaIds, BooleanEnum.FALSE.getCode());

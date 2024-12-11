@@ -21,7 +21,7 @@
               </Input>
             </Card>
           </Col>
-          <Col span="14">
+          <Col span="8">
             <Row :gutter=10 align="middle">
               <Col span="24">
                 <Card :padding=5>
@@ -52,6 +52,19 @@
                 </Card>
               </Col>
             </Row>
+          </Col>
+          <Col span="3">
+            <Card :padding=5>
+              <template #title>同步状态</template>
+              <Select filterable prefix="ios-pin" clearable v-model="drcStatus"
+                      placeholder="状态"
+                      @on-change="getAllMessengerVos()">
+                <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
+                    item.status
+                  }}
+                </Option>
+              </Select>
+            </Card>
           </Col>
           <Col span="4">
             <Row :gutter=10 align="middle">
@@ -151,6 +164,8 @@ import 'codemirror/mode/xml/xml.js'
 
 import 'codemirror/addon/fold/foldgutter.css'
 import 'codemirror/addon/fold/foldgutter.js'
+import prettyMilliseconds from 'pretty-ms'
+import Vue from 'vue'
 
 export default {
   name: 'messengers',
@@ -170,8 +185,9 @@ export default {
         },
         mhaToBeRemoved: ''
       },
-      dbNames: null,
-      topic: null,
+      dbNames: this.$route.query.dbNames,
+      topic: this.$route.query.topic,
+      drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
       mha: {
         name: this.$route.query.mhaName,
         buId: null,
@@ -194,6 +210,57 @@ export default {
               'span',
               params.index + 1 + (this.current - 1) * this.size
             )
+          }
+        },
+        {
+          title: '延迟',
+          key: 'drcStatus',
+          align: 'center',
+          width: 150,
+          resizable: true,
+          renderHeader: (h, params) => {
+            return h('span', [
+              h('span', '延迟'),
+              h('Button', {
+                on: {
+                  click: async () => {
+                    await this.getDelay()
+                  }
+                },
+                props: {
+                  loading: this.delayDataLoading,
+                  size: 'small',
+                  shape: 'circle',
+                  type: 'default',
+                  icon: 'md-refresh'
+                }
+              })
+            ])
+          },
+          render: (h, params) => {
+            const row = params.row
+            let color, text
+            if (row.drcStatus) {
+              if (row.delay != null) {
+                text = prettyMilliseconds(row.delay, { compact: false })
+                if (row.delay > 10000) {
+                  color = 'warning'
+                } else {
+                  color = 'success'
+                }
+              } else {
+                text = '已接入'
+                color = 'blue'
+              }
+            } else {
+              text = '未接入'
+              color = 'default'
+            }
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
           }
         },
         {
@@ -254,8 +321,18 @@ export default {
           align: 'center'
         }
       ],
-
-      dataLoading: false
+      drcStatusList: [
+        {
+          status: '未接入',
+          value: 0
+        },
+        {
+          status: '已接入',
+          value: 1
+        }
+      ],
+      dataLoading: false,
+      delayDataLoading: false
     }
   },
   computed: {
@@ -306,11 +383,13 @@ export default {
       const params = {
         mha: this.mha,
         dbNames: this.dbNames,
-        topic: this.topic
+        topic: this.topic,
+        drcStatus: this.drcStatus
       }
       return this.flattenObj(params)
     },
     getAllMessengerVos () {
+      this.resetPath()
       this.dataLoading = true
       const reqParam = this.getParams()
       this.axios.get('/api/drc/v2/messenger/query', { params: reqParam })
@@ -321,12 +400,56 @@ export default {
           }
           this.tableData = response.data.data
           this.total = this.tableData.length
+          console.log(this.tableData)
           this.$Message.success('查询成功')
+          this.getDelay()
         }).catch(message => {
           this.$Message.error('查询异常: ' + message)
         }).finally(() => {
           this.dataLoading = false
         })
+    },
+    getDelay () {
+      const param = {
+        mhas: this.tableData.map(item => item.mhaName),
+        dbs: [],
+        noNeedDbAndSrcTime: true
+      }
+      console.log(param)
+      this.delayDataLoading = true
+      this.axios.post('/api/drc/v2/messenger/delay', param)
+        .then(response => {
+          // const delays = response.data.data[0].delayInfoDto.delay
+          // this.$set(this.mhaMqDtos, 'delay', delays)
+          const delays = response.data.data
+          const emptyResult = delays == null || !Array.isArray(delays) || delays.length === 0
+          if (emptyResult) {
+            return
+          }
+          const dataMap = new Map(delays.map(e => [e.srcMha.name, e.delayInfoDto.delay]))
+          this.tableData.forEach(line => {
+            Vue.set(line, 'delay', dataMap.get(line.mhaName))
+          })
+
+          console.log(this.tableData)
+        })
+        .catch(message => {
+          console.log(message)
+          this.$Message.error('查询延迟异常: ' + message)
+        })
+        .finally(() => {
+          this.delayDataLoading = false
+        })
+    },
+    resetPath () {
+      this.$router.replace({
+        query: {
+          mhaName: this.mha.name,
+          topic: this.topic,
+          dbNames: this.dbNames,
+          drcStatus: this.drcStatus
+        }
+      })
     },
     handleChangeSize (val) {
       this.size = val
@@ -455,7 +578,15 @@ export default {
       this.getRegions()
       this.getBus()
       this.getAllMessengerVos()
+      this.timerId = setInterval(() => this.getDelay(), 5000)
+      setTimeout(() => { clearInterval(this.timerId) }, 30 * 60 * 1000)
     })
+  },
+  beforeDestroy () {
+    if (this.timerId) {
+      clearInterval(this.timerId)
+      this.timerId = null
+    }
   }
 }
 </script>

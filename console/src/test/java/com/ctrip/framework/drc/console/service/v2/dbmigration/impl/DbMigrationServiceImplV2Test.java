@@ -61,10 +61,6 @@ public class DbMigrationServiceImplV2Test {
     @Mock
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Mock
-    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
-    @Mock
-    private ApplierTblV2Dao applierTblV2Dao;
-    @Mock
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Mock
     private MhaDbMappingTblDao mhaDbMappingTblDao;
@@ -176,13 +172,10 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testDbMigrationCheckAndCreateTaskInDbGranularity() throws Exception {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(true);
         DbMigrationParam dbMigrationParam = mockDbMigrationParam();
         try {
             mockNormalPreStartCopyAllDbReplication();
             Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyLong(), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(PojoBuilder.getMhaReplicationTbl());
-            Mockito.when(applierGroupTblV2Dao.queryByMhaReplicationId(Mockito.anyLong(), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(PojoBuilder.getApplierGroupTblV2s().get(0));
-            Mockito.when(applierTblV2Dao.queryByApplierGroupId(Mockito.anyLong(), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(Lists.newArrayList());
             dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         } catch (ConsoleException e) {
             Assert.assertEquals("mha1->mha2 replication is in mha mode, please contact DRC team!",e.getMessage());
@@ -194,7 +187,6 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testDbMigrationCheckAndCreateTask() throws SQLException {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(false);
         DbMigrationParam dbMigrationParam = mockDbMigrationParam();
         MigrationTaskTbl existedTask = MockEntityBuilder.buildMigrationTaskTbl(1L, "mha1", "mha2",
                 "[\"db1\",\"db2\"]", "operator");
@@ -252,7 +244,6 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testCancelMigrationTaskInDbGranularity() throws Exception {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(true);
         Mockito.when(migrationTaskTblDao.queryById(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
         migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         mockNormalPreStartCopyAllDbReplication();
@@ -285,7 +276,6 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testOfflineOldDrcConfigInDbGranularity() throws Exception {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(true);
         Mockito.when(migrationTaskTblDao.queryById(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
         migrationTaskTbl.setStatus(MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
         mockNormalPreStartCopyAllDbReplication();
@@ -314,7 +304,6 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testPreStartDbMigrationTaskInDbGranularity() throws Exception {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(true);
         Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
         Mockito.when(consoleConfig.getConfgiCheckSwitch()).thenReturn(true);
 
@@ -342,7 +331,6 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testPreStartDbMigrationTask() throws Exception {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(false);
         Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
         Mockito.when(consoleConfig.getConfgiCheckSwitch()).thenReturn(true);
 
@@ -378,7 +366,6 @@ public class DbMigrationServiceImplV2Test {
 
     @Test
     public void testStartDbMigrationTaskInDbGranularity() throws Exception {
-        Mockito.when(consoleConfig.getDbMigrationSwitch()).thenReturn(true);
         Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
         migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         mockNormalPreStartCopyAllDbReplication();
@@ -440,7 +427,6 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(dbReplicationFilterMappingTblDao.insertWithReturnId(Mockito.any(DbReplicationFilterMappingTbl.class))).thenReturn(1L);
         // initMhaReplicationsAndApplierGroups
         Mockito.when(mhaReplicationTblDao.insertOrReCover(Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
-        Mockito.when(applierGroupTblV2Dao.insertOrReCover(Mockito.anyLong(),Mockito.any())).thenReturn(1L);
         // initReplicatorGroupAndMessengerGroup
         Mockito.when(replicatorGroupTblDao.upsertIfNotExist(Mockito.anyLong())).thenReturn(1L);
         Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(),Mockito.anyLong(),Mockito.any())).thenReturn(1L);

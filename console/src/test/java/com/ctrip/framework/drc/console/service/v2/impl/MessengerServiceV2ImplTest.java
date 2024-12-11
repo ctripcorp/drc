@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
@@ -12,15 +9,11 @@ import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
-import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
-import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
-import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
+import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
-import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
@@ -28,26 +21,23 @@ import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.framework.drc.core.http.PageResult;
-import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.util.Lists;
-import org.ietf.jgss.Oid;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
@@ -81,14 +71,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     }
 
 
-    @Test
-    public void testGetAllMessengerMhaTbls() throws Exception {
-        List<MhaTblV2> result = messengerServiceV2Impl.getAllMessengerMhaTbls();
-        Assert.assertEquals(result.size(), 3);
-        List<Long> ids = result.stream().map(MhaTblV2::getId).collect(Collectors.toList());
-        Assert.assertTrue(ids.contains(1L));
-        Assert.assertTrue(ids.contains(2L));
-    }
+
     @Test
     public void testQueryMessengerMhaTbls() throws Exception {
         MessengerQueryDto queryDto = new MessengerQueryDto();
@@ -97,8 +80,8 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         mhaTblV2.setId(1L);
 
         // query all
-        List<MhaTblV2> result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
-        List<Long> ids = result.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+        List<MessengerVo> result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
+        List<Long> ids = result.stream().map(MessengerVo::getMhaId).collect(Collectors.toList());
         Assert.assertTrue(ids.contains(1L));
         Assert.assertTrue(ids.contains(2L));
 
@@ -110,7 +93,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         map.put(1L, mhaTblV2);
         when(mhaServiceV2.query(any())).thenReturn(map);
         result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
-        Assert.assertTrue(result.stream().anyMatch(e-> e.getId() == 1L));
+        Assert.assertTrue(result.stream().anyMatch(e-> e.getMhaId() == 1L));
 
         // query by bu
         queryDto = new MessengerQueryDto();

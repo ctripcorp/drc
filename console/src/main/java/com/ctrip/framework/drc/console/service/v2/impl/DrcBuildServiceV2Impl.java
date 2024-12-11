@@ -5,8 +5,6 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
-import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
@@ -18,7 +16,6 @@ import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
@@ -39,7 +36,6 @@ import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -90,8 +86,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
-    @Autowired
     private MetaInfoServiceV2 metaInfoService;
     @Autowired
     private MhaDbMappingService mhaDbMappingService;
@@ -103,10 +97,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
     private ReplicatorTblDao replicatorTblDao;
-    @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblDao;
-    @Autowired
-    private ApplierTblV2Dao applierTblDao;
     @Autowired
     private ApplierGroupTblV3Dao dbApplierGroupTblDao;
     @Autowired
@@ -262,36 +252,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         configureReplicatorGroup(srcMha, srcBuildParam.getReplicatorInitGtid(), srcBuildParam.getReplicatorIps(), resourceTbls);
         configureReplicatorGroup(dstMha, dstBuildParam.getReplicatorInitGtid(), dstBuildParam.getReplicatorIps(), resourceTbls);
-
-        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
-        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
-        List<DbReplicationTbl> srcDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
-        List<DbReplicationTbl> dstDbReplications = getExistDbReplications(dstMhaDbMappings, srcMhaDbMappings);
-
-        boolean srcApplierChanged = configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps(), resourceTbls, srcDbReplications);
-        boolean dstApplierChanged = configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps(), resourceTbls, dstDbReplications);
-        //ql_deng TODO 2024/2/28:
-//        if (srcApplierChanged) {
-//            changeReplicationTableStatus(srcDbReplications);
-//        }
-//        if (dstApplierChanged) {
-//            changeReplicationTableStatus(dstDbReplications);
-//        }
-
-        if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
-            dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
-            mhaReplicationTblDao.update(dstMhaReplication);
-        } else {
-            dstMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
-            mhaReplicationTblDao.update(dstMhaReplication);
-        }
-        if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
-            srcMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
-            mhaReplicationTblDao.update(srcMhaReplication);
-        } else {
-            srcMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
-            mhaReplicationTblDao.update(srcMhaReplication);
-        }
     }
 
     @Override
@@ -669,58 +629,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
 
     @Override
-    public List<String> getMhaAppliers(String srcMhaName, String dstMhaName) throws Exception {
-        if (StringUtils.isBlank(srcMhaName) || StringUtils.isBlank(dstMhaName)) {
-            return new ArrayList<>();
-        }
-        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
-        if (srcMha == null || dstMha == null) {
-            return new ArrayList<>();
-        }
-
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
-        if (mhaReplicationTbl == null) {
-            return new ArrayList<>();
-        }
-        ApplierGroupTblV2 applierGroupTbl = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (applierGroupTbl == null) {
-            return new ArrayList<>();
-        }
-        List<ApplierTblV2> applierTbls = applierTblDao.queryByApplierGroupId(applierGroupTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (CollectionUtils.isEmpty(applierTbls)) {
-            return new ArrayList<>();
-        }
-        List<Long> resourceIds = applierTbls.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-        List<String> applierIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-        return applierIps;
-    }
-
-    @Override
-    public String getApplierGtid(String srcMhaName, String dstMhaName) throws Exception {
-        String applierGtid = "";
-        if (StringUtils.isBlank(srcMhaName) || StringUtils.isBlank(dstMhaName)) {
-            return applierGtid;
-        }
-        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
-        if (srcMha == null || dstMha == null) {
-            return applierGtid;
-        }
-
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
-        if (mhaReplicationTbl == null) {
-            return applierGtid;
-        }
-        ApplierGroupTblV2 applierGroupTbl = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (applierGroupTbl == null) {
-            return applierGtid;
-        }
-        return applierGroupTbl.getGtidInit();
-    }
-
-    @Override
     public String buildMessengerDrc(MessengerMetaDto dto) throws Exception {
         this.doBuildMessengerDrc(dto);
         Drc drcMessengerConfig = metaInfoService.getDrcMessengerConfig(dto.getMhaName());
@@ -840,97 +748,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-
-    @Override
-    public void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String gtid, boolean switchOnly) throws SQLException {
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), destMhaTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (mhaReplicationTbl == null) {
-            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, mha replication not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
-        }
-        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (applierGroupTblV2 == null) {
-            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
-        }
-        if (StringUtils.isEmpty(applierGroupTblV2.getGtidInit()) && StringUtils.isEmpty(gtid)) {
-            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, init gtid needed! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
-        }
-
-        autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, gtid, switchOnly);
-    }
-
-    @Override
-    public void autoConfigAppliersWithRealTimeGtid(
-            MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
-            MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
-        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
-        if (StringUtils.isBlank(mhaExecutedGtid)) {
-            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
-            throw new ConsoleException("getMhaExecutedGtid failed!");
-        }
-        autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, mhaExecutedGtid, false);
-    }
-
-    @Override
-    public void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
-            MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String mhaExecutedGtid, boolean switchOnly) throws SQLException {
-        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroup.getId(), BooleanEnum.FALSE.getCode());
-        if (switchOnly && CollectionUtils.isEmpty(existAppliers)) {
-            logger.info("[[mha={}]] appliers not exist,do nothing when switchOnly", destMhaTbl.getMhaName());
-            return;
-        }
-        
-        // applier group gtid
-        if (!StringUtils.isBlank(mhaExecutedGtid)) {
-            applierGroup.setGtidInit(mhaExecutedGtid);
-            applierGroupTblDao.update(applierGroup);
-            logger.info("[[mha={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
-        }
-        // mha replication
-        mhaReplicationTbl.setDrcStatus(1);
-        mhaReplicationTblDao.update(mhaReplicationTbl);
-        logger.info("[[mha={}]] autoConfigAppliers update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
-
-        // appliers
-        List<Long> inUseResourceId = existAppliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
-        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-        
-        ResourceSelectParam selectParam = new ResourceSelectParam();
-        selectParam.setType(ModuleEnum.APPLIER.getCode());
-        selectParam.setMhaName(destMhaTbl.getMhaName());
-        selectParam.setSelectedIps(inUseIps);
-        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
-        if (CollectionUtils.isEmpty(resourceViews)) {
-            logger.error("[[mha={}]] autoConfigAppliers failed", destMhaTbl.getMhaName());
-            throw new ConsoleException("autoConfigAppliers failed!");
-        }
-
-        // insert new appliers
-        List<ApplierTblV2> insertAppliers = resourceViews.stream()
-                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
-                .map(e -> buildApplierTbl(applierGroup, e))
-                .collect(Collectors.toList());
-
-        // delete old appliers
-        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
-        List<ApplierTblV2> deleteAppliers = existAppliers.stream()
-                .filter(e -> !newResourceId.contains(e.getResourceId()))
-                .collect(Collectors.toList());
-        deleteAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-
-        applierTblDao.batchInsert(insertAppliers);
-        applierTblDao.batchUpdate(deleteAppliers);
-        logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
-    }
-
-    private static ApplierTblV2 buildApplierTbl(ApplierGroupTblV2 applierGroup, ResourceView resourceView) {
-        ApplierTblV2 applierTbl = new ApplierTblV2();
-        applierTbl.setApplierGroupId(applierGroup.getId());
-        applierTbl.setResourceId(resourceView.getResourceId());
-        applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
-        applierTbl.setMaster(BooleanEnum.FALSE.getCode());
-        applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        return applierTbl;
-    }
 
     @Override
     public void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException {
@@ -1548,78 +1365,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationTbl;
     }
 
-    private boolean configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
-        long applierGroupId = insertOrUpdateApplierGroup(mhaReplicationId, applierInitGtid);
-        return configureAppliers(applierGroupId, applierIps, resourceTbls, dbReplications);
-    }
-
-    private boolean configureAppliers(long applierGroupId, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
-        if (CollectionUtils.isEmpty(dbReplications) && !CollectionUtils.isEmpty(applierIps)) {
-            throw ConsoleExceptionUtils.message("dbReplication not config yet, cannot config applier");
-        }
-
-        Map<String, Long> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getId));
-
-        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroupId, BooleanEnum.FALSE.getCode());
-        Map<Long, ApplierTblV2> existApplierMap = existAppliers.stream().collect(Collectors.toMap(ApplierTblV2::getResourceId, Function.identity()));
-        List<Long> existResourceIds = existAppliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
-        List<String> existIps = resourceTbls.stream().filter(e -> existResourceIds.contains(e.getId())).map(ResourceTbl::getIp).collect(Collectors.toList());
-
-        Pair<List<String>, List<String>> ipPairs = getAddAndDeleteResourceIps(applierIps, existIps);
-        List<String> insertIps = ipPairs.getLeft();
-        List<String> deleteIps = ipPairs.getRight();
-        List<ApplierTblV2> insertAppliers = new ArrayList<>();
-        List<ApplierTblV2> deleteAppliers = new ArrayList<>();
-
-        if (!CollectionUtils.isEmpty(insertIps)) {
-            for (String ip : insertIps) {
-                ApplierTblV2 applierTbl = new ApplierTblV2();
-                applierTbl.setApplierGroupId(applierGroupId);
-                applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
-                applierTbl.setMaster(BooleanEnum.FALSE.getCode());
-                applierTbl.setResourceId(resourceTblMap.get(ip));
-                applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
-
-                insertAppliers.add(applierTbl);
-            }
-            logger.info("insert insertIps: {}", insertIps);
-            applierTblDao.batchInsert(insertAppliers);
-        }
-
-        if (!CollectionUtils.isEmpty(deleteIps)) {
-            for (String ip : deleteIps) {
-                ApplierTblV2 applierTbl = existApplierMap.get(resourceTblMap.get(ip));
-                applierTbl.setDeleted(BooleanEnum.TRUE.getCode());
-                deleteAppliers.add(applierTbl);
-            }
-            applierTblDao.update(deleteAppliers);
-        }
-
-        return !CollectionUtils.isEmpty(insertIps) || !CollectionUtils.isEmpty(deleteIps);
-    }
-
-    private long insertOrUpdateApplierGroup(long mhaReplicationId, String applierInitGtid) throws Exception {
-        long applierGroupId;
-        ApplierGroupTblV2 existApplierGroup = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationId);
-        if (existApplierGroup == null) {
-            logger.info("buildDrc insert applierGroup, mhaReplicationId: {}", mhaReplicationId);
-            ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
-            applierGroupTbl.setMhaReplicationId(mhaReplicationId);
-            applierGroupTbl.setGtidInit(applierInitGtid);
-            applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
-
-            applierGroupId = applierGroupTblDao.insertWithReturnId(applierGroupTbl);
-        } else {
-            applierGroupId = existApplierGroup.getId();
-            if (StringUtils.isNotBlank(applierInitGtid)) {
-                existApplierGroup.setGtidInit(applierInitGtid);
-            }
-            existApplierGroup.setDeleted(BooleanEnum.FALSE.getCode());
-            applierGroupTblDao.update(existApplierGroup);
-        }
-        return applierGroupId;
-    }
-
     @Override
     public Long configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTblV2.getId());
@@ -1637,25 +1382,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
         }
         return XmlUtils.formatXML(drcMessengerConfig.toString());
-    }
-
-    @Override
-    public int compensateGtidGap(GtidCompensateParam gtidCompensateParam) throws SQLException {
-        List<MhaTblV2> mhaTblV2s = mhaTblDao.queryByPk(gtidCompensateParam.getSrcMhaIds());
-        if (mhaTblV2s.size() != gtidCompensateParam.getSrcMhaIds().size()) {
-            throw new RuntimeException("srcMhaIds not exist");
-        }
-        Set<Long> dcIds = mhaTblV2s.stream().map(MhaTblV2::getDcId).collect(Collectors.toSet());
-        List<DcTbl> dcTbls = dcTblDao.queryByPk(Lists.newArrayList(dcIds));
-        Set<String> regions = dcTbls.stream().map(DcTbl::getRegionName).collect(Collectors.toSet());
-        if (regions.size() != 1 || !regions.contains(gtidCompensateParam.getSrcRegion())) {
-            throw new RuntimeException("srcMhaIds belong to different region");
-        }
-        int affectReplication = 0;
-        for (MhaTblV2 mha : mhaTblV2s) {
-            affectReplication += compensateGtidGap(mha, gtidCompensateParam.isExecute());
-        }
-        return affectReplication;
     }
 
     @Override
@@ -1800,53 +1526,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public int compensateGtidGap(MhaTblV2 srcMha,boolean execute) throws SQLException {
-        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMha.getMhaName());
-        if (StringUtils.isBlank(mhaExecutedGtid)) {
-            throw new RuntimeException("mhaExecutedGtid is empty," + srcMha.getMhaName());
-        }
-        logger.info("{{compensateGtidGap=start,mha={}}} mhaExecutedGtid: {}", srcMha.getMhaName(), mhaExecutedGtid);
-        // 1.Applier
-        List<MhaReplicationTbl> mhaReplication = mhaReplicationTblDao.queryBySrcMhaId(srcMha.getId());
-        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblDao.queryByMhaReplicationIds(
-                mhaReplication.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList()));
-        applierGroupTblV2s.forEach(applierGroup -> applierGroup.setGtidInit(unionGtid(applierGroup.getGtidInit(), mhaExecutedGtid)));
-        // 2.DbApplier
-        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationService.queryBySrcMha(srcMha.getMhaName());
-        List<ApplierGroupTblV3> dbApplierGroupTbls = dbApplierGroupTblDao.queryByMhaDbReplicationIds(
-                mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getId).collect(Collectors.toList()));
-        dbApplierGroupTbls.forEach(applierGroup -> applierGroup.setGtidInit(unionGtid(applierGroup.getGtidInit(), mhaExecutedGtid)));
-        // 3.Messenger
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(srcMha.getId(), 0);
-        boolean existMessenger = messengerGroupTbl != null;
-        if (existMessenger) {
-            messengerGroupTbl.setGtidExecuted(unionGtid(messengerGroupTbl.getGtidExecuted(), mhaExecutedGtid));
-        }
-        if (execute) {
-            if (applierGroupTblV2s.size() > 0) {
-                applierGroupTblDao.update(applierGroupTblV2s);
-            }
-            if (dbApplierGroupTbls.size() > 0) {
-                dbApplierGroupTblDao.update(dbApplierGroupTbls);
-            }
-            if (existMessenger) {
-                messengerGroupTblDao.update(messengerGroupTbl);
-            }
-        }
-        int replicationCount = applierGroupTblV2s.size() + dbApplierGroupTbls.size() + (existMessenger ? 1 : 0);
-        logger.info("{{compensateGtidGap=end,mha={}}} mhaExecutedGtid: {} ,affectReplication:{}", srcMha.getMhaName(), mhaExecutedGtid, replicationCount);
-        return replicationCount;
-    }
-    
-    private String unionGtid(String origin,String compensateGtid) {
-        GtidSet originSet = new GtidSet(origin);
-        GtidSet compensateSet = new GtidSet(compensateGtid);
-        GtidSet unionSet = originSet.union(compensateSet);
-        logger.info("unionGtid origin:{},compensate:{},union:{}",origin,compensateGtid,unionSet.toString());
-        return unionSet.toString();
-    }
 
     private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         Map<String, Long> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getId));

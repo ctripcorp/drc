@@ -1,21 +1,16 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.entity.BuTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
-import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
-import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.PageResult;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -24,7 +19,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -45,41 +39,19 @@ public class MessengerControllerV2Test {
         when(defaultConsoleConfig.getNewDrcConfigSwitch()).thenReturn(DefaultConsoleConfig.SWITCH_ON);
     }
 
-    @Test
-    public void testGetAllMessengerVos() throws Exception {
-        long buId = 1L;
-        MhaTblV2 mhaTblV2 = new MhaTblV2();
-        mhaTblV2.setBuId(buId);
-        mhaTblV2.setMonitorSwitch(0);
-        when(messengerService.getAllMessengerMhaTbls()).thenReturn(List.of(mhaTblV2));
-        BuTbl e1 = new BuTbl();
-        e1.setId(buId);
-        e1.setBuName("bbz");
-        when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(List.of(e1));
-
-        ApiResult<List<MessengerVo>> result = messengerControllerV2.getAllMessengerVos();
-        MessengerVo data = result.getData().get(0);
-        Assert.assertEquals(data.getMhaName(), mhaTblV2.getMhaName());
-        Assert.assertEquals(data.getBu(), e1.getBuName());
-    }
 
     @Test
     public void testQueryAllMessengerVos() throws Exception {
-        long buId = 1L;
-        MhaTblV2 mhaTblV2 = new MhaTblV2();
-        mhaTblV2.setBuId(buId);
-        mhaTblV2.setMonitorSwitch(0);
-        when(messengerService.getMessengerMhaTbls(any())).thenReturn(List.of(mhaTblV2));
-        BuTbl e1 = new BuTbl();
-        e1.setId(buId);
-        e1.setBuName("bbz");
-        when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(List.of(e1));
+        MessengerVo messengerVo = new MessengerVo();
+        messengerVo.setBu("bbz");
+        messengerVo.setMhaName(null);
+        when(messengerService.getMessengerMhaTbls(any())).thenReturn(List.of(messengerVo));
 
         MessengerQueryDto queryDto = new MessengerQueryDto();
         ApiResult<List<MessengerVo>> result = messengerControllerV2.queryMessengerVos(queryDto);
         MessengerVo data = result.getData().get(0);
-        Assert.assertEquals(data.getMhaName(), mhaTblV2.getMhaName());
-        Assert.assertEquals(data.getBu(), e1.getBuName());
+        Assert.assertEquals(data.getMhaName(), messengerVo.getMhaName());
+        Assert.assertEquals(data.getBu(), messengerVo.getBu());
     }
 
     @Test

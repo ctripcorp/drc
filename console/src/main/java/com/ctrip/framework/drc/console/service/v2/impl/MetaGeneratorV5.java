@@ -65,10 +65,6 @@ public class MetaGeneratorV5 {
     @Autowired
     private ColumnsFilterServiceV2 columnsFilterServiceV2;
     @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblDao;
-    @Autowired
-    private ApplierTblV2Dao applierTblDao;
-    @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private MessengerTblDao messengerTblDao;
@@ -147,11 +143,9 @@ public class MetaGeneratorV5 {
         private volatile List<ResourceTbl> resourceTbls;
         private volatile List<MachineTbl> machineTbls;
         private volatile List<ReplicatorGroupTbl> replicatorGroupTbls;
-        private volatile List<ApplierGroupTblV2> applierGroupTbls;
         private volatile List<ClusterManagerTbl> clusterManagerTbls;
         private volatile List<ZookeeperTbl> zookeeperTbls;
         private volatile List<ReplicatorTbl> replicatorTbls;
-        private volatile List<ApplierTblV2> applierTbls;
         private volatile List<MhaReplicationTbl> mhaReplicationTbls;
         private volatile List<MhaDbMappingTbl> mhaDbMappingTbls;
         private volatile List<DbReplicationTbl> dbReplicationTbls;
@@ -176,7 +170,6 @@ public class MetaGeneratorV5 {
         private Map<Long, ResourceTbl> resourceTblIdMap;
         private Map<Long, List<MhaDbMappingTbl>> mhaDbMappingTblsByMhaIdMap;
         private Map<Long, MhaDbMappingTbl> mhaDbMappingTblsByMappingIdMap;
-        private Map<Long, List<ApplierTblV2>> applierTblsByGroupIdMap;
         private Map<Long, List<MessengerTbl>> messengerTblByGroupIdMap;
         private Map<Long, String> mhaDbMappingId2DbNameMap;
         private Map<MultiKey, List<DbReplicationTbl>> dbReplicationByKeyMap;
@@ -185,7 +178,6 @@ public class MetaGeneratorV5 {
         public Map<Long, ReplicatorGroupTbl> replicatorGroupByMhaIdMap;
         public Map<Long, List<ReplicatorTbl>> replicatorsByGroupIdMap;
         public Map<Long, MessengerGroupTbl> messengerGroupByMhaIdMap;
-        public Map<Long, ApplierGroupTblV2> applierGroupByMhaReplicationIdMap;
         public Map<Long, List<MhaReplicationTbl>> mhaReplicationGroupByDstMhaIdMap;
         public Map<MultiKey, List<DbReplicationTbl>> dbReplicationByMhaPairMap;
         public Map<Long, RowsFilterTblV2> rowsFilterMap;
@@ -313,7 +305,6 @@ public class MetaGeneratorV5 {
                 generateDbMessengers(dbCluster, mhaTbl);
                 generateMessengers(dbCluster, mhaTbl);
                 generateDbAppliers(dbCluster, mhaTbl);
-                generateAppliers(dbCluster, mhaTbl);
             }
         }
 
@@ -555,56 +546,6 @@ public class MetaGeneratorV5 {
             }
         }
 
-        private void generateAppliers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
-            List<MhaReplicationTbl> mhaReplicationTblList = mhaReplicationGroupByDstMhaIdMap.getOrDefault(mhaTbl.getId(), Collections.emptyList());
-
-            Set<String> excludeSrcMhaName = dbCluster.getAppliers().stream().map(Applier::getTargetMhaName).collect(Collectors.toSet());
-            for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTblList) {
-                ApplierGroupTblV2 applierGroupTbl = applierGroupByMhaReplicationIdMap.get(mhaReplicationTbl.getId());
-                if (applierGroupTbl == null) {
-                    continue;
-                }
-                // note: if already config db replication applier, skip mha applier
-                MhaTblV2 srcMhaTbl = mhaTblIdMap.get(mhaReplicationTbl.getSrcMhaId());
-                if (excludeSrcMhaName.contains(srcMhaTbl.getMhaName())) {
-                    logger.debug("[skip] generate mha applier for: {}->{}. Already has db appliers!", srcMhaTbl.getMhaName(), mhaTbl.getMhaName());
-                    continue;
-                }
-                generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);
-            }
-        }
-
-        private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
-            List<ApplierTblV2> curMhaAppliers = applierTblsByGroupIdMap.get(applierGroupTbl.getId());
-            if (CollectionUtils.isEmpty(curMhaAppliers)) {
-                return;
-            }
-
-            List<DbReplicationTbl> dbReplicationTblList = dbReplicationByMhaPairMap.get(new MultiKey(srcMhaTbl.getId(), dstMhaTbl.getId()));
-            DcTbl srcDcTbl = dcTblMap.get(srcMhaTbl.getDcId());
-
-            String nameFilter = TableNameBuilder.buildNameFilter(mhaDbMappingId2DbNameMap, dbReplicationTblList);
-            String nameMapping = TableNameBuilder.buildNameMapping(mhaDbMappingId2DbNameMap, dbReplicationTblList);
-            String properties = getProperties(dbReplicationTblList, null);
-            for (ApplierTblV2 applierTbl : curMhaAppliers) {
-                String resourceIp = Optional.ofNullable(resourceTblIdMap.get(applierTbl.getResourceId())).map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
-                logger.debug("generate applier: {} for mha: {}", resourceIp, dstMhaTbl.getMhaName());
-                Applier applier = new Applier();
-                applier.setIp(resourceIp)
-                        .setPort(applierTbl.getPort())
-                        .setTargetIdc(srcDcTbl.getDcName())
-                        .setTargetMhaName(srcMhaTbl.getMhaName())
-                        .setGtidExecuted(applierGroupTbl.getGtidInit())
-                        .setNameFilter(nameFilter)
-                        .setNameMapping(nameMapping)
-                        .setTargetName(srcMhaTbl.getClusterName())
-                        .setApplyMode(dstMhaTbl.getApplyMode())
-                        .setProperties(properties);
-                applier.setTargetRegion(srcDcTbl.getRegionName());
-                dbCluster.addApplier(applier);
-            }
-        }
-
         private String getProperties(List<DbReplicationTbl> dbReplicationTblList, Integer concurrency) throws SQLException {
             if (CollectionUtils.isEmpty(dbReplicationTblList)) {
                 return null;
@@ -761,11 +702,9 @@ public class MetaGeneratorV5 {
         list.add(executorService.submit(() -> task.resourceTbls = resourceTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.machineTbls = machineTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.replicatorGroupTbls = replicatorGroupTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.applierGroupTbls = applierGroupTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.clusterManagerTbls = clusterManagerTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.zookeeperTbls = zookeeperTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.replicatorTbls = replicatorTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.applierTbls = applierTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.messengerGroupTbls = messengerGroupTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.messengerTbls = messengerTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.mhaReplicationTbls = mhaReplicationTblDao.queryAllExist()));
@@ -803,7 +742,6 @@ public class MetaGeneratorV5 {
         task.dbReplicationByKeyMap = task.dbReplicationTbls.stream().collect(Collectors.groupingBy(StreamUtils::getKey));
         task.replicatorGroupByMhaIdMap = task.replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, Function.identity()));
         task.messengerGroupByMhaIdMap = task.messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, Function.identity()));
-        task.applierGroupByMhaReplicationIdMap = task.applierGroupTbls.stream().filter(e -> NumberUtils.isPositive(e.getMhaReplicationId())).collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, Function.identity()));
         task.dbApplierGroupTblByMhaDbReplicationId = task.dbApplierGroupTbl.stream().collect(Collectors.toMap(ApplierGroupTblV3::getMhaDbReplicationId, Function.identity(), (e1, e2) -> e1));
         task.dbMessengerGroupTblByMhaDbReplicationId = task.dbMessengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTblV3::getMhaDbReplicationId, Function.identity(), (e1, e2) -> e1));
         task.mhaDbReplicationByKeyMap = task.mhaDbReplicationTbls.stream().collect(Collectors.toMap(StreamUtils::getKey, Function.identity()));
@@ -826,7 +764,6 @@ public class MetaGeneratorV5 {
         task.machineTblsGroupByMhaIdMap = task.machineTbls.stream().collect(Collectors.groupingBy(MachineTbl::getMhaId));
         task.replicatorsByGroupIdMap = task.replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
         task.mhaDbMappingTblsByMhaIdMap = task.mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
-        task.applierTblsByGroupIdMap = task.applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
         task.messengerTblByGroupIdMap = task.messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
         task.dbReplicationFilterMappingTblsByDbRplicationIdMap = task.dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
         task.dbMessengerTblsByGroupIdMap = task.dbMessengerTbls.stream().collect(Collectors.groupingBy(MessengerTblV3::getMessengerGroupId));

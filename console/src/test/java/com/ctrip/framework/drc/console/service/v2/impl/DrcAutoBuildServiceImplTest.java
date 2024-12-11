@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
@@ -54,8 +53,6 @@ public class DrcAutoBuildServiceImplTest {
     MhaReplicationTblDao mhaReplicationTblDao;
     @Mock
     ReplicatorGroupTblDao replicatorGroupTblDao;
-    @Mock
-    ApplierGroupTblV2Dao applierGroupTblDao;
     @Mock
     MysqlServiceV2 mysqlServiceV2;
     @Mock
@@ -360,15 +357,10 @@ public class DrcAutoBuildServiceImplTest {
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(), any());
-        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
-        verify(dbDrcBuildService, never()).autoConfigDbAppliers(any(), any(), any(), any(),Mockito.anyBoolean());
 
-        when(consoleConfig.getNewDrcDefaultDbApplierMode()).thenReturn(true);
-        drcAutoBuildServiceImpl.autoBuildDrc(req);
         verify(dbDrcBuildService, times(1)).autoConfigDbAppliers(any(), any(), any(), any(),Mockito.anyBoolean());
 
 
-        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any(), Mockito.anyBoolean());
     }
 
 

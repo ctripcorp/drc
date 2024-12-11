@@ -42,6 +42,7 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
 
     private static final String CM_NOTIFY_THREAD = "cm.notify.thread";
+    private static final String INFO_INQUIRY_THREAD = "info.inquiry.thread";
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
     private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
 
@@ -154,6 +155,10 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public int getCmNotifyThread() {
         return getIntProperty(CM_NOTIFY_THREAD, 50);
+    }
+
+    public int getInfoInquiryThread() {
+        return getIntProperty(INFO_INQUIRY_THREAD, 50);
     }
 
     public boolean getCMNotifyHttpsSwitch() {

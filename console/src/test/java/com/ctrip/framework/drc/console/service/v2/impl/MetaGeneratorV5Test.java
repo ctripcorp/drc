@@ -10,6 +10,12 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.*;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -17,15 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
 
 public class MetaGeneratorV5Test extends CommonDataInit {
 
@@ -34,7 +31,7 @@ public class MetaGeneratorV5Test extends CommonDataInit {
 
     @Spy
     RowsFilterServiceV2 rowsFilterServiceV2 = new RowsFilterServiceV2Impl();
-    
+
     @Mock
     private AccountService accountService;
 
@@ -54,15 +51,14 @@ public class MetaGeneratorV5Test extends CommonDataInit {
         );
         MhaAccounts mhaAccounts = new MhaAccounts();
         Mockito.when(accountService.getMhaAccounts(Mockito.any(MhaTblV2.class))).thenReturn(mhaAccounts);
-        
+
         Drc result = metaGeneratorV5.getDrc();
         String xml = XmlUtils.formatXML(result.toString());
         System.out.println(xml);
         Assert.assertNotEquals(0, result.getDcs().size());
         List<Applier> appliers = result.getDcs().values().stream().flatMap(e -> e.getDbClusters().values().stream()).flatMap(e -> e.getAppliers().stream()).collect(Collectors.toList());
         List<Messenger> messengers = result.getDcs().values().stream().flatMap(e -> e.getDbClusters().values().stream()).flatMap(e -> e.getMessengers().stream()).collect(Collectors.toList());
-        Assert.assertTrue(appliers.stream().anyMatch(e -> e.getApplyMode().equals(ApplyMode.db_transaction_table.getType()) && !StringUtils.isEmpty(e.getIncludedDbs())));
-        Assert.assertTrue(appliers.stream().anyMatch(e -> !e.getApplyMode().equals(ApplyMode.db_transaction_table.getType())));
+        Assert.assertTrue(appliers.stream().allMatch(e -> e.getApplyMode().equals(ApplyMode.db_transaction_table.getType()) && !StringUtils.isEmpty(e.getIncludedDbs())));
         Assert.assertTrue(messengers.stream().anyMatch(e -> e.getApplyMode().equals(ApplyMode.db_mq.getType()) && !StringUtils.isEmpty(e.getIncludedDbs())));
         Assert.assertTrue(messengers.stream().anyMatch(e -> !e.getApplyMode().equals(ApplyMode.db_mq.getType())));
     }

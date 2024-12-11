@@ -85,17 +85,6 @@ public class OpenApiController {
     }
 
 
-    @PostMapping("/tmp/synApplierGtidInfoFromQConfig")
-    public ApiResult synApplierGtidInfoFromQConfig(@RequestBody ConfigReq req) {
-        try {
-            Pair<Integer, List<String>> data = mhaReplicationServiceV2.synApplierGtidInfoFromQConfig(req.getConfigText(), Boolean.TRUE.equals(req.getUpdate()));
-            return ApiResult.getSuccessInstance(data.getKey(), data.getValue().toString());
-        } catch (Exception e) {
-            logger.error("error in syncDbInfo", e);
-            return ApiResult.getFailInstance(null,e.getMessage());
-        }
-    }
-
     static class ConfigReq {
         private String configText;
         private Boolean update;
