@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.*;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueView;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -24,17 +26,18 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -44,6 +47,8 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +59,10 @@ import org.springframework.util.CollectionUtils;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -112,7 +121,13 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
 
+    private static final int COLUMN_DEFAULT_VALUE_MIN_LENGTH = 251;
+    private static final int COLUMN_DEFAULT_VALUE_MAX_LENGTH = 255;
+
+    private final ListeningExecutorService executeService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("mhaExecuteService"));
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -811,5 +826,92 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
         return machineTbls.stream().filter(machineTbl -> machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode()))
                 .findFirst().orElse(null);
+    }
+
+    @Override
+    public MhaColumnDefaultValueDto findColumnDefaultValueLengthGt251(String mha) {
+        List<MySqlUtils.ColumnDefault> columnDefaultList = mysqlServiceV2.getMhaColumnDefaultValue(mha);
+        if (CollectionUtils.isEmpty(columnDefaultList)) {
+            return new MhaColumnDefaultValueDto(mha);
+        }
+
+        List<MySqlUtils.ColumnDefault> columnDefaults= columnDefaultList.stream().filter(e -> filterLength(e.getColumnDefault())).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(columnDefaults)) {
+            return null;
+        }
+
+        Map<String, List<MySqlUtils.ColumnDefault>> columnDefaultMap = columnDefaults.stream().collect(Collectors.groupingBy(MySqlUtils.ColumnDefault::getFullTableName));
+
+        List<MhaColumnDefaultValueDto.TableColumnDto> tableColumns = columnDefaultMap.entrySet().stream().map(entry -> {
+            List<MhaColumnDefaultValueDto.ColumnDto> columns = entry.getValue().stream().map(columnDefault -> {
+                MhaColumnDefaultValueDto.ColumnDto columnDto = new MhaColumnDefaultValueDto.ColumnDto(columnDefault.getColumnName(), columnDefault.getColumnDefault(), StringUtils.length(columnDefault.getColumnDefault()));
+                return columnDto;
+            }).collect(Collectors.toList());
+
+            MhaColumnDefaultValueDto.TableColumnDto tableColumnDto = new MhaColumnDefaultValueDto.TableColumnDto(entry.getKey(), columns);
+            return tableColumnDto;
+        }).collect(Collectors.toList());
+
+        return new MhaColumnDefaultValueDto(mha, tableColumns);
+    }
+
+    private boolean filterLength(String value) {
+        return StringUtils.length(value) >= COLUMN_DEFAULT_VALUE_MIN_LENGTH && StringUtils.length(value) <= COLUMN_DEFAULT_VALUE_MAX_LENGTH;
+    }
+
+    @Override
+    public MhaColumnDefaultValueView findColumnDefaultValueLengthGt251(List<String> mhas) {
+        List<Callable<MhaColumnDefaultValueDto>> list = Lists.newArrayList();
+        List<MhaColumnDefaultValueDto> results = Lists.newArrayList();
+        List<String> errorMhas = Lists.newArrayList();
+        for (String mha : mhas) {
+            list.add(() -> findColumnDefaultValueLengthGt251(mha));
+        }
+        try {
+            List<Future<MhaColumnDefaultValueDto>> futures = executeService.invokeAll(list, 60, TimeUnit.SECONDS);
+            for (Future<MhaColumnDefaultValueDto> future : futures) {
+                MhaColumnDefaultValueDto result = future.get();
+                if (result != null) {
+                    if (result.isQuerySuccess()) {
+                        results.add(result);
+                    } else {
+                        errorMhas.add(result.getMhaName());
+                    }
+
+                }
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw ConsoleExceptionUtils.message("findColumnDefaultValueLengthGt251 timeout");
+        }
+        return new MhaColumnDefaultValueView(results, errorMhas);
+    }
+
+    @Override
+    public MhaColumnDefaultValueView findAllColumnDefaultValueLengthGt251(int batch) throws SQLException {
+        List<MhaColumnDefaultValueDto> results = Lists.newArrayList();
+        List<String> errorMhas = Lists.newArrayList();
+        List<String> mhas = mhaTblV2Dao.queryAllExist().stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
+        if (batch == 0) {
+            return findColumnDefaultValueLengthGt251(mhas);
+        }
+
+        List<List<String>> mhaPartitions = Lists.partition(mhas, batch);
+        List<Callable<MhaColumnDefaultValueView>> list = Lists.newArrayList();
+        for (List<String> partition : mhaPartitions) {
+            list.add(() -> findColumnDefaultValueLengthGt251(partition));
+        }
+
+        try {
+            List<Future<MhaColumnDefaultValueView>> futures = executeService.invokeAll(list, 60, TimeUnit.SECONDS);
+            for (Future<MhaColumnDefaultValueView> future : futures) {
+                MhaColumnDefaultValueView result = future.get();
+                results.addAll(result.getMhaColumns());
+                errorMhas.addAll(result.getErrorMhas());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw ConsoleExceptionUtils.message("findColumnDefaultValueLengthGt251 timeout");
+        }
+        return new MhaColumnDefaultValueView(results, errorMhas);
+
     }
 }

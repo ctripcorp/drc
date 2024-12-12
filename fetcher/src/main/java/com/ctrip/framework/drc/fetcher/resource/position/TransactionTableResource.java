@@ -123,6 +123,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
+        poolProperties.setIgnoreExceptionOnPreLoad(true);
         dataSource = DataSourceManager.getInstance().getDataSource(endpoint, poolProperties);
 
         for (int i = 0; i < TRANSACTION_TABLE_SIZE; i++) {

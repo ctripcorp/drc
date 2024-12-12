@@ -8,6 +8,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
@@ -85,6 +86,8 @@ public class MySqlUtils {
     private static final String GET_DB_TABLES_SUFFIX = " AND table_name NOT LIKE '\\_%' GROUP BY table_schema, table_name;";
 
     private static final String MATCH_ALL_FILTER = ".*";
+
+    private static final String GET_COLUMN_DEFAULT = "SELECT TABLE_SCHEMA,TABLE_NAME, COLUMN_NAME,COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA NOT IN ('drcmonitordb', 'information_schema', 'mysql', 'sys', 'performance_schema', 'configdb') and IS_NULLABLE = 'NO';";
 
 
     /**
@@ -1156,6 +1159,27 @@ public class MySqlUtils {
         return null;
     }
 
+    public static List<ColumnDefault> getColumnDefaultValue(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        List<ColumnDefault> columnDefaultList = new ArrayList<>();
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(GET_COLUMN_DEFAULT);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while (rs.next()) {
+                columnDefaultList.add(new ColumnDefault(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+            }
+        } catch (SQLException e) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getColumnDefaultValue error: ", endpoint.getHost(), endpoint.getPort(), e);
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
+        }
+        return columnDefaultList;
+    }
+
     public static List<String> getUniqueIndex(Endpoint endpoint, String db, String table) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
@@ -1534,6 +1558,59 @@ public class MySqlUtils {
         @Override
         public int hashCode() {
             return Objects.hash(schema, name);
+        }
+    }
+
+    public static class ColumnDefault {
+        private String schema;
+        private String tableName;
+        private String columnName;
+        private String columnDefault;
+
+        public ColumnDefault(String schema, String tableName, String columnName, String columnDefault) {
+            this.schema = schema;
+            this.tableName = tableName;
+            this.columnName = columnName;
+            this.columnDefault = columnDefault;
+        }
+
+        public String getFullTableName() {
+            return schema + "." + tableName;
+        }
+
+        public ColumnDefault() {
+        }
+
+        public String getSchema() {
+            return schema;
+        }
+
+        public void setSchema(String schema) {
+            this.schema = schema;
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
+        }
+
+        public String getColumnName() {
+            return columnName;
+        }
+
+        public void setColumnName(String columnName) {
+            this.columnName = columnName;
+        }
+
+        public String getColumnDefault() {
+            return columnDefault;
+        }
+
+        public void setColumnDefault(String columnDefault) {
+            this.columnDefault = columnDefault;
         }
     }
 }
