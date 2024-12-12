@@ -31,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -467,7 +466,9 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
     @Override
     public void update(Object args, Observable observable) {
-
+        if (args instanceof MetaRefreshDone) {
+            return;
+        }
         if(args instanceof DcComparator) {
 
             dcMetaChange((DcComparator) args);

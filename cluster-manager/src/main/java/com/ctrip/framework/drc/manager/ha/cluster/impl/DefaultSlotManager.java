@@ -376,5 +376,17 @@ public class DefaultSlotManager extends AbstractLifecycle implements SlotManager
         }
     }
 
+    @Override
+    public void clearAll() {
+        try {
+            lock.writeLock().lock();
+
+            slotsMap.clear();
+            serverMap.clear();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
 
 }

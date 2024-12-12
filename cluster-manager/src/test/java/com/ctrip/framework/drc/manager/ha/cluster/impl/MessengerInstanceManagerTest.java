@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.utils.NameUtils;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
@@ -59,6 +60,8 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
     @Mock
     private DefaultClusterManagers clusterServers;
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
 
 
     @Before
@@ -69,6 +72,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         when(currentMetaManager.watchMessengerIfNotWatched(anyString())).thenReturn(true);
         when(instanceActiveElectAlgorithmManager.get(anyString())).thenReturn(new DefaultInstanceActiveElectAlgorithm());
         when(regionCache.getCluster(anyString())).thenReturn(dbCluster);
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
 
         Messenger messenger = dbCluster.getMessengers().get(0);
         zookeeperValue.setPort(messenger.getPort());

@@ -51,8 +51,9 @@ public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
             return true;
         }  catch (SQLException e) {
             dataSourceManager.clearDataSource(endpoint);
-            logger.error("query master of {}:{} error and clear from dataSourceManager", endpoint.getHost(), endpoint.getPort(), e);
-            return e.getMessage() != null && e.getMessage().contains(ACCESS_DENIED);
+            String message = e.getMessage();
+            logger.error("query master of {}:{} error and clear from dataSourceManager. exception: {}", endpoint.getHost(), endpoint.getPort(), message);
+            return message != null && message.contains(ACCESS_DENIED);
         } catch (Exception e) {
             logger.error("query master of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
             return false;

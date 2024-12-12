@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.entity.SimpleInstance;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.InfoDto;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.monitor.EventMonitor;
@@ -43,6 +44,9 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
     @Autowired
     private DefaultClusterManagers clusterServers;
 
+    @Autowired
+    private ClusterServerStateManager clusterServerStateManager;
+
 
     private ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create(getClass().getSimpleName()));
 
@@ -69,6 +73,12 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
         public void run() {
             if (!clusterManagerConfig.getPeriodCheckSwitch()) {
                 QUERY_INFO_LOGGER.info("[check][{}}] switch off， stop.", getName());
+                return;
+            }
+            ServerStateEnum serverState = clusterServerStateManager.getServerState();
+            if (serverState.notAlive()) {
+                EventMonitor.DEFAULT.logEvent(String.format("drc.cm.check.skip.%s", getName()), serverState.toString());
+                QUERY_INFO_LOGGER.warn("[check skip][{}}] server state is not alive: {}.", getName(), serverState);
                 return;
             }
             DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("drc.cm.checker", getName(), () -> {

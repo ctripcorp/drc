@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.xpipe.tuple.Pair;
@@ -44,9 +45,13 @@ public class ReplicatorCheckerTest {
     @Mock
     private DefaultClusterManagers clusterServers;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
     }
 
     @Test

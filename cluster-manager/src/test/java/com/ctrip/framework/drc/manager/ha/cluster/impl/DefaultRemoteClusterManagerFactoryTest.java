@@ -31,9 +31,7 @@ public class DefaultRemoteClusterManagerFactoryTest extends AbstractDbClusterTes
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        clusterServerInfo = new ClusterServerInfo();
-        clusterServerInfo.setIp("127.0.0.1");
-        clusterServerInfo.setPort(8080);
+        clusterServerInfo = new ClusterServerInfo("127.0.0.1", 8080);
     }
 
     @Test

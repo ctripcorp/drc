@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.utils.NameUtils;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -47,10 +48,15 @@ public class ApplierInstanceManagerTest {
     @Mock
     private DefaultClusterManagers clusterServers;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
+
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
     }
 
     @Test
