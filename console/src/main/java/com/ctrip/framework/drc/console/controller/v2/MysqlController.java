@@ -311,4 +311,15 @@ public class MysqlController {
         }
     }
 
+    @GetMapping("columnDefault")
+    public ApiResult getMhaColumnDefaultValue(@RequestParam String mha) {
+        try {
+            logger.info("getMhaColumnDefaultValue, mha: {}", mha);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getMhaColumnDefaultValue(mha));
+        } catch (Exception e) {
+            logger.error("getMhaColumnDefaultValue fail, mha: {}", mha, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
 }
