@@ -45,4 +45,5 @@ public interface SlotManager extends Lifecycle {
 
     Map<Integer, SlotInfo> allSlotsInfo();
 
+    void clearAll();
 }

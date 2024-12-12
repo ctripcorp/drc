@@ -9,6 +9,8 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.IpUtils;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
+import com.ctrip.framework.drc.manager.ha.cluster.impl.ClusterServerStateManager;
 import com.ctrip.framework.drc.manager.healthcheck.service.task.DbClusterHeartbeatTask;
 import com.ctrip.framework.drc.manager.healthcheck.service.task.MasterHeartbeatTask;
 import com.ctrip.framework.drc.manager.healthcheck.tracker.HeartBeatTracker;
@@ -56,6 +58,9 @@ public class MySQLHeartBeatImpl extends AbstractLifecycleObservable implements H
     @Autowired
     private MySQLMasterManager mySQLMasterManager;
 
+    @Autowired
+    private ClusterServerStateManager clusterServerStateManager;
+
     public MySQLHeartBeatImpl() {
         heartBeatContext = new MySQLHeartBeatContext();
         heartbeatTracker = new HeartBeatTrackerImpl(heartBeatContext);
@@ -90,6 +95,13 @@ public class MySQLHeartBeatImpl extends AbstractLifecycleObservable implements H
 
     @Override
     public void pingMaster() {
+        // check state
+        ServerStateEnum state = clusterServerStateManager.getServerState();
+        if (state.notAlive()) {
+            logger.warn("[Ping skip] Master, server state is not alive: {}", state);
+            return;
+        }
+        // do ping
         Set<Endpoint> copy = Sets.newHashSet(masterMySQLSet);
         for (Endpoint endpoint : copy) {
             doPingMaster(endpoint);
@@ -98,6 +110,13 @@ public class MySQLHeartBeatImpl extends AbstractLifecycleObservable implements H
 
     @Override
     public void pingZone() {
+        // check state
+        ServerStateEnum state = clusterServerStateManager.getServerState();
+        if (state.notAlive()) {
+            logger.warn("[Ping skip] Zone, server state is not alive: {}", state);
+            return;
+        }
+        // do ping
         Map<Endpoint, DbCluster> copy = new HashMap<>(dbsMap);
         for (Map.Entry<Endpoint, DbCluster> entry : copy.entrySet()) {
             doPingDbCluster(entry.getKey(), entry.getValue());

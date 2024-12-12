@@ -60,6 +60,9 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         dcCache.addObserver(new Observer() {
             @Override
             public void update(Object args, Observable observable) {
+                if (args instanceof MetaRefreshDone) {
+                    return;
+                }
                 updateCount[0] = updateCount[0] + 1;
                 Assert.assertTrue(args instanceof DcComparator);
                 DcComparator dcComparator = (DcComparator) args;
@@ -91,7 +94,7 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         dbCluster.addReplicator(newReplicator);
 
         when(sourceProvider.getDc(DC)).thenReturn(dcClone);
-        Thread.sleep(100);
+        Thread.sleep(500);
 
         Assert.assertEquals(1, updateCount[0]);
     }
@@ -113,6 +116,9 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         dcCache.addObserver(new Observer() {
             @Override
             public void update(Object args, Observable observable) {
+                if(args instanceof MetaRefreshDone){
+                    return;
+                }
                 updateCount[0] = updateCount[0] + 1;
                 Assert.assertTrue(args instanceof DcComparator);
                 DcComparator dcComparator = (DcComparator) args;
@@ -159,6 +165,9 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         dcCache.addObserver(new Observer() {
             @Override
             public void update(Object args, Observable observable) {
+                if(args instanceof MetaRefreshDone){
+                    return;
+                }
                 updateCount[0] = updateCount[0] + 1;
                 Assert.assertTrue(args instanceof DcComparator);
                 DcComparator dcComparator = (DcComparator) args;
@@ -212,6 +221,9 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         dcCache.addObserver(new Observer() {
             @Override
             public void update(Object args, Observable observable) {
+                if(args instanceof MetaRefreshDone){
+                    return;
+                }
                 updateCount[0] = updateCount[0] + 1;
                 Assert.assertTrue(args instanceof DcComparator);
                 DcComparator dcComparator = (DcComparator) args;
@@ -267,6 +279,9 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         dcCache.addObserver(new Observer() {
             @Override
             public void update(Object args, Observable observable) {
+                if(args instanceof MetaRefreshDone){
+                    return;
+                }
                 updateCount[0] = updateCount[0] + 1;
                 Assert.assertTrue(args instanceof DcComparator);
                 DcComparator dcComparator = (DcComparator) args;

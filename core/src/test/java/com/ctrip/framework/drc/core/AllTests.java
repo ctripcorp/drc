@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core;
 
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
+import com.ctrip.framework.drc.core.concurrent.AllSuccessFutureTest;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutorTest;
 import com.ctrip.framework.drc.core.config.DynamicConfigTest;
 import com.ctrip.framework.drc.core.config.RegionConfigTest;
@@ -291,6 +292,7 @@ import org.junit.runners.Suite;
         AbstractResourceManagerTest.class,
 
         DrcKeyedOneThreadTaskExecutorTest.class,
+        AllSuccessFutureTest.class,
         
         //entity json parse
         HickWallConflictCountTest.class,

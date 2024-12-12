@@ -7,7 +7,9 @@ import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.manager.config.DataCenterServiceTest;
 import com.ctrip.framework.drc.manager.config.DbClusterSourceProviderTest;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnumTest;
 import com.ctrip.framework.drc.manager.ha.DefaultStateChangeHandlerTest;
+import com.ctrip.framework.drc.manager.ha.cluster.ClusterServerInfoTest;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.*;
 import com.ctrip.framework.drc.manager.ha.cluster.task.*;
 import com.ctrip.framework.drc.manager.ha.config.DefaultClusterManagerConfigTest;
@@ -117,7 +119,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         ApplierInstanceElectorManagerTest.class,
         ReplicatorCheckerTest.class,
         MysqlConsoleNotifierTest.class,
-        ReplicatorConsoleNotifierTest.class
+        ReplicatorConsoleNotifierTest.class,
+        DefaultCurrentClusterServerTest.class,
+        ClusterServerStateManagerTest.class,
+
+        // dto
+        ClusterServerInfoTest.class,
+        ServerStateEnumTest.class
 })
 public class AllTests {
 

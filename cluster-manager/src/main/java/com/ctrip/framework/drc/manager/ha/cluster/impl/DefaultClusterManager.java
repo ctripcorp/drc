@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
+import com.ctrip.framework.drc.manager.ha.cluster.ClusterException;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -10,6 +12,8 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
 
 /**
  * invoke in controller, and update dcMetaCache, then notify metaCache observers to notify replicators and appliers
@@ -123,5 +127,37 @@ public class DefaultClusterManager extends DefaultCurrentClusterServer implement
     public Endpoint getActiveMySQL(String clusterId, ForwardInfo forwardInfo) {
         logger.debug("[getActiveMySQL]{}", clusterId);
         return currentMetaManager.getMySQLMaster(clusterId);
+    }
+
+    /**
+     * LOST: after lost connection with zk, remote leader will remove all slots in the current cluster.
+     * So actively clear all slots.
+     * <p>
+     * RESTARTING/NORMAL: this server reconnects with zk, state change in persistent node will guarantee the leader
+     * trigger re-arrange of the cluster, add slots afterward.
+     *
+     * @param stateEnum
+     * @see AbstractClusterServers#childrenChanged()
+     */
+    @Override
+    protected synchronized void updateClusterState(ServerStateEnum stateEnum) {
+        logger.info("[updateClusterState]{}", stateEnum);
+        if (stateEnum == ServerStateEnum.LOST) {
+            // clear slot, cluster
+            Set<Integer> slots = slots();
+            for (Integer currentSlot : slots) {
+                this.doSlotDelete(currentSlot);
+            }
+            slotManager.clearAll();
+        } else if (stateEnum == ServerStateEnum.NORMAL) {
+            // reconnected, leader will add slots to this server
+            // refresh slots before that to make sure data consistency
+            try {
+                slotManager.refresh();
+            } catch (ClusterException e) {
+                logger.warn("[updateClusterState] slot refresh fail", e);
+            }
+        }
+        super.updateClusterState(stateEnum);
     }
 }
