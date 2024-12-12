@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.monitor.datasource;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
@@ -110,7 +109,6 @@ public class DataSourceManager extends AbstractDataSource {
         poolProperties.setConnectionProperties(timeout);
 
         poolProperties.setValidationInterval(30000);
-        poolProperties.setIgnoreExceptionOnPreLoad(true);
 
         return poolProperties;
     }

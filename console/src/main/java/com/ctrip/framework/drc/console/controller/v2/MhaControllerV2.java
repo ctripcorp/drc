@@ -270,4 +270,34 @@ public class MhaControllerV2 {
         }
     }
 
+    @GetMapping("columnDefault")
+    public ApiResult findColumnDefaultValueLengthGt251(@RequestParam String mha) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.findColumnDefaultValueLengthGt251(mha));
+        } catch (Exception e) {
+            logger.error("findColumnDefaultValueLengthGt251 error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("columnDefault/list")
+    public ApiResult findColumnDefaultValueLengthGt251(@RequestBody List<String> mhas) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.findColumnDefaultValueLengthGt251(mhas));
+        } catch (Exception e) {
+            logger.error("findColumnDefaultValueLengthGt251 error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("columnDefault/listAll")
+    public ApiResult findAllColumnDefaultValueLengthGt251(@RequestParam int batch) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.findAllColumnDefaultValueLengthGt251(batch));
+        } catch (Exception e) {
+            logger.error("findAllColumnDefaultValueLengthGt251 error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
 }

@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueView;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
@@ -65,4 +67,12 @@ public interface MhaServiceV2 {
     List<MhaTblV2> queryMhas(MhaQueryParam param) throws Exception;
     
     MachineTbl getMasterNode(Long mhaId) throws SQLException;
+
+    MhaColumnDefaultValueDto findColumnDefaultValueLengthGt251(String mha);
+
+    MhaColumnDefaultValueView findColumnDefaultValueLengthGt251(List<String> mhas);
+
+    MhaColumnDefaultValueView findAllColumnDefaultValueLengthGt251(int batch) throws SQLException;
+
+
 }

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -10,17 +11,13 @@ import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
-import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
-import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
-import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVoApiResult;
-import com.ctrip.framework.drc.console.vo.check.v2.StatementExecutorApResult;
-import com.ctrip.framework.drc.console.vo.check.v2.TableColumnsApiResult;
+import com.ctrip.framework.drc.console.vo.check.v2.*;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTask;
@@ -31,7 +28,7 @@ import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRe
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -410,6 +407,19 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         AccountEndpoint accEndpoint = new AccountEndpoint(endpoint.getHost(), endpoint.getPort(), account, pwd, true);
         return MySqlUtils.getAccountPrivilege(accEndpoint,true);
     }
-    
-    
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/columnDefault", responseType = ColumnDefaultApiResult.class)
+    public List<MySqlUtils.ColumnDefault> getMhaColumnDefaultValue(String mha) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("getMhaColumnDefaultValue from {} , endpoint not exist", mha);
+            return new ArrayList<>();
+        }
+
+        List<MySqlUtils.ColumnDefault> columnDefaultList = MySqlUtils.getColumnDefaultValue(endpoint);
+        return columnDefaultList;
+    }
+
+
 }
