@@ -216,7 +216,7 @@ public class CurrentMeta implements Releasable {
         private Logger logger = LoggerFactory.getLogger(getClass());
 
         @JsonIgnore
-        private List<Releasable> resources = Lists.newArrayList();
+        private final List<Releasable> resources = Lists.newArrayList();
 
         private AtomicBoolean replicatorWatched = new AtomicBoolean(false);
 
@@ -246,7 +246,9 @@ public class CurrentMeta implements Releasable {
         }
 
         public void addResource(Releasable releasable) {
-            resources.add(releasable);
+            synchronized (resources) {
+                resources.add(releasable);
+            }
         }
 
         @Override
