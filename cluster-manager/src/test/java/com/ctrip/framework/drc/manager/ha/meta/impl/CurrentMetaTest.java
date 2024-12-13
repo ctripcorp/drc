@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Author limingdong
@@ -245,5 +246,25 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
 
         appliers = currentMeta.getSurviveAppliers(CLUSTER_ID, NameUtils.getApplierBackupRegisterKey(applier5));
         Assert.assertEquals(1, appliers.size());
+    }
+
+    @Test(timeout = 10000)
+    public void testAddResource() throws Exception {
+        CurrentMeta.CurrentClusterMeta currentClusterMeta = new CurrentMeta.CurrentClusterMeta();
+        int testCount = 10000;
+        AtomicInteger unreleasedCount = new AtomicInteger(testCount);
+
+        List<Thread> threads = Lists.newArrayList();
+        for (int i = 0; i < testCount; i++) {
+            Thread thread = new Thread(() -> currentClusterMeta.addResource(unreleasedCount::decrementAndGet));
+            threads.add(thread);
+        }
+        threads.forEach(Thread::start);
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        Assert.assertEquals(testCount, unreleasedCount.get());
+        currentClusterMeta.release();
+        Assert.assertEquals(0, unreleasedCount.get());
     }
 }
