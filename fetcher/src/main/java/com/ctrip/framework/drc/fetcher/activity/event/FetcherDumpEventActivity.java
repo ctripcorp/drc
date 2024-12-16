@@ -192,9 +192,11 @@ public abstract class FetcherDumpEventActivity extends DumpEventActivity<Fetcher
             if (lastTrxId == null) {
                 if (receivedStartAndEndTrxId != null) {
                     saveGapToInit(uuid, receivedStartAndEndTrxId.getStart() + 1, trxId - 1);
+                    tryInitGap(trxId);
                 }
             } else {
                 saveGapToInit(uuid, lastTrxId + 1, trxId - 1);
+                tryInitGap(trxId);
             }
         } else {
             if (gapInited) {
@@ -204,19 +206,22 @@ public abstract class FetcherDumpEventActivity extends DumpEventActivity<Fetcher
             } else {
                 if (trxId > lastTrxId + 1) {
                     saveGapToInit(uuid, lastTrxId + 1, trxId - 1);
-                }
-
-                if (receivedStartAndEndTrxId == null || trxId >= receivedStartAndEndTrxId.getEnd()) {
-                    loggerTT.info("[Merge][{}] save gap to init, last union gtid set: {}", registryKey, toInitGap);
-                    compensateGap(toInitGap);
-                    gapInited = true;
-                    clearInitedGap();
+                    tryInitGap(trxId);
                 }
             }
         }
 
         lastReceivedUuid = uuid;
         lastReceivedTxs.put(uuid, trxId);
+    }
+
+    private void tryInitGap(long trxId) {
+        if (receivedStartAndEndTrxId == null || trxId >= receivedStartAndEndTrxId.getEnd()) {
+            loggerTT.info("[Merge][{}] save gap to init, last union gtid set: {}", registryKey, toInitGap);
+            compensateGap(toInitGap);
+            gapInited = true;
+            clearInitedGap();
+        }
     }
 
     protected boolean shouldSkip(FetcherEvent logEvent) {
