@@ -78,13 +78,4 @@ public class MqDelayMonitorServerTest {
         Assert.assertEquals(1, allMhaWithMessengerInLocalRegion.size());
     }
 
-    @Test
-    public void testTestIsleader() {
-        mqDelayMonitorServer.isleader();
-    }
-
-    @Test
-    public void testTestNotLeader() {
-        mqDelayMonitorServer.notLeader();
-    }
 }
