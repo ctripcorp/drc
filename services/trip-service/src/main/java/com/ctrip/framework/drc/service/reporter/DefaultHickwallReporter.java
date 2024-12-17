@@ -12,6 +12,7 @@ import com.ctrip.ops.hickwall.HickwallUDPReporter;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import io.dropwizard.metrics5.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.annotation.Validated;
@@ -120,7 +121,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
                 (name, metric) ->  {
                     if (name.getKey().equalsIgnoreCase(measurement)) {
                         for (Map.Entry<String, String> entry : tagKvs.entrySet()) {
-                            if (!name.getTags().get(entry.getKey()).equalsIgnoreCase(entry.getValue())) {
+                            if (!StringUtils.equalsIgnoreCase(name.getTags().get(entry.getKey()), entry.getValue())) {
                                 return false;
                             }
                         }
