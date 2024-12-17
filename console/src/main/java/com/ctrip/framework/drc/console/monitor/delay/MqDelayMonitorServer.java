@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Order(0)
 @Component("mqDelayMonitorServer")
-public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
+public class MqDelayMonitorServer implements InitializingBean {
     
     @Autowired private MonitorTableSourceProvider monitorProvider;
     @Autowired private DefaultConsoleConfig consoleConfig;
@@ -47,8 +46,6 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
             getClass().getSimpleName() + "messengerMonitor");
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
-    
-    private volatile boolean isLeader = false;
     
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -64,7 +61,7 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     
     public void monitorMessengerChange() {
         try {
-            Set<String> mhas = isLeader ? this.getAllMhaWithMessengerInLocalRegion() : Sets.newHashSet();
+            Set<String> mhas = this.getAllMhaWithMessengerInLocalRegion();
             consumer.mhasRefresh(mhas);
         } catch (Throwable t) {
             logger.error("[[monitor=delay]] monitorMessengerChange fail",t);
@@ -93,20 +90,4 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
         return res;
     }
 
-    @Override
-    public void isleader() {
-        isLeader = true;
-        if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
-            boolean b = consumer.resumeListen();
-            logger.info("[[monitor=delay]] is leader,going to monitor messenger delayTime,result:{}",b);
-        }
-    }
-    
-    @Override
-    public void notLeader() {
-        isLeader = false;
-        boolean b = consumer.stopListen();
-        logger.info("[[monitor=delay]] not leader,stop monitor messenger delayTime,result:{}",b);
-    }
-    
 }

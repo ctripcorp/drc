@@ -48,8 +48,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     
     private Set<String> dcsRelated = Sets.newHashSet();
     private volatile Set<String> mhasRelated = Sets.newHashSet();
-    private volatile boolean running = true;
-    
+
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
     private final ScheduledExecutorService checkScheduledExecutor = 
@@ -67,8 +66,8 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             consumerProvider.init();
             listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
             checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss,5,1, TimeUnit.SECONDS);
-            listenerHolder.stopListen();
-            logger.info("qmq consumer init over,stop and wait for leadership gain");
+            listenerHolder.resumeListen();
+            logger.info("qmq consumer init over, start to listen");
         } catch (Exception e) {
             logger.error("unexpected exception occur in initConsumer",e);
         }
@@ -81,7 +80,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     @Override
     public boolean stopListen() {
-        running = false;
         if (listenerHolder == null) {
             return false;
         }
@@ -93,7 +91,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     @Override
     public boolean resumeListen(){
-        running = true;
         if (listenerHolder == null) {
             return false;
         }
@@ -129,10 +126,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
-            if (!running) {
-                logger.info("[[monitor=delay]] messenger consumer listener is stop, mha={}, delay={}", mhaName, delayTime);
-                return;
-            }
             DefaultReporterHolder.getInstance().reportMessengerDelay(
                     mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
             logger.info("[[monitor=delay,mha={},messageId={}]] report messenger delay:{} ms", mhaName, message.getMessageId(), delayTime);
