@@ -118,8 +118,8 @@ public class DalServiceImpl implements DalService {
 
     @Override
     public Map<String, MhaInstanceGroupDto> getMhaList(Env env) throws Exception {
-        String dalServicePrefix = domainConfig.getDalServicePrefix();
-        JsonNode resultNode = dbClusterApiServiceImpl.getMhaList(dalServicePrefix);
+        String dalServiceUrl = domainConfig.getDalInstanceGroupsUrl();
+        JsonNode resultNode = dbClusterApiServiceImpl.getMhaList(dalServiceUrl);
         Map<String, MhaInstanceGroupDto> mhaInstancesMap = new HashMap<>();
         for(JsonNode mhaInstanceGroupNode : resultNode) {
             String mhaName = mhaInstanceGroupNode.get("mhaName").asText();
