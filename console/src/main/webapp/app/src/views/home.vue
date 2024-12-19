@@ -1,6 +1,6 @@
 <template>
   <base-component>
-    <iframe :loading="dataLoading" :src="panelUrl"  :style="{padding: '10px', marginLeft: '185px', marginRight: '0px', border: 'none' }"  height="700px">
+    <iframe :loading="dataLoading" :src="panelUrl"  :style="{padding: '10px', marginLeft: '185px', marginRight: '0px', border: 'none' }"  height="1700px">
     </iframe>
   </base-component>
 </template>

@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.core.monitor.cases.PairCase;
 import com.ctrip.framework.drc.core.monitor.execution.Execution;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.ReadSqlOperator;
-import com.ctrip.framework.drc.monitor.config.ConfigService;
 import com.ctrip.framework.drc.monitor.function.cases.InsertCase;
 import com.ctrip.framework.drc.monitor.function.cases.insert.MultiStatementWriteCase;
 import com.ctrip.framework.drc.monitor.function.execution.WriteExecution;
@@ -52,7 +51,7 @@ public class TransactionTableConflictPairCase extends AbstractMultiWriteInTransa
             // 1. select src transaction table next gtid from src
             GtidSet gtidSet;
             try {
-                ReadResource select = ConfigService.getInstance().getOldGtidSqlSwitch() ? src.select(new SingleSelectExecution("show global variables like \"gtid_executed\";")) : src.select(new SingleSelectExecution("SELECT @@GLOBAL.gtid_executed;"));
+                ReadResource select = src.select(new SingleSelectExecution("SELECT @@GLOBAL.gtid_executed;"));
                 ResultSet resultSet = select.getResultSet();
                 if (resultSet.next()) {
                     String gtidStr = resultSet.getString(2);

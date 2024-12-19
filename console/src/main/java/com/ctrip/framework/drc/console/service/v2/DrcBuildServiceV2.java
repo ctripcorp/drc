@@ -64,11 +64,8 @@ public interface DrcBuildServiceV2 {
     void autoConfigReplicatorsWithGtid(MhaTblV2 mhaTbl, String gtidInit) throws SQLException;
 
     void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid,boolean switchOnly) throws SQLException;
-    void autoConfigMessengerM(MhaTblV2 srcMhaTbl, String gtid,boolean switchOnly) throws SQLException;
 
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException;
-
-    void autoConfigMessengersWithRealTimeGtidM(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException;
 
     void initReplicationTables() throws Exception;
 

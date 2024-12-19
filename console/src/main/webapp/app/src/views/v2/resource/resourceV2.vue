@@ -106,7 +106,7 @@
         </Modal>
         <Modal
           v-model="migrateApplierInfo.modal"
-          title="applier实例迁移"
+          :title="migrateApplierInfo.oldIpInfo.type === 1 ? 'applier实例迁移' : 'messenger实例迁移' "
           footer-hide="true"
           width="900px" :scrollable="true" :draggable="true">
           <Row :gutter=10>
@@ -127,7 +127,7 @@
                   {{ item }}
                 </Option>
               </Select>
-              <Button type="primary" style="margin-left: 100px" :loading="migrateApplierInfo.loading2" @click="migrateAllApplier">全部实例迁移</Button>
+              <Button type="primary" style="margin-left: 100px" :loading="migrateApplierInfo.loading2" @click="migrateAllApplierOrMessenger">全部实例迁移</Button>
             </FormItem>
             <FormItem>
               <Table stripe border :columns="migrateApplierInfo.columns" :data="aDataWithPage" ref="multipleTable" @on-selection-change="changeSelectionA">
@@ -146,7 +146,7 @@
               </div>
             </FormItem>
             <FormItem>
-              <Button type="primary" :loading="migrateApplierInfo.loading" @click="migrateApplier">迁移</Button>
+              <Button type="primary" :loading="migrateApplierInfo.loading" @click="migrateApplierOrMessenger">迁移</Button>
               <Button type="success" style="margin-left: 100px" @click="refreshMigrateApplier">刷新</Button>
             </FormItem>
           </Form>
@@ -723,7 +723,7 @@ export default {
       this.migrateReplicatorInfo.migrateMhaList = val
       console.log(this.migrateReplicatorInfo.migrateMhaList)
     },
-    migrateAllApplier () {
+    migrateAllApplierOrMessenger () {
       const newIp = this.migrateApplierInfo.newIp
       if (newIp === null || newIp === '') {
         this.$Message.warning('请选择目标ip')
@@ -746,7 +746,7 @@ export default {
             this.$Message.error('迁移失败' + res.data.message)
           }
         })
-      } else {
+      } else if (type === 7) {
         this.axios.post('/api/drc/v2/resource/migrate/messenger?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
           if (res.data.status === 0) {
             this.migrateApplierInfo.tableData = res.data.data
@@ -758,7 +758,7 @@ export default {
       }
       this.migrateApplierInfo.loading2 = false
     },
-    migrateApplier () {
+    migrateApplierOrMessenger () {
       const multiData = this.migrateApplierInfo.migrateDataList
       if (multiData === undefined || multiData === null || multiData.length === 0) {
         this.$Message.warning('请勾选！')
@@ -783,14 +783,26 @@ export default {
         applierResourceDtos: migrateApplierInfos
       }
       this.migrateApplierInfo.loading = true
-      this.axios.post('/api/drc/v2/resource/partialMigrate/applier', params).then(res => {
-        if (res.data.status === 0) {
-          this.migrateApplierInfo.tableData = res.data.data
-          this.$Message.success('共迁移' + res.data.data + '个实例')
-        } else {
-          this.$Message.error('迁移失败' + res.data.message)
-        }
-      })
+      if (this.migrateApplierInfo.oldIpInfo.type === 1) {
+        this.axios.post('/api/drc/v2/resource/partialMigrate/applier', params).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      } else {
+        this.axios.post('/api/drc/v2/resource/partialMigrate/messenger', params).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      }
+
       this.migrateApplierInfo.loading = false
     },
     migrateReplicator () {

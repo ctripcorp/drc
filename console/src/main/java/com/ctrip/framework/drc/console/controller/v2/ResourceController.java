@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dengquanliang
@@ -203,6 +205,18 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("partialMigrate/messenger")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
+            success = "partialMigrateMessenger with param {#param.toString()}")
+    public ApiResult<Integer> partialMigrateMessenger(@RequestBody ApplierMigrateParam param) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.partialMigrateMessenger(param));
+        } catch (Exception e) {
+            logger.error("partialMigrateApplier fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
     @PostMapping("migrate/slaveReplicator")
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
             success = "migrateSlaveReplicator with newIp {#newIp}, oldIp {#oldIp}")
@@ -229,7 +243,7 @@ public class ResourceController {
 
     @PostMapping("migrate/messenger")
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
-            success = "migrateApplier with newIp {#newIp}, oldIp {#oldIp}")
+            success = "migrateMessenger with newIp {#newIp}, oldIp {#oldIp}")
     public ApiResult<Integer> migrateMessenger(@RequestParam String newIp, @RequestParam String oldIp) {
         try {
             return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.MESSENGER.getCode()));
@@ -291,6 +305,17 @@ public class ResourceController {
             return ApiResult.getSuccessInstance(res);
         } catch (Exception e) {
             logger.error("getMessengersInAz, az={}, fail", region, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getMhaInstanceGroups")
+    public ApiResult<Map<String, MhaInstanceGroupDto>> getMhaInstanceGroups(@RequestParam String region) {
+        try {
+            Map<String, MhaInstanceGroupDto> res = resourceService.getMhaInstanceGroups(region);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getMhaInstanceGroup, az={}, fail", region, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

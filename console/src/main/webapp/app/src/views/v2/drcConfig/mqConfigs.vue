@@ -41,6 +41,7 @@
       title="MQ 投递配置"
       width="1200px"
     >
+      <p>【注意！！】测试版本，不再检查同表投递多topic，自行确认</p>
       <Modal
         v-model="tagInfo.modal"
         title="冲突配置"

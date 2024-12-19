@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReaderTest;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
@@ -217,7 +216,6 @@ import org.junit.runners.Suite;
         // QueryTask
         ExecutedGtidQueryTaskTest.class,
         DbTransactionTableGtidReaderTest.class,
-        ShowMasterGtidReaderTest.class,
 
         // Write row field with MySQL number type
         WriteFieldTinyTypeTest.class,

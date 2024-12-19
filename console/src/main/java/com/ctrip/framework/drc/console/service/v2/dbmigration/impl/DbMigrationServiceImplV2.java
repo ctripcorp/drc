@@ -897,9 +897,9 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         if (CollectionUtils.isEmpty(messengerTbls)) {
             return;
         }
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.APPLIER.getCode(), new ArrayList<>()));
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.MESSENGER.getCode(), new ArrayList<>()));
         if (resourceViews.size() != 2) {
-            throw ConsoleExceptionUtils.message("cannot select tow appliers for newMha");
+            throw ConsoleExceptionUtils.message("cannot select tow messenger for newMha");
         }
         messengerGroupTbl.setGtidExecuted(gtidInit);
         messengerGroupTbl.setMhaId(newMha.getId());
@@ -1078,7 +1078,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryById(mhaId);
         List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
-        List<ResourceView> resourceViews = autoSwitchAppliers(resourceIds, mhaTbl.getMhaName());
+        List<ResourceView> resourceViews = autoSwitchMessengers(resourceIds, mhaTbl.getMhaName());
         if (resourceViews.size() != messengerTbls.size()) {
             logger.warn("switchMessenger fail, mhaId: {}", mhaId);
             DefaultEventMonitorHolder.getInstance().logEvent("switchMessengerFail", mhaTbl.getMhaName());
@@ -1095,6 +1095,16 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<String> ips = resourceTblDao.queryByIds(resourceIds).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
+        selectParam.setMhaName(mhaName);
+        selectParam.setSelectedIps(ips);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
+        return resourceViews;
+    }
+
+    private List<ResourceView> autoSwitchMessengers(List<Long> resourceIds, String mhaName) throws Exception {
+        List<String> ips = resourceTblDao.queryByIds(resourceIds).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+        ResourceSelectParam selectParam = new ResourceSelectParam();
+        selectParam.setType(ModuleEnum.MESSENGER.getCode());
         selectParam.setMhaName(mhaName);
         selectParam.setSelectedIps(ips);
         List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);

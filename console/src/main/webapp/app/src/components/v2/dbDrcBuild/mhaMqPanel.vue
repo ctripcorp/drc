@@ -18,14 +18,10 @@
       </Panel>
     </Collapse>
     <br/>
-    <Button type="primary" @click="goToSwitchAppliers" icon="md-sync">
+    <Button type="primary" @click="goToSwitchMessengers" icon="md-sync">
       切换Messenger生效配置
     </Button>
     <br/>
-    <br/>
-    <Button type="warning" @click="goToSwitchMessengers" icon="md-sync">
-      切换Messenger生效配置（仅在type=messenger的资源中切换）
-    </Button>
   </div>
 </template>
 
@@ -52,7 +48,7 @@ export default {
     openModal (index) {
       this.$set(this.openDetailModal, index, true)
     },
-    goToSwitchAppliers () {
+    goToSwitchMessengers () {
       this.$Modal.confirm({
         title: '切换Messenger',
         content: '<p>请确认</p>',
@@ -62,44 +58,11 @@ export default {
         }
       })
     },
-    goToSwitchMessengers () {
-      this.$Modal.confirm({
-        title: '切换Messenger',
-        content: '<p>请确认</p>',
-        loading: true,
-        onOk: () => {
-          this.switchMessengersV2()
-        }
-      })
-    },
     switchMessengers () {
       const params = this.getSwitchParams()
       console.log(params)
       this.dataLoading = true
       this.axios.post('/api/drc/v2/autoconfig/switchMessengers', params)
-        .then(response => {
-          const data = response.data
-          const success = data.status === 0
-          if (success) {
-            this.$Message.success('提交成功')
-          } else {
-            this.$Message.warning('提交失败: ' + data.message)
-          }
-        })
-        .catch(message => {
-          this.$Message.error('提交异常: ' + message)
-        })
-        .finally(() => {
-          this.$Modal.remove()
-          this.dataLoading = false
-          this.$emit('updated')
-        })
-    },
-    switchMessengersV2 () {
-      const params = this.getSwitchParams()
-      console.log(params)
-      this.dataLoading = true
-      this.axios.post('/api/drc/v2/autoconfig/switchMessengersM', params)
         .then(response => {
           const data = response.data
           const success = data.status === 0

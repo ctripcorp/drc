@@ -171,6 +171,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         AccessControllerTest.class,
         SwitchControllerTest.class,
         ConfigControllerTest.class,
+        ResourceControllerTest.class,
 //        UserControllerTest.class,
         MetaControllerTest.class,
         OpenApiControllerTest.class,

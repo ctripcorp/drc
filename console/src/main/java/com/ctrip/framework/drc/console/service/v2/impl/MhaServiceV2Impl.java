@@ -296,8 +296,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             return new ArrayList<>();
         }
 
-        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode()) {
-            logger.info("resource type: {} can only be replicator or applier", type);
+        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+            logger.info("resource type: {} can only be replicator, applier or messenger", type);
             return new ArrayList<>();
         }
         DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
