@@ -61,6 +61,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
                     setTagType(TagType.AND).
                     setTags(Sets.newHashSet(DcTag.LOCAL.getName())).
+                    setConsumeStrategy(ConsumeStrategy.BROADCAST).
                     create();
             MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
             consumerProvider.init();
