@@ -7,15 +7,12 @@ import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName DomainConifg
@@ -36,6 +33,10 @@ public class DomainConfig extends AbstractConfigBean {
 
     private static final String DAL_SERVICE_PREFIX = "dal.service.prefix";
     private static final String DEFAULT_DAL_SERVICE_PREFIX = "http://localhost:8080/database/";
+
+    private static final String DAL_INSTANCEGROUPS_URL = "dal.instancegroups.url";
+    private static final String DEFAULT_DAL_INSTANCEGROUPS_URL = "http://localhost:8080/database/instanceGroups?operator=DRCConsole";
+
 
     private static final String DAL_CLUSTER_URL = "dal.cluster.url";
     private static final String DEFAULT_DAL_CLUSTER_URL = "http://localhost:8080/dalcluster/";
@@ -152,6 +153,10 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getDalServicePrefix() {
         return getProperty(DAL_SERVICE_PREFIX, DEFAULT_DAL_SERVICE_PREFIX);
+    }
+
+    public String getDalInstanceGroupsUrl() {
+        return getProperty(DAL_INSTANCEGROUPS_URL, DEFAULT_DAL_INSTANCEGROUPS_URL);
     }
 
     public String getDalClusterUrl() {
