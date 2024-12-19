@@ -551,6 +551,25 @@ public class PojoBuilder {
         return Lists.newArrayList(resourceTbl, resourceTbl1);
     }
 
+    public static List<ResourceTbl> getMessengerResources() {
+        ResourceTbl resourceTbl = new ResourceTbl();
+        resourceTbl.setId(200L);
+        resourceTbl.setAz("AZ");
+        resourceTbl.setIp("ip1");
+        resourceTbl.setTag("tag");
+        resourceTbl.setActive(1);
+        resourceTbl.setType(7);
+
+        ResourceTbl resourceTbl1 = new ResourceTbl();
+        resourceTbl1.setId(301L);
+        resourceTbl1.setAz("AZ");
+        resourceTbl1.setIp("ip2");
+        resourceTbl1.setTag("tag");
+        resourceTbl1.setActive(1);
+        resourceTbl1.setType(7);
+        return Lists.newArrayList(resourceTbl, resourceTbl1);
+    }
+
 
     public static List<DbReplicationFilterMappingTbl> getFilterMappings() {
         DbReplicationFilterMappingTbl tbl = new DbReplicationFilterMappingTbl();

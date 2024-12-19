@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.resource.impl;
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.ApplierInfoApiRes;
 import com.ctrip.framework.drc.console.aop.forward.response.MessengerInfoApiRes;
+import com.ctrip.framework.drc.console.aop.forward.response.MhaInstanceGroupApiRes;
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
@@ -347,8 +348,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException {
-        if (type != ModuleEnum.APPLIER.getCode()) {
-            logger.info("resource type: {} can only be applier", type);
+        if (type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+            logger.info("resource type: {} can only be applier or messenger", type);
             return new ArrayList<>();
         }
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
@@ -370,6 +371,8 @@ public class ResourceServiceImpl implements ResourceService {
         List<ResourceView> resourceViewsInUse = new ArrayList<>();
         if (type == ModuleEnum.APPLIER.getCode()) {
             resourceViewsInUse.addAll(getDbAppliersInUse(srcMhaName, dstMhaName));
+        }
+        if (type == ModuleEnum.MESSENGER.getCode()) {
             resourceViewsInUse.addAll(getDbMessengersInUse(srcMhaName));
         }
 
@@ -392,8 +395,6 @@ public class ResourceServiceImpl implements ResourceService {
         List<ResourceView> resourceViewsInUse = new ArrayList<>();
         if (type == ModuleEnum.REPLICATOR.getCode()) {
             resourceViewsInUse.addAll(getReplicatorsInUse(mhaTbl.getId()));
-        } else if (type == ModuleEnum.APPLIER.getCode()) {
-            resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
         } else if (type == ModuleEnum.MESSENGER.getCode()) {
             resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
         }
@@ -686,6 +687,24 @@ public class ResourceServiceImpl implements ResourceService {
 
         int result =  0;
         result += migrateDbApplier(newResource, applierTblV3s);
+        result += migrateMessenger(newResource, messengerTbls);
+        result += migrateDbMessenger(newResource, messengerTblsV3);
+
+        return result;
+    }
+
+    @Override
+    public int partialMigrateMessenger(ApplierMigrateParam param) throws Exception {
+        ResourceTbl newResource = resourceTblDao.queryByIp(param.getNewIp(), BooleanEnum.FALSE.getCode());
+        ResourceTbl oldResource = resourceTblDao.queryByIp(param.getOldIp(), BooleanEnum.FALSE.getCode());
+        checkMigrateResource(newResource, oldResource, ModuleEnum.MESSENGER.getCode());
+
+        List<Long> messengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
+        List<Long> dbMessengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.DB_MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByIds(messengerIds);
+        List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByIds(dbMessengerIds);
+
+        int result =  0;
         result += migrateMessenger(newResource, messengerTbls);
         result += migrateDbMessenger(newResource, messengerTblsV3);
 
@@ -1117,7 +1136,7 @@ public class ResourceServiceImpl implements ResourceService {
                         v -> Lists.newArrayList()
                 ));
 
-        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = getMhaInstanceGroupsInAllRegions();
         List<MhaTblV2> drcRelatedMha = mhaTblV2Dao.queryAllExist();
         List<String> drcRelatedMhaName = drcRelatedMha.stream().map(MhaTblV2::getMhaName).distinct().collect(Collectors.toList());
 
@@ -1301,6 +1320,33 @@ public class ResourceServiceImpl implements ResourceService {
                 .filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
 
         return masterApplierInfoDtos;
+    }
+
+    private Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() {
+        Map<String, Set<String>> regions2DcMap = consoleConfig.getRegion2dcsMapping();
+        List<String> regions = regions2DcMap.keySet().stream().collect(Collectors.toList());
+        Map<String, MhaInstanceGroupDto> allMhaInstanceGroups = Maps.newHashMap();
+        for (String region : regions) {
+            Map<String, MhaInstanceGroupDto> dtoMap = resourceService.getMhaInstanceGroups(region);
+            if (dtoMap == null) {
+                EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.mhaInstanceGroups.fail", region);
+            } else {
+                allMhaInstanceGroups.putAll(dtoMap);
+            }
+        }
+        return allMhaInstanceGroups;
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/resource/getMhaInstanceGroups", responseType = MhaInstanceGroupApiRes.class)
+    public Map<String, MhaInstanceGroupDto> getMhaInstanceGroups(String region) {
+        Map<String, MhaInstanceGroupDto> mhaInstanceGroupDtoMap = Maps.newHashMap();
+        try {
+            mhaInstanceGroupDtoMap = dalService.getMhaList(Foundation.server().getEnv());
+        } catch (Exception e) {
+            logger.error("getMhaInstanceGroups fail: " + e.getCause());
+        }
+        return mhaInstanceGroupDtoMap;
     }
 
     @Override

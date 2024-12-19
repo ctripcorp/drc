@@ -675,6 +675,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
             // one nameFilter only send to one topic
             List<MqConfigConflictTable> conflictTables = Lists.newArrayList();
+            // no need for send multi topic
             for (DbReplicationTbl replicationTbl : messengerDbReplications) {
                 Long dbId = mhaDbMappingMap.get(replicationTbl.getSrcMhaDbMappingId());
                 boolean dbNotExist = dbId == null || !dbTblMap.containsKey(dbId);
@@ -1076,37 +1077,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
         String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl(dcNameForMha);
         LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
-        requestBody.put("appCode", "100023500");
-        requestBody.put("subject", dto.getTopic());
-        requestBody.put("durable", false);
-        requestBody.put("tableStrategy", 0);
-        requestBody.put("qpsAvg", 1000);
-        requestBody.put("qpsMax", 5000);
-        requestBody.put("msgLength", 1000);
-        requestBody.put("platform", 1);
-        requestBody.put("creator", "drc");
-        requestBody.put("remark", "binlog_dataChange_message");
-
-        QmqApiResponse response = HttpUtils.post(producerApplicationUrl, getQmqApiHeader(), requestBody, QmqApiResponse.class);
-        if (response.getStatus() == 0) {
-            logger.info("[[tag=qmqInit]] init qmq producer success,topic:{}", dto.getTopic());
-        } else if (StringUtils.isNotBlank(response.getStatusMsg())
-                && response.getStatusMsg().contains("already existed")) {
-            logger.info("[[tag=qmqInit]] init success,qmq producer already existed,topic:{}", dto.getTopic());
-        } else {
-            logger.error("[[tag=qmqInit]] init qmq producer fail,MqConfigDto:{}", dto);
-            return false;
-        }
-        return true;
-    }
-
-    private boolean initProducerM(MqConfigDto dto, String dcNameForMha) {
-        if (defaultConsoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
-            logger.info("[[tag=qmqInit]] localConfigCloudDc init qmq topic:{}", dto.getTopic());
-            return true;
-        }
-        String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl(dcNameForMha);
-        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
         requestBody.put("appCode", "100059182");
         requestBody.put("subject", dto.getTopic());
         requestBody.put("durable", false);
@@ -1185,7 +1155,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 MqConfigDto dto = new MqConfigDto();
                 dto.setTopic(topicName);
                 for (String dcName : dcs) {
-                    this.initProducerM(dto, dcName);
+                    this.initProducer(dto, dcName);
                 }
                 result.put("success", Sets.newHashSet(topicName + ":" + String.join(",",dcs)));
             } catch (Exception e) {
@@ -1200,7 +1170,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 MqConfigDto dto = new MqConfigDto();
                 dto.setTopic(entry.getKey());
                 for (String dcName : entry.getValue()) {
-                    this.initProducerM(dto, dcName);
+                    this.initProducer(dto, dcName);
                 }
                 result.putIfAbsent("success", Sets.newHashSet());
                 result.get("success").add(entry.getKey() + ":" + String.join(",", entry.getValue()));
@@ -1233,9 +1203,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
         if (!this.initProducer(dto, dcName)) {
             throw new IllegalArgumentException("init producer error");
-        }
-        if (!this.initProducerM(dto, dcName)) {
-            throw new IllegalArgumentException("init producer(100059182) error");
         }
     }
 

@@ -201,17 +201,6 @@ export default {
           console.log(response.data)
           this.drc.replicatorList = response.data.data
         })
-      await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=1')
-        .then(response => {
-          const applierData = response.data.data
-          applierData.forEach(a => {
-            const existItem = this.drc.messengerList.find(existing => existing.ip === a.ip)
-            if (!existItem) {
-              this.drc.messengerList.push(a)
-            }
-          })
-          // this.drc.messengerList = { ...this.drc.messengerList, ...response.data.data }
-        })
       await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=7')
         .then(response => {
           const applierData = response.data.data

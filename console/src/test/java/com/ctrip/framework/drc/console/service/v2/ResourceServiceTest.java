@@ -19,7 +19,10 @@ import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
 import com.ctrip.framework.drc.console.vo.v2.*;
-import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.service.inquirer.ApplierInfoInquirer;
@@ -496,6 +499,7 @@ public class ResourceServiceTest {
         Map<String, Set<String>> regions2DcMap = Maps.newHashMap();
         regions2DcMap.put("sha", Sets.newHashSet());
         Mockito.when(consoleConfig.getRegion2dcsMapping()).thenReturn(regions2DcMap);
+        Mockito.when(resourceService2.getMhaInstanceGroups(Mockito.anyString())).thenReturn(PojoBuilder.getMhaInstanceGroups());
 
         MhaAzView result = resourceService.getAllInstanceAzInfo();
         Assert.assertEquals(result.getAz2mhaName().size(), 1);
@@ -587,5 +591,34 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.size(),1);
         Assert.assertEquals(result.get("dcId").size(), 2);
 
+    }
+
+    @Test
+    public void testPartialMigrateMessenger() throws Exception {
+        List<ResourceTbl> resourceTbls = getMessengerResources();
+        ApplierMigrateParam param = new ApplierMigrateParam();
+        param.setNewIp("newIp");
+        param.setOldIp("oldIp");
+        List<ApplierResourceDto> dtos = new ArrayList<>();
+        param.setApplierResourceDtos(dtos);
+        dtos.add(new ApplierResourceDto(200L, 1));
+        dtos.add(new ApplierResourceDto(200L, 2));
+        dtos.add(new ApplierResourceDto(200L, 3));
+        dtos.add(new ApplierResourceDto(200L, 4));
+
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("newIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
+        Mockito.when(resourceTblDao.queryByIp(Mockito.eq("oldIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
+
+        Mockito.when(messengerTblDao.queryByIds(Mockito.anyList())).thenReturn(getMessengers());
+        Mockito.when(dbMessengerTblDao.queryByIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+
+        Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
+        Mockito.when(dbMessengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+
+        Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbMessengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        int result = resourceService.partialMigrateMessenger(param);
+        Assert.assertEquals(result, 2);
     }
 }

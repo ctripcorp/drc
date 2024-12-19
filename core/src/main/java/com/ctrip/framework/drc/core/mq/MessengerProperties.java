@@ -112,31 +112,30 @@ public class MessengerProperties {
             return DelayMessageProducer.getInstance();
         }
 
-        List<Producer> toCreateProducers = Lists.newArrayList();
-        for (Map.Entry<String, List<MqConfig>> entry : regex2Configs.entrySet()) {
-            String tableRegex = entry.getKey().trim().toLowerCase();
-            if (regex2Filter.get(tableRegex).filter(formatTableName)) {
-                synchronized (this) {
-                    tableNameProducers = tableName2Producers.get(formatTableName);
-                    if (tableNameProducers != null) {
-                        return tableNameProducers;
-                    }
+        synchronized (this) {
+            List<Producer> producers = Lists.newArrayList();
+            if (tableName2Producers.get(formatTableName) != null) {
+                return tableName2Producers.get(formatTableName);
+            }
+            for (Map.Entry<String, List<MqConfig>> entry : regex2Configs.entrySet()) {
+                String tableRegex = entry.getKey().trim().toLowerCase();
+                if (regex2Filter.get(tableRegex).filter(formatTableName)) {
                     List<Producer> regexProducers = regex2Producers.get(tableRegex);
                     if (regexProducers == null) {
+                        List<Producer> newRegexProducers = Lists.newArrayList();
                         for (MqConfig mqConfig : entry.getValue()) {
                             Producer producer = DefaultProducerFactoryHolder.getInstance().createProducer(mqConfig);
-                            toCreateProducers.add(producer);
+                            producers.add(producer);
+                            newRegexProducers.add(producer);
                         }
-                        regex2Producers.put(tableRegex, toCreateProducers);
-                        tableName2Producers.put(formatTableName, toCreateProducers);
-                        return toCreateProducers;
+                        regex2Producers.put(tableRegex, newRegexProducers);
                     } else {
-                        tableName2Producers.put(formatTableName, regexProducers);
-                        return regexProducers;
+                        producers.addAll(regexProducers);
                     }
                 }
             }
+            tableName2Producers.put(formatTableName, producers);
+            return producers;
         }
-        return toCreateProducers;
     }
 }

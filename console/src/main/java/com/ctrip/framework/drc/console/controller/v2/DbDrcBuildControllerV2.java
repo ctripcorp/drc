@@ -263,19 +263,6 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
-    @PostMapping("switchMessengersM")
-    @SuppressWarnings("unchecked")
-    public ApiResult<Boolean> switchMessengersM(@RequestBody List<DbApplierSwitchReqDto> reqDtos) {
-        logger.info("[meta] autoBuildReq, req {}", reqDtos);
-        try {
-            dbDrcBuildService.switchMessengersM(reqDtos);
-            return ApiResult.getSuccessInstance(true);
-        } catch (Throwable e) {
-            logger.error("[meta] autoBuildReq, req {}", reqDtos, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("getRowsFilterView")
     @SuppressWarnings("unchecked")
     public ApiResult<RowsFilterConfigView> getRowsFilterView(@RequestParam("rowsFilterId") Long rowsFilterId) {
