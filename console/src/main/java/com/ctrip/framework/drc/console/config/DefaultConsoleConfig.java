@@ -103,6 +103,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String TABLE_STRUCTURE_CHECK_SWITCH = "table.structure.check.switch";
     private static String DB_REPLICATION_CONSISTENCY_CHECK_SWITCH = "db.replication.consistency.check.switch";
     private static String RESOURCE_AZ_CHECK_SWITCH = "resource.az.check.switch";
+    private static String SYNC_OFFLINED_MHA_SWITCH = "sync.offlined.mha.switch";
     private static String MHA_SYNC_STATUS_CHECK_SWITCH = "mha.sync.status.check.switch";
     private static String INSTANCE_AZ_CHECK_SWITCH = "instance.az.check.switch";
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
@@ -543,6 +544,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getResourceAzCheckSwitch() {
         return getBooleanProperty(RESOURCE_AZ_CHECK_SWITCH, true);
+    }
+
+    public boolean getSyncOfflinedMhaSwitch() {
+        return getBooleanProperty(SYNC_OFFLINED_MHA_SWITCH, true);
     }
 
     public boolean getMhaSyncStatusCheckSwitch() {

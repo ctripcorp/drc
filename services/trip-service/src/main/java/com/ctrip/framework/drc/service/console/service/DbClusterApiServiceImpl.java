@@ -18,6 +18,8 @@ import org.springframework.util.CollectionUtils;
 import java.util.List;
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.service.utils.Constants.*;
+
 /**
  * @ClassName DbClusterApiServiceImpl
  * @Author haodongPan
@@ -56,8 +58,20 @@ public class DbClusterApiServiceImpl implements DbClusterApiService {
     }
 
     @Override
-    public JsonNode getMhaList(String dalServiceUrl) {
-        String uri = dalServiceUrl;
+    public JsonNode getMhaList(String dalServicePrefix) {
+        String uri = dalServicePrefix + MHA_INSTANCES_GROUP_LIST;
+        return getResultNode(uri);
+    }
+
+    @Override
+    public JsonNode getMhaListAli(String dalServicePrefix) {
+        String uri = dalServicePrefix + MHA_INSTANCES_GROUP_LIST_ALI;
+        return getResultNode(uri);
+    }
+
+    @Override
+    public JsonNode getMhaListAws(String dalServicePrefix) {
+        String uri = dalServicePrefix + MHA_INSTANCES_GROUP_LIST_AWS;
         return getResultNode(uri);
     }
 

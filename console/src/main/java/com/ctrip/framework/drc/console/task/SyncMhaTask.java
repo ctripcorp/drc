@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.foundation.Foundation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,9 +113,6 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
                 if (null != mhaInstanceGroupDto) {
                     logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
                     dbMetaCorrectService.mhaInstancesChange(mhaInstanceGroupDto, mhaTblV2);
-                } else {
-                    // offline mha in drc
-                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.offline.mha", mhaTblV2.getMhaName());
                 }
             } catch (Exception e) {
                 logger.error("[[task=syncMhaTask]] update mha {} instance fail", mhaTblV2.getMhaName(), e);

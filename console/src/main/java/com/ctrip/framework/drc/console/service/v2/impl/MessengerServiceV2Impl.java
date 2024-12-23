@@ -675,8 +675,10 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
             // one nameFilter only send to one topic
             List<MqConfigConflictTable> conflictTables = Lists.newArrayList();
-            // no need for send multi topic
             for (DbReplicationTbl replicationTbl : messengerDbReplications) {
+                if (!replicationTbl.getDstLogicTableName().equalsIgnoreCase(dto.getTopic())) {
+                    continue;
+                }
                 Long dbId = mhaDbMappingMap.get(replicationTbl.getSrcMhaDbMappingId());
                 boolean dbNotExist = dbId == null || !dbTblMap.containsKey(dbId);
                 if (dbNotExist) {
@@ -1248,8 +1250,9 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             }
 
             // all topic tables
+            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), tablesToDelete.get(0).getSchema());
             List<MySqlUtils.TableSchemaName> allTables = Lists.newArrayList();
-            Map<String, List<String>> tableNameFiltersWithSameTopicGroupByMha = this.getTableNameFiltersWithSameTopic(topic);
+            Map<String, List<String>> tableNameFiltersWithSameTopicGroupByMha = this.getTableNameFiltersWithSameTopic(topic, dalClusterName);
             for (Map.Entry<String, List<String>> entry : tableNameFiltersWithSameTopicGroupByMha.entrySet()) {
                 String mhaName = entry.getKey();
                 List<String> sameTopicTableFilters = entry.getValue();
@@ -1264,7 +1267,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             List<MySqlUtils.TableSchemaName> remainTables = Lists.newArrayList(allTablesSet);
 
             // do update dal qmq config
-            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), tablesToDelete.get(0).getSchema());
             transactionMonitor.logTransaction(
                     "QConfig.OpenApi.MqConfig.Delete",
                     topic,
@@ -1293,7 +1295,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         return mqConfigVos.stream().filter(e -> dbReplicationIds.contains(e.getDbReplicationId())).collect(Collectors.groupingBy(MqConfigVo::getTopic));
     }
 
-    private Map<String, List<String>> getTableNameFiltersWithSameTopic(String topic) throws SQLException {
+    private Map<String, List<String>> getTableNameFiltersWithSameTopic(String topic, String dalclusterName) throws Exception {
         // query other table with same topic
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, ReplicationTypeEnum.DB_TO_MQ.getType());
         List<Long> srcMhaDbMapping = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
@@ -1306,9 +1308,27 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
         List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
-        Map<Long, String> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        List<DbTbl> dbTblsForSameDalCluster = Lists.newArrayList();
+        List<Callable<String>> list = Lists.newArrayList();
+        for (DbTbl dbTbl : dbTbls) {
+            list.add(() -> dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbTbl.getDbName()));
+        }
+        List<Future<String>> futures = executorService.invokeAll(list, 5, TimeUnit.SECONDS);
+        for (int i = 0; i < futures.size(); i++) {
+            Future<String> future = futures.get(i);
+            String result = future.get();
+            if (dalclusterName.equals(result)) {
+                dbTblsForSameDalCluster.add(dbTbls.get(i));
+            }
+        }
 
-        return dbReplicationTbls.stream().collect(Collectors.groupingBy(e -> {
+        Map<Long, String> dbMap = dbTblsForSameDalCluster.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+
+        return dbReplicationTbls.stream().filter(e -> {
+                    Long dbId = mappingIdToDbIdMap.get(e.getSrcMhaDbMappingId());
+                    String db = dbMap.get(dbId);
+                    return db != null;
+                }).collect(Collectors.groupingBy(e -> {
                             Long mhaId = mappingIdToMhaIdMap.get(e.getSrcMhaDbMappingId());
                             MhaTblV2 mhaTblV2 = mhaTblV2Map.get(mhaId);
                             return mhaTblV2.getMhaName();

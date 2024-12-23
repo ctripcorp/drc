@@ -203,8 +203,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setTable("db1\\.(table1|table2)");
         MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(2, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // partial conflict
@@ -217,8 +216,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setTable("db1\\.(table1|table999)");
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(1, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // test no table
@@ -251,24 +249,24 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     }
 
 
-//    @Test
-//    public void testCheckMqConfigForSameDbSameTopic() {
-//        MqConfigDto dto = new MqConfigDto();
-//        // all conflict
-//        List<MySqlUtils.TableSchemaName> ret1 = Lists.newArrayList(
-//                new MySqlUtils.TableSchemaName("db1", "table1"),
-//                new MySqlUtils.TableSchemaName("db1", "table2")
-//        );
-//        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret1);
-//        dto.setMhaName("mha1");
-//        dto.setTable("db1\\.(table1|table2)");
-//        dto.setTopic("bbz.mha1.binlog");
-//        dto.setDbReplicationId(3L);
-//        MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
-//        System.out.println(JSON.toJSONString(result));
-//        Assert.assertFalse(result.getAllowSubmit());
-//        Assert.assertEquals(2, result.getConflictTables().size());
-//    }
+    @Test
+    public void testCheckMqConfigForSameDbSameTopic() {
+        MqConfigDto dto = new MqConfigDto();
+        // all conflict
+        List<MySqlUtils.TableSchemaName> ret1 = Lists.newArrayList(
+                new MySqlUtils.TableSchemaName("db1", "table1"),
+                new MySqlUtils.TableSchemaName("db1", "table2")
+        );
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret1);
+        dto.setMhaName("mha1");
+        dto.setTable("db1\\.(table1|table2)");
+        dto.setTopic("bbz.mha1.binlog");
+        dto.setDbReplicationId(3L);
+        MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
+        System.out.println(JSON.toJSONString(result));
+        Assert.assertFalse(result.getAllowSubmit());
+        Assert.assertEquals(2, result.getConflictTables().size());
+    }
 
     @Test
     public void testCheckMqConfigForUpdate() {
@@ -284,8 +282,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setDbReplicationId(3L);
         MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(2, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // partial conflict
@@ -299,8 +296,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setDbReplicationId(1L);
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(1, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // no conflict: different db
