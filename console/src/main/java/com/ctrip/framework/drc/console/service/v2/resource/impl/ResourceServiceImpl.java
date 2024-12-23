@@ -1297,8 +1297,6 @@ public class ResourceServiceImpl implements ResourceService {
         ApplierInfoInquirer applierInquirer = ApplierInfoInquirer.getInstance();
         List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
         for (String applierIp : ips) {
-            applierIp = applierIp.replace("[","");
-            applierIp = applierIp.replace("]","");
             applierIp = applierIp.trim();
             futures.add(applierInquirer.query(applierIp + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT));
         }
@@ -1335,8 +1333,6 @@ public class ResourceServiceImpl implements ResourceService {
         MessengerInquirer messengerInquirer = MessengerInquirer.getInstance();
         List<Future<List<MessengerInfoDto>>> futures = Lists.newArrayList();
         for (String messengerIp : ips) {
-            messengerIp = messengerIp.replace("[","");
-            messengerIp = messengerIp.replace("]","");
             messengerIp = messengerIp.trim();
             futures.add(messengerInquirer.query(messengerIp + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT));
         }

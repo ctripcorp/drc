@@ -62,8 +62,10 @@ const tagList = [
   'FLT',
   'HTL',
   'OI',
-  'TEST',
-  'TRAVIX'
+  'TRAVIX',
+  'FNC',
+  'PCI',
+  'TEST'
 ]
 const azList = [
   'SHARB',

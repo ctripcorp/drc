@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.entity.SimpleInstance;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.InfoDto;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
 import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -47,6 +48,7 @@ public abstract class AbstractInstanceManager extends AbstractCurrentMetaObserve
     @Autowired
     private ClusterServerStateManager clusterServerStateManager;
 
+    protected BatchInfoInquirer batchInfoInquirer = BatchInfoInquirer.getInstance();
 
     private ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create(getClass().getSimpleName()));
 

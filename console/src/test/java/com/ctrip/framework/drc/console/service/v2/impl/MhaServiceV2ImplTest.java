@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -279,9 +280,9 @@ public class MhaServiceV2ImplTest {
         List<ResourceTbl> resourceTbls = JSON.parseArray("[{\"id\":1,\"type\":0,\"ip\":\"1.113.60.1\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"},{\"id\":2,\"type\":0,\"ip\":\"1.113.60.2\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"}]", ResourceTbl.class);
         when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(resourceTbls);
 
-        List<String> mha1 = mhaServiceV2.getMhaMessengers(mhaName);
+        MhaMessengerDto mhaMessengers = mhaServiceV2.getMhaMessengers(mhaName);
 
-        Assert.assertEquals(2, mha1.size());
+        Assert.assertEquals(2, mhaMessengers.getIps().size());
     }
 
     @Test

@@ -13,20 +13,12 @@ const routes = [
     component: () => import('../views/mq.vue')
   },
   {
-    path: '/monitor',
-    component: () => import('../views/monitor.vue')
-  },
-  {
     path: '/proxyRouteCluster',
     component: () => import('../views/v2/resource/proxyRouteCluster.vue')
   },
   {
     path: '/proxyRouteManagement',
     component: () => import('../views/v2/resource/proxyRouteManagement.vue')
-  },
-  {
-    path: '/manage',
-    component: () => import('../views/manage.vue')
   },
   {
     path: '/drcResource',
@@ -37,11 +29,6 @@ const routes = [
     path: '/proxyResource',
     name: 'proxyResource',
     component: () => import('../views/v2/resource/proxyResource.vue')
-  },
-  {
-    path: '/conflict',
-    name: 'conflict',
-    component: () => import('../views/handleConflict.vue')
   },
   {
     path: '/incrementDataConsistencyCheck',
@@ -99,11 +86,6 @@ const routes = [
     component: () => import('../views/monitor/unitRouteVerificationResult.vue')
   },
   {
-    path: '/rowsFilterConfigs',
-    name: 'rowsFilterConfigs',
-    component: () => import('../views/drcConfig/rowsFilterConfigs.vue')
-  },
-  {
     path: '/buildMetaMessage',
     name: 'buildMetaMessage',
     component: () => import('../views/filter/buildMetaMessage.vue')
@@ -122,11 +104,6 @@ const routes = [
     path: '/metaMapping',
     name: 'metaMapping',
     component: () => import('../views/filter/metaMapping.vue')
-  },
-  {
-    path: '/mqConfigs',
-    name: 'mqConfigs',
-    component: () => import('../views/drcConfig/mqConfigs.vue')
   },
   // v2 new model
   {
@@ -229,7 +206,6 @@ const routes = [
   },
   {
     path: '/conflictApproval',
-    name: 'conflictApproval',
     component: () => import('../views/log/conflictApproval.vue')
   },
   {
@@ -259,12 +235,12 @@ const routes = [
   },
   {
     path: '/drcBuild',
-    name: 'applicationBuild',
+    name: 'drcBuild',
     component: () => import('../views/v2/application/drcBuild.vue')
   },
   {
     path: '/mha',
-    name: 'applicationBuild',
+    name: 'mha',
     component: () => import('../views/v2/meta/mha.vue')
   },
   {

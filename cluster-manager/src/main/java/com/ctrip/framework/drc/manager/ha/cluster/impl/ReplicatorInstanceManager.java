@@ -100,7 +100,7 @@ public class ReplicatorInstanceManager extends AbstractInstanceManager implement
 
         @Override
         protected Pair<List<String>, List<ReplicatorInfoDto>> fetchInstanceInfo(List<Instance> instances) {
-            return instanceStateController.getReplicatorInfo(instances);
+            return batchInfoInquirer.getReplicatorInfo(instances);
         }
 
         @Override

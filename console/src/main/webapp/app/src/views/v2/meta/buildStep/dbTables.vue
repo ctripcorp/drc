@@ -9,6 +9,7 @@
         }
       }">首页
       </BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/drcV2',query :{
           step: 3,
@@ -18,7 +19,7 @@
           dstDc: this.initInfo.dstDc,
           order: this.initInfo.order
         }
-      }">DRC配置V2
+      }">DRC-MHA 配置
       </BreadcrumbItem>
       <BreadcrumbItem>同步表</BreadcrumbItem>
     </Breadcrumb>

@@ -61,6 +61,7 @@ import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.server.utils.MetaCloneTest;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirerTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
 import com.ctrip.framework.drc.core.utils.EncryptUtilsTest;
@@ -294,6 +295,9 @@ import org.junit.runners.Suite;
         
         //entity json parse
         HickWallConflictCountTest.class,
+
+        //service
+        BatchInfoInquirerTest.class,
 
         MetaCloneTest.class
 })

@@ -6,15 +6,15 @@
     </Alert>
     <Row>
       <i-col span="12">
-        <Form ref="drc1" :model="srcBuildParam" :rules="ruleDrc" :label-width="250"
+        <Form ref="drc1" :model="srcBuildParam" :rules="ruleDrc" :label-width="200"
               style="float: left; margin-top: 50px">
           <FormItem label="源集群名" prop="srcMhaName" style="width: 600px">
             <Input v-model="srcBuildParam.mhaName" @input="changeSrcMha" placeholder="请输入源集群名"/>
           </FormItem>
           <FormItem label="选择Replicator" prop="replicator">
-            <Select v-model="srcBuildParam.replicatorIps" multiple style="width: 250px" placeholder="选择源集群Replicator">
-              <Option v-for="item in replicatorList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az
-                }}
+            <Select v-model="srcBuildParam.replicatorIps" multiple style="width: 300px" :key="replicatorInstanceInfo.src" placeholder="选择源集群Replicator">
+              <Option v-for="item in replicatorList.src" :value="item.ip" :key="item.ip">{{ item.ip }} — {{ item.az }}
+                {{getRole(item.ip, replicatorInstanceInfo.src)}}
               </Option>
             </Select>
             &nbsp;
@@ -45,15 +45,15 @@
         </Form>
       </i-col>
       <i-col span="12">
-        <Form ref="drc1" :model="dstBuildParam" :rules="ruleDrc" :label-width="250"
+        <Form ref="drc1" :model="dstBuildParam" :rules="ruleDrc" :label-width="200"
               style="float: left; margin-top: 50px">
           <FormItem label="目标集群名" prop="dstMhaName" style="width: 600px">
             <Input v-model="dstBuildParam.mhaName" @input="changeDstMha" placeholder="请输入目标集群名"/>
           </FormItem>
           <FormItem label="选择Replicator" prop="replicator">
-            <Select v-model="dstBuildParam.replicatorIps" multiple style="width: 250px" placeholder="选择目标集群Replicator">
-              <Option v-for="item in replicatorList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az
-                }}
+            <Select v-model="dstBuildParam.replicatorIps" multiple style="width: 300px" :key="replicatorInstanceInfo.dst" placeholder="选择目标集群Replicator">
+              <Option v-for="item in replicatorList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} — {{ item.az }}
+                {{getRole(item.ip, replicatorInstanceInfo.dst)}}
               </Option>
             </Select>
             &nbsp;
@@ -199,6 +199,10 @@ export default {
         replicatorIps: [],
         replicatorInitGtid: ''
       },
+      replicatorInstanceInfo: {
+        src: [],
+        dst: []
+      },
       dstBuildData: {
         dbApplierDtos: []
       },
@@ -292,6 +296,7 @@ export default {
       this.axios.get('/api/drc/v2/mha/replicator?mhaName=' + this.srcBuildParam.mhaName)
         .then(response => {
           this.srcBuildParam.replicatorIps = response.data.data
+          this.getReplicatorInstances(true)
         })
     },
     getDstMhaReplicatorsInUse () {
@@ -299,7 +304,21 @@ export default {
         .then(response => {
           console.log(response.data)
           this.dstBuildParam.replicatorIps = response.data.data
+          this.getReplicatorInstances(false)
         })
+    },
+    getReplicatorInstances (isSrc) {
+      const param = isSrc ? this.srcBuildParam : this.dstBuildParam
+      this.axios.get('/api/drc/v2/remote/resource/replicatorInstances', {
+        params: {
+          mhaName: param.mhaName,
+          ips: param.replicatorIps.join(',')
+        }
+      }).then(response => {
+        const instances = response.data.data
+        console.log('replicator instance: ', instances)
+        isSrc ? this.replicatorInstanceInfo.src = instances : this.replicatorInstanceInfo.dst = instances
+      })
     },
     getMhaDbAppliersInUse () {
       this.axios.get('/api/drc/v2/config/mha/dbApplier?srcMhaName=' + this.dstBuildParam.mhaName + '&dstMhaName=' + this.srcBuildParam.mhaName)
@@ -360,6 +379,17 @@ export default {
             this.testSuccess2 = false
           }
         })
+    },
+    getRole (ip, currentInstances) {
+      if (!currentInstances || currentInstances.length === 0) {
+        return ''
+      }
+      for (const instance of currentInstances) {
+        if (instance.ip === ip) {
+          return ' — ' + (instance.master ? 'Master' : 'Slave')
+        }
+      }
+      return ''
     },
     queryDstMhaGtidCheckRes () {
       if (this.dstBuildParam.replicatorInitGtid == null || this.dstBuildParam.replicatorInitGtid === '') {

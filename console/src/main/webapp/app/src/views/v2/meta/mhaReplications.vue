@@ -2,7 +2,8 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/mhaReplications">MHA 复制链路</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
+      <BreadcrumbItem >MHA 复制链路</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
@@ -157,7 +158,6 @@
                   <DropdownMenu >
                     <DropdownItem @click.native="() => {$router.push({path: '/drcV2'})}">新建DRC配置（MHA）</DropdownItem>
                     <DropdownItem @click.native="() => {$router.push({path: '/v2/dbDrcBuild'})}">新建DRC配置（DB维度）</DropdownItem>
-                    <DropdownItem @click.native="() => {$router.push({path: '/mha'})}">MHA集群</DropdownItem>
                   </DropdownMenu>
                 </template>
               </Dropdown>
@@ -470,7 +470,7 @@ export default {
       },
       dbNames: this.$route.query.dbNames,
       drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
-      dbDrcStatus: this.$route.query.dbDrcStatus ? Number(this.$route.query.dbDrcStatus) : 0,
+      dbDrcStatus: this.$route.query.dbDrcStatus ? Number(this.$route.query.dbDrcStatus) : 1,
       preciseSearchMode: this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true',
       timerId: null,
       // get from backend

@@ -10,7 +10,7 @@ import java.util.Objects;
  */
 public class MhaMqDto {
     private MhaDto srcMha;
-    private MhaApplierDto mhaMessengerDto;
+    private MhaMessengerDto mhaMessengerDto;
     private List<MhaDbReplicationDto> mhaDbReplications;
 
     public MhaDto getSrcMha() {
@@ -28,11 +28,11 @@ public class MhaMqDto {
         this.mhaDbReplications = mhaDbReplications;
     }
 
-    public MhaApplierDto getMhaMessengerDto() {
+    public MhaMessengerDto getMhaMessengerDto() {
         return mhaMessengerDto;
     }
 
-    public void setMhaMessengerDto(MhaApplierDto mhaMessengerDto) {
+    public void setMhaMessengerDto(MhaMessengerDto mhaMessengerDto) {
         this.mhaMessengerDto = mhaMessengerDto;
     }
 

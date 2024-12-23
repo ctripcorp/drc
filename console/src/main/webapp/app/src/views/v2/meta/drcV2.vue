@@ -9,7 +9,8 @@
         }
       }">首页
       </BreadcrumbItem>
-      <BreadcrumbItem to="/drcV2">DRC配置V2</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
+      <BreadcrumbItem to="/drcV2">DRC-MHA 配置</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">
       <template>
@@ -25,16 +26,6 @@
       <pre-check-v2 v-if="current === 2" v-bind="clusterPair" />
       <drc-build-v2 v-if="current === 3" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:srcMhaNameChanged="updateSrcMha" v-on:dstMhaNameChanged="updateDstMha" />
       <Divider/>
-      <div style="padding: 1px 1px; height: 100px; margin-top: 75px">
-        <div>
-          <Button type="primary" @click="prev" style="position: absolute; left: 465px" v-if="current > 0 ">
-            上一步
-          </Button>
-          <Button type="primary" @click="next" style="position: absolute; left: 790px" v-if="current < 4">
-            下一步
-          </Button>
-        </div>
-      </div>
     </Content>
   </base-component>
 </template>

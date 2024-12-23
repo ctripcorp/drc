@@ -5,14 +5,12 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DisposableFeature;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
@@ -151,7 +149,7 @@ public class MhaControllerV2 {
     }
 
     @GetMapping("messenger")
-    public ApiResult<List<String>> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName) {
+    public ApiResult<MhaMessengerDto> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName) {
         try {
             return ApiResult.getSuccessInstance(mhaServiceV2.getMhaMessengers(mhaName));
         } catch (Throwable e) {

@@ -3,7 +3,7 @@
 <!--    todo by yongnian test-->
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/messengersV2">Messenger 集群</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/messengersV2">Messenger 同步</BreadcrumbItem>
       <BreadcrumbItem :to="{
           path: '/v2/buildMessengerV2',query :{
           step: 3,
