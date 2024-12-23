@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
@@ -499,7 +500,6 @@ public class ResourceServiceTest {
         Map<String, Set<String>> regions2DcMap = Maps.newHashMap();
         regions2DcMap.put("sha", Sets.newHashSet());
         Mockito.when(consoleConfig.getRegion2dcsMapping()).thenReturn(regions2DcMap);
-        Mockito.when(resourceService2.getMhaInstanceGroups(Mockito.anyString())).thenReturn(PojoBuilder.getMhaInstanceGroups());
 
         MhaAzView result = resourceService.getAllInstanceAzInfo();
         Assert.assertEquals(result.getAz2mhaName().size(), 1);
@@ -620,5 +620,13 @@ public class ResourceServiceTest {
 
         int result = resourceService.partialMigrateMessenger(param);
         Assert.assertEquals(result, 2);
+    }
+    @Test
+    public void testgetMhaInstanceGroupsInAllRegions() throws Exception{
+        Mockito.when(dalService.getMhaList(Mockito.any())).thenReturn(PojoBuilder.getMhaInstanceGroups());
+        Mockito.when(dalService.getMhaListAli(Mockito.any())).thenReturn(Maps.newHashMap());
+        Mockito.when(dalService.getMhaListAws(Mockito.any())).thenReturn(Maps.newHashMap());
+        Map<String, MhaInstanceGroupDto> res = resourceService.getMhaInstanceGroupsInAllRegions();
+        Assert.assertEquals(1, res.size());
     }
 }

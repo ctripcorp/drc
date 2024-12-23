@@ -35,6 +35,16 @@ public class BlankDbClusterApiServiceImpl implements DbClusterApiService {
     }
 
     @Override
+    public JsonNode getMhaListAli(String dalServicePrefix) throws Exception {
+        return null;
+    }
+
+    @Override
+    public JsonNode getMhaListAws(String dalServicePrefix) throws Exception {
+        return null;
+    }
+
+    @Override
     public ApiResult switchDalClusterType(String dalClusterName,String dalServicePrefix, DalClusterTypeEnum typeEnum, String zoneId) throws Exception {
         return null;
     }

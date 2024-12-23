@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.service.v2.resource.impl;
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.ApplierInfoApiRes;
 import com.ctrip.framework.drc.console.aop.forward.response.MessengerInfoApiRes;
-import com.ctrip.framework.drc.console.aop.forward.response.MhaInstanceGroupApiRes;
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
@@ -1322,31 +1321,12 @@ public class ResourceServiceImpl implements ResourceService {
         return masterApplierInfoDtos;
     }
 
-    private Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() {
-        Map<String, Set<String>> regions2DcMap = consoleConfig.getRegion2dcsMapping();
-        List<String> regions = regions2DcMap.keySet().stream().collect(Collectors.toList());
+    public Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() throws Exception {
         Map<String, MhaInstanceGroupDto> allMhaInstanceGroups = Maps.newHashMap();
-        for (String region : regions) {
-            Map<String, MhaInstanceGroupDto> dtoMap = resourceService.getMhaInstanceGroups(region);
-            if (dtoMap == null) {
-                EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.mhaInstanceGroups.fail", region);
-            } else {
-                allMhaInstanceGroups.putAll(dtoMap);
-            }
-        }
+        allMhaInstanceGroups.putAll(dalService.getMhaList(Foundation.server().getEnv()));
+        allMhaInstanceGroups.putAll(dalService.getMhaListAli(Foundation.server().getEnv()));
+        allMhaInstanceGroups.putAll(dalService.getMhaListAws(Foundation.server().getEnv()));
         return allMhaInstanceGroups;
-    }
-
-    @Override
-    @PossibleRemote(path = "/api/drc/v2/resource/getMhaInstanceGroups", responseType = MhaInstanceGroupApiRes.class)
-    public Map<String, MhaInstanceGroupDto> getMhaInstanceGroups(String region) {
-        Map<String, MhaInstanceGroupDto> mhaInstanceGroupDtoMap = Maps.newHashMap();
-        try {
-            mhaInstanceGroupDtoMap = dalService.getMhaList(Foundation.server().getEnv());
-        } catch (Exception e) {
-            logger.error("getMhaInstanceGroups fail: " + e.getCause());
-        }
-        return mhaInstanceGroupDtoMap;
     }
 
     @Override

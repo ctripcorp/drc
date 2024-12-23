@@ -21,20 +21,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonObject;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName QConfigServiceImpl
@@ -104,7 +101,11 @@ public class QConfigServiceImpl implements QConfigService {
             if (fileDetailResponse.isExist()) {
                 FileDetailData fileDetailData = fileDetailResponse.getData();
                 Map<String, String> originalConfig = string2config(fileDetailData.getData());
-                Map<String, String> configContext = processAddOrUpdateConfig(topic,tag, matchTables,originalConfig);
+                List<TableSchemaName> tablesNeedChange = filterTablesWithAnotherMqInQConfig(originalConfig, matchTables, topic);
+                if (CollectionUtils.isEmpty(tablesNeedChange)) {
+                    continue;
+                }
+                Map<String, String> configContext = processAddOrUpdateConfig(topic,tag, tablesNeedChange,originalConfig);
                 int version = fileDetailResponse.getData().getEditVersion();
                 List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
                 BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv,
@@ -136,6 +137,30 @@ public class QConfigServiceImpl implements QConfigService {
         return batchActionFlag;
     }
 
+    private List<TableSchemaName> filterTablesWithAnotherMqInQConfig(Map<String, String> originalConfig, List<TableSchemaName> matchTables, String topic) {
+        List<TableSchemaName> tables = Lists.newArrayList();
+        tables.addAll(matchTables);
+        List<TableSchemaName> tablesToDelete = Lists.newArrayList();
+        Iterator<Map.Entry<String, String>> iterator = originalConfig.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, String> statusEntry = iterator.next();
+            Map.Entry<String, String> dbNameEntry = iterator.next();
+            Map.Entry<String, String> tableNameEntry = iterator.next();
+            Set<String> dbNamesInQConfig = Sets.newHashSet(dbNameEntry.getValue().split(","));
+            Set<String> tableNamesInQConfig = Sets.newHashSet(tableNameEntry.getValue().split(","));
+            if (statusEntry.getValue().equalsIgnoreCase(OFF)) {
+                continue;
+            }
+            for (TableSchemaName item : matchTables) {
+                if (dbNamesInQConfig.contains(item.getSchema()) && tableNamesInQConfig.contains(item.getName())) {
+                    tablesToDelete.add(item);
+                }
+            }
+        }
+        tables.removeAll(tablesToDelete);
+        return tables;
+    }
+
     @Override
     public boolean updateDalClusterMqConfig(String dcName, String topic, String dalClusterName, List<TableSchemaName> matchTables) {
         Set<String> dcsInSameRegion = domainConfig.getIDCsInSameRegion(dcName);
@@ -153,10 +178,17 @@ public class QConfigServiceImpl implements QConfigService {
                 continue;
             }
 
+            FileDetailData fileDetailData = fileDetailResponse.getData();
+            Map<String, String> originalConfig = string2config(fileDetailData.getData());
+            if (!originalConfig.containsKey(topic + "." + STATUS)) {
+                continue;
+            }
+            List<TableSchemaName> tablesNeedChange = filterTablesWithAnotherMqInQConfig(originalConfig, matchTables, topic);
+
             int version = fileDetailResponse.getData().getEditVersion();
 
             // put result
-            Map<String, String> configContext = convertToContext(topic, matchTables);
+            Map<String, String> configContext = convertToContext(topic, tablesNeedChange);
             List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
             BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
 

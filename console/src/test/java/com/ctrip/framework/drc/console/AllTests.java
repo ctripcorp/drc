@@ -203,6 +203,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaSyncStatusCheckTaskTest.class,
         ResourceAzCheckTaskTest.class,
         InstancesAzCheckTaskTest.class,
+        SyncOfflinedMhaTaskTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service.remote.qconfig;
 
 
-
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.remote.qconfig.request.CreateFileRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.BatchUpdateResponse;
@@ -16,18 +15,15 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.*;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 
 public class QConfigServiceImplTest {
     
@@ -248,6 +244,70 @@ public class QConfigServiceImplTest {
     }
 
 
+    @Test
+    public void testSameTableMultiTopic() throws SQLException {
+        String envName = Foundation.server().getEnv().getName().toLowerCase();
+        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
+            theMock.when(() -> {
+                HttpUtils.get(
+                        Mockito.eq("url/configs"
+                                + "?token={token}"
+                                + "&groupid={groupid}"
+                                + "&dataid={dataid}"
+                                + "&env={env}"
+                                + "&subenv={subenv}"
+                                + "&targetgroupid={targetgroupid}"),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(JsonUtils.toJson(mockExistingQmDetailResponse()));
+
+
+            theMock.when(() -> {
+                HttpUtils.post(Mockito.eq("url"
+                                + "/properties/binlog-topic-registry/envs/"
+                                + envName
+                                + "/subenvs/SHAXY"
+                                + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}"),
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(mockBatchUpdateResponse());
+
+            boolean b1 = qConfigService.addOrUpdateDalClusterMqConfig(
+                    "shaxy",
+                    "topicName2",
+                    "dalclusterName",
+                    null,
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t1"));
+                    }}
+            );
+            theMock.verify(Mockito.times(0), () -> HttpUtils.post(Mockito.anyString(),Mockito.any(),Mockito.eq(BatchUpdateResponse.class),Mockito.anyMap()));
+
+            boolean b2 = qConfigService.updateDalClusterMqConfig(
+                    "shaxy",
+                    "topicName2",
+                    "dalclusterName",
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db2", "t2"));
+                    }}
+            );
+            theMock.verify(Mockito.times(0), () -> HttpUtils.post(Mockito.anyString(),Mockito.any(),Mockito.eq(BatchUpdateResponse.class),Mockito.anyMap()));
+
+            boolean b3 = qConfigService.addOrUpdateDalClusterMqConfig(
+                    "shaxy",
+                    "topicName2",
+                    "dalclusterName",
+                    null,
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t1"));
+                        add(new TableSchemaName("db2", "t3"));
+                    }}
+            );
+            theMock.verify(Mockito.times(1), () -> HttpUtils.post(Mockito.anyString(),Mockito.any(),Mockito.eq(BatchUpdateResponse.class),Mockito.anyMap()));
+
+        }
+    }
 
 
     private BatchUpdateResponse mockBatchUpdateResponse() {
@@ -272,6 +332,19 @@ public class QConfigServiceImplTest {
         fileDetailData.setData("topicName.status=off\ntopicName.dbName=db1,db2\ntopicName.tableName=t1,t2");
         fileDetail.setData(fileDetailData);
         
+        return fileDetail;
+    }
+
+    private FileDetailResponse mockExistingQmDetailResponse() {
+        FileDetailResponse fileDetail = new FileDetailResponse();
+        fileDetail.setStatus(0);
+        fileDetail.setMessage("message");
+
+        FileDetailData fileDetailData = new FileDetailData();
+        fileDetailData.setEditVersion(0);
+        fileDetailData.setData("topicName.status=on\ntopicName.dbName=db1,db2\ntopicName.tableName=t1,t2");
+        fileDetail.setData(fileDetailData);
+
         return fileDetail;
     }
     

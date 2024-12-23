@@ -78,5 +78,5 @@ public interface ResourceService {
 
     List<MessengerInfoDto> getMessengersInAz(String region, List<String> ips);
 
-    Map<String, MhaInstanceGroupDto> getMhaInstanceGroups(String region);
+    Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() throws Exception;
 }

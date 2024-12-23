@@ -30,6 +30,8 @@ public class Constants {
     public static String MEMORY_META_SERVER_DAO_KEY = "memory_meta_server_dao_file";
 
     public static final String MHA_INSTANCES_GROUP_LIST = "instanceGroups?operator=DRCConsole";
+    public static final String MHA_INSTANCES_GROUP_LIST_ALI = "instanceGroups?operator=DRCConsole&instanceGroupType=ali";
+    public static final String MHA_INSTANCES_GROUP_LIST_AWS = "instanceGroups?operator=DRCConsole&instanceGroupType=aws";
     
     public static final String ESCAPE_CHARACTER_DOT_REGEX = "\\\\\\.";
     public static final String ESCAPE_DOT_REGEX = "\\.";

@@ -1,12 +1,14 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
-import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
-import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.MhaView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
@@ -17,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by dengquanliang
@@ -308,16 +309,4 @@ public class ResourceController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-
-    @GetMapping("getMhaInstanceGroups")
-    public ApiResult<Map<String, MhaInstanceGroupDto>> getMhaInstanceGroups(@RequestParam String region) {
-        try {
-            Map<String, MhaInstanceGroupDto> res = resourceService.getMhaInstanceGroups(region);
-            return ApiResult.getSuccessInstance(res);
-        } catch (Exception e) {
-            logger.error("getMhaInstanceGroup, az={}, fail", region, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
 }
