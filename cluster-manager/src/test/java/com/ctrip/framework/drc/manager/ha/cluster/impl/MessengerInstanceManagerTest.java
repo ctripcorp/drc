@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -62,6 +63,9 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
     private DefaultClusterManagers clusterServers;
     @Mock
     private ClusterServerStateManager clusterServerStateManager;
+
+    @Mock
+    BatchInfoInquirer batchInfoInquirer;
 
 
     @Before
@@ -173,7 +177,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -189,7 +193,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -208,7 +212,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -227,7 +231,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -248,7 +252,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addMessenger(any(), any());
@@ -265,7 +269,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
 
         MessengerInstanceManager.MessengerChecker checker = messengerInstanceManager.getChecker();
         checker.run();
@@ -288,7 +292,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addMessenger(any(), any());
@@ -310,7 +314,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.3", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.2.3");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, times(1)).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -329,7 +333,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -349,7 +353,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -369,7 +373,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
                 getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addMessenger(any(), any());

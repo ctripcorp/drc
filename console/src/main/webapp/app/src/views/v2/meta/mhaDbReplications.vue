@@ -130,7 +130,7 @@
           <Col span="2" style="display: flex;float: left;margin: 5px" >
             <Dropdown placement="bottom-start">
               <Button type="default" icon="ios-hammer">
-                新建配置
+                操作
                 <Icon type="ios-arrow-down"></Icon>
               </Button>
                 <template #list>
@@ -140,6 +140,20 @@
                   </DropdownMenu>
                 </template>
               </Dropdown>
+          </Col>
+          <Col span="2" style="display: flex;float: left;margin: 5px" >
+            <Dropdown placement="bottom-start">
+              <Button type="default" icon="ios-list-box-outline">
+                查询
+                <Icon type="ios-arrow-down"></Icon>
+              </Button>
+              <template #list>
+                <DropdownMenu >
+                  <DropdownItem @click.native="() => {$router.push({path: '/v2/mhaReplications'})}">MHA 复制链路</DropdownItem>
+                  <DropdownItem @click.native="() => {$router.push({path: '/mha'})}">MHA 集群</DropdownItem>
+                </DropdownMenu>
+              </template>
+            </Dropdown>
           </Col>
         </Row>
         <Table :loading="dataLoading" stripe border :columns="columns" :resizable="true" :data="replications" :span-method="handleSpan">

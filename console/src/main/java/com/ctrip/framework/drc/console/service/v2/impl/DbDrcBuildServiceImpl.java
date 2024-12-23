@@ -721,14 +721,9 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
 
     private void setMhaMessengers(MhaMqDto mhaReplicationDto) {
-        try {
-            String srcMhaName = mhaReplicationDto.getSrcMha().getName();
-            List<String> ips = mhaServiceV2.getMhaMessengers(srcMhaName);
-            String applierGtid = messengerServiceV2.getMessengerGtidExecuted(srcMhaName);
-            mhaReplicationDto.setMhaMessengerDto(new MhaApplierDto(ips, applierGtid));
-        } catch (Exception e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
+        String srcMhaName = mhaReplicationDto.getSrcMha().getName();
+        MhaMessengerDto mhaMessengerDto = mhaServiceV2.getMhaMessengers(srcMhaName);
+        mhaReplicationDto.setMhaMessengerDto(mhaMessengerDto);
     }
 
     @Override

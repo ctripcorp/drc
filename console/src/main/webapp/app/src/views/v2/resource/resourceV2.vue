@@ -26,7 +26,7 @@
                   </Select>
                 </Col>
                 <Col span="4">
-                  <Select filterable clearable v-model="queryParam.tag" placeholder="tag" @on-change="getResources">
+                  <Select filterable clearable allow-create v-model="queryParam.tag" placeholder="tag" @on-change="getResources" @on-create="handleAddTag">
                     <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </Col>
@@ -107,7 +107,7 @@
         <Modal
           v-model="migrateApplierInfo.modal"
           :title="migrateApplierInfo.oldIpInfo.type === 1 ? 'applier实例迁移' : 'messenger实例迁移' "
-          footer-hide="true"
+          :footer-hide=true
           width="900px" :scrollable="true" :draggable="true">
           <Row :gutter=10>
             <Col span="4">
@@ -154,7 +154,7 @@
         <Modal
           v-model="migrateReplicatorInfo.modal"
           title="replicator实例迁移"
-          footer-hide="true"
+          :footer-hide=true
           width="900px" :scrollable="true" :draggable="true">
           <Row :gutter=10>
             <Col span="4">
@@ -1048,6 +1048,9 @@ export default {
           that.dataLoading = false
         })
     },
+    handleAddTag (val) {
+      this.constant.tagList.push(val)
+    },
     handleChangeSize (val) {
       this.size = val
       this.$nextTick(() => {
@@ -1109,7 +1112,7 @@ export default {
         } else {
           this.$Message.warning('停用失败')
         }
-        // this.getResources()
+        this.getResources()
       })
     },
     activeResource (resourceId) {
@@ -1119,7 +1122,7 @@ export default {
         } else {
           this.$Message.warning('启用失败')
         }
-        // this.getResources()
+        this.getResources()
       })
     },
     flattenObj (ob) {

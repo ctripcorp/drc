@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
@@ -25,10 +26,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @ClassName RemoteAspect
@@ -137,12 +135,30 @@ public class RemoteHttpAspect {
         boolean isFirstArgs = true;
         for (Map.Entry<String, Object> entry : args.entrySet()) {
             if (isFirstArgs) {
-                regionUrl.append("?").append(entry.getKey()).append("=").append(entry.getValue());
+                regionUrl.append("?");
                 isFirstArgs = false;
             } else {
-                regionUrl.append("&").append(entry.getKey()).append("=").append(entry.getValue());
+                regionUrl.append("&");
             }
+            String str = parseArgValue(entry.getValue());
+            regionUrl.append(entry.getKey()).append("=").append(str);
         }
+    }
+
+    @VisibleForTesting
+    public static String parseArgValue(Object value) {
+        if (value instanceof List) {
+            StringBuilder sb = new StringBuilder();
+            List list = (List) value;
+            for (int i = 0; i < list.size(); i++) {
+                sb.append(list.get(i));
+                if (i != list.size() - 1) {
+                    sb.append(",");
+                }
+            }
+            return sb.toString();
+        }
+        return String.valueOf(value);
     }
 
     private String getDcNameByArgs(Map<String, Object> arguments, PossibleRemote possibleRemote) {

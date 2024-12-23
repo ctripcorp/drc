@@ -33,12 +33,6 @@ public interface InstanceStateController extends Lifecycle {
 
     DbCluster registerApplier(String clusterId, Applier applier);
 
-    Pair<List<String>, List<ApplierInfoDto>> getMessengerInfo(List<? extends Instance> messengers);
-
-    Pair<List<String>, List<ApplierInfoDto>> getApplierInfo(List<? extends Instance> appliers);
-
-    Pair<List<String>, List<ReplicatorInfoDto>> getReplicatorInfo(List<? extends Instance> appliers);
-
     void removeApplier(String clusterId, Applier applier, boolean delete);
 
     DbCluster applierMasterChange(String clusterId, Pair<String, Integer> newMaster, Applier applier);

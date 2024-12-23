@@ -420,49 +420,4 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         instanceStateController.removeMessenger(CLUSTER_ID, newMessenger, false);
         Thread.sleep(50);
     }
-
-    @Test
-    public void testGetApplierInfo(){
-        List<Applier> appliers = Lists.newArrayList(
-                new Applier().setIp("127.0.0.1").setPort(8080)
-        );
-        ApplierInfoInquirer instance = ApplierInfoInquirer.getInstance();
-        RestOperations mock = mock(RestOperations.class);
-        ApplierInfoDto dto = new ApplierInfoDto();
-        dto.setIp("127.0.0.1");
-        dto.setRegistryKey("test.test");
-        dto.setPort(8080);
-        dto.setReplicatorIp("127.1.0.1");
-        ApiResult<List<ApplierInfoDto>> objectApiResult = ApiResult.getSuccessInstance(Lists.newArrayList(dto));
-        ResponseEntity value = new ResponseEntity(objectApiResult, HttpStatus.ACCEPTED);
-        when(mock.exchange(anyString(),any(),any(HttpEntity.class),any(Class.class))).thenReturn(value);
-        instance.setRestTemplate(mock);
-
-        Pair<List<String>, List<ApplierInfoDto>> applierInfo = instanceStateController.getApplierInfoInner(appliers);
-        System.out.println(applierInfo);
-        Assert.assertEquals(1,applierInfo.getKey().size());
-    }
-
-
-    @Test
-    public void testGetReplicatorInfo(){
-        List<Applier> appliers = Lists.newArrayList(
-                new Applier().setIp("127.0.0.1").setPort(8080)
-        );
-        ReplicatorInfoInquirer instance = ReplicatorInfoInquirer.getInstance();
-        RestOperations mock = mock(RestOperations.class);
-        ReplicatorInfoDto dto = new ReplicatorInfoDto();
-        dto.setIp("127.0.0.1");
-        dto.setRegistryKey("test.test");
-        dto.setPort(8080);
-        dto.setUpstreamMasterIp("127.1.0.1");
-        ApiResult<List<ReplicatorInfoDto>> objectApiResult = ApiResult.getSuccessInstance(Lists.newArrayList(dto));
-        ResponseEntity value = new ResponseEntity(objectApiResult, HttpStatus.ACCEPTED);
-        when(mock.exchange(anyString(),any(),any(HttpEntity.class),any(Class.class))).thenReturn(value);
-        instance.setRestTemplate(mock);
-
-        Pair<List<String>, List<ReplicatorInfoDto>> replicatorInfo = instanceStateController.getReplicatorInfo(appliers);
-        System.out.println(replicatorInfo);
-        Assert.assertEquals(1,replicatorInfo.getKey().size());
-    }
 }

@@ -9,6 +9,7 @@
         }
       }">首页
       </BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/drcV2',query :{
           step: 3,
@@ -18,9 +19,9 @@
           dstDc: this.initInfo.dstDc,
           order: this.initInfo.order
         }
-      }">DRC配置V2
+      }">DRC-MHA 配置
       </BreadcrumbItem>
-      <BreadcrumbItem>同步表</BreadcrumbItem>
+      <BreadcrumbItem>Db Applier 配置</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
@@ -45,29 +46,18 @@
                   v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
           </Button>
         </Col>
-        <Col span="3" style="display: flex;float: right;margin: 5px; margin-left: auto; " >
-          <Dropdown placement="bottom-start">
-            <Button type="default" icon="ios-hammer">
-              其他操作
-              <Icon type="ios-arrow-down"></Icon>
-            </Button>
-            <template #list>
-              <DropdownMenu >
-              </DropdownMenu>
-            </template>
-          </Dropdown>
-        </Col>
       </Row>
 
       <Table style="margin-top: 0px" stripe :columns="columns" :data="tableData" :loading="dataLoading" border
              ref="multipleTable"
              @on-selection-change="changeSelection">
                     <template #applier="{row, index}">
-                      <Select v-if="showSelectOptionComponent" :transfer="true" v-model="tableData[index].ips" multiple style="width: 250px"
+                      <Select v-if="showSelectOptionComponent" :transfer="true" v-model="tableData[index].ips" multiple style="width: 300px"
                               placeholder="选择源集群Applier">
                         <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
                             item.az
                           }}
+                          {{getRole(item.ip, currentInstances.get(tableData[index].dbName))}}
                         </Option>
                       </Select>
                       <Button v-if="showSelectOptionComponent" :loading="applierDataLoading[index]" type="success" size="small" style="margin-left: 10px"
@@ -117,32 +107,6 @@
             <Table style="margin-top: 20px" stripe :columns="updateColumns" :data="updateData" border>
             </Table>
           </template>
-        </div>
-      </Modal>
-      <Modal
-          v-model="rollbackModal"
-          title="回滚至 MHA 同步"
-          width="1200px"
-          @on-ok="clearAndUpdateMhaGtid">
-        <div :style="{padding: '1px 1px',height: '100%'}">
-          <p>
-            <span style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">你正在进行回滚操作，将更新mha位点，并清空所有 db applier！</span>
-          </p>
-          <Divider></Divider>
-          <Form style="width: 80%">
-            <FormItem label="当前 DB 同步位点">
-              <template>
-                <Table style="margin-top: 20px" stripe :columns="dbGtidColumns" :data="gtidCheck.dbApplied" border>
-                </Table>
-              </template>
-            </FormItem>
-            <FormItem label="当前 Mha 同步位点">
-              <Input :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaApplied" readonly/>
-            </FormItem>
-            <FormItem label="回滚后，Mha 初始同步位点将被设置为：">
-              <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.mhaTarget" readonly/>
-            </FormItem>
-          </Form>
         </div>
       </Modal>
 
@@ -205,7 +169,7 @@ export default {
         {
           title: 'Applier',
           slot: 'applier',
-          width: 400,
+          width: 500,
           renderHeader: (h, params) => {
             return h('span', [
               h('span', 'Applier 配置 -- '),
@@ -317,6 +281,7 @@ export default {
       propertiesJson: {},
       tableData: [],
       dbApplierDtos: [],
+      currentInstances: {},
       total: 0,
       size: 5,
       pageSizeOpts: [5, 10, 20, 100]
@@ -361,6 +326,17 @@ export default {
     changeSelection (val) {
       this.initInfo.multiData = val
       console.log(this.initInfo.multiData)
+    },
+    getRole (ip, currentInstances) {
+      if (!currentInstances || currentInstances.length === 0) {
+        return ''
+      }
+      for (const instance of currentInstances) {
+        if (instance.ip === ip) {
+          return ' — ' + (instance.master ? 'Master' : 'Slave')
+        }
+      }
+      return ''
     },
     flattenObj (ob) {
       const result = {}
@@ -483,9 +459,25 @@ export default {
         } else {
           this.tableData = response.data.data
           this.dbApplierDtos = response.data.data
+          this.getDbApplierInstances()
         }
       }).finally(() => {
         this.dataLoading = false
+      })
+    },
+    getDbApplierInstances () {
+      const applierIps = []
+      this.dbApplierDtos.forEach((dbApplierDto) => {
+        applierIps.push(dbApplierDto.ips)
+      })
+      this.axios.get('/api/drc/v2/remote/resource/dbApplierInstances', {
+        params: {
+          src: this.initInfo.srcMhaName,
+          mhaName: this.initInfo.dstMhaName,
+          ips: applierIps.join(',')
+        }
+      }).then(response => {
+        this.currentInstances = new Map(Object.entries(response.data.data))
       })
     },
     preBatchUpdate () {
@@ -498,21 +490,6 @@ export default {
       this.updateData = multiData
       this.target.ips = []
       this.target.gtid = ''
-    },
-    clearAndUpdateMhaGtid () {
-      // 1. clear db applier
-      this.tableData.forEach(row => {
-        row.ips = this.target.ips
-        row.gtidInit = this.target.gtid
-      })
-      // 2. set mha gtid to be update
-      this.mhaApplierInitGtid = this.gtidCheck.mhaTarget
-      if (!this.gtidCheck.mhaTarget || this.gtidCheck.mhaTarget.length === 0) {
-        this.$Message.warning('回滚失败，target mha gtid 不存在')
-        return
-      }
-      // 3. submit
-      this.submitDbAppliers()
     },
     batchUpdateAppliers () {
       const selectedDbNames = this.$refs.multipleTable.getSelection().map(e => e.dbName)
@@ -567,15 +544,6 @@ export default {
     })
   },
   computed: {
-    dbApplierEmpty () {
-      const dbApplierDtos = this.dbApplierDtos
-      for (const x of dbApplierDtos) {
-        if (x.ips && x.ips.length > 0) {
-          return false
-        }
-      }
-      return true
-    },
     showSelectOptionComponent () {
       return this.tableData.length <= 50
     }

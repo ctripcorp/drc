@@ -35,7 +35,7 @@ public abstract class AbstractInfoInquirer<T> implements InfoInquirer<T> {
     private static final String INFO_URL = "http://%s/%s";
 
     private final ExecutorService executorService;
-    private RestOperations restTemplate = RestTemplateFactory.createCommonsHttpRestTemplate(4, 40, CONNECTION_TIMEOUT, 5000, 0, new RestOperationsRetryPolicyFactory(RETRY_INTERVAL)); //retry by Throwable
+    private RestOperations restTemplate = RestTemplateFactory.createCommonsHttpRestTemplate(4, 40, CONNECTION_TIMEOUT, 2000, 0, new RestOperationsRetryPolicyFactory(RETRY_INTERVAL)); //retry by Throwable
 
     protected AbstractInfoInquirer() {
         int threadNum = DynamicConfig.getInstance().getInfoInquiryThread();

@@ -2,19 +2,19 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem >Messenger 集群</BreadcrumbItem>
+      <BreadcrumbItem >Messenger 同步</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Row :gutter=10 align="middle">
-          <Col span="2">
+          <Col span="3">
             <Card :padding=5>
               <template #title>DB 相关</template>
               <Input prefix="ios-search" v-model="dbNames" placeholder="DB 名↵" @on-enter="getAllMessengerVos()">
               </Input>
             </Card>
           </Col>
-          <Col span="2">
+          <Col span="6">
             <Card :padding=5>
               <template #title> topic </template>
               <Input prefix="ios-search" v-model="topic" placeholder="topic" @on-enter="getAllMessengerVos()">

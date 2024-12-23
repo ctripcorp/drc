@@ -4,13 +4,20 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.*;
-import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
 import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueView;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
@@ -418,12 +425,12 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    public List<String> getMhaMessengers(String mhaName) {
+    public MhaMessengerDto getMhaMessengers(String mhaName) {
         try {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
             if (mhaTblV2 == null) {
                 logger.info("mha: {} not exist", mhaName);
-                return Collections.emptyList();
+                return new MhaMessengerDto();
             }
             MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
@@ -431,7 +438,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
             List<ResourceTbl> resourceTbl = resourceTblDao.queryByIds(resourceIds);
             List<String> ips = resourceTbl.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-            return ips;
+            return new MhaMessengerDto(ips, messengerGroupTbl.getGtidExecuted());
         } catch (SQLException e) {
             logger.error("getMhaAvailableMessengerResource exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);

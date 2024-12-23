@@ -121,7 +121,7 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
     protected class ApplierChecker extends InstancePeriodicallyChecker<Applier, ApplierInfoDto> {
         @Override
         protected Pair<List<String>, List<ApplierInfoDto>> fetchInstanceInfo(List<Instance> instances) {
-            return instanceStateController.getApplierInfo(instances);
+            return batchInfoInquirer.getApplierInfo(instances);
         }
 
         @Override

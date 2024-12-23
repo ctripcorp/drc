@@ -128,7 +128,7 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
     protected class MessengerChecker extends InstancePeriodicallyChecker<Messenger, ApplierInfoDto> {
         @Override
         protected Pair<List<String>, List<ApplierInfoDto>> fetchInstanceInfo(List<Instance> instances) {
-            return instanceStateController.getMessengerInfo(instances);
+            return batchInfoInquirer.getMessengerInfo(instances);
         }
 
         @Override

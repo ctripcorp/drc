@@ -9,7 +9,7 @@
           <Button icon="ios-open-outline" @click="openModal(index)" style="margin-bottom: 10px"> 打开详情</Button>
           <mha-db-mq-panel :mha-mq-dtos="mhaMqDto"/>
               <Modal v-model="openDetailModal[index]" width="1500px" :footer-hide="true">
-                <drc-config ref="dbReplicationConfigComponent" v-if="openDetailModal[index]"
+                <drc-mq-config ref="dbReplicationConfigComponent" v-if="openDetailModal[index]"
                               :mha-name="mhaMqDto.srcMha.name"
                               :dc="mhaMqDto.srcMha.dcName"
                 />
@@ -28,11 +28,11 @@
 <script>
 
 import MhaDbMqPanel from '@/components/v2/dbDrcBuild/mhaDbMqPanel.vue'
-import DrcConfig from '@/components/v2/mhaMessengers/drcConfig.vue'
+import DrcMqConfig from '@/components/v2/mhaMessengers/drcMqConfig.vue'
 
 export default {
   name: 'mhaMqPanel',
-  components: { DrcConfig, MhaDbMqPanel },
+  components: { DrcMqConfig, MhaDbMqPanel },
   props: {
     mhaMqDtos: Array
   },

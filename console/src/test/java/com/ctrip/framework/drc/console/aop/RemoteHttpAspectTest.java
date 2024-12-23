@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.assertj.core.util.Lists;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
@@ -52,7 +53,6 @@ public class RemoteHttpAspectTest {
     private ResourceService proxy2;
 
 
-
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -82,7 +82,7 @@ public class RemoteHttpAspectTest {
     }
 
     @Test
-    public void testForwardByArgsInResourceService() throws Exception{
+    public void testForwardByArgsInResourceService() throws Exception {
         Map<String, Set<String>> map = Maps.newHashMap();
         map.put("sha", Sets.newHashSet("sharb"));
         map.put("sin", Sets.newHashSet("sinaws"));
@@ -96,14 +96,14 @@ public class RemoteHttpAspectTest {
         Mockito.when(consoleConfig.getConsoleRegionUrls()).thenReturn(map2);
         try {
             proxy2.getAppliersInAz("sin", Lists.newArrayList());
-        } catch (Exception e){
+        } catch (Exception e) {
 
         }
         Mockito.verify(resourceServiceSpy, Mockito.never()).getAppliersInAz(Mockito.anyString(), Mockito.anyList());
 
         try {
             proxy2.getAppliersInAz("sha", Lists.newArrayList());
-        } catch (Exception e){
+        } catch (Exception e) {
 
         }
         Mockito.verify(resourceServiceSpy, Mockito.atLeastOnce()).getAppliersInAz(Mockito.anyString(), Mockito.anyList());
@@ -132,6 +132,13 @@ public class RemoteHttpAspectTest {
         // case2:localRegion is a public cloud region
         Mockito.when(consoleConfig.getRegion()).thenReturn("region2");
         proxy.getMhaExecutedGtid("mha1");
+
+    }
+
+    @Test
+    public void testParseHttpArg() {
+        Assert.assertEquals("ip1,ip2,ip333", RemoteHttpAspect.parseArgValue(Lists.newArrayList("ip1", "ip2","ip333")));
+        Assert.assertEquals("testStr", RemoteHttpAspect.parseArgValue("testStr"));
 
     }
 

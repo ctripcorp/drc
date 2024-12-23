@@ -162,6 +162,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DrcApplicationServiceTest.class,
         MetaAccountServiceImplTest.class,
         DbReplicationServiceImplTest.class,
+        RemoteResourceServiceImplTest.class,
 //
         // controller
         OperationLogControllerTest.class,
@@ -246,7 +247,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         CreatePojoTest.class,
         MhaDbDelayInfoDtoTest.class,
         MhaDbQueryDtoTest.class,
-        MhaApplierDtoTest.class,
+        MhaMessengerDtoTest.class,
         DbApplierSwitchReqDtoTest.class,
         MhaDbReplicationQueryDtoTest.class,
         DbMqCreateDtoTest.class,

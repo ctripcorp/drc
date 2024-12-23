@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
 import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueView;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
@@ -28,7 +29,7 @@ public interface MhaServiceV2 {
     List<MhaTblV2> queryRelatedMhaByDbName(List<String> dbNames) throws SQLException;
     List<String> getMhaReplicators(String mhaName) throws Exception;
     List<ReplicatorInfoDto> getMhaReplicatorsV2(String mhaName);
-    List<String> getMhaMessengers(String mhaName);
+    MhaMessengerDto getMhaMessengers(String mhaName);
 
     List<String> getMhaAvailableResource(String mhaName, int type) throws Exception;
     String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception;

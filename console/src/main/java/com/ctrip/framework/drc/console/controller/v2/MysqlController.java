@@ -183,14 +183,13 @@ public class MysqlController {
 
     @GetMapping("db/lastUpdateTime")
     @SuppressWarnings("unchecked")
-    public ApiResult<Map<String, Long>> getMhaDbLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha, @RequestParam String dbNames) {
+    public ApiResult<Map<String, Long>> getMhaDbLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha, @RequestParam List<String> dbNames) {
         logger.info("getMhaLastUpdateTime: {} for {}, {}", srcMha, mha, dbNames);
-        List<String> dbNameList = parseListString(dbNames);
         try {
-            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha) || CollectionUtils.isEmpty(dbNameList)) {
+            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha) || CollectionUtils.isEmpty(dbNames)) {
                 return ApiResult.getFailInstance(null, "mha name or dbNames should not be blank!");
             }
-            Map<String, Long> timeMap = mysqlServiceV2.getDbDelayUpdateTime(srcMha.trim(), mha.trim(), dbNameList);
+            Map<String, Long> timeMap = mysqlServiceV2.getDbDelayUpdateTime(srcMha.trim(), mha.trim(), dbNames);
             return ApiResult.getSuccessInstance(timeMap);
         } catch (Throwable e) {
             logger.error(String.format("getMhaDelay error: %s for %s (%s)", srcMha, mha, dbNames), e);
@@ -198,10 +197,6 @@ public class MysqlController {
         }
     }
 
-    // "[db1, db2]" -> "db1, db2" -> ["db1"," db2"] ->  ["db1","db2"]
-    private static List<String> parseListString(String listStr) {
-        return Arrays.stream(listStr.substring(1, listStr.length() - 1).split(",")).map(String::trim).collect(Collectors.toList());
-    }
 
     @GetMapping("currentTime")
     @SuppressWarnings("unchecked")

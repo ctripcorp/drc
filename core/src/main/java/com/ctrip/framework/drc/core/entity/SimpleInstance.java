@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.entity;
 
+import com.ctrip.framework.drc.core.server.config.InfoDto;
+
 import java.util.Objects;
 
 /**
@@ -17,6 +19,14 @@ public class SimpleInstance implements Instance {
         SimpleInstance instance = new SimpleInstance();
         instance.ip = ip;
         instance.port = port;
+        return instance;
+    }
+
+    public static SimpleInstance from(InfoDto infoDto) {
+        SimpleInstance instance = new SimpleInstance();
+        instance.ip = infoDto.getIp();
+        instance.port = infoDto.getPort();
+        instance.master = Boolean.TRUE.equals(infoDto.getMaster());
         return instance;
     }
 
