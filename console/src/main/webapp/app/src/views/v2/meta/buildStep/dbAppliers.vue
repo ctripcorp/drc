@@ -52,7 +52,7 @@
              ref="multipleTable"
              @on-selection-change="changeSelection">
                     <template #applier="{row, index}">
-                      <Select v-if="showSelectOptionComponent" :transfer="true" v-model="tableData[index].ips" multiple style="width: 300px"
+                      <Select v-if="showSelectOptionComponent" :key="applierShowRefreshCounter" :transfer="true" v-model="tableData[index].ips" multiple style="width: 300px"
                               placeholder="选择源集群Applier">
                         <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
                             item.az
@@ -281,7 +281,8 @@ export default {
       propertiesJson: {},
       tableData: [],
       dbApplierDtos: [],
-      currentInstances: {},
+      currentInstances: new Map(),
+      applierShowRefreshCounter: 0,
       total: 0,
       size: 5,
       pageSizeOpts: [5, 10, 20, 100]
@@ -299,7 +300,6 @@ export default {
     },
     switchAppliers () {
       const params = this.getSwitchParams()
-      console.log(params)
       this.dataLoading = true
       this.axios.post('/api/drc/v2/autoconfig/switchAppliers', params)
         .then(response => {
@@ -370,7 +370,7 @@ export default {
       }).catch(message => {
         this.$Message.error('提交异常: ' + message)
       }).finally(() => {
-        this.applierDataLoading[index] = false
+        Vue.set(this.applierDataLoading, index, false)
       })
     },
 
@@ -405,7 +405,6 @@ export default {
           applierInitGtid: this.gtidCheck.mhaTarget
         }
       }
-      console.log(params)
       this.dataLoading = true
       this.axios.post('/api/drc/v2/config/db/applier', params)
         .then(async response => {
@@ -440,7 +439,6 @@ export default {
           }
         }
       ).then(response => {
-        console.log(response.data)
         this.applierResourceList = response.data.data
       })
     },
@@ -459,17 +457,22 @@ export default {
         } else {
           this.tableData = response.data.data
           this.dbApplierDtos = response.data.data
+          this.applierShowRefreshCounter++
           this.getDbApplierInstances()
         }
       }).finally(() => {
         this.dataLoading = false
       })
     },
-    getDbApplierInstances () {
-      const applierIps = []
+    extractApplierIps () {
+      let applierIps = []
       this.dbApplierDtos.forEach((dbApplierDto) => {
-        applierIps.push(dbApplierDto.ips)
+        applierIps = applierIps.concat(dbApplierDto.ips)
       })
+      return [...new Set(applierIps)]
+    },
+    getDbApplierInstances () {
+      const applierIps = this.extractApplierIps()
       this.axios.get('/api/drc/v2/remote/resource/dbApplierInstances', {
         params: {
           src: this.initInfo.srcMhaName,
@@ -477,7 +480,12 @@ export default {
           ips: applierIps.join(',')
         }
       }).then(response => {
-        this.currentInstances = new Map(Object.entries(response.data.data))
+        if (response.data.status === 1) {
+          this.$Message.warning('查询 db applier 实例状态失败')
+        } else {
+          this.currentInstances = new Map(Object.entries(response.data.data))
+          this.applierShowRefreshCounter++
+        }
       })
     },
     preBatchUpdate () {
@@ -537,8 +545,6 @@ export default {
         dstDc: this.$route.query.dstDc,
         order: this.$route.query.order
       }
-      console.log('initInfo:')
-      console.log(this.initInfo)
       this.getResources()
       this.getDbAppliers()
     })
