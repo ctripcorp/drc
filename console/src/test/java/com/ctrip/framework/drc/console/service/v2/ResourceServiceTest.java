@@ -26,7 +26,9 @@ import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.service.inquirer.ApplierInfoInquirer;
+import com.ctrip.framework.drc.core.service.inquirer.MessengerInfoInquirer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -529,6 +531,24 @@ public class ResourceServiceTest {
 
         List<ApplierInfoDto> result = resourceService.getAppliersInAz(testRegion, Lists.newArrayList("ip"));
         Assert.assertEquals(result.size(), 1);
+        mockedStatic.close();
+    }
+
+    @Mock
+    MessengerInfoInquirer messengerInfoInquirer;
+    @Test
+    public void testGetMessengersInAz() throws Exception {
+        String testRegion = "sha";
+        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
+        MockedStatic<MessengerInfoInquirer> mockedStatic = Mockito.mockStatic(MessengerInfoInquirer.class);
+        mockedStatic.when(MessengerInfoInquirer::getInstance).thenReturn(messengerInfoInquirer);
+        Future<List<MessengerInfoDto>> mockFuture = Mockito.mock(Future.class);
+        Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getMessengerInfoDtos());
+        Mockito.when(messengerInfoInquirer.query(Mockito.anyString())).thenReturn(mockFuture);
+
+        List<MessengerInfoDto> result = resourceService.getMessengersInAz(testRegion, Lists.newArrayList("ip"));
+        Assert.assertEquals(result.size(), 1);
+        mockedStatic.close();
     }
 
     @Test
