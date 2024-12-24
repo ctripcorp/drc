@@ -138,6 +138,7 @@ public class QConfigServiceImpl implements QConfigService {
     }
 
     private List<TableSchemaName> filterTablesWithAnotherMqInQConfig(Map<String, String> originalConfig, List<TableSchemaName> matchTables, String topic) {
+        String topicStatuaKey = topic + "." + STATUS;
         List<TableSchemaName> tables = Lists.newArrayList();
         tables.addAll(matchTables);
         List<TableSchemaName> tablesToDelete = Lists.newArrayList();
@@ -152,7 +153,7 @@ public class QConfigServiceImpl implements QConfigService {
                 continue;
             }
             for (TableSchemaName item : matchTables) {
-                if (dbNamesInQConfig.contains(item.getSchema()) && tableNamesInQConfig.contains(item.getName())) {
+                if (dbNamesInQConfig.contains(item.getSchema()) && tableNamesInQConfig.contains(item.getName()) && !topicStatuaKey.equals(statusEntry.getKey())) {
                     tablesToDelete.add(item);
                 }
             }
