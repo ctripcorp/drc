@@ -16,7 +16,6 @@ import java.util.BitSet;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
-import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.NULL_TERMINATED_STRING_DELIMITER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
@@ -153,13 +152,11 @@ public abstract class AbstractLogEvent implements LogEvent {
      */
     protected long readLengthEncodeInt(final ByteBuf byteBuf) {
         final int encodeLength = byteBuf.readUnsignedByte();
-        if (encodeLength < 251) {
+        if (encodeLength < 252) {
             return encodeLength;
         }
 
         switch (encodeLength) {
-            case 251:
-                return NULL_TERMINATED_STRING_DELIMITER;
             case 252:
                 return byteBuf.readUnsignedShortLE(); // 2bytes
             case 253:
@@ -211,7 +208,7 @@ public abstract class AbstractLogEvent implements LogEvent {
 
     protected String readVariableLengthStringDefaultCharset(final ByteBuf byteBuf) {
         // mysql default charset is latin1, map to java is IOS_8859_1
-        final short length = byteBuf.readUnsignedByte();
+        final int length = (int) readLengthEncodeInt(byteBuf);
         return readFixLengthStringDefaultCharset(byteBuf, length);
     }
 

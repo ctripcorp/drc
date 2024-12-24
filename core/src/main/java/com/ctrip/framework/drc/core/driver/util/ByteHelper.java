@@ -136,11 +136,8 @@ public abstract class ByteHelper {
         if (null == str) {
             throw new IllegalStateException("write variables length string by default charset, but parameter string is null.");
         }
-        if (str.length() > 255) {
-            throw new IllegalStateException("write variables length string by default charset, parameter string length must gte 0 and lte 255.");
-        }
-        // length is 1 byte, 1-255
-        out.write((byte) str.length());
+        // string is str.length byte, length is unfixed
+        writeLengthEncodeInt(str.length(), out);
         // string is str.length byte, length = [1, 255]
         out.write(str.getBytes(ISO_8859_1));
     }
