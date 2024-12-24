@@ -41,7 +41,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.inquirer.ApplierInfoInquirer;
-import com.ctrip.framework.drc.core.service.inquirer.MessengerInquirer;
+import com.ctrip.framework.drc.core.service.inquirer.MessengerInfoInquirer;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.monitor.EventMonitor;
@@ -1330,11 +1330,11 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @PossibleRemote(path = "/api/drc/v2/resource/getMessengersInAz", responseType = MessengerInfoApiRes.class)
     public List<MessengerInfoDto> getMessengersInAz(String region, List<String> ips) {
-        MessengerInquirer messengerInquirer = MessengerInquirer.getInstance();
+        MessengerInfoInquirer messengerInfoInquirer = MessengerInfoInquirer.getInstance();
         List<Future<List<MessengerInfoDto>>> futures = Lists.newArrayList();
         for (String messengerIp : ips) {
             messengerIp = messengerIp.trim();
-            futures.add(messengerInquirer.query(messengerIp + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT));
+            futures.add(messengerInfoInquirer.query(messengerIp + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT));
         }
         List<MessengerInfoDto> messengerInfoDtos = Lists.newArrayList();
         for (int i = 0; i < futures.size(); i++) {

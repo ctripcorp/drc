@@ -683,4 +683,18 @@ public class PojoBuilder {
         dtos.add(applier2);
         return dtos;
     }
+
+    public static List<MessengerInfoDto> getMessengerInfoDtos() {
+        MessengerInfoDto m1 = new MessengerInfoDto();
+        m1.setIp("ip");
+        m1.setMaster(true);
+        MessengerInfoDto m2 = new MessengerInfoDto();
+        m2.setIp("ip");
+        m2.setMaster(false);
+
+        List<MessengerInfoDto> dtos = Lists.newArrayList();
+        dtos.add(m1);
+        dtos.add(m2);
+        return dtos;
+    }
 }

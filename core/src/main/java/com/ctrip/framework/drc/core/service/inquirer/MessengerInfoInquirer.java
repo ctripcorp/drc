@@ -10,7 +10,7 @@ import java.util.List;
  * Created by shiruixin
  * 2024/12/3 16:15
  */
-public class MessengerInquirer extends AbstractInfoInquirer<MessengerInfoDto> {
+public class MessengerInfoInquirer extends AbstractInfoInquirer<MessengerInfoDto> {
     @Override
     String method() {
         return "messengers/info/all";
@@ -22,10 +22,10 @@ public class MessengerInquirer extends AbstractInfoInquirer<MessengerInfoDto> {
     }
 
     private static class MessengerInquirerHolder {
-        private static final MessengerInquirer INSTANCE = new MessengerInquirer();
+        private static final MessengerInfoInquirer INSTANCE = new MessengerInfoInquirer();
     }
 
-    public static MessengerInquirer getInstance() {
-        return MessengerInquirer.MessengerInquirerHolder.INSTANCE;
+    public static MessengerInfoInquirer getInstance() {
+        return MessengerInfoInquirer.MessengerInquirerHolder.INSTANCE;
     }
 }
