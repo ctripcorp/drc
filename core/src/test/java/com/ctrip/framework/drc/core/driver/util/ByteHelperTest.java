@@ -1,12 +1,12 @@
 package com.ctrip.framework.drc.core.driver.util;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by jixinwang on 2022/5/8
@@ -29,6 +29,59 @@ public class ByteHelperTest {
 //        System.out.println("value is: " + value);
 //        String r1 = Integer.toHexString(-7);
 //        System.out.println(r1);
+    }
+
+    @Test
+    public void testWriteLengthEncodeInt() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteHelper.writeLengthEncodeInt(0, out);
+        ByteHelper.writeLengthEncodeInt(251, out);
+        ByteHelper.writeLengthEncodeInt(255, out);
+        ByteHelper.writeLengthEncodeInt(256, out);
+        ByteHelper.writeLengthEncodeInt(123456, out);
+
+
+        ByteBuf byteBuf = getByteBuf(out.toByteArray());
+        long num0 = readLengthEncodeInt(byteBuf);
+        long num1 = readLengthEncodeInt(byteBuf);
+        long num2 = readLengthEncodeInt(byteBuf);
+        long num3 = readLengthEncodeInt(byteBuf);
+        long num4 = readLengthEncodeInt(byteBuf);
+
+        Assert.assertEquals(0, num0);
+        Assert.assertEquals(251, num1);
+        Assert.assertEquals(255, num2);
+        Assert.assertEquals(256, num3);
+        Assert.assertEquals(123456, num4);
+    }
+
+    private ByteBuf getByteBuf(byte[] bytes) throws IOException {
+        final byte[] payloadBytes = bytes;
+        final int payloadLength = payloadBytes.length;
+        final ByteBuf payloadByteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(payloadLength);
+        payloadByteBuf.writeBytes(payloadBytes);
+//        payloadByteBuf.skipBytes(payloadLength);
+        return payloadByteBuf;
+    }
+
+    private long readLengthEncodeInt(final ByteBuf byteBuf) {
+        final int encodeLength = byteBuf.readUnsignedByte();
+        if (encodeLength < 252) {
+            return encodeLength;
+        }
+
+        switch (encodeLength) {
+            case 252:
+                return byteBuf.readUnsignedShortLE(); // 2bytes
+            case 253:
+                return byteBuf.readUnsignedMediumLE(); // 3bytes
+            case 254:
+                // TODO: 2019/9/11 may be ERR_Packet
+                return byteBuf.readLongLE(); // 8bytes
+            default:
+                // TODO: 2019/9/8 ERR_Packet
+                return 0;
+        }
     }
 
 
