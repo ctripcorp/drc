@@ -22,7 +22,7 @@ public class SimpleInstance implements Instance {
         return instance;
     }
 
-    public static SimpleInstance from(InfoDto infoDto) {
+    public static Instance from(InfoDto infoDto) {
         SimpleInstance instance = new SimpleInstance();
         instance.ip = infoDto.getIp();
         instance.port = infoDto.getPort();
