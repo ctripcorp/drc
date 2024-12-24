@@ -109,6 +109,7 @@ public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Metric, B
 
     @Override
     public void doStop() {
+        super.doStop();
         Map<String, String> tagKvs = getMatchTags();
         for (String seenMeasurement : seenMeasurements) {
             DefaultReporterHolder.getInstance().removeRegister(seenMeasurement, tagKvs);
