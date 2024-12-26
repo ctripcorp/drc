@@ -15,7 +15,6 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.springframework.util.CollectionUtils;
 import org.unidal.tuple.Triple;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,15 +77,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         return res == null ? false : res.booleanValue();
     }
 
-    @Override
-    public synchronized Map<String, Map<String, String>> snapshot() {
-        if (snapshotCacheNeedInit()) {
-            schemaCache = doSnapshot(inMemoryEndpoint);
-        }
-        return Collections.unmodifiableMap(schemaCache);
-    }
-
-    protected boolean snapshotCacheNeedInit() {
+    public boolean isSnapshotCacheNotInit() {
         return !schemaCacheInit || CollectionUtils.isEmpty(schemaCache);
     }
 
@@ -95,13 +86,11 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
      * value: List<create table>
      * @return
      */
-    protected Map<String, Map<String, String>> doSnapshot(Endpoint endpoint) {
+    public Map<String, Map<String, String>> doSnapshot(Endpoint endpoint) {
         DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
         Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTaskV2(endpoint, dataSource, registryKey)).call();
         if (snapshot == null) {
             snapshot = Maps.newHashMap();
-        } else {
-            schemaCacheInit = true;
         }
         return snapshot;
     }
@@ -139,6 +128,9 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public synchronized void refresh(List<TableId> tableIds) {
+        if (isSnapshotCacheNotInit()) {
+            return;
+        }
         for (TableId key : tableIds) {
             // 1. refresh table map
             tableInfoMap.remove(key);

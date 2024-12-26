@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractColumns;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractValues;
@@ -171,11 +170,10 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     }
     @Override
     public synchronized Map<String, Map<String, String>> snapshot() {
-        if (snapshotCacheNeedInit() || DynamicConfig.getInstance().getDisableSnapshotCacheSwitch()) {
+        if (isSnapshotCacheNotInit()) {
             Map<String, Map<String, String>> snapshot = doSnapshot(inMemoryEndpoint);
-            if (!CollectionUtils.isEmpty(schemaCache)) {
-                boolean same = schemaCache.equals(snapshot);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.snapshot.cache.compare." + same, registryKey);
+            if (!CollectionUtils.isEmpty(snapshot)) {
+                schemaCacheInit = true;
             }
             schemaCache = snapshot;
             tableInfoMap.clear();
