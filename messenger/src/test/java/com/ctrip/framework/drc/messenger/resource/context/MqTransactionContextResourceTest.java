@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
+import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.event.ApplierColumnsRelatedTest;
@@ -20,7 +21,6 @@ import java.util.List;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
 import static com.ctrip.framework.drc.core.mq.EventType.*;
-import static org.junit.Assert.*;
 
 /**
  * Created by shiruixin
@@ -152,8 +152,9 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         }
 
         @Override
-        public void send(List<EventData> eventDatas) {
+        public boolean send(List<EventData> eventDatas, EventType eventType) {
             finalEventDatas = eventDatas;
+            return true;
         }
 
         @Override

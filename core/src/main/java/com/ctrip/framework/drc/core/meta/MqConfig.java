@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.core.meta;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.List;
+
 /**
  * @ClassName MqConfig
  * @Author haodongPan
@@ -34,22 +36,34 @@ public class MqConfig {
     // send message for target subenv
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String subenv;
+    //EventType value: I, U, D
+    private List<String> excludeFilterTypes;
 
 
     @Override
     public String toString() {
         return "MqConfig{" +
-                "mqType='" + mqType + '\'' +
-                ", table='" + table + '\'' +
+                "table='" + table + '\'' +
                 ", topic='" + topic + '\'' +
+                ", processor='" + processor + '\'' +
+                ", mqType='" + mqType + '\'' +
                 ", serialization='" + serialization + '\'' +
                 ", persistent=" + persistent +
                 ", persistentDb='" + persistentDb + '\'' +
                 ", order=" + order +
                 ", orderKey='" + orderKey + '\'' +
                 ", delayTime=" + delayTime +
-                ", processor='" + processor + '\'' +
+                ", subenv='" + subenv + '\'' +
+                ", excludeFilterTypes=" + excludeFilterTypes +
                 '}';
+    }
+
+    public List<String> getExcludeFilterTypes() {
+        return excludeFilterTypes;
+    }
+
+    public void setExcludeFilterTypes(List<String> excludeFilterTypes) {
+        this.excludeFilterTypes = excludeFilterTypes;
     }
 
     public String getMqType() {

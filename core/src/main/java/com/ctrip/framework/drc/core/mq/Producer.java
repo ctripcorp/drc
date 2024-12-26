@@ -9,7 +9,7 @@ public interface Producer {
 
     String getTopic();
 
-    void send(List<EventData> eventDatas);
+    boolean send(List<EventData> eventDatas, EventType eventType);
 
     void destroy();
 }

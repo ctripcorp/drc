@@ -461,6 +461,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 mqConfigVo.setOrder(mqConfig.isOrder());
                 mqConfigVo.setPersistent(mqConfig.isPersistent());
                 mqConfigVo.setDelayTime(mqConfig.getDelayTime());
+                mqConfigVo.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
                 list.add(mqConfigVo);
             }
             return list;
@@ -673,7 +674,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 }
             }
 
-            // one nameFilter only send to one topic
+            // one table can config multi topic
             List<MqConfigConflictTable> conflictTables = Lists.newArrayList();
             for (DbReplicationTbl replicationTbl : messengerDbReplications) {
                 if (!replicationTbl.getDstLogicTableName().equalsIgnoreCase(dto.getTopic())) {
@@ -819,7 +820,10 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     public void processAddMqConfig(MqConfigDto dto) throws Exception {
         MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName());
         this.initMqConfig(dto, mhaTblV2);
-        this.addDalClusterMqConfig(dto, mhaTblV2);
+        if (CollectionUtils.isEmpty(dto.getExcludeFilterTypes())) {
+            this.addDalClusterMqConfig(dto, mhaTblV2);
+        }
+
         this.addMqConfig(dto, mhaTblV2);
     }
 
@@ -1363,6 +1367,10 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         mqConfig.setPersistent(dto.isPersistent());
         mqConfig.setPersistentDb(dto.getPersistentDb());
         mqConfig.setDelayTime(dto.getDelayTime());
+        if (!CollectionUtils.isEmpty(dto.getExcludeFilterTypes())) {
+            mqConfig.setExcludeFilterTypes(dto.getExcludeFilterTypes());
+        }
+
         return mqConfig;
     }
 }

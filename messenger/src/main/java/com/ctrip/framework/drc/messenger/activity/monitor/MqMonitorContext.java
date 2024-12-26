@@ -16,6 +16,7 @@ public class MqMonitorContext {
     private String topic;
     private String metricName;
     private String registryKey;
+    private boolean send;
 
     public MqMonitorContext(int value, String registryKey, String metricName) {
         this.value = value;
@@ -23,13 +24,22 @@ public class MqMonitorContext {
         this.metricName = metricName;
     }
 
-    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic) {
+    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic, boolean send) {
         this.dbName = dbName;
         this.tableName = tableName;
         this.value = value;
         this.eventType = eventType;
         this.dcTag = dcTag;
         this.topic = topic;
+        this.send = send;
+    }
+
+    public boolean isSend() {
+        return send;
+    }
+
+    public void setSend(boolean send) {
+        this.send = send;
     }
 
     public String getDbName() {

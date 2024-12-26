@@ -21,6 +21,7 @@
                              :dst-region="srcRegion"
                              :db-names="dbNames"
                              :form-action="action"
+                             :filter-read-only="filterReadOnly"
       />
     </Modal>
   </div>
@@ -53,6 +54,7 @@ export default {
       editModal: {
         open: false
       },
+      filterReadOnly: false,
       columns: [
         {
           title: '序号',
@@ -108,6 +110,10 @@ export default {
           key: 'orderKey'
         },
         {
+          title: '过滤类型',
+          key: 'excludeFilterTypes'
+        },
+        {
           title: '操作',
           slot: 'action',
           align: 'center',
@@ -121,11 +127,13 @@ export default {
       this.selectedRow = null
       this.action = DbMqConfig.FORM_ACTION_OPTION.CREATE
       this.editModal.open = true
+      this.filterReadOnly = false
     },
     async goToUpdateConfig (row, index) {
       this.selectedRow = row
       this.action = DbMqConfig.FORM_ACTION_OPTION.EDIT
       this.editModal.open = true
+      this.filterReadOnly = true
     },
     async goToDeleteConfig (row, index) {
       this.selectedRow = row
