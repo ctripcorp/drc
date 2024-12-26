@@ -14,6 +14,7 @@ import muise.ctrip.canal.DataChange;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import qunar.tc.qmq.Message;
 import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
@@ -55,6 +56,9 @@ public class QmqProducer extends AbstractProducer {
 
     private static boolean subenvSwitch;
 
+    //EventType value: I, U, D
+    private List<String> excludeFilterTypes;
+
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
@@ -62,6 +66,7 @@ public class QmqProducer extends AbstractProducer {
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
         this.qmqTraceSubenv = mqConfig.getSubenv();
+        this.excludeFilterTypes = mqConfig.getExcludeFilterTypes();
         this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
         init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
@@ -76,10 +81,15 @@ public class QmqProducer extends AbstractProducer {
     }
 
     @Override
-    public void send(List<EventData> eventDatas) {
+    public boolean send(List<EventData> eventDatas, EventType eventType) {
         if (subenvSwitch && !StringUtils.isEmpty(qmqTraceSubenv) && !MESSENGER_DELAY_MONITOR_TOPIC.equals(topic)) {
             Cat.getTraceContext(true).add(SUB_ENV, qmqTraceSubenv);
         }
+
+        if (!CollectionUtils.isEmpty(excludeFilterTypes) && excludeFilterTypes.contains(eventType.getValue())) {
+            return false;
+        }
+
         try {
             for (EventData eventData : eventDatas) {
                 Message message = generateMessage(eventData);
@@ -101,6 +111,7 @@ public class QmqProducer extends AbstractProducer {
             Cat.getTraceContext(true).remove(SUB_ENV);
         }
 
+        return true;
     }
 
     @VisibleForTesting

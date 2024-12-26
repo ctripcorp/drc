@@ -8,7 +8,15 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
     private boolean order;
     private String orderKey;
     private boolean persistent;
+    private List<String> excludeFilterTypes;
 
+    public List<String> getExcludeFilterTypes() {
+        return excludeFilterTypes;
+    }
+
+    public void setExcludeFilterTypes(List<String> excludeFilterTypes) {
+        this.excludeFilterTypes = excludeFilterTypes;
+    }
 
     public MqLogicTableSummaryDto(List<Long> dbReplicationIds, LogicTableConfig config) {
         super(dbReplicationIds, config);

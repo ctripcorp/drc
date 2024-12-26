@@ -23,6 +23,8 @@ public class MqConfigDto implements Serializable {
     private long delayTime;
     private String processor;
     private long messengerGroupId;
+    //EventType value: I, U, D
+    private List<String> excludeFilterTypes;
 
     public void validCheckRequest() {
         if (StringUtils.isBlank(mhaName)) {
@@ -166,6 +168,14 @@ public class MqConfigDto implements Serializable {
         this.messengerGroupId = messengerGroupId;
     }
 
+    public List<String> getExcludeFilterTypes() {
+        return excludeFilterTypes;
+    }
+
+    public void setExcludeFilterTypes(List<String> excludeFilterTypes) {
+        this.excludeFilterTypes = excludeFilterTypes;
+    }
+
     @Override
     public String toString() {
         return "MqConfigDto{" +
@@ -183,6 +193,7 @@ public class MqConfigDto implements Serializable {
                 ", delayTime=" + delayTime +
                 ", processor='" + processor + '\'' +
                 ", messengerGroupId=" + messengerGroupId +
+                ", excludeFilterTypes=" + excludeFilterTypes +
                 '}';
     }
 }

@@ -96,6 +96,11 @@
                   </Col>
                 </Row>
               </FormItem>
+              <FormItem label="exclude类型">
+                <Select v-model="mqConfig.excludeFilterTypes" filterable  multiple style="width: 200px" placeholder="选择过滤类型">
+                  <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
+                </Select>
+              </FormItem>
               <!--             <FormItem v-if="mqConfig.mqType === 'kafka'" label="序列化">-->
               <!--               <Select v-model="mqConfig.serialization" style="width: 200px" placeholder="序列化类型">-->
               <!--                 <Option value="json">json</Option>-->
@@ -162,6 +167,11 @@
               </FormItem>
               <FormItem label="MQ主题">
                 <Input v-model="mqConfig.topic" style="width:350px" placeholder="请输入自定义Topic"/>
+              </FormItem>
+              <FormItem label="exclude类型">
+                <Select v-model="mqConfig.excludeFilterTypes" filterable  multiple style="width: 200px" placeholder="选择过滤类型" :disabled="display.filterReadOnly">
+                  <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
+                </Select>
               </FormItem>
               <!--             <FormItem v-if="mqConfig.mqType === 'kafka'" label="序列化">-->
               <!--               <Select v-model="mqConfig.serialization" style="width: 200px" placeholder="序列化类型">-->
@@ -244,7 +254,8 @@ export default {
       display: {
         mqConfigModal: false,
         normalTopicForm: false,
-        showOnly: false
+        showOnly: false,
+        filterReadOnly: false
       },
       mqConfig: {
         id: 0,
@@ -259,7 +270,8 @@ export default {
         delayTime: 0,
         processor: '',
         refreshCache: false,
-        tag: ''
+        tag: '',
+        excludeFilterTypes: []
       },
       checkDbTableLoading: false,
       submitConfigDataLoading: false,
@@ -359,8 +371,8 @@ export default {
           key: 'orderKey'
         },
         {
-          title: '序列化',
-          key: 'serialization'
+          title: '过滤类型',
+          key: 'excludeFilterTypes'
         },
         {
           title: '持久化消息',
@@ -415,7 +427,21 @@ export default {
       dataLoading: false,
       // qmqURL/api/producer/getBusFromQmq
       buForChosen: [],
-      columnsForChose: []
+      columnsForChose: [],
+      excludeFilterTypesForChose: [
+        {
+          value: 'D',
+          label: 'DELETE'
+        },
+        {
+          value: 'U',
+          label: 'UPDATE'
+        },
+        {
+          value: 'I',
+          label: 'INSERT'
+        }
+      ]
     }
   },
   methods: {
@@ -426,6 +452,7 @@ export default {
       this.columnsForChose.push(row.orderKey)
       this.display.showOnly = true
       this.display.mqConfigModal = true
+      this.display.filterReadOnly = true
     },
     goToUpdateConfig (row, index) {
       this.mqInitConfigInitFormRow(row, index)
@@ -434,6 +461,7 @@ export default {
       this.columnsForChose.push(row.orderKey)
       this.display.showOnly = false
       this.display.mqConfigModal = true
+      this.display.filterReadOnly = true
     },
     deleteConfig (row, index) {
       this.dataLoading = true
@@ -463,7 +491,8 @@ export default {
       this.display = {
         showOnly: false,
         normalTopicForm: false,
-        mqConfigModal: true
+        mqConfigModal: true,
+        filterReadOnly: false
       }
     },
     mqConfigInit () {
@@ -480,7 +509,8 @@ export default {
         delayTime: 0,
         processor: '',
         refreshCache: false,
-        tag: ''
+        tag: '',
+        excludeFilterTypes: []
       }
       this.topic = {
         bu: '',
@@ -504,7 +534,8 @@ export default {
         delayTime: row.delayTime,
         processor: row.processor,
         refreshCache: false,
-        tag: row.tag == null ? '' : row.tag
+        tag: row.tag == null ? '' : row.tag,
+        excludeFilterTypes: row.excludeFilterTypes
       }
       const topicInfo = row.topic.split('.')
       const tableInfo = row.table.split('\\.')
@@ -553,6 +584,7 @@ export default {
         })
     },
     doSubmitAfterCheck: async function (dto) {
+      dto.excludeFilterTypes = this.mqConfig.excludeFilterTypes
       this.$Message.loading('步骤二：提交中')
       await this.axios.post('/api/drc/v2/messenger/submitConfig', dto).then(response => {
         if (response.data.status === 1) {
@@ -647,9 +679,11 @@ export default {
         processor: this.mqConfig.processor === '' ? null : this.processor,
         messengerGroupId: this.drc.messengerGroupId,
         mhaName: this.drc.mhaName,
-        tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag
+        tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag,
+        excludeFilterTypes: this.mqConfig.excludeFilterTypes.join(',')
       }
       this.tagInfo.conflictVos = []
+      // const reqParam = this.flattenObj(dto)
       this.checkAndSubmit(dto)
     },
     getMqConfigs () {
@@ -772,6 +806,20 @@ export default {
             this.columnsForChose.push(val)
           }
         })
+    },
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
     },
     handleChangeSize (val) {
       this.size = val

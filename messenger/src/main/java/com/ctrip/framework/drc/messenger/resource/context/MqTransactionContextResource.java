@@ -70,7 +70,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, columns, EventType.INSERT);
         loggerMsgSend.info("[GTID][{}] insert event data", fetchGtid());
-        sendEventDatas(eventDatas);
+        sendEventDatas(eventDatas, EventType.INSERT);
     }
 
 
@@ -78,25 +78,25 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, afterRows, columns, EventType.UPDATE);
         loggerMsgSend.info("[GTID][{}] update event data", fetchGtid());
-        sendEventDatas(eventDatas);
+        sendEventDatas(eventDatas, EventType.UPDATE);
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, columns, EventType.DELETE);
         loggerMsgSend.info("[GTID][{}] delete event data", fetchGtid());
-        sendEventDatas(eventDatas);
+        sendEventDatas(eventDatas, EventType.DELETE);
     }
 
-    private void sendEventDatas(List<EventData> eventDatas) {
+    private void sendEventDatas(List<EventData> eventDatas, EventType eventType) {
         List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
         AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
         atomicInteger.getAndIncrement();
         try {
             for (Producer producer : producers) {
-                producer.send(eventDatas);
+                boolean send = producer.send(eventDatas, eventType);
                 rowsSize += eventDatas.size();
-                reportHickWall(eventDatas, producer.getTopic());
+                reportHickWall(eventDatas, producer.getTopic(), send);
             }
         } finally {
             atomicInteger.getAndDecrement();
@@ -185,10 +185,10 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         return value.toString();
     }
 
-    private void reportHickWall(List<EventData> eventDatas, String topic) {
+    private void reportHickWall(List<EventData> eventDatas, String topic, boolean send) {
         if (!eventDatas.isEmpty()) {
             EventData eventData = eventDatas.get(0);
-            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag(), topic);
+            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag(), topic, send);
             mqMetricsActivity.report(mqMonitorContext);
         }
     }

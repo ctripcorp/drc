@@ -31,6 +31,11 @@
                    @on-blur="refreshTopicBu"
             />
           </FormItem>
+          <FormItem label="exclude类型">
+            <Select v-model="formItem.excludeFilterTypes" filterable  multiple style="width: 200px" placeholder="选择过滤类型" :disabled="filterReadOnly">
+              <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
+            </Select>
+          </FormItem>
           <FormItem label="有序消息">
             <i-switch v-model="formItem.switch.order" size="large">
               <template #open>
@@ -94,7 +99,8 @@ export default {
     srcRegion: String,
     dstRegion: String,
     dbNames: Array,
-    formAction: String
+    formAction: String,
+    filterReadOnly: Boolean
   },
   emits: ['finished'],
   data () {
@@ -112,6 +118,7 @@ export default {
         tableName: null,
         topic: null,
         orderKey: null,
+        excludeFilterTypes: [],
         switch: {
           order: false
         },
@@ -239,7 +246,21 @@ export default {
       ]),
       dataLoading: false,
       successSubmit: false,
-      commonColumnLoading: false
+      commonColumnLoading: false,
+      excludeFilterTypesForChose: [
+        {
+          value: 'D',
+          label: 'DELETE'
+        },
+        {
+          value: 'U',
+          label: 'UPDATE'
+        },
+        {
+          value: 'I',
+          label: 'INSERT'
+        }
+      ]
     }
   },
   methods: {
@@ -280,7 +301,8 @@ export default {
         serialization: 'json',
         persistent: false,
         order: this.formItem.switch.order,
-        orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey
+        orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey,
+        excludeFilterTypes: this.formItem.excludeFilterTypes
       }
       console.log(param)
       return param
@@ -345,6 +367,7 @@ export default {
         this.formItem.topic = this.configData.config.dstLogicTable
         this.formItem.orderKey = this.configData.orderKey
         this.formItem.switch.order = this.configData.order
+        this.formItem.excludeFilterTypes = this.configData.excludeFilterTypes
         this.refreshTopicBu()
         this.getCommonColumns()
         this.meta.dbReplicationIds = this.configData.dbReplicationIds
