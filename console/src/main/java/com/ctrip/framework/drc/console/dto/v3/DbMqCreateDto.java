@@ -36,10 +36,7 @@ public class DbMqCreateDto {
         if (!StringUtils.equals("json", mqConfig.getSerialization())) {
             throw new IllegalArgumentException("mqConfig.getSerialization should be json!");
         }
-        if (mqConfig.isOrder()) {
-            if (StringUtils.isBlank(mqConfig.getOrderKey())) {
-                throw new IllegalArgumentException("mqConfig.getOrderKey should not be blank!");
-            }
+        if (mqConfig.isOrder() && mqConfig.getOrderKey() != null) {
             mqConfig.setOrderKey(mqConfig.getOrderKey().trim());
         }
 
