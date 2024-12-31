@@ -107,7 +107,13 @@ export default {
         },
         {
           title: '有序相关字段',
-          key: 'orderKey'
+          key: 'orderKey',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.orderKey ? row.orderKey : '主键'
+            return h('span', text)
+          }
         },
         {
           title: '过滤类型',

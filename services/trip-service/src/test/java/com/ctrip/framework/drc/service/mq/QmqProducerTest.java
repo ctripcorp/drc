@@ -103,5 +103,79 @@ public class QmqProducerTest {
         Assert.assertEquals(false, afterName.getBoolean("isNull"));
         Assert.assertEquals(false, afterName.getBoolean("isKey"));
         Assert.assertEquals(true, afterName.getBoolean("isUpdated"));
+
+        theMock.close();
+    }
+
+    @Test
+    public void testGenerateMessageSendByPks()  {
+        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
+        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
+        MockedStatic<TripServiceDynamicConfig> theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
+        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
+
+        MqConfig config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        QmqProducer producer = new QmqProducer(config);
+
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", "1", false, true, true);
+        EventColumn beforeColumn1 = new EventColumn("name", "Mike", false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", "1", false, true, true);
+        EventColumn afterColumn1 = new EventColumn("name", "Joe", false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        Message message = producer.generateMessage(data);
+        Assert.assertEquals("testdb.table_1", message.getOrderKey());
+
+        beforeColumns = Lists.newArrayList();
+        beforeColumn0 = new EventColumn("id", "1", false, true, true);
+        beforeColumn1 = new EventColumn("name", "Mike", false, true, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        afterColumns = Lists.newArrayList();
+        afterColumn0 = new EventColumn("id", "1", false, true, true);
+        afterColumn1 = new EventColumn("name", "Joe", false, true, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        message = producer.generateMessage(data);
+        Assert.assertEquals("testdb.table_1_Joe", message.getOrderKey());
+
+        beforeColumns = Lists.newArrayList();
+        beforeColumn0 = new EventColumn("id", "1", false, false, true);
+        beforeColumn1 = new EventColumn("name", "Mike", false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        afterColumns = Lists.newArrayList();
+        afterColumn0 = new EventColumn("id", "1", false, false, true);
+        afterColumn1 = new EventColumn("name", "Joe", false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        message = producer.generateMessage(data);
+        Assert.assertEquals("testdb.table", message.getOrderKey());
+
+        theMock.close();
     }
 }

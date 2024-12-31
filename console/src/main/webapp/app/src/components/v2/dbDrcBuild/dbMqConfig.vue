@@ -56,7 +56,7 @@
             </template>
             <FormItem label="字段">
               <Select v-model="formItem.orderKey" filterable allow-create @on-create="handleCreateColumn"
-                      style="width: 200px" placeholder="选择有序相关字段">
+                      style="width: 200px" placeholder="不选表示按主键投递" clearable>
                 <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </FormItem>

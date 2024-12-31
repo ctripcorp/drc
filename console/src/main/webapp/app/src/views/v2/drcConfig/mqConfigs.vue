@@ -41,7 +41,6 @@
       title="MQ 投递配置"
       width="1200px"
     >
-      <p>【注意！！】测试版本，不再检查同表投递多topic，自行确认</p>
       <Modal
         v-model="tagInfo.modal"
         title="冲突配置"
@@ -122,7 +121,7 @@
                 <Col span="16">
                   <FormItem v-if="mqConfig.order" label="字段">
                     <Select v-model="mqConfig.orderKey" filterable allow-create @on-create="handleCreateColumn"
-                            style="width: 200px" placeholder="选择有序相关字段">
+                            style="width: 200px" placeholder="为空表示按主键投递" clearable>
                       <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                     </Select>
                   </FormItem>
@@ -194,7 +193,7 @@
                 <Col span="20">
                   <FormItem v-if="mqConfig.order" label="字段">
                     <Select v-model="mqConfig.orderKey" filterable allow-create @on-create="handleCreateColumn"
-                            style="width: 200px" placeholder="选择有序相关字段">
+                            style="width: 200px" placeholder="为空表示按主键投递" clearable>
                       <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                     </Select>
                   </FormItem>
@@ -368,7 +367,13 @@ export default {
         },
         {
           title: '有序相关字段',
-          key: 'orderKey'
+          key: 'orderKey',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.orderKey ? row.orderKey : '主键'
+            return h('span', text)
+          }
         },
         {
           title: '过滤类型',
@@ -639,11 +644,6 @@ export default {
       }
       if (this.topic.table == null || this.topic.table === '') {
         alert('table 不能为空！')
-        return
-      }
-      if (this.mqConfig.order && (
-        this.mqConfig.orderKey == null || this.mqConfig.orderKey === '')) {
-        alert('有序topic 相关字段不能为空')
         return
       }
       if (this.display.normalTopicForm) {

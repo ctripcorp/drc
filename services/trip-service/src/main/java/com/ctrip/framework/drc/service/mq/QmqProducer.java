@@ -151,6 +151,12 @@ public class QmqProducer extends AbstractProducer {
                 }
             }
 
+            if (orderKey == null) {
+                String defaultOrderKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_",keys));
+                message.setOrderKey(defaultOrderKey);
+                hasOrderKey = true;
+            }
+
             if (!hasOrderKey) {
                 String schemaDotTable = String.format("%s.%s", schema, table);
                 loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
