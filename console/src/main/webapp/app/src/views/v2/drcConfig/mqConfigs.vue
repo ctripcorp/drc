@@ -680,7 +680,7 @@ export default {
         messengerGroupId: this.drc.messengerGroupId,
         mhaName: this.drc.mhaName,
         tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag,
-        excludeFilterTypes: this.mqConfig.excludeFilterTypes.join(',')
+        excludeFilterTypes: this.mqConfig.excludeFilterTypes == null ? null : this.mqConfig.excludeFilterTypes.join(',')
       }
       this.tagInfo.conflictVos = []
       // const reqParam = this.flattenObj(dto)
