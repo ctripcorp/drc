@@ -71,7 +71,7 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
     public void afterException(Throwable t) {
         loggerTT.error("[TT][{}] call gtid merge task failed", registryKey, t);
         try {
-            TimeUnit.SECONDS.sleep(2);
+            TimeUnit.MILLISECONDS.sleep(500);
         } catch (InterruptedException e) {
             loggerTT.error("[TT][{}] sleep error when calling gtid merge task", registryKey, e);
         }

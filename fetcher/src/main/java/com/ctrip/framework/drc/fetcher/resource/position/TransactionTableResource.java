@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.fetcher.resource.position;
 
+import com.ctrip.framework.drc.core.concurrent.AtomicBooleanArray;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
@@ -25,7 +27,11 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
@@ -61,15 +67,15 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private Set<Integer> indexesToMerge = null;
 
-    private ConcurrentHashMap<Integer, Integer> usedIndex = new ConcurrentHashMap<Integer, Integer>();
+    private final Object[] flags = new Object[TRANSACTION_TABLE_SIZE];
 
-    private Object[] flags = new Object[TRANSACTION_TABLE_SIZE];
+    private final AtomicIntegerArray usedIndex = new AtomicIntegerArray(TRANSACTION_TABLE_SIZE);
 
-    private ConcurrentHashMap<Integer, Boolean> beginState = new ConcurrentHashMap<Integer, Boolean>(TRANSACTION_TABLE_SIZE);
+    private final AtomicBooleanArray beginState = new AtomicBooleanArray(TRANSACTION_TABLE_SIZE);
 
-    private ConcurrentHashMap<Integer, Boolean> commitState = new ConcurrentHashMap<Integer, Boolean>(TRANSACTION_TABLE_SIZE);
+    private final AtomicBooleanArray commitState = new AtomicBooleanArray(TRANSACTION_TABLE_SIZE);
 
-    private Map<Integer, String> indexAndGtid = new ConcurrentHashMap<Integer, String>();
+    private final Map<Integer, String> indexAndGtid = new ConcurrentHashMap<>();
 
     private volatile GtidSet gtidSavedInMemory = new GtidSet("");
 
@@ -119,7 +125,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
         logger.info("[transaction] update: {}, insert: {}", UPDATE_TRANSACTION_TABLE, INSERT_TRANSACTION_TABLE);
 
-        endpoint = new DefaultEndPoint(ip, port, username, password);
+        endpoint = new KeyedEndPoint(registryKey, new DefaultEndPoint(ip, port, username, password));
         PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
@@ -127,9 +133,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
         dataSource = DataSourceManager.getInstance().getDataSource(endpoint, poolProperties);
 
         for (int i = 0; i < TRANSACTION_TABLE_SIZE; i++) {
-            beginState.put(i, false);
-            commitState.put(i, false);
-            usedIndex.put(i, 0);
+            beginState.set(i, false);
+            commitState.set(i, false);
+            usedIndex.set(i, 0);
             flags[i] = new Object();
         }
         startGtidMergeSchedule();
@@ -169,7 +175,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
             //can use if instead, while loops only once, use loops just to avoid gitlab critical issue checking
             while (beginState.get(id)) {
                 if (!commitState.get(id)) {
-                    usedIndex.replace(id, usedIndex.get(id) + 1);
+                    usedIndex.set(id, usedIndex.get(id) + 1);
                     loggerTT.info("[TT] [USED][{}] start waiting, gtid is: {}, index is: {}", registryKey, gtid, id);
                     flags[id].wait();
                     loggerTT.info("[TT] [USED][{}] end waiting, gtid is: {}, index is: {}", registryKey, gtid, id);
@@ -181,7 +187,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
                 }
             }
 
-            beginState.put(id, true);
+            beginState.set(id, true);
             loggerTT.debug("[TT][{}] set begin, gno is: {}, index is: {}", registryKey, gno, id);
         }
     }
@@ -242,8 +248,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void resetBeginAndCommitStates(Set<Integer> idsToMerge) {
         for (Integer id : idsToMerge) {
-            beginState.replace(id, false);
-            commitState.replace(id, false);
+            beginState.set(id, false);
+            commitState.set(id, false);
         }
     }
 
@@ -298,7 +304,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         String[] uuidAndGno = gtid.split(":");
         long gno = Long.parseLong(uuidAndGno[1]);
         int index = (int) (gno % TRANSACTION_TABLE_SIZE);
-        beginState.replace(index, false);
+        beginState.set(index, false);
         loggerTT.info("[TT][{}][ROLLBACK] clear begin state: {} for: {}", registryKey, index, gtid);
     }
 
@@ -327,10 +333,10 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void setCommitState(int index) {
         synchronized (flags[index]) {
-            commitState.replace(index, true);
+            commitState.set(index, true);
             int usedTime = usedIndex.get(index);
             if (usedTime > 0) {
-                usedIndex.replace(index, usedTime - 1);
+                usedIndex.set(index, usedTime - 1);
                 flags[index].notify();
                 loggerTT.info("[TT] [USED][{}] start notify, index is: {}", registryKey, index);
             }
@@ -384,18 +390,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     @VisibleForTesting
-    public ConcurrentHashMap<Integer, Boolean> getBeginState() {
+    public AtomicBooleanArray getBeginState() {
         return beginState;
     }
 
     @Override
     protected void doDispose() throws Exception {
-        if (dataSource != null) {
-            loggerTT.info("[TT][{}] merge gtid when disposing start", registryKey);
-            mergeGtid(false);
-            loggerTT.info("[TT][{}] merge gtid when disposing end", registryKey);
-            DataSourceManager.getInstance().clearDataSource(endpoint);
-        }
         if (scheduledExecutorService != null) {
             scheduledExecutorService.shutdown();
             scheduledExecutorService = null;
@@ -403,6 +403,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
         if (mergeGtidService != null) {
             mergeGtidService.shutdown();
             mergeGtidService = null;
+        }
+        if (dataSource != null) {
+            loggerTT.info("[TT][{}] merge gtid when disposing start", registryKey);
+            mergeGtid(false);
+            loggerTT.info("[TT][{}] merge gtid when disposing end", registryKey);
+            DataSourceManager.getInstance().clearDataSource(endpoint);
         }
     }
 

@@ -62,7 +62,7 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
     public void afterException(Throwable t) {
         loggerTT.error("[TT][{}] query gtid set task failed, uuid is: {}", registryKey, uuid, t);
         try {
-            TimeUnit.SECONDS.sleep(2);
+            TimeUnit.MILLISECONDS.sleep(500);
         } catch (InterruptedException e) {
             loggerTT.error("[TT][{}] sleep error when calling gtid query task, uuid is: {}", registryKey, uuid, e);
         }
