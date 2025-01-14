@@ -13,9 +13,12 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by shiruixin
@@ -24,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 public abstract class FetcherServerContainer extends AbstractResourceManager implements ApplicationRunner {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Map<String, ReentrantLock> cachedLocks = new ConcurrentHashMap<>();
 
     protected ExecutorService taskExecutorService = ThreadUtils.newCachedThreadPool("FetcherServerContainer");
 
@@ -125,11 +129,17 @@ public abstract class FetcherServerContainer extends AbstractResourceManager imp
 
     protected abstract void deleteFile(String registryKey);
 
-    public synchronized LeaderElector registerServer(String registryKey) {  // Idempotent
-        createFile(registryKey);
-        LeaderElector leaderElector = getLeaderElector(registryKey);
-        logger.info("[Register] {} end", registryKey);
-        return leaderElector;
+    public LeaderElector registerServer(String registryKey) {  // Idempotent
+        Lock lock = cachedLocks.computeIfAbsent(registryKey, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            createFile(registryKey);
+            LeaderElector leaderElector = getLeaderElector(registryKey);
+            logger.info("[Register] {} end", registryKey);
+            return leaderElector;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public abstract void run(ApplicationArguments applicationArguments) throws Exception;

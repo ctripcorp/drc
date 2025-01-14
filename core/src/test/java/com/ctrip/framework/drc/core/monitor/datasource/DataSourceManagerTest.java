@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.monitor.datasource;
 
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
@@ -68,5 +69,12 @@ public class DataSourceManagerTest {
             }
         }
 
+    }
+
+    @Test
+    public void testGetMaxActive() {
+        Assert.assertEquals(50, DataSourceManager.getMaxActive(new DefaultEndPoint("10.10.10.10", 8080, "test", "test")));
+        Assert.assertEquals(50, DataSourceManager.getMaxActive(new KeyedEndPoint("mha1_dalcluster.mha1.mha2", new DefaultEndPoint("10.10.10.10", 8080, "test", "test"))));
+        Assert.assertEquals(5, DataSourceManager.getMaxActive(new KeyedEndPoint("mha1_dalcluster.mha1.mha2.mha1_db1", new DefaultEndPoint("10.10.10.10", 8080, "test", "test"))));
     }
 }

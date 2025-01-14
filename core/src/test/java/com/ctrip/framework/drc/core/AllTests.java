@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core;
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import com.ctrip.framework.drc.core.concurrent.AllSuccessFutureTest;
+import com.ctrip.framework.drc.core.concurrent.AtomicBooleanArrayTest;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutorTest;
 import com.ctrip.framework.drc.core.config.DynamicConfigTest;
 import com.ctrip.framework.drc.core.config.RegionConfigTest;
@@ -27,6 +28,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactoryTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.AuthenticateResultHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.HandshakeInitializationHandlerTest;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPointTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ConnectGeneratorTest;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacketTest;
 import com.ctrip.framework.drc.core.driver.command.packet.client.*;
@@ -295,6 +297,8 @@ import org.junit.runners.Suite;
 
         DrcKeyedOneThreadTaskExecutorTest.class,
         AllSuccessFutureTest.class,
+        AtomicBooleanArrayTest.class,
+        KeyedEndPointTest.class,
         
         //entity json parse
         HickWallConflictCountTest.class,

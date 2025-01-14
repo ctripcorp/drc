@@ -78,7 +78,7 @@ public class ApplierServerController {
 
     @RequestMapping(value = {"/{registryKey}/", "/{registryKey}/{delete}"}, method = RequestMethod.DELETE)
     public ApiResult<Boolean> remove(@PathVariable String registryKey, @PathVariable Optional<Boolean> delete) {
-        
+
         try {
             logger.info("[Remove] applier registryKey {}", registryKey);
             boolean deleted = true;
@@ -98,11 +98,11 @@ public class ApplierServerController {
     public ApiResult<Boolean> restart(@RequestBody ApplierConfigDto config) {
         try {
             String registryKey = config.getRegistryKey();
-            logger.info("[Receive][Register] applier: " + config);
+            logger.info("[Receive][Restart] applier: " + config);
             keyedExecutor.execute(registryKey, new RestartKeyedTask(registryKey, config, serverContainer));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
-            logger.error("register error", t);
+            logger.error("Restart error", t);
             return ApiResult.getFailInstance(false);
         }
     }

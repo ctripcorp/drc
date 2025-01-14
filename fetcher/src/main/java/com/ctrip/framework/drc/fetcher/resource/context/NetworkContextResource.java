@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.GtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
@@ -132,7 +133,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
 
     @VisibleForTesting
     protected GtidSet queryPositionFromDb() {
-        Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
+        Endpoint endpoint = new KeyedEndPoint(registryKey, new DefaultEndPoint(ip, port, username, password));
         List<GtidReader> gtidReaders = this.getExecutedGtidReaders(endpoint);
         ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint, gtidReaders);
         String gtidSet = queryTask.doQuery();

@@ -18,6 +18,7 @@ import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.applier.server.ApplierServerInCluster.DEFAULT_APPLY_COUNT;
@@ -63,8 +64,10 @@ public class DataSourceResource extends AbstractResource implements DataSource {
 
     private javax.sql.DataSource inner;
 
-    private ScheduledExecutorService scheduledExecutorService;
+    private static final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(5, "DatasourceResourceInfo");
 
+    private ScheduledFuture<?> jdbcActiveFuture;
+    private ScheduledFuture<?> heartBeatLogFuture;
     @Override
     protected void doInitialize() throws Exception {
         properties = new PoolProperties();
@@ -93,17 +96,16 @@ public class DataSourceResource extends AbstractResource implements DataSource {
             warmUp();
         });
 
-        scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(registryKey);
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
-            if(!Thread.currentThread().isInterrupted()) {
+        jdbcActiveFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
+            if (!Thread.currentThread().isInterrupted()) {
                 int active = ((DrcTomcatDataSource) inner).getActive();
                 if (reporter != null) {
                     reporter.report("jdbc.active", null, active);
                 }
             }
-        }, 100, 200, TimeUnit.MILLISECONDS);
+        }, 1, 2, TimeUnit.SECONDS);
 
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
+        heartBeatLogFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 HEARTBEAT_LOGGER.info("{} - HOST - {}", registryKey, InetAddress.getByName(ip));
             } catch (UnknownHostException e) {
@@ -114,9 +116,11 @@ public class DataSourceResource extends AbstractResource implements DataSource {
 
     @Override
     protected synchronized void doDispose() {
-        if (scheduledExecutorService != null) {
-            scheduledExecutorService.shutdown();
-            scheduledExecutorService = null;
+        if (jdbcActiveFuture != null) {
+            jdbcActiveFuture.cancel(true);
+        }
+        if (heartBeatLogFuture != null) {
+            heartBeatLogFuture.cancel(true);
         }
         if (inner != null) {
             DataSourceTerminator.getInstance().close((DrcTomcatDataSource) inner);

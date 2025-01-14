@@ -9,6 +9,7 @@ import com.google.common.collect.Sets;
 
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,22 +29,23 @@ public class ListenableDirectMemoryResource extends AbstractResource implements 
 
     public static long MAX_MEMORY = MIN_MEMORY * 5; //100M
 
+    private static final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(5, "ListenableDirectMemoryResource");
+
     private Set<LogEventCallBack> listeners = Sets.newConcurrentHashSet();
 
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
-    private ScheduledExecutorService scheduledExecutorService;
+    private ScheduledFuture<?> debugLogFuture;
 
     private AtomicLong eventNum = new AtomicLong(0);
 
     protected void doInitialize() {
-        scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("ListenableDirectMemoryResource-" + registryKey);
         String minSize = System.getProperty(MIN_MEMORY_KEY, String.valueOf(MIN_MEMORY));
         MIN_MEMORY = Long.parseLong(minSize);
         String maxSize = System.getProperty(MAX_MEMORY_KEY, String.valueOf(MAX_MEMORY));
         MAX_MEMORY = Long.parseLong(maxSize);
-        scheduledExecutorService.scheduleAtFixedRate(() -> logger.debug("[memoryUsed]:{} for {}", memoryUsed.get(), registryKey), 0, 30, TimeUnit.SECONDS);
+        debugLogFuture = scheduledExecutorService.scheduleAtFixedRate(() -> logger.debug("[memoryUsed]:{} for {}", memoryUsed.get(), registryKey), 0, 30, TimeUnit.SECONDS);
     }
 
     @Override
@@ -85,7 +87,10 @@ public class ListenableDirectMemoryResource extends AbstractResource implements 
         listeners.add(listener);
     }
 
+    @Override
     protected void doDispose() {
-        scheduledExecutorService.shutdown();
+        if (debugLogFuture != null) {
+            debugLogFuture.cancel(true);
+        }
     }
 }
