@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.util;
 
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 

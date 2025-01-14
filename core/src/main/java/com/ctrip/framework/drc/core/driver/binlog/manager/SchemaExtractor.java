@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.manager;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.google.common.collect.Lists;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -42,10 +43,17 @@ public class SchemaExtractor {
             }
             String columnDefault = resultSet.getString(6);
             String dataTypeLiteral = resultSet.getString(8);
-
+            String columnName = resultSet.getString(4);
+            String fullColumnName = tableInfo.getDbName() + "." + tableInfo.getTableName() + "." + columnName;
+            if (MysqlFieldType.isSetType(dataTypeLiteral)) {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.column.set", fullColumnName);
+            }
             columnDefault = convertColumnDefault(mysql8, columnDefault, dataTypeLiteral);
+            if (StringUtils.length(columnDefault) > 255) {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.column.defaultLength", fullColumnName + "." + columnDefault.length());
+            }
             TableMapLogEvent.Column column = new TableMapLogEvent.Column(
-                    resultSet.getString(4), nullable,
+                    columnName, nullable,
                     dataTypeLiteral, resultSet.getString(10),
                     resultSet.getString(11), resultSet.getString(12),
                     resultSet.getString(13), resultSet.getString(14),

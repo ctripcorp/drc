@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.concurrent.AllSuccessFutureTest;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutorTest;
 import com.ctrip.framework.drc.core.config.DynamicConfigTest;
 import com.ctrip.framework.drc.core.config.RegionConfigTest;
+import com.ctrip.framework.drc.core.driver.binlog.SetTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
@@ -33,6 +34,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCo
 import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
+import com.ctrip.framework.drc.core.driver.util.ByteHelperTest;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
 import com.ctrip.framework.drc.core.http.PageReqTest;
 import com.ctrip.framework.drc.core.http.PageResultTest;
@@ -283,6 +285,7 @@ import org.junit.runners.Suite;
 
         // write row filed with json type
         BinaryJsonTest.class,
+        SetTypeTest.class,
 
         //mq
         MessengerPropertiesTest.class,
@@ -299,7 +302,9 @@ import org.junit.runners.Suite;
         //service
         BatchInfoInquirerTest.class,
 
-        MetaCloneTest.class
+        MetaCloneTest.class,
+
+        ByteHelperTest.class
 })
 public class AllTests {
     /**
