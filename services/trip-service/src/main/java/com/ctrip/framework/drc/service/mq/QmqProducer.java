@@ -8,9 +8,6 @@ import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
-import com.ctrip.framework.drc.service.mq.listener.MqSendStateListener;
-import com.ctrip.xpipe.api.lifecycle.Startable;
-import com.ctrip.xpipe.api.lifecycle.Stoppable;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.dianping.cat.Cat;
 import muise.ctrip.canal.DataChange;
@@ -19,13 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import qunar.tc.qmq.Message;
+import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.MESSENGER_DELAY_MONITOR_TOPIC;
 import static qunar.tc.qmq.utils.SubjectBranchUtils.SUB_ENV;
@@ -60,8 +59,6 @@ public class QmqProducer extends AbstractProducer {
     //EventType value: I, U, D
     private List<String> excludeFilterTypes;
 
-    private AtomicReference<String> status = new AtomicReference<>();
-
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
@@ -73,7 +70,6 @@ public class QmqProducer extends AbstractProducer {
         this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
         init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
-        status.set(Startable.PHASE_NAME_END);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
     }
 
@@ -95,23 +91,22 @@ public class QmqProducer extends AbstractProducer {
         }
 
         try {
-            CountDownLatch latch = new CountDownLatch(eventDatas.size());
-            long start = System.nanoTime();
-
-            MqSendStateListener listener = new MqSendStateListener();
-            listener.setLatch(latch);
-            listener.setProvider(provider);
-            listener.setQmqProducer(this);
-
             for (EventData eventData : eventDatas) {
                 Message message = generateMessage(eventData);
-                provider.sendMessage(message, listener);
-            }
-            latch.await();
+                long start = System.nanoTime();
+                provider.sendMessage(message, new MessageSendStateListener() {
+                    @Override
+                    public void onSuccess(Message message) {
 
-            loggerMsgSend.info("[[{}]]send messenger cost: {}us, size: {}", topic, (System.nanoTime() - start) / 1000, eventDatas.size());
-        } catch (InterruptedException e) {
-            loggerMsgSend.error("[Messenger]latch InterruptedException: {}", e.getCause());
+                    }
+
+                    @Override
+                    public void onFailed(Message message) {
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.send.onfail", topic);
+                    }
+                });
+                loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, message.getStringProperty(DATA_CHANGE));
+            }
         } finally {
             Cat.getTraceContext(true).remove(SUB_ENV);
         }
@@ -197,12 +192,6 @@ public class QmqProducer extends AbstractProducer {
 
     @Override
     public void destroy() {
-        status.set(Stoppable.PHASE_NAME_BEGIN);
         QmqProviderFactory.destroy(topic);
-        status.set(Stoppable.PHASE_NAME_END);
-    }
-
-    public boolean isUsing() {
-        return status != null && Startable.PHASE_NAME_END.equals(status.get());
     }
 }
