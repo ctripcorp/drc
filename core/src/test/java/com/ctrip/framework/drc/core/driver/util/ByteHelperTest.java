@@ -2,16 +2,22 @@ package com.ctrip.framework.drc.core.driver.util;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.util.AsciiString;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 /**
  * Created by jixinwang on 2022/5/8
  */
 public class ByteHelperTest {
+
 
     @Test
     public void writeInt() throws IOException {
@@ -53,6 +59,58 @@ public class ByteHelperTest {
         Assert.assertEquals(255, num2);
         Assert.assertEquals(256, num3);
         Assert.assertEquals(123456, num4);
+    }
+
+    @Test
+    public void testWriteFixedLengthBytes() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        String value = getValue();
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        ByteHelper.writeUnsignedShortLittleEndian(bytes.length, out);
+        ByteHelper.writeFixedLengthBytes(bytes, 0, bytes.length, out);
+
+
+        ByteBuf byteBuf = getByteBuf(out.toByteArray());
+        int valueLength = byteBuf.readUnsignedShortLE();
+        String value1 = readFixLengthString(byteBuf, valueLength, StandardCharsets.UTF_8);
+        Assert.assertEquals(value, value1);
+
+    }
+
+    @Test
+    public void testWriteVariablesLengthStringDefaultCharset() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteHelper.writeVariablesLengthStringDefaultCharset(getValue(), out);
+    }
+
+    private String readVariableLengthStringDefaultCharset(final ByteBuf byteBuf) {
+        // mysql default charset is latin1, map to java is IOS_8859_1
+        final int length = (int) readLengthEncodeInt(byteBuf);
+        return readFixLengthStringDefaultCharset(byteBuf, length);
+    }
+
+    protected String readFixLengthStringDefaultCharset(final ByteBuf byteBuf, final int length) {
+        // mysql default charset is latin1, map to java is IOS_8859_1
+        return readFixLengthString(byteBuf, length, ISO_8859_1);
+    }
+
+    private String getValue() {
+        String val = "a";
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 256 * 256 - 1; i++) {
+            stringBuilder.append(val);
+        }
+        return stringBuilder.toString();
+    }
+
+    private String readFixLengthString(final ByteBuf byteBuf, final int length, final Charset charset) {
+        final CharSequence string = byteBuf.readCharSequence(length, charset);
+
+        if (string instanceof AsciiString) {
+            final AsciiString asciiString = (AsciiString) string;
+            return asciiString.toString();
+        }
+        return string.toString();
     }
 
     private ByteBuf getByteBuf(byte[] bytes) throws IOException {

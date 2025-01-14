@@ -48,6 +48,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     // decimal constant
     public static final BigDecimal long63Max = new BigDecimal("9223372036854775807");
     public static final BigDecimal long64Max = new BigDecimal("18446744073709551615");
+    public static final BigDecimal long63MaxPlusOne = new BigDecimal("9223372036854775808");
     private static final int DIGITS_PER_4BYTES = 9;
     private static final BigDecimal POSITIVE_ONE = BigDecimal.ONE;
     private static final BigDecimal NEGATIVE_ONE = new BigDecimal("-1");
@@ -222,7 +223,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 decimalBytes[i] ^= 0xFF;
             }
         }
-        
+
         final int x = precision - scale;
         final int ipDigits = x / DIGITS_PER_4BYTES;
         final int ipDigitsX = x - ipDigits * DIGITS_PER_4BYTES;
@@ -246,8 +247,8 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         }
 
         return positive ? POSITIVE_ONE.multiply(ip.add(fp)) : NEGATIVE_ONE.multiply(ip.add(fp));
-    } 
-    
+    }
+
     public List<List<Object>> getBeforePresentRowsValues() {
         return getRows().stream().map(Row::getBeforeValues)
                 .collect(Collectors.toList());
@@ -884,6 +885,34 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 }
             }
 
+            case mysql_type_set: {
+                switch (column.getMeta()) {
+                    case 1:
+                        ByteHelper.writeUnsignedByte((short) value, out);
+                        return;
+                    case 2:
+                        ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
+                        return;
+                    case 3:
+                        ByteHelper.writeUnsignedMediumLittleEndian((int) value, out);
+                        return;
+                    case 4:
+                        ByteHelper.writeUnsignedIntLittleEndian((long) value, out);
+                        return;
+                    case 8:
+                        BigDecimal decimalValue = (BigDecimal) value;
+                        if (decimalValue.compareTo(long63Max) > 0) {
+                            BigDecimal realValue = decimalValue.subtract(long64Max);
+                            ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
+                        } else {
+                            ByteHelper.writeInt64LittleEndian(decimalValue.longValue(), out);
+                        }
+                        return;
+                    default:
+                        throw new IllegalStateException("unsupported set type meta " + column.getMeta());
+                }
+            }
+
             default:
                 throw new UnsupportedOperationException(String.format("unsupported write field value, column type is %d", type.getType()));
         }
@@ -1142,7 +1171,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                             final int valueLength = byteBuf.readUnsignedShortLE();
                             final byte[] values = new byte[valueLength];
                             byteBuf.readBytes(values, 0, valueLength);
-                            return decoded? BinaryJson.parseAsString(values) : values;
+                            return decoded ? BinaryJson.parseAsString(values) : values;
                         }
 
                         case 3: {
@@ -1165,7 +1194,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     throw new RuntimeException(e);
                 }
             }
-            
+
             case mysql_type_date: {
                 // document show range : '1000-01-01' to '9999-12-31'
                 // real range : '0000-01-01' to '9999-12-31'
@@ -1400,6 +1429,24 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 }
             }
 
+            case mysql_type_set: {
+                switch (column.getMeta()) {
+                    case 1:
+                        return byteBuf.readUnsignedByte();
+                    case 2:
+                        return byteBuf.readUnsignedShortLE();
+                    case 3:
+                        return byteBuf.readUnsignedMediumLE();
+                    case 4:
+                        return byteBuf.readUnsignedIntLE();
+                    case 8:
+                        final long long64 = byteBuf.readLongLE();
+                        return long64 >= 0 ? BigDecimal.valueOf(long64) : long64Max.add(BigDecimal.valueOf(1 + long64));
+                    default:
+                        throw new IllegalStateException("unsupported set type meta " + column.getMeta());
+                }
+            }
+
             default:
                 throw new UnsupportedOperationException(String.format("unsupported parse field value, column type is %d", type.getType()));
         }
@@ -1532,8 +1579,8 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         final int fpDigitsX = scale - fpDigits * DIGITS_PER_4BYTES;
         return (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX] + (fpDigits << 2) + DECIMAL_BINARY_SIZE[fpDigitsX];
     }
-    
-   
+
+
     private static int toInt(byte[] data, int offset, int length) {
         int r = 0;
         for (int i = offset; i < (offset + length); i++) {
