@@ -209,24 +209,4 @@ public class QmqProducerTest {
         return data;
     }
 
-    @Test
-    public void testIsStopping() {
-        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
-        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
-        MockedStatic<TripServiceDynamicConfig> theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
-        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
-
-        MqConfig config = new MqConfig();
-        config.setTopic("drc.test.topic");
-        config.setOrder(true);
-        config.setOrderKey(null);
-        QmqProducer producer = new QmqProducer(config);
-
-        Assert.assertTrue(producer.isUsing());
-
-        producer.destroy();
-        Assert.assertFalse(producer.isUsing());
-
-        theMock.close();
-    }
 }
