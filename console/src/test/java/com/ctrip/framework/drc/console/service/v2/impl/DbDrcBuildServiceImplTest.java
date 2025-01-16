@@ -55,6 +55,9 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     @Mock
     private MessengerServiceV2Impl messengerServiceV2;
 
+    @Mock
+    private MessengerBatchConfigService messengerBatchConfigService;
+
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
@@ -368,31 +371,23 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     public void testCreateDbMqReplication() throws Exception {
         DbMqCreateDto dbReplicationCreateDto = getDbMqCreateDto();
         dbDrcBuildService.createDbMqReplication(dbReplicationCreateDto);
-        verify(messengerServiceV2, times(1)).processAddMqConfig(any());
+        verify(messengerBatchConfigService, times(1)).processCreateMqConfig(any(),any());
     }
 
     @Test
     public void testEditDbMqReplication() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         dbDrcBuildService.editDbMqReplication(editDto);
-        verify(messengerServiceV2, times(1)).processUpdateMqConfig(any());
+        verify(messengerBatchConfigService, times(1)).processUpdateMqConfig(any(),any());
     }
 
     @Test
     public void testDeleteDbMqReplication() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         dbDrcBuildService.deleteDbMqReplication(editDto);
-        verify(messengerServiceV2, times(1)).processDeleteMqConfig(any());
+        verify(messengerBatchConfigService, times(1)).processDeleteMqConfig(any(),any());
     }
 
-
-    @Test(expected = ConsoleException.class)
-    public void testDeleteDbMqReplicationInvalidReq() throws Exception {
-        DbMqEditDto editDto = getDbMqEditDto();
-        editDto.getOriginLogicTableConfig().setMessengerFilterId(null);
-        dbDrcBuildService.deleteDbMqReplication(editDto);
-        verify(messengerServiceV2, times(1)).processDeleteMqConfig(any());
-    }
 
     @Test
     public void testSwitchAppliers() throws Exception {
@@ -460,6 +455,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
 
     private static DbMqCreateDto getDbMqCreateDto() {
         DbMqCreateDto create = new DbMqCreateDto();
+        create.setDalclusterName("test_dalcluster");
         LogicTableConfig logicTableConfig = new LogicTableConfig();
         logicTableConfig.setLogicTable("new table");
         logicTableConfig.setDstLogicTable("bbz.test.binlog");
@@ -479,6 +475,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
 
     private static DbMqEditDto getDbMqEditDto() {
         DbMqEditDto editDto = new DbMqEditDto();
+        editDto.setDalclusterName("test_dalcluster");
         LogicTableConfig logicTableConfig = new LogicTableConfig();
         logicTableConfig.setLogicTable("new table");
         logicTableConfig.setDstLogicTable("bbz.test.binlog");

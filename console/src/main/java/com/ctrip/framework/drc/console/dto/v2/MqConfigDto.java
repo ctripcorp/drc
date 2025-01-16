@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dto.v2;
 
+import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
@@ -196,4 +197,24 @@ public class MqConfigDto implements Serializable {
                 ", excludeFilterTypes=" + excludeFilterTypes +
                 '}';
     }
+
+
+    public MqConfig build() {
+        MqConfig mqConfig = new MqConfig();
+        mqConfig.setMqType(this.getMqType());
+        mqConfig.setSerialization(this.getSerialization());
+        mqConfig.setOrder(this.isOrder());
+        if (this.isOrder()) {
+            mqConfig.setOrderKey(this.getOrderKey());
+        }
+        mqConfig.setPersistent(this.isPersistent());
+        mqConfig.setPersistentDb(this.getPersistentDb());
+        mqConfig.setDelayTime(this.getDelayTime());
+        if (!CollectionUtils.isEmpty(this.getExcludeFilterTypes())) {
+            mqConfig.setExcludeFilterTypes(this.getExcludeFilterTypes());
+        }
+
+        return mqConfig;
+    }
+
 }

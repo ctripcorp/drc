@@ -40,6 +40,7 @@ public enum ReadableErrorDefEnum implements IErrorDef {
      * delete datasource exception
      */
     DELETE_TBL_EXCEPTION("DELETE_TBL_EXCEPTION", "delete exception, please contact devops"),
+    INSERT_TBL_EXCEPTION("INSERT_TBL_EXCEPTION", "insert exception, please contact devops"),
 
 
     DRC_TABLE_NOT_MATCH_BETWEEN_SRC_AND_DST("DRC_TABLE_NOT_MATCH","tables in src and dst not match"),

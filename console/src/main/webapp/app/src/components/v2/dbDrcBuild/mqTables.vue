@@ -16,6 +16,7 @@
     <Modal v-model="editModal.open" width="1200px" :footer-hide="true" :title="actionTitle">
       <db-mq-config ref="dbReplicationConfigComponent" @finished="finishConfig"
                              v-if="editModal.open"
+                             :dalcluster-name="dalclusterName"
                              :config-data="selectedRow"
                              :src-region="srcRegion"
                              :dst-region="srcRegion"
@@ -34,6 +35,7 @@ export default {
   name: 'mqTables',
   components: { DbMqConfig },
   props: {
+    dalclusterName: String,
     dbName: String,
     dbNames: Array,
     srcRegion: String,
@@ -111,7 +113,7 @@ export default {
           width: 100,
           render: (h, params) => {
             const row = params.row
-            const text = row.orderKey ? row.orderKey : '主键'
+            const text = row.order ? (row.orderKey ? row.orderKey : '主键') : ''
             return h('span', text)
           }
         },

@@ -104,6 +104,13 @@ public class DrcAutoBuildReq {
             return tableNames;
         }
 
+        public TblsFilterDetail() {
+        }
+
+        public TblsFilterDetail(String tableNames) {
+            this.tableNames = tableNames;
+        }
+
         public void setTableNames(String tableNames) {
             this.tableNames = tableNames;
         }

@@ -371,7 +371,7 @@ export default {
           width: 100,
           render: (h, params) => {
             const row = params.row
-            const text = row.orderKey ? row.orderKey : '主键'
+            const text = row.order ? (row.orderKey ? row.orderKey : '主键') : ''
             return h('span', text)
           }
         },

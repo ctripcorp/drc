@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
@@ -94,7 +95,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final List<String> IBU_REGIONS = Lists.newArrayList("sinibuaws", "sinibualiyun");
-    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "drcCheckMysqlConfig"));
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(32, "drcCheckMysqlConfig"));
     @Autowired
     private DbDrcBuildService dbDrcBuildService;
     @Autowired
@@ -152,6 +153,33 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             }
             return matchTable;
         } catch (Throwable e) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.PRE_CHECK_MYSQL_TABLE_INFO_FAIL,e);
+        }
+    }
+
+    @Override
+    public List<MySqlUtils.TableSchemaName> getMatchTable(DrcAutoBuildReq req) {
+        List<DrcAutoBuildParam> drcBuildParam = this.getDrcBuildParam(req);
+
+        return getMatchTable(drcBuildParam);
+    }
+
+    @Override
+    public List<MySqlUtils.TableSchemaName> getMatchTable(List<DrcAutoBuildParam> drcBuildParam) {
+        List<MySqlUtils.TableSchemaName> matchTable = Lists.newArrayList();
+        List<ListenableFuture<List<MySqlUtils.TableSchemaName>>> futures = Lists.newArrayList();
+        for (DrcAutoBuildParam param : drcBuildParam) {
+            String nameFilter = param.getDbNameFilter() + "\\." + param.getTableFilter();
+            String mhaName = param.getSrcMhaName();
+            ListenableFuture<List<MySqlUtils.TableSchemaName>> future = executorService.submit(() -> mysqlServiceV2.getMatchTable(mhaName, nameFilter));
+            futures.add(future);
+        }
+        try {
+            for (ListenableFuture<List<MySqlUtils.TableSchemaName>> future : futures) {
+                matchTable.addAll(future.get(60, TimeUnit.SECONDS));
+            }
+            return matchTable;
+        } catch (Throwable e) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.PRE_CHECK_MYSQL_TABLE_INFO_FAIL);
         }
     }
@@ -167,6 +195,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         List<DrcAutoBuildParam> drcBuildParam = this.getDrcBuildParam(req);
         HashSet<String> commonColumns = Sets.newHashSet();
 
+        List<ListenableFuture<Set<String>>> futures = Lists.newArrayList();
+
         for (DrcAutoBuildParam param : drcBuildParam) {
             String srcMhaName = param.getSrcMhaName();
             String dbNameFilter = param.getDbNameFilter();
@@ -174,18 +204,25 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             if (StringUtils.isBlank(srcMhaName) || StringUtils.isBlank(dbNameFilter) || StringUtils.isBlank(tableFilter)) {
                 throw ConsoleExceptionUtils.message("get common column error, invalid param: " + param);
             }
-            Set<String> columns = mysqlServiceV2.getCommonColumnIn(srcMhaName, dbNameFilter, tableFilter);
-            if (commonColumns.isEmpty()) {
-                commonColumns.addAll(columns);
-            } else {
-                commonColumns.retainAll(columns);
-            }
-            if (commonColumns.isEmpty()) {
-                break;
-            }
+            ListenableFuture<Set<String>> future = executorService.submit(() -> mysqlServiceV2.getCommonColumnIn(srcMhaName, dbNameFilter, tableFilter));
+            futures.add(future);
         }
-
-        return Lists.newArrayList(commonColumns);
+        try {
+            for (ListenableFuture<Set<String>> future : futures) {
+                Set<String> columns = future.get(60, TimeUnit.SECONDS);
+                if (commonColumns.isEmpty()) {
+                    commonColumns.addAll(columns);
+                } else {
+                    commonColumns.retainAll(columns);
+                }
+                if (commonColumns.isEmpty()) {
+                    break;
+                }
+            }
+            return Lists.newArrayList(commonColumns);
+        } catch (Throwable e) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.PRE_CHECK_MYSQL_TABLE_INFO_FAIL);
+        }
     }
 
     @VisibleForTesting
