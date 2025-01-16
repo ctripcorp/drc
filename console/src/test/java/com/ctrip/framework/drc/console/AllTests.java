@@ -126,6 +126,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterMetaServiceTest.class,
         RowsFilterMetaMappingServiceTest.class,
         QConfigApiServiceTest.class,
+        MessengerBatchConfigServiceImplTest.class,
 
         ColumnsFilterServiceV2Test.class,
         DataMediaServiceV2Test.class,

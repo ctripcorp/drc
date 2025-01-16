@@ -38,7 +38,7 @@
             </FormItem>
             <Divider orientation="left">消息投递配置</Divider>
             <Card style="width:100%">
-              <mq-tables :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
+              <mq-tables :dalcluster-name="drcConfig.dalclusterName" :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
                       :src-region="meta.srcRegionName" :dst-region="meta.dstRegionName" :db-name="meta.dbName"
                       :db-names="drcConfig.dbNames" @updated="getDrcConfig"
               />
@@ -146,6 +146,7 @@ export default {
           const data = response.data.data
           const success = data && response.data.status === 0
           if (success) {
+            console.log('getDrcConfig', data)
             this.drcConfig = data
             this.$Message.success('查询DRC配置成功 ')
           } else {

@@ -22,6 +22,7 @@ public class DbMqCreateDtoTest {
     @Test
     public void testValid() {
         DbMqCreateDto dbMqCreateDto = new DbMqCreateDto();
+        dbMqCreateDto.setDalclusterName("test_dalcluster");
         dbMqCreateDto.setDbNames(Lists.newArrayList("db1"));
         dbMqCreateDto.setSrcRegionName("test");
         LogicTableConfig logicTableConfig = new LogicTableConfig();

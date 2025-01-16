@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.entity.Messenger;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,4 +53,7 @@ public interface MessengerServiceV2 {
     List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList);
 
     Map<String, Set<String>> registerMessengerAppAsQMQProducer(boolean showOnly, boolean changeAll, String topic, String registDc) throws SQLException;
+
+    void initMqConfigIfNeeded(MqConfigDto dto, Collection<String> dcNames) ;
+
 }

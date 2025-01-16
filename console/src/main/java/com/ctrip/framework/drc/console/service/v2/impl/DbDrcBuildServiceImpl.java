@@ -16,7 +16,6 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
-import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -35,8 +34,6 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DalclusterUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
-import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
@@ -47,6 +44,9 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
@@ -57,9 +57,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.validation.constraints.NotNull;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -113,6 +115,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     private DbTblDao dbTblDao;
     @Autowired
     private MessengerServiceV2 messengerServiceV2;
+    @Autowired
+    private MessengerBatchConfigService messengerBatchConfigService;
     @Autowired
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
@@ -584,13 +588,13 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     public List<DbDrcConfigInfoDto> getExistDbReplicationDirections(String dbName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
+        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName).getDbNames();
         return this.getExistDbReplicationDirections(dbNames);
     }
 
     @Override
     public List<DbMqConfigInfoDto> getExistDbMqConfigDcOption(String dbName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
+        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName).getDbNames();
         List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, ReplicationTypeEnum.DB_TO_MQ);
         return mhaDbReplicationDtos.stream()
                 .map(e -> new DbMqConfigInfoDto(e.getSrc().getRegionName()))
@@ -606,14 +610,14 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     public DbDrcConfigInfoDto getDbDrcConfig(String dbName, String srcRegionName, String dstRegionName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
+        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName).getDbNames();
         return getDbDrcConfig(dbNames, srcRegionName, dstRegionName);
     }
 
     @Override
     public DbMqConfigInfoDto getDbMqConfig(String dbName, String srcRegionName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
-        return getDbMqConfig(dbNames, srcRegionName);
+        ShardDatabaseInfoDto infoDto = this.getDbNamesWithinSameDalCluster(dbName);
+        return getDbMqConfig(infoDto.getDalClusterName(), infoDto.getDbNames(), srcRegionName);
     }
 
     private DbDrcConfigInfoDto getDbDrcConfig(List<String> dbNames, String srcRegionName, String dstRegionName) {
@@ -654,7 +658,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         return dbDrcConfigInfoDto;
     }
 
-    private DbMqConfigInfoDto getDbMqConfig(List<String> dbNames, String srcRegionName) {
+    public DbMqConfigInfoDto getDbMqConfig(String dalclusterName, List<String> dbNames, String srcRegionName) {
         try {
             List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, ReplicationTypeEnum.DB_TO_MQ)
                     .stream().filter(e -> e.getSrc().getRegionName().equals(srcRegionName)).collect(Collectors.toList());
@@ -663,9 +667,11 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }
 
             // 1. logic table config consistency check
-            long count = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().count();
+            List<Set<LogicTableConfig>> distinctConfig = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(
+                                    e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().collect(Collectors.toList());
+            long count = distinctConfig.size();
             if (count > 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT);
+                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT, JsonUtils.toJson(distinctConfig));
             }
 
             // 2. group by mha
@@ -714,6 +720,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }).collect(Collectors.toList());
             dbDrcConfigInfoDto.setLogicTableSummaryDtos(mqLogicTableSummaryDtos);
             dbDrcConfigInfoDto.setDbNames(dbNames);
+            dbDrcConfigInfoDto.setDalclusterName(dalclusterName);
             return dbDrcConfigInfoDto;
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -954,39 +961,27 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void createDbMqReplication(DbMqCreateDto createDto) throws Exception {
+    public void createDbMqReplication(DbMqCreateDto createDto) {
         createDto.validAndTrim();
-        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(createDto.getDbNames(), createDto.getSrcRegionName());
-        List<MhaMqDto> mhaMqDtos = dbMqConfig.getMhaMqDtos();
-        String logicTable = createDto.getLogicTableConfig().getLogicTable();
-        String topic = createDto.getLogicTableConfig().getDstLogicTable();
-        MqConfigDto mqConfig = createDto.getMqConfig();
-        mqConfig.setTopic(topic);
-
-        for (MhaMqDto mhaMqDto : mhaMqDtos) {
-            String fullName = mhaMqDto.getMhaDbReplications().stream().map(e -> e.getSrc().getDbName()).collect(Collectors.joining("|"));
-            fullName = String.format("(%s)\\.%s", fullName, logicTable);
-            mqConfig.setMhaName(mhaMqDto.getSrcMha().getName());
-            mqConfig.setTable(fullName);
-            this.preCheckMqConfig(mqConfig);
-            messengerServiceV2.processAddMqConfig(mqConfig);
-        }
+        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(createDto.getDalclusterName(), createDto.getDbNames(), createDto.getSrcRegionName());
+        messengerBatchConfigService.processCreateMqConfig(createDto, dbMqConfig);
+        // refresh registry
+        this.refreshRegistryConfig(createDto);
     }
 
-    private void preCheckMqConfig(MqConfigDto mqConfig) {
-        MqConfigCheckVo mqConfigCheckVo = messengerServiceV2.checkMqConfig(mqConfig);
-        if (!Boolean.TRUE.equals(mqConfigCheckVo.getAllowSubmit())) {
-            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.MQ_CONFIG_CHECK_FAIL, JsonUtils.toJson(mqConfigCheckVo.getConflictTables()));
-        }
+    private void refreshRegistryConfig(DbMqCreateDto createDto) {
+        DbMqConfigInfoDto dbMqConfig;
+        dbMqConfig = this.getDbMqConfig(createDto.getDalclusterName(), createDto.getDbNames(), createDto.getSrcRegionName());
+        messengerBatchConfigService.refreshRegistryConfig(dbMqConfig);
     }
 
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
-    public void editDbMqReplication(DbMqEditDto editDto) throws Exception {
+    public void editDbMqReplication(DbMqEditDto editDto) {
         editDto.validAndTrim();
+        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDalclusterName(), editDto.getDbNames(), editDto.getSrcRegionName());
         // check original config not modified
-        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDbNames(), editDto.getSrcRegionName());
         List<MqLogicTableSummaryDto> logicTableSummaryDtos = dbMqConfig.getLogicTableSummaryDtos();
         Set<Long> requestEditIdSet = Sets.newHashSet(editDto.getDbReplicationIds());
         List<LogicTableSummaryDto> summaryDtos = logicTableSummaryDtos.stream().filter(e -> Sets.newHashSet(e.getDbReplicationIds()).equals(requestEditIdSet)).collect(Collectors.toList());
@@ -994,35 +989,16 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
         }
 
-        List<MhaMqDto> mhaMqDtos = dbMqConfig.getMhaMqDtos();
-        String logicTable = editDto.getLogicTableConfig().getLogicTable();
-        String topic = editDto.getLogicTableConfig().getDstLogicTable();
-        MqConfigDto mqConfig = editDto.getMqConfig();
-        mqConfig.setTopic(topic);
-
-        for (MhaMqDto mhaMqDto : mhaMqDtos) {
-            List<LogicTableSummaryDto> oldSummaryDtos = LogicTableSummaryDto.from(mhaMqDto.getMhaDbReplications());
-            List<LogicTableSummaryDto> updateTarget = oldSummaryDtos.stream().filter(e -> e.getConfig().equals(editDto.getOriginLogicTableConfig())).collect(Collectors.toList());
-            if (CollectionUtils.isEmpty(updateTarget) || updateTarget.size() != 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
-            }
-            List<Long> dbReplicationIds = updateTarget.get(0).getDbReplicationIds();
-            String fullName = mhaMqDto.getMhaDbReplications().stream().map(e -> e.getSrc().getDbName()).collect(Collectors.joining("|"));
-            fullName = String.format("(%s)\\.%s", fullName, logicTable);
-            mqConfig.setMhaName(mhaMqDto.getSrcMha().getName());
-            mqConfig.setTable(fullName);
-            mqConfig.setDbReplicationIds(dbReplicationIds);
-            this.preCheckMqConfig(mqConfig);
-            messengerServiceV2.processUpdateMqConfig(mqConfig);
-        }
+        messengerBatchConfigService.processUpdateMqConfig(editDto, dbMqConfig);
+        this.refreshRegistryConfig(editDto);
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDbMqReplication(DbMqEditDto editDto) throws Exception {
+    public void deleteDbMqReplication(DbMqEditDto editDto) {
         editDto.validAndTrim();
+        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDalclusterName(), editDto.getDbNames(), editDto.getSrcRegionName());
         // check original config not modified
-        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDbNames(), editDto.getSrcRegionName());
         List<MqLogicTableSummaryDto> logicTableSummaryDtos = dbMqConfig.getLogicTableSummaryDtos();
         Set<Long> requestEditIdSet = Sets.newHashSet(editDto.getDbReplicationIds());
         List<LogicTableSummaryDto> summaryDtos = logicTableSummaryDtos.stream().filter(e -> Sets.newHashSet(e.getDbReplicationIds()).equals(requestEditIdSet)).collect(Collectors.toList());
@@ -1030,22 +1006,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
         }
 
-        List<MhaMqDto> mhaMqDtos = dbMqConfig.getMhaMqDtos();
-
-        for (MhaMqDto mhaMqDto : mhaMqDtos) {
-            List<LogicTableSummaryDto> oldSummaryDtos = LogicTableSummaryDto.from(mhaMqDto.getMhaDbReplications());
-            List<LogicTableSummaryDto> deleteTarget = oldSummaryDtos.stream().filter(e -> e.getConfig().equals(editDto.getOriginLogicTableConfig())).collect(Collectors.toList());
-            if (CollectionUtils.isEmpty(deleteTarget) || deleteTarget.size() != 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
-            }
-
-
-            MqConfigDeleteRequestDto mqConfigDeleteRequestDto = new MqConfigDeleteRequestDto();
-            mqConfigDeleteRequestDto.setMhaName(mhaMqDto.getSrcMha().getName());
-            mqConfigDeleteRequestDto.setDbReplicationIdList(deleteTarget.get(0).getDbReplicationIds());
-            messengerServiceV2.processDeleteMqConfig(mqConfigDeleteRequestDto);
-        }
-
+        messengerBatchConfigService.processDeleteMqConfig(editDto, dbMqConfig);
+        this.refreshRegistryConfig(editDto);
     }
 
     @Override
@@ -1092,9 +1054,10 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         return true;
     }
 
-    private List<String> getDbNamesWithinSameDalCluster(String dbName) {
+    private ShardDatabaseInfoDto getDbNamesWithinSameDalCluster(String dbName) {
         String dalClusterName = getDalclusterName(dbName);
-        return getDbNamesByDalClusterName(dalClusterName);
+        List<String> dbNamesByDalClusterName = getDbNamesByDalClusterName(dalClusterName);
+        return new ShardDatabaseInfoDto(dalClusterName, dbNamesByDalClusterName);
 
     }
 
@@ -1116,9 +1079,19 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
+    private final LoadingCache<String, String> cache = CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .build(new CacheLoader<>() {
+                @Override
+                public String load(@NotNull String dbName) {
+                    return getDalClusterName(dbName);
+                }
+            });
+
     private String getDalclusterName(String dbName) {
         try {
-            return dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbName);
+            cache.getUnchecked(dbName);
         } catch (Exception e) {
             if (EnvUtils.pro()) {
                 throw e;
@@ -1129,6 +1102,10 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         logger.info("get dalcluster from dba api fail. DbName: {}, Assume dalclusterName: {}  ", dbName, dalClusterName);
         return dalClusterName;
 
+    }
+
+    private String getDalClusterName(String dbName) {
+        return dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbName);
     }
 
     private void checkExistDbReplication(List<MhaDbReplicationDto> mhaDbReplicationDtos, List<DbApplierDto> dbApplierDtos) {

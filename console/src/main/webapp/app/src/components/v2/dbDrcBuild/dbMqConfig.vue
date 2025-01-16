@@ -98,6 +98,7 @@ export default {
     configData: {},
     srcRegion: String,
     dstRegion: String,
+    dalclusterName: String,
     dbNames: Array,
     formAction: String,
     filterReadOnly: Boolean
@@ -284,6 +285,7 @@ export default {
     },
     getEditParams: function () {
       const param = {}
+      param.dalclusterName = this.dalclusterName
       param.dbReplicationIds = this.meta.dbReplicationIds
       param.dbNames = this.dbNames
       param.srcRegionName = this.srcRegion

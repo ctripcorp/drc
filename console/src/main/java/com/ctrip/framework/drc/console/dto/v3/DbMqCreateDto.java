@@ -7,13 +7,16 @@ import org.springframework.util.CollectionUtils;
 import java.util.List;
 
 public class DbMqCreateDto {
-
+    protected String dalclusterName;
     protected List<String> dbNames;
     protected String srcRegionName;
     protected LogicTableConfig logicTableConfig;
     protected MqConfigDto mqConfig;
 
     public void validAndTrim() {
+        if (StringUtils.isBlank(dalclusterName)) {
+            throw new IllegalArgumentException("dalclusterName should not be blank!");
+        }
         if (logicTableConfig == null || StringUtils.isBlank(logicTableConfig.getLogicTable())) {
             throw new IllegalArgumentException("table should not be blank!");
         }
@@ -43,6 +46,15 @@ public class DbMqCreateDto {
         srcRegionName = srcRegionName.trim();
         logicTableConfig.setLogicTable(logicTableConfig.getLogicTable().trim());
         logicTableConfig.setDstLogicTable(logicTableConfig.getDstLogicTable().trim());
+        this.mqConfig.setTopic(logicTableConfig.getDstLogicTable());
+    }
+
+    public String getDalclusterName() {
+        return dalclusterName;
+    }
+
+    public void setDalclusterName(String dalClusterName) {
+        this.dalclusterName = dalClusterName;
     }
 
     public List<String> getDbNames() {

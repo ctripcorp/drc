@@ -5,6 +5,7 @@ import java.util.Objects;
 
 public class DbMqConfigInfoDto {
     private String srcRegionName;
+    private String dalclusterName;
     private List<String> dbNames;
     private List<MqLogicTableSummaryDto> logicTableSummaryDtos;
     private List<MhaMqDto> mhaMqDtos;
@@ -21,7 +22,13 @@ public class DbMqConfigInfoDto {
         this.srcRegionName = srcRegionName;
     }
 
+    public String getDalclusterName() {
+        return dalclusterName;
+    }
 
+    public void setDalclusterName(String dalclusterName) {
+        this.dalclusterName = dalclusterName;
+    }
 
     public List<MqLogicTableSummaryDto> getLogicTableSummaryDtos() {
         return logicTableSummaryDtos;

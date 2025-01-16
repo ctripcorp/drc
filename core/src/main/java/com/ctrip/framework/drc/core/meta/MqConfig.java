@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.meta;
 
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.List;
@@ -152,5 +153,9 @@ public class MqConfig {
 
     public void setSubenv(String subenv) {
         this.subenv = subenv;
+    }
+
+    public String toJson() {
+        return JsonUtils.toJson(this);
     }
 }
