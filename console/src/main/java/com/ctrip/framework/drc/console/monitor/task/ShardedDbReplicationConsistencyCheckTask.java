@@ -11,10 +11,11 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.utils.DalclusterUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -26,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -95,11 +95,14 @@ public class ShardedDbReplicationConsistencyCheckTask extends AbstractLeaderAwar
         );
         checkDbReplicationConsistency(this.convertToReplicationDoMap(mappingIdToDbNameMap, dbToDbReplications), dalClusterToDbCount);
 
-        // db to mq
-        Map<RouteDo, List<DbReplicationTbl>> dbToMqReplications = dbReplicationTbls.stream().filter(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType())).collect(
-                Collectors.groupingBy(e -> new RouteDo(mappingIdToRegionNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToRegionNameMap.get(e.getDstMhaDbMappingId())))
-        );
-        checkDbReplicationConsistency(this.convertToReplicationDoMap(mappingIdToDbNameMap, dbToMqReplications), dalClusterToDbCount);
+        // db to qmq/kafka
+        for (MqType mqType : MqType.values()) {
+            ReplicationTypeEnum replicationType = mqType.getReplicationType();
+            Map<RouteDo, List<DbReplicationTbl>> dbToMqReplications = dbReplicationTbls.stream().filter(e -> replicationType.getType().equals(e.getReplicationType())).collect(
+                    Collectors.groupingBy(e -> new RouteDo(mappingIdToRegionNameMap.get(e.getSrcMhaDbMappingId()), mappingIdToRegionNameMap.get(e.getDstMhaDbMappingId())))
+            );
+            checkDbReplicationConsistency(this.convertToReplicationDoMap(mappingIdToDbNameMap, dbToMqReplications), dalClusterToDbCount);
+        }
     }
 
     private Map<RouteDo, Map<String, List<DbReplicationDo>>> convertToReplicationDoMap(Map<Long, String> mappingIdToDbNameMap, Map<RouteDo, List<DbReplicationTbl>> replicationsGroupByRoute) {

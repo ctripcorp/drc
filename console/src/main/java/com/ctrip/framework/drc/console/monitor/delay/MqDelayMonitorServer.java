@@ -9,9 +9,15 @@ import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
+import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
+import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -19,12 +25,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-
+import java.util.stream.Collectors;
 
 
 /**
@@ -35,7 +42,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Order(0)
 @Component("mqDelayMonitorServer")
-public class MqDelayMonitorServer implements InitializingBean {
+public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     
     @Autowired private MonitorTableSourceProvider monitorProvider;
     @Autowired private DefaultConsoleConfig consoleConfig;
@@ -45,8 +52,12 @@ public class MqDelayMonitorServer implements InitializingBean {
     private final ScheduledExecutorService monitorMessengerChangerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
             getClass().getSimpleName() + "messengerMonitor");
 
+    private final IKafkaDelayMessageConsumer kafkaConsumer = ApiContainer.getKafkaDelayMessageConsumer();
+
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
-    
+
+    private volatile boolean isLeader = false;
+
     @Override
     public void afterPropertiesSet() throws Exception {
         logger.info("[[monitor=delay]] mq consumer starting");
@@ -56,25 +67,48 @@ public class MqDelayMonitorServer implements InitializingBean {
                 monitorProvider.getMqDelayConsumerGroup(),
                 consoleConfig.getDcsInLocalRegion()
         );
+        kafkaConsumer.initConsumer(
+                monitorProvider.getMqDelaySubject(),
+                monitorProvider.getKafkaDelayConsumerGroup(),
+                consoleConfig.getDcsInLocalRegion()
+        );
         
     }
     
     public void monitorMessengerChange() {
         try {
-            Set<String> mhas = this.getAllMhaWithMessengerInLocalRegion();
-            consumer.mhasRefresh(mhas);
+            Map<String, Set<Pair<String, String>>> mqType2mhas = this.getAllMhaWithMessengerInLocalRegion();
+            Set<String> qmqRelatedMhaNames = mqType2mhas.get(MqType.qmq.name()).stream()
+                            .map(Pair::getLeft).collect(Collectors.toSet());
+            Set<String> kafkaRelatedMhaNames = mqType2mhas.get(MqType.kafka.name()).stream()
+                    .map(Pair::getLeft).collect(Collectors.toSet());
+            Map<String, String> kafkaRelatedMha2Dc = mqType2mhas.get(MqType.kafka.name()).stream()
+                            .collect(Collectors.toMap(
+                                    Pair::getLeft,
+                                    Pair::getRight,
+                                    (existing, replacement) -> existing
+                            ));
+            consumer.mhasRefresh(qmqRelatedMhaNames);
+            if (isLeader) {
+                kafkaConsumer.mhasRefresh(kafkaRelatedMhaNames, kafkaRelatedMha2Dc);
+            } else {
+                kafkaConsumer.mhasRefresh(Sets.newHashSet(), Maps.newHashMap());
+            }
         } catch (Throwable t) {
             logger.error("[[monitor=delay]] monitorMessengerChange fail",t);
         }
     }
 
-
     @VisibleForTesting
-    Set<String> getAllMhaWithMessengerInLocalRegion() {
-        Set<String> res = Sets.newHashSet();
+    Map<String, Set<Pair<String, String>>> getAllMhaWithMessengerInLocalRegion () { // mqType -> Pair<mhaName, dc>
+        Map<String, Set<Pair<String, String>>> res = Arrays.stream(MqType.values()).sequential()
+                        .collect(Collectors.toMap(
+                                Enum::name,
+                                mqType -> Sets.newHashSet()
+                        ));
+
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         Drc drc = metaProviderV2.getDrc();
-
         for (String dcInLocalRegion : dcsInLocalRegion) {
             Dc dc = drc.findDc(dcInLocalRegion);
             if (dc == null) {
@@ -82,12 +116,38 @@ public class MqDelayMonitorServer implements InitializingBean {
             }
             for (DbCluster dbCluster : dc.getDbClusters().values()) {
                 List<Messenger> messengers = dbCluster.getMessengers();
-                if (!messengers.isEmpty()) {
-                    res.add(dbCluster.getMhaName());
+                if (messengers.isEmpty()) {
+                    continue;
+                }
+                boolean existQmQMessenger = messengers.stream().anyMatch(m -> m.getApplyMode() == ApplyMode.mq.getType());
+                boolean existKafkaMessenger = messengers.stream().anyMatch(m -> m.getApplyMode() == ApplyMode.kafka.getType());
+                if (existQmQMessenger) {
+                    res.get(MqType.qmq.name()).add(Pair.of(dbCluster.getMhaName(), dcInLocalRegion));
+                }
+                if (existKafkaMessenger) {
+                    res.get(MqType.kafka.name()).add(Pair.of(dbCluster.getMhaName(), dcInLocalRegion));
                 }
             }
         }
         return res;
+    }
+
+    @Override
+    public void isleader() {
+        isLeader = true;
+        if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
+            boolean b = kafkaConsumer.resumeConsume();
+            logger.info("[[monitor=delay]] is leader,going to monitor kafka messenger delayTime,result:{}",b);
+        }
+    }
+
+    @Override
+    public void notLeader() {
+        isLeader = false;
+        if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
+            boolean b = kafkaConsumer.stopConsume();
+            logger.info("[[monitor=delay]] not leader,stop monitor kafka messenger delayTime,result:{}",b);
+        }
     }
 
 }

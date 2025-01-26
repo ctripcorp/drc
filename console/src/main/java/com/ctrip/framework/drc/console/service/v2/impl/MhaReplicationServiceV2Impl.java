@@ -15,7 +15,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
@@ -27,6 +27,7 @@ import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
@@ -233,7 +234,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         for (DbReplicationTbl dbReplicationTbl : dbReplication) {
             MhaDbMappingTbl srcMapping = mappingTblMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
             MhaDbMappingTbl dstMapping = mappingTblMap.get(dbReplicationTbl.getDstMhaDbMappingId());
-            // todo by yongnian: 2023/8/23 优化点
             String key = srcMapping.getMhaId() + "-" + dstMapping.getMhaId();
             MhaReplicationDto dto = mhaReplicationMap.get(key);
             if (dto == null) {
@@ -341,10 +341,13 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     }
 
     private void offlineMhaIfNeed(MhaTblV2 mha) throws SQLException {
-        MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaId(mha.getId(), BooleanEnum.FALSE.getCode());
-        if (messengerGroup != null) { // mha has messenger
-            return;
+        for (MqType mqType : MqType.values()) {
+            MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaIdAndMqType(mha.getId(), mqType, BooleanEnum.FALSE.getCode());
+            if (messengerGroup != null) { // mha has messenger
+                return;
+            }
         }
+
         ReplicatorGroupTbl mhaRGroup = replicatorGroupTblDao.queryByMhaId(mha.getId());
         List<ReplicatorTbl> mhaReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(mhaRGroup.getId()), BooleanEnum.FALSE.getCode());
         List<MhaReplicationTbl> mhaReplications = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mha.getId()));
@@ -490,7 +493,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                         }
                     }
 
-                } else if (dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType())) {
+                } else if (dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType()) ||
+                        dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_KAFKA.getType())) {
                     MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
                     DbTbl srcDb = dbMap.get(srcMapping.getDbId());
                     MhaTblV2 mhaTbl = mhaTblMap.get(srcMapping.getMhaId());

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.service.inquirer;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 
@@ -19,6 +20,11 @@ public class ApplierInfoInquirer extends AbstractInfoInquirer<ApplierInfoDto> {
     @Override
     String method() {
         return "appliers/info/all";
+    }
+
+    @Override
+    public String name() {
+        return ConsumeType.Applier.name().toLowerCase();
     }
 
     public static ApplierInfoInquirer getInstance() {

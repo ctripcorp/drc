@@ -46,7 +46,9 @@ public interface CurrentMetaManager extends Observable {
 
     List<Messenger> getSurviveMessengers(String clusterId, String dbName);
 
-    Set<Instance> getAllApplierOrMessengerInstances();
+    Set<Instance> getAllApplierInstances();
+
+    Set<Instance> getAllMessengerInstances();
 
     Set<Instance> getAllReplicatorInstances();
 

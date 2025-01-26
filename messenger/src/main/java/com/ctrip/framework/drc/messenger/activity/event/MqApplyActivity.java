@@ -1,11 +1,11 @@
 package com.ctrip.framework.drc.messenger.activity.event;
 
-import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResource;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.fetcher.activity.event.BaseApplyActivity;
 import com.ctrip.framework.drc.fetcher.event.transaction.ApplyTransaction;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResource;
 
 import java.util.concurrent.TimeUnit;
 

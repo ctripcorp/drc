@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -21,6 +22,7 @@ public class MetaInfoServiceV2ImplTest2 extends CommonDataInit {
     public static String PORT_IN = "80";
 
     public static String PROXY_DC1_1 = String.format("%s://%s:%s", PROXY, IP_DC1_1, PORT_IN);
+    MqType mqType = MqType.qmq;
 
     @Mock
     DataMediaServiceV2 dataMediaService;
@@ -34,7 +36,7 @@ public class MetaInfoServiceV2ImplTest2 extends CommonDataInit {
 
     @Test
     public void testGetDrcMessengerConfig() throws Exception {
-        Drc result = metaInfoServiceV2Impl.getDrcMessengerConfig("mha1");
+        Drc result = metaInfoServiceV2Impl.getDrcMessengerConfig("mha1", mqType);
     }
 
 }

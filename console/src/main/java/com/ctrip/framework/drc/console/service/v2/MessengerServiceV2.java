@@ -9,12 +9,11 @@ import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -22,21 +21,21 @@ import java.util.Set;
  */
 public interface MessengerServiceV2 {
 
-    List<MhaDelayInfoDto> getMhaMessengerDelaysWithoutSrcTime(List<MhaMessengerDto> messengerDtoList);
+    List<MhaDelayInfoDto> getMhaMessengerDelaysWithoutSrcTime(List<MhaMessengerDto> messengerDtoList, MqType mqType);
 
     List<MessengerVo> getMessengerMhaTbls(MessengerQueryDto queryDto);
 
-    void deleteDbReplicationForMq(String mhaName, List<Long> dbReplicationIds) throws Exception;
+    void deleteDbReplicationForMq(String mhaName, MqType mqType, List<Long> dbReplicationIds) throws Exception;
 
     List<String> getBusFromQmq() throws Exception;
 
-    List<Messenger> generateMessengers(Long mhaId) throws SQLException;
+    List<Messenger> generateMessengers(Long mhaId, MqType mqType) throws SQLException;
 
-    List<Messenger> generateDbMessengers(Long mhaId) throws SQLException;
+    List<Messenger> generateDbMessengers(Long mhaId, MqType mqType) throws SQLException;
 
-    void removeMessengerGroup(String mhaName) throws Exception;
+    void removeMessengerGroup(String mhaName, MqType parse) throws Exception;
 
-    List<MqConfigVo> queryMhaMessengerConfigs(String mhaName);
+    List<MqConfigVo> queryMhaMessengerConfigs(String mhaName, MqType mqType);
 
     MqConfigCheckVo checkMqConfig(MqConfigDto dto);
 
@@ -46,13 +45,15 @@ public interface MessengerServiceV2 {
 
     void processDeleteMqConfig(MqConfigDeleteRequestDto requestDto) throws Exception;
 
-    String getMessengerGtidExecuted(String mhaName);
+    String getMessengerGtidExecuted(String mhaName, MqType mqType);
 
     List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs);
 
-    List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList);
+    List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs, MqType mqType);
 
-    Map<String, Set<String>> registerMessengerAppAsQMQProducer(boolean showOnly, boolean changeAll, String topic, String registDc) throws SQLException;
+    List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList, MqType mqType);
+
+    List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList);
 
     void initMqConfigIfNeeded(MqConfigDto dto, Collection<String> dcNames) ;
 

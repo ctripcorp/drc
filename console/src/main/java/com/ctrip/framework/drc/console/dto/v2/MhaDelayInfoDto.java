@@ -9,6 +9,7 @@ public class MhaDelayInfoDto implements Serializable {
     protected String dstMha;
     protected Long srcTime;
     protected Long dstTime;
+    protected String mqType;
 
     @Override
     public String toString() {
@@ -56,5 +57,13 @@ public class MhaDelayInfoDto implements Serializable {
 
     public void setDstTime(Long dstTime) {
         this.dstTime = dstTime;
+    }
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
     }
 }

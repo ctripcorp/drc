@@ -22,7 +22,7 @@ import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
@@ -44,6 +44,7 @@ import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
@@ -425,20 +426,20 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    public MhaMessengerDto getMhaMessengers(String mhaName) {
+    public MhaMessengerDto getMhaMessengers(String mhaName, MqType mqType) {
         try {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
             if (mhaTblV2 == null) {
                 logger.info("mha: {} not exist", mhaName);
                 return new MhaMessengerDto();
             }
-            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaTblV2.getId(), mqType, BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
 
             List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
             List<ResourceTbl> resourceTbl = resourceTblDao.queryByIds(resourceIds);
             List<String> ips = resourceTbl.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-            return new MhaMessengerDto(ips, messengerGroupTbl.getGtidExecuted());
+            return new MhaMessengerDto(ips, messengerGroupTbl.getMqType(), messengerGroupTbl.getGtidExecuted());
         } catch (SQLException e) {
             logger.error("getMhaAvailableMessengerResource exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -567,7 +568,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         Set<Long> configRelatedMappingIds = dbReplicationTbls.stream().flatMap(e -> {
             if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())) {
                 return Stream.of(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId());
-            } else if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType())) {
+            } else if (ReplicationTypeEnum.getByType(e.getReplicationType()).isMqType()) {
                 return Stream.of(e.getSrcMhaDbMappingId());
             } else {
                 return Stream.empty();
@@ -681,16 +682,18 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             mhaReplicationTblDao.batchUpdate(mhaReplicationTblsToDelete);
         }
         // messenger
-        List<MessengerGroupTbl> messengerGroupTblsToDelete = messengerGroupTblDao.queryByMhaIds(mhaIds, BooleanEnum.FALSE.getCode());
-        if (!CollectionUtils.isEmpty(messengerGroupTblsToDelete)) {
-            List<Long> messengerGroupTblIds = messengerGroupTblsToDelete.stream().map(MessengerGroupTbl::getId).collect(Collectors.toList());
-            List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(messengerGroupTblIds);
-            if (!CollectionUtils.isEmpty(messengerTbls)) {
-                List<Long> groupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger still exist for group:  " + groupIds);
+        for (MqType mqType : MqType.values()) {
+            List<MessengerGroupTbl> messengerGroupTblsToDelete = messengerGroupTblDao.queryByMhaIdsAndMqType(mhaIds, mqType, BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(messengerGroupTblsToDelete)) {
+                List<Long> messengerGroupTblIds = messengerGroupTblsToDelete.stream().map(MessengerGroupTbl::getId).collect(Collectors.toList());
+                List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(messengerGroupTblIds);
+                if (!CollectionUtils.isEmpty(messengerTbls)) {
+                    List<Long> groupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
+                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger still exist for group:  " + groupIds);
+                }
+                messengerGroupTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+                messengerGroupTblDao.batchUpdate(messengerGroupTblsToDelete);
             }
-            messengerGroupTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            messengerGroupTblDao.batchUpdate(messengerGroupTblsToDelete);
         }
     }
 
@@ -717,14 +720,19 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db applier still exist for group:  " + groupIds);
         }
         // mha db messenger
-        List<Long> mhaDbReplicationMessengerIds = mhaDbReplicationTblsToDelete.stream().filter(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType())).map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
-        List<MessengerGroupTblV3> messengerGroupTblsV3ToDelete = messengerGroupTblV3Dao.queryByMhaDbReplicationIds(mhaDbReplicationMessengerIds);
-        List<Long> messengerGroupTblV3Ids = messengerGroupTblsV3ToDelete.stream().map(MessengerGroupTblV3::getId).collect(Collectors.toList());
-        List<MessengerTblV3> messengerTblsV3 = messengerTblV3Dao.queryByGroupIds(messengerGroupTblV3Ids);
-        if (!CollectionUtils.isEmpty(messengerTblsV3)) {
-            List<Long> groupIds = messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList());
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db messenger still exist for group:  " + groupIds);
+        List<MessengerGroupTblV3> messengerGroupTblsV3ToDelete = Lists.newArrayList();
+        for (MqType mqType : MqType.values()) {
+            List<Long> mhaDbReplicationMessengerIds = mhaDbReplicationTblsToDelete.stream().filter(e -> mqType.getReplicationType().getType().equals(e.getReplicationType())).map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
+            List<MessengerGroupTblV3> messengerGroupTblsV3 = messengerGroupTblV3Dao.queryByMhaDbReplicationIdsAndMqType(mhaDbReplicationMessengerIds, mqType);
+            List<Long> messengerGroupTblV3Ids = messengerGroupTblsV3.stream().map(MessengerGroupTblV3::getId).collect(Collectors.toList());
+            List<MessengerTblV3> messengerTblsV3 = messengerTblV3Dao.queryByGroupIds(messengerGroupTblV3Ids);
+            if (!CollectionUtils.isEmpty(messengerTblsV3)) {
+                List<Long> groupIds = messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList());
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db messenger still exist for group:  " + groupIds);
+            }
+            messengerGroupTblsV3ToDelete.addAll(messengerGroupTblsV3);
         }
+
 
         // update
         mhaDbReplicationTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));

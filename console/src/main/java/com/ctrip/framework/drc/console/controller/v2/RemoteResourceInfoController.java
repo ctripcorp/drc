@@ -29,7 +29,7 @@ public class RemoteResourceInfoController {
     @GetMapping("dbApplierInstances")
     @SuppressWarnings("unchecked")
     public ApiResult<Map<String, List<Instance>>> dbApplierInstances(@RequestParam("src") String srcMha, @RequestParam("mhaName") String dstMha,
-                                                                      @RequestParam("ips") List<String> ips) {
+                                                                     @RequestParam("ips") List<String> ips) {
         try {
             Map<String, List<Instance>> currentReplicatorInstance = remoteResourceService.getCurrentDbApplierInstances(srcMha, dstMha, ips);
             return ApiResult.getSuccessInstance(currentReplicatorInstance);
@@ -55,9 +55,10 @@ public class RemoteResourceInfoController {
     @GetMapping("messengerInstances")
     @SuppressWarnings("unchecked")
     public ApiResult<List<Instance>> messengerInstances(@RequestParam("mhaName") String mhaName,
-                                                              @RequestParam("ips") List<String> ips) {
+                                                        @RequestParam("ips") List<String> ips,
+                                                        @RequestParam("mqType") String mqType) {
         try {
-            List<Instance> currentMessengerInstance = remoteResourceService.getCurrentMessengerInstance(mhaName, ips);
+            List<Instance> currentMessengerInstance = remoteResourceService.getCurrentMessengerInstance(mhaName, ips, mqType);
             return ApiResult.getSuccessInstance(currentMessengerInstance);
         } catch (Throwable e) {
             log.error("messengerInstances, mhaName {} ips {}", mhaName, ips, e);

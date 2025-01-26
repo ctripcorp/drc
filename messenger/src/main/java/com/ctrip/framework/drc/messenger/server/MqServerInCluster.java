@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.fetcher.resource.condition.LWMResource;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemoryResource;
 import com.ctrip.framework.drc.fetcher.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
+import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
@@ -66,8 +67,8 @@ public class MqServerInCluster extends FetcherServer {
         return ((MqApplierDumpEventActivity) activities.get("MqApplierDumpEventActivity"));
     }
 
-    public MqPositionResource getMqPositionResource() {
-        return ((MqPositionResource) resources.get("MqPosition"));
+    public MqPosition getMqPositionResource() {
+        return ((MqPosition) resources.get("MqPosition"));
     }
 
 }

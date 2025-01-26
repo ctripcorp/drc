@@ -25,5 +25,14 @@
     "deleted": 0,
     "createTime": "2028-11-02 21:41:45",
     "datachangeLasttime": "2015-04-01 03:25:43"
+  },
+  {
+    "id": 4,
+    "resourceId": 1,
+    "messengerGroupId": 4,
+    "port": 8080,
+    "deleted": 0,
+    "createTime": "2025-01-20 21:41:45",
+    "datachangeLasttime": "2025-01-21 03:25:43"
   }
 ]

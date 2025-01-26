@@ -34,6 +34,7 @@ import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Lists;
@@ -60,6 +61,7 @@ import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 import static org.mockito.Mockito.*;
+
 /**
  * Created by dengquanliang
  * 2023/8/11 21:58
@@ -142,8 +144,8 @@ public class DrcBuildServiceV2Test {
     private MetaAccountService metaAccountService;
     @Mock
     private DbDrcBuildService dbDrcBuildService;
-    
-    
+
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -165,16 +167,15 @@ public class DrcBuildServiceV2Test {
         when(consoleConfig.getDefaultMonitorAccountKmsToken()).thenReturn("token");
         when(consoleConfig.getDefaultReadAccountKmsToken()).thenReturn("token");
         when(consoleConfig.getDefaultWriteAccountKmsToken()).thenReturn("token");
-        when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root","root"));
-        MachineDto masterInSrcMha = new MachineDto(3306,"ip1",true);
-        MachineDto masterInDstMha = new MachineDto(3306,"ip2",true);
-        when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class),Mockito.anyString(),Mockito.anyInt())).thenReturn(true);
-        
+        when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root", "root"));
+        MachineDto masterInSrcMha = new MachineDto(3306, "ip1", true);
+        MachineDto masterInDstMha = new MachineDto(3306, "ip2", true);
+        when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class), Mockito.anyString(), Mockito.anyInt())).thenReturn(true);
 
 
         drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
-                "srcMha", "dstMha", 
-                "srcDc", "dstDc", 
+                "srcMha", "dstMha",
+                "srcDc", "dstDc",
                 "BBZ", "srcTag", "dstTag",
                 Lists.newArrayList(masterInSrcMha),
                 Lists.newArrayList(masterInDstMha)
@@ -213,20 +214,20 @@ public class DrcBuildServiceV2Test {
         machineTbl.setMhaId(111L);
         when(machineTblDao.queryByIpPort(Mockito.anyString(), Mockito.eq(13306))).thenReturn(machineTbl);
         when(mhaTblDao.queryById(Mockito.eq(111L))).thenReturn(new MhaTblV2());
-        
-        when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root","root"));
-        MachineDto masterInSrcMha = new MachineDto(13306,"ip1",true);
-        MachineDto masterInDstMha = new MachineDto(13307,"ip2",true);
-        MachineDto slaveInDstMha = new MachineDto(13306,"ip3",false);
 
-        when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class),Mockito.anyString(),Mockito.anyInt())).thenReturn(true);
+        when(kmsService.getAccountInfo(Mockito.anyString())).thenReturn(new Account("root", "root"));
+        MachineDto masterInSrcMha = new MachineDto(13306, "ip1", true);
+        MachineDto masterInDstMha = new MachineDto(13307, "ip2", true);
+        MachineDto slaveInDstMha = new MachineDto(13306, "ip3", false);
+
+        when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class), Mockito.anyString(), Mockito.anyInt())).thenReturn(true);
 
         drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
                 "srcMha", "dstMha",
                 "srcDc", "dstDc",
                 "BBZ", "srcTag", "dstTag",
                 Lists.newArrayList(masterInSrcMha),
-                Lists.newArrayList(masterInDstMha,slaveInDstMha)
+                Lists.newArrayList(masterInDstMha, slaveInDstMha)
         ));
         Mockito.verify(mhaTblDao, Mockito.never()).update(Mockito.any(MhaTblV2.class));
         Mockito.verify(mhaTblDao, Mockito.times(2)).insertWithReturnId(Mockito.any(MhaTblV2.class));
@@ -249,15 +250,15 @@ public class DrcBuildServiceV2Test {
                     "srcDc", "dstDc",
                     "BBZ", "srcTag", "dstTag",
                     Lists.newArrayList(masterInSrcMha),
-                    Lists.newArrayList(masterInDstMha,slaveInDstMha)
+                    Lists.newArrayList(masterInDstMha, slaveInDstMha)
             ));
-        }catch (Exception e){
+        } catch (Exception e) {
             Assert.assertTrue(e instanceof ConsoleException);
             Assert.assertTrue(e.getMessage().contains("ambiguousMha"));
         }
-        
+
     }
-    
+
 
     @Test
     public void testBuildDrc() throws Exception {
@@ -326,7 +327,7 @@ public class DrcBuildServiceV2Test {
         when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
         try {
             Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(
-                    CflBlacklistType.NEW_CONFIG),Mockito.any());
+                    CflBlacklistType.NEW_CONFIG), Mockito.any());
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -510,7 +511,6 @@ public class DrcBuildServiceV2Test {
         when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(dcTbls.get(0));
         when(buTblDao.queryByBuName(Mockito.anyString())).thenReturn(getBuTbl());
         when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTblV2());
-        when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString())).thenReturn(1L);
 
         // messengerGroup
 //        Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(1L);
@@ -538,14 +538,14 @@ public class DrcBuildServiceV2Test {
     public void testAutoConfigMessengersWithRealTimeGtid() throws Exception {
         String gtid = "abc-zyn-test:1235";
         when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn(gtid);
-        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(1L, 1L));
+        when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(), any(), Mockito.eq(0))).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(1L, 1L));
         when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
         when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
         when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
-        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2(),Mockito.anyBoolean());
-        Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
-        Mockito.verify(messengerGroupTblDao,Mockito.times(1)).update((MessengerGroupTbl) Mockito.argThat(e->{
+        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2(), MqType.DEFAULT, Mockito.anyBoolean());
+        Mockito.verify(messengerTblDao, Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update((MessengerGroupTbl) Mockito.argThat(e -> {
             MessengerGroupTbl group = (MessengerGroupTbl) e;
             return group.getGtidExecuted().equals(gtid);
         }));
@@ -557,7 +557,7 @@ public class DrcBuildServiceV2Test {
         String gtid = "abc-zyn-test:1235";
         MessengerGroupTbl value = MockEntityBuilder.buildMessengerGroupTbl(1L, 1L);
         value.setGtidExecuted(gtid);
-        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(value);
+        when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(), Mockito.any(), Mockito.eq(0))).thenReturn(value);
         when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
         MessengerTbl messengerTbl = new MessengerTbl();
         messengerTbl.setResourceId(1001L);
@@ -570,10 +570,10 @@ public class DrcBuildServiceV2Test {
         when(resourceService.handOffResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
         when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
-        drcBuildServiceV2.autoConfigMessenger(MockEntityBuilder.buildMhaTblV2(),null,false);
-        Mockito.verify(messengerTblDao,Mockito.times(1)).batchInsert(Mockito.anyList());
-        Mockito.verify(messengerTblDao,Mockito.times(1)).batchUpdate(Mockito.argThat(e->e.stream().allMatch(tbl-> Objects.equals(tbl.getDeleted(), BooleanEnum.TRUE.getCode()))));
-        Mockito.verify(messengerGroupTblDao,Mockito.never()).update((MessengerGroupTbl) Mockito.anyObject());
+        drcBuildServiceV2.autoConfigMessenger(MockEntityBuilder.buildMhaTblV2(), null, false);
+        Mockito.verify(messengerTblDao, Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(messengerTblDao, Mockito.times(1)).batchUpdate(Mockito.argThat(e -> e.stream().allMatch(tbl -> Objects.equals(tbl.getDeleted(), BooleanEnum.TRUE.getCode()))));
+        Mockito.verify(messengerGroupTblDao, Mockito.never()).update((MessengerGroupTbl) Mockito.anyObject());
     }
 
     @Test
@@ -599,8 +599,8 @@ public class DrcBuildServiceV2Test {
         when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(mha1);
         when(mhaServiceV2.getMhaReplicatorsV2(Mockito.anyString())).thenReturn(
                 Lists.newArrayList(
-                        new ReplicatorInfoDto(1L,"gtid",true,"ip1","tag1","az1"),
-                        new ReplicatorInfoDto(2L,"gtid",false,"ip2","tag1","az2")
+                        new ReplicatorInfoDto(1L, "gtid", true, "ip1", "tag1", "az1"),
+                        new ReplicatorInfoDto(2L, "gtid", false, "ip2", "tag1", "az2")
                 )
         );
         ResourceView resourceView1 = new ResourceView();
@@ -616,8 +616,8 @@ public class DrcBuildServiceV2Test {
         resourceView2.setTag("tag3");
         resourceView2.setAz("az2");
         resourceView2.setIp("ip4");
-        
-        when(resourceService.getMhaAvailableResource(Mockito.anyString(),Mockito.anyInt())).thenReturn(
+
+        when(resourceService.getMhaAvailableResource(Mockito.anyString(), Mockito.anyInt())).thenReturn(
                 Lists.newArrayList(
                         resourceView1,
                         resourceView2
@@ -627,19 +627,19 @@ public class DrcBuildServiceV2Test {
         when(replicatorTblDao.update(Mockito.any(ReplicatorTbl.class))).thenReturn(1);
 
         int i = drcBuildServiceV2.isolationMigrateReplicator(Lists.newArrayList("mha1"), true, "tag3", null);
-        Assert.assertEquals(1,i);
+        Assert.assertEquals(1, i);
 
 
         when(mhaServiceV2.getMhaReplicatorsV2(Mockito.anyString())).thenReturn(
                 Lists.newArrayList(
-                        new ReplicatorInfoDto(1L,"gtid",true,"ip1","tag1","az1"),
-                        new ReplicatorInfoDto(2L,"gtid",false,"ip4","tag3","az2")
+                        new ReplicatorInfoDto(1L, "gtid", true, "ip1", "tag1", "az1"),
+                        new ReplicatorInfoDto(2L, "gtid", false, "ip4", "tag3", "az2")
                 )
         );
-        
+
         i = drcBuildServiceV2.isolationMigrateReplicator(Lists.newArrayList("mha1"), false, "tag3", null);
-        Assert.assertEquals(1,i);
-        
+        Assert.assertEquals(1, i);
+
 
     }
 
@@ -651,7 +651,7 @@ public class DrcBuildServiceV2Test {
         when(mhaReplicationTblDao.queryByDstMhaId(Mockito.anyLong())).thenReturn(
                 Lists.newArrayList(
                         MockEntityBuilder.buildMhaReplicationTbl(
-                            1L,
+                                1L,
                                 mha1,
                                 mha2
                         )
@@ -659,13 +659,13 @@ public class DrcBuildServiceV2Test {
         );
         when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(mha2);
         when(mhaTblDao.queryByPk(Mockito.anyLong())).thenReturn(mha1);
-        when(mhaTblDao.queryByMhaName(Mockito.anyString(),Mockito.anyInt())).thenReturn(mha2);
-        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(),Mockito.anyInt())).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(2L,2L));
+        when(mhaTblDao.queryByMhaName(Mockito.anyString(), Mockito.anyInt())).thenReturn(mha2);
+        when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(), eq(MqType.qmq), Mockito.anyInt())).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(2L, 2L));
         Mockito.doNothing().when(dbDrcBuildService).switchAppliers(Mockito.anyList());
         Mockito.doNothing().when(dbDrcBuildService).switchMessengers(Mockito.anyList());
 
         int i = drcBuildServiceV2.isolationMigrateApplier(Lists.newArrayList("mha2"), "tag");
-        Assert.assertEquals(1,i);
+        Assert.assertEquals(1, i);
     }
 
     @Test
@@ -681,8 +681,8 @@ public class DrcBuildServiceV2Test {
 
         InputStream ins = FileUtils.getFileInputStream("newMeta.xml");
         Drc newDrc = DefaultSaxParser.parse(ins);
-        
-        when(resourceTblDao.queryBy(Mockito.any())).thenReturn(Lists.newArrayList(resource1,resource2));
+
+        when(resourceTblDao.queryBy(Mockito.any())).thenReturn(Lists.newArrayList(resource1, resource2));
         when(metaProviderV2.getDrc()).thenReturn(newDrc);
 
         Pair<Boolean, String> checkRes = drcBuildServiceV2.checkIsoMigrateStatus(Lists.newArrayList("mha1", "mha2"), "tag");
@@ -692,32 +692,32 @@ public class DrcBuildServiceV2Test {
         checkRes = drcBuildServiceV2.checkIsoMigrateStatus(Lists.newArrayList("mha1", "mha2"), "tag");
         Assert.assertTrue(checkRes.getKey());
     }
-    
+
     @Test
     public void testSyncMhaInfoFormDbaApi() throws SQLException {
-        when(mhaTblDao.queryByMhaName(anyString(),anyInt())).thenAnswer(
+        when(mhaTblDao.queryByMhaName(anyString(), anyInt())).thenAnswer(
                 e -> {
                     Object[] arguments = e.getArguments();
-                    return Objects.equals(arguments[0],"oldMha") ? oldMha() : null;
+                    return Objects.equals(arguments[0], "oldMha") ? oldMha() : null;
                 }
         );
         when(dbaApiService.getClusterMembersInfo(eq("newMha"))).thenReturn(dbaClusterInfoResponse());
-        when(consoleConfig.getDbaDc2DrcDcMap()).thenReturn(Map.of("dba_dc1","drc_dc1"));
+        when(consoleConfig.getDbaDc2DrcDcMap()).thenReturn(Map.of("dba_dc1", "drc_dc1"));
         when(dcTblDao.queryByDcName(eq("drc_dc1"))).thenReturn(dcTbl());
         when(mhaTblDao.insertWithReturnId(any(MhaTblV2.class))).thenReturn(2L);
-        when(machineTblDao.queryByIpPort(anyString(),anyInt())).thenReturn(null);
-        when(accountService.mhaAccountV2ChangeAndRecord(any(MhaTblV2.class),anyString(),anyInt())).thenReturn(true);
+        when(machineTblDao.queryByIpPort(anyString(), anyInt())).thenReturn(null);
+        when(accountService.mhaAccountV2ChangeAndRecord(any(MhaTblV2.class), anyString(), anyInt())).thenReturn(true);
         when(machineTblDao.batchInsert(anyList())).thenReturn(new int[]{1});
         // case1 init new without oldMha
         MhaTblV2 newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi("newMha", null);
-        verify(accountService,times(1)).mhaAccountV2ChangeAndRecord(any(MhaTblV2.class),anyString(),anyInt());
+        verify(accountService, times(1)).mhaAccountV2ChangeAndRecord(any(MhaTblV2.class), anyString(), anyInt());
         Assert.assertNull(newMha.getMonitorUserV2());
         // case2 init newMha copy from oldMha
         newMha = drcBuildServiceV2.syncMhaInfoFormDbaApi("newMha", "oldMha");
-        verify(accountService,times(1)).mhaAccountV2ChangeAndRecord(any(MhaTblV2.class),anyString(),anyInt());
-        Assert.assertEquals("monitorUserV2",newMha.getMonitorUserV2());
-        
-        
+        verify(accountService, times(1)).mhaAccountV2ChangeAndRecord(any(MhaTblV2.class), anyString(), anyInt());
+        Assert.assertEquals("monitorUserV2", newMha.getMonitorUserV2());
+
+
     }
 
     private DcTbl dcTbl() {
@@ -741,7 +741,7 @@ public class DrcBuildServiceV2Test {
         value.setData(data);
         return value;
     }
-    
+
     private MhaTblV2 oldMha() {
         MhaTblV2 oldMha = new MhaTblV2();
         oldMha.setId(1L);
@@ -759,6 +759,6 @@ public class DrcBuildServiceV2Test {
         oldMha.setDeleted(BooleanEnum.FALSE.getCode());
         return oldMha;
     }
-    
+
 
 }

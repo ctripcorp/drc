@@ -5,10 +5,13 @@ import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.service.v2.RemoteResourceService;
 import com.ctrip.framework.drc.core.entity.Instance;
 import com.ctrip.framework.drc.core.entity.SimpleInstance;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
+import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.xpipe.tuple.Pair;
 import org.springframework.stereotype.Service;
 
@@ -48,8 +51,8 @@ public class RemoteResourceServiceImpl implements RemoteResourceService {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/remote/resource/messengerInstances")
-    public List<Instance> getCurrentMessengerInstance(String mhaName, List<String> ips) {
-        List<ApplierInfoDto> applierInfoDtos = queryMessengerInfo(mhaName, ips);
+    public List<Instance> getCurrentMessengerInstance(String mhaName, List<String> ips, String mqType) {
+        List<MessengerInfoDto> applierInfoDtos = queryMessengerInfo(mhaName, ips, MqType.parseOrDefault(mqType));
         return applierInfoDtos.stream().map(SimpleInstance::from).collect(Collectors.toList());
     }
 
@@ -64,15 +67,17 @@ public class RemoteResourceServiceImpl implements RemoteResourceService {
         }).collect(Collectors.toList());
     }
 
-    public List<ApplierInfoDto> queryMessengerInfo(String mha, List<String> ips) {
+    public List<MessengerInfoDto> queryMessengerInfo(String mha, List<String> ips, MqType mqType) {
         List<SimpleInstance> instances = ips.stream()
                 .map(e -> SimpleInstance.from(e, ConsoleConfig.DEFAULT_APPLIER_PORT))
                 .collect(Collectors.toList());
-        Pair<List<String>, List<ApplierInfoDto>> pair = batchInfoInquirer.getMessengerInfo(instances);
-        List<ApplierInfoDto> infoDtos = pair.getValue();
+        Pair<List<String>, List<MessengerInfoDto>> pair = batchInfoInquirer.getMessengerInfo(instances);
+        List<MessengerInfoDto> infoDtos = pair.getValue();
         return infoDtos.stream().filter(e -> {
-            String mhaName = RegistryKey.from(e.getRegistryKey()).getMhaName();
-            return Objects.equals(mhaName, mha);
+            String registryKey = e.getRegistryKey();
+            String mhaName = RegistryKey.from(registryKey).getMhaName();
+            MqType instanceMqType = NameUtils.getMessengerMqType(registryKey);
+            return Objects.equals(mhaName, mha) && instanceMqType == mqType;
         }).collect(Collectors.toList());
     }
 

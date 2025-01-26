@@ -8,6 +8,19 @@
       <div style="padding: 1px 1px ">
         <br>
         <Row :gutter=10 align="middle">
+          <Col span="2">
+            <Card :padding=5>
+              <template #title>类型</template>
+              <Select prefix="ios-send-outline" v-model="mqType"
+                      placeholder="mqType"
+                      @on-change="getReplications(1)">
+                <Option v-for="item in mqTypeList" :value="item" :key="item">{{
+                    item
+                  }}
+                </Option>
+              </Select>
+            </Card>
+          </Col>
           <Col span="5">
             <Card :padding=5>
               <template #title>DB名</template>
@@ -15,21 +28,20 @@
               </Input>
             </Card>
           </Col>
-          <Col span="8">
+          <Col span="7">
             <Card :padding=5>
               <template #title>表名</template>
               <Input prefix="ios-search" v-model="srcTbl" placeholder="源表名↵" @on-enter="getReplications(1)">
               </Input>
             </Card>
           </Col>
-          <Col span="8">
+          <Col span="7">
             <Card :padding=5>
               <template #title>topic</template>
               <Input prefix="ios-search" v-model="dstTopic" placeholder="Topic名↵" @on-enter="getReplications(1)">
               </Input>
             </Card>
           </Col>
-
           <Col span="3">
             <Row :gutter=10 align="middle">
               <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications(1)">查询</Button>
@@ -158,6 +170,7 @@ export default {
       current: 1,
       size: 10,
       // query param
+      mqType: this.$route.query.mqType ? this.$route.query.mqType : 'qmq',
       srcTbl: this.$route.query.srcTbl,
       dstTopic: this.$route.query.dstTopic,
       dbNames: this.$route.query.dbNames,
@@ -169,6 +182,7 @@ export default {
         messengerDbCount: null,
         messengerTopicCount: null
       }],
+      mqTypeList: this.constant.mqTypeList,
       records: [],
 
       dataLoading: false,
@@ -176,12 +190,24 @@ export default {
     }
   },
   methods: {
+    resetPath () {
+      this.$router.replace({
+        query: {
+          mqType: this.mqType,
+          dbNames: this.dbNames,
+          topic: this.dstTopic,
+          srcTblName: this.srcTbl
+        }
+      })
+    },
     async getReplications (pageIndex = 1) {
+      this.resetPath()
       const that = this
       console.log(that.dataLoading)
       if (that.dataLoading) return false
       that.dataLoading = true
       const params = {
+        mqType: this.mqType,
         dbNames: this.dbNames,
         topic: this.dstTopic,
         srcTblName: this.srcTbl,

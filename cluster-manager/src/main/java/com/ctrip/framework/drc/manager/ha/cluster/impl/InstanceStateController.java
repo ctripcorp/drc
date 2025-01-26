@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
-import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
+import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 import com.ctrip.xpipe.tuple.Pair;
@@ -41,5 +42,5 @@ public interface InstanceStateController extends Lifecycle {
 
     DbCluster messengerPropertyChange(String clusterId, Messenger messenger);
 
-    List<DbCluster> mysqlMasterChanged(String clusterId, Endpoint endpoint, List<Applier> activeApplier, Replicator replicator);
+    List<DbCluster> mysqlMasterChanged(String clusterId, Endpoint endpoint, List<Applier> activeApplier, List<Messenger> activeMessenger, Replicator replicator);
 }

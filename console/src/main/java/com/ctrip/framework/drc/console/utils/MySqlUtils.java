@@ -63,7 +63,7 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.DRC_MONITOR_S
  */
 public class MySqlUtils {
 
-    protected static Logger logger = LoggerFactory.getLogger("tableConsistencyMonitorLogger");
+    protected static final Logger logger = LoggerFactory.getLogger(MySqlUtils.class);
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();

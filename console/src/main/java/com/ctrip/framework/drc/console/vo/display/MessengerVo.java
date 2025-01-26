@@ -12,6 +12,7 @@ public class MessengerVo {
     private String bu;
     private int monitorSwitch;
     private Integer drcStatus;
+    private String mqType;
 
     public Long getMhaId() {
         return mhaId;
@@ -49,7 +50,16 @@ public class MessengerVo {
         return monitorSwitch;
     }
 
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
+    }
+
     public void setMonitorSwitch(int monitorSwitch) {
+
         this.monitorSwitch = monitorSwitch;
     }
 }

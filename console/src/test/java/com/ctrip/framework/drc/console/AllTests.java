@@ -49,6 +49,7 @@ import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainerTest;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalServiceTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogManagerTest;
 import com.ctrip.framework.drc.console.service.log.ConflictLogServiceTest;
@@ -132,6 +133,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DataMediaServiceV2Test.class,
         MessengerServiceV2Test.class,
         MetaGeneratorV5Test.class,
+        MetaGeneratorV6Test.class,
         RowsFilterServiceV2Test.class,
         CacheMetaServiceImplTest.class,
         DbMetaCorrectServiceImplTest.class,
@@ -261,7 +263,9 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //DAO
         BaseDalTableDaoTest.class,
         OverseaDalTableDaoTest.class,
-        AbstractDaoTest.class
+        AbstractDaoTest.class,
+
+        ApiContainerTest.class
 })
 public class AllTests {
 

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2;
 
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.util.List;
 
@@ -13,6 +14,11 @@ public class DrcBuildBaseParam {
     private List<String> replicatorIps;
     private String replicatorInitGtid;
     private List<DbApplierDto> dbApplierDtos;
+
+    /**
+     * only need for mq config
+     */
+    private String mqType;
 
     public DrcBuildBaseParam(String mhaName, List<String> replicatorIps, String replicatorInitGtid) {
         this.mhaName = mhaName;
@@ -56,6 +62,17 @@ public class DrcBuildBaseParam {
         this.replicatorInitGtid = replicatorInitGtid;
     }
 
+    public String getMqType() {
+        return mqType;
+    }
+
+    public MqType getMqTypeEnum() {
+        return MqType.valueOf(mqType);
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
+    }
 
     @Override
     public String toString() {
@@ -64,6 +81,7 @@ public class DrcBuildBaseParam {
                 ", replicatorIps=" + replicatorIps +
                 ", replicatorInitGtid='" + replicatorInitGtid + '\'' +
                 ", dbApplierDtos=" + dbApplierDtos +
+                ", mqType='" + mqType + '\'' +
                 '}';
     }
 }

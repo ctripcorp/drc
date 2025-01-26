@@ -13,4 +13,6 @@ public interface MqPosition {
     void union(GtidSet gtidSet);
 
     String get();
+
+    void release() throws Exception;
 }

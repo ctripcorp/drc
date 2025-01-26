@@ -143,6 +143,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_PANEL_URL = "console.panel.url";
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
     private static String DRC_ADMIN_TOKEN = "drc.admin.token";
+    private static String SUPPORT_KAFKA_SWITCH = "support.kafka.switch";
 
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
@@ -644,6 +645,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getDrcAdminToken() {
         return getProperty(DRC_ADMIN_TOKEN,"");
+    }
+
+    public boolean getSupportKafkaSwitch() {
+        return getBooleanProperty(SUPPORT_KAFKA_SWITCH, false);
     }
 
 }

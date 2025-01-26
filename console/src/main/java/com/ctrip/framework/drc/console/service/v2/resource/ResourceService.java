@@ -43,9 +43,9 @@ public interface ResourceService {
     List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException;
 
 
-    List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception;
+    List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type, String subType) throws Exception;
 
-    List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception;
+    List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type, String subType) throws Exception;
     
     List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
     List<ResourceView> autoConfigureMhaDbResource(DbResourceSelectParam param) throws SQLException;

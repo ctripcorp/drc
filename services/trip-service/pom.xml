@@ -92,22 +92,6 @@
             <version>3.13.1</version>
         </dependency>
         <dependency>
-            <groupId>com.ctrip.framework.ckafka</groupId>
-            <artifactId>client</artifactId>
-            <version>0.0.6</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>kafka-clients</artifactId>
-                    <groupId>org.apache.kafka</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>2.0.1</version>
-        </dependency>
-        <dependency>
             <groupId>com.ctrip.framework.clogging</groupId>
             <artifactId>clogging-agent</artifactId>
         </dependency>
@@ -234,6 +218,26 @@
                 <exclusion>
                     <artifactId>mockito-core</artifactId>
                     <groupId>org.mockito</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.framework.ckafka</groupId>
+            <artifactId>client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.luben</groupId>
+                    <artifactId>zstd-jni</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.framework.ckafka</groupId>
+            <artifactId>codec</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>okhttp</artifactId>
+                    <groupId>com.squareup.okhttp3</groupId>
                 </exclusion>
             </exclusions>
         </dependency>

@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.impl.MessengerServiceV2Impl;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.MqConfig;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -71,7 +72,7 @@ public class MessengerServiceV2Test {
     public void testGenerateMessengers() throws SQLException {
         MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
         messengerGroupTbl.setId(0L);
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(),Mockito.any(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
         Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(new ArrayList<>());
 
         DbReplicationTbl dbReplicationTbl = new DbReplicationTbl();
@@ -90,7 +91,7 @@ public class MessengerServiceV2Test {
         Mockito.when(messengerTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(Lists.newArrayList(messengerTbl));
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(new ResourceTbl());
 
-        List<Messenger> result = messengerService.generateMessengers(0L);
+        List<Messenger> result = messengerService.generateMessengers(0L, MqType.DEFAULT);
         Assert.assertEquals(result.size(), 1);
     }
 
@@ -101,21 +102,6 @@ public class MessengerServiceV2Test {
         return Lists.newArrayList(tbl);
     }
 
-    @Test
-    public void testRegisterMessengerAppAsQMQProducer() throws SQLException {
-        Mockito.when(dbReplicationTblDao.queryAllExist()).thenReturn(PojoBuilder.getDbReplicationTbls());
-        Mockito.when(mhaDbMappingTblDao.queryAllExist()).thenReturn(PojoBuilder.getMhaDbMappingTbls2());
-        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(PojoBuilder.getMhaTblV2s());
-        DcDo dcDo = new DcDo();
-        dcDo.setDcId(200L);
-        dcDo.setDcName("dcName");
-        Mockito.when(metaInfoServiceV2.queryAllDcWithCache()).thenReturn(Lists.newArrayList(dcDo));
-        Map<String, Set<String>> res = messengerService.registerMessengerAppAsQMQProducer(true,false,"","");
-        Assert.assertEquals(res.get("success").size(),1);
-        res = messengerService.registerMessengerAppAsQMQProducer(false,false,"topic","");
-        Assert.assertEquals(res.get("fail").size(),1);
-        res = messengerService.registerMessengerAppAsQMQProducer(false,true,"","");
-        Assert.assertEquals(res.get("fail").size(),1);
-    }
+
 
 }

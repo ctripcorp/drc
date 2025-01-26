@@ -83,11 +83,24 @@ const azList = [
   'SGP-ALI-B',
   'SGP-ALI-C'
 ]
+const replicationType = {
+  DB_TO_DB: 0,
+  DB_TO_MQ: 1,
+  DB_TO_KAFKA: 2
+}
+const mqTypeToReplicationType = new Map([
+  ['qmq', 1],
+  ['kafka', 2]
+])
+const mqTypeList = [...mqTypeToReplicationType.keys()]
 export default {
   name: 'constant',
   dcList,
   tagList,
-  azList
+  azList,
+  mqTypeList,
+  replicationType,
+  mqTypeToReplicationType
 }
 </script>
 

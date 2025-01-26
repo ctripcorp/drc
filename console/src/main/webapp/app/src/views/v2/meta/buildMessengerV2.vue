@@ -14,8 +14,8 @@
           <Step title="建立同步" content="配置Replicator和Messenger实例" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
         </Steps>
       </template>
-      <mhaInit v-if="current === 0" v-bind="sharedInfo" v-on:mhaNameChanged="updateMhaName" v-on:dcChanged="updateDc"/>
-      <mhaConfig v-if="current === 1" v-bind="sharedInfo" v-on:mhaNameChanged="updateMhaName" v-on:dcChanged="updateDc"/>
+      <mhaInit v-if="current === 0" v-bind="sharedInfo" v-on:mhaNameChanged="updateMhaName" v-on:dcChanged="updateDc" v-on:mqTypeChanged="updateMqType"/>
+      <mhaConfig v-if="current === 1" v-bind="sharedInfo" v-on:mhaNameChanged="updateMhaName" v-on:dcChanged="updateDc" v-on:mqTypeChanged="updateMqType"/>
       <preCheck v-if="current === 2" v-bind="sharedInfo"/>
       <drcMqConfig v-if="current === 3" v-bind="sharedInfo"/>
       <Divider/>
@@ -41,6 +41,7 @@ export default {
       current: 0,
       sharedInfo: {
         mhaName: this.$route.query.mhaName,
+        mqType: this.$route.query.mqType ? this.$route.query.mqType : 'qmq',
         dc: ''
       }
     }
@@ -63,6 +64,9 @@ export default {
     },
     updateDc (e) {
       this.sharedInfo.dc = e
+    },
+    updateMqType (e) {
+      this.sharedInfo.mqType = e
     }
   },
   created () {

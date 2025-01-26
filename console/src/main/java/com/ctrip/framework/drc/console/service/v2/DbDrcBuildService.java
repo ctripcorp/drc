@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
 import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -18,9 +19,10 @@ public interface DbDrcBuildService {
 
     void setMhaDbAppliers(List<MhaDbReplicationDto> replicationDtos);
 
-    List<DbApplierDto> getMhaDbMessengers(String mhaName) throws Exception;
+    List<DbApplierDto> getMhaDbMessengers(String mhaName, MqType mqType) throws Exception;
 
-    void setMhaDbMessengers(List<MhaDbReplicationDto> replicationDtos) ;
+
+    void setMhaDbMessengers(List<MhaDbReplicationDto> replicationDtos, MqType mqType);
 
     /**
      * @param param drc build param
@@ -31,7 +33,7 @@ public interface DbDrcBuildService {
     String buildDbMessenger(DrcBuildBaseParam param) throws Exception;
 
     void switchAppliers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
-    void switchMessengers(List<DbApplierSwitchReqDto> reqDtos) throws Exception;
+    void switchMessengers(List<MessengerSwitchReqDto> reqDtos) throws Exception;
 
     // switchOnly: true: only switch,not add when replication is empty; false: switch or add
     void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid,boolean switchOnly) throws Exception;
@@ -43,11 +45,11 @@ public interface DbDrcBuildService {
                                               MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, Integer concurrency) throws SQLException;
 
     List<DbDrcConfigInfoDto> getExistDbReplicationDirections(String dbName);
-    List<DbMqConfigInfoDto> getExistDbMqConfigDcOption(String dbName);
+    List<DbMqConfigInfoDto> getExistDbMqConfigDcOption(String dbName, MqType mqType);
 
     DbDrcConfigInfoDto getDbDrcConfig(String dbName, String srcRegionName, String dstRegionName);
 
-    DbMqConfigInfoDto getDbMqConfig(String dbName, String srcRegionName);
+    DbMqConfigInfoDto getDbMqConfig(String dbName, String srcRegionName, MqType mqType);
 
     RowsFilterConfigView getRowsConfigViewById(long rowsFilterId);
 

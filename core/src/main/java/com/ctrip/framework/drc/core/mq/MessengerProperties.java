@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
 
@@ -40,6 +41,9 @@ public class MessengerProperties {
 
     @JsonIgnore
     private Map<String, List<Producer>> tableName2Producers = Maps.newConcurrentMap(); // tableName :  Producers
+
+    @JsonIgnore
+    private String mqType;
 
     public String getNameFilter() {
         return nameFilter;
@@ -84,6 +88,12 @@ public class MessengerProperties {
         if (mqConfigs == null) {
             return;
         }
+        List<String> mqTypes = mqConfigs.stream().map(MqConfig::getMqType).distinct().collect(Collectors.toList());
+        if (mqTypes.size() > 1) {
+            throw new IllegalStateException("mqConfigs contains different mqTypes");
+        }
+        mqType = mqTypes.get(0);
+
         for (MqConfig mqConfig : mqConfigs) {
             String tableRegex = mqConfig.getTable().trim().toLowerCase();
             List<MqConfig> mqConfigs = regex2Configs.get(tableRegex);
@@ -99,6 +109,7 @@ public class MessengerProperties {
                 regex2Filter.put(tableRegex, new AviatorRegexFilter(tableRegex));
             }
         }
+
     }
 
     public List<Producer> getProducers(String tableName) {
@@ -109,7 +120,7 @@ public class MessengerProperties {
         }
 
         if (DRC_DELAY_MONITOR_NAME.equalsIgnoreCase(formatTableName)) {
-            return DelayMessageProducer.getInstance();
+            return DelayMessageProducer.getInstance(mqType);
         }
 
         synchronized (this) {

@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
@@ -15,7 +14,9 @@ import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -54,6 +55,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Mock
     private MessengerServiceV2Impl messengerServiceV2;
+    MqType mqType = MqType.qmq;
 
     @Mock
     private MessengerBatchConfigService messengerBatchConfigService;
@@ -172,7 +174,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dto4.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1001L, config)));
         dto4.setReplicationType(1);
 
-        when(mhaDbReplicationService.queryMqByMha(eq(srcMha), any())).thenReturn(Lists.newArrayList(dto3, dto4));
+        when(mhaDbReplicationService.queryMqByMha(eq(srcMha), any(), any())).thenReturn(Lists.newArrayList(dto3, dto4));
         when(metaInfoService.getDrcReplicationConfig(anyString(), anyString())).thenReturn(new Drc());
         String json2 = "[{\"clusterList\":[{\"clusterName\":\"mha1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.1\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.2\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db1\"},{\"clusterList\":[{\"clusterName\":\"mha2\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.3\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.4\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db2\"}]";
         List<DbClusterInfoDto> list = JsonUtils.fromJsonToList(json2, DbClusterInfoDto.class);
@@ -199,7 +201,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     @Test
     public void testGetMessenger() throws Exception {
         String srcMha = "mha1";
-        List<DbApplierDto> dbAppliers = dbDrcBuildService.getMhaDbMessengers(srcMha);
+        List<DbApplierDto> dbAppliers = dbDrcBuildService.getMhaDbMessengers(srcMha, mqType);
         Assert.assertFalse(CollectionUtils.isEmpty(dbAppliers));
         Assert.assertFalse(CollectionUtils.isEmpty(dbAppliers.get(0).getIps()));
         Assert.assertFalse(StringUtils.isEmpty(dbAppliers.get(0).getGtidInit()));
@@ -254,19 +256,18 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
         dstBuildParam.setMhaName("mha1");
         dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList("ip1", "ip2"), "gtidInit1", "db1"), new DbApplierDto(Lists.newArrayList("ip1"), "gtidInit2", "db2")));
-        when(metaInfoService.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+        dstBuildParam.setMqType("qmq");
+        when(metaInfoService.getDrcMessengerConfig(anyString(), any())).thenReturn(new Drc());
         dbDrcBuildService.buildDbMessenger(dstBuildParam);
 
         verify(messengerTblV3Dao, times(1)).batchInsert(anyList());
         verify(messengerTblV3Dao, times(1)).batchUpdate(anyList());
 
-        verify(messengerGroupTblV3Dao, times(1)).upsert(anyList());
+        verify(messengerGroupTblV3Dao, times(1)).upsert(anyList(), any());
 
         verify(messengerTblDao, never()).insert(anyList());
-        verify(messengerGroupTblDao, never()).upsertIfNotExist(any(), any(), any());
+        verify(messengerGroupTblDao, never()).upsertIfNotExist(any(), any(), any(), any());
     }
-
-
 
 
     @Test
@@ -325,7 +326,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(drcBuildServiceV2, times(1)).buildMessengerMha(any());
         verify(drcBuildServiceV2, times(1)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildServiceV2, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
-        verify(mhaDbReplicationService, times(1)).maintainMhaDbReplicationForMq(any(), any());
+        verify(mhaDbReplicationService, times(1)).maintainMhaDbReplicationForMq(any(), any(), eq(ReplicationTypeEnum.DB_TO_MQ));
     }
 
     @Test
@@ -371,21 +372,21 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     public void testCreateDbMqReplication() throws Exception {
         DbMqCreateDto dbReplicationCreateDto = getDbMqCreateDto();
         dbDrcBuildService.createDbMqReplication(dbReplicationCreateDto);
-        verify(messengerBatchConfigService, times(1)).processCreateMqConfig(any(),any());
+        verify(messengerBatchConfigService, times(1)).processCreateMqConfig(any(), any());
     }
 
     @Test
     public void testEditDbMqReplication() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         dbDrcBuildService.editDbMqReplication(editDto);
-        verify(messengerBatchConfigService, times(1)).processUpdateMqConfig(any(),any());
+        verify(messengerBatchConfigService, times(1)).processUpdateMqConfig(any(), any());
     }
 
     @Test
     public void testDeleteDbMqReplication() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         dbDrcBuildService.deleteDbMqReplication(editDto);
-        verify(messengerBatchConfigService, times(1)).processDeleteMqConfig(any(),any());
+        verify(messengerBatchConfigService, times(1)).processDeleteMqConfig(any(), any());
     }
 
 
@@ -411,23 +412,25 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
 
     @Test
     public void testSwitchMessengers() throws Exception {
-        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
-        DbApplierSwitchReqDto req2 = new DbApplierSwitchReqDto();
+        List<MessengerSwitchReqDto> reqDtos = new ArrayList<>();
+        MessengerSwitchReqDto req2 = new MessengerSwitchReqDto();
         req2.setDbNames(Lists.newArrayList("aadb1"));
         req2.setSrcMhaName("mha2");
+        req2.setMqType("qmq");
         reqDtos.add(req2);
 
         dbDrcBuildService.switchMessengers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any(MhaTblV2.class),anyBoolean());
+        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any(MhaTblV2.class), any(), anyBoolean());
     }
 
 
     @Test(expected = IllegalArgumentException.class)
     public void testSwitchMessengersDbMessengerNotSupport() throws Exception {
-        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
-        DbApplierSwitchReqDto req1 = new DbApplierSwitchReqDto();
+        List<MessengerSwitchReqDto> reqDtos = new ArrayList<>();
+        MessengerSwitchReqDto req1 = new MessengerSwitchReqDto();
         req1.setDbNames(Lists.newArrayList("db1"));
         req1.setSrcMhaName("mha1");
+        req1.setMqType("qmq");
         reqDtos.add(req1);
 
 

@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierSwitchReqDto;
+import com.ctrip.framework.drc.console.dto.v3.MessengerSwitchReqDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
@@ -17,6 +18,7 @@ import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.param.mysql.DrcMessengerGtidTblCreateReq;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
@@ -37,7 +39,9 @@ import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -204,7 +208,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         // messengerGroup
         Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
-        messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "");
+        mysqlServiceV2.createDrcMessengerGtidTbl(new DrcMessengerGtidTblCreateReq(mhaTbl.getMhaName()));
+        messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "", MqType.parse(param.getMqType()));
     }
 
     @Override
@@ -626,7 +631,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Override
     public String buildMessengerDrc(MessengerMetaDto dto) throws Exception {
         this.doBuildMessengerDrc(dto);
-        Drc drcMessengerConfig = metaInfoService.getDrcMessengerConfig(dto.getMhaName());
+        Drc drcMessengerConfig = metaInfoService.getDrcMessengerConfig(dto.getMhaName(), MqType.parseOrDefault(dto.getMqType()));
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
@@ -743,35 +748,40 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
-
     @Override
-    public void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException {
+    public void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl, MqType mqType, boolean switchOnly) throws SQLException {
         String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(mhaTbl.getMhaName());
         if (StringUtils.isBlank(mhaExecutedGtid)) {
-            logger.error("[[mha={}]] getMhaExecutedGtid failed", mhaTbl.getMhaName());
+            logger.error("[[mha={},mqType={}]] getMhaExecutedGtid failed", mhaTbl.getMhaName(), mqType.name());
             throw new ConsoleException("getMhaExecutedGtid failed!");
         }
 
-        autoConfigMessenger(mhaTbl, mhaExecutedGtid, switchOnly);
+        autoConfigMessenger(mhaTbl, mhaExecutedGtid, mqType, switchOnly);
+    }
+
+    @Deprecated
+    @Override
+    public void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException {
+        autoConfigMessengersWithRealTimeGtid(mhaTbl, MqType.DEFAULT, switchOnly);
     }
 
     @Override
-    public void autoConfigMessenger(MhaTblV2 mhaTbl, String gtid,boolean switchOnly) throws SQLException {
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
+    public void autoConfigMessenger(MhaTblV2 mhaTbl, String gtid, MqType mqType, boolean switchOnly) throws SQLException {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaTbl.getId(), mqType, BooleanEnum.FALSE.getCode());
         // messengers
         List<MessengerTbl> existMessengers = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
         if (switchOnly && CollectionUtils.isEmpty(existMessengers)) {
-            logger.info("[[mha={}]] messengers not exist,do nothing when switchOnly", mhaTbl.getMhaName());
+            logger.info("[[mha={},mqType={}]] messengers not exist,do nothing when switchOnly", mhaTbl.getMhaName(), mqType.name());
             return;
         }
 
         if (StringUtils.isBlank(messengerGroupTbl.getGtidExecuted()) && StringUtils.isBlank(gtid)) {
-            throw ConsoleExceptionUtils.message(String.format("configure messenger fail, init gtid needed! mha: %s", mhaTbl.getMhaName()));
+            throw ConsoleExceptionUtils.message(String.format("configure messenger fail, init gtid needed! mha: %s, mqType: %s", mhaTbl.getMhaName(), mqType.name()));
         }
         if (!StringUtils.isBlank(gtid) && !gtid.equals(messengerGroupTbl.getGtidExecuted())) {
             messengerGroupTbl.setGtidExecuted(gtid);
             messengerGroupTblDao.update(messengerGroupTbl);
-            logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), gtid);
+            logger.info("[[mha={},mqType={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mqType.name(), gtid);
         }
 
         List<Long> inUseResourceId = existMessengers.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
@@ -801,7 +811,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         messengerTblDao.batchInsert(insertMessengers);
         messengerTblDao.batchUpdate(deleteMessengers);
-        logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
+        logger.info("[[mha={},mqType={}]] autoConfigMessengers success", mhaTbl.getMhaName(), mqType.name());
+    }
+
+    @Override
+    public void autoConfigMessenger(MhaTblV2 mhaTbl, String gtid, boolean switchOnly) throws SQLException {
+        autoConfigMessenger(mhaTbl, gtid, MqType.DEFAULT, switchOnly);
     }
 
     private static MessengerTbl buildMessengerTbl(MessengerGroupTbl messengerGroupTbl, ResourceView resourceView) {
@@ -921,7 +936,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
         }
         if (!CollectionUtils.isEmpty(dto.getMessengerIps())) {
-            List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName());
+            List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName(), MqType.parse(dto.getMqType()));
             if (CollectionUtils.isEmpty(mqConfigVos)) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Add mq config before put messengers!");
             }
@@ -930,7 +945,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps(), resourceTbls);
-        configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
+        configureMessengers(mhaTbl, MqType.parse(dto.getMqType()), replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -947,19 +962,20 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     public Long configureMessengers(MhaTblV2 mhaTbl,
-                                    Long replicatorGroupId,
+                                    MqType mqType, Long replicatorGroupId,
                                     List<String> messengerIps,
                                     String gtidExecuted) throws SQLException {
-        Long messengerGroupId = configureMessengerGroup(mhaTbl, replicatorGroupId, gtidExecuted);
+        Long messengerGroupId = configureMessengerGroup(mhaTbl,mqType, replicatorGroupId, gtidExecuted);
         configureMessengerInstances(mhaTbl, messengerIps, messengerGroupId);
         return messengerGroupId;
     }
 
-    protected Long configureMessengerGroup(MhaTblV2 mhaTbl, Long replicatorGroupId, String gtidExecuted) throws SQLException {
+    protected Long configureMessengerGroup(MhaTblV2 mhaTbl, MqType mqType, Long replicatorGroupId, String gtidExecuted) throws SQLException {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
         logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
-        return messengerGroupTblDao.upsertIfNotExist(mhaId, replicatorGroupId, formatGtid(gtidExecuted));
+        mysqlServiceV2.createDrcMessengerGtidTbl(new DrcMessengerGtidTblCreateReq(mhaTbl.getMhaName()));
+        return messengerGroupTblDao.upsertIfNotExist(mhaId, replicatorGroupId, formatGtid(gtidExecuted), mqType);
     }
 
     protected void configureMessengerInstances(MhaTblV2 mhaTbl, List<String> messengerIps, Long messengerGroupId) throws SQLException {
@@ -1395,16 +1411,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             dbDrcBuildService.switchAppliers(switchReqDtos);
             
             // switch current messenger
-            MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(mha, BooleanEnum.FALSE.getCode());
-            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),
-                    BooleanEnum.FALSE.getCode());
-            if (messengerGroupTbl != null) {
-                DbApplierSwitchReqDto messengerSwitchReq = new DbApplierSwitchReqDto();
-                messengerSwitchReq.setSrcMhaName(mha);
-                messengerSwitchReq.setDstMhaName(mha);
-                messengerSwitchReq.setSwitchOnly(true);
-                dbDrcBuildService.switchMessengers(Lists.newArrayList(messengerSwitchReq));
+            for (MqType mqType : MqType.values()) {
+                MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(mha, BooleanEnum.FALSE.getCode());
+                MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaTbl.getId(), mqType,
+                        BooleanEnum.FALSE.getCode());
+                if (messengerGroupTbl != null) {
+                    MessengerSwitchReqDto messengerSwitchReq = new MessengerSwitchReqDto();
+                    messengerSwitchReq.setSrcMhaName(mha);
+                    messengerSwitchReq.setSwitchOnly(true);
+                    messengerSwitchReq.setMqType(mqType.name());
+                    dbDrcBuildService.switchMessengers(Lists.newArrayList(messengerSwitchReq));
+                }
             }
+
             affectMhas++;
         }
         return affectMhas;

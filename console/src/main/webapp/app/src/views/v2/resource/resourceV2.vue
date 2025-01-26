@@ -370,7 +370,7 @@ export default {
           {
             title: '类型',
             key: 'type',
-            width: 150,
+            width: 200,
             render: (h, params) => {
               const row = params.row
               let text = 'none'
@@ -398,6 +398,7 @@ export default {
                   disabled = true
                   break
               }
+              text = `${text} (${row.mqType})`
               return h('Button', {
                 props: {
                   type: type,
@@ -524,7 +525,7 @@ export default {
           {
             title: '类型',
             key: 'type',
-            width: 150,
+            width: 200,
             render: (h, params) => {
               const row = params.row
               let text = 'none'
@@ -540,7 +541,7 @@ export default {
                   type = 'success'
                   break
                 case 3:
-                  text = 'Messenger'
+                  text = `Messenger (${row.mqType})`
                   type = 'warning'
                   break
                 case 4:
@@ -915,7 +916,8 @@ export default {
       const detail = this.$router.resolve({
         path: '/v2/messengersV2',
         query: {
-          mhaName: row.srcMhaName
+          mhaName: row.srcMhaName,
+          mqType: row.mqType
         }
       })
       window.open(detail.href, '_blank')

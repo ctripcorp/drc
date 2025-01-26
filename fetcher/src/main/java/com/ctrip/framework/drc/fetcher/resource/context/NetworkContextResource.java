@@ -8,8 +8,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidRe
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
-import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.fetcher.resource.position.MessengerGtidQueryTask;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.system.qconfig.ConfigKey;
@@ -17,6 +17,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Objects;
@@ -91,13 +92,20 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
 
         executedGtidSet = unionPositionFromQConfig(executedGtidSet);
 
-        ConsumeType consumeType = ApplyMode.getApplyMode(applyMode).getConsumeType();
-        switch (consumeType) {
-            case Applier:
+
+        ApplyMode applyMode = ApplyMode.getApplyMode(this.applyMode);
+        switch (applyMode) {
+            case set_gtid:
+            case transaction_table:
+            case db_transaction_table:
                 executedGtidSet = unionPositionFromDb(executedGtidSet);
                 break;
-            case Messenger:
+            case mq:
+            case db_mq:
                 executedGtidSet = unionPositionFromZk(executedGtidSet);
+                break;
+            case kafka:
+                executedGtidSet = unionMessengerPositionFromDb(executedGtidSet);
                 break;
         }
 
@@ -121,6 +129,12 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         return gtidSet.union(positionFromDb);
     }
 
+    private GtidSet unionMessengerPositionFromDb(GtidSet gtidSet) {
+        GtidSet positionFromMessenger = queryMessengerPositionFromDb();
+        logger.info("[{}][NETWORK GTID] db messenger position: {}", registryKey, positionFromMessenger);
+        return gtidSet.union(positionFromMessenger);
+    }
+
     private GtidSet unionPositionFromZk(GtidSet gtidSet) {
         String positionFromZk = mqPosition.get();
         if (StringUtils.isBlank(positionFromZk)) {
@@ -140,6 +154,15 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         emptyPositionFromDb = StringUtils.isBlank(gtidSet);
         return new GtidSet(gtidSet);
     }
+
+    protected GtidSet queryMessengerPositionFromDb() {
+        Endpoint endpoint = new KeyedEndPoint(registryKey, new DefaultEndPoint(ip, port, username, password));
+        MessengerGtidQueryTask gtidQueryTask = new MessengerGtidQueryTask(endpoint, registryKey);
+        Pair<String, Boolean> executedGtid = gtidQueryTask.getExecutedGtid(endpoint);
+        emptyPositionFromDb = !executedGtid.getRight();
+        return new GtidSet(executedGtid.getLeft());
+    }
+
     @VisibleForTesting
     protected List<GtidReader> getExecutedGtidReaders(Endpoint endpoint) {
         List<GtidReader> gtidReaders;

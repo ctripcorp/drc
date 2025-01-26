@@ -15,7 +15,7 @@
                 </Select>
               </FormItem>
               <FormItem label="协议" prop="protocol" style="width: 600px">
-                <Select v-model="proxyResource.protocol" filterable allow-create style="width: 200px" placeholder="请选择或输入Proxy协议" @on-create="handleCreateProtocol">
+                <Select v-model="proxyResource.protocol" filterable allow-create style="width: 200px" placeholder="请选择或输入Proxy协议" @on-change="protocolSelected" @on-create="handleCreateProtocol">
                   <Option v-for="item in protocolList" :value="item" :key="item">{{ item }}</Option>
                 </Select>
               </FormItem>
@@ -23,7 +23,7 @@
                 <Input v-model="proxyResource.ip" placeholder="请输入Proxy IP"/>
               </FormItem>
               <FormItem label="端口" prop="port" style="width: 600px">
-                <Select v-model="proxyResource.port" filterable allow-create style="width: 200px" placeholder="请选择或输入Proxy端口" @on-create="handleCreatePort">
+                <Select v-model="proxyResource.port" disabled style="width: 200px" placeholder="请选择协议" @on-create="handleCreatePort">
                   <Option v-for="item in portList" :value="item" :key="item">{{ item }}</Option>
                 </Select>
               </FormItem>
@@ -79,6 +79,10 @@ export default {
       },
       protocolList: ['PROXY', 'PROXYTLS'],
       portList: ['80', '443'],
+      protocolToPort: new Map([
+        ['PROXY', '80'],
+        ['PROXYTLS', '443']
+      ]),
       drcZoneList: this.constant.dcList,
       result: ''
     }
@@ -110,6 +114,10 @@ export default {
         label: val
       })
       console.log(this.drcZoneList)
+    },
+    protocolSelected (val) {
+      console.log('protocolSelected: ' + val)
+      this.proxyResource.port = this.protocolToPort.get(this.proxyResource.protocol)
     },
     handleCreateProtocol (val) {
       console.log('customize add protocol: ' + val)

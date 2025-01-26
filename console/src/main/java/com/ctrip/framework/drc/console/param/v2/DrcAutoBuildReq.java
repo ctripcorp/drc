@@ -1,7 +1,8 @@
 package com.ctrip.framework.drc.console.param.v2;
 
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.lang3.StringUtils;
 
 public class DrcAutoBuildReq {
@@ -24,9 +25,14 @@ public class DrcAutoBuildReq {
     private ColumnsFilterCreateParam colsFilterDetail;
     private Long applicationFormId;
     /**
-     * @see com.ctrip.framework.drc.console.enums.ReplicationTypeEnum
+     * @see ReplicationTypeEnum
      */
     private int replicationType = ReplicationTypeEnum.DB_TO_DB.getType();
+
+    /**
+     * only for messenger
+     */
+    private String mqType;
 
     public ReplicationTypeEnum getReplicationType() {
         return ReplicationTypeEnum.getByType(replicationType);
@@ -34,6 +40,14 @@ public class DrcAutoBuildReq {
 
     public void setReplicationType(int replicationType) {
         this.replicationType = replicationType;
+    }
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
     }
 
     public void validAndTrim() {
@@ -80,6 +94,10 @@ public class DrcAutoBuildReq {
         buName = buName.trim();
         tag = tag.trim();
         tblsFilterDetail.tableNames = tblsFilterDetail.tableNames.trim();
+    }
+
+    public MqType getMqTypeEnum() {
+        return MqType.valueOf(mqType);
     }
 
     public enum BuildMode {

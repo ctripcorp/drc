@@ -178,7 +178,7 @@ public abstract class AbstractNotifier implements Notifier {
     protected String getDelayMonitorRegex(int applyMode, String includeDbs) {
         String delayTableName = DRC_DELAY_MONITOR_TABLE_NAME;
         ApplyMode applyModeEnum = ApplyMode.getApplyMode(applyMode);
-        if (applyModeEnum == ApplyMode.db_transaction_table || applyModeEnum == ApplyMode.db_mq) {
+        if (applyModeEnum.isDbGranular()) {
             delayTableName = DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + includeDbs;
         }
         return DRC_MONITOR_SCHEMA_NAME + "\\." + "(" + delayTableName + ")";

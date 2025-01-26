@@ -55,9 +55,9 @@ public class ResourceController {
     }
 
     @GetMapping("mha/all")
-    public ApiResult<List<ResourceView>> getMhaAvailableResource(@RequestParam String mhaName, @RequestParam int type) {
+    public ApiResult<List<ResourceView>> getMhaAvailableResource(@RequestParam String mhaName, @RequestParam int type, @RequestParam(required = false) String subType) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResourceWithUse(mhaName, type));
+            return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResourceWithUse(mhaName, type, subType));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
@@ -75,7 +75,7 @@ public class ResourceController {
     @GetMapping("db/all")
     public ApiResult<List<ResourceView>> getMhaDbAvailableResource(DbResourceSelectParam param) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.getMhaDbAvailableResourceWithUse(param.getSrcMhaName(), param.getDstMhaName(), param.getType()));
+            return ApiResult.getSuccessInstance(resourceService.getMhaDbAvailableResourceWithUse(param.getSrcMhaName(), param.getDstMhaName(), param.getType(), param.getSubType()));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

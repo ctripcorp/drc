@@ -5,6 +5,14 @@
       <span slot="desc" v-html="message"></span>
     </Alert>
     <Form ref="mhaInfo" :model="mhaInfo" :rules="ruleOfMhaInfo" :label-width="250" style="margin-top: 50px">
+      <FormItem label="消息类型" prop="mqType">
+        <Select  v-model="mhaInfo.mqType" style="width: 200px" placeholder="选择机房区域" @input="changeMqType">
+          <Option v-for="item in mqTypeList" :value="item" :key="item">{{
+              item
+            }}
+          </Option>
+        </Select>
+      </FormItem>
       <FormItem label="Mha名称" prop="mhaName" style="width: 600px">
         <Input v-model="mhaInfo.mhaName" @input="changeMhaName" placeholder="请输入集群名" />
       </FormItem>
@@ -44,13 +52,15 @@ export default {
   name: 'mhaInit.vue',
   props: {
     mhaName: String,
-    dc: String
+    dc: String,
+    mqType: String
   },
   data () {
     return {
       mhaInfo: {
-        mhaName: '',
-        dc: '',
+        mhaName: this.mhaName,
+        mqType: this.mqType,
+        dc: this.dc,
         buName: '',
         modal: false,
         tag: 'COMMON',
@@ -62,7 +72,11 @@ export default {
       title: '',
       message: '',
       hasResp: false,
+      mqTypeList: this.constant.mqTypeList,
       ruleOfMhaInfo: {
+        mqType: [
+          { required: true, message: '消息类型不可为空', trigger: 'blur' }
+        ],
         mhaName: [
           { required: true, message: '源集群名不能为空', trigger: 'blur' }
         ],
@@ -86,6 +100,7 @@ export default {
           this.hasResp = false
           that.axios.post('/api/drc/v2/config/messengerMha', {
             mhaName: this.mhaInfo.mhaName,
+            mqType: this.mhaInfo.mqType,
             dc: this.mhaInfo.dc,
             buName: this.mhaInfo.buName,
             tag: this.mhaInfo.tag
@@ -113,6 +128,9 @@ export default {
     },
     changeMhaName () {
       this.$emit('mhaNameChanged', this.mhaInfo.mhaName)
+    },
+    changeMqType () {
+      this.$emit('mqTypeChanged', this.mhaInfo.mqType)
     },
     changeDc () {
       this.$emit('dcChanged', this.mhaInfo.dc)

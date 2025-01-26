@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -133,9 +134,12 @@ public class CommonDataInit {
     public void setUp() throws SQLException, IOException {
         // MessengerGroupTblV3
         List<MessengerGroupTblV3> messengerGroupTblV3s = this.getData("MessengerGroupTblV3.json", MessengerGroupTblV3.class);
-        when(messengerGroupTblV3Dao.queryByMhaDbReplicationIds(anyList())).thenAnswer(i -> {
+        when(messengerGroupTblV3Dao.queryByMhaDbReplicationIdsAndMqType(anyList(), any(MqType.class))).thenAnswer(i -> {
             List ids = i.getArgument(0, List.class);
-            return messengerGroupTblV3s.stream().filter(e -> BooleanEnum.FALSE.getCode().equals(e.getDeleted()) && ids.contains(e.getMhaDbReplicationId())).collect(Collectors.toList());
+            MqType mqType = i.getArgument(1, MqType.class);
+            return messengerGroupTblV3s.stream().filter(e ->
+                    MqType.parseOrDefault(e.getMqType()).equals(mqType) &&
+                    BooleanEnum.FALSE.getCode().equals(e.getDeleted()) && ids.contains(e.getMhaDbReplicationId())).collect(Collectors.toList());
         });
 
 
@@ -394,15 +398,26 @@ public class CommonDataInit {
             List ids = i.getArgument(0, List.class);
             return messengerGroupTbls.stream().filter(e -> ids.contains(e.getId())).collect(Collectors.toList());
         });
-        when(messengerGroupTblDao.queryByMhaId(anyLong(), anyInt())).thenAnswer(i -> {
-            Long mhaId = i.getArgument(0, Long.class);
+        when(messengerGroupTblDao.queryByMqType(any(MqType.class), anyInt())).thenAnswer(i -> {
+            MqType mqType = i.getArgument(0, MqType.class);
             Integer deleted = i.getArgument(1, Integer.class);
-            return messengerGroupTbls.stream().filter(e -> e.getMhaId().equals(mhaId) && e.getDeleted().equals(deleted)).findFirst().orElse(null);
+            return messengerGroupTbls.stream().filter(e -> e.getMqType().equals(mqType.name()) && e.getDeleted().equals(deleted)).collect(Collectors.toList());
         });
-        when(messengerGroupTblDao.queryByMhaIds(anyList(), anyInt())).thenAnswer(i -> {
+        when(messengerGroupTblDao.queryByMhaIdAndMqType(anyLong(), any(MqType.class), anyInt())).thenAnswer(i -> {
+            Long mhaId = i.getArgument(0, Long.class);
+            MqType mqType = i.getArgument(1, MqType.class);
+            Integer deleted = i.getArgument(2, Integer.class);
+            return messengerGroupTbls.stream().filter(e -> e.getMhaId().equals(mhaId)
+                    && MqType.parseOrDefault(e.getMqType()).equals(mqType)
+                    && e.getDeleted().equals(deleted)).findFirst().orElse(null);
+        });
+        when(messengerGroupTblDao.queryByMhaIdsAndMqType(anyList(),any(), anyInt())).thenAnswer(i -> {
             List<Long> mhaIds = i.getArgument(0, List.class);
-            Integer deleted = i.getArgument(1, Integer.class);
-            return messengerGroupTbls.stream().filter(e -> mhaIds.contains(e.getMhaId()) && e.getDeleted().equals(deleted)).collect(Collectors.toList());
+            MqType mqType = i.getArgument(1, MqType.class);
+            Integer deleted = i.getArgument(2, Integer.class);
+            return messengerGroupTbls.stream().filter(e ->
+                    MqType.parseOrDefault(e.getMqType()) == mqType &&
+                    mhaIds.contains(e.getMhaId()) && e.getDeleted().equals(deleted)).collect(Collectors.toList());
         });
         when(messengerGroupTblDao.queryByPk(anyLong())).thenAnswer(i -> {
             Long id = i.getArgument(0, Long.class);

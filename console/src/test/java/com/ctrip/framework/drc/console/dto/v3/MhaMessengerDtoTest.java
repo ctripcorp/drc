@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
@@ -19,7 +20,7 @@ public class MhaMessengerDtoTest {
         Assert.assertEquals("abcd:1-1000", mhaMessengerDto.getGtidInit());
 
 
-        mhaMessengerDto = new MhaMessengerDto(Lists.newArrayList("11.22.33.44"),"abc:1-1000");
+        mhaMessengerDto = new MhaMessengerDto(Lists.newArrayList("11.22.33.44"), MqType.qmq.name(),"abc:1-1000");
         Assert.assertEquals(Lists.newArrayList("11.22.33.44"), mhaMessengerDto.getIps());
         Assert.assertEquals("abc:1-1000", mhaMessengerDto.getGtidInit());
 

@@ -98,6 +98,11 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
         return gtidSetFromZk.union(gtidSetFromFile).toString();
     }
 
+    @Override
+    public void release() throws Exception {
+        dispose();
+    }
+
     private void startUpdatePositionSchedule() {
         scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {

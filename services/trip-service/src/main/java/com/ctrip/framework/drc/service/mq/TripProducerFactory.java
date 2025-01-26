@@ -14,6 +14,8 @@ public class TripProducerFactory implements ProducerFactory {
     public Producer createProducer(MqConfig mqConfig) {
         if (MqType.qmq.name().equalsIgnoreCase(mqConfig.getMqType())) {
             return new QmqProducer(mqConfig);
+        } else if (MqType.kafka.name().equalsIgnoreCase(mqConfig.getMqType())) {
+            return new KafkaProducer(mqConfig);
         }
         throw new UnsupportedOperationException("unSupport mq type: " + mqConfig.getMqType());
     }

@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.Constants;
-import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
@@ -97,20 +96,21 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         List<Messenger> redundantMessengers = new ArrayList<>();
 
         String targetDB = RegistryKey.getTargetDB(registryKey);
+        ApplyMode applyMode = NameUtils.getMessengerApplyMode(registryKey);
 
         for (String path : sortedChildren) {
             for (ChildData childData : childrenData) {
                 if (path.equals(childData.getPath())) {
                     String data = new String(childData.getData());
                     ZookeeperValue zookeeperValue = JsonCodec.INSTANCE.decode(data, ZookeeperValue.class);
-                    Messenger messenger = getMessenger(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetDB);
+                    Messenger messenger = getMessenger(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetDB, applyMode);
                     if (messenger != null) {
                         survivalMessengers.add(messenger);
                         logger.info("[Survive] messenger {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
                     } else {
                         redundantMessengers.add(new Messenger()
                                 .setIp(zookeeperValue.getIp()).setPort(zookeeperValue.getPort())
-                                .setIncludedDbs(targetDB).setApplyMode(StringUtils.isBlank(targetDB) ? ApplyMode.mq.getType() : ApplyMode.db_mq.getType())
+                                .setIncludedDbs(targetDB).setApplyMode(applyMode.getType())
                         );
 
                         logger.info("[Survive] messenger null for {}:{}", zookeeperValue.getIp(), zookeeperValue.getPort());
@@ -135,11 +135,11 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
     }
 
     @VisibleForTesting
-    protected Messenger getMessenger(String clusterId, String ip, int port, String targetDB) {
+    protected Messenger getMessenger(String clusterId, String ip, int port, String targetDB, ApplyMode applyMode) {
         DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Messenger> messengerList = dbCluster.getMessengers();
         return messengerList.stream().filter(messenger ->
-                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port)
+                messenger.getIp().equalsIgnoreCase(ip) && messenger.getPort() == port && messenger.getApplyMode() == applyMode.getType())
                 .filter(messenger -> {
                     if (StringUtils.isBlank(targetDB)) {
                         return StringUtils.isBlank(messenger.getIncludedDbs());

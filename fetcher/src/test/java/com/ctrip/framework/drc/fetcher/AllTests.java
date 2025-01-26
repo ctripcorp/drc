@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.Fetch
 import com.ctrip.framework.drc.fetcher.event.*;
 import com.ctrip.framework.drc.fetcher.resource.condition.*;
 import com.ctrip.framework.drc.fetcher.resource.context.*;
+import com.ctrip.framework.drc.fetcher.resource.position.MessengerGtidQueryTaskTest;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResourceTest;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResourceTest;
 import com.ctrip.framework.drc.fetcher.system.*;
@@ -68,7 +69,10 @@ import org.junit.runners.Suite;
         EventGroupContextTest.class,
         SequenceNumberContextTest.class,
         TableKeyContextTest.class,
-        TimeTraceContextTest.class
+        TimeTraceContextTest.class,
+
+        //position
+        MessengerGtidQueryTaskTest.class
 
 })
 public class AllTests {
