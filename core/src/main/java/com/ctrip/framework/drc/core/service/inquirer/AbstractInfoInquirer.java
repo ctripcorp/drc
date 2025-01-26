@@ -67,6 +67,7 @@ public abstract class AbstractInfoInquirer<T> implements InfoInquirer<T> {
 
     abstract String method();
 
+    public abstract String name();
 
     private ApiResult sendHttp(String url) {
         HttpHeaders headers = new HttpHeaders();

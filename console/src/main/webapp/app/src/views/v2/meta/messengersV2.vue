@@ -7,6 +7,19 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Row :gutter=10 align="middle">
+          <Col span="2">
+            <Card :padding=5>
+              <template #title>类型</template>
+              <Select prefix="ios-send-outline" v-model="mqType"
+                      placeholder="mqType"
+                      @on-change="getAllMessengerVos()">
+                <Option v-for="item in mqTypeList" :value="item" :key="item">{{
+                    item
+                  }}
+                </Option>
+              </Select>
+            </Card>
+          </Col>
           <Col span="3">
             <Card :padding=5>
               <template #title>DB 相关</template>
@@ -14,7 +27,7 @@
               </Input>
             </Card>
           </Col>
-          <Col span="6">
+          <Col span="4">
             <Card :padding=5>
               <template #title> topic </template>
               <Input prefix="ios-search" v-model="topic" placeholder="topic" @on-enter="getAllMessengerVos()">
@@ -85,8 +98,9 @@
                 </Button>
                 <template #list>
                   <DropdownMenu >
-                    <DropdownItem @click.native="() => {$router.push({path: '/v2/buildMessengerV2'})}">新建Messenger配置</DropdownItem>
-                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbMqBuildV2'})}">新建Messenger配置（DB维度）</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/buildMessengerV2'})}">MHA粒度配置MQ</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbMqBuildV2', query: {mqType: 'qmq'}})}">QMQ消息投递</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbMqBuildV2', query: {mqType: 'kafka'}})}">Kafka消息投递</DropdownItem>
                   </DropdownMenu>
                 </template>
               </Dropdown>
@@ -188,6 +202,7 @@ export default {
       dbNames: this.$route.query.dbNames,
       topic: this.$route.query.topic,
       drcStatus: this.$route.query.drcStatus ? Number(this.$route.query.drcStatus) : 1,
+      mqType: this.$route.query.mqType ? this.$route.query.mqType : 'qmq',
       mha: {
         name: this.$route.query.mhaName,
         buId: null,
@@ -264,6 +279,20 @@ export default {
           }
         },
         {
+          title: '类型',
+          key: 'mqType',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const color = row.mqType === 'qmq' ? 'blue' : 'green'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, row.mqType)
+          }
+        },
+        {
           title: '集群名',
           key: 'mhaName'
         },
@@ -331,6 +360,7 @@ export default {
           value: 1
         }
       ],
+      mqTypeList: this.constant.mqTypeList,
       dataLoading: false,
       delayDataLoading: false
     }
@@ -384,7 +414,8 @@ export default {
         mha: this.mha,
         dbNames: this.dbNames,
         topic: this.topic,
-        drcStatus: this.drcStatus
+        drcStatus: this.drcStatus,
+        mqType: this.mqType
       }
       return this.flattenObj(params)
     },
@@ -395,7 +426,7 @@ export default {
       this.axios.get('/api/drc/v2/messenger/query', { params: reqParam })
         .then(response => {
           if (response.data.status === 1) {
-            this.$Message.error('查询失败：' + response.message)
+            this.$Message.error('查询失败：' + response.data.message)
             return
           }
           this.tableData = response.data.data
@@ -411,6 +442,7 @@ export default {
     },
     getDelay () {
       const param = {
+        mqType: this.mqType,
         mhas: this.tableData.map(item => item.mhaName),
         dbs: [],
         noNeedDbAndSrcTime: true
@@ -445,6 +477,7 @@ export default {
       this.$router.replace({
         query: {
           mhaName: this.mha.name,
+          mqType: this.mqType,
           topic: this.topic,
           dbNames: this.dbNames,
           drcStatus: this.drcStatus
@@ -456,14 +489,15 @@ export default {
     },
     goToLink (row, index) {
       console.log('go to change messenger config for ' + row.mhaName)
-      this.$router.push({ path: '/v2/buildMessengerV2', query: { step: '3', mhaName: row.mhaName } })
+      this.$router.push({ path: '/v2/buildMessengerV2', query: { step: '3', mhaName: row.mhaName, mqType: row.mqType } })
     },
     checkConfig (row, index) {
       console.log(row.mhaName)
       this.dataLoading = true
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaMessenger', {
         params: {
-          mhaName: row.mhaName
+          mhaName: row.mhaName,
+          mqType: row.mqType
         }
       }).then(response => {
         if (response.data.status === 1) {
@@ -497,7 +531,8 @@ export default {
       })
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaMessenger', {
         params: {
-          mhaName: row.mhaName
+          mhaName: row.mhaName,
+          mqType: row.mqType
         }
       }).then(response => {
         const data = response.data.data
@@ -522,7 +557,7 @@ export default {
           ])
         }
       })
-      this.axios.delete('/api/drc/v2/messenger/deleteMha/?mhaName=' + this.cluster.mhaToBeRemoved).then(response => {
+      this.axios.delete('/api/drc/v2/messenger/deleteMha/?mhaName=' + this.cluster.mhaToBeRemoved + '&mqType=' + this.mqType).then(response => {
         if (response.data.status === 0) {
           location.reload()
         } else {

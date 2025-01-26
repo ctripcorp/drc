@@ -60,6 +60,7 @@ import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDtoTest;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerConfigDtoTest;
 import com.ctrip.framework.drc.core.server.config.cm.dto.SchemasHistoryDeltaDtoTest;
 import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
@@ -68,6 +69,7 @@ import com.ctrip.framework.drc.core.server.utils.MetaCloneTest;
 import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirerTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntityTest;
 import com.ctrip.framework.drc.core.utils.EncryptUtilsTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
@@ -184,6 +186,7 @@ import org.junit.runners.Suite;
 
         //config package
         ApplierConfigDtoTest.class,
+        MessengerConfigDtoTest.class,
         SchemasHistoryDeltaDtoTest.class,
         RegionConfigTest.class,
         DynamicConfigTest.class,
@@ -302,6 +305,7 @@ import org.junit.runners.Suite;
         
         //entity json parse
         HickWallConflictCountTest.class,
+        HickWallMessengerDelayEntityTest.class,
 
         //service
         BatchInfoInquirerTest.class,

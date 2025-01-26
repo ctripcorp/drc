@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.utils.config;
 
+import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -8,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.core.util.NameUtil;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -23,6 +27,32 @@ public class NameFilterUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(NameFilterUtils.class);
 
+    @Test
+    public void getApplyMode() {
+        Assert.assertEquals(ApplyMode.mq, NameUtils.getMessengerApplyMode("mha1_dalcluster.mha1._drc_mq"));
+        Assert.assertEquals(ApplyMode.db_mq, NameUtils.getMessengerApplyMode("mha1_dalcluster.mha1._drc_mq.xxxdb"));
+        Assert.assertEquals(ApplyMode.kafka, NameUtils.getMessengerApplyMode("mha1_dalcluster.mha1._drc_kafka"));
+    }
+
+    @Test
+    public void getMqTypeMode() {
+        Assert.assertEquals(MqType.qmq, NameUtils.getMessengerMqType("mha1_dalcluster.mha1._drc_mq"));
+        Assert.assertEquals(MqType.qmq, NameUtils.getMessengerMqType("mha1_dalcluster.mha1._drc_mq.xxxdb"));
+        Assert.assertEquals(MqType.kafka, NameUtils.getMessengerMqType("mha1_dalcluster.mha1._drc_kafka"));
+    }
+
+
+    @Test
+    public void testGetMessengerRegistryKey() {
+        Assert.assertEquals("mha1_dalcluster.mha1._drc_mq",
+                NameUtils.getMessengerRegisterKey("mha1_dalcluster.mha1", new Messenger().setApplyMode(ApplyMode.mq.getType())));
+
+        Assert.assertEquals("mha1_dalcluster.mha1._drc_mq.db1",
+                NameUtils.getMessengerRegisterKey("mha1_dalcluster.mha1", new Messenger().setApplyMode(ApplyMode.db_mq.getType()).setIncludedDbs("db1")));
+
+        Assert.assertEquals("mha1_dalcluster.mha1._drc_kafka",
+                NameUtils.getMessengerRegisterKey("mha1_dalcluster.mha1", new Messenger().setApplyMode(ApplyMode.kafka.getType())));
+    }
 
     @Test
     public void distinctAndUnion(){
@@ -31,8 +61,8 @@ public class NameFilterUtils {
         String tableNames =""
                 ;
         String commonPrefix = "";
-        
-        
+
+
         List<String> tables = removeBlankAndSplit(tableNames);
         Collections.sort(tables);
         distinctAndCount(tables);
@@ -45,9 +75,14 @@ public class NameFilterUtils {
 
     @Test
     public void testGetMessengerDbName() {
-        Assert.assertEquals("dstDB", NameUtils.getMessengerDbName("name.MhaName._drc_mq.dstDB"));
+        Assert.assertEquals("_drc_mq.dstDB", NameUtils.getMessengerDbName("name.MhaName._drc_mq.dstDB"));
         Assert.assertEquals("_drc_mq", NameUtils.getMessengerDbName("name.MhaName._drc_mq"));
+        Assert.assertEquals("_drc_kafka", NameUtils.getMessengerDbName("name.MhaName._drc_kafka"));
         Assert.assertNull(NameUtils.getMessengerDbName("somethingWrong.ehhe"));
+
+        Assert.assertEquals("_drc_mq.testDB", NameUtils.getMessengerDbName(new Messenger().setIncludedDbs("testDB").setApplyMode(ApplyMode.db_mq.getType())));
+        Assert.assertEquals("_drc_mq", NameUtils.getMessengerDbName(new Messenger().setApplyMode(ApplyMode.mq.getType())));
+        Assert.assertEquals("_drc_kafka", NameUtils.getMessengerDbName(new Messenger().setApplyMode(ApplyMode.kafka.getType())));
     }
 
 

@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.core.utils.EncryptUtils;
 import java.util.List;
@@ -175,14 +176,16 @@ public class MetaControllerV2 {
 
     @SuppressWarnings("unchecked")
     @GetMapping("queryConfig/mhaMessenger")
-    public ApiResult<String> queryMhaMessengerDetailConfig(@RequestParam(name = "mhaName") String mhaName) {
+    public ApiResult<String> queryMhaMessengerDetailConfig(@RequestParam(name = "mhaName") String mhaName,
+                                                           @RequestParam(name = "mqType") String mqType) {
         logger.info("queryMhaMessengerDetailConfig for {}", mhaName);
         try {
-            if (StringUtils.isBlank(mhaName)) {
+            MqType mqTypeEnum = MqType.parse(mqType);
+            if (StringUtils.isBlank(mhaName) || mqTypeEnum == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
             }
 
-            Drc drc = metaInfoServiceV2.getDrcMessengerConfig(mhaName.trim());
+            Drc drc = metaInfoServiceV2.getDrcMessengerConfig(mhaName.trim(), mqTypeEnum);
             return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
         } catch (Throwable e) {
             logger.error("queryMhaMessengerDetailConfig exception", e);

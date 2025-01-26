@@ -8,6 +8,7 @@ import com.ctrip.xpipe.config.AbstractConfigBean;
  */
 public class TripServiceDynamicConfig extends AbstractConfigBean {
     private static String SUBENV_SWITCH = "subenv.switch";
+    private static String KAFKA_APPID_TOKEN = "kafka.appid.token";
 
     private TripServiceDynamicConfig() {}
 
@@ -22,5 +23,9 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
     public boolean isSubenvEnable() {
         String subenvSwitch = getProperty(SUBENV_SWITCH, "off");
         return subenvSwitch.equalsIgnoreCase("on");
+    }
+
+    public String getKafkaAppidToken(){
+        return getProperty(KAFKA_APPID_TOKEN, "");
     }
 }

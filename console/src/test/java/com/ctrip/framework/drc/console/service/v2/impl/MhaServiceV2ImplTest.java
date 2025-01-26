@@ -13,12 +13,10 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
@@ -27,6 +25,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -276,11 +275,11 @@ public class MhaServiceV2ImplTest {
         List<MessengerTbl> messengerTbls = JSON.parseArray("[{\"id\":1,\"messengerGroupId\":1,\"resourceId\":1,\"port\":8080,\"deleted\":0,\"createTime\":\"2028-11-02 21:41:45\",\"datachangeLasttime\":\"2015-04-01 03:25:43\"},{\"id\":2,\"messengerGroupId\":1,\"resourceId\":2,\"port\":8080,\"deleted\":0,\"createTime\":\"2028-11-02 21:41:45\",\"datachangeLasttime\":\"2015-04-01 03:25:43\"}]", MessengerTbl.class);
         when(messengerTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(messengerTbls);
         MessengerGroupTbl messengerGroupTbl = JSON.parseObject("{\"id\":1,\"mhaId\":1,\"replicatorGroupId\":1,\"deleted\":0,\"gtidExecuted\":\"gtid1\",\"datachangeLasttime\":\"2023-08-13 00:00:00\"}", MessengerGroupTbl.class);
-        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
+        when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(),Mockito.any(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
         List<ResourceTbl> resourceTbls = JSON.parseArray("[{\"id\":1,\"type\":0,\"ip\":\"1.113.60.1\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"},{\"id\":2,\"type\":0,\"ip\":\"1.113.60.2\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"}]", ResourceTbl.class);
         when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(resourceTbls);
 
-        MhaMessengerDto mhaMessengers = mhaServiceV2.getMhaMessengers(mhaName);
+        MhaMessengerDto mhaMessengers = mhaServiceV2.getMhaMessengers(mhaName, MqType.qmq);
 
         Assert.assertEquals(2, mhaMessengers.getIps().size());
     }

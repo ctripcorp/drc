@@ -2,9 +2,9 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
-import com.ctrip.framework.drc.console.dto.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.MhaApplierDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
@@ -14,25 +14,19 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService
 import com.ctrip.framework.drc.console.vo.display.MigrationTaskVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName DbMigrationController
@@ -243,6 +237,7 @@ public class DbMigrationController {
         }
     }
 
+    // 之前sgp搬迁使用
     @PostMapping("mhaReplication")
     @LogRecord(type = OperateTypeEnum.MHA_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "admin",
             success = "migrateMhaReplication with newMha:{#newMha}, oldMha:{#oldMha}")

@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
-import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
-import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
-import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
-import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.mysql.*;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
@@ -19,11 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -247,6 +242,19 @@ public class MysqlController {
             return ApiResult.getSuccessInstance(createResult);
         } catch (Exception e) {
             logger.error("createDrcMonitorDbTable, mha: " + requestBody, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @PostMapping("createDrcMessengerGtidTbl")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDrcMessengerGtidTbl(@RequestBody DrcMessengerGtidTblCreateReq requestBody) {
+        try {
+            logger.info("createDrcMessengerGtidTbl, req: {}", requestBody);
+            Boolean createResult = mysqlServiceV2.createDrcMessengerGtidTbl(requestBody);
+            return ApiResult.getSuccessInstance(createResult);
+        } catch (Exception e) {
+            logger.error("createDrcMessengerGtidTbl, mha: {}.", requestBody, e);
             return ApiResult.getFailInstance(null);
         }
     }

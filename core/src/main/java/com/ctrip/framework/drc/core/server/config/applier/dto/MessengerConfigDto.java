@@ -11,7 +11,7 @@ import java.util.Objects;
 public class MessengerConfigDto extends FetcherConfigDto {
     @Override
     public String toString() {
-        return "ApplierConfigDto{" +
+        return "MessengerConfigDto{" +
                 "gaqSize=" + gaqSize +
                 ", workerCount=" + workerCount +
                 ", workerSize=" + workerSize +
@@ -81,4 +81,5 @@ public class MessengerConfigDto extends FetcherConfigDto {
         return Objects.equals(nameFilter, that.nameFilter) &&
                 Objects.equals(properties, that.properties);
     }
+
 }

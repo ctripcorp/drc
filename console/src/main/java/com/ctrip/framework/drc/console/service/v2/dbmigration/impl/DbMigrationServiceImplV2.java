@@ -30,8 +30,10 @@ import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
@@ -53,8 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
+import static com.ctrip.framework.drc.core.meta.ReplicationTypeEnum.*;
 
 /**
  * Created by shiruixin
@@ -293,24 +294,42 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             throw ConsoleExceptionUtils.message("Can not create DRC Db Monitor Table in newMha: " + newMha + ", taskId: " + taskId);
         }
 
-        List<MhaDbMappingTbl> mappingsInOldMha = extractMhaDbMappingsDb2Db(replicationInfoInOldMha); //不包括迁移db只投递mq
-        Map<Long, MhaDbMappingTbl> mappingsInNewMha = initMhaDbMappings(newMhaTbl, mappingsInOldMha);
-        List<MhaDbReplicationTbl> mhaDbReplicationWithNewMha = initMhaDbReplicationTbls(
+        List<MhaDbMappingTbl> mappingsInOldMha = extractMhaDbMappings(replicationInfoInOldMha);
+        Map<Long, MhaDbMappingTbl> mappingsInNewMha = initMhaDbMappings(newMhaTbl, mappingsInOldMha); //增加涉及的db复制，mq投递的 mha_db_mapping_tbl
+
+        //增加 新mhadbmapping -> destMapping（db）和srcMapping -> 新mhadbmapping（db）的mha_db_replication_tbl, 返回值用于配置applierGroup
+        List<MhaDbReplicationTbl> mhaDbReplicationWithNewMha = initMhaDbReplicationTblsDb2Db(
                 newMhaTbl,
                 mappingsInNewMha,
                 replicationInfoInOldMha.dbReplicationTblsInOldMhaInSrcPairs,
                 replicationInfoInOldMha.dbReplicationTblsInOldMhaInDestPairs
         );
-        initApplierGroupsV3(mhaDbReplicationWithNewMha);
+
+        //增加 新mhadbmapping -> qmq/kafka的mha_db_replication_tbl
+        initMhaDbReplicationTblsDb2Mq(
+                newMhaTbl,
+                mappingsInNewMha,
+                replicationInfoInOldMha.db2MqReplicationTblsInOldMhaPairs,
+                replicationInfoInOldMha.db2KafkaReplicationTblsInOldMhaPairs
+        );
+
+        if (mhaDbReplicationWithNewMha != null) {
+            initApplierGroupsV3(mhaDbReplicationWithNewMha);
+        }
         initDbReplicationTblsInNewMha(
                 newMhaTbl,
                 mappingsInNewMha,
                 replicationInfoInOldMha.dbReplicationTblsInOldMhaInSrcPairs,
                 replicationInfoInOldMha.dbReplicationTblsInOldMhaInDestPairs,
-                replicationInfoInOldMha.db2MqReplicationTblsInOldMhaPairs
+                replicationInfoInOldMha.db2MqReplicationTblsInOldMhaPairs,
+                replicationInfoInOldMha.db2KafkaReplicationTblsInOldMhaPairs
         );
         initMhaReplications(newMhaTbl,otherMhaTblsInSrc,otherMhaTblsInDest);
-        initReplicatorGroupAndMessengerGroup(newMhaTbl,replicationInfoInOldMha.db2MqReplicationTblsInOldMhaPairs);
+        initReplicatorGroupAndMessengerGroup(
+                newMhaTbl,
+                replicationInfoInOldMha.db2MqReplicationTblsInOldMhaPairs,
+                replicationInfoInOldMha.db2KafkaReplicationTblsInOldMhaPairs
+        );
 
         drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(newMhaTbl);
         try {
@@ -343,6 +362,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<MhaTblV2> otherMhaTblsInSrc = replicationInfoInOldMha.otherMhaTblsInSrc;
         List<MhaTblV2> otherMhaTblsInDest = replicationInfoInOldMha.otherMhaTblsInDest;
         List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs = replicationInfoInOldMha.db2MqReplicationTblsInOldMhaPairs;
+        List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2KafkaReplicationTblsInOldMhaPairs = replicationInfoInOldMha.db2KafkaReplicationTblsInOldMhaPairs;
 
         List<MhaDbMappingTbl> newMappings = mhaDbMappingTblDao.queryByMhaIdAndDbIds(newMhaTbl.getId(), migrateDbIds, BooleanEnum.FALSE.getCode());
         Map<Pair<Long, Long>, MhaDbMappingTbl> mhaIdDbId2NewMapping = newMappings.stream().collect(Collectors.toMap(e -> Pair.of(e.getMhaId(),e.getDbId()), Function.identity()));
@@ -416,12 +436,20 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             }
         }
 
-        // start messengers
+        // start qmq messengers
         if (!CollectionUtils.isEmpty(db2MqReplicationTblsInOldMhaPairs)) {
-            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(oldMhaTbl.getId(), BooleanEnum.FALSE.getCode());
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(oldMhaTbl.getId(), MqType.qmq, BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
             if (!CollectionUtils.isEmpty(messengerTbls)) {
-                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl,false);
+                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl, MqType.qmq,false);
+            }
+        }
+        // start kafka messengers
+        if (!CollectionUtils.isEmpty(db2KafkaReplicationTblsInOldMhaPairs)) {
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(oldMhaTbl.getId(), MqType.kafka, BooleanEnum.FALSE.getCode());
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+            if (!CollectionUtils.isEmpty(messengerTbls)) {
+                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl, MqType.kafka,false);
             }
         }
 
@@ -450,6 +478,23 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         }
         if (!CollectionUtils.isEmpty(replicationInfo.dbReplicationTblsInOldMhaInDestPairs)) {
             res.addAll(replicationInfo.dbReplicationTblsInOldMhaInDestPairs.stream().map(Pair::getKey).collect(Collectors.toList()));
+        }
+        return new ArrayList<>(res.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity(), (k1, k2) -> k1)).values());
+    }
+
+    private List<MhaDbMappingTbl> extractMhaDbMappings(ReplicationInfo replicationInfo) {
+        List<MhaDbMappingTbl> res = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(replicationInfo.dbReplicationTblsInOldMhaInSrcPairs)) {
+            res.addAll(replicationInfo.dbReplicationTblsInOldMhaInSrcPairs.stream().map(Pair::getKey).collect(Collectors.toList()));
+        }
+        if (!CollectionUtils.isEmpty(replicationInfo.dbReplicationTblsInOldMhaInDestPairs)) {
+            res.addAll(replicationInfo.dbReplicationTblsInOldMhaInDestPairs.stream().map(Pair::getKey).collect(Collectors.toList()));
+        }
+        if (!CollectionUtils.isEmpty(replicationInfo.db2MqReplicationTblsInOldMhaPairs)) {
+            res.addAll(replicationInfo.db2MqReplicationTblsInOldMhaPairs.stream().map(Pair::getKey).collect(Collectors.toList()));
+        }
+        if (!CollectionUtils.isEmpty(replicationInfo.db2KafkaReplicationTblsInOldMhaPairs)) {
+            res.addAll(replicationInfo.db2KafkaReplicationTblsInOldMhaPairs.stream().map(Pair::getKey).collect(Collectors.toList()));
         }
         return new ArrayList<>(res.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity(), (k1, k2) -> k1)).values());
     }
@@ -513,6 +558,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInSrcPairs = Lists.newArrayList();
         List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInDestPairs = Lists.newArrayList();
         List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs = Lists.newArrayList();
+        List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> db2KafkaReplicationTblsInOldMhaPairs = Lists.newArrayList();
 
         for (DbTbl migrateDbTbl : migrateDbTbls) {
             MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblDao.queryByDbIdAndMhaId(migrateDbTbl.getId(), oldMhaTbl.getId());
@@ -544,9 +590,17 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
                 db2MqReplicationTblsInOldMhaPairs.add(Pair.of(mhaDbMappingTbl, dbReplicationTblsOldMhaInSrcMQ));
             }
 
+            // DB_TO_KAFKA Replication in OldMha
+            List<DbReplicationTbl> dbReplicationTblsOldMhaInSrcKafka = dbReplicationTblDao.queryBySrcMappingIds(
+                    Lists.newArrayList(mhaDbMappingTbl.getId()), DB_TO_KAFKA.getType());
+            if (!CollectionUtils.isEmpty(dbReplicationTblsOldMhaInSrcKafka)) {
+                db2KafkaReplicationTblsInOldMhaPairs.add(Pair.of(mhaDbMappingTbl, dbReplicationTblsOldMhaInSrcKafka));
+            }
+
             if (!CollectionUtils.isEmpty(dbReplicationTblsOldMhaInSrc)
                     || !CollectionUtils.isEmpty(dbReplicationTblsOldMhaInDest)
-                    || !CollectionUtils.isEmpty(dbReplicationTblsOldMhaInSrcMQ)) {
+                    || !CollectionUtils.isEmpty(dbReplicationTblsOldMhaInSrcMQ)
+                    || !CollectionUtils.isEmpty(dbReplicationTblsOldMhaInSrcKafka)) {
                 migrateDbTblsDrcRelated.add(migrateDbTbl);
             }
         }
@@ -562,16 +616,24 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         replicationInfo.dbReplicationTblsInOldMhaInSrcPairs = dbReplicationTblsInOldMhaInSrcPairs;
         replicationInfo.dbReplicationTblsInOldMhaInDestPairs = dbReplicationTblsInOldMhaInDestPairs;
         replicationInfo.db2MqReplicationTblsInOldMhaPairs = db2MqReplicationTblsInOldMhaPairs;
+        replicationInfo.db2KafkaReplicationTblsInOldMhaPairs = db2KafkaReplicationTblsInOldMhaPairs;
         return replicationInfo;
     }
 
     private void initReplicatorGroupAndMessengerGroup(MhaTblV2 newMhaTbl,
-                                                      List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs) throws SQLException {
+                                                      List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs,
+                                                      List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2KafkaReplicationTblsInOldMhaPairs) throws SQLException {
         Long replicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(newMhaTbl.getId());
+        logger.info("[[migration=exStarting,newMha={}]] initReplicatorGroup:{}", newMhaTbl.getMhaName(), replicatorGroupId);
+
         if (!CollectionUtils.isEmpty(db2MqReplicationTblsInOldMhaPairs)) {
-            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(newMhaTbl.getId(),replicatorGroupId, "");
-            logger.info("[[migration=exStarting,newMha={}]] initReplicatorGroup:{},initMessengerGroup:{}", newMhaTbl.getMhaName(),
-                    replicatorGroupId,mGroupId);
+            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(newMhaTbl.getId(),replicatorGroupId, "", MqType.qmq);
+            logger.info("[[migration=exStarting,newMha={},mqType=qmq]] initMessengerGroup:{}", newMhaTbl.getMhaName(), mGroupId);
+
+        }
+        if (!CollectionUtils.isEmpty(db2KafkaReplicationTblsInOldMhaPairs)) {
+            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(newMhaTbl.getId(), replicatorGroupId, "", MqType.kafka);
+            logger.info("[[migration=exStarting,newMha={},mqType=kafka]] initMessengerGroup:{}", newMhaTbl.getMhaName(), mGroupId);
 
         }
     }
@@ -606,8 +668,11 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         return mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, Function.identity()));
     }
 
-    // should be no existing MhaDbReplicationTbl before initing
-    private List<MhaDbReplicationTbl> initMhaDbReplicationTbls(MhaTblV2 newMhaTbl,
+    /**
+     * return null if no need to add new mha_db_replication_tbl(db->db) item
+     * should be no existing MhaDbReplicationTbl before initing
+     */
+    private List<MhaDbReplicationTbl> initMhaDbReplicationTblsDb2Db(MhaTblV2 newMhaTbl,
                                                                Map<Long,MhaDbMappingTbl> dbId2MappingInNewMha,
                                                                List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInSrcPairs,
                                                                List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInDestPairs) throws SQLException {
@@ -647,7 +712,61 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         }
 
         if (CollectionUtils.isEmpty(newMhaDbReplications)) {
-            throw ConsoleExceptionUtils.message("no new mhaDbReplicationTbls create in newMha:" + newMhaTbl.getMhaName() + ",please contact drcTeam!");
+            return null;
+        }
+
+        List<MhaDbReplicationTbl> exist = mhaDbReplicationTblDao.queryBySamples(newMhaDbReplications).stream()
+                .filter(e -> BooleanEnum.FALSE.getCode().equals(e.getDeleted())).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(exist)) {
+            throw ConsoleExceptionUtils.message("mhaDbReplicationTbls already exist in newMha:" + newMhaTbl.getMhaName() + ",please contact drcTeam!");
+        }
+
+        int[] ints = mhaDbReplicationTblDao.batchInsert(newMhaDbReplications);
+        logger.info("initMhaDbReplicationTbls in newMha : {}, expected size: {}, res: {}",
+                newMhaTbl.getMhaName(), newMhaDbReplications.size(), Arrays.stream(ints).sum());
+
+        List<MhaDbReplicationTbl> insertedMhaDbReplicationTbls = mhaDbReplicationTblDao.queryBySamples(newMhaDbReplications).stream()
+                .filter(e -> BooleanEnum.FALSE.getCode().equals(e.getDeleted())).collect(Collectors.toList());
+        return insertedMhaDbReplicationTbls;
+    }
+
+    /**
+     * return null if no need to add new mha_db_replication_tbl(db->qmq/kafka) item
+     * should be no existing MhaDbReplicationTbl before initing
+     */
+    private List<MhaDbReplicationTbl> initMhaDbReplicationTblsDb2Mq(MhaTblV2 newMhaTbl,
+                                                                    Map<Long,MhaDbMappingTbl> dbId2MappingInNewMha,
+                                                                    List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs,
+                                                                    List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2KafkaReplicationTblsInOldMhaPairs) throws SQLException {
+
+        List<MhaDbReplicationTbl> newMhaDbReplications = Lists.newArrayList();
+
+        for (Pair<MhaDbMappingTbl,List<DbReplicationTbl>> dbReplicationPair : db2MqReplicationTblsInOldMhaPairs) {
+            MhaDbMappingTbl oldMapping = dbReplicationPair.getLeft();
+            Long dbId = oldMapping.getDbId();
+            MhaDbMappingTbl newMapping = dbId2MappingInNewMha.get(dbId);
+            MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+            mhaDbReplicationTbl.setSrcMhaDbMappingId(newMapping.getId());
+            mhaDbReplicationTbl.setDstMhaDbMappingId(-1L);
+            mhaDbReplicationTbl.setReplicationType(DB_TO_MQ.getType());
+            // <newMapping-> destMapping ,db-mq> in mha_db_replication_tbl
+            newMhaDbReplications.add(mhaDbReplicationTbl);
+        }
+
+        for (Pair<MhaDbMappingTbl,List<DbReplicationTbl>> dbReplicationPair : db2KafkaReplicationTblsInOldMhaPairs) {
+            MhaDbMappingTbl oldMapping = dbReplicationPair.getLeft();
+            Long dbId = oldMapping.getDbId();
+            MhaDbMappingTbl newMapping = dbId2MappingInNewMha.get(dbId);
+            MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+            mhaDbReplicationTbl.setSrcMhaDbMappingId(newMapping.getId());
+            mhaDbReplicationTbl.setDstMhaDbMappingId(-1L);
+            mhaDbReplicationTbl.setReplicationType(DB_TO_KAFKA.getType());
+            // <newMapping-> destMapping ,db-kafka> in mha_db_replication_tbl
+            newMhaDbReplications.add(mhaDbReplicationTbl);
+        }
+
+        if (CollectionUtils.isEmpty(newMhaDbReplications)) {
+            return null;
         }
 
         List<MhaDbReplicationTbl> exist = mhaDbReplicationTblDao.queryBySamples(newMhaDbReplications).stream()
@@ -670,7 +789,8 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
                                                Map<Long,MhaDbMappingTbl> dbId2mhaDbMappingMapInNewMha,
                                                List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInSrcPairs,
                                                List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInDestPairs,
-                                               List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs) throws SQLException {
+                                               List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs,
+                                               List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2KafkaReplicationTblsInOldMhaPairs) throws SQLException {
 
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryMappingIds(
                 dbId2mhaDbMappingMapInNewMha.values().stream().map(MhaDbMappingTbl::getId)
@@ -682,7 +802,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         initDbReplicationsAndConfigsTbls(newMhaTbl, dbId2mhaDbMappingMapInNewMha,dbReplicationTblsInOldMhaInSrcPairs,true);
         initDbReplicationsAndConfigsTbls(newMhaTbl, dbId2mhaDbMappingMapInNewMha,dbReplicationTblsInOldMhaInDestPairs,false);
         initDbReplicationsAndConfigsTbls(newMhaTbl, dbId2mhaDbMappingMapInNewMha, db2MqReplicationTblsInOldMhaPairs, true);
-
+        initDbReplicationsAndConfigsTbls(newMhaTbl, dbId2mhaDbMappingMapInNewMha, db2KafkaReplicationTblsInOldMhaPairs, true);
     }
 
     private void initDbReplicationsAndConfigsTbls(MhaTblV2 newMhaTbl, Map<Long,MhaDbMappingTbl> dbId2mhaDbMappingMapInNewMha,
@@ -848,7 +968,8 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         configDbAppliers(newMha, mhaDbMappingTbls, gtidInit);
 
         String messengerGtidInit = consoleConfig.getSgpMessengerGtidInit(newMhaName);
-        configMessenger(oldMha, newMha, messengerGtidInit);
+        configMessenger(oldMha, newMha, messengerGtidInit, MqType.qmq);
+        configMessenger(oldMha, newMha, messengerGtidInit, MqType.kafka);
     }
 
     @Override
@@ -884,12 +1005,12 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
     }
 
 
-    private void configMessenger(MhaTblV2 oldMha, MhaTblV2 newMha, String gtidInit) throws SQLException {
+    private void configMessenger(MhaTblV2 oldMha, MhaTblV2 newMha, String gtidInit, MqType mqType) throws SQLException {
         ReplicatorGroupTbl newReplicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(newMha.getId(), BooleanEnum.FALSE.getCode());
         if (newReplicatorGroupTbl == null) {
             throw ConsoleExceptionUtils.message("newMha replicatorGroup not exit");
         }
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(oldMha.getId(), BooleanEnum.FALSE.getCode());
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(oldMha.getId(), mqType, BooleanEnum.FALSE.getCode());
         if (messengerGroupTbl == null) {
             return;
         }
@@ -1008,9 +1129,11 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<MhaDbMappingTbl> allNewRelatedMhaDbMappings = newMhaDbMappings.stream().filter(e -> migrateDbIds.contains(e.getDbId())).collect(Collectors.toList());
 
         if (rollBack) {
-            deleteMqReplication(newMhaId, newMhaDbMappings, allNewRelatedMhaDbMappings);
+            deleteMqReplication(newMhaId, newMhaDbMappings, allNewRelatedMhaDbMappings, MqType.qmq);
+            deleteMqReplication(newMhaId, newMhaDbMappings, allNewRelatedMhaDbMappings, MqType.kafka);
         } else {
-            deleteMqReplication(oldMhaId, oldMhaDbMappings, oldMigrateMhaDbMappings);
+            deleteMqReplication(oldMhaId, oldMhaDbMappings, oldMigrateMhaDbMappings, MqType.qmq);
+            deleteMqReplication(oldMhaId, oldMhaDbMappings, oldMigrateMhaDbMappings, MqType.kafka);
         }
 
         for (long relateMhaId : relatedMhaIds) {
@@ -1064,10 +1187,10 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
     }
 
 
-    private void switchMessenger(long mhaId) throws Exception {
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+    private void switchMessenger(long mhaId, MqType mqType) throws Exception {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaId, mqType, BooleanEnum.FALSE.getCode());
         if (messengerGroupTbl == null) {
-            logger.info("deleteMessengers messengerGroupTbl not exist, mhaId: {}", mhaId);
+            logger.info("deleteMessengers messengerGroupTbl not exist, mhaId: {}, mqType: {}", mhaId, mqType.name());
             return;
         }
 
@@ -1080,11 +1203,11 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
         List<ResourceView> resourceViews = autoSwitchMessengers(resourceIds, mhaTbl.getMhaName());
         if (resourceViews.size() != messengerTbls.size()) {
-            logger.warn("switchMessenger fail, mhaId: {}", mhaId);
+            logger.warn("switchMessenger fail, mhaId: {}, mqType: {}", mhaId, mqType.name());
             DefaultEventMonitorHolder.getInstance().logEvent("switchMessengerFail", mhaTbl.getMhaName());
         } else {
             messengerTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            logger.info("delete messengerTbls: {}", messengerTbls);
+            logger.info("delete messengerTbls: {}, mqType: {}", messengerTbls, mqType.name());
             messengerTblDao.update(messengerTbls);
 
             insertNewMessengers(resourceViews, messengerGroupTbl.getId());
@@ -1128,21 +1251,26 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
     private boolean existMhaReplication(long mhaId) throws Exception {
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mhaId));
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaId, MqType.qmq, BooleanEnum.FALSE.getCode());
+        MessengerGroupTbl messengerGroupTblKafka = messengerGroupTblDao.queryByMhaIdAndMqType(mhaId, MqType.kafka,BooleanEnum.FALSE.getCode());
 
         List<MhaReplicationTbl> existReplicationTbls = mhaReplicationTbls.stream().filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
         List<MessengerTbl> messengerTbls = new ArrayList<>();
         if (messengerGroupTbl != null) {
             messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
         }
+        List<MessengerTbl> messengerTblsKafka = new ArrayList<>();
+        if (messengerGroupTblKafka != null) {
+            messengerTblsKafka = messengerTblDao.queryByGroupId(messengerGroupTblKafka.getId());
+        }
 
-        if (CollectionUtils.isEmpty(existReplicationTbls) && CollectionUtils.isEmpty(messengerTbls)) {
+        if (CollectionUtils.isEmpty(existReplicationTbls) && CollectionUtils.isEmpty(messengerTbls) && CollectionUtils.isEmpty(messengerTblsKafka)) {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
             mhaTblV2.setMonitorSwitch(BooleanEnum.FALSE.getCode());
             mhaTblV2Dao.update(mhaTblV2);
         }
 
-        return !CollectionUtils.isEmpty(mhaReplicationTbls) || messengerGroupTbl != null;
+        return !CollectionUtils.isEmpty(mhaReplicationTbls) || messengerGroupTbl != null || messengerGroupTblKafka != null;
     }
 
     private void pushConfigToCM(List<Long> mhaIds, String operator, HttpRequestEnum httpRequestEnum) throws Exception {
@@ -1169,44 +1297,45 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         }
     }
 
-    private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> allMhaDbMappingTbls, List<MhaDbMappingTbl> deleteMhaDbMappingTbls) throws Exception {
+    private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> allMhaDbMappingTbls, List<MhaDbMappingTbl> deleteMhaDbMappingTbls, MqType mqType) throws Exception {
         if (CollectionUtils.isEmpty(deleteMhaDbMappingTbls)) {
             return;
         }
 
-        boolean deleted = deleteMqDbReplications(mhaId, deleteMhaDbMappingTbls);
-        List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(allMhaDbMappingTbls);
+        boolean deleted = deleteMqDbReplications(mhaId, deleteMhaDbMappingTbls, mqType.getReplicationType());
+        List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(allMhaDbMappingTbls, mqType.getReplicationType());
         if (CollectionUtils.isEmpty(mqDbReplications)) {
-            logger.info("mqDbReplications are empty, delete messenger mhaId: {}", mhaId);
-            deleteMessengers(mhaId);
+            logger.info("mqDbReplications are empty, delete messenger mhaId: {}, mqType: {}", mhaId, mqType.name());
+            deleteMessengers(mhaId, mqType);
         } else if (deleted) {
             logger.info("switch messenger: {}", mhaId);
-            switchMessenger(mhaId);
+            switchMessenger(mhaId, mqType);
         }
     }
 
-    private void deleteMessengers(long mhaId) throws Exception {
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+
+    private void deleteMessengers(long mhaId, MqType mqType) throws Exception {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaId, mqType, BooleanEnum.FALSE.getCode());
         if (messengerGroupTbl == null) {
-            logger.info("deleteMessengers messengerGroupTbl not exist, mhaId: {}", mhaId);
+            logger.info("deleteMessengers messengerGroupTbl not exist, mhaId: {}, mqType: {}", mhaId, mqType.name());
             return;
         }
         messengerGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        logger.info("deleteMessengers mhaId: {}, messengerGroupTbl: {}", mhaId, messengerGroupTbl);
+        logger.info("deleteMessengerGroup mhaId: {}, messengerGroupTbl: {}, mqType: {}", mhaId, messengerGroupTbl, mqType.name());
         messengerGroupTblDao.update(messengerGroupTbl);
 
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
         if (!CollectionUtils.isEmpty(messengerTbls)) {
             messengerTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            logger.info("deleteMessengers, mhaId: {}, messengerTbls: {}", messengerTbls);
+            logger.info("deleteMessengers, mhaId: {}, messengerTbls: {}, mqType: {}", messengerTbls, mqType.name());
             messengerTblDao.update(messengerTbls);
         }
     }
 
-    private boolean deleteMqDbReplications(long mhaId, List<MhaDbMappingTbl> deleteMhaDbMappingTbls) throws Exception {
-        List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(deleteMhaDbMappingTbls);
+    private boolean deleteMqDbReplications(long mhaId, List<MhaDbMappingTbl> deleteMhaDbMappingTbls, ReplicationTypeEnum replicationTypeEnum) throws Exception {
+        List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(deleteMhaDbMappingTbls, replicationTypeEnum);
         if (CollectionUtils.isEmpty(mqDbReplications)) {
-            logger.info("mqDbReplications from mhaId: {} not exist", mhaId);
+            logger.info("mqDbReplications from mhaId: {} , replicationType: {} , not exist", mhaId, replicationTypeEnum.name());
             return false;
         }
         List<Long> mqDbReplicationIds = mqDbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
@@ -1272,10 +1401,14 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         return existDbReplications;
     }
 
-    private List<DbReplicationTbl> getExistMqDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings) throws Exception {
+    private List<DbReplicationTbl> getExistMqDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings, ReplicationTypeEnum replicationTypeEnum) throws Exception {
         List<Long> srcMhaDbMappingIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-        List<DbReplicationTbl> existDbReplications = dbReplicationTblDao.queryBySrcMappingIds(srcMhaDbMappingIds, ReplicationTypeEnum.DB_TO_MQ.getType());
+        List<DbReplicationTbl> existDbReplications = dbReplicationTblDao.queryBySrcMappingIds(srcMhaDbMappingIds, replicationTypeEnum.getType());
         return existDbReplications;
+    }
+
+    private List<DbReplicationTbl> getExistMqDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings) throws Exception {
+        return getExistMqDbReplications(srcMhaDbMappings, DB_TO_MQ);
     }
 
     private Map<String, List<MhaTblV2>> groupByRegion(List<MhaTblV2> mhaTblV2s) {
@@ -1424,6 +1557,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             // 2. get mha messenger delay info
             List<MhaMessengerDto> messengerDtoList = messengerServiceV2.getRelatedMhaMessenger(mhas, dbNames);
             messengerDtoList = messengerDtoList.stream().filter(e -> BooleanEnum.TRUE.getCode().equals(e.getStatus())).collect(Collectors.toList());
+
             List<MhaDelayInfoDto> messengerDelays = messengerServiceV2.getMhaMessengerDelays(messengerDtoList);
             logger.info("messenger Mha:{}, db:{}, delay info: {}", mhas, dbNames, messengerDelays);
             if (messengerDelays.size() != messengerDtoList.size()) {
@@ -1502,6 +1636,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInSrcPairs = Lists.newArrayList();
         List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> dbReplicationTblsInOldMhaInDestPairs = Lists.newArrayList();
         List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs = Lists.newArrayList();
+        List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2KafkaReplicationTblsInOldMhaPairs = Lists.newArrayList();
     }
 
     public List<MhaApplierDto> getMhaDbReplicationDelayFromMigrateTask(Long taskId) throws SQLException {

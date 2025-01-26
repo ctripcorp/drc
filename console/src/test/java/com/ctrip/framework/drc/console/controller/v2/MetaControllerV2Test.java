@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import org.junit.Assert;
 import org.junit.Before;
@@ -65,8 +66,9 @@ public class MetaControllerV2Test {
     
     @Mock
     private DefaultConsoleConfig consoleConfig;
-    
-    
+
+    MqType mqType = MqType.qmq;
+
 
     @Before
     public void setUp() {
@@ -146,13 +148,12 @@ public class MetaControllerV2Test {
         ApiResult<String> result = controller.queryMhaReplicationDetailConfig("mha1", "mha2");
         verify(metaInfoServiceV2, times(1)).getDrcReplicationConfig(anyString(),anyString());
     }
-
     @Test
     public void testQueryMhaMessengerDetailConfig() throws Exception {
-        when(metaInfoServiceV2.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+        when(metaInfoServiceV2.getDrcMessengerConfig(anyString(), eq(mqType))).thenReturn(new Drc());
 
-        ApiResult<String> result = controller.queryMhaMessengerDetailConfig("mhaName");
-        verify(metaInfoServiceV2, times(1)).getDrcMessengerConfig(anyString());
+        ApiResult<String> result = controller.queryMhaMessengerDetailConfig("mhaName", mqType.name());
+        verify(metaInfoServiceV2, times(1)).getDrcMessengerConfig(anyString(), eq(mqType));
     }
 
 

@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
@@ -20,6 +19,7 @@ import com.ctrip.framework.drc.console.service.v2.MessengerBatchConfigService;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -117,7 +117,7 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
                 dbReplicationTbl.setDstMhaDbMappingId(-1L);
                 dbReplicationTbl.setSrcLogicTableName(createDto.getLogicTableConfig().getLogicTable());
                 dbReplicationTbl.setDstLogicTableName(createDto.getLogicTableConfig().getDstLogicTable());
-                dbReplicationTbl.setReplicationType(ReplicationTypeEnum.DB_TO_MQ.getType());
+                dbReplicationTbl.setReplicationType(createDto.getMqConfig().getMqTypeEnum().getReplicationType().getType());
                 dbReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
                 return dbReplicationTbl;
             }).collect(Collectors.toList()));
@@ -280,7 +280,7 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
         req.setMode(DrcAutoBuildReq.BuildMode.MULTI_DB_NAME.getValue());
         req.setDbName(String.join(",", dbMqDto.getDbNames()));
         req.setSrcRegionName(dbMqDto.getSrcRegionName());
-        req.setReplicationType(ReplicationTypeEnum.DB_TO_MQ.getType());
+        req.setReplicationType(dbMqDto.getMqConfig().getMqTypeEnum().getReplicationType().getType());
         req.setTblsFilterDetail(new DrcAutoBuildReq.TblsFilterDetail(dbMqDto.getLogicTableConfig().getLogicTable()));
         List<MySqlUtils.TableSchemaName> requestedTables = drcAutoBuildService.getMatchTable(req);
 

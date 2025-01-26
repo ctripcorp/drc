@@ -126,7 +126,7 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
 
         @Override
         protected List<Instance> getAllMeta() {
-            return Lists.newArrayList(currentMetaManager.getAllApplierOrMessengerInstances());
+            return Lists.newArrayList(currentMetaManager.getAllApplierInstances());
         }
 
         @Override

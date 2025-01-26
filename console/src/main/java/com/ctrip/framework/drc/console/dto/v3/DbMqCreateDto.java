@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -33,8 +34,9 @@ public class DbMqCreateDto {
         if (StringUtils.isBlank(mqConfig.getBu())) {
             throw new IllegalArgumentException("mqConfig.getBu should not be blank!");
         }
-        if (!StringUtils.equals("qmq", mqConfig.getMqType())) {
-            throw new IllegalArgumentException("mqConfig.getMqType() should be qmq!");
+        String mqType = mqConfig.getMqType();
+        if (MqType.parse(mqType) == null) {
+            throw new IllegalArgumentException("mqConfig.mqType not valid: " + mqType);
         }
         if (!StringUtils.equals("json", mqConfig.getSerialization())) {
             throw new IllegalArgumentException("mqConfig.getSerialization should be json!");

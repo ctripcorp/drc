@@ -1,14 +1,9 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
-import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
-import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
-import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
-import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.mysql.*;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.AutoIncrementVo;
-import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
 
 import java.util.List;
@@ -75,6 +70,8 @@ public interface MysqlServiceV2 {
     StatementExecutorResult write(MysqlWriteEntity requestBody);
 
     Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody);
+
+    Boolean createDrcMessengerGtidTbl(DrcMessengerGtidTblCreateReq requestBody);
 
     AutoIncrementVo getAutoIncrementAndOffset(String mha);
     

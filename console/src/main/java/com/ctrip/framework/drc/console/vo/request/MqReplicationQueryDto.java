@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.vo.request;
 
 import com.ctrip.framework.drc.core.http.PageReq;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Created by shiruixin
@@ -13,6 +15,19 @@ public class MqReplicationQueryDto extends PageReq implements Serializable {
     private String srcTblName;
     private String topic;
     private boolean queryOtter;
+    private String mqType;
+
+    public MqType getMqTypeEnum() {
+        return MqType.parseOrDefault(mqType);
+    }
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
+    }
 
     public String getDbNames() {
         return dbNames;

@@ -16,7 +16,7 @@ import com.ctrip.framework.drc.console.vo.request.MessengerDelayQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.apache.commons.lang.StringUtils;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +43,7 @@ public class MessengerControllerV2 {
     public ApiResult<List<MessengerVo>> queryMessengerVos(MessengerQueryDto queryDto) {
         logger.info("[meta] MessengerQueryDto :{}", queryDto.toString());
         try {
+            queryDto.validate();
             List<MessengerVo> messengerVoList = messengerService.getMessengerMhaTbls(queryDto);
             return ApiResult.getSuccessInstance(messengerVoList);
         } catch (Throwable e) {
@@ -57,10 +58,10 @@ public class MessengerControllerV2 {
     @SuppressWarnings("unchecked")
     @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.DELETE,
             success = "removeMessengerGroupInMha with mhaName: {#mhaName}")
-    public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName) {
+    public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName, @RequestParam String mqType) {
         try {
             logger.info("removeMessengerGroupInMha in mha:{}", mhaName);
-            messengerService.removeMessengerGroup(mhaName);
+            messengerService.removeMessengerGroup(mhaName, MqType.parse(mqType));
             return ApiResult.getSuccessInstance(true);
         } catch (Throwable e) {
             logger.error("removeMessengerGroupInMha in mha:" + mhaName, e);
@@ -70,9 +71,11 @@ public class MessengerControllerV2 {
 
     @GetMapping("queryConfigs")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MqConfigVo>> getAllMqConfigsByMhaName(@RequestParam(name = "mhaName") String mhaName) {
+    public ApiResult<List<MqConfigVo>> getAllMqConfigsByMhaName(@RequestParam(name = "mhaName") String mhaName,
+                                                                @RequestParam(name = "mqType") String mqType
+    ) {
         try {
-            List<MqConfigVo> res = messengerService.queryMhaMessengerConfigs(mhaName);
+            List<MqConfigVo> res = messengerService.queryMhaMessengerConfigs(mhaName, MqType.parse(mqType));
             return ApiResult.getSuccessInstance(res);
         } catch (Throwable e) {
             logger.error("getAllMqConfigsByMhaName exception", e);
@@ -133,13 +136,10 @@ public class MessengerControllerV2 {
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {
         logger.info("deleteMqConfig: {}", requestDto);
         try {
-            if (requestDto == null || CollectionUtils.isEmpty(requestDto.getDbReplicationIdList())
-                    || StringUtils.isBlank(requestDto.getMhaName())) {
+            if (requestDto == null) {
                 return ApiResult.getFailInstance("invalid empty input");
             }
-            if (requestDto.getDbReplicationIdList().size() != 1) {
-                return ApiResult.getFailInstance("batch delete not supported");
-            }
+            requestDto.validate();
             messengerService.processDeleteMqConfig(requestDto);
             return ApiResult.getSuccessInstance(null);
         } catch (Throwable e) {
@@ -148,22 +148,12 @@ public class MessengerControllerV2 {
         }
     }
 
-    @GetMapping("initGtid")
-    public ApiResult getMessengerExecutedGtid(@RequestParam(value = "mhaName") String mhaName) {
-        logger.info("[[tag=messenger]] getMessengerExecutedGtid for mha: {} ", mhaName);
-        try {
-            return ApiResult.getSuccessInstance(messengerService.getMessengerGtidExecuted(mhaName));
-        } catch (Exception e) {
-            logger.error("[[tag=messenger]] fail in getMessengerExecutedGtid for mha: {} ", mhaName, e);
-            return ApiResult.getSuccessInstance(null);
-        }
-    }
-
     @PostMapping("delay")
     @SuppressWarnings("unchecked")
     public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestBody MessengerDelayQueryDto queryDto) {
         List<String> mhas = queryDto.getMhas();
         List<String> dbs = queryDto.getDbs();
+        MqType mqType = queryDto.getMqTypeEnum();
         if (CollectionUtils.isEmpty(mhas)) {
             return ApiResult.getSuccessInstance(Collections.emptyList());
         }
@@ -172,10 +162,10 @@ public class MessengerControllerV2 {
             List<MhaDelayInfoDto> mhaReplicationDelays;
             if (queryDto.getNoNeedDbAndSrcTime()) {
                 res = mhas.stream().map(MhaMessengerDto::from).collect(Collectors.toList());
-                mhaReplicationDelays = messengerService.getMhaMessengerDelaysWithoutSrcTime(res);
+                mhaReplicationDelays = messengerService.getMhaMessengerDelaysWithoutSrcTime(res, mqType);
             } else {
-                res = messengerService.getRelatedMhaMessenger(mhas, dbs);
-                mhaReplicationDelays = messengerService.getMhaMessengerDelays(res);
+                res = messengerService.getRelatedMhaMessenger(mhas, dbs, mqType);
+                mhaReplicationDelays = messengerService.getMhaMessengerDelays(res, mqType);
             }
             Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(Objects::nonNull).collect(Collectors.toMap(
                             MhaDelayInfoDto::getSrcMha,
@@ -194,19 +184,5 @@ public class MessengerControllerV2 {
         }
     }
 
-    @GetMapping("registerMessengerAppAsQMQProducer")
-    @SuppressWarnings("unchecked")
-    public ApiResult<Map<String, Set<String>>> registerMessengerAppAsQMQProducer(@RequestParam(name = "showOnly") boolean showOnly,
-                                                                                 @RequestParam(name = "changeAll") boolean changeAll,
-                                                                                 @RequestParam(name = "topic") String topic,
-                                                                                 @RequestParam(name = "dcName") String dcName) {
-        try {
-            Map<String, Set<String>> res = messengerService.registerMessengerAppAsQMQProducer(showOnly, changeAll, topic, dcName);
-            return ApiResult.getSuccessInstance(res);
-        } catch (Throwable e) {
-            logger.error("registerMessengerAppAsQMQProducer error", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
 
 }

@@ -76,7 +76,7 @@
     <Divider></Divider>
     <Button :type="buttonTypeMap.get(formAction)" @click="submitAll" style="margin-left: 50px"
             :loading="dataLoading || commonColumnLoading">{{
-        buttonTextMap.get(formAction)
+        buttonTextMap.get(formAction) + ': ' + mqType
       }}
     </Button>
   </div>
@@ -96,6 +96,7 @@ export default {
   name: 'dbMqConfig',
   props: {
     configData: {},
+    mqType: String,
     srcRegion: String,
     dstRegion: String,
     dalclusterName: String,
@@ -297,9 +298,7 @@ export default {
       param.originLogicTableConfig = this.meta.originLogicTableConfig
       param.mqConfig = {
         bu: this.formItem.bu,
-        mqType: 'qmq',
-        // table: this.mqConfig.table,
-        // topic: this.mqConfig.topic,
+        mqType: this.mqType,
         serialization: 'json',
         persistent: false,
         order: this.formItem.switch.order,

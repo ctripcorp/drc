@@ -8,12 +8,10 @@ import com.ctrip.framework.drc.messenger.activity.replicator.driver.MqPooledConn
 import com.ctrip.framework.drc.messenger.container.MqServerContainerTest;
 import com.ctrip.framework.drc.messenger.container.controller.MqServerControllerTest;
 import com.ctrip.framework.drc.messenger.container.controller.task.WatchKeyedTaskTest;
-
-import com.ctrip.framework.drc.messenger.mq.MqPositionResourceTest;
-import com.ctrip.framework.drc.messenger.mq.MqProviderResourceTest;
+import com.ctrip.framework.drc.messenger.mq.*;
 import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResourceTest;
-import com.ctrip.framework.drc.messenger.server.MessengerWatcherTest;
 import com.ctrip.framework.drc.messenger.server.LocalApplierServerTest;
+import com.ctrip.framework.drc.messenger.server.MessengerWatcherTest;
 import com.ctrip.framework.drc.messenger.server.MqServerInClusterTest;
 import com.ctrip.framework.drc.messenger.utils.MqDynamicConfigTest;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -48,6 +46,7 @@ import java.util.Random;
 //        ApplierWriteRowsEventTest.class,
 
         MqPositionResourceTest.class,
+        KafkaPositionResourceTest.class,
         MqProviderResourceTest.class,
 
         MqTransactionContextResourceTest.class,
@@ -57,7 +56,7 @@ import java.util.Random;
         LocalApplierServerTest.class,
         MqServerInClusterTest.class,
 
-        MqDynamicConfigTest.class
+        MqDynamicConfigTest.class,
 })
 public class AllTests {
 

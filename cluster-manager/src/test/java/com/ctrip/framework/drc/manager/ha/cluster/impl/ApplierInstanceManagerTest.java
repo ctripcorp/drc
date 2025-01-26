@@ -272,7 +272,7 @@ public class ApplierInstanceManagerTest {
             Set<String> ips = appliers.stream().map(applier -> applier.getIp()).collect(Collectors.toSet());
             return Pair.from(validIps.stream().filter(ips::contains).collect(Collectors.toList()), instanceList.stream().filter(applier -> ips.contains(applier.getIp())).collect(Collectors.toList()));
         });
-        when(currentMetaManager.getAllApplierOrMessengerInstances()).thenReturn(Sets.newHashSet(
+        when(currentMetaManager.getAllApplierInstances()).thenReturn(Sets.newHashSet(
                 SimpleInstance.from("127.0.1.1", 8080),
                 SimpleInstance.from("127.0.1.2", 8080),
                 SimpleInstance.from("127.0.1.3", 8080),

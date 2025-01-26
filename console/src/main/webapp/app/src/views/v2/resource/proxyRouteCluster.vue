@@ -7,10 +7,10 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
-        BU名：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.routeOrgName" />
-        源端机房：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.srcDcName" />
-        目标机房：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.dstDcName" />
-        tag：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.tag" />
+        BU名：<Input :style="{width: '120px', marginRight: '10px'}" v-model="searchCondition.routeOrgName" />
+        源端（Applier）机房：<Input :style="{width: '120px', marginRight: '10px'}" v-model="searchCondition.srcDcName" />
+        目标（Replicator）机房：<Input :style="{width: '120px', marginRight: '10px'}" v-model="searchCondition.dstDcName" />
+        tag：<Input :style="{width: '120px', marginRight: '10px'}" v-model="searchCondition.tag" />
         deleted：<Select v-model="searchCondition.deleted"  style="width: 200px" placeholder="inUse" @on-change="getRoutes">
           <Option v-for="item in searchOption.deleteOptions" :value="item.value" :key="item.key" >{{ item.key }}</Option>
         </Select>
@@ -61,19 +61,51 @@ export default {
         },
         {
           title: '源端机房',
-          key: 'srcDcName'
+          key: 'srcDcName',
+          renderHeader: (h, params) => {
+            var text = 'Applier<br/>源端机房'
+            return h('div', {
+              domProps: {
+                innerHTML: text
+              }
+            })
+          }
         },
         {
           title: '目标机房',
-          key: 'dstDcName'
+          key: 'dstDcName',
+          renderHeader: (h, params) => {
+            var text = 'Replicator<br/>目标机房'
+            return h('div', {
+              domProps: {
+                innerHTML: text
+              }
+            })
+          }
         },
         {
           title: '源Region',
-          key: 'srcRegionName'
+          key: 'srcRegionName',
+          renderHeader: (h, params) => {
+            var text = 'Applier<br/>源Region'
+            return h('div', {
+              domProps: {
+                innerHTML: text
+              }
+            })
+          }
         },
         {
           title: '目标Region',
-          key: 'dstRegionName'
+          key: 'dstRegionName',
+          renderHeader: (h, params) => {
+            var text = 'Replicator<br/>目标Region'
+            return h('div', {
+              domProps: {
+                innerHTML: text
+              }
+            })
+          }
         },
         {
           title: '源端Proxy',

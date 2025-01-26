@@ -296,12 +296,21 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public Set<Instance> getAllApplierOrMessengerInstances() {
+    public Set<Instance> getAllMessengerInstances() {
+        Set<Instance> set = new HashSet<>();
+        for (String clusterId : regionCache.getClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            cluster.getMessengers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
+        }
+        return set;
+    }
+
+    @Override
+    public Set<Instance> getAllApplierInstances() {
         Set<Instance> set = new HashSet<>();
         for (String clusterId : regionCache.getClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
             cluster.getAppliers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
-            cluster.getMessengers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
         }
         return set;
     }

@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,15 +33,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
+import static com.ctrip.framework.drc.core.meta.ReplicationTypeEnum.DB_TO_DB;
+import static com.ctrip.framework.drc.core.meta.ReplicationTypeEnum.DB_TO_MQ;
 
 /**
  * Created by shiruixin
@@ -105,6 +105,7 @@ public class DbMigrationServiceImplV2Test {
     MhaTblV2 mha2 = MockEntityBuilder.buildMhaTblV2(2L,"mha2",1L);
     MhaTblV2 mha3 = MockEntityBuilder.buildMhaTblV2(3L,"mha3",1L);
     MhaTblV2 mha4 = MockEntityBuilder.buildMhaTblV2(4L,"mha4",1L);
+    MhaTblV2 mhaNegativeOne = MockEntityBuilder.buildMhaTblV2(-1L,"",1L);
 
     MhaReplicationTbl mhaReplication1_3 = MockEntityBuilder.buildMhaReplicationTbl(1L,mha1,mha3);
     MhaReplicationTbl mhaReplication3_1 = MockEntityBuilder.buildMhaReplicationTbl(2L,mha3,mha1);
@@ -132,6 +133,8 @@ public class DbMigrationServiceImplV2Test {
     MhaDbMappingTbl mha2Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(9L, mha2, db3);
     MhaDbMappingTbl mha3Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(10L, mha3, db3);
     MhaDbMappingTbl mha4Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(11L, mha4, db3);
+    MhaDbMappingTbl mhaNegativeOneMapping = MockEntityBuilder.buildMhaDbMappingTbl(-1L, mhaNegativeOne, db1);
+
 
 
     DbReplicationTbl db1ReplicaInMha1_3 = MockEntityBuilder.buildDbReplicationTbl(1L, mha1Db1Mapping, mha3Db1Mapping,0);
@@ -154,6 +157,8 @@ public class DbMigrationServiceImplV2Test {
     MhaDbReplicationTbl mha2db1_Mha3db1 = MockEntityBuilder.buildMhaDbReplicationTbl(2L, mha2Db1Mapping, mha3Db1Mapping,  DB_TO_DB.getType());
     MhaDbReplicationTbl mha3db1_Mha1db1 = MockEntityBuilder.buildMhaDbReplicationTbl(3L, mha3Db1Mapping, mha1Db1Mapping, DB_TO_DB.getType());
     MhaDbReplicationTbl mha3db1_Mha2db1 = MockEntityBuilder.buildMhaDbReplicationTbl(4L, mha3Db1Mapping, mha2Db1Mapping,  DB_TO_DB.getType());
+    MhaDbMappingTbl tblDefaultMq = new MhaDbMappingTbl();
+    MhaDbReplicationTbl mha2db1_qmq = MockEntityBuilder.buildMhaDbReplicationTbl(5L, mha2Db1Mapping, mhaNegativeOneMapping,  DB_TO_MQ.getType());
 
     ApplierGroupTblV3 aGroupV3_mha2db1_Mha3db1 = MockEntityBuilder.buildDbApplierGroup(1L, mha2db1_Mha3db1.getId());
     ApplierGroupTblV3 aGroupV3_mha3db1_Mha2db1 = MockEntityBuilder.buildDbApplierGroup(2L, mha3db1_Mha2db1.getId());
@@ -259,7 +264,7 @@ public class DbMigrationServiceImplV2Test {
                 .thenReturn(Lists.newArrayList(db1ReplicaInMha3_2))
                 .thenReturn(Lists.newArrayList());
 
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(mha2.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha2MessengerGroup);
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.eq(mha2.getId()), Mockito.any(MqType.class), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha2MessengerGroup);
         Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(mha2MessengerGroup.getMhaId()))).thenReturn(Lists.newArrayList(new MessengerTbl()));
         Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha2.getId()), Mockito.eq(mha3.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication2_3);
         Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha3.getId()), Mockito.eq(mha2.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication3_2);
@@ -268,7 +273,7 @@ public class DbMigrationServiceImplV2Test {
 
         Mockito.verify(mhaDbReplicationService, Mockito.times(1)).offlineMhaDbReplication(Mockito.anyList());
         Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.times(0)).update(Mockito.any(DbReplicationFilterMappingTbl.class));
-        Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
+        Mockito.verify(messengerGroupTblDao, Mockito.times(2)).update(Mockito.any(MessengerGroupTbl.class));
         Mockito.verify(mhaDbReplicationService, Mockito.times(2)).offlineMhaDbReplicationAndApplierV3(Mockito.anyList());
         Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
         Mockito.verify(mhaDbMappingTblDao, Mockito.times(1)).delete(Mockito.anyList());
@@ -291,7 +296,7 @@ public class DbMigrationServiceImplV2Test {
                 .thenReturn(Lists.newArrayList(db1ReplicaInMha3_2))
                 .thenReturn(Lists.newArrayList());
 
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(mha2.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha2MessengerGroup);
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.eq(mha2.getId()), Mockito.any(MqType.class), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha2MessengerGroup);
         Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(mha2MessengerGroup.getMhaId()))).thenReturn(Lists.newArrayList(new MessengerTbl()));
         Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha2.getId()), Mockito.eq(mha3.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication2_3);
         Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha3.getId()), Mockito.eq(mha2.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication3_2);
@@ -312,7 +317,10 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(mhaDbMappingTblDao.queryByDbIdsAndMhaIds(Mockito.eq(Lists.newArrayList(db1.getId())), Mockito.eq(Lists.newArrayList(mha2.getId())))).thenReturn(Lists.newArrayList(mha2Db1Mapping));
         Mockito.when(mhaDbReplicationTblDao.queryBySamples(Mockito.anyList()))
                 .thenReturn(Lists.newArrayList())
-                .thenReturn(Lists.newArrayList(mha2db1_Mha3db1, mha3db1_Mha2db1));
+                .thenReturn(Lists.newArrayList(mha2db1_Mha3db1, mha3db1_Mha2db1))
+                .thenReturn(Lists.newArrayList())
+                .thenReturn(Lists.newArrayList(mha2db1_qmq));
+
         Mockito.when(mhaDbReplicationTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1,1});
         Mockito.when(applierGroupTblV3Dao.insertOrReCover(Mockito.eq(mha2db1_Mha3db1.getId()), Mockito.isNull())).thenReturn(aGroupV3_mha2db1_Mha3db1.getId());
         Mockito.when(applierGroupTblV3Dao.insertOrReCover(Mockito.eq(mha3db1_Mha2db1.getId()), Mockito.isNull())).thenReturn(aGroupV3_mha3db1_Mha2db1.getId());
@@ -321,12 +329,12 @@ public class DbMigrationServiceImplV2Test {
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
         Mockito.verify(mhaDbMappingService, Mockito.times(1)).copyAndInitMhaDbMappings(Mockito.any(MhaTblV2.class), Mockito.anyList());
-        Mockito.verify(mhaDbReplicationTblDao, Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(mhaDbReplicationTblDao, Mockito.times(2)).batchInsert(Mockito.anyList());
         Mockito.verify(applierGroupTblV3Dao, Mockito.times(2)).insertOrReCover(Mockito.anyLong(), Mockito.isNull());
         Mockito.verify(dbReplicationTblDao,Mockito.times(3)).insertWithReturnId(Mockito.any(DbReplicationTbl.class));
         Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).insertOrReCover(Mockito.anyLong(), Mockito.anyLong());
         Mockito.verify(replicatorGroupTblDao, Mockito.times(1)).upsertIfNotExist(Mockito.anyLong());
-        Mockito.verify(messengerGroupTblDao, Mockito.times(1)).upsertIfNotExist(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(messengerGroupTblDao, Mockito.times(1)).upsertIfNotExist(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString(), Mockito.any());
     }
 
     @Test
@@ -383,14 +391,14 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(applierTblV3Dao.queryByApplierGroupId(Mockito.eq(aGroupV3_mha1db1_Mha3db1.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(Lists.newArrayList(new ApplierTblV3()));
         Mockito.when(mhaDbMappingTblDao.queryById(Mockito.eq(mha2Db1Mapping.getId()))).thenReturn(mha2Db1Mapping);
         Mockito.when(mhaTblV2Dao.queryById(Mockito.eq(mha2Db1Mapping.getMhaId()))).thenReturn(mha2);
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(mha1.getId()), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.eq(mha1.getId()), Mockito.any(MqType.class), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
         Mockito.when(messengerTblDao.queryByGroupId(mha1MessengerGroup.getId())).thenReturn(Lists.newArrayList(new MessengerTbl()));
 
         Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
 
         Mockito.verify(dbDrcBuildService, Mockito.times(1)).autoConfigDbAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(), Mockito.any(),Mockito.anyBoolean());
         Mockito.verify(dbDrcBuildService, Mockito.times(1)).autoConfigDbAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
-        Mockito.verify(drcBuildServiceV2, Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any(),Mockito.anyBoolean());
+        Mockito.verify(drcBuildServiceV2, Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
     }
 
     private void mockQueryTaskInfo() throws Exception {
@@ -429,7 +437,7 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(mhaReplicationTblDao.insertOrReCover(Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
         // initReplicatorGroupAndMessengerGroup
         Mockito.when(replicatorGroupTblDao.upsertIfNotExist(Mockito.anyLong())).thenReturn(1L);
-        Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(),Mockito.anyLong(),Mockito.any())).thenReturn(1L);
+        Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(),Mockito.anyLong(),Mockito.any(),Mockito.any())).thenReturn(1L);
 
         Mockito.doNothing().when(drcBuildServiceV2).autoConfigReplicatorsWithRealTimeGtid(Mockito.any(MhaTblV2.class));
         Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);

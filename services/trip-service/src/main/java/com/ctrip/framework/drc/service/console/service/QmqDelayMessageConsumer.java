@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.mq.DcTag;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.mq.EventType;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
@@ -16,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.*;
 import qunar.tc.qmq.consumer.MessageConsumerProvider;
-
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -40,7 +40,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private static final int DC_INDEX = 1;
     private static final int DELAY_INFO_INDEX = 2;
     private static final int DATA_CHANGE_TIME_INDEX = 3;
-    private static final long TOLERANCE_TIME = 5 * 60000L;
+    private static final long TOLERANCE_TIME = 3 * 60000L;
     private static final long HUGE_VAL = 60 * 60000L;
     private static final String MQ_DELAY_MEASUREMENT = "fx.drc.messenger.delay";
 
@@ -70,7 +70,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             listenerHolder.resumeListen();
             logger.info("qmq consumer init over, start to listen");
         } catch (Exception e) {
-            logger.error("unexpected exception occur in initConsumer",e);
+            logger.error("unexpected exception occur in initQmQConsumer",e);
         }
     }
 
@@ -86,7 +86,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         }
         listenerHolder.stopListen();
         receiveTimeMap.clear();
-        DefaultReporterHolder.getInstance().removeRegister("fx.drc.messenger.delay");
+        DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT);
         return true;
     }
 
@@ -129,11 +129,11 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             long delayTime = receiveTime - updateDbTime.getTime();
             DefaultReporterHolder.getInstance().reportMessengerDelay(
                     mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
-            logger.info("[[monitor=delay,mha={},messageId={}]] report messenger delay:{} ms", mhaName, message.getMessageId(), delayTime);
+            logger.info("[[monitor=delay,mha={},mqType=qmq,messageId={}]] receiveTime:{}, updateDbTime:{}, report messenger delay:{} ms", mhaName, message.getMessageId(), receiveTime, updateDbTime.getTime() ,delayTime);
 
             receiveTimeMap.put(mhaInfo,receiveTime);
         } else {
-            logger.info("[[monitor=delay]] discard delay monitor message which is not update");
+            logger.info("[[monitor=delay,mqType=qmq]] discard delay monitor message which is not update");
         }
     }
 
@@ -147,7 +147,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 long curTime = System.currentTimeMillis();
                 long timeDiff = curTime - receiveTime;
                 if (timeDiff > TOLERANCE_TIME) {
-                    logger.error("[[monitor=delay]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
+                    logger.error("[[monitor=delay,mqType=qmq]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
                     DefaultReporterHolder.getInstance()
                             .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
                 }
@@ -164,19 +164,20 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private static class ConsumerProviderHolder {
         private static final MessageConsumerProvider instance = new MessageConsumerProvider();
     }
-    
+
     private static class MhaInfo {
 
         private Map<String, String> tags;
         private String mhaName;
         private String dc;
-        
-        
+
+
         public Map<String,String> getTags() {
             if (tags == null) {
                 tags = Maps.newHashMap();
                 tags.put("mhaName",mhaName);
                 tags.put("dc",dc);
+                tags.put("mqType", MqType.qmq.name());
             }
             return tags;
         }

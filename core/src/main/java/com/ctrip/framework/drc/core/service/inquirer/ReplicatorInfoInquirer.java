@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.service.inquirer;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 
@@ -19,6 +20,11 @@ public class ReplicatorInfoInquirer extends AbstractInfoInquirer<ReplicatorInfoD
     @Override
     String method() {
         return "replicators/info/all";
+    }
+
+    @Override
+    public String name() {
+        return ConsumeType.Replicator.name().toLowerCase();
     }
 
     public static ReplicatorInfoInquirer getInstance() {

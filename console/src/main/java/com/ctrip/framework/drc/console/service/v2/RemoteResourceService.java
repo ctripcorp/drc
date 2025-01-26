@@ -14,5 +14,5 @@ public interface RemoteResourceService {
 
     List<Instance> getCurrentReplicatorInstance(String mhaName, List<String> ip);
 
-    List<Instance> getCurrentMessengerInstance(String mhaName, List<String> ip);
+    List<Instance> getCurrentMessengerInstance(String mhaName, List<String> ip, String mqType);
 }

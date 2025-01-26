@@ -6,7 +6,8 @@
       <BreadcrumbItem :to="{
           path: 'buildMessengerV2',query :{
           step: 3,
-          mhaName: drc.mhaName
+          mhaName: drc.mhaName,
+          mqType: drc.mqType
         }
       }">Messenger 配置
       </BreadcrumbItem>
@@ -248,6 +249,7 @@ export default {
       customSize: 10,
       drc: {
         mhaName: this.$route.query.mhaName,
+        mqType: this.$route.query.mqType,
         messengerGroupId: 0
       },
       display: {
@@ -472,6 +474,7 @@ export default {
       this.dataLoading = true
       const reqBody = {
         mhaName: this.drc.mhaName,
+        mqType: this.drc.mqType,
         dbReplicationIdList: [row.dbReplicationId]
       }
       console.log(reqBody)
@@ -667,7 +670,7 @@ export default {
       const dto = {
         dbReplicationId: this.mqConfig.dbReplicationId,
         bu: this.topic.bu,
-        mqType: this.mqConfig.mqType,
+        mqType: this.drc.mqType,
         table: this.mqConfig.table,
         topic: this.mqConfig.topic,
         serialization: this.mqConfig.serialization,
@@ -689,7 +692,7 @@ export default {
     getMqConfigs () {
       this.dataLoading = true
       this.axios.get('/api/drc/v2/messenger/queryConfigs', {
-        params: { mhaName: this.drc.mhaName }
+        params: { mhaName: this.drc.mhaName, mqType: this.drc.mqType }
       }).then(response => {
         if (response.data.status === 1) {
           this.$Message.error('查询 messenger 配置失败: ' + response.data.message)

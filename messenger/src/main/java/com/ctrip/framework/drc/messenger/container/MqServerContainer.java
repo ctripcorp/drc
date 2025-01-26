@@ -8,8 +8,9 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.fetcher.container.FetcherServerContainer;
+import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.server.FetcherServer;
-import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
+import com.ctrip.framework.drc.messenger.server.KafkaServerInCluster;
 import com.ctrip.framework.drc.messenger.server.MessengerWatcher;
 import com.ctrip.framework.drc.messenger.server.MqServerInCluster;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
@@ -45,6 +46,8 @@ public class MqServerContainer extends FetcherServerContainer {
             case mq:
             case db_mq:
                 return new MqServerInCluster((MessengerConfigDto)config);
+            case kafka:
+                return new KafkaServerInCluster((MessengerConfigDto)config);
             default:
                 throw new Exception("not support applyMode");
         }
@@ -169,9 +172,22 @@ public class MqServerContainer extends FetcherServerContainer {
         public void run() {
             try {
                 // persist mq position
-                MqPositionResource mqPositionResource = ((MqServerInCluster) serverInCluster).getMqPositionResource();
-                if (mqPositionResource != null) {
-                    mqPositionResource.dispose();
+                MqPosition mqPosition;
+                ApplyMode applyMode = ApplyMode.getApplyMode(serverInCluster.config.getApplyMode());
+                switch (applyMode) {
+                    case mq:
+                    case db_mq:
+                        mqPosition = ((MqServerInCluster) serverInCluster).getMqPositionResource();
+                        break;
+                    case kafka:
+                        mqPosition = ((KafkaServerInCluster) serverInCluster).getMqPositionResource();
+                        break;
+                    default:
+                        throw new Exception("not support applyMode");
+                }
+
+                if (mqPosition != null) {
+                    mqPosition.release();
                     logger.info("dispose mq position for {} before shutdown", registryKey);
                 }
 

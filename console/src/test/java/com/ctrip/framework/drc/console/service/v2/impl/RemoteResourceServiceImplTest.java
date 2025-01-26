@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.core.entity.Instance;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
 import com.ctrip.xpipe.tuple.Pair;
@@ -74,15 +76,15 @@ public class RemoteResourceServiceImplTest {
     public void testQueryMessenger() {
         int REPLICATOR_PORT = 8080;
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1._drc_mq", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1._drc_mq", "127.0.1.2", 8080, false, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1._drc_mq", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1._drc_mq", "127.0.1.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
 
 
-        List<Instance> currentDbApplierInstances = remoteResourceServiceImpl.getCurrentMessengerInstance("mha1_dc1", validIps);
+        List<Instance> currentDbApplierInstances = remoteResourceServiceImpl.getCurrentMessengerInstance("mha1_dc1", validIps, MqType.qmq.name());
         Assert.assertEquals(2, currentDbApplierInstances.size());
         Assert.assertTrue(currentDbApplierInstances.stream().anyMatch(e -> e.getIp().equals("127.0.1.1") && e.getMaster()));
         Assert.assertTrue(currentDbApplierInstances.stream().anyMatch(e -> e.getIp().equals("127.0.1.2") && !e.getMaster()));
@@ -101,6 +103,15 @@ public class RemoteResourceServiceImplTest {
 
     private static ApplierInfoDto getApplierInfoDto(String registryKey, String ip, int port, boolean master, String replicatorIp) {
         ApplierInfoDto dto = new ApplierInfoDto();
+        dto.setMaster(master);
+        dto.setReplicatorIp(replicatorIp);
+        dto.setIp(ip);
+        dto.setPort(port);
+        dto.setRegistryKey(registryKey);
+        return dto;
+    }
+    private static MessengerInfoDto getMessengerInfoDto(String registryKey, String ip, int port, boolean master, String replicatorIp) {
+        MessengerInfoDto dto = new MessengerInfoDto();
         dto.setMaster(master);
         dto.setReplicatorIp(replicatorIp);
         dto.setIp(ip);

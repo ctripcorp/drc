@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.tuple.Pair;
@@ -143,14 +144,14 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     }
 
     @Override
-    public Drc getDrcMessengerConfig(String mhaName) {
+    public Drc getDrcMessengerConfig(String mhaName, MqType mqType) {
         Drc drc = new Drc();
         try {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
             if (mhaTblV2 == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "replication not exist: " + mhaName);
             }
-            this.appendMessengerConfig(drc, mhaTblV2);
+            this.appendMessengerConfig(drc, mhaTblV2, mqType);
         } catch (SQLException e) {
             logger.error("getDrcMessengerConfig sql exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -192,7 +193,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         generateReplicators(dbCluster, mhaTbl);
     }
 
-    private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
+    private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl, MqType mqType) throws SQLException {
         DcDo dcDo = this.queryAllDc()
                 .stream()
                 .filter(e -> e.getDcId().equals(mhaTbl.getDcId()))
@@ -203,7 +204,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
         generateDbs(dbCluster, mhaTbl);
         generateReplicators(dbCluster, mhaTbl);
-        generateMessengers(dbCluster, mhaTbl);
+        generateMessengers(dbCluster, mhaTbl,mqType);
     }
 
 
@@ -226,12 +227,12 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         generateDbApplierInstances(dbCluster, srcMhaTbl, mhaTbl);
     }
 
-    private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
-        List<Messenger> messengers = messengerService.generateDbMessengers(mhaTbl.getId());
+    private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl, MqType mqType) throws SQLException {
+        List<Messenger> messengers = messengerService.generateDbMessengers(mhaTbl.getId(), mqType);
         messengers.forEach(dbCluster::addMessenger);
 
         if (CollectionUtils.isEmpty(dbCluster.getMessengers())) {
-            messengers = messengerService.generateMessengers(mhaTbl.getId());
+            messengers = messengerService.generateMessengers(mhaTbl.getId(),mqType);
             messengers.forEach(dbCluster::addMessenger);
         }
     }
@@ -372,7 +373,6 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         return dc;
     }
 
-    // todo by yongnian: optimize
     private String getProperties(List<DbReplicationTbl> dbReplicationTblList, Integer concurrency) throws SQLException {
         List<DbReplicationDto> dbReplicationDto = dbReplicationTblList.stream().map(source -> {
             DbReplicationDto target = new DbReplicationDto();

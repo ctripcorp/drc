@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
@@ -9,12 +8,9 @@ import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
-import com.ctrip.framework.drc.console.dao.v3.MessengerGroupTblV3Dao;
-import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
-import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -87,7 +83,7 @@ public class DbReplicationServiceImpl implements DbReplicationService {
             }
         }
 
-        query.setReplicationType(ReplicationTypeEnum.DB_TO_MQ.getType());
+        query.setReplicationType(queryDto.getMqTypeEnum().getReplicationType().getType());
 
         try {
             // search only otter messenger

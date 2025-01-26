@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import org.apache.commons.lang3.StringUtils;
 
 public class MhaDbReplicationCreateDto {

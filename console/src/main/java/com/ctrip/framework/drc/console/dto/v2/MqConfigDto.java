@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dto.v2;
 
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
@@ -33,6 +34,9 @@ public class MqConfigDto implements Serializable {
         }
         if (StringUtils.isBlank(table)) {
             throw new IllegalArgumentException("please input table!");
+        }
+        if(MqType.parse(mqType) == null) {
+            throw new IllegalArgumentException("mqType is invalid! mqType: " + mqType);
         }
     }
 
@@ -83,6 +87,9 @@ public class MqConfigDto implements Serializable {
 
     public String getMqType() {
         return mqType;
+    }
+    public MqType getMqTypeEnum(){
+        return MqType.parseOrDefault(mqType);
     }
 
     public void setMqType(String mqType) {

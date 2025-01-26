@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.console.enums.v2.EffectiveStatusEnum;
 import com.ctrip.framework.drc.console.enums.v2.ExistingDataStatusEnum;

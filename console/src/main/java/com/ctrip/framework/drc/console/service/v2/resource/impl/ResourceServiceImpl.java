@@ -36,6 +36,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
@@ -364,7 +365,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception {
+    public List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type, String subType) throws Exception {
         List<ResourceView> resourceViews = getMhaDbAvailableResource(dstMhaName, type);
 
         List<ResourceView> resourceViewsInUse = new ArrayList<>();
@@ -372,7 +373,7 @@ public class ResourceServiceImpl implements ResourceService {
             resourceViewsInUse.addAll(getDbAppliersInUse(srcMhaName, dstMhaName));
         }
         if (type == ModuleEnum.MESSENGER.getCode()) {
-            resourceViewsInUse.addAll(getDbMessengersInUse(srcMhaName));
+            resourceViewsInUse.addAll(getDbMessengersInUse(srcMhaName, MqType.valueOf(subType)));
         }
 
         if (!CollectionUtils.isEmpty(resourceViewsInUse)) {
@@ -387,7 +388,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception {
+    public List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type, String subType) throws Exception {
         List<ResourceView> resourceViews = getMhaAvailableResource(mhaName, type);
 
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
@@ -395,7 +396,7 @@ public class ResourceServiceImpl implements ResourceService {
         if (type == ModuleEnum.REPLICATOR.getCode()) {
             resourceViewsInUse.addAll(getReplicatorsInUse(mhaTbl.getId()));
         } else if (type == ModuleEnum.MESSENGER.getCode()) {
-            resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
+            resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId(), MqType.parse(subType)));
         }
 
         if (!CollectionUtils.isEmpty(resourceViewsInUse)) {
@@ -423,8 +424,8 @@ public class ResourceServiceImpl implements ResourceService {
         return buildResourceViews(resourceTbls);
     }
 
-    private List<ResourceView> getMessengersInUse(long mhaId) throws Exception {
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+    private List<ResourceView> getMessengersInUse(long mhaId, MqType mqType) throws Exception {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaId, mqType, BooleanEnum.FALSE.getCode());
         if (messengerGroupTbl == null) {
             return new ArrayList<>();
         }
@@ -442,8 +443,8 @@ public class ResourceServiceImpl implements ResourceService {
         return getResourceViews(dbAppliers);
     }
 
-    private List<ResourceView> getDbMessengersInUse(String mha) throws Exception {
-        List<DbApplierDto> mhaDbMessengers = dbDrcBuildService.getMhaDbMessengers(mha);
+    private List<ResourceView> getDbMessengersInUse(String mha, MqType mqType) throws Exception {
+        List<DbApplierDto> mhaDbMessengers = dbDrcBuildService.getMhaDbMessengers(mha, mqType);
         return getResourceViews(mhaDbMessengers);
     }
     private List<ResourceView> getResourceViews(List<DbApplierDto> dbAppliers) throws SQLException {
@@ -637,16 +638,31 @@ public class ResourceServiceImpl implements ResourceService {
         Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
 
         Map<Long, Long> messengerMap = messengerTbls.stream().collect(Collectors.toMap(MessengerTbl::getMessengerGroupId, MessengerTbl::getId));
-        Map<Long, Long> mhaIdToMessengerGroupId = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, MessengerGroupTbl::getId));
+//        Map<Long, Long> mhaIdToMessengerGroupId = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, MessengerGroupTbl::getId));
+        Map<Long, List<MessengerGroupTbl>> mhaIdToMessengerGroupIdList = messengerGroupTbls.stream().collect(Collectors.groupingBy(MessengerGroupTbl::getMhaId));
 
-        return mhaTblV2s.stream().map(source -> {
-            ApplierReplicationView target = new ApplierReplicationView();
-            target.setSrcMhaName(source.getMhaName());
-            target.setSrcDcName(dcMap.get(source.getDcId()));
-            target.setRelatedId(messengerMap.get(mhaIdToMessengerGroupId.get(source.getId())));
-            target.setType(ApplierTypeEnum.MESSENGER.getCode());
-            return target;
-        }).collect(Collectors.toList());
+        return mhaTblV2s.stream()
+                .flatMap(source -> {
+                    List<MessengerGroupTbl> mGroups = mhaIdToMessengerGroupIdList.get(source.getId());
+                    return mGroups.stream().map(m -> {
+                        ApplierReplicationView target = new ApplierReplicationView();
+                        target.setSrcMhaName(source.getMhaName());
+                        target.setSrcDcName(dcMap.get(source.getDcId()));
+                        target.setRelatedId(messengerMap.get(m.getId()));
+                        target.setType(ApplierTypeEnum.MESSENGER.getCode());
+                        target.setMqType(m.getMqType());
+                        return target;
+                    });
+                }).collect(Collectors.toList());
+
+//        return mhaTblV2s.stream().map(source -> {
+//            ApplierReplicationView target = new ApplierReplicationView();
+//            target.setSrcMhaName(source.getMhaName());
+//            target.setSrcDcName(dcMap.get(source.getDcId()));
+//            target.setRelatedId(messengerMap.get(mhaIdToMessengerGroupId.get(source.getId())));
+//            target.setType(ApplierTypeEnum.MESSENGER.getCode());
+//            return target;
+//        }).collect(Collectors.toList());
     }
 
     @Override

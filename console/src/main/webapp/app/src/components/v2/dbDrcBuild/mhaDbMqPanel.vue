@@ -214,6 +214,7 @@ export default {
     async getMhaMessengerDelay () {
       this.delayDataLoading = true
       this.axios.post('/api/drc/v2/messenger/delay', {
+        mqType: this.mhaMqDtos.mhaMessengerDto.mqType,
         mhas: [this.mhaMqDtos.srcMha.name],
         dbs: this.mhaMqDtos.mhaDbReplications.map(item => item.src.dbName)
       })

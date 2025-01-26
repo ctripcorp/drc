@@ -17,6 +17,7 @@
       <db-mq-config ref="dbReplicationConfigComponent" @finished="finishConfig"
                              v-if="editModal.open"
                              :dalcluster-name="dalclusterName"
+                             :mq-type="mqType"
                              :config-data="selectedRow"
                              :src-region="srcRegion"
                              :dst-region="srcRegion"
@@ -36,6 +37,7 @@ export default {
   components: { DbMqConfig },
   props: {
     dalclusterName: String,
+    mqType: String,
     dbName: String,
     dbNames: Array,
     srcRegion: String,
@@ -156,7 +158,7 @@ export default {
   },
   computed: {
     actionTitle () {
-      return this.actionTitleMap.get(this.action)
+      return this.actionTitleMap.get(this.action) + ': ' + this.mqType
     }
   },
   created () {

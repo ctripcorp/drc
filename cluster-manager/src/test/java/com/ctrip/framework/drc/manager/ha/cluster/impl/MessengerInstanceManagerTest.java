@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
 import com.ctrip.framework.drc.core.utils.NameUtils;
@@ -17,15 +17,13 @@ import com.ctrip.xpipe.observer.NodeDeleted;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.zk.ZkClient;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
@@ -170,14 +168,47 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "_drc_kafka", "127.0.3.2", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, false, "10.1.1.1")
         );
-        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.3.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        checker.run();
+        verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
+        verify(instanceStateController, never()).addMessenger(any(), any());
+        verify(instanceStateController, never()).registerMessenger(any(), any());
+    }
+
+    @Test
+    public void testCheckerMissMessengerIp() {
+        MessengerInstanceManager.MessengerChecker checker = messengerInstanceManager.getChecker();
+
+        init();
+
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "_drc_kafka", "127.0.3.2", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, false, "10.1.1.1")
+        );
+        List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.1.3");
+        when(batchInfoInquirer.getMessengerInfo(anyList())).thenAnswer(e -> {
+            List<Instance> messengers = e.getArgument(0, List.class);
+            Set<String> ips = messengers.stream().map(Instance::getIp).collect(Collectors.toSet());
+            return Pair.from(validIps.stream().filter(ips::contains).collect(Collectors.toList()), instanceList.stream().filter(applier -> ips.contains(applier.getIp())).collect(Collectors.toList()));
+        });
+        when(currentMetaManager.getAllMessengerInstances()).thenReturn(Sets.newHashSet(
+                SimpleInstance.from("127.0.1.1", 8080),
+                SimpleInstance.from("127.0.1.2", 8080),
+                SimpleInstance.from("127.0.1.3", 8080),
+                SimpleInstance.from("127.0.2.1", 8080),
+                SimpleInstance.from("127.0.2.2", 8080)
+        ));
         checker.run();
         verify(instanceStateController, never()).removeMessenger(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addMessenger(any(), any());
@@ -190,7 +221,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -206,10 +237,10 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -225,10 +256,10 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -245,11 +276,11 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, true, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -262,11 +293,11 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
     @Test
     public void testCheckerTwoMaster() {
         init();
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, true, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -285,11 +316,11 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.2"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.2"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -306,12 +337,12 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.3", 8080, false, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.3", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.2.3");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -327,10 +358,10 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, true, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -347,10 +378,10 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, false, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -366,11 +397,11 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
         init();
 
-        ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList(
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.1", 8080, false, "10.1.1.1"),
-                getApplierInfoDto("mha1_dc2_dalcluster.mha1_dc2", "db1", "127.0.2.2", 8080, false, "10.1.1.1")
+        ArrayList<MessengerInfoDto> instanceList = Lists.newArrayList(
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.1", 8080, true, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc1_dalcluster.mha1_dc1", "127.0.1.2", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.1", 8080, false, "10.1.1.1"),
+                getMessengerInfoDto("mha1_dc2_dalcluster.mha1_dc2", "_drc_mq.db1", "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
         when(batchInfoInquirer.getMessengerInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
@@ -381,11 +412,11 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
     }
 
 
-
     private void init() {
         DbCluster dbCluster1 = new DbCluster("mha1_dc1_dalcluster.mha1_dc1")
                 .addMessenger(new Messenger().setIp("127.0.1.1").setPort(8080).setMaster(true).setApplyMode(ApplyMode.mq.getType()).setIncludedDbs(null))
-                .addMessenger(new Messenger().setIp("127.0.1.2").setPort(8080).setMaster(false).setApplyMode(ApplyMode.mq.getType()).setIncludedDbs(null));
+                .addMessenger(new Messenger().setIp("127.0.1.2").setPort(8080).setMaster(false).setApplyMode(ApplyMode.mq.getType()).setIncludedDbs(null))
+                .addMessenger(new Messenger().setIp("127.0.3.2").setPort(8080).setMaster(true).setApplyMode(ApplyMode.kafka.getType()).setIncludedDbs(null));
 
         DbCluster dbCluster2 = new DbCluster("mha1_dc2_dalcluster.mha1_dc2")
                 .addMessenger(new Messenger().setIp("127.0.2.1").setPort(8080).setMaster(true).setApplyMode(ApplyMode.db_mq.getType()).setIncludedDbs("db1"))
@@ -398,7 +429,7 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
             mockMap.put(dbCluster.getId(), dbCluster.getMessengers().stream().collect(Collectors.groupingBy(NameUtils::getMessengerDbName)));
         }
 
-        when(clusterManagerConfig.getCheckMaxTime()).thenReturn(3*1000);
+        when(clusterManagerConfig.getCheckMaxTime()).thenReturn(3 * 1000);
         when(currentMetaManager.getAllMetaMessengers()).thenReturn(mockMap);
         when(currentMetaManager.getActiveReplicator(ArgumentMatchers.anyString())).thenReturn(new Replicator().setIp("10.1.1.1"));
         when(clusterManagerConfig.getPeriodCheckSwitch()).thenReturn(true);
@@ -407,12 +438,12 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         when(currentMetaManager.hasCluster("mha1_dc2_dalcluster.mha1_dc2")).thenReturn(true);
     }
 
-    private static ApplierInfoDto getApplierInfoDto(String clusterId, String ip, int port, boolean master, String replicatorIp) {
-        return getApplierInfoDto(clusterId, DRC_MQ, ip, port, master, replicatorIp);
+    private static MessengerInfoDto getMessengerInfoDto(String clusterId, String ip, int port, boolean master, String replicatorIp) {
+        return getMessengerInfoDto(clusterId, DRC_MQ, ip, port, master, replicatorIp);
     }
 
-    private static ApplierInfoDto getApplierInfoDto(String clusterId, String db, String ip, int port, boolean master, String replicatorIp) {
-        ApplierInfoDto dto = new ApplierInfoDto();
+    private static MessengerInfoDto getMessengerInfoDto(String clusterId, String db, String ip, int port, boolean master, String replicatorIp) {
+        MessengerInfoDto dto = new MessengerInfoDto();
         dto.setMaster(master);
         dto.setReplicatorIp(replicatorIp);
         dto.setIp(ip);

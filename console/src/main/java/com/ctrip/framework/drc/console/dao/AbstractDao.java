@@ -212,7 +212,7 @@ public class AbstractDao<T> {
     }
 
 
-    public List<T> queryAllExist() throws SQLException {
+    public final List<T> queryAllExist() throws SQLException {
         SelectSqlBuilder builder = initSqlBuilder();
         return client.query(builder, new DalHints());
     }

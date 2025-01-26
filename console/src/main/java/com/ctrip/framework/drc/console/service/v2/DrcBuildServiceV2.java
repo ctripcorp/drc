@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
@@ -65,7 +66,11 @@ public interface DrcBuildServiceV2 {
 
     void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid,boolean switchOnly) throws SQLException;
 
+    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid, MqType mqType, boolean switchOnly) throws SQLException;
+
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException;
+
+    void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl, MqType mqType, boolean switchOnly) throws SQLException;
 
     void initReplicationTables() throws Exception;
 

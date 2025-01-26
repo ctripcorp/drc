@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.service.inquirer;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 
@@ -14,6 +15,11 @@ public class MessengerInfoInquirer extends AbstractInfoInquirer<MessengerInfoDto
     @Override
     String method() {
         return "messengers/info/all";
+    }
+
+    @Override
+    public String name() {
+        return ConsumeType.Messenger.name().toLowerCase();
     }
 
     @Override

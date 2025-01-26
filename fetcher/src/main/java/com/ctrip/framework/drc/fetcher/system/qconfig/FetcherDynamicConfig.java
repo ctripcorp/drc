@@ -37,4 +37,6 @@ public class FetcherDynamicConfig extends AbstractConfigBean {
     public long getFirstLwmToleranceTime() {
         return getLongProperty(FIRST_APPLIER_LWM_TOLERANCE_TIME, DEFAULT_FIRST_APPLIER_LWM_TOLERANCE_TIME);
     }
+
+
 }

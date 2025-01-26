@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.messenger.resource.context;
 
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMonitorContext;
 import com.ctrip.framework.drc.messenger.mq.MqProvider;
@@ -43,7 +44,12 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     @InstanceActivity
     public MqMetricsActivity mqMetricsActivity;
 
+    @InstanceConfig(path = "applyMode")
+    public int applyMode;
+
     private int rowsSize;
+
+    private String mqType;
 
     private static final Map<String, AtomicInteger> activeThreadsMap = Maps.newConcurrentMap();
 
@@ -57,6 +63,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     @Override
     public void doInitialize() throws Exception {
         rowsSize = 0;
+        mqType = MqType.parseByApplyMode(ApplyMode.getApplyMode(applyMode)).name();
     }
 
     @Override
@@ -96,7 +103,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             for (Producer producer : producers) {
                 boolean send = producer.send(eventDatas, eventType);
                 rowsSize += eventDatas.size();
-                reportHickWall(eventDatas, producer.getTopic(), send);
+                reportHickWall(eventDatas, producer.getTopic(), mqType, send);
             }
         } finally {
             atomicInteger.getAndDecrement();
@@ -185,10 +192,10 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         return value.toString();
     }
 
-    private void reportHickWall(List<EventData> eventDatas, String topic, boolean send) {
+    private void reportHickWall(List<EventData> eventDatas, String topic, String mqType, boolean send) {
         if (!eventDatas.isEmpty()) {
             EventData eventData = eventDatas.get(0);
-            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag(), topic, send);
+            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag(), topic, mqType, send);
             mqMetricsActivity.report(mqMonitorContext);
         }
     }

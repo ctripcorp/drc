@@ -253,6 +253,15 @@ export default {
           }
         },
         {
+          title: '投递类型',
+          key: 'mqType',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            return h('p', params.row.mqType)
+          }
+        },
+        {
           title: 'delay',
           key: 'delay',
           render: renderDelay()
@@ -484,24 +493,52 @@ export default {
       }).finally(() => {
       })
     },
-    getMhaMessengerDetail: function (row) {
-      this.replicationDetail.messengerDataLoading = true
-      this.replicationDetail.messengerData = []
-      this.axios.post('/api/drc/v2/messenger/delay', {
-        mhas: [row.oldMha, row.newMha],
-        dbs: row.dbs
-      }).then(response => {
-        if (response.data.status === 1) {
-          this.$Message.warning('查询异常: ' + response.data.message)
+    getMhaMessengerDetail: async function (row) {
+      try {
+        this.replicationDetail.messengerDataLoading = true
+        this.replicationDetail.messengerData = []
+        const requestQmq = await this.axios.post('/api/drc/v2/messenger/delay', { // todo by yongnian
+          mhas: [row.oldMha, row.newMha],
+          dbs: row.dbs,
+          mqType: 'qmq'
+        })
+        const requestKafka = await this.axios.post('/api/drc/v2/messenger/delay', { // todo by yongnian
+          mhas: [row.oldMha, row.newMha],
+          dbs: row.dbs,
+          mqType: 'kafka'
+        })
+        const [responseQmq, responseKafka] = await Promise.all([requestQmq, requestKafka])
+        if (responseQmq.data.status === 1) {
+          this.$Message.warning('qmq延迟查询异常: ' + responseQmq.data.message)
           return
         }
-        this.replicationDetail.messengerData = response.data.data
+        if (responseKafka.data.status === 1) {
+          this.$Message.warning('kafka延迟查询异常: ' + responseKafka.data.message)
+          return
+        }
+        this.replicationDetail.messengerData = responseQmq.data.data.concat(responseKafka.data.data)
         console.log(this.replicationDetail.messengerData)
         this.replicationDetail.messengerDataLoading = false
-      }).catch(message => {
-        this.$Message.error('查询异常: ' + message)
-      }).finally(() => {
-      })
+        console.log(this.replicationDetail.messengerData)
+      } catch (error) {
+        this.$Message.error('查询异常: ' + error)
+      }
+      // this.axios.post('/api/drc/v2/messenger/delay', { // todo by yongnian
+      //   mhas: [row.oldMha, row.newMha],
+      //   dbs: row.dbs,
+      //   mqType: 'qmq'
+      // }).then(response => {
+      //   if (response.data.status === 1) {
+      //     this.$Message.warning('查询异常: ' + response.data.message)
+      //     return
+      //   }
+      //   this.replicationDetail.messengerData = response.data.data
+      //   console.log(this.replicationDetail.messengerData)
+      //   this.replicationDetail.messengerDataLoading = false
+      // }).catch(message => {
+      //   this.$Message.error('查询异常: ' + message)
+      // }).finally(() => {
+      // })
     },
     getDetail (row, index) {
       this.replicationDetail.show = true

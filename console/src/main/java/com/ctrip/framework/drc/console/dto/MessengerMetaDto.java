@@ -11,6 +11,7 @@ import java.util.List;
 public class MessengerMetaDto {
     
     private String mhaName;
+    private String mqType;
     private List<String> replicatorIps;
     private List<String> messengerIps;
     private String  rGtidExecuted;
@@ -20,11 +21,20 @@ public class MessengerMetaDto {
     public String toString() {
         return "MessengerMetaDto{" +
                 "mhaName='" + mhaName + '\'' +
+                ", mqType='" + mqType + '\'' +
                 ", replicatorIps=" + replicatorIps +
                 ", messengerIps=" + messengerIps +
                 ", rGtidExecuted='" + rGtidExecuted + '\'' +
                 ", aGtidExecuted='" + aGtidExecuted + '\'' +
                 '}';
+    }
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
     }
 
     public String getMhaName() {

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v3;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
@@ -22,29 +23,31 @@ import java.util.stream.Collectors;
 public class MessengerGroupTblV3Dao extends AbstractDao<MessengerGroupTblV3> {
 
     private static final String MHA_DB_REPLICATION_ID = "mha_db_replication_id";
+    private static final String MQ_TYPE = "mq_type";
     private static final String DELETED = "deleted";
 
     public MessengerGroupTblV3Dao() throws SQLException {
         super(MessengerGroupTblV3.class);
     }
 
-    public List<MessengerGroupTblV3> queryByMhaDbReplicationIds(List<Long> mhaReplicationIds) throws SQLException {
+    public List<MessengerGroupTblV3> queryByMhaDbReplicationIdsAndMqType(List<Long> mhaReplicationIds, MqType mqType) throws SQLException {
         if (CollectionUtils.isEmpty(mhaReplicationIds)) {
             return Collections.emptyList();
         }
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and()
-                .in(MHA_DB_REPLICATION_ID, mhaReplicationIds, Types.BIGINT);
+        sqlBuilder.and().in(MHA_DB_REPLICATION_ID, mhaReplicationIds, Types.BIGINT)
+                .and().equal(MQ_TYPE, mqType.name(), Types.VARCHAR)
+        ;
         return client.query(sqlBuilder, new DalHints());
     }
 
     // srcReplicatorGroupId current is useless
-    public void upsert(List<MessengerGroupTblV3> groupTblV3List) throws SQLException {
+    public void upsert(List<MessengerGroupTblV3> groupTblV3List, MqType mqType) throws SQLException {
         if (CollectionUtils.isEmpty(groupTblV3List)) {
             return;
         }
         List<Long> ids = groupTblV3List.stream().map(MessengerGroupTblV3::getMhaDbReplicationId).collect(Collectors.toList());
-        List<MessengerGroupTblV3> existGroup = queryByMhaDbReplicationIds(ids);
+        List<MessengerGroupTblV3> existGroup = queryByMhaDbReplicationIdsAndMqType(ids, mqType);
         Map<Long, MessengerGroupTblV3> existMap = existGroup.stream().collect(Collectors.toMap(MessengerGroupTblV3::getMhaDbReplicationId, e -> e));
 
 

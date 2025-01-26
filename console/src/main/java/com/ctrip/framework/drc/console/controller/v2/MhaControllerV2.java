@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,9 +150,11 @@ public class MhaControllerV2 {
     }
 
     @GetMapping("messenger")
-    public ApiResult<MhaMessengerDto> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName) {
+    public ApiResult<MhaMessengerDto> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName,
+                                                       @RequestParam(name = "mqType") String mqType
+    ) {
         try {
-            return ApiResult.getSuccessInstance(mhaServiceV2.getMhaMessengers(mhaName));
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMhaMessengers(mhaName, MqType.parse(mqType)));
         } catch (Throwable e) {
             logger.error("getMhaMessengers for {} exception ", mhaName, e);
             return ApiResult.getFailInstance(null, e.getMessage());

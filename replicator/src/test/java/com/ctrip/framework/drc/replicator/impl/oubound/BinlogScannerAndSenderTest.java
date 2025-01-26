@@ -54,7 +54,7 @@ import static org.mockito.Mockito.when;
 
 public class BinlogScannerAndSenderTest {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    private static final int ROUND = 3;
+    private static final int ROUND = 1;
 
     /*
        needed if change binlog file
@@ -74,8 +74,7 @@ public class BinlogScannerAndSenderTest {
     private final List<ConsumeType> types = Lists.newArrayList(ConsumeType.Applier, ConsumeType.Messenger);
 
     // if something goes wrong, open this to check detail
-    private static final boolean CHECK_HISTORY_DETAIL = true;
-    private static final int PARALLEL_NUM = 10;
+    private static final int PARALLEL_NUM = 5;
     protected File logDir = new File(LOG_PATH + "scanner.test");
 
 

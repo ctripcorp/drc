@@ -7,12 +7,13 @@ import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.xpipe.tuple.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.assertj.core.util.Lists;
@@ -84,10 +85,11 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         Assert.assertNotNull(replicationDtos.get(0).getDst().getMhaDbMappingId());
         Assert.assertTrue(replicationDtos.stream().anyMatch(e->Boolean.TRUE.equals(e.getDrcStatus())));
     }
+    MqType mqType = MqType.qmq;
 
     @Test
     public void testQueryMqReplication() {
-        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha("mha1", null);
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha("mha1", null, mqType);
         Assert.assertEquals(1, replicationDtos.size());
         Assert.assertEquals("mha1", replicationDtos.get(0).getSrc().getMhaName());
         Assert.assertTrue(StringUtils.isNotBlank(replicationDtos.get(0).getDbReplicationDtos().get(0).getLogicTableConfig().getDstLogicTable()));

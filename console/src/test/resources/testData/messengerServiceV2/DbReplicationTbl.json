@@ -55,6 +55,17 @@
     "datachangeLasttime": "2017-08-13 09:57:09"
   },
   {
+    "id": 11,
+    "srcMhaDbMappingId": 5,
+    "dstMhaDbMappingId": -1,
+    "srcLogicTableName": "(table1|table2)",
+    "dstLogicTableName": "bbz.mha1.binlog",
+    "replicationType": 2,
+    "deleted": 0,
+    "createTime": "2032-09-02 15:34:11",
+    "datachangeLasttime": "2017-08-13 09:57:09"
+  },
+  {
     "id": 6,
     "srcMhaDbMappingId": 1,
     "dstMhaDbMappingId": 3,

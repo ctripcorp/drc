@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,9 +124,9 @@ public class DrcBuildControllerV2 {
 
 
     @GetMapping("mha/dbMessenger")
-    public ApiResult<List<DbApplierDto>> getMhaDbMessengers(@RequestParam String mhaName) {
+    public ApiResult<List<DbApplierDto>> getMhaDbMessengers(@RequestParam String mhaName, @RequestParam String mqType) {
         try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbMessengers(mhaName));
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getMhaDbMessengers(mhaName, MqType.valueOf(mqType)));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.service.ops;
 
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface OPSApiService extends Ordered {
     JsonNode getAllClusterInfo(String getAllClusterUrl,String accessToken) throws JsonProcessingException;
@@ -21,8 +23,8 @@ public interface OPSApiService extends Ordered {
 
     List<HickWallTrafficEntity> getTrafficFromHickWall(HickWallTrafficContext context) throws Exception;
 
-    List<HickWallMessengerDelayEntity> getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha) throws IOException;
-    
+    Map<String, HickWallMessengerDelayEntity> getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha, MqType mqType) throws IOException;
+
     List<HickWallMhaReplicationDelayEntity> getMhaReplicationDelay(String getAllClusterUrl, String accessToken) throws IOException;
     
     List<HickWallConflictCount> getConflictCount(String apiUrl,String accessToken,boolean isTrx,boolean isCommit,int minutes) throws IOException;

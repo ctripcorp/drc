@@ -2,15 +2,11 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
-import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
-import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
-import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
-import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
-import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
-import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.mysql.*;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -24,11 +20,12 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.TablesCloneTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
+import com.ctrip.framework.drc.core.mq.MessengerGtidTbl;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +34,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.ctrip.framework.drc.console.utils.MySqlUtils.CREATE_GTID_TABLE_SQL;
 import static com.ctrip.framework.drc.core.monitor.column.DbDelayMonitorColumn.CREATE_DELAY_TABLE_SQL;
@@ -356,6 +354,31 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         return MySqlUtils.write(endpoint, requestBody.getSql(), requestBody.getAccountType());
     }
 
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/createDrcMessengerGtidTbl", httpType = HttpRequestEnum.POST, requestClass = DrcMessengerGtidTblCreateReq.class)
+    public Boolean createDrcMessengerGtidTbl(DrcMessengerGtidTblCreateReq requestBody) {
+        String mha = requestBody.getMha();
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("createDrcMessengerGtidTbl from {}, endpoint not exist", mha);
+            return Boolean.FALSE;
+        }
+        List<String> tablesFromDb = MySqlUtils.getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
+        boolean messengerGtidTblExist = tablesFromDb.stream().anyMatch(MessengerGtidTbl.TABLE_NAME::equals);
+        if (messengerGtidTblExist) {
+            logger.info("no need to create messenger gtid table for {}", mha);
+            return Boolean.TRUE;
+        }
+
+        logger.info("start create messenger gtid table for {}", mha);
+        Map<String, Map<String, String>> ddlSchemas = MessengerGtidTbl.getDDLSchemas();
+        Boolean res = new RetryTask<>(new TablesCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
+        return Boolean.TRUE.equals(res);
+    }
+
+
+
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/createDrcMonitorDbTable", httpType = HttpRequestEnum.POST, requestClass = DrcDbMonitorTableCreateReq.class)
     public Boolean createDrcMonitorDbTable(DrcDbMonitorTableCreateReq requestBody) {
@@ -368,19 +391,44 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
 
         Set<String> dbList = dbs.stream().map(String::toLowerCase).collect(Collectors.toSet());
-        Set<String> existDbs = MySqlUtils.getDbHasDrcMonitorTables(endpoint);
-        if (existDbs == null) {
-            logger.error("createDrcMonitorDbTable fail, req:" + requestBody);
+        List<String> dbsInDrcMonitorDb = MySqlUtils.getTablesFromDb(endpoint, DRC_MONITOR_SCHEMA_NAME);
+        if (dbsInDrcMonitorDb == null) {
+            logger.error("MySqlUtils getTablesFromDb from drcmonitordb fail, req:" + requestBody);
             return Boolean.FALSE;
         }
+
+        Map<String, Map<String, String>> messengerGtidDdlSchema = Maps.newHashMap();
+        if (!dbsInDrcMonitorDb.contains(MessengerGtidTbl.TABLE_NAME)) {
+            logger.info("start create {} for {}", MessengerGtidTbl.TABLE_NAME, mha);
+            messengerGtidDdlSchema = MessengerGtidTbl.getDDLSchemas();
+        }
+
+        Map<String, Map<String, String>> dbMonitorTblDdlSchemas = Maps.newHashMap();;
+        Set<String> existDbs = MySqlUtils.getDbHasDrcMonitorTables(dbsInDrcMonitorDb);
         dbList.removeAll(existDbs);
-        if (CollectionUtils.isEmpty(dbList)) {
+        if (!CollectionUtils.isEmpty(dbList)) {
+            logger.info("start create table for {} {}", mha, dbList);
+            dbMonitorTblDdlSchemas = getDDLSchemas(dbList);
+        }
+
+        Map<String, Map<String, String>> ddlSchemas = Stream.concat(
+                messengerGtidDdlSchema.entrySet().stream(),
+                dbMonitorTblDdlSchemas.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (m1, m2) -> {
+                            Map<String, String> mergeMap = Maps.newHashMap(m1);
+                            mergeMap.putAll(m2);
+                            return mergeMap;
+                        }
+                ));
+        if (ddlSchemas.isEmpty()) {
             logger.info("no need to create table for {} {}", mha, dbs);
             return true;
         }
-        logger.info("start create table for {} {}", mha, dbList);
-        Map<String, Map<String, String>> ddlSchemas = getDDLSchemas(dbList);
         Boolean res = new RetryTask<>(new TablesCloneTask(ddlSchemas, endpoint, DataSourceManager.getInstance().getDataSource(endpoint), null), 1).call();
+
         return Boolean.TRUE.equals(res);
     }
 

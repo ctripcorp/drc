@@ -2,7 +2,8 @@ package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -197,7 +198,9 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
             String mhaName = metaKey.getMhaName();
             String dcName = metaKey.getDc();
             String region = consoleConfig.getRegionForDc(dcName);
-            List<MhaDbReplicationDto> allReplications = mhaDbReplicationMap.getOrDefault(mhaName, Collections.emptyList());
+            List<MhaDbReplicationDto> allReplications = mhaDbReplicationMap.getOrDefault(mhaName, Collections.emptyList())
+                    .stream().filter(StreamUtils.distinctByKey(e -> e.getSrc().getMhaDbMappingId()))  // only update once for each db
+                    .collect(Collectors.toList());
             List<String> dbNames = allReplications.stream().map(e -> e.getSrc().getDbName()).collect(Collectors.toList());
             logger.info("[[monitor=delay_v2]] going to update for mha:{}, dbs:{}", mhaName, dbNames);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.delay.update", mhaName);

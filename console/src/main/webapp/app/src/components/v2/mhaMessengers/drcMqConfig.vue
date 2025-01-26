@@ -2,6 +2,10 @@
   <div>
     <Row>
       <Form ref="drc1" :model="drc" :label-width="250" style="float: left; margin-top: 50px">
+        <FormItem label="消息类型" prop="mqType" style="width: 600px">
+          <Tag  color="blue">{{mqType}}
+          </Tag>
+        </FormItem>
         <FormItem label="集群名" prop="mhaName" style="width: 600px">
           <Input v-model="drc.mhaName" readonly placeholder="请输入集群名"/>
         </FormItem>
@@ -148,6 +152,7 @@ export default {
   name: 'drcMqConfig',
   props: {
     mhaName: String,
+    mqType: String,
     dc: String
   },
   data () {
@@ -168,6 +173,7 @@ export default {
         reviewModal: false,
         warnModal: false,
         mhaName: this.mhaName,
+        mqType: this.mqType,
         rGtidExecuted: '',
         aGtidExecuted: '',
         replicators: {},
@@ -207,7 +213,7 @@ export default {
           console.log(response.data)
           this.drc.replicatorList = response.data.data
         })
-      await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=7')
+      await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=7&subType=' + this.drc.mqType)
         .then(response => {
           const applierData = response.data.data
           applierData.forEach(a => {
@@ -218,7 +224,7 @@ export default {
           })
           // this.drc.messengerList = { ...this.drc.messengerList, ...response.data.data }
         })
-      this.axios.get('/api/drc/v2/config/mha/dbMessenger?mhaName=' + this.drc.mhaName + '&type=1')
+      this.axios.get('/api/drc/v2/config/mha/dbMessenger?mhaName=' + this.drc.mhaName + '&mqType=' + this.drc.mqType)
         .then(response => {
           this.drc.dbMessengerList = response.data.data
         })
@@ -238,6 +244,7 @@ export default {
     refreshMessengerInstances () {
       this.axios.get('/api/drc/v2/remote/resource/messengerInstances', {
         params: {
+          mqType: this.drc.mqType,
           mhaName: this.drc.mhaName,
           ips: this.drc.messengers.join(',')
         }
@@ -255,7 +262,12 @@ export default {
           response.data.data.forEach(ip => this.drc.replicators.push(ip))
           this.refreshReplicatorInstances()
         })
-      this.axios.get('/api/drc/v2/mha/messenger', { params: { mhaName: this.drc.mhaName } })
+      this.axios.get('/api/drc/v2/mha/messenger', {
+        params: {
+          mhaName: this.drc.mhaName,
+          mqType: this.drc.mqType
+        }
+      })
         .then(response => {
           const messengerDto = response.data.data
           console.log(this.drc.mhaName + ' messengers ' + messengerDto)
@@ -266,13 +278,14 @@ export default {
     },
     goToMqConfigs () {
       console.log('go to change mq config for ' + this.drc.mhaName)
-      this.$router.push({ path: '/v2/mqConfigs', query: { mhaName: this.drc.mhaName } })
+      this.$router.push({ path: '/v2/mqConfigs', query: { mhaName: this.drc.mhaName, mqType: this.drc.mqType } })
     },
     getMhaDbMessenger () {
       this.$router.push({
         path: '/dbMessengers',
         query: {
-          mhaName: this.drc.mhaName
+          mhaName: this.drc.mhaName,
+          mqType: this.drc.mqType
         }
       })
     },
@@ -383,6 +396,7 @@ export default {
       const that = this
       this.axios.post('/api/drc/v2/config/messenger/submitConfig', {
         mhaName: this.drc.mhaName,
+        mqType: this.drc.mqType,
         replicatorIps: this.drc.replicators,
         messengerIps: this.drc.messengers,
         aGtidExecuted: this.drc.aGtidExecuted,

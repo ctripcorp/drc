@@ -12,17 +12,17 @@
                     <FormItem label="BU"  prop="routeOrgName" style="width: 500px">
                         <Input :disabled="updateStatus" v-model="route.routeOrgName" placeholder="请输入路由BU,不填默认为公用路由"/>
                     </FormItem>
-                    <FormItem label="源端机房"  prop="srcDcName">
-                        <Select :disabled="updateStatus" v-model="route.srcDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInSrc" placeholder="请选择源端机房" @on-create="handleCreateDc">
+                    <FormItem label="源端（Applier）机房"  prop="srcDcName">
+                        <Select :disabled="updateStatus" v-model="route.srcDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInSrc" placeholder="请选择源端（Applier）机房" @on-create="handleCreateDc">
                         <Option v-for="item in drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
                         </Select>
                     </FormItem>
-                    <FormItem label="目标机房"  prop="dstDcName">
-                        <Select :disabled="updateStatus" v-model="route.dstDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInDst" placeholder="请选择目标机房" @on-create="handleCreateDc">
+                    <FormItem label="目标（Replicator）机房"  prop="dstDcName">
+                        <Select :disabled="updateStatus" v-model="route.dstDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInDst" placeholder="请选择目标（Replicator）机房" @on-create="handleCreateDc">
                         <Option v-for="item in drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
                         </Select>
                     </FormItem>
-                    <FormItem label="源端Proxy" prop="srcProxyUris">
+                    <FormItem label="源端（Applier）Proxy" prop="srcProxyUris">
                         <Select v-model="route.proxyUris.src" filterable multiple style="width: 250px" placeholder="请选择源端Proxy">
                         <Option v-for="item in route.proxyUriList.src" :value="item" :key="item">{{ item }}</Option>
                         </Select>
@@ -32,7 +32,7 @@
                         <Option v-for="item in route.proxyUriList.all" :value="item" :key="item">{{ item }}</Option>
                       </Select>
                     </FormItem>
-                    <FormItem label="目标Proxy" prop="dstProxyUris">
+                    <FormItem label="目标（Replicator）Proxy" prop="dstProxyUris">
                         <Select  v-model="route.proxyUris.dst" filterable multiple style="width: 250px" placeholder="请选择目标Proxy">
                         <Option v-for="item in route.proxyUriList.dst" :value="item" :key="item">{{ item }}</Option>
                         </Select>
@@ -89,10 +89,10 @@ export default {
       },
       ruleRoute: {
         srcDcName: [
-          { required: true, message: '源端机房不能为空', trigger: 'blur' }
+          { required: true, message: '源端（Applier）机房不能为空', trigger: 'blur' }
         ],
         dstDcName: [
-          { required: true, message: '目标机房不能为空', trigger: 'blur' }
+          { required: true, message: '目标（Replicator）机房不能为空', trigger: 'blur' }
         ],
         srcProxyUris: [
           { required: true, message: '源端Proxy不能为空', trigger: 'blur' }

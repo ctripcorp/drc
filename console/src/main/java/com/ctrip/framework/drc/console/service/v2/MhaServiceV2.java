@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.sql.SQLException;
@@ -29,7 +30,7 @@ public interface MhaServiceV2 {
     List<MhaTblV2> queryRelatedMhaByDbName(List<String> dbNames) throws SQLException;
     List<String> getMhaReplicators(String mhaName) throws Exception;
     List<ReplicatorInfoDto> getMhaReplicatorsV2(String mhaName);
-    MhaMessengerDto getMhaMessengers(String mhaName);
+    MhaMessengerDto getMhaMessengers(String mhaName, MqType mqType);
 
     List<String> getMhaAvailableResource(String mhaName, int type) throws Exception;
     String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception;

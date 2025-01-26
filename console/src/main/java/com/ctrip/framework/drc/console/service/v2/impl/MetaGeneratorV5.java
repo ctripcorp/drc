@@ -9,9 +9,10 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.*;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.v2.ColumnsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaGenerator;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MultiKey;
@@ -27,6 +28,7 @@ import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -43,9 +45,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -56,7 +56,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGE
  * V4 + db applier/messenger
  */
 @Service
-public class MetaGeneratorV5 {
+public class MetaGeneratorV5 implements MetaGenerator {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
@@ -121,6 +121,7 @@ public class MetaGeneratorV5 {
     
     private static final ExecutorService executorService = ThreadUtils.newFixedThreadPool(50, "queryAllExist");
 
+    @Override
     public Drc getDrc() throws Exception {
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         if (publicCloudRegion.contains(consoleConfig.getRegion())) {
@@ -685,46 +686,53 @@ public class MetaGeneratorV5 {
     }
 
     private void refreshMetaData(SingleTask task) throws Exception {
-        List<Future<?>> list = Lists.newArrayList();
+        List<Callable<Object>> list = Lists.newArrayList();
         long start = System.currentTimeMillis();
-        list.add(executorService.submit(() -> task.dbApplierGroupTbl = applierGroupTblDaoV3.queryAllExist()));
-        list.add(executorService.submit(() -> task.dbApplierTbls = applierTblDaoV3.queryAllExist()));
-        list.add(executorService.submit(() -> task.dbMessengerGroupTbls = messengerGroupTblV3Dao.queryAllExist()));
-        list.add(executorService.submit(() -> task.dbMessengerTbls = messengerTblV3Dao.queryAllExist()));
-        list.add(executorService.submit(() -> task.mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.dbReplicationTbls = dbReplicationTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.buTbls = buTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.routeTbls = routeTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.proxyTbls = proxyTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.dcTbls = dcTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.mhaTbls = mhaTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.resourceTbls = resourceTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.machineTbls = machineTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.replicatorGroupTbls = replicatorGroupTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.clusterManagerTbls = clusterManagerTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.zookeeperTbls = zookeeperTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.replicatorTbls = replicatorTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.messengerGroupTbls = messengerGroupTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.messengerTbls = messengerTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.mhaReplicationTbls = mhaReplicationTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.dbTbls = dbTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.columnsFilterTbls = columnsFilterTblV2Dao.queryAllExist()));
-        list.add(executorService.submit(() -> task.messengerFilterTbls = messengerFilterTblDao.queryAllExist()));
-        list.add(executorService.submit(() -> task.rowsFilterTbls = rowsFilterTblV2Dao.queryAllExist()));
+        list.add(() -> task.dbApplierGroupTbl = applierGroupTblDaoV3.queryAllExist());
+        list.add(() -> task.dbApplierTbls = applierTblDaoV3.queryAllExist());
+        list.add(() -> task.dbMessengerGroupTbls = messengerGroupTblV3Dao.queryAllExist());
+        list.add(() -> task.dbMessengerTbls = messengerTblV3Dao.queryAllExist());
+        list.add(() -> task.mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAllExist());
+        list.add(() -> task.dbReplicationTbls = dbReplicationTblDao.queryAllExist());
+        list.add(() -> task.dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAllExist());
+        list.add(() -> task.buTbls = buTblDao.queryAllExist());
+        list.add(() -> task.routeTbls = routeTblDao.queryAllExist());
+        list.add(() -> task.proxyTbls = proxyTblDao.queryAllExist());
+        list.add(() -> task.dcTbls = dcTblDao.queryAllExist());
+        list.add(() -> task.mhaTbls = mhaTblDao.queryAllExist());
+        list.add(() -> task.resourceTbls = resourceTblDao.queryAllExist());
+        list.add(() -> task.machineTbls = machineTblDao.queryAllExist());
+        list.add(() -> task.replicatorGroupTbls = replicatorGroupTblDao.queryAllExist());
+        list.add(() -> task.clusterManagerTbls = clusterManagerTblDao.queryAllExist());
+        list.add(() -> task.zookeeperTbls = zookeeperTblDao.queryAllExist());
+        list.add(() -> task.replicatorTbls = replicatorTblDao.queryAllExist());
+        list.add(() -> task.messengerGroupTbls = messengerGroupTblDao.queryAllExist());
+        list.add(() -> task.messengerTbls = messengerTblDao.queryAllExist());
+        list.add(() -> task.mhaReplicationTbls = mhaReplicationTblDao.queryAllExist());
+        list.add(() -> task.mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist());
+        list.add(() -> task.dbTbls = dbTblDao.queryAllExist());
+        list.add(() -> task.columnsFilterTbls = columnsFilterTblV2Dao.queryAllExist());
+        list.add(() -> task.messengerFilterTbls = messengerFilterTblDao.queryAllExist());
+        list.add(() -> task.rowsFilterTbls = rowsFilterTblV2Dao.queryAllExist());
 
         // wait
-        for (Future<?> future : list) {
-            future.get(5, TimeUnit.SECONDS);
+
+        List<Future<Object>> futures = executorService.invokeAll(list, 5, TimeUnit.SECONDS);
+        if (futures.stream().anyMatch(Future::isCancelled)) {
+            DefaultEventMonitorHolder.getInstance().logAlertEvent("DRC.meta.query.timeout");
+            META_LOGGER.error("[meta refresh] some task timeout: {} s", 5);
+            throw new TimeoutException("metaGeneratorV5 queryAll wait time out");
         }
 
         long end = System.currentTimeMillis();
-        META_LOGGER.info("[meta refresh] v5 cost: {} ms", end - start);
+        META_LOGGER.info("[meta refresh] v5 query db cost: {} ms", end - start);
 
         // filter deleted mha
         task.mhaTblIdMap = task.mhaTbls.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
         task.mhaDbMappingTbls = task.mhaDbMappingTbls.stream().filter(e -> task.mhaTblIdMap.containsKey(e.getMhaId())).collect(Collectors.toList());
+
+        // only support qmq
+        task.messengerGroupTbls = task.messengerGroupTbls.stream().filter(e -> MqType.qmq.name().equals(e.getMqType())).collect(Collectors.toList());
 
 
         // index objects
@@ -739,7 +747,7 @@ public class MetaGeneratorV5 {
         task.mhaDbMappingId2DbNameMap = task.mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> task.dbIdToNameMap.get(e.getDbId())));
 
         // map by field
-        task.dbReplicationByKeyMap = task.dbReplicationTbls.stream().collect(Collectors.groupingBy(StreamUtils::getKey));
+        task.dbReplicationByKeyMap = task.dbReplicationTbls.stream().filter(e -> !ReplicationTypeEnum.DB_TO_KAFKA.getType().equals(e.getReplicationType())).collect(Collectors.groupingBy(StreamUtils::getKey));
         task.replicatorGroupByMhaIdMap = task.replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, Function.identity()));
         task.messengerGroupByMhaIdMap = task.messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, Function.identity()));
         task.dbApplierGroupTblByMhaDbReplicationId = task.dbApplierGroupTbl.stream().collect(Collectors.toMap(ApplierGroupTblV3::getMhaDbReplicationId, Function.identity(), (e1, e2) -> e1));

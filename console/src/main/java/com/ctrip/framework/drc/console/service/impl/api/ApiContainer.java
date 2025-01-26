@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl.api;
 
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
+import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
 import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.email.EmailService;
@@ -69,6 +70,14 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
     }
     public static  DelayMessageConsumer getDelayMessageConsumer(){
         return DelayMessageConsumerHolder.INSTANCE;
+    }
+
+    private static class KafkaDelayMessageConsumerHolder {
+        public static final IKafkaDelayMessageConsumer INSTANCE = load(IKafkaDelayMessageConsumer.class);
+    }
+
+    public static IKafkaDelayMessageConsumer getKafkaDelayMessageConsumer () {
+        return KafkaDelayMessageConsumerHolder.INSTANCE;
     }
 
     private static class ApprovalApiServiceHolder {
