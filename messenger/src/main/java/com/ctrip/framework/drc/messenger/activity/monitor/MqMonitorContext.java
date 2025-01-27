@@ -18,11 +18,23 @@ public class MqMonitorContext {
     private String registryKey;
     private String mqType;
     private boolean send;
+    private String sendMethod;
+
+    public String getSendMethod() {
+        return sendMethod;
+    }
 
     public MqMonitorContext(int value, String registryKey, String metricName) {
         this.value = value;
         this.registryKey = registryKey;
         this.metricName = metricName;
+    }
+
+    public MqMonitorContext(int value, String registryKey, String metricName, String sendMethod) {
+        this.value = value;
+        this.registryKey = registryKey;
+        this.metricName = metricName;
+        this.sendMethod = sendMethod;
     }
 
     public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic, boolean send) {

@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.messenger.resource.context;
 
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMonitorContext;
 import com.ctrip.framework.drc.messenger.mq.MqProvider;
@@ -9,11 +8,18 @@ import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.*;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource;
 import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
+import com.ctrip.framework.drc.messenger.activity.monitor.MqMonitorContext;
+import com.ctrip.framework.drc.messenger.mq.MqProvider;
+import com.ctrip.framework.drc.messenger.resource.thread.MqBigEventExecutor;
+import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +33,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Created by jixinwang on 2022/10/12
@@ -52,16 +61,27 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     private String mqType;
 
     private static final Map<String, AtomicInteger> activeThreadsMap = Maps.newConcurrentMap();
+    private static final Map<String, AtomicInteger> activeThreadsInPoolMap = Maps.newConcurrentMap();
 
     public static int getConcurrency(String registryKey) {
         return activeThreadsMap.containsKey(registryKey) ? activeThreadsMap.get(registryKey).get() : 0;
     }
 
+    public static int getConcurrencyOfThreadPool(String registryKey) {
+        return activeThreadsInPoolMap.containsKey(registryKey) ? activeThreadsInPoolMap.get(registryKey).get() : 0;
+    }
+
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
+    @InstanceResource
+    public MqBigEventExecutor mqBigEventExecutor;
+
+    private int bigEventSize;
+
     @Override
     public void doInitialize() throws Exception {
+        bigEventSize = MqDynamicConfig.getInstance().getBigRowsEventSize();
         rowsSize = 0;
         mqType = MqType.parseByApplyMode(ApplyMode.getApplyMode(applyMode)).name();
     }
@@ -95,18 +115,49 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         sendEventDatas(eventDatas, EventType.DELETE);
     }
 
-    private void sendEventDatas(List<EventData> eventDatas, EventType eventType) {
+    @VisibleForTesting
+    protected void sendEventDatas(List<EventData> eventDatas, EventType eventType) {
         List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
-        AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
-        atomicInteger.getAndIncrement();
-        try {
-            for (Producer producer : producers) {
-                boolean send = producer.send(eventDatas, eventType);
-                rowsSize += eventDatas.size();
-                reportHickWall(eventDatas, producer.getTopic(), mqType, send);
+
+        for (Producer producer : producers) {
+            boolean isSend = true;
+            if (eventDatas.size() >= bigEventSize && ApplyMode.mq == ApplyMode.getApplyMode(applyMode)) {
+                List<Future<Boolean>> futures = eventDatas.stream()
+                        .map(eventData -> mqBigEventExecutor.submit(() -> {
+                            AtomicInteger atomicInteger = activeThreadsInPoolMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
+                            atomicInteger.getAndIncrement();
+                            try {
+                                return producer.send(Lists.newArrayList(eventData), eventType);
+                            } finally {
+                                atomicInteger.getAndDecrement();
+                            }
+                        }))
+                        .collect(Collectors.toList());
+
+                for (Future<Boolean> future : futures) {
+                    try {
+                        isSend = future.get();
+                    } catch (ExecutionException e) {
+                        loggerMsgSend.error("[mqBigEventExecutor] ExecutionException:",e);
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        loggerMsgSend.error("[mqBigEventExecutor] InterruptedException:",e);
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            } else {
+                AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
+                atomicInteger.getAndIncrement();
+                try {
+                    isSend = producer.send(eventDatas, eventType);
+                } finally {
+                    atomicInteger.getAndDecrement();
+                }
+
             }
-        } finally {
-            atomicInteger.getAndDecrement();
+
+            rowsSize += eventDatas.size();
+            reportHickWall(eventDatas, producer.getTopic(), mqType, isSend) ;
         }
 
         if (progress != null) {

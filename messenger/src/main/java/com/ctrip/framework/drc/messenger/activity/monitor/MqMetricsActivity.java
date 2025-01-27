@@ -39,6 +39,7 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
     public MqMonitorContext doTask(MqMonitorContext context) {
         if (context.getMetricName() != null && context.getMetricName().contains("messenger.active")) {
             tagsMessengerActive.put("registryKey", context.getRegistryKey());
+            tagsMessengerActive.put("sendType", context.getSendMethod());
             DefaultReporterHolder.getInstance().reportMessengerDelay(tagsMessengerActive, (long)context.getValue(), measurementMessengerActive);
         } else {
             tags.put("db", context.getDbName());

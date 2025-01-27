@@ -18,6 +18,9 @@ public class MqDynamicConfig extends AbstractConfigBean {
     private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
     private static final String MESSENGER_INSTANCE_MODIFY_THREAD = "messenger.instance.modify.thread";
 
+    private static String MESSENGER_BIG_ROWSEVENT_SIZE = "messenger.big.rowsevent.size";
+    private static int DEFAULT_QMQ_BIG_ROWSEVENT_SIZE = 100;
+
     private MqDynamicConfig() {}
     
     private static class ConfigHolder {
@@ -39,4 +42,9 @@ public class MqDynamicConfig extends AbstractConfigBean {
     public int getMessengerInstanceModifyThread() {
         return getIntProperty(MESSENGER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 5);
     }
+
+    public int getBigRowsEventSize() {
+        return getIntProperty(MESSENGER_BIG_ROWSEVENT_SIZE, DEFAULT_QMQ_BIG_ROWSEVENT_SIZE);
+    }
+
 }

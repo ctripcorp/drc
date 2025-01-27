@@ -178,35 +178,4 @@ public class QmqProducerTest {
 
         theMock.close();
     }
-
-
-    private List<EventData> buildUpdateEventDatas() {
-        EventData data = bulidUpdateEvendData("1", "Mike", "Joe");
-        EventData data2 = bulidUpdateEvendData("2", "Alice", "John");
-        return Lists.newArrayList(data,data2);
-    }
-
-    private EventData bulidUpdateEvendData(String idVal, String nameValue1, String nameValue2) {
-        EventData data = new EventData();
-        data.setSchemaName(schema);
-        data.setTableName(table);
-        data.setDcTag(NON_LOCAL);
-        data.setEventType(UPDATE);
-        List<EventColumn> beforeColumns = Lists.newArrayList();
-        EventColumn beforeColumn0 = new EventColumn("id", idVal, true, true, true);
-        EventColumn beforeColumn1 = new EventColumn("name", nameValue1, false, false, true);
-        beforeColumns.add(beforeColumn0);
-        beforeColumns.add(beforeColumn1);
-        data.setBeforeColumns(beforeColumns);
-
-        List<EventColumn> afterColumns = Lists.newArrayList();
-        EventColumn afterColumn0 = new EventColumn("id", idVal, true, true, true);
-        EventColumn afterColumn1 = new EventColumn("name", nameValue2, false, false, true);
-        afterColumns.add(afterColumn0);
-        afterColumns.add(afterColumn1);
-        data.setAfterColumns(afterColumns);
-
-        return data;
-    }
-
 }
