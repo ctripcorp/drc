@@ -9,15 +9,20 @@ import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.messenger.mq.MqProvider;
+import com.ctrip.framework.drc.messenger.resource.thread.MqBigEventExecutorResource;
+import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
 import com.google.common.collect.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
 import static com.ctrip.framework.drc.core.mq.EventType.*;
@@ -34,11 +39,15 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
 
     private MqTransactionContextResource context;
 
+    private MockedStatic<MqDynamicConfig> theMockConfig;
+
     private List<EventData> finalEventDatas;
 
     protected  <T extends Object> ArrayList<T> buildArray(T... items) {
         return Lists.newArrayList(items);
     }
+
+    private MqBigEventExecutorResource executorResource = Mockito.mock(MqBigEventExecutorResource.class);
 
     @Before
     public void setUp() throws Exception {
@@ -49,16 +58,25 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         MqProvider mockProvider = Mockito.mock(MqProvider.class);
         context.mqProvider = mockProvider;
         context.registryKey = "registryKey";
+        context.applyMode = 2;
+        context.mqBigEventExecutor = executorResource;
 
         MqMetricsActivity mockMetricsActivity = Mockito.mock(MqMetricsActivity.class);
         context.mqMetricsActivity = mockMetricsActivity;
 
         Mockito.when(mockProvider.getProducers(Mockito.anyString())).thenReturn(Lists.newArrayList(new testProducer()));
+
+        MqDynamicConfig mockConfig = Mockito.mock(MqDynamicConfig.class);
+        Mockito.when(mockConfig.getBigRowsEventSize()).thenReturn(2);
+        theMockConfig = Mockito.mockStatic(MqDynamicConfig.class);
+        theMockConfig.when(() -> MqDynamicConfig.getInstance()).thenReturn(mockConfig);
+        context.doInitialize();
     }
 
     @After
     public void tearDown() throws Exception {
         context.doDispose();
+        theMockConfig.close();
     }
 
     @Test
@@ -161,5 +179,59 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         public void destroy() {
 
         }
+    }
+
+    @Test
+    public void testSendEventDatasNormal() throws Exception{
+        Future<Boolean> f = Mockito.mock(Future.class);
+        Mockito.when(f.get()).thenReturn(true);
+        Mockito.when(executorResource.submit(Mockito.any())).thenReturn(f);
+
+        context.doInitialize();
+        context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
+
+        Mockito.verify(executorResource, Mockito.times(2)).submit(Mockito.any());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testSendEventDatasWithExecutionException() throws Exception{
+        Future<Boolean> f = Mockito.mock(Future.class);
+        Mockito.when(f.get()).thenThrow(new ExecutionException("Mocked exception", new Throwable()));
+        Mockito.when(executorResource.submit(Mockito.any())).thenReturn(f);
+
+        context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
+
+        Mockito.verify(executorResource, Mockito.times(2)).submit(Mockito.any());
+    }
+
+
+
+    private List<EventData> buildUpdateEventDatas() {
+        EventData data = bulidUpdateEvendData("1", "Mike", "Joe");
+        EventData data2 = bulidUpdateEvendData("2", "Alice", "John");
+        return Lists.newArrayList(data,data2);
+    }
+
+    private EventData bulidUpdateEvendData(String idVal, String nameValue1, String nameValue2) {
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", idVal, true, true, true);
+        EventColumn beforeColumn1 = new EventColumn("name", nameValue1, false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", idVal, true, true, true);
+        EventColumn afterColumn1 = new EventColumn("name", nameValue2, false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        return data;
     }
 }

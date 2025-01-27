@@ -1,8 +1,5 @@
 package com.ctrip.framework.drc.messenger.mq;
 
-import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
-import com.ctrip.framework.drc.messenger.activity.monitor.MqMonitorContext;
-import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.Producer;
@@ -10,6 +7,9 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
+import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
+import com.ctrip.framework.drc.messenger.activity.monitor.MqMonitorContext;
+import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,9 +47,15 @@ public class MqProviderResource extends AbstractResource implements MqProvider {
             if(!Thread.currentThread().isInterrupted()) {
                 int active = MqTransactionContextResource.getConcurrency(registryKey);
                 if (reporter != null) {
-                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active, registryKey, "fx.drc.messenger.active");
+                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active, registryKey, "fx.drc.messenger.active", "applyActivity");
                     reporter.report(mqMonitorContext);
                 }
+                int active2 = MqTransactionContextResource.getConcurrencyOfThreadPool(registryKey);
+                if (reporter != null) {
+                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active2, registryKey, "fx.drc.messenger.active", "threadPool");
+                    reporter.report(mqMonitorContext);
+                }
+
             }
         }, 100, 200, TimeUnit.MILLISECONDS);
     }

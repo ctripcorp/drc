@@ -8,13 +8,15 @@ import com.ctrip.xpipe.config.AbstractConfigBean;
  */
 public class FetcherDynamicConfig extends AbstractConfigBean {
     private static final String MQ_APPLY_COUNT = "mq.apply.count";
-    public static final int DEFAULT_MQ_APPLY_COUNT = 100;
+    public static final int DEFAULT_MQ_APPLY_COUNT = 50;
 
     private static final String APPLIER_LWM_TOLERANCE_TIME = "drc.applier.lwm.tolerance.time";
     private static final long DEFAULT_APPLIER_LWM_TOLERANCE_TIME = 60 * 1000; //1 minutes
 
     private static final String FIRST_APPLIER_LWM_TOLERANCE_TIME = "drc.first.applier.lwm.tolerance.time";
     private static final long DEFAULT_FIRST_APPLIER_LWM_TOLERANCE_TIME = 10 * 60 * 1000; //10 minutes
+
+    private static final String MESSENGER_APPLY_COUNT_PATTERN = "mq.apply.count.%s";
 
     private FetcherDynamicConfig() {}
 
@@ -26,8 +28,9 @@ public class FetcherDynamicConfig extends AbstractConfigBean {
         return ConfigHolder.INSTANCE;
     }
 
-    public int getMqApplyCount() {
-        return getIntProperty(MQ_APPLY_COUNT, DEFAULT_MQ_APPLY_COUNT);
+    public int getMqApplyCount(String registerKey) {
+        int defaultMqApplyCount = getIntProperty(MQ_APPLY_COUNT, DEFAULT_MQ_APPLY_COUNT);
+        return getIntProperty(String.format(MESSENGER_APPLY_COUNT_PATTERN, registerKey), defaultMqApplyCount);
     }
 
     public long getLwmToleranceTime() {

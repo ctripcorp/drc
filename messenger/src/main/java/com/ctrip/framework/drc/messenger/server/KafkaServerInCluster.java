@@ -52,10 +52,11 @@ public class KafkaServerInCluster extends FetcherServer {
 
     @Override
     protected int getApplyApplyConcurrency() {
+        String registerKey = config.getRegistryKey();
         int applyConcurrency;
         switch (ApplyMode.getApplyMode(config.getApplyMode())) {
             case kafka:
-                applyConcurrency = FetcherDynamicConfig.getInstance().getMqApplyCount();
+                applyConcurrency = FetcherDynamicConfig.getInstance().getMqApplyCount(registerKey);
                 break;
             default:
                 applyConcurrency = DEFAULT_APPLY_COUNT;
