@@ -40,4 +40,13 @@ public class BatchUpdateResponse {
     public void setData(String data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "BatchUpdateResponse{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", data='" + data + '\'' +
+                '}';
+    }
 }
