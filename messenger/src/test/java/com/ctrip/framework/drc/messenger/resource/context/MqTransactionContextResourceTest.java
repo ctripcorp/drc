@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.messenger.mq.MqProvider;
-import com.ctrip.framework.drc.messenger.resource.thread.MqBigEventExecutorResource;
+import com.ctrip.framework.drc.messenger.resource.thread.MqRowEventExecutorResource;
 import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
 import com.google.common.collect.Lists;
 import org.junit.After;
@@ -47,10 +47,12 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         return Lists.newArrayList(items);
     }
 
-    private MqBigEventExecutorResource executorResource = Mockito.mock(MqBigEventExecutorResource.class);
 
     @Before
     public void setUp() throws Exception {
+        MqRowEventExecutorResource mqRowEventExecutorResource = new testExecutor();
+        mqRowEventExecutorResource.initialize();
+
         context = new MqTransactionContextResource();
         context.updateDcTag(NON_LOCAL);
         context.setTableKey(TableKey.from(schema, table));
@@ -59,7 +61,8 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         context.mqProvider = mockProvider;
         context.registryKey = "registryKey";
         context.applyMode = 2;
-        context.mqBigEventExecutor = executorResource;
+        context.mqRowEventExecutor = mqRowEventExecutorResource;
+
 
         MqMetricsActivity mockMetricsActivity = Mockito.mock(MqMetricsActivity.class);
         context.mqMetricsActivity = mockMetricsActivity;
@@ -67,7 +70,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         Mockito.when(mockProvider.getProducers(Mockito.anyString())).thenReturn(Lists.newArrayList(new testProducer()));
 
         MqDynamicConfig mockConfig = Mockito.mock(MqDynamicConfig.class);
-        Mockito.when(mockConfig.getBigRowsEventSize()).thenReturn(2);
+        Mockito.when(mockConfig.getBigRowsEventSize()).thenReturn(1);
         theMockConfig = Mockito.mockStatic(MqDynamicConfig.class);
         theMockConfig.when(() -> MqDynamicConfig.getInstance()).thenReturn(mockConfig);
         context.doInitialize();
@@ -84,7 +87,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         context.insert(buildArray(buildArray(1, "Phi", "2019-12-09 15:00:01.000")),
                 Bitmap.from(true, true, true),
                 columns0());
-
+        context.complete();
         for (EventData data : finalEventDatas) {
             Assert.assertEquals(schema, data.getSchemaName());
             Assert.assertEquals(table, data.getTableName());
@@ -110,7 +113,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
                 buildArray(buildArray(1, "Mi", "2019-12-09 16:00:00.000")), Bitmap.from(true, true, true),
                 buildArray(buildArray(1, "Phy", "2019-12-09 16:00:00.001")), Bitmap.from(true, true, true),
                 columns0());
-
+        context.complete();
         for (EventData data : finalEventDatas) {
             Assert.assertEquals(schema, data.getSchemaName());
             Assert.assertEquals(table, data.getTableName());
@@ -144,6 +147,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
                 Bitmap.from(true, false, true),
                 columns0()
         );
+        context.complete();
 
         for (EventData data : finalEventDatas) {
             Assert.assertEquals(schema, data.getSchemaName());
@@ -159,6 +163,13 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
             Assert.assertEquals(column1.getColumnValue(),"2019-12-09 16:00:00.001");
 
             Assert.assertEquals(0, data.getAfterColumns().size());
+        }
+    }
+
+    class testExecutor extends MqRowEventExecutorResource {
+        testExecutor() {
+            this.registryKey = "dalcluster.mha";
+            this.applyMode = 2;
         }
     }
 
@@ -182,26 +193,33 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
     }
 
     @Test
-    public void testSendEventDatasNormal() throws Exception{
+    public void testSendEventDatasNormal() throws Exception {
+        MqRowEventExecutorResource executorService = Mockito.mock(MqRowEventExecutorResource.class);
+        context.mqRowEventExecutor = executorService;
         Future<Boolean> f = Mockito.mock(Future.class);
         Mockito.when(f.get()).thenReturn(true);
-        Mockito.when(executorResource.submit(Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.submit(Mockito.any())).thenReturn(f);
 
         context.doInitialize();
         context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
+        context.complete();
 
-        Mockito.verify(executorResource, Mockito.times(2)).submit(Mockito.any());
+        Mockito.verify(executorService, Mockito.times(2)).submit(Mockito.any());
+        Mockito.verify(f, Mockito.times(2)).get();
     }
 
     @Test(expected = RuntimeException.class)
-    public void testSendEventDatasWithExecutionException() throws Exception{
+    public void testSendEventDatasWithExecutionException() throws Exception {
+        MqRowEventExecutorResource executorService = Mockito.mock(MqRowEventExecutorResource.class);
+        context.mqRowEventExecutor = executorService;
         Future<Boolean> f = Mockito.mock(Future.class);
         Mockito.when(f.get()).thenThrow(new ExecutionException("Mocked exception", new Throwable()));
-        Mockito.when(executorResource.submit(Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.submit(Mockito.any())).thenReturn(f);
 
         context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
+        context.complete();
 
-        Mockito.verify(executorResource, Mockito.times(2)).submit(Mockito.any());
+        Mockito.verify(executorService, Mockito.times(2)).submit(Mockito.any());
     }
 
 
@@ -233,5 +251,11 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         data.setAfterColumns(afterColumns);
 
         return data;
+    }
+
+    @Test
+    public void testSendAndReport() {
+        boolean res = context.sendAndReport(buildUpdateEventDatas(), UPDATE, new testProducer());
+        Assert.assertTrue(res);
     }
 }

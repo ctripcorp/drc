@@ -47,15 +47,9 @@ public class MqProviderResource extends AbstractResource implements MqProvider {
             if(!Thread.currentThread().isInterrupted()) {
                 int active = MqTransactionContextResource.getConcurrency(registryKey);
                 if (reporter != null) {
-                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active, registryKey, "fx.drc.messenger.active", "applyActivity");
+                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active, registryKey, "fx.drc.messenger.active");
                     reporter.report(mqMonitorContext);
                 }
-                int active2 = MqTransactionContextResource.getConcurrencyOfThreadPool(registryKey);
-                if (reporter != null) {
-                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active2, registryKey, "fx.drc.messenger.active", "threadPool");
-                    reporter.report(mqMonitorContext);
-                }
-
             }
         }, 100, 200, TimeUnit.MILLISECONDS);
     }

@@ -7,6 +7,6 @@ import java.util.concurrent.Future;
  * Created by shiruixin
  * 2025/1/22 14:38
  */
-public interface MqBigEventExecutor {
+public interface MqRowEventExecutor {
     Future<Boolean> submit(Callable<Boolean> callable);
 }
