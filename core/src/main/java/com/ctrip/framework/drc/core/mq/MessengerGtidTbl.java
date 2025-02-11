@@ -22,7 +22,7 @@ public class MessengerGtidTbl {
             "    PRIMARY KEY (`id`),\n" +
             "    UNIQUE KEY `idx_registry_key` (`registry_key`)\n" +
             ") ENGINE = InnoDB\n" +
-            "  DEFAULT CHARSET = utf8mb4;";
+            "  DEFAULT CHARSET = utf8mb3;";
 
     public static Map<String, Map<String, String>> getDDLSchemas() {
         Map<String, Map<String, String>> dbMap = new HashMap<>();

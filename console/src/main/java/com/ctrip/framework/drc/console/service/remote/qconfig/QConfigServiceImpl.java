@@ -147,37 +147,51 @@ public class QConfigServiceImpl implements QConfigService {
             String fileSubEnv = getFileSubEnv(affectedDc);
             String fileName = dalClusterName + PROPERTIES_SUFFIX;
 
-            // query current config
-            logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] delete todo, fileName:{}", fileName);
-            FileDetailResponse fileDetailResponse = queryFileDetail(fileName, localEnv, fileSubEnv, BINLOG_TOPIC_REGISTRY);
-            if (!fileDetailResponse.isExist()) {
-                logger.warn("[[tag=BINLOG_TOPIC_REGISTRY]] file not exist,no need to remove,fileName:{}", fileName);
-                continue;
-            }
-
-            FileDetailData fileDetailData = fileDetailResponse.getData();
-            processRemovedTopic(configContext, fileDetailData);
-
-            int version = fileDetailResponse.getData().getEditVersion();
-
-            // put result
-            List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
-            BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
-
-            if (batchUpdateResponse.getStatus() == 0) {
-                // success
-                logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] update success,fileName:{}", fileName);
-            } else {
-                // fail
-                logger.error("[[tag=BINLOG_TOPIC_REGISTRY]] update fail,fileName:{}", fileName);
+            boolean success = createOrUpdateFile(configContext, fileName, localEnv, fileSubEnv);
+            if (!success) {
                 batchActionFlag = false;
             }
         }
         return batchActionFlag;
     }
 
-    private void processRemovedTopic(Map<String, String> configContext, FileDetailData fileDetailData) {
-        Map<String, String> originalConfig = string2config(fileDetailData.getData());
+    private boolean createOrUpdateFile(Map<String, String> configContext, String fileName, String localEnv, String fileSubEnv) {
+        // query current config
+        logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] delete todo, fileName:{}", fileName);
+        FileDetailResponse fileDetailResponse = queryFileDetail(fileName, localEnv, fileSubEnv, BINLOG_TOPIC_REGISTRY);
+        if (!fileDetailResponse.isExist()) {
+            // create
+            CreateFileRequestBody requestBody = transformRequest(fileName, configContext, localEnv, fileSubEnv);
+            CreateFileResponse response = createFile(requestBody);
+            if (response.getStatus() == 0) {
+                // success
+                logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] create success,fileName:{}", fileName);
+            } else {
+                logger.error("[[tag=BINLOG_TOPIC_REGISTRY]] create fail, fileName:{}, response:{}", fileName, response);
+                return false;
+            }
+        } else {
+            // update
+            int version = fileDetailResponse.getData().getEditVersion();
+            FileDetailData fileDetailData = fileDetailResponse.getData();
+            processRemovedTopic(configContext, string2config(fileDetailData.getData()));
+
+            // put result
+            List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
+            BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
+            if (batchUpdateResponse.getStatus() == 0) {
+                // success
+                logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] update success,fileName:{}", fileName);
+            } else {
+                // fail
+                logger.error("[[tag=BINLOG_TOPIC_REGISTRY]] update fail,fileName:{}", fileName);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void processRemovedTopic(Map<String, String> configContext, Map<String, String> originalConfig) {
         Set<String> originTopics = originalConfig.entrySet().stream()
                 .filter(e -> e.getKey().endsWith("." + STATUS) && e.getValue().equals(ON))
                 .map(e -> e.getKey().substring(0, e.getKey().length() - STATUS.length() - 1))
@@ -344,9 +358,9 @@ public class QConfigServiceImpl implements QConfigService {
         return requestBody;
     }
 
-    
-    
-    private String config2String(Map<String,String> context) {
+
+
+    public static String config2String(Map<String,String> context) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : context.entrySet()) {
             sb.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
@@ -354,7 +368,7 @@ public class QConfigServiceImpl implements QConfigService {
         return sb.toString();
     }
 
-    private  Map<String,String> string2config(String context) {
+    public static Map<String,String> string2config(String context) {
         Map<String,String>  res = Maps.newLinkedHashMap();
         if (StringUtils.isBlank(context)) {
             return res;
@@ -366,7 +380,7 @@ public class QConfigServiceImpl implements QConfigService {
             if (kv.length != 2) {
                 res.put(kv[0],"");
             } else {
-                res.put(kv[0],kv[1]);  
+                res.put(kv[0],kv[1]);
             }
         }
         return res;
