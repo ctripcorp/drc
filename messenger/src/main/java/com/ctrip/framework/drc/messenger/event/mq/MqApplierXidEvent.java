@@ -11,6 +11,6 @@ public class MqApplierXidEvent extends ApplierXidEvent {
     @Override
     public ApplyResult apply(TransactionContext context) {
         release();
-        return ApplyResult.SUCCESS;
+        return terminate(context);
     }
 }

@@ -28,9 +28,9 @@ public class FetcherDynamicConfig extends AbstractConfigBean {
         return ConfigHolder.INSTANCE;
     }
 
-    public int getMqApplyCount(String registerKey) {
+    public int getMqApplyCount(String registryKey) {
         int defaultMqApplyCount = getIntProperty(MQ_APPLY_COUNT, DEFAULT_MQ_APPLY_COUNT);
-        return getIntProperty(String.format(MESSENGER_APPLY_COUNT_PATTERN, registerKey), defaultMqApplyCount);
+        return getIntProperty(String.format(MESSENGER_APPLY_COUNT_PATTERN, registryKey), defaultMqApplyCount);
     }
 
     public long getLwmToleranceTime() {

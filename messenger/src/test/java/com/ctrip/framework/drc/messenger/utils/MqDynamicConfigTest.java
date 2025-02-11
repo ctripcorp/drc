@@ -23,6 +23,6 @@ public class MqDynamicConfigTest {
     @Test
     public void getBigRowsEventSize() {
         int res = MqDynamicConfig.getInstance().getBigRowsEventSize();
-        Assert.assertEquals(100, res);
+        Assert.assertEquals(20, res);
     }
 }

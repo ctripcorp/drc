@@ -18,8 +18,12 @@ public class MqDynamicConfig extends AbstractConfigBean {
     private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
     private static final String MESSENGER_INSTANCE_MODIFY_THREAD = "messenger.instance.modify.thread";
 
-    private static String MESSENGER_BIG_ROWSEVENT_SIZE = "messenger.big.rowsevent.size";
-    private static int DEFAULT_QMQ_BIG_ROWSEVENT_SIZE = 100;
+    private static final String MESSENGER_BIG_ROWSEVENT_SIZE = "messenger.big.rowsevent.size";
+    private static final int DEFAULT_QMQ_BIG_ROWSEVENT_SIZE = 20;
+
+    private static final String MESSENGER_ROWEVENT_EXECUTOR_MAXTHREAD = "mq.rowsexecutor.maxthread";
+    private static final int DEFAULT_MESSENGER_ROWEVENT_EXECUTOR_MAXTHREAD = 50;
+    private static final String ROWEVENT_EXECUTOR_PATTERN = "mq.rowsexecutor.maxthread.%s";
 
     private MqDynamicConfig() {}
     
@@ -45,6 +49,11 @@ public class MqDynamicConfig extends AbstractConfigBean {
 
     public int getBigRowsEventSize() {
         return getIntProperty(MESSENGER_BIG_ROWSEVENT_SIZE, DEFAULT_QMQ_BIG_ROWSEVENT_SIZE);
+    }
+
+    public int getRowEventExecutorMaxThread(String registryKey) {
+        int defaultMaxThread = getIntProperty(MESSENGER_ROWEVENT_EXECUTOR_MAXTHREAD, DEFAULT_MESSENGER_ROWEVENT_EXECUTOR_MAXTHREAD);
+        return getIntProperty(String.format(ROWEVENT_EXECUTOR_PATTERN, registryKey), defaultMaxThread);
     }
 
 }

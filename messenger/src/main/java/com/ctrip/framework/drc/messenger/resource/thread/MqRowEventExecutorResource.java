@@ -1,20 +1,24 @@
 package com.ctrip.framework.drc.messenger.resource.thread;
 
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
-import com.ctrip.xpipe.concurrent.NamedThreadFactory;
+import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by shiruixin
  * 2025/1/22 11:55
  */
-public class MqBigEventExecutorResource extends AbstractResource implements MqBigEventExecutor {
+public class MqRowEventExecutorResource extends AbstractResource implements MqRowEventExecutor {
     protected ExecutorService internal;
     int maxThreads = 50;
-    int coreThreads = 1;
+
 
     @InstanceConfig(path = "registryKey")
     public String registryKey;
@@ -23,17 +27,15 @@ public class MqBigEventExecutorResource extends AbstractResource implements MqBi
 
     @Override
     protected void doInitialize() throws Exception {
-        String threadPattern = "%s-%s-bigEventExecutor";
+        String threadPattern = "%s-%s-rowEventExecutor";
         String[] parts = registryKey.split("\\.");
         String mhaName = "";
         if (parts.length > 1) {
             mhaName = parts[1];
         }
         String threadPrefix = String.format(threadPattern, mhaName, ApplyMode.getApplyMode(applyMode).getName());
-        internal = new ThreadPoolExecutor(
-                coreThreads, maxThreads, 30, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(maxThreads), new NamedThreadFactory(threadPrefix),new ThreadPoolExecutor.CallerRunsPolicy()
-        );
+        maxThreads = MqDynamicConfig.getInstance().getRowEventExecutorMaxThread(registryKey);
+        internal = ThreadUtils.newFixedThreadPool(maxThreads, threadPrefix);
     }
 
     @Override
@@ -49,7 +51,7 @@ public class MqBigEventExecutorResource extends AbstractResource implements MqBi
                 internal.shutdownNow();
             }
         } catch (InterruptedException e) {
-            logger.error("UNLIKELY - interrupted when awaitTermination() in MqBigEventExecutorResource");
+            logger.error("UNLIKELY - interrupted when awaitTermination() in MqRowEventExecutorResource");
         }
         internal = null;
     }

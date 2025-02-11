@@ -17,7 +17,7 @@ import com.ctrip.framework.drc.messenger.activity.event.MqApplyActivity;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
 import com.ctrip.framework.drc.messenger.mq.MqProviderResource;
-import com.ctrip.framework.drc.messenger.resource.thread.MqBigEventExecutorResource;
+import com.ctrip.framework.drc.messenger.resource.thread.MqRowEventExecutorResource;
 
 /**
  * Created by jixinwang on 2022/10/12
@@ -33,7 +33,7 @@ public class MqServerInCluster extends FetcherServer {
         logger.info("mq apply concurrency : {} for: {}", config.getApplyConcurrency(), config.getRegistryKey());
         source(MqApplierDumpEventActivity.class)
                 .with(ExecutorResource.class)
-                .with(MqBigEventExecutorResource.class)
+                .with(MqRowEventExecutorResource.class)
                 .with(LinkContextResource.class)
                 .with(LWMResource.class)
                 .with(ProgressResource.class)
@@ -53,11 +53,11 @@ public class MqServerInCluster extends FetcherServer {
 
     @Override
     protected int getApplyApplyConcurrency() {
-        String registerKey = config.getRegistryKey();
+        String registryKey = config.getRegistryKey();
         int applyConcurrency;
         switch (ApplyMode.getApplyMode(config.getApplyMode())) {
             case mq:
-                applyConcurrency = FetcherDynamicConfig.getInstance().getMqApplyCount(registerKey);
+                applyConcurrency = FetcherDynamicConfig.getInstance().getMqApplyCount(registryKey);
                 break;
             default:
                 applyConcurrency = DEFAULT_APPLY_COUNT;
