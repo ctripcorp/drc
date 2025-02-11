@@ -19,7 +19,6 @@ import com.ctrip.framework.drc.console.service.v2.MessengerBatchConfigService;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -264,7 +263,12 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
         }
         config.put(topic + "." + "status", "on");
         config.put(topic + "." + "dbName", dbs);
-        config.put(topic + "." + "tableName", tables);
+
+        String tableKey = topic + "." + "tableName";
+        if (config.containsKey(tableKey)) {
+            tables = config.get(tableKey) + "," + tables;
+        }
+        config.put(tableKey, tables);
     }
 
 

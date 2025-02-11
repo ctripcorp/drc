@@ -238,6 +238,7 @@ public class MessengerBatchConfigServiceImplTest {
         List<String> dbNames = Lists.newArrayList("db1", "db2");
         List<LogicTableConfig> logicTableConfigs = new ArrayList<>();
         logicTableConfigs.add(getLogicTableConfig("table1", "bbz.topic.1"));
+        logicTableConfigs.add(getLogicTableConfig("table11", "bbz.topic.1"));
         logicTableConfigs.add(getLogicTableConfig("(table2|table3)", "bbz.topic.23"));
         logicTableConfigs.add(getLogicTableConfig(".*", "bbz.topic.all"));
 
@@ -246,6 +247,10 @@ public class MessengerBatchConfigServiceImplTest {
                 new MySqlUtils.TableSchemaName("db1", "table1"),
                 new MySqlUtils.TableSchemaName("db2", "table1"))
         );
+        logicToMatchTableMap.put("table11", Lists.newArrayList(
+                new MySqlUtils.TableSchemaName("db1", "table11"),
+                new MySqlUtils.TableSchemaName("db2", "table11")
+        ));
         logicToMatchTableMap.put("(table2|table3)", Lists.newArrayList(
                 new MySqlUtils.TableSchemaName("db1", "table2"),
                 new MySqlUtils.TableSchemaName("db1", "table3"),
@@ -255,11 +260,13 @@ public class MessengerBatchConfigServiceImplTest {
 
         logicToMatchTableMap.put(".*", Lists.newArrayList(
                         new MySqlUtils.TableSchemaName("db1", "table1"),
+                        new MySqlUtils.TableSchemaName("db1", "table11"),
                         new MySqlUtils.TableSchemaName("db1", "table2"),
                         new MySqlUtils.TableSchemaName("db1", "table3"),
                         new MySqlUtils.TableSchemaName("db1", "table4"),
                         new MySqlUtils.TableSchemaName("db1", "table5"),
                         new MySqlUtils.TableSchemaName("db2", "table1"),
+                        new MySqlUtils.TableSchemaName("db2", "table11"),
                         new MySqlUtils.TableSchemaName("db2", "table2"),
                         new MySqlUtils.TableSchemaName("db2", "table3"),
                         new MySqlUtils.TableSchemaName("db2", "table4"),
@@ -269,13 +276,48 @@ public class MessengerBatchConfigServiceImplTest {
         Map<String, String> expectMap = new LinkedHashMap<>() {{
             put("bbz.topic.1.status", "on");
             put("bbz.topic.1.dbName", "db1,db2");
-            put("bbz.topic.1.tableName", "table1");
+            put("bbz.topic.1.tableName", "table1,table11");
             put("bbz.topic.23.status", "on");
             put("bbz.topic.23.dbName", "db1,db2");
             put("bbz.topic.23.tableName", "table2,table3");
             put("bbz.topic.all.status", "on");
             put("bbz.topic.all.dbName", "db1,db2");
             put("bbz.topic.all.tableName", "table4,table5");
+        }};
+
+        Map<String, String> config = MessengerBatchConfigServiceImpl.generateRegistryConfig(dbNames, logicTableConfigs, logicToMatchTableMap);
+        assertEquals(expectMap, config);
+    }
+
+
+    @Test
+    public void testGenerateConfig2() {
+        String dbName = "corpuserconfigdb";
+        List<String> dbNames = Lists.newArrayList(dbName);
+        List<LogicTableConfig> logicTableConfigs = new ArrayList<>();
+        String topic1 = "corp.user.userbatch.otter.order";
+        logicTableConfigs.add(getLogicTableConfig("corpscheme", topic1));
+        logicTableConfigs.add(getLogicTableConfig("(costcenterlinkage|costcenterextdetailcfg|corptrippurposelist|corpprogectnolist)", topic1));
+        logicTableConfigs.add(getLogicTableConfig("corpcostcenterlist", topic1));
+
+        Map<String, List<MySqlUtils.TableSchemaName>> logicToMatchTableMap = new HashMap<>();
+        logicToMatchTableMap.put("corpscheme", Lists.newArrayList(
+                new MySqlUtils.TableSchemaName(dbName, "corpscheme")
+        ));
+        logicToMatchTableMap.put("(costcenterlinkage|costcenterextdetailcfg|corptrippurposelist|corpprogectnolist)", Lists.newArrayList(
+                new MySqlUtils.TableSchemaName(dbName, "costcenterlinkage"),
+                new MySqlUtils.TableSchemaName(dbName, "costcenterextdetailcfg"),
+                new MySqlUtils.TableSchemaName(dbName, "corptrippurposelist"),
+                new MySqlUtils.TableSchemaName(dbName, "corpprogectnolist")
+        ));
+        logicToMatchTableMap.put("corpcostcenterlist", Lists.newArrayList(
+                new MySqlUtils.TableSchemaName(dbName, "corpcostcenterlist")
+        ));
+
+        Map<String, String> expectMap = new LinkedHashMap<>() {{
+            put("corp.user.userbatch.otter.order.status", "on");
+            put("corp.user.userbatch.otter.order.dbName", "corpuserconfigdb");
+            put("corp.user.userbatch.otter.order.tableName", "corpscheme,costcenterlinkage,costcenterextdetailcfg,corptrippurposelist,corpprogectnolist,corpcostcenterlist");
         }};
 
         Map<String, String> config = MessengerBatchConfigServiceImpl.generateRegistryConfig(dbNames, logicTableConfigs, logicToMatchTableMap);
@@ -335,7 +377,7 @@ public class MessengerBatchConfigServiceImplTest {
         return editDto;
     }
 
-    public DbMqConfigInfoDto getCurrentCreateConfig(){
+    public DbMqConfigInfoDto getCurrentCreateConfig() {
         return JsonUtils.fromJson("{\"srcRegionName\":\"src1\",\"dalclusterName\":\"test_dalcluster\",\"dbNames\":[\"db1\",\"db2\"],\"logicTableSummaryDtos\":[{\"mqType\":\"qmq\",\"serialization\":\"json\",\"order\":true,\"orderKey\":\"ticket\",\"persistent\":false,\"dbReplicationIds\":[1005,1006],\"config\":{\"logicTable\":\"old_table\",\"dstLogicTable\":\"bbz.test.binlog\",\"messengerFilterId\":1}}],\"mhaMqDtos\":[{\"srcMha\":{\"name\":\"mha1\",\"regionName\":\"src1\",\"replicatorInfoDtos\":[]},\"mhaDbReplications\":[{\"id\":1,\"src\":{\"mhaDbMappingId\":1,\"mhaName\":\"mha1\",\"dbName\":\"db1\",\"regionName\":\"src1\"},\"dst\":{\"mhaDbMappingId\":-1},\"replicationType\":1,\"dbReplicationDtos\":[{\"dbReplicationId\":1005,\"logicTableConfig\":{\"logicTable\":\"old_table\",\"dstLogicTable\":\"bbz.test.binlog\",\"messengerFilterId\":1}}],\"dbApplierDto\":{\"ips\":[\"1.113.60.1\",\"1.113.60.2\"],\"gtidInit\":\"gtid1\",\"dbName\":\"db1\"}},{\"id\":2,\"src\":{\"mhaDbMappingId\":2,\"mhaName\":\"mha1\",\"dbName\":\"db2\",\"regionName\":\"src1\"},\"dst\":{\"mhaDbMappingId\":-1},\"replicationType\":1,\"dbReplicationDtos\":[{\"dbReplicationId\":1006,\"logicTableConfig\":{\"logicTable\":\"old_table\",\"dstLogicTable\":\"bbz.test.binlog\",\"messengerFilterId\":1}}],\"dbApplierDto\":{\"ips\":[],\"gtidInit\":\"gtid2\",\"dbName\":\"db2\"}}]}]}", DbMqConfigInfoDto.class);
     }
 }
