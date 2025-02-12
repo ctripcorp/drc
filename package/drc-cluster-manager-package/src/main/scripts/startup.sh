@@ -140,7 +140,9 @@ STARTUP_LOG=$LOG_DIR"/startup.logger"
 ARCH=`uname -r`
 #set the jdk to 11/17 version
 if [[ -z "$JAVA_HOME" ]]; then
-    if [[ "$ARCH" == *"aarch64" && -d /usr/java/jdk17/ ]]; then
+    if [[ -d /usr/java/jdk21/ ]]; then
+      export JAVA_HOME=/usr/java/jdk21
+    elif [[ "$ARCH" == *"aarch64" && -d /usr/java/jdk17/ ]]; then
       export JAVA_HOME=/usr/java/jdk17
     elif [[ -d /usr/java/jdk11/ ]]; then
       export JAVA_HOME=/usr/java/jdk11

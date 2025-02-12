@@ -12,6 +12,16 @@
 		<dependency>
 			<groupId>com.ctrip.framework.drc</groupId>
 			<artifactId>console</artifactId>
+			<exclusions>
+				<exclusion>
+					<artifactId>ctrip-dal-client</artifactId>
+					<groupId>com.ctrip.platform</groupId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.ctrip.platform</groupId>
+					<artifactId>ctrip-datasource</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 

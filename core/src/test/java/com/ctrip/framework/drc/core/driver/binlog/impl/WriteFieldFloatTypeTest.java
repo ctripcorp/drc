@@ -47,7 +47,7 @@ public class WriteFieldFloatTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "cf c5 84 62   1e   ea 0c 00 00   28 00 00 00   b7 20 00 00   00 00" +
                 "78 00 00 00 00 00 01 00  02 00 01 ff fe 00 00 80" +
                 "80 c3 74 ea 97";
-        testWriteValue(rowsHexString, "-1.17549435E-38");
+        testWriteValue(rowsHexString, Float.valueOf("-1.17549435E-38").toString());
     }
 
     // insert into drc1.float(amount) values(0);
@@ -65,7 +65,7 @@ public class WriteFieldFloatTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "a1 c6 84 62   1e   ea 0c 00 00   28 00 00 00   b9 21 00 00   00 00" +
                 "78 00 00 00 00 00 01 00  02 00 01 ff fe 00 00 80" +
                 "00 bf 9d ae 98";
-        testWriteValue(rowsHexString, "1.17549435E-38");
+        testWriteValue(rowsHexString, Float.valueOf("1.17549435E-38").toString());
     }
 
     // insert into drc1.float(amount) values(3.402823466351E+38);

@@ -38,7 +38,7 @@ public class WriteFieldFloatUnsignedTypeTest extends AbstractWriteFieldTypeTest 
         String rowsHexString = "58 c8 84 62   1e   ea 0c 00 00   28 00 00 00   9b 25 00 00   00 00" +
                 "79 00 00 00 00 00 01 00  02 00 01 ff fe 00 00 80" +
                 "00 f3 8a 02 e3";
-        testWriteValue(rowsHexString, "1.17549435E-38");
+        testWriteValue(rowsHexString, Float.valueOf("1.17549435E-38").toString());
     }
 
     // insert into drc1.float(amount) values(0);

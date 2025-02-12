@@ -59,11 +59,6 @@
             <scope>test</scope>
             <version>${mockito-core.version}</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.framework.drc</groupId>-->
-<!--            <artifactId>trip-service</artifactId>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
     </dependencies>
 
 </project>
