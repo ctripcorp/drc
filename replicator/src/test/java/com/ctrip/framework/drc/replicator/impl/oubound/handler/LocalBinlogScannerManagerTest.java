@@ -16,11 +16,6 @@ import java.util.List;
  */
 public class LocalBinlogScannerManagerTest {
 
-    @Before
-    public void setUp() {
-//        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
     public void testTryMerge() throws Exception {
         LocalBinlogScannerManager localBinlogScannerManager = new LocalBinlogScannerManager();
@@ -79,6 +74,7 @@ public class LocalBinlogScannerManagerTest {
         GtidSet minSet = GtidSet.getIntersection(sentGtid);
         long gtidNum = union.subtract(minSet).getGtidNum();
         System.out.println("gtidNum = " + gtidNum);
+        localBinlogScannerManager.dispose();
 //        Assert.assertTrue(String.valueOf(gtidNum), gtidNum <= 1);
     }
 }

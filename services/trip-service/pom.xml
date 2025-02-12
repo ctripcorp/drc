@@ -211,17 +211,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <artifactId>mockito-core</artifactId>
-                    <groupId>org.mockito</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>com.ctrip.framework.ckafka</groupId>
             <artifactId>client</artifactId>
             <exclusions>
