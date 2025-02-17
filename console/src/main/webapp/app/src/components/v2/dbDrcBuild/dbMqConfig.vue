@@ -36,6 +36,9 @@
               <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
             </Select>
           </FormItem>
+          <FormItem v-if="mqType === 'qmq'" label="延迟投递">
+            <Input v-model="formItem.delayTime"  style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>
+          </FormItem>
           <FormItem label="有序消息">
             <i-switch v-model="formItem.switch.order" size="large">
               <template #open>
@@ -127,7 +130,8 @@ export default {
         constants: {
           columnsForChose: [],
           buForChosen: []
-        }
+        },
+        delayTime: 0
       },
       checkTableDataList: [],
       table: {
@@ -303,7 +307,8 @@ export default {
         persistent: false,
         order: this.formItem.switch.order,
         orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey,
-        excludeFilterTypes: this.formItem.excludeFilterTypes
+        excludeFilterTypes: this.formItem.excludeFilterTypes,
+        delayTime: this.formItem.delayTime
       }
       console.log(param)
       return param
@@ -369,6 +374,7 @@ export default {
         this.formItem.orderKey = this.configData.orderKey
         this.formItem.switch.order = this.configData.order
         this.formItem.excludeFilterTypes = this.configData.excludeFilterTypes
+        this.formItem.delayTime = this.configData.delayTime
         this.refreshTopicBu()
         this.getCommonColumns()
         this.meta.dbReplicationIds = this.configData.dbReplicationIds

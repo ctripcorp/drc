@@ -9,6 +9,7 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
     private String orderKey;
     private boolean persistent;
     private List<String> excludeFilterTypes;
+    private long delayTime;
 
     public List<String> getExcludeFilterTypes() {
         return excludeFilterTypes;
@@ -60,5 +61,13 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
 
     public void setPersistent(boolean persistent) {
         this.persistent = persistent;
+    }
+
+    public long getDelayTime() {
+        return delayTime;
+    }
+
+    public void setDelayTime(long delayTime) {
+        this.delayTime = delayTime;
     }
 }

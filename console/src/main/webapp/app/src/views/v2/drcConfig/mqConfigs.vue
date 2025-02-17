@@ -128,9 +128,9 @@
                   </FormItem>
                 </Col>
               </Row>
-              <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
-              <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
-              <!--             </FormItem>-->
+              <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">
+                <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>
+              </FormItem>
               <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
               <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
               <!--                       placeholder="存在冲突配置，需要输入业务名（小写英文）区分"/>-->
@@ -200,9 +200,9 @@
                   </FormItem>
                 </Col>
               </Row>
-              <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
-              <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
-              <!--             </FormItem>-->
+              <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">
+                <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>
+              </FormItem>
               <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
               <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
               <!--                       placeholder="存在冲突，请输入业务名作为唯一标识（小写英文）"/>-->
@@ -393,6 +393,14 @@ export default {
                 color: color
               }
             }, text)
+          }
+        },
+        {
+          title: '延迟投递(s)',
+          key: 'delayTime',
+          render: (h, params) => {
+            const time = params.row.delayTime
+            return time === 0 ? h('span', '') : h('span', time)
           }
         },
         {
