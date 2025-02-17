@@ -124,6 +124,14 @@ export default {
           key: 'excludeFilterTypes'
         },
         {
+          title: '延迟投递(s)',
+          key: 'delayTime',
+          render: (h, params) => {
+            const time = params.row.delayTime
+            return h('span', time)
+          }
+        },
+        {
           title: '操作',
           slot: 'action',
           align: 'center',
