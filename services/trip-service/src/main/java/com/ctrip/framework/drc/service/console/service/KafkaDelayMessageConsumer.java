@@ -25,6 +25,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.*;
@@ -63,12 +64,17 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     //in case duplicate consumption
     private final Map<String, Pair<Integer, Long>> mhaLastReceiveMap = Maps.newConcurrentMap();
 
+    private Properties kafkaConf;
+    private String subject;
+    private String consumerGroup;
 
     @Override
     public void initConsumer(String subject, String consumerGroup, Set<String> dcs) {
         try {
             this.dcsRelated = dcs;
-            Properties kafkaConf = new Properties();
+            this.subject = subject;
+            this.consumerGroup = consumerGroup;
+            kafkaConf = new Properties();
             kafkaConf.put(ConsumerConfig.CLIENT_ID_CONFIG, TripServiceDynamicConfig.getInstance().getKafkaAppidToken() + "-drcconsole");
             kafkaConf.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
             kafkaConf.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getCanonicalName());
@@ -76,12 +82,11 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             kafkaConf.put(HermesConsumerConfig.HERMES_MESSAGE_CLASS_CONFIG, String.class.getCanonicalName());
             kafkaConf.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
             kafkaConf.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-            kafkaConsumer = KafkaClientFactory.newConsumer(subject, consumerGroup, kafkaConf);
             checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss,5,1, TimeUnit.SECONDS);
-            logger.info("kafka consumer init over");
+            logger.info("kafka conf init over");
 
         } catch (Exception e) {
-            logger.warn("unexpected exception occur in initKafkaConsumer", e);
+            logger.warn("unexpected exception occur in init kafka conf", e);
         }
     }
 
@@ -196,12 +201,18 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         receiveTimeMap.clear();
         mhaLastReceiveMap.clear();
         DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT);
+        if (kafkaConsumer != null) {
+            kafkaConsumer.close();
+        }
         return true;
     }
 
     @Override
     public boolean resumeConsume() {
         logger.warn("[KafkaDelayMessageConsumer] resumeConsume Kafka");
+        if (kafkaConf == null) {
+            return false;
+        }
 
         if (future != null && !future.isCancelled() && !future.isDone()) {
             return false;
@@ -211,6 +222,13 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss,5,1, TimeUnit.SECONDS);//TODO 回收
 
         }
+        try {
+            kafkaConsumer = KafkaClientFactory.newConsumer(subject, consumerGroup, kafkaConf);
+        } catch (IOException e) {
+            logger.error("kafka consumer init error", e);
+        }
+        logger.info("kafka consumer init over");
+
         boolean startResult = startConsume();
         return startResult;
     }

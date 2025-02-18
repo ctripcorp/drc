@@ -22,6 +22,7 @@ public class KafkaDelayMessageConsumerTest {
     private MockedStatic<TripServiceDynamicConfig> dynamicConfigMockedStatic;
     private MockedStatic<DefaultReporterHolder> defaultReporterHolderMockedStatic;
     private MockedStatic<KafkaClientFactory> theMock;
+    Consumer<String,String> consumer;
 
     @Before
     public void setUp() throws Exception {
@@ -34,7 +35,7 @@ public class KafkaDelayMessageConsumerTest {
         defaultReporterHolderMockedStatic = Mockito.mockStatic(DefaultReporterHolder.class);
         defaultReporterHolderMockedStatic.when(() -> DefaultReporterHolder.getInstance()).thenReturn(reporter);
 
-        Consumer<String,String> consumer = Mockito.mock(Consumer.class);
+        consumer = Mockito.mock(Consumer.class);
         theMock = Mockito.mockStatic(KafkaClientFactory.class);
         theMock.when(() -> KafkaClientFactory.newConsumer(Mockito.anyString(), Mockito.anyString(), Mockito.any(Properties.class))).thenReturn(consumer);
 
@@ -58,6 +59,7 @@ public class KafkaDelayMessageConsumerTest {
         Assert.assertFalse(res);
 
         res = kafkaDelayMessageConsumer.stopConsume();
+        Mockito.verify(consumer, Mockito.times(1)).close();
         Assert.assertTrue(res);
         res = kafkaDelayMessageConsumer.stopConsume();
         Assert.assertTrue(res);
@@ -68,4 +70,10 @@ public class KafkaDelayMessageConsumerTest {
         kafkaDelayMessageConsumer.stopConsume();
     }
 
+    @Test
+    public void testConsume2() {
+        KafkaDelayMessageConsumer kafkaDelayMessageConsumer = new KafkaDelayMessageConsumer();
+        boolean res = kafkaDelayMessageConsumer.resumeConsume();
+        Assert.assertFalse(res);
+    }
 }

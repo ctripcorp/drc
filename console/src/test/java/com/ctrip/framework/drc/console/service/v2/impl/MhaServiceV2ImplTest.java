@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
@@ -115,6 +116,9 @@ public class MhaServiceV2ImplTest {
 
     @Mock
     private MetaProviderV2 metaProviderV2;
+
+    @Mock
+    private MysqlServiceV2 mysqlServiceV2;
 
 
     @Before
@@ -553,5 +557,31 @@ public class MhaServiceV2ImplTest {
 
         MachineTbl masterNode = mhaServiceV2.getMasterNode(1L);
         Assert.assertEquals(2L, masterNode.getId().longValue());
+    }
+
+    @Test
+    public void testCreateDrcMessengerGtidTbl() throws Exception {
+        MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
+        messengerGroupTbl.setMhaId(1L);
+
+        MhaTblV2 mha1 = new MhaTblV2();
+        mha1.setId(1L);
+        mha1.setMhaName("mha1");
+        MhaTblV2 mha2 = new MhaTblV2();
+        mha2.setId(2L);
+        mha2.setMhaName("mha2");
+
+        Mockito.when(messengerGroupTblDao.queryAllExist()).thenReturn(Lists.newArrayList(messengerGroupTbl));
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(Lists.newArrayList(mha1, mha2));
+
+        Mockito.when(mysqlServiceV2.createDrcMessengerGtidTbl(Mockito.any())).thenReturn(true);
+
+        boolean res = mhaServiceV2.createDrcMessengerGtidTbl();
+        Thread.sleep(100);
+
+        Mockito.verify(mysqlServiceV2, Mockito.times(1)).createDrcMessengerGtidTbl(Mockito.any());
+        Assert.assertTrue(res);
+
+
     }
 }
