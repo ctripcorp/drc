@@ -76,5 +76,7 @@ public interface MhaServiceV2 {
 
     MhaColumnDefaultValueView findAllColumnDefaultValueLengthGt251(int batch) throws SQLException;
 
+    boolean createDrcMessengerGtidTbl() throws Exception;
+
 
 }

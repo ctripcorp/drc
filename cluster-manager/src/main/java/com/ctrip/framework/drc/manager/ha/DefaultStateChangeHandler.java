@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -14,7 +13,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGGER;
 
@@ -156,7 +154,6 @@ public class DefaultStateChangeHandler extends AbstractLifecycle implements Stat
         }
 
         List<Messenger> activeMessengers = currentMetaManager.getActiveMessengers(clusterId);
-        activeMessengers = activeMessengers.stream().filter(e -> e.getApplyMode() == ApplyMode.kafka.getType()).collect(Collectors.toList());
         for (Messenger messenger : activeMessengers) {
             if (!check(messenger)) {
                 STATE_LOGGER.info("[no active instance] messenger, clusterId: {}", clusterId);

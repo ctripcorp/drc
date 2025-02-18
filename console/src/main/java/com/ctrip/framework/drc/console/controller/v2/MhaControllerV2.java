@@ -301,4 +301,14 @@ public class MhaControllerV2 {
         }
     }
 
+    @PostMapping("createDrcMessengerGtidTbl")
+    public ApiResult createDrcMessengerGtidTbl() {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.createDrcMessengerGtidTbl());
+        } catch (Exception e) {
+            logger.error("createDrcMessengerGtidTbl error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
 }

@@ -14,7 +14,6 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -35,6 +34,11 @@ public class MqPositionResourceTest {
     private static final String path = "/applier/config/positions/drc_dalcluster.mq_test._drc_mq";
 
     private static final String toUpdateGtid = "6afbad2c-fabe-11e9-878b-fa163eb626bd:1";
+
+    private static final String ip = "127.0.0.1";
+    private static final int port = 3306;
+    private static final String username = "username";
+    private static final String password = "password";
 
     @Before
     public void setUp() throws Exception {
@@ -70,6 +74,10 @@ public class MqPositionResourceTest {
         when(curatorTransactionBridge.and()).thenReturn(curatorTransactionFinal);
 
         mqPosition.registryKey = "drc_dalcluster.mq_test._drc_mq";
+        mqPosition.ip = ip;
+        mqPosition.port = port;
+        mqPosition.username = username;
+        mqPosition.password = password;
         mqPosition.doInitialize();
     }
 

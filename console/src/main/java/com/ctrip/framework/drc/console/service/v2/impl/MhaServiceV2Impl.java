@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.param.mysql.DrcMessengerGtidTblCreateReq;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
@@ -928,5 +929,41 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
         return new MhaColumnDefaultValueView(results, errorMhas);
 
+    }
+
+    @Override
+    public boolean createDrcMessengerGtidTbl() throws Exception {
+        List<Long> mhaIds = messengerGroupTblDao.queryAllExist().stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
+        List<String> mhaNames = mhaTblV2Dao.queryAllExist().stream().filter(e -> mhaIds.contains(e.getId())).map(MhaTblV2::getMhaName).collect(Collectors.toList());
+
+        List<Callable<Pair<String, Boolean>>> list = Lists.newArrayList();
+        for (String mha : mhaNames) {
+            list.add(() -> createDrcMessengerGtidTbl(mha));
+        }
+
+        List<String> errorMhas = new ArrayList<>();
+        try {
+            List<Future<Pair<String, Boolean>>> futures = executeService.invokeAll(list, 60, TimeUnit.SECONDS);
+            for (Future<Pair<String, Boolean>> future : futures) {
+                Pair<String, Boolean> res = future.get();
+                if (!res.getValue()) {
+                    errorMhas.add(res.getKey());
+                }
+            }
+        } catch (Exception e) {
+            throw ConsoleExceptionUtils.message("createDrcMessengerGtidTbl timeout: " + e);
+        }
+
+        if (!CollectionUtils.isEmpty(errorMhas)) {
+            throw ConsoleExceptionUtils.message("errorMhas: " + errorMhas);
+        }
+
+        return true;
+    }
+
+    private Pair<String, Boolean> createDrcMessengerGtidTbl(String mha) {
+        DrcMessengerGtidTblCreateReq req = new DrcMessengerGtidTblCreateReq(mha);
+        Boolean res = mysqlServiceV2.createDrcMessengerGtidTbl(req);
+        return Pair.of(mha, res);
     }
 }

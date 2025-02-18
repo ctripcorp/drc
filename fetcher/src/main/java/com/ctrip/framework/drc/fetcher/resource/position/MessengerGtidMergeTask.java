@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.fetcher.resource.position;
 
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,8 +43,8 @@ public class MessengerGtidMergeTask implements NamedCallable<Boolean> {
     }
 
     @Override
-    public Boolean call() throws SQLException {
-        return updateGtidSetRecord();
+    public Boolean call() throws Exception {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.messenger.gtidset.write", registryKey, this::updateGtidSetRecord);
     }
 
     @Override

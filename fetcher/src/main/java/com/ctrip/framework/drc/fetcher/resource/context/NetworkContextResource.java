@@ -8,11 +8,13 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidRe
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.resource.position.MessengerGtidQueryTask;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.system.qconfig.ConfigKey;
+import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -102,7 +104,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
                 break;
             case mq:
             case db_mq:
-                executedGtidSet = unionPositionFromZk(executedGtidSet);
+                executedGtidSet = unionQmqPosition(executedGtidSet);
                 break;
             case kafka:
                 executedGtidSet = unionMessengerPositionFromDb(executedGtidSet);
@@ -123,6 +125,17 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         }
     }
 
+    private GtidSet unionQmqPosition(GtidSet gtidSet) {
+        boolean qmqGtidFromDb = FetcherDynamicConfig.getInstance().getQmqGtidFromDB(registryKey);
+        if (qmqGtidFromDb) {
+            logger.info("[{}][NETWORK GTID] get qmq position from db", registryKey);
+            return unionMessengerPositionFromDb(gtidSet);
+        } else {
+            logger.info("[{}][NETWORK GTID] get qmq position from zk and db", registryKey);
+            return unionMessengerPositionFromDbAndZK(gtidSet);
+        }
+    }
+
     private GtidSet unionPositionFromDb(GtidSet gtidSet) {
         GtidSet positionFromDb = queryPositionFromDb();
         logger.info("[{}][NETWORK GTID] db position: {}", registryKey, positionFromDb);
@@ -133,6 +146,18 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         GtidSet positionFromMessenger = queryMessengerPositionFromDb();
         logger.info("[{}][NETWORK GTID] db messenger position: {}", registryKey, positionFromMessenger);
         return gtidSet.union(positionFromMessenger);
+    }
+
+    private GtidSet unionMessengerPositionFromDbAndZK(GtidSet gtidSet) {
+        GtidSet positionFromDb = unionMessengerPositionFromDb(gtidSet);
+        GtidSet positionFromZk = unionPositionFromZk(gtidSet);
+
+        if (emptyPositionFromDb) {
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.db.gtid.empty", registryKey);
+            emptyPositionFromDb = false;
+        }
+
+        return positionFromZk.union(positionFromDb);
     }
 
     private GtidSet unionPositionFromZk(GtidSet gtidSet) {
