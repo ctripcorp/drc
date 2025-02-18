@@ -49,7 +49,6 @@
         <dependency>
             <groupId>qunar.tc.qconfig</groupId>
             <artifactId>qconfig-client</artifactId>
-            <version>1.100.71-ctrip</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.ctrip.ops</groupId>
