@@ -77,19 +77,6 @@ public class AbstractLink extends AbstractSystem {
             return this;
         }
 
-        public LinkBuilder<T> with(Class unitClass, String name) throws Exception {
-            AbstractUnit unit = (AbstractUnit) unitClass.getConstructor().newInstance();
-            unit.setSystem(system);
-            if (unit instanceof Activity) {
-                system.activities.put(unitClass.getSimpleName(), (Activity) unit);
-            }
-            if (unit instanceof Resource) {
-
-                system.resources.put(name, (Resource) unit);
-            }
-            return this;
-        }
-
     }
 
     @SuppressWarnings("unchecked")

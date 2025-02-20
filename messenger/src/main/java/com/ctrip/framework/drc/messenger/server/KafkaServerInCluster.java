@@ -8,14 +8,13 @@ import com.ctrip.framework.drc.fetcher.resource.condition.LWMResource;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemoryResource;
 import com.ctrip.framework.drc.fetcher.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
-import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
 import com.ctrip.framework.drc.messenger.activity.event.MqApplierDumpEventActivity;
 import com.ctrip.framework.drc.messenger.activity.event.MqApplyActivity;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
-import com.ctrip.framework.drc.messenger.mq.KafkaPositionResource;
+import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
 import com.ctrip.framework.drc.messenger.mq.MqProviderResource;
 
 /**
@@ -39,7 +38,7 @@ public class KafkaServerInCluster extends FetcherServer {
                 .with(CapacityResource.class)
                 .with(ListenableDirectMemoryResource.class)
                 .with(MqProviderResource.class)
-                .with(KafkaPositionResource.class, "MqPosition")
+                .with(MqPositionResource.class)
                 .with(MqMetricsActivity.class)
                 .with(LoadEventActivity.class)
                 .link(InvolveActivity.class)
@@ -69,7 +68,7 @@ public class KafkaServerInCluster extends FetcherServer {
         return ((MqApplierDumpEventActivity) activities.get("MqApplierDumpEventActivity"));
     }
 
-    public MqPosition getMqPositionResource() {
-        return ((KafkaPositionResource) resources.get("MqPosition"));
+    public MqPositionResource getMqPositionResource() {
+        return ((MqPositionResource) resources.get("MqPosition"));
     }
 }

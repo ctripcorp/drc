@@ -34,11 +34,11 @@ public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
             final ResultSet readOnlyResultSet = statement.executeQuery(IS_READ_ONLY_COMMAND);
             String isReadOnly = "";
             if (readOnlyResultSet.next()) {
-                isReadOnly = readOnlyResultSet.getString("Value");
+                isReadOnly = readOnlyResultSet.getString(1);
             }
 
-            // read_only = OFF,那么此节点即为Master
-            boolean isMaster = "OFF".equalsIgnoreCase(isReadOnly);
+            // read_only = 0,那么此节点即为Master
+            boolean isMaster = "0".equalsIgnoreCase(isReadOnly);
 
             readOnlyResultSet.close();
             statement.close();

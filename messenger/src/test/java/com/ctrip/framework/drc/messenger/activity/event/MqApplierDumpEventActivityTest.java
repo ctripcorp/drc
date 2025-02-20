@@ -1,9 +1,9 @@
 package com.ctrip.framework.drc.messenger.activity.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcUuidLogEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierPreviousGtidsLogEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierDrcUuidLogEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
 import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
@@ -12,8 +12,6 @@ import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by shiruixin

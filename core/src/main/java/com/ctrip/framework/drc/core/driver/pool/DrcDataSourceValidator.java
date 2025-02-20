@@ -45,7 +45,7 @@ public class DrcDataSourceValidator implements Validator {
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(IS_READ_ONLY_COMMAND)) {
                 if (resultSet.next()) {
-                    isMater = "OFF".equalsIgnoreCase(resultSet.getString("Value"));
+                    isMater = "0".equalsIgnoreCase(resultSet.getString(1));
                     // logger.info("DRC DataSource master validation of connection: {}, with result {}, for name: {}, url: {}", connection, isMater, name, url);
                 }
             }

@@ -18,9 +18,6 @@ public class FetcherDynamicConfig extends AbstractConfigBean {
 
     private static final String MESSENGER_APPLY_COUNT_PATTERN = "mq.apply.count.%s";
 
-    private static final String QMQ_GTID_DB = "qmq.gtid.db";
-    private static final String QMQ_GTID_DB_PATTERN = "qmq.gtid.db.%s";
-
     private FetcherDynamicConfig() {}
 
     private static class ConfigHolder {
@@ -44,10 +41,6 @@ public class FetcherDynamicConfig extends AbstractConfigBean {
         return getLongProperty(FIRST_APPLIER_LWM_TOLERANCE_TIME, DEFAULT_FIRST_APPLIER_LWM_TOLERANCE_TIME);
     }
 
-    public boolean getQmqGtidFromDB(String registerKey) {
-        boolean defaultQmqGtidFromDB = getBooleanProperty(QMQ_GTID_DB, false);
-        return getBooleanProperty(String.format(QMQ_GTID_DB_PATTERN, registerKey), defaultQmqGtidFromDB);
-    }
 
 
 }

@@ -52,6 +52,11 @@ public class DataSourceManager extends AbstractDataSource {
         return this.getDataSource(endpoint, null);
     }
 
+    public DataSource getDataSource(Endpoint endpoint, boolean ignoreExceptionOnPreLoad) {
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint, ignoreExceptionOnPreLoad);
+        return this.getDataSource(endpoint, poolProperties);
+    }
+
     public DataSource getDataSource(Endpoint endpoint, PoolProperties poolProperties) {
         Lock lock = cachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
         lock.lock();
@@ -113,6 +118,12 @@ public class DataSourceManager extends AbstractDataSource {
 
         poolProperties.setValidationInterval(30000);
 
+        return poolProperties;
+    }
+
+    public static PoolProperties getDefaultPoolProperties(Endpoint endpoint, boolean ignoreExceptionOnPreLoad) {
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
+        poolProperties.setIgnoreExceptionOnPreLoad(ignoreExceptionOnPreLoad);
         return poolProperties;
     }
 
