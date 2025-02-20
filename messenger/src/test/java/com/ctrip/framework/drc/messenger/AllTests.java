@@ -46,7 +46,6 @@ import java.util.Random;
 //        ApplierWriteRowsEventTest.class,
 
         MqPositionResourceTest.class,
-        KafkaPositionResourceTest.class,
         MqProviderResourceTest.class,
 
         MqTransactionContextResourceTest.class,

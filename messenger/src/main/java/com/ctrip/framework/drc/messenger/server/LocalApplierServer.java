@@ -1,11 +1,5 @@
 package com.ctrip.framework.drc.messenger.server;
 
-import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
-import com.ctrip.framework.drc.messenger.activity.event.MqApplierDumpEventActivity;
-import com.ctrip.framework.drc.messenger.activity.event.MqApplyActivity;
-import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
-import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
-import com.ctrip.framework.drc.messenger.mq.MqProviderResource;
 import com.ctrip.framework.drc.core.config.TestConfig;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
@@ -20,6 +14,12 @@ import com.ctrip.framework.drc.fetcher.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.server.FetcherServer;
+import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
+import com.ctrip.framework.drc.messenger.activity.event.MqApplierDumpEventActivity;
+import com.ctrip.framework.drc.messenger.activity.event.MqApplyActivity;
+import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
+import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
+import com.ctrip.framework.drc.messenger.mq.MqProviderResource;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 

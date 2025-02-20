@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerConfigDto;
 import com.ctrip.framework.drc.core.server.zookeeper.DrcZkConfig;
 import com.ctrip.framework.drc.core.utils.SpringUtils;
-import com.ctrip.framework.drc.messenger.mq.KafkaPositionResource;
 import com.ctrip.framework.drc.messenger.mq.MqPositionResource;
 import com.ctrip.framework.drc.messenger.server.KafkaServerInCluster;
 import com.ctrip.framework.drc.messenger.server.MqServerInCluster;
@@ -22,9 +21,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 import org.springframework.context.ApplicationContext;
+
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -103,7 +103,7 @@ public class MqServerContainerTest {
         applierServerInCluster.start();
 
         MqServerInCluster serverInCluster = (MqServerInCluster) mqServerContainer.getServers().values().iterator().next();
-        MqPositionResource mqPositionResource = (MqPositionResource) serverInCluster.getMqPositionResource();
+        MqPositionResource mqPositionResource = serverInCluster.getMqPositionResource();
 
         mqServerContainer.release();
         Assert.assertTrue(mqPositionResource.isDisposed());
@@ -118,10 +118,10 @@ public class MqServerContainerTest {
         kafkaServerInCluster.start();
 
         KafkaServerInCluster serverInCluster = (KafkaServerInCluster) mqServerContainer.getServers().values().iterator().next();
-        KafkaPositionResource kafkaPositionResource = (KafkaPositionResource) serverInCluster.getMqPositionResource();
+        MqPositionResource mqPositionResource = serverInCluster.getMqPositionResource();
 
         mqServerContainer.release();
-        Assert.assertTrue(kafkaPositionResource.isDisposed());
+        Assert.assertTrue(mqPositionResource.isDisposed());
     }
 
     @Test

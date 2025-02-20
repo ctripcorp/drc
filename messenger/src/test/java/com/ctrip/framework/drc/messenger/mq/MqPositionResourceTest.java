@@ -1,101 +1,61 @@
 package com.ctrip.framework.drc.messenger.mq;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
-import com.ctrip.xpipe.zk.ZkClient;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.ExistsBuilder;
-import org.apache.curator.framework.api.GetDataBuilder;
-import org.apache.curator.framework.api.transaction.*;
-import org.apache.zookeeper.data.Stat;
-import org.junit.After;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.fetcher.system.AbstractSystem;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 /**
- * Created by shiruixin
- * 2024/11/8 16:51
+ * Created by dengquanliang
+ * 2025/1/17 16:39
  */
 public class MqPositionResourceTest {
-    private MqPositionResource mqPosition = new MqPositionResource();
 
-    private ZkClient zkClient = mock(ZkClient.class);
-
-    private CuratorFramework curatorFramework = mock(CuratorFramework.class);
-
-    private ExistsBuilder existsBuilder = mock(ExistsBuilder.class);
-
-    private static final String path = "/applier/config/positions/drc_dalcluster.mq_test._drc_mq";
-
-    private static final String toUpdateGtid = "6afbad2c-fabe-11e9-878b-fa163eb626bd:1";
 
     private static final String ip = "127.0.0.1";
     private static final int port = 3306;
     private static final String username = "username";
     private static final String password = "password";
+    private static final String initialGtidExecuted = "712c708a-2fa6-11eb-b7e5-98039ba92412:1-377";
 
-    @Before
-    public void setUp() throws Exception {
-        mqPosition.setZkClient(zkClient);
-        when(zkClient.get()).thenReturn(curatorFramework);
-        when(curatorFramework.checkExists()).thenReturn(existsBuilder);
 
-        Stat stat = mock(Stat.class);
-        when(existsBuilder.forPath(anyString())).thenReturn(stat);
 
-        GetDataBuilder getDataBuilder = mock(GetDataBuilder.class);
-        when(curatorFramework.getData()).thenReturn(getDataBuilder);
-
-        when(getDataBuilder.forPath(anyString())).thenReturn(toUpdateGtid.getBytes(StandardCharsets.UTF_8));
-
-        CuratorTransaction curatorTransaction = mock(CuratorTransaction.class);
-        when(curatorFramework.inTransaction()).thenReturn(curatorTransaction);
-
-        TransactionCheckBuilder transactionCheckBuilder = mock(TransactionCheckBuilder.class);
-        when(curatorTransaction.check()).thenReturn(transactionCheckBuilder);
-
-        CuratorTransactionBridge curatorTransactionBridge = mock(CuratorTransactionBridge.class);
-        when(transactionCheckBuilder.forPath(path)).thenReturn(curatorTransactionBridge);
-
-        CuratorTransactionFinal curatorTransactionFinal = mock(CuratorTransactionFinal.class);
-        when(curatorTransactionBridge.and()).thenReturn(curatorTransactionFinal);
-
-        TransactionSetDataBuilder transactionSetDataBuilder = mock(TransactionSetDataBuilder.class);
-        when(curatorTransactionFinal.setData()).thenReturn(transactionSetDataBuilder);
-
-        when(transactionSetDataBuilder.forPath(path, toUpdateGtid.getBytes())).thenReturn(curatorTransactionBridge);
-
-        when(curatorTransactionBridge.and()).thenReturn(curatorTransactionFinal);
-
-        mqPosition.registryKey = "drc_dalcluster.mq_test._drc_mq";
-        mqPosition.ip = ip;
-        mqPosition.port = port;
-        mqPosition.username = username;
-        mqPosition.password = password;
-        mqPosition.doInitialize();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        mqPosition.doDispose();
+    @Test
+    public void testAddGitd() throws Exception {
+        MqPositionResource mqPositionResource = getKafkaPositionResource();
+        mqPositionResource.initialize();
+        mqPositionResource.add(new Gtid("712c708a-2fa6-11eb-b7e5-98039ba92412:378"));
+        Thread.sleep(100);
+        Assert.assertEquals(new GtidSet(mqPositionResource.getCurrentPosition()), new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:1-378"));
+        mqPositionResource.union(new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-100"));
+        Thread.sleep(100);
+        Assert.assertEquals(new GtidSet(mqPositionResource.getCurrentPosition()), new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-100,712c708a-2fa6-11eb-b7e5-98039ba92412:1-378"));
     }
 
     @Test
-    public void updatePosition() {
-        mqPosition.add(new Gtid(toUpdateGtid));
-        String position = mqPosition.getCurrentPosition();
-        Assert.assertEquals(toUpdateGtid, position);
+    public void testUpdatePositionInDb() throws Exception {
+        MqPositionResource mqPositionResource = getKafkaPositionResource();
+        mqPositionResource.initialize();
+        mqPositionResource.persistPosition();
+        Assert.assertEquals(SystemStatus.STOPPED, mqPositionResource.getSystem().getStatus());
+
+        mqPositionResource.dispose();
     }
 
-    @Test
-    public void getPosition() {
-        String position = mqPosition.get();
-        Assert.assertEquals(toUpdateGtid, position);
+    private MqPositionResource getKafkaPositionResource() {
+        MqPositionResource mqPositionResource = new MqPositionResource();
+        mqPositionResource.ip = ip;
+        mqPositionResource.port = port;
+        mqPositionResource.username = username;
+        mqPositionResource.password = password;
+        mqPositionResource.registryKey = "registryKey";
+        mqPositionResource.initialGtidExecuted = initialGtidExecuted;
+        mqPositionResource.setSystem(new AbstractSystem());
+        return mqPositionResource;
     }
+
+
+
 }

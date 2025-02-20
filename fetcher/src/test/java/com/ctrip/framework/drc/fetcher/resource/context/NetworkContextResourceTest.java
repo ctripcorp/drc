@@ -42,7 +42,7 @@ public class NetworkContextResourceTest {
     public void testEmptyGtidSet() throws Exception {
         networkContextResource.initialize();
         GtidSet gtidSet = networkContextResource.fetchGtidSet();
-        Assert.assertEquals(gtidSet, new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:1-377"));
+        Assert.assertEquals(gtidSet, new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:6-377"));
     }
 
     @Test
@@ -50,7 +50,7 @@ public class NetworkContextResourceTest {
         networkContextResource.initialGtidExecuted = "a33ded23-6960-11eb-a8e0-fa163e02998c:1-58";
         networkContextResource.initialize();
         GtidSet gtidSet = networkContextResource.fetchGtidSet();
-        Assert.assertEquals(gtidSet, new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:1-6,a33ded23-6960-11eb-a8e0-fa163e02998c:1-58"));
+        Assert.assertEquals(gtidSet, new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-58"));
     }
 
     @Test
@@ -77,18 +77,6 @@ public class NetworkContextResourceTest {
         executedGtidReaders = networkContextResource1.getExecutedGtidReaders(null);
         Assert.assertTrue(executedGtidReaders.stream().anyMatch(e -> e instanceof DbTransactionTableGtidReader));
         Assert.assertTrue(executedGtidReaders.stream().anyMatch(e -> e instanceof TransactionTableGtidReader));
-    }
-
-    @Test
-    public void testUnionPositionFromZk() throws Exception {
-        NetworkContextResource networkContextResource1 = new NetworkContextResource();
-        networkContextResource1.mqPosition = new TestMqPositionResource();
-        networkContextResource1.initialGtidExecuted = "a33ded23-6960-11eb-a8e0-fa163e02998c:1-58";
-        networkContextResource1.applyMode = ApplyMode.mq.getType();
-        networkContextResource1.initialize();
-        GtidSet gtidSet = networkContextResource1.fetchGtidSet();
-        Assert.assertFalse(networkContextResource1.emptyPositionFromDb);
-        Assert.assertEquals(gtidSet, new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-58"));
     }
 
     @Test
@@ -129,14 +117,5 @@ public class NetworkContextResourceTest {
 
         }
 
-        @Override
-        public String get() {
-            return null;
-        }
-
-        @Override
-        public void release() throws Exception {
-
-        }
     }
 }
