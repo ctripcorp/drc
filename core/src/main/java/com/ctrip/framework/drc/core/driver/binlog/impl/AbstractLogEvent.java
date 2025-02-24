@@ -119,7 +119,7 @@ public abstract class AbstractLogEvent implements LogEvent {
         return this.logEventHeader;
     }
 
-    public void setLogEventHeader(final LogEventHeader logEventHeader) {
+    public final void setLogEventHeader(final LogEventHeader logEventHeader) {
         this.logEventHeader = logEventHeader;
     }
 

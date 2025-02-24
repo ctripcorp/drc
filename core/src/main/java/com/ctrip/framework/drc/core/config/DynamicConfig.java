@@ -38,6 +38,9 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String REPLICATOR_SKIP_UNSUPPORTED_SCHEMA = "replicator.skip.unsupported.schema";
     private static final String REPLICATOR_SCALE_OUT_KEY = "replicator.scale.out.%s";
 
+    private static final String REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH = "replicator.rbinlog.format.description.v2.switch";
+    private static final String REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH_KEY = REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH + ".%s";
+
 
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
 
@@ -45,8 +48,6 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String INFO_INQUIRY_THREAD = "info.inquiry.thread";
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
     private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
-
-    private static final String OLD_QTID_SQL_SWITCH = "old.gtid.sql.switch";
 
     // 100MB
     public static final int DEFAULT_MERGE_GAP_MAX = 100 * 1024 * 1024;
@@ -165,8 +166,12 @@ public class DynamicConfig extends AbstractConfigBean {
         return getBooleanProperty(CM_NOTIFY_HTTPS_SWITCH, false);
     }
 
-    public boolean getOldGtidSqlSwitch() {
-        return getBooleanProperty(OLD_QTID_SQL_SWITCH, false);
-    }
 
+    public boolean getFormatDescriptionV2Switch(String key) {
+        String value = getProperty(String.format(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH_KEY, key));
+        if (!StringUtils.isEmpty(value)) {
+            return Boolean.parseBoolean(value);
+        }
+        return getBooleanProperty(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH, true);
+    }
 }

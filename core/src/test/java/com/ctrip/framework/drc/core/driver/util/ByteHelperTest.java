@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.core.driver.util;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.binlog.impl.FormatDescriptionLogEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.util.AsciiString;
@@ -10,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
