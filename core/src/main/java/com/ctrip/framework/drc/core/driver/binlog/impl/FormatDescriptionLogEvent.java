@@ -11,6 +11,7 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
  */
 public class FormatDescriptionLogEvent extends AbstractLogEvent {
 
+    private static final int BINLOG_CHECKSUM_ALG_DESC_LEN = 1;
     private int binlogVersion;
 
     private String mysqlServerVersion;
@@ -48,12 +49,12 @@ public class FormatDescriptionLogEvent extends AbstractLogEvent {
         this.binlogCreateTimestamp = payloadBuf.readUnsignedIntLE();
         this.eventHeaderLength = payloadBuf.readUnsignedByte();
 
-        int eventCount = payloadBuf.writerIndex() - payloadBuf.readerIndex() - 4;
+        int eventCount = payloadBuf.writerIndex() - payloadBuf.readerIndex() - 4 - BINLOG_CHECKSUM_ALG_DESC_LEN;
         eventPostHeaderLengths = new int[eventCount];
         for (int i = 0; i < eventCount; i++) {
             eventPostHeaderLengths[i] = payloadBuf.readUnsignedByte();
         }
-
+        payloadBuf.readUnsignedByte(); // BINLOG_CHECKSUM_ALG_DESC, skip
         this.checksum = readChecksumIfPossible(payloadBuf); // 4bytes
 
         validate();

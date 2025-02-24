@@ -13,6 +13,7 @@ import java.io.IOException;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_filter_log_event;
+import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.LOG_EVENT_IGNORABLE_F;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 
@@ -49,7 +50,7 @@ public class FilterLogEvent extends AbstractLogEvent {
 
         // set logEventHeader
         int eventSize = eventHeaderLengthVersionGt1 + payloadLength;
-        setLogEventHeader(new LogEventHeader(drc_filter_log_event.getType(), 0, eventSize, nextTransactionOffset)
+        setLogEventHeader(new LogEventHeader(drc_filter_log_event.getType(), 0, eventSize, nextTransactionOffset, LOG_EVENT_IGNORABLE_F)
         );
 
         // set payload

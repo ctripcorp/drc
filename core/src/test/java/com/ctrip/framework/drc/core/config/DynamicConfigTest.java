@@ -42,4 +42,13 @@ public class DynamicConfigTest {
         registryKey = dynamicConfig.getBinlogScaleOutNum("not_defined_registry_key", -1);
         Assert.assertEquals(1, registryKey);
     }
+
+    @Test
+    public void getFormatDescriptionEventV2Switch() {
+        // switch off
+        Assert.assertFalse(dynamicConfig.getFormatDescriptionV2Switch("xxxx_not_exist_dasugh91"));
+        // true
+        Assert.assertFalse(dynamicConfig.getFormatDescriptionV2Switch("unit_test_mha_false"));
+        Assert.assertTrue(dynamicConfig.getFormatDescriptionV2Switch("unit_test_mha_true"));
+    }
 }

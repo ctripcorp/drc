@@ -1,10 +1,14 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.format_description_log_event;
 
@@ -33,7 +37,7 @@ public class FormatDescriptionLogEventTest {
         Assert.assertEquals("5.7.27-log", formatDescriptionLogEvent.getMysqlServerVersion());
         Assert.assertEquals(0, formatDescriptionLogEvent.getBinlogCreateTimestamp());
         Assert.assertEquals(19, formatDescriptionLogEvent.getEventHeaderLength());
-        Assert.assertEquals(39, formatDescriptionLogEvent.getEventPostHeaderLengths().length);
+        Assert.assertEquals(38, formatDescriptionLogEvent.getEventPostHeaderLengths().length);
         Assert.assertEquals("c4b5a0bf", Long.toHexString(formatDescriptionLogEvent.getChecksum()));
 
         Assert.assertEquals(119, byteBuf.readerIndex());
@@ -41,33 +45,27 @@ public class FormatDescriptionLogEventTest {
         Assert.assertEquals(19, formatDescriptionLogEvent.getLogEventHeader().getHeaderBuf().readerIndex());
     }
 
-//    @Test
-//    public void readLazyTest() {
-//        final ByteBuf byteBuf = initByteBuf();
-//        final FormatDescriptionLogEvent formatDescriptionLogEvent =
-//                new FormatDescriptionLogEvent().read(byteBuf);
-//
-//        if (null == formatDescriptionLogEvent) {
-//            Assert.fail();
-//        }
-//
-//        if (null == formatDescriptionLogEvent.getLogEventHeader()) {
-//            Assert.fail();
-//        }
-//
-//        // valid decode
-//        Assert.assertEquals(format_description_log_event, LogEventType.getLogEventType(formatDescriptionLogEvent.getLogEventHeader().getEventType()));
-//        Assert.assertEquals(0, formatDescriptionLogEvent.getBinlogVersion());
-//        Assert.assertNull(formatDescriptionLogEvent.getMysqlServerVersion());
-//        Assert.assertEquals(0, formatDescriptionLogEvent.getBinlogCreateTimestamp());
-//        Assert.assertEquals(0, formatDescriptionLogEvent.getEventHeaderLength());
-//        Assert.assertNull(formatDescriptionLogEvent.getEventPostHeaderLengths());
-//        Assert.assertNull(formatDescriptionLogEvent.getChecksum());
-//
-//        Assert.assertEquals(119, byteBuf.readerIndex());
-//        Assert.assertEquals(0, formatDescriptionLogEvent.getPayloadBuf().readerIndex());
-//        Assert.assertEquals(19, formatDescriptionLogEvent.getLogEventHeader().getHeaderBuf().readerIndex());
-//    }
+
+    private static final int LOG_EVENT_BINLOG_IN_USE_F = 0x1;
+
+    @Test
+    public void testGetMySQLV8Format() {
+        ByteBuf byteBuf = ByteHelper.getFormatDescriptionLogEventV2();
+        FormatDescriptionLogEvent logEvent = new FormatDescriptionLogEvent().read(byteBuf);
+
+        LogEventHeader logEventHeader = logEvent.getLogEventHeader();
+        Assert.assertEquals(218, logEventHeader.getEventSize());
+        Assert.assertEquals(222, logEventHeader.getNextEventStartPosition());
+
+        Assert.assertEquals(0, logEventHeader.getFlags() & LOG_EVENT_BINLOG_IN_USE_F);
+        Assert.assertEquals("8.0.36", logEvent.getMysqlServerVersion());
+
+        // test eventPostHeaderLength
+        int eventPostHeaderLength = logEvent.getEventPostHeaderLengths().length;
+        Assert.assertEquals(137, eventPostHeaderLength);
+        int maxType = Arrays.stream(LogEventType.values()).mapToInt(LogEventType::getType).max().getAsInt();
+        Assert.assertTrue(eventPostHeaderLength > maxType);
+    }
 
 
     /**

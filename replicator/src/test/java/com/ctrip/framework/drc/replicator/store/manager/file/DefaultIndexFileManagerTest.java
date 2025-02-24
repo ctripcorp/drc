@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE_V2;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.AllTests.previous_gtidset_interval;
@@ -105,7 +105,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
             total += file.length();
         }
         fileManager.flush();
-        long actual = (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE) * files.size() + (loop + 2) * size;
+        long actual = (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE) * files.size() + (loop + 2) * size;
         if (actual != total) {
             Assert.assertEquals((total - actual) % 40, 0);  //EMPTY_PREVIOUS_GTID_EVENT_SIZE not empty, 31 -> 71
         } else {
@@ -134,7 +134,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
             total += file.length();
         }
         fileManager.flush();
-        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE) * files.size() + (loop + 2) * size);
+        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE) * files.size() + (loop + 2) * size);
         GtidSet gtidSet = fileManager.getExecutedGtids();
         Assert.assertTrue(!gtidSet.getUUIDs().isEmpty());
         deleteFiles(logDir);
@@ -161,7 +161,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
             total += file.length();
         }
         fileManager.flush();
-        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE + 40 /*not empty*/) * files.size() + (loop + 1) * size);
+        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE + 40 /*not empty*/) * files.size() + (loop + 1) * size);
         GtidSet gtidSet = fileManager.getExecutedGtids();
         Assert.assertTrue(!gtidSet.getUUIDs().isEmpty());
         Assert.assertEquals(gtidSet.toString(), UUID_STRING + ":1-" + (loop + 1));
@@ -195,7 +195,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
             total += file.length();
         }
         fileManager.flush();
-        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE + 40 /*not empty*/) * files.size() + loop * size + ddlSize);
+        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + DrcIndexLogEvent.FIX_SIZE + EMPTY_PREVIOUS_GTID_EVENT_SIZE + 40 /*not empty*/) * files.size() + loop * size + ddlSize);
         GtidSet gtidSet = fileManager.getExecutedGtids();
         Assert.assertTrue(!gtidSet.getUUIDs().isEmpty());
         Assert.assertEquals(gtidSet.toString(), UUID_STRING + ":1-" + (loop + 1));

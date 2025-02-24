@@ -252,7 +252,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     public GtidSet getPreviousGtids(File current) {
         return doGetGtids(current, false);
     }
-    
+
 
     @Override
     public boolean gtidExecuted(File currentFile, GtidSet executedGtid) {
@@ -597,7 +597,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     private void writeFormatDescriptionLogEvent() {
         try {
             logger.info("[Write] format description log event");
-            ByteBuf byteBuf = getFormatDescriptionLogEvent();
+            ByteBuf byteBuf = getFormatDescriptionLogEvent(registryKey);
             logFileSize.addAndGet(byteBuf.writerIndex());
             logChannel.write(byteBuf.nioBuffer(0, byteBuf.writerIndex()));
             byteBuf.release();
