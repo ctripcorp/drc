@@ -452,9 +452,9 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                         Collectors.toMap(MhaReplicationTbl::getDstMhaId, e -> e)));
         //mha_db_replication_tbl
         List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAllExist();
-        Map<Long,Map<Long,MhaDbReplicationTbl>> mhaDbReplicationMap = mhaDbReplicationTbls.stream()
-                .collect(Collectors.groupingBy(MhaDbReplicationTbl::getSrcMhaDbMappingId,
-                        Collectors.toMap(MhaDbReplicationTbl::getDstMhaDbMappingId, e -> e)));
+        Map<MultiKey,MhaDbReplicationTbl> mhaDbReplicationMap = mhaDbReplicationTbls.stream()
+                .collect(Collectors.toMap(StreamUtils::getKey, e -> e));
+
 
         //db_tbl
         List<DbTbl> dbTbls = dbTblDao.queryAllExist();
@@ -480,7 +480,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                     MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
                     MhaDbMappingTbl dstMapping = MhaDbMappingMap.get(dbRepliTbl.getDstMhaDbMappingId());
                     MhaReplicationTbl mhaRepli = mhaReplicationMap.get(srcMapping.getMhaId()).get(dstMapping.getMhaId());
-                    MhaDbReplicationTbl mhaDbRepli = mhaDbReplicationMap.get(srcMapping.getId()).get(dstMapping.getId());
+                    MhaDbReplicationTbl mhaDbRepli = mhaDbReplicationMap.get(new MultiKey(srcMapping.getId(), dstMapping.getId(), ReplicationTypeEnum.DB_TO_DB.getType()));
                     if ((mhaRepli.getDrcStatus().equals(1) && mhaRepli.getDeleted().equals(BooleanEnum.FALSE.getCode())) || applierGroupMhaDbRepList.contains(mhaDbRepli.getId())) {
                         mhaSyncIdSet.add(mhaRepli.getId());
                         DbTbl srcDb = dbMap.get(srcMapping.getDbId());
@@ -498,7 +498,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                     MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
                     DbTbl srcDb = dbMap.get(srcMapping.getDbId());
                     MhaTblV2 mhaTbl = mhaTblMap.get(srcMapping.getMhaId());
-                    if (messengerGroupMhaIdList.contains(mhaTbl.getId())) {
+                    if (mhaTbl != null && messengerGroupMhaIdList.contains(mhaTbl.getId())) {
                         dbMessengerSet.add(srcDb.getDbName());
                         if ( (dbRepliTbl.getDstLogicTableName().contains("otter") || !dbRepliTbl.getDstLogicTableName().endsWith(".binlog")) && !dbRepliTbl.getDatachangeLasttime().before(Timestamp.valueOf("2024-06-10 00:00:00.000"))) {
                             dbOtterSet.add(srcDb.getDbName());
