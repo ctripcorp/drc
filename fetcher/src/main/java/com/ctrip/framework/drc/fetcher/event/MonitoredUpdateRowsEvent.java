@@ -36,6 +36,7 @@ public class MonitoredUpdateRowsEvent<T extends BaseTransactionContext> extends 
                     "\nbefore rows: " + beforeRows +
                     "\nbefore bitmap: " + beforeBitmap));
         }
+        context.setLogEventHeader(getLogEventHeader());
         context.update(beforeRows, beforeBitmap,
                 afterRows, afterBitmap, columns);
     }

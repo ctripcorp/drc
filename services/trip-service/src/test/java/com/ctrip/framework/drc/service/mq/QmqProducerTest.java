@@ -8,7 +8,9 @@ import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.google.common.collect.Lists;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -17,7 +19,7 @@ import qunar.tc.qmq.Message;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
-import static com.ctrip.framework.drc.core.mq.EventType.UPDATE;
+import static com.ctrip.framework.drc.core.mq.EventType.*;
 import static com.ctrip.framework.drc.service.mq.QmqProducer.DATA_CHANGE;
 
 /**
@@ -27,14 +29,24 @@ public class QmqProducerTest {
 
     private String schema = "testdb";
     private String table = "table";
+    MockedStatic<TripServiceDynamicConfig> theMock;
+
+    @Before
+    public void setUp() throws Exception {
+        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
+        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
+        theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
+        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
+
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        theMock.close();
+    }
 
     @Test
     public void generateMessage()  {
-        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
-        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
-        MockedStatic<TripServiceDynamicConfig> theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
-        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
-
         MqConfig config = new MqConfig();
         config.setTopic("drc.test.topic");
         config.setOrder(true);
@@ -61,7 +73,7 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        Message message = producer.generateMessage(data);
+        Message message = producer.generateMessage(data,true).getLeft();
         String dataChange = message.getStringProperty(DATA_CHANGE);
         JSONObject jsonObject = JSON.parseObject(dataChange);
 
@@ -104,16 +116,11 @@ public class QmqProducerTest {
         Assert.assertEquals(false, afterName.getBoolean("isKey"));
         Assert.assertEquals(true, afterName.getBoolean("isUpdated"));
 
-        theMock.close();
+
     }
 
     @Test
     public void testGenerateMessageSendByPks()  {
-        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
-        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
-        MockedStatic<TripServiceDynamicConfig> theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
-        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
-
         MqConfig config = new MqConfig();
         config.setTopic("drc.test.topic");
         config.setOrder(true);
@@ -139,7 +146,7 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        Message message = producer.generateMessage(data);
+        Message message = producer.generateMessage(data,true).getLeft();
         Assert.assertEquals("testdb.table_1", message.getOrderKey());
 
         beforeColumns = Lists.newArrayList();
@@ -156,7 +163,7 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        message = producer.generateMessage(data);
+        message = producer.generateMessage(data,true).getLeft();
         Assert.assertEquals("testdb.table_1_Joe", message.getOrderKey());
 
         beforeColumns = Lists.newArrayList();
@@ -173,9 +180,119 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        message = producer.generateMessage(data);
+        message = producer.generateMessage(data,true).getLeft();
         Assert.assertEquals("testdb.table", message.getOrderKey());
 
-        theMock.close();
     }
+
+    @Test
+    public void testGenerateMessageUpdate() {
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", "1", true, true, false);
+        EventColumn beforeColumn1 = new EventColumn("name", null, false, false, true);
+        EventColumn beforeColumn2 = new EventColumn("name2", "aaa", false, false, true);
+        EventColumn beforeColumn3 = new EventColumn("name3", "", false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        beforeColumns.add(beforeColumn2);
+        beforeColumns.add(beforeColumn3);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", "1", true, true, false);
+        EventColumn afterColumn1 = new EventColumn("name", null, false, false, true);
+        EventColumn afterColumn2 = new EventColumn("name2", "sss", false, false, true);
+        EventColumn afterColumn3 = new EventColumn("name3", "", false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        afterColumns.add(afterColumn2);
+        afterColumns.add(afterColumn3);
+        data.setAfterColumns(afterColumns);
+
+        MqConfig config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        QmqProducer producer = new QmqProducer(config);
+
+        String messageOld = producer.generateMessageOld(data).getRight();
+        String messageNew = producer.generateMessage(data,true).getRight();
+        String cleanedStr1 = producer.removeTimestamps(messageOld);
+        String cleanedStr2 = producer.removeTimestamps(messageNew);
+
+        Assert.assertEquals(cleanedStr1,cleanedStr2);
+    }
+
+    @Test
+    public void testGenerateMessageDelete() {
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(DELETE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", "1", true, true, false);
+        EventColumn beforeColumn1 = new EventColumn("name", null, false, false, true);
+        EventColumn beforeColumn2 = new EventColumn("name2", "aaa", false, false, true);
+        EventColumn beforeColumn3 = new EventColumn("name3", "", false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        beforeColumns.add(beforeColumn2);
+        beforeColumns.add(beforeColumn3);
+        data.setBeforeColumns(beforeColumns);
+
+
+        MqConfig config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        QmqProducer producer = new QmqProducer(config);
+
+        String messageOld = producer.generateMessageOld(data).getRight();
+        String messageNew = producer.generateMessage(data,true).getRight();
+        String cleanedStr1 = producer.removeTimestamps(messageOld);
+        String cleanedStr2 = producer.removeTimestamps(messageNew);
+
+        Assert.assertEquals(cleanedStr1,cleanedStr2);
+    }
+
+    @Test
+    public void testGenerateMessageInsert() {
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(INSERT);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", "1", true, true, false);
+        EventColumn afterColumn1 = new EventColumn("name", null, false, false, true);
+        EventColumn afterColumn2 = new EventColumn("name2", "sss", false, false, true);
+        EventColumn afterColumn3 = new EventColumn("name3", "", false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        afterColumns.add(afterColumn2);
+        afterColumns.add(afterColumn3);
+        data.setAfterColumns(afterColumns);
+
+        MqConfig config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        QmqProducer producer = new QmqProducer(config);
+
+        String messageOld = producer.generateMessageOld(data).getRight();
+        String messageNew = producer.generateMessage(data,true).getRight();
+        String cleanedStr1 = producer.removeTimestamps(messageOld);
+        String cleanedStr2 = producer.removeTimestamps(messageNew);
+
+        Assert.assertEquals(cleanedStr1,cleanedStr2);
+    }
+
+
 }

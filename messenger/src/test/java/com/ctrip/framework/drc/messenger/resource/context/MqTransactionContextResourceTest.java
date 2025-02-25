@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.messenger.resource.context;
 
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.mq.EventColumn;
@@ -62,6 +63,9 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         context.registryKey = "registryKey";
         context.applyMode = 2;
         context.mqRowEventExecutor = mqRowEventExecutorResource;
+        LogEventHeader logEventHeader = Mockito.mock(LogEventHeader.class);
+        context.setLogEventHeader(logEventHeader);
+        Mockito.when(logEventHeader.getEventTimestamp()).thenReturn(1L);
 
 
         MqMetricsActivity mockMetricsActivity = Mockito.mock(MqMetricsActivity.class);

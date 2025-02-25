@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import static com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity.measurementDelay;
+
 /**
  * Created by shiruixin
  * 2024/11/8 16:28
@@ -31,9 +33,10 @@ public class MqMetricsActivityTest {
         mockedStatic.when(() -> DefaultReporterHolder.getInstance()).thenReturn(mockReporter);
 
         MqMetricsActivity report = new MqMetricsActivity();
-        MqMonitorContext context = new MqMonitorContext(0, "registryKey", "messenger.active", "applyActivity");
+        MqMonitorContext context = new MqMonitorContext(0, "registryKey", measurementDelay);
         report.doTask(context);
         Mockito.verify(mockReporter, Mockito.times(1)).reportMessengerDelay(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
         mockedStatic.close();
     }
+
 }

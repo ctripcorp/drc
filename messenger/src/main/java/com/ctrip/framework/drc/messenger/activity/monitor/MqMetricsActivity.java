@@ -14,9 +14,11 @@ import java.util.Map;
 public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boolean> {
 
     private static final String measurement = "fx.drc.messenger.produce";
-    private static final String measurementMessengerActive = "fx.drc.messenger.active";
+    public static final String measurementMessengerActive = "fx.drc.messenger.active";
+    public static final String measurementDelay = "fx.drc.messenger.processing.delay";
 
     private Map<String, String> tags = Maps.newHashMap();
+    private Map<String, String> processingDelayTags = Maps.newHashMap();
     private Map<String, String> tagsMessengerActive = Maps.newHashMap();
 
     @InstanceConfig(path = "cluster")
@@ -31,6 +33,8 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
         super.doInitialize();
         tags.put("clusterName", cluster);
         tags.put("srcMhaName", srcMhaName);
+        processingDelayTags.put("clusterName", cluster);
+        processingDelayTags.put("srcMhaName", srcMhaName);
         tagsMessengerActive.put("clusterName", cluster);
         tagsMessengerActive.put("srcMhaName", srcMhaName);
     }
@@ -40,6 +44,9 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
         if (context.getMetricName() != null && context.getMetricName().contains("messenger.active")) {
             tagsMessengerActive.put("registryKey", context.getRegistryKey());
             DefaultReporterHolder.getInstance().reportMessengerDelay(tagsMessengerActive, (long)context.getValue(), measurementMessengerActive);
+        }  else if (context.getMetricName() != null && context.getMetricName().contains("processing.delay")) {
+            processingDelayTags.put("db", context.getDbName());
+            DefaultReporterHolder.getInstance().reportMessengerDelay(processingDelayTags, context.getTimeCost(), measurementDelay);
         } else {
             tags.put("db", context.getDbName());
             tags.put("table", context.getTableName());
@@ -68,6 +75,7 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
         Map<String, String> matchTags = getMatchTags();
         DefaultReporterHolder.getInstance().removeRegister(measurement, matchTags);
         DefaultReporterHolder.getInstance().removeRegister(measurementMessengerActive, matchTags);
+        DefaultReporterHolder.getInstance().removeRegister(measurementDelay, matchTags);
     }
 
     private Map<String, String> getMatchTags() {

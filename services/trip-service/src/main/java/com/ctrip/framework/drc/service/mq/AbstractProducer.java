@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.mq;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.Producer;
+import com.google.common.collect.Lists;
 import muise.ctrip.canal.ColumnData;
 import muise.ctrip.canal.DataChange;
 
@@ -31,6 +32,28 @@ public abstract class AbstractProducer implements Producer {
         if (eventData.getAfterColumns() != null) {
             for (EventColumn column : eventData.getAfterColumns()) {
                 afterList.add(new ColumnData(column.getColumnName(), column.getColumnValue() == null ? "" : column.getColumnValue(), column.isUpdate(), column.isKey(), column.isNull()));
+            }
+        }
+        return dataChange;
+    }
+
+    public DataChangeVo transferDataChange(EventData eventData) {
+        DataChangeVo dataChange = new DataChangeVo();
+        dataChange.setSchemaName(eventData.getSchemaName());
+        dataChange.setTableName(eventData.getTableName());
+        dataChange.setEventType(eventData.getEventType().toString());
+        List<DataChangeMessage.ColumnData> beforeList = Lists.newArrayList();
+        List<DataChangeMessage.ColumnData> afterList = Lists.newArrayList();
+        dataChange.setBeforeColumnList(beforeList);
+        dataChange.setAfterColumnList(afterList);
+        if (eventData.getBeforeColumns() != null) {
+            for (EventColumn column : eventData.getBeforeColumns()) {
+                beforeList.add(new DataChangeMessage.ColumnData(column.getColumnName(), column.getColumnValue() == null ? "" : column.getColumnValue(), column.isUpdate(), column.isKey(), column.isNull()));
+            }
+        }
+        if (eventData.getAfterColumns() != null) {
+            for (EventColumn column : eventData.getAfterColumns()) {
+                afterList.add(new DataChangeMessage.ColumnData(column.getColumnName(), column.getColumnValue() == null ? "" : column.getColumnValue(), column.isUpdate(), column.isKey(), column.isNull()));
             }
         }
         return dataChange;

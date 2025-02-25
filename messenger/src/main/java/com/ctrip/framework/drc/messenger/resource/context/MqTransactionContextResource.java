@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.messenger.resource.context;
 
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
@@ -35,6 +36,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity.measurementDelay;
+
 /**
  * Created by jixinwang on 2022/10/12
  */
@@ -59,6 +62,9 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     private ApplyMode mode;
 
     private static final Map<String, AtomicInteger> activeThreadsMap = Maps.newConcurrentMap();
+
+    //todo: might change to another logEventHeader when multi-thread sending different rowsEvent
+    private LogEventHeader logEventHeader;
 
     public static int getConcurrency(String registryKey) {
         return activeThreadsMap.containsKey(registryKey) ? activeThreadsMap.get(registryKey).get() : 0;
@@ -142,6 +148,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
         atomicInteger.getAndIncrement();
         try {
+            reportHickWall(eventDatas,System.currentTimeMillis() - logEventHeader.getEventTimestamp() * 1000, measurementDelay);
             boolean send = producer.send(eventDatas, eventType);
             rowsSize.getAndAdd(eventDatas.size());
             reportHickWall(eventDatas, producer.getTopic(), mqType, send);
@@ -238,6 +245,15 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         }
     }
 
+    private void reportHickWall(List<EventData> eventDatas, long timeCost, String metricName) {
+        if (!eventDatas.isEmpty()) {
+            EventData eventData = eventDatas.get(0);
+            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), timeCost, registryKey,metricName);
+            mqMetricsActivity.report(mqMonitorContext);
+        }
+
+    }
+
 
     @Override
     public void begin() {
@@ -284,6 +300,12 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         return null;
     }
 
+
+    @Override
+    public void setLogEventHeader(LogEventHeader logEventHeader) {
+        this.logEventHeader = logEventHeader;
+    }
+
     @Override
     public TransactionData.ApplyResult complete() {
         if (mqSendFutures == null) {
@@ -312,4 +334,6 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             f.cancel(true);
         }
     }
+
+
 }
