@@ -19,6 +19,7 @@ public class MqMonitorContext {
     private String mqType;
     private boolean send;
     private String sendMethod;
+    private long timeCost;
 
     public String getSendMethod() {
         return sendMethod;
@@ -30,24 +31,15 @@ public class MqMonitorContext {
         this.metricName = metricName;
     }
 
-    public MqMonitorContext(int value, String registryKey, String metricName, String sendMethod) {
-        this.value = value;
+    public MqMonitorContext(String dbName, long timeCost, String registryKey, String metricName) {
+        this.dbName = dbName;
+        this.timeCost = timeCost;
         this.registryKey = registryKey;
         this.metricName = metricName;
-        this.sendMethod = sendMethod;
     }
 
-    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic, boolean send) {
-        this.dbName = dbName;
-        this.tableName = tableName;
-        this.value = value;
-        this.eventType = eventType;
-        this.dcTag = dcTag;
-        this.topic = topic;
-        this.send = send;
-    }
-
-    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag, String topic, String mqType, boolean send) {
+    public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag,
+                            String topic, String mqType, boolean send) {
         this.dbName = dbName;
         this.tableName = tableName;
         this.value = value;
@@ -57,6 +49,7 @@ public class MqMonitorContext {
         this.mqType = mqType;
         this.send = send;
     }
+
 
     public String getMqType() {
         return mqType;
@@ -137,4 +130,9 @@ public class MqMonitorContext {
     public void setRegistryKey(String registryKey) {
         this.registryKey = registryKey;
     }
+
+    public long getTimeCost() {
+        return timeCost;
+    }
+
 }

@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity.measurementMessengerActive;
+
 /**
  * Created by jixinwang on 2022/10/17
  */
@@ -47,7 +49,7 @@ public class MqProviderResource extends AbstractResource implements MqProvider {
             if(!Thread.currentThread().isInterrupted()) {
                 int active = MqTransactionContextResource.getConcurrency(registryKey);
                 if (reporter != null) {
-                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active, registryKey, "fx.drc.messenger.active");
+                    MqMonitorContext mqMonitorContext = new MqMonitorContext(active, registryKey, measurementMessengerActive);
                     reporter.report(mqMonitorContext);
                 }
             }

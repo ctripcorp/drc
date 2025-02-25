@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.resource.context;
 
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
@@ -23,6 +24,10 @@ public interface BaseTransactionContext extends TimeContext, TableKeyContext, Ta
                 List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns);
 
     void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns);
+
+    default void setLogEventHeader(LogEventHeader logEventHeader) {
+
+    };
 
     default TransactionData.ApplyResult complete() {
         return TransactionData.ApplyResult.SUCCESS;

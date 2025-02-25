@@ -12,6 +12,7 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.dianping.cat.Cat;
 import muise.ctrip.canal.DataChange;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -20,10 +21,7 @@ import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.MESSENGER_DELAY_MONITOR_TOPIC;
@@ -59,6 +57,9 @@ public class QmqProducer extends AbstractProducer {
     //EventType value: I, U, D
     private List<String> excludeFilterTypes;
 
+    private boolean cpuOptimizeSwitch;
+    private boolean cpuCompareSwitch;
+
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
@@ -68,6 +69,8 @@ public class QmqProducer extends AbstractProducer {
         this.qmqTraceSubenv = mqConfig.getSubenv();
         this.excludeFilterTypes = mqConfig.getExcludeFilterTypes();
         this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
+        this.cpuOptimizeSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeEnable(topic);
+        this.cpuCompareSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeCompareModeEnable(topic);
         init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
@@ -80,6 +83,11 @@ public class QmqProducer extends AbstractProducer {
         }
     }
 
+    @VisibleForTesting
+    protected static String removeTimestamps(String jsonStr) {
+        String pattern = "(\"otterSendTime\"|\"otterParseTime\"|\"drcSendTime\"):\\d+";
+        return jsonStr.replaceAll(pattern, "$1:\"\"");
+    }
     @Override
     public boolean send(List<EventData> eventDatas, EventType eventType) {
         if (subenvSwitch && !StringUtils.isEmpty(qmqTraceSubenv) && !MESSENGER_DELAY_MONITOR_TOPIC.equals(topic)) {
@@ -92,7 +100,29 @@ public class QmqProducer extends AbstractProducer {
 
         try {
             for (EventData eventData : eventDatas) {
-                Message message = generateMessage(eventData);
+                Message message;
+                if (cpuCompareSwitch) {
+                    Pair<Message,String> pair = generateMessageOld(eventData);
+                    message = pair.getLeft();
+                    String mOld = pair.getRight();
+                    Pair<Message,String> pairNewLogic = generateMessage(eventData, false);
+                    String mNew = pairNewLogic.getRight();
+                    String jsonOld = removeTimestamps(mOld);
+                    String jsonNew = removeTimestamps(mNew);
+                    if (!jsonOld.equals(jsonNew)) {
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.json.compare.different", topic);
+                        loggerMsgSend.error("[JSON COMPARE FAIL,QMQ] topic:{}, id:{}, old:{}, new:{}", topic, message.getMessageId(), jsonOld, jsonNew);
+                    }
+                } else {
+                    Pair<Message, String> pair;
+                    if (cpuOptimizeSwitch) {
+                        pair = generateMessage(eventData, true);
+                    } else {
+                        pair = generateMessageOld(eventData);
+                    }
+                    message = pair.getLeft();
+                }
+
                 long start = System.nanoTime();
                 provider.sendMessage(message, new MessageSendStateListener() {
                     @Override
@@ -115,7 +145,7 @@ public class QmqProducer extends AbstractProducer {
     }
 
     @VisibleForTesting
-    protected Message generateMessage(EventData eventData) {
+    protected Pair<Message,String> generateMessageOld(EventData eventData) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
         DataChange dataChange = transfer(eventData);
@@ -183,7 +213,88 @@ public class QmqProducer extends AbstractProducer {
 
         String dataChangeToSend = jsonObject.toJSONString();
         message.setProperty(DATA_CHANGE, dataChangeToSend);
-        return message;
+        return Pair.of(message, dataChangeToSend);
+    }
+
+    @VisibleForTesting
+    protected Pair<Message,String> generateMessage(EventData eventData, boolean operateMessage) {
+        String schema = eventData.getSchemaName();
+        String table = eventData.getTableName();
+        DataChangeVo dataChange = transferDataChange(eventData);
+        Message message = null;
+        String dc = eventData.getDcTag().getName();
+        if (operateMessage) {
+            message = provider.generateMessage(topic);
+            message.addTag(dc);
+            if (persist) {
+                message.setStoreAtFailed(true);
+            }
+            if (delayTime > 0) {
+                message.setDelayTime(delayTime, TimeUnit.SECONDS);
+            }
+        }
+
+        dataChange.setDc(dc);
+
+        DataChangeMessage.OrderKeyInfo orderKeyInfo = new DataChangeMessage.OrderKeyInfo();
+        orderKeyInfo.setSchemaName(schema);
+        orderKeyInfo.setTableName(table);
+        List<String> keys = new ArrayList<>();
+
+        List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
+        if (isOrder) {
+            boolean hasOrderKey = false;
+            for (EventColumn column : changedColumns) {
+                if (column.getColumnName().equalsIgnoreCase(orderKey)) {
+                    if (operateMessage) {
+                        message.setOrderKey(column.getColumnValue());
+                    }
+
+                    hasOrderKey = true;
+                }
+                if (column.isKey()) {
+                    keys.add(column.getColumnValue());
+                }
+            }
+
+            if (orderKey == null) {
+                String defaultOrderKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_",keys));
+                if (operateMessage) {
+                    message.setOrderKey(defaultOrderKey);
+                }
+
+                hasOrderKey = true;
+            }
+
+            if (!hasOrderKey) {
+                String schemaDotTable = String.format("%s.%s", schema, table);
+                loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.order.key.absent", schemaDotTable);
+            }
+        } else {
+            for (EventColumn column : changedColumns) {
+                if (column.isKey()) {
+                    keys.add(column.getColumnValue());
+                }
+            }
+        }
+        if (eventData.getOrderKey() != null && operateMessage) {
+            message.setOrderKey(eventData.getOrderKey());
+        }
+        orderKeyInfo.setPk(keys);
+        dataChange.setOrderKeyInfo(orderKeyInfo);
+
+
+        long currentTime = System.currentTimeMillis();
+        dataChange.setOtterParseTime(currentTime);
+        dataChange.setOtterSendTime(currentTime);
+        dataChange.setDrcSendTime(currentTime);
+
+        String dataChangeToSend = JSON.toJSONString(dataChange);
+        if (operateMessage) {
+            message.setProperty(DATA_CHANGE, dataChangeToSend);
+        }
+        return Pair.of(message, dataChangeToSend);
     }
 
     public String getTopic() {
@@ -194,4 +305,5 @@ public class QmqProducer extends AbstractProducer {
     public void destroy() {
         QmqProviderFactory.destroy(topic);
     }
+
 }

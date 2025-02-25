@@ -29,6 +29,7 @@ public class MonitoredDeleteRowsEvent<T extends BaseTransactionContext> extends 
                     "\nbefore rows: " + beforeRows +
                     "\nbefore bitmap: " + beforeBitmap));
         }
+        context.setLogEventHeader(getLogEventHeader());
         context.delete(beforeRows, beforeBitmap, columns);
     }
 }

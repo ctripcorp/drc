@@ -32,6 +32,7 @@ public class MonitoredWriteRowsEvent<T extends BaseTransactionContext> extends F
                     "\nbefore rows: " + beforeRows +
                     "\nbefore bitmap: " + beforeBitmap));
         }
+        context.setLogEventHeader(getLogEventHeader());
         context.insert(beforeRows, beforeBitmap, columns);
     }
 }
