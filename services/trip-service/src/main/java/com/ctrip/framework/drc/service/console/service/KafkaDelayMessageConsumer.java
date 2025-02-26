@@ -118,7 +118,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     private void processMessage(ConsumerRecord<String, String> record) {
         logger.info("[[monitor=delay,mqType=kafka]] consumer partition: {}, offset: {}", record.partition(), record.offset());
         long receiveTime = System.currentTimeMillis();
-        DataChangeMessage dataChange = JsonCodec.INSTANCE.decode(record.value(), DataChangeMessage.class);
+        DataChangeMessage dataChange = JsonUtils.fromJson(record.value(), DataChangeMessage.class);
         if (EventType.UPDATE.name().equals(dataChange.getEventType())) {
             List<DataChangeMessage.ColumnData> afterColumnList = dataChange.getAfterColumnList();
             DataChangeMessage.ColumnData dcColumn = afterColumnList.get(DC_INDEX);
