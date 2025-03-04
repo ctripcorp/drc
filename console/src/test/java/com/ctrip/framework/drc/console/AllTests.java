@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheck
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.SqlOperatorTest;
 import com.ctrip.framework.drc.console.monitor.consistency.table.DefaultTableProviderTest;
 import com.ctrip.framework.drc.console.monitor.delay.DelayMapTest;
+import com.ctrip.framework.drc.console.monitor.delay.KafkaDelayMonitorServerTest;
 import com.ctrip.framework.drc.console.monitor.delay.MqDelayMonitorServerTest;
 import com.ctrip.framework.drc.console.monitor.delay.config.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2Test;
@@ -197,6 +198,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         AbstractMonitorTest.class,
         UuidMonitorTest.class,
         MqDelayMonitorServerTest.class,
+        KafkaDelayMonitorServerTest.class,
         AutoIncrementCheckTaskTest.class,
         TableStructureCheckTaskTest.class,
         ShardedDbReplicationConsistencyCheckTaskTest.class,
@@ -208,6 +210,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ResourceAzCheckTaskTest.class,
         InstancesAzCheckTaskTest.class,
         SyncOfflinedMhaTaskTest.class,
+        ConsoleDcMonitorTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

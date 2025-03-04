@@ -1294,7 +1294,7 @@ public class ResourceServiceImpl implements ResourceService {
                     }
                 }
                 if (ModuleEnum.MESSENGER.getCode() == type) {
-                    List<MessengerInfoDto> infoDtos = resourceService.getMessengersInAz(region, entry.getValue());
+                    List<MessengerInfoDto> infoDtos = resourceService.getMessengersInRegion(region, entry.getValue());
                     if (infoDtos == null) {
                         EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.messenger.fail", region + ":" + entry.getValue());
                         infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
@@ -1345,7 +1345,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/resource/getMessengersInAz", responseType = MessengerInfoApiRes.class)
-    public List<MessengerInfoDto> getMessengersInAz(String region, List<String> ips) {
+    public List<MessengerInfoDto> getMessengersInRegion(String region, List<String> ips) {
         MessengerInfoInquirer messengerInfoInquirer = MessengerInfoInquirer.getInstance();
         List<Future<List<MessengerInfoDto>>> futures = Lists.newArrayList();
         for (String messengerIp : ips) {

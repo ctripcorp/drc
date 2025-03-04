@@ -1,20 +1,16 @@
 package com.ctrip.framework.drc.manager.service;
 
+import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
-import com.google.common.collect.Maps;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-
-import java.util.Map;
-
-import static com.ctrip.framework.drc.manager.AllTests.*;
 
 /**
  * @Author limingdong
@@ -37,7 +33,9 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
     @Mock
     private ReplicatorConsoleNotifier replicatorConsoleNotifier;
 
-    private Map<String, RegionInfo> regionInfoMap = Maps.newConcurrentMap();
+    @Mock
+    private MessengerConsoleNotifier messengerConsoleNotifier;
+
 
     @Before
     public void setUp() throws Exception {
@@ -52,61 +50,36 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
         }
     }
 
-    @Test
-    public void replicatorActiveElected() throws Exception {
-        regionInfoMap.clear();
-        regionInfoMap.put(REGION, new RegionInfo("http://127.0.0.1:8080"));
-        when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
-        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(false);
-        when(dataCenterService.getRegion()).thenReturn(REGION);
-
-        consoleService.replicatorActiveElected(CLUSTER_ID, null);
-        verify(clusterManagerConfig, times(0)).getConsoleRegionInfos();
-        consoleService.replicatorActiveElected(CLUSTER_ID, newReplicator);
-        verify(clusterManagerConfig, times(1)).getConsoleRegionInfos();
-
-        regionInfoMap.put(TARGET_DC, new RegionInfo("http://127.0.0.1:8080"));
-        consoleService.replicatorActiveElected(CLUSTER_ID, newReplicator);
-        verify(clusterManagerConfig, times(2)).getConsoleRegionInfos();
-
-
-    }
 
     @Test
-    public void mysqlMasterChanged() {
-
-
-        regionInfoMap.clear();
-        regionInfoMap.put(TARGET_DC, new RegionInfo("http://127.0.0.1:8080"));
-        when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
-        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(false);
-        when(dataCenterService.getRegion()).thenReturn(REGION);
-        consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
-        verify(clusterManagerConfig, times(1)).getConsoleRegionInfos();
-
-        consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
-        verify(clusterManagerConfig, times(2)).getConsoleRegionInfos();
-
-        regionInfoMap.put(DC, new RegionInfo("http://127.0.0.1:8080"));
-        consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
-        verify(clusterManagerConfig, times(3)).getConsoleRegionInfos();
-    }
-
-    @Test
-    public void batchNotifyReplicatorMasterChanged() throws Exception {
+    public void testReplicatorActiveElected() throws Exception {
         doNothing().when(replicatorConsoleNotifier).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
-        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(true);
         consoleService.replicatorActiveElected(CLUSTER_ID, newReplicator);
         verify(replicatorConsoleNotifier, times(1)).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
     }
 
     @Test
-    public void batchNotifyMysqlMasterChanged() throws Exception {
+    public void testMysqlMasterChanged() throws Exception {
 
         doNothing().when(mysqlConsoleNotifier).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
-        when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(true);
         consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
         verify(mysqlConsoleNotifier, times(1)).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
     }
+
+    @Test
+    public void testMessengerActiveElected() throws Exception {
+        Messenger messenger = new Messenger();
+        messenger.setApplyMode(ApplyMode.mq.getType());
+        messenger.setIp("ip");
+
+        doNothing().when(messengerConsoleNotifier).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
+        consoleService.messengerActiveElected(CLUSTER_ID, messenger);
+        verify(messengerConsoleNotifier, never()).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
+
+        messenger.setApplyMode(ApplyMode.kafka.getType());
+        consoleService.messengerActiveElected(CLUSTER_ID, messenger);
+        verify(messengerConsoleNotifier, times(1)).notifyMasterChanged(Mockito.anyString(), Mockito.anyString());
+    }
+
 
 }

@@ -196,6 +196,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
     private static final String KAFKA_DELAY_MONITOR_SWITCH = "kafka.delay.monitor.switch";
     private static final String MQ_DELAY_MONITOR_SUBJECT = "mq.delay.monitor.subject";
+    private static final String KAFKA_DELAY_MONITOR_SUBJECT = "kafka.delay.monitor.subject";
     private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
     private static final String MQ_DELAY_MONITOR_CONSUMER_GROUP = "mq.delay.monitor.consumer.group";
     private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
@@ -213,6 +214,10 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getMqDelaySubject() {
         return getProperty(MQ_DELAY_MONITOR_SUBJECT,DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+    }
+
+    public String getKafkaDelaySubject() {
+        return getProperty(KAFKA_DELAY_MONITOR_SUBJECT,DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
     }
 
     public String getMqDelayConsumerGroup() {

@@ -58,9 +58,9 @@ public interface ClusterManagerConfig extends ZkConfig {
 
     boolean requestWithHeraldToken();
 
-    int getReplicatorConsoleNotifySize();
 
-    int getMysqlConsoleNotifySize();
+    int getConsoleBatchNotifySize();
+
 
     boolean getCmBatchNotifyConsoleSwitch();
 }

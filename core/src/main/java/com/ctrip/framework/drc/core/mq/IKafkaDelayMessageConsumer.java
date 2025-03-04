@@ -12,7 +12,11 @@ import java.util.Set;
 public interface IKafkaDelayMessageConsumer extends Ordered {
     void initConsumer(String subject, String consumerGroup, Set<String> dcs);
 
-    void mhasRefresh(Set<String> mhas, Map<String, String> mha2Dc);
+    void mhasRefresh(Map<String, String> mhas2Dc);
+
+    void addMhas(Map<String, String> mhas2Dc);
+
+    void removeMhas(Map<String, String> mhas2Dc);
 
     boolean stopConsume();
 

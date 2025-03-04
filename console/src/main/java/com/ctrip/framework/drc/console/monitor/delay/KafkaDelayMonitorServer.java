@@ -1,0 +1,227 @@
+package com.ctrip.framework.drc.console.monitor.delay;
+
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
+import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
+import com.ctrip.framework.drc.core.server.DcLeaderAware;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+/**
+ * Created by dengquanliang
+ * 2025/2/21 14:23
+ */
+@Order(0)
+@Component()
+public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean {
+    private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
+
+    @Autowired
+    private DataCenterService dataCenterService;
+    @Autowired
+    private MonitorTableSourceProvider monitorProvider;
+    @Autowired
+    private ResourceTblDao resourceTblDao;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private DcTblDao dcTblDao;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private ResourceService resourceService;
+
+    private final IKafkaDelayMessageConsumer kafkaConsumer = ApiContainer.getKafkaDelayMessageConsumer();
+    private final ScheduledExecutorService monitorMessengerChangerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
+            getClass().getSimpleName() + "messengerMonitor");
+
+    private volatile boolean isLeader = false;
+
+    private long localDcId;
+    private String localDc;
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        localDc = dataCenterService.getDc();
+        localDcId = dcTblDao.queryByDcName(localDc).getId();
+        monitorMessengerChangerExecutor.scheduleWithFixedDelay(this::monitorMessengerChange, 5, 30, TimeUnit.SECONDS);
+
+        kafkaConsumer.initConsumer(
+                monitorProvider.getKafkaDelaySubject(),
+                monitorProvider.getKafkaDelayConsumerGroup(),
+                consoleConfig.getDcsInLocalRegion()
+        );
+    }
+
+    @Override
+    public void isleader() {
+        synchronized (this) {
+            isLeader = true;
+            if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
+                monitorMessengerChange();
+                boolean b = kafkaConsumer.resumeConsume();
+                logger.info("[[monitor=delay]] is leader,going to start kafkaConsumer,result:{}", b);
+            }
+        }
+    }
+
+    @Override
+    public void notLeader() {
+        synchronized (this) {
+            isLeader = false;
+            if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
+                monitorMessengerChange();
+                boolean b = kafkaConsumer.stopConsume();
+                logger.info("[[monitor=delay]] not leader,going to stop kafkaConsumer,result:{}", b);
+            }
+        }
+    }
+
+    private void monitorMessengerChange() {
+        if (isLeader) {
+            try {
+                logger.info("[[monitor=delay]] start monitorMessengerChange");
+                long start = System.currentTimeMillis();
+                Map<String, String> allMhasToDcRelated = getAllMhasToDcRelated();
+                long end = System.currentTimeMillis();
+                logger.info("[[monitor=delay]] monitorMessengerChange end cost {} ms", end - start);
+                kafkaConsumer.mhasRefresh(allMhasToDcRelated);
+            } catch (Exception e) {
+                logger.error("[[monitor=delay]] monitorMessengerChange fail", e);
+            }
+        } else {
+            kafkaConsumer.mhasRefresh(Maps.newHashMap());
+        }
+    }
+
+    /**
+     * @param mhaToMessengerIps key: mhaName, value: ip
+     */
+    public void switchListenMessenger(Map<String, String> mhaToMessengerIps) {
+        if (!isLeader) {
+            return;
+        }
+        try {
+            logger.info("[[monitor=delay]] switchListenMessenger: {}", mhaToMessengerIps);
+            List<String> localDcMessengerIps = resourceTblDao.queryByDcAndType(Lists.newArrayList(localDcId), ModuleEnum.MESSENGER.getCode())
+                    .stream().map(ResourceTbl::getIp).toList();
+
+            Set<String> toAddMhas = Sets.newHashSet();
+            Set<String> toRemoveMhas = Sets.newHashSet();
+            for (Map.Entry<String, String> entry : mhaToMessengerIps.entrySet()) {
+                if (localDcMessengerIps.contains(entry.getValue())) {
+                    toAddMhas.add(entry.getKey());
+                } else {
+                    toRemoveMhas.add(entry.getKey());
+                }
+            }
+            if (!CollectionUtils.isEmpty(toAddMhas)) {
+                kafkaConsumer.addMhas(getMhasToDcs(Lists.newArrayList(toAddMhas)));
+            }
+            if (!CollectionUtils.isEmpty(toRemoveMhas)) {
+                kafkaConsumer.removeMhas(getMhasToDcs(Lists.newArrayList(toRemoveMhas)));
+            }
+        } catch (Exception e) {
+            logger.error("[[monitor=delay]] switchListenMessenger fail", e);
+        }
+    }
+
+    private Map<String, String> getAllMhasToDcRelated() throws SQLException {
+        List<String> localDcMessengerIps = resourceTblDao.queryByDcAndType(Lists.newArrayList(localDcId), ModuleEnum.MESSENGER.getCode())
+                .stream().map(ResourceTbl::getIp).toList();
+        Pair<List<String>, List<String>> pair = getAllMessengerIpsInLocalRegion();
+        List<String> mhas = pair.getLeft();
+        List<String> allMessengerIpsInLocalRegion = pair.getRight();
+
+        List<MessengerInfoDto> messengersInAz = resourceService.getMessengersInRegion(consoleConfig.getRegion(), allMessengerIpsInLocalRegion);
+        List<String> localDcMhas = messengersInAz.stream()
+                .filter(e -> RegistryKey.getTargetMha(e.getRegistryKey()).equals(SystemConfig.DRC_KAFKA) && localDcMessengerIps.contains(e.getIp()))
+                .map(e -> RegistryKey.from(e.getRegistryKey()).getMhaName()).collect(Collectors.toList());
+        List<String> localRegionMhas = messengersInAz.stream()
+                .filter(e -> RegistryKey.getTargetMha(e.getRegistryKey()).equals(SystemConfig.DRC_KAFKA))
+                .map(e -> RegistryKey.from(e.getRegistryKey()).getMhaName())
+                .toList();
+
+        mhas.removeAll(localRegionMhas);
+
+        if (!CollectionUtils.isEmpty(mhas)) {
+            logger.warn("[[monitor=delay]] mhas has no master messenger, {}", mhas);
+            localDcMhas.addAll(mhas);
+        }
+
+        return getMhasToDcs(localDcMhas);
+    }
+
+    private Map<String, String> getMhasToDcs(List<String> mhaNames) throws SQLException {
+        List<MhaTblV2> mhas = mhaTblV2Dao.queryAllExist().stream().filter(e -> mhaNames.contains(e.getMhaName())).toList();
+        Map<Long, String> dcMap = dcTblDao.queryAllExist().stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
+
+        return mhas.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, e -> dcMap.get(e.getDcId())));
+    }
+
+
+    private Pair<List<String>, List<String>> getAllMessengerIpsInLocalRegion()  {
+        Set<String> ips = new HashSet<>();
+        List<String> mhas = new ArrayList<>();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        Drc drc = metaProviderV2.getDrc();
+        for (String dcInLocalRegion : dcsInLocalRegion) {
+            Dc dc = drc.findDc(dcInLocalRegion);
+            if (dc == null) {
+                continue;
+            }
+            for (DbCluster dbCluster : dc.getDbClusters().values()) {
+                List<Messenger> messengers = dbCluster.getMessengers();
+                if (messengers.isEmpty()) {
+                    continue;
+                }
+
+                List<String> kafkaMessengerIps = messengers.stream().filter(e -> e.getApplyMode() == ApplyMode.kafka.getType()).map(Messenger::getIp).toList();
+                if (CollectionUtils.isEmpty(kafkaMessengerIps)) {
+                    continue;
+                }
+                ips.addAll(kafkaMessengerIps);
+                mhas.add(dbCluster.getMhaName());
+            }
+        }
+        return Pair.of(mhas, Lists.newArrayList(ips));
+    }
+
+}

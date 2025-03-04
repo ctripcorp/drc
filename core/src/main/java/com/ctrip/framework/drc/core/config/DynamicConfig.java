@@ -49,6 +49,11 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
     private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
 
+    private static final String OLD_QTID_SQL_SWITCH = "old.gtid.sql.switch";
+
+    private static final String KAFKA_DELAY_MONITOR_SUBJECT = "kafka.delay.monitor.subject";
+    private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
+
     // 100MB
     public static final int DEFAULT_MERGE_GAP_MAX = 100 * 1024 * 1024;
 
@@ -174,4 +179,9 @@ public class DynamicConfig extends AbstractConfigBean {
         }
         return getBooleanProperty(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH, true);
     }
+
+    public String getKafkaDelaySubject() {
+        return getProperty(KAFKA_DELAY_MONITOR_SUBJECT, DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+    }
+
 }

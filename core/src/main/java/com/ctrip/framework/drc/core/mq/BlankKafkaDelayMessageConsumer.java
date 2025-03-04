@@ -14,7 +14,17 @@ public class BlankKafkaDelayMessageConsumer implements IKafkaDelayMessageConsume
     }
 
     @Override
-    public void mhasRefresh(Set<String> mhas, Map<String, String> mha2Dc) {
+    public void mhasRefresh(Map<String, String> mhas2Dc) {
+
+    }
+
+    @Override
+    public void addMhas(Map<String, String> mhas2Dc) {
+
+    }
+
+    @Override
+    public void removeMhas(Map<String, String> mhas2Dc) {
 
     }
 

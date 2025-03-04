@@ -537,7 +537,7 @@ public class ResourceServiceTest {
     @Mock
     MessengerInfoInquirer messengerInfoInquirer;
     @Test
-    public void testGetMessengersInAz() throws Exception {
+    public void testGetMessengersInRegion() throws Exception {
         String testRegion = "sha";
         Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
         MockedStatic<MessengerInfoInquirer> mockedStatic = Mockito.mockStatic(MessengerInfoInquirer.class);
@@ -546,7 +546,7 @@ public class ResourceServiceTest {
         Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getMessengerInfoDtos());
         Mockito.when(messengerInfoInquirer.query(Mockito.anyString())).thenReturn(mockFuture);
 
-        List<MessengerInfoDto> result = resourceService.getMessengersInAz(testRegion, Lists.newArrayList("ip"));
+        List<MessengerInfoDto> result = resourceService.getMessengersInRegion(testRegion, Lists.newArrayList("ip"));
         Assert.assertEquals(result.size(), 1);
         mockedStatic.close();
     }

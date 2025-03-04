@@ -16,12 +16,12 @@ import java.util.Map;
 
 /**
  * Created by dengquanliang
- * 2024/10/25 15:45
+ * 2025/2/27 15:48
  */
-public class MysqlConsoleNotifierTest {
+public class MessengerConsoleNotifierTest {
 
     @InjectMocks
-    private MysqlConsoleNotifier mysqlConsoleNotifier = new MysqlConsoleNotifier();
+    private MessengerConsoleNotifier messengerNotifier = new MessengerConsoleNotifier();
 
     @Mock
     private DataCenterService dataCenterService;
@@ -38,34 +38,33 @@ public class MysqlConsoleNotifierTest {
         Mockito.when(dataCenterService.getRegion()).thenReturn("sha");
 
         regionInfoMap.put("sha", new RegionInfo("http://127.0.0.1:8080"));
+        regionInfoMap.put("sgp", new RegionInfo("http://127.0.0.1:8080"));
+        regionInfoMap.put("fra", new RegionInfo("http://127.0.0.1:8080"));
         Mockito.when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
     }
 
     @Test
     public void testNotifyMasterChanged() throws Exception {
         Mockito.when(clusterManagerConfig.getConsoleBatchNotifySize()).thenReturn(2);
-        mysqlConsoleNotifier.notifyMasterChanged("cluster1", "ip1");
-        Assert.assertEquals(1, mysqlConsoleNotifier.getClusterMap().size());
+        messengerNotifier.notifyMasterChanged("cluster1", "ip1");
+        Assert.assertEquals(1, messengerNotifier.getClusterMap().size());
 
-        mysqlConsoleNotifier.notifyMasterChanged("cluster2", "ip2");
-        Assert.assertEquals(0, mysqlConsoleNotifier.getClusterMap().size());
+        messengerNotifier.notifyMasterChanged("cluster2", "ip2");
+        Assert.assertEquals(0, messengerNotifier.getClusterMap().size());
     }
 
     @Test
     public void testStartScheduleCheck() throws Exception {
         Mockito.when(clusterManagerConfig.getConsoleBatchNotifySize()).thenReturn(3);
-        mysqlConsoleNotifier.afterPropertiesSet();
-
+        messengerNotifier.afterPropertiesSet();
         Thread.sleep(100);
 
-        mysqlConsoleNotifier.notifyMasterChanged("cluster1", "ip1");
-        Assert.assertEquals(1, mysqlConsoleNotifier.getClusterMap().size());
-        mysqlConsoleNotifier.notifyMasterChanged("cluster2", "ip2");
-        Assert.assertEquals(2, mysqlConsoleNotifier.getClusterMap().size());
+        messengerNotifier.notifyMasterChanged("cluster1", "ip1");
+        Assert.assertEquals(1, messengerNotifier.getClusterMap().size());
+        messengerNotifier.notifyMasterChanged("cluster2", "ip2");
+        Assert.assertEquals(2, messengerNotifier.getClusterMap().size());
 
-        Mockito.when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(true);
         Thread.sleep(2000);
-        Assert.assertEquals(0, mysqlConsoleNotifier.getClusterMap().size());
+        Assert.assertEquals(0, messengerNotifier.getClusterMap().size());
     }
-
 }

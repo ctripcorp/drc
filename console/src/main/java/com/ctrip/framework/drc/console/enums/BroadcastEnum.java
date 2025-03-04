@@ -8,10 +8,9 @@ package com.ctrip.framework.drc.console.enums;
  */
 public enum BroadcastEnum {
     
-    MYSQL_MASTER_CHANGE_V2("/api/drc/v1/switch/clusters/dbs/master"),
-    REPLICATOR_CHANGE_V2("/api/drc/v1/switch/clusters/replicators/master"),
-    MYSQL_MASTER_CHANGE("/api/drc/v1/switch/clusters/%s/dbs/master"),
-    REPLICATOR_CHANGE("/api/drc/v1/switch/clusters/%s/replicators/master")
+    MYSQL_MASTER_CHANGE("/api/drc/v1/switch/clusters/dbs/master"),
+    REPLICATOR_CHANGE("/api/drc/v1/switch/clusters/replicators/master"),
+    MESSENGER_MASTER_CHANGE("/api/drc/v1/switch/clusters/messengers/master"),
     ;
     
     private String path;

@@ -302,7 +302,7 @@ public class ResourceController {
     @GetMapping("getMessengersInAz")
     public ApiResult<List<MessengerInfoDto>> getMessengersInAz(@RequestParam String region, @RequestParam List<String> ips) {
         try {
-            List<MessengerInfoDto> res = resourceService.getMessengersInAz(region, ips);
+            List<MessengerInfoDto> res = resourceService.getMessengersInRegion(region, ips);
             return ApiResult.getSuccessInstance(res);
         } catch (Exception e) {
             logger.error("getMessengersInAz, az={}, fail", region, e);

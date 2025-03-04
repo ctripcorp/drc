@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 /**
   * Created by shiruixin
@@ -75,5 +77,27 @@ public class KafkaDelayMessageConsumerTest {
         KafkaDelayMessageConsumer kafkaDelayMessageConsumer = new KafkaDelayMessageConsumer();
         boolean res = kafkaDelayMessageConsumer.resumeConsume();
         Assert.assertFalse(res);
+    }
+
+    @Test
+    public void testMhaRefresh() {
+        KafkaDelayMessageConsumer kafkaDelayMessageConsumer = new KafkaDelayMessageConsumer();
+        kafkaDelayMessageConsumer.addMhas(getMha2Dc1());
+        kafkaDelayMessageConsumer.mhasRefresh(getMha2Dc());
+        kafkaDelayMessageConsumer.removeMhas(getMha2Dc());
+    }
+
+
+    private Map<String, String> getMha2Dc() {
+        Map<String, String> mha2Dc = new HashMap<>();
+        mha2Dc.put("mha", "dc");
+        return mha2Dc;
+    }
+
+    private Map<String, String> getMha2Dc1() {
+        Map<String, String> mha2Dc = new HashMap<>();
+        mha2Dc.put("mha", "dc");
+        mha2Dc.put("mha1", "dc1");
+        return mha2Dc;
     }
 }

@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.zk.ZkClient;
@@ -41,7 +40,7 @@ public class DefaultClusterController implements ClusterApi {
     private ClusterServers<?> clusterServers;
 
     @Autowired
-    private CurrentMetaManager currentMetaServerMetaManager;
+    private CurrentMetaManager currentMetaManager;
 
     @Autowired
     private ZkClient zkClient;
@@ -57,7 +56,6 @@ public class DefaultClusterController implements ClusterApi {
     public ClusterServerInfo getClusterInfo() {
         return currentClusterServer.getClusterInfo();
     }
-
 
     @RequestMapping(path = PATH_ADD_SLOT, method = RequestMethod.POST, produces= MediaType.APPLICATION_JSON_UTF8_VALUE)
     @Override
