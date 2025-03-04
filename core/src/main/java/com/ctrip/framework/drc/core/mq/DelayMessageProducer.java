@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.mq;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.google.common.collect.Lists;
 
@@ -48,7 +49,7 @@ public class DelayMessageProducer {
     private static List<Producer> createKafkaMonitorProducer() {
         MqConfig monitorMqConfig = new MqConfig();
         monitorMqConfig.setMqType(MqType.kafka.name());
-        monitorMqConfig.setTopic(MESSENGER_DELAY_MONITOR_TOPIC);
+        monitorMqConfig.setTopic(DynamicConfig.getInstance().getKafkaDelaySubject());
         monitorMqConfig.setOrder(true);
         monitorMqConfig.setOrderKey("id");
         Producer producer = DefaultProducerFactoryHolder.getInstance().createProducer(monitorMqConfig);

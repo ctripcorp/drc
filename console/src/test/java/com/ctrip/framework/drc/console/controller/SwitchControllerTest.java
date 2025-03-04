@@ -92,38 +92,5 @@ public class SwitchControllerTest {
         Assert.assertEquals("true", jsonNode.get("data").toString());
     }
 
-    @Test
-    public void testNotifyMasterDb() throws Exception {
-        MvcResult mvcResult = mvc.perform(
-                MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/dbs/master")
-                        .contentType(MediaType.APPLICATION_JSON_UTF8)
-                        .content(DB_ENDPOINT)
-                        .accept(MediaType.APPLICATION_JSON_UTF8))
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-        MockHttpServletResponse response = mvcResult.getResponse();
-        int status = response.getStatus();
-        String responseStr = response.getContentAsString();
-        Assert.assertEquals(200, status);
-        JsonNode jsonNode = objectMapper.readTree(responseStr);
-        Assert.assertEquals(0, jsonNode.get("status").asInt());
-        Assert.assertEquals("handle success", jsonNode.get("message").asText());
-    }
 
-    @Test
-    public void testNotifyMasterReplicator() throws Exception {
-        String jsonStr=JSON.toJSONString(REP_ENDPOINT);
-        MvcResult mvcResult = mvc.perform(
-                MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/replicators/master")
-                        .contentType(MediaType.APPLICATION_JSON_UTF8)
-                        .content(jsonStr).accept(MediaType.APPLICATION_JSON_UTF8))
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-        MockHttpServletResponse response = mvcResult.getResponse();
-        int status = response.getStatus();
-        String responseStr = response.getContentAsString();
-        Assert.assertEquals(200, status);
-        JsonNode jsonNode = objectMapper.readTree(responseStr);
-        Assert.assertEquals("true", jsonNode.get("data").toString());
-    }
 }

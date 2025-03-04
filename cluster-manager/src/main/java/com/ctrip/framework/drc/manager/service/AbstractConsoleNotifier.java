@@ -47,8 +47,6 @@ public abstract class AbstractConsoleNotifier {
 
     public abstract int getNotifySize();
 
-    public abstract boolean getCmBatchNotifyConsoleSwitch();
-
     public List<String> getConsoleHosts() {
         return consoleHosts;
     };
@@ -57,10 +55,6 @@ public abstract class AbstractConsoleNotifier {
         executorService.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                if (!getCmBatchNotifyConsoleSwitch()) {
-                    STATE_LOGGER.info("[{}] schedule notify, switch is false", type());
-                    return;
-                }
                 Map<String, String> clusters = new HashMap<>();
                 synchronized (lock) {
                     if (clusterMap.size() > 0) {

@@ -28,6 +28,7 @@ import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifierTes
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.tracker.HeartBeatTrackerImplTest;
 import com.ctrip.framework.drc.manager.service.ConsoleServiceImplTest;
+import com.ctrip.framework.drc.manager.service.MessengerConsoleNotifierTest;
 import com.ctrip.framework.drc.manager.service.MysqlConsoleNotifierTest;
 import com.ctrip.framework.drc.manager.service.ReplicatorConsoleNotifierTest;
 import com.ctrip.framework.foundation.Foundation;
@@ -120,6 +121,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         ReplicatorCheckerTest.class,
         MysqlConsoleNotifierTest.class,
         ReplicatorConsoleNotifierTest.class,
+        MessengerConsoleNotifierTest.class,
         DefaultCurrentClusterServerTest.class,
         ClusterServerStateManagerTest.class,
 

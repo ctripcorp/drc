@@ -50,7 +50,6 @@ public class ModuleCommunicationServiceImpl implements ModuleCommunicationServic
     }
 
 
-
     private static String getActiveMySQLPath(String host) {
         if (!host.startsWith("http")) {
             host = "http://" + host;

@@ -38,8 +38,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_PERIOD_META_CORRECT = "period.meta.consistency.correct";
     public static String KEY_HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
 
-    public static String KEY_REPLICATOR_CONSOLE_NOTIFY_SIZE = "replicator.console.notify.size";
-    public static String KEY_MYSQL_CONSOLE_NOTIFY_SIZE = "mysql.console.notify.size";
+    public static String KEY_CONSOLE_BATCH_NOTIFY_SIZE = "console.batch.notify.size";
     public static String KEY_CM_BATCH_NOTIFY_CONSOLE_SWITCH = "cm.batch.notify.console.switch";
 
 
@@ -71,14 +70,10 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
         serverConfig = compositeConfig;
     }
 
-    @Override
-    public int getReplicatorConsoleNotifySize() {
-        return getIntProperty(KEY_REPLICATOR_CONSOLE_NOTIFY_SIZE, 10);
-    }
 
     @Override
-    public int getMysqlConsoleNotifySize() {
-        return getIntProperty(KEY_MYSQL_CONSOLE_NOTIFY_SIZE, 10);
+    public int getConsoleBatchNotifySize() {
+        return getIntProperty(KEY_CONSOLE_BATCH_NOTIFY_SIZE, 10);
     }
 
     @Override

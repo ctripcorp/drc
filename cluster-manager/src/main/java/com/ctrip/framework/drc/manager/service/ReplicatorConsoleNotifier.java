@@ -42,12 +42,7 @@ public class ReplicatorConsoleNotifier extends AbstractConsoleNotifier implement
 
     @Override
     public int getNotifySize() {
-        return clusterManagerConfig.getReplicatorConsoleNotifySize();
-    }
-
-    @Override
-    public boolean getCmBatchNotifyConsoleSwitch() {
-        return clusterManagerConfig.getCmBatchNotifyConsoleSwitch();
+        return clusterManagerConfig.getConsoleBatchNotifySize();
     }
 
     private List<String> getReplicatorConsoleHosts() {

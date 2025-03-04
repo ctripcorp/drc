@@ -45,9 +45,7 @@ public class ReplicatorConsoleNotifierTest {
 
     @Test
     public void testNotifyMasterChanged() throws Exception {
-        Mockito.when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(false);
-        Mockito.when(clusterManagerConfig.getReplicatorConsoleNotifySize()).thenReturn(2);
-        replicatorConsoleNotifier.afterPropertiesSet();
+        Mockito.when(clusterManagerConfig.getConsoleBatchNotifySize()).thenReturn(2);
         replicatorConsoleNotifier.notifyMasterChanged("cluster1", "ip1");
         Assert.assertEquals(1, replicatorConsoleNotifier.getClusterMap().size());
 
@@ -57,17 +55,15 @@ public class ReplicatorConsoleNotifierTest {
 
     @Test
     public void testStartScheduleCheck() throws Exception {
-        Mockito.when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(false);
-        Mockito.when(clusterManagerConfig.getReplicatorConsoleNotifySize()).thenReturn(3);
+        Mockito.when(clusterManagerConfig.getConsoleBatchNotifySize()).thenReturn(3);
         replicatorConsoleNotifier.afterPropertiesSet();
-
+        Thread.sleep(100);
 
         replicatorConsoleNotifier.notifyMasterChanged("cluster1", "ip1");
         Assert.assertEquals(1, replicatorConsoleNotifier.getClusterMap().size());
         replicatorConsoleNotifier.notifyMasterChanged("cluster2", "ip2");
         Assert.assertEquals(2, replicatorConsoleNotifier.getClusterMap().size());
 
-        Mockito.when(clusterManagerConfig.getCmBatchNotifyConsoleSwitch()).thenReturn(true);
         Thread.sleep(2000);
         Assert.assertEquals(0, replicatorConsoleNotifier.getClusterMap().size());
     }

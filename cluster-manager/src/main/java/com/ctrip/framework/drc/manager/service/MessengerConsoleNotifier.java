@@ -3,20 +3,20 @@ package com.ctrip.framework.drc.manager.service;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
+import com.google.common.collect.Lists;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Created by dengquanliang
- * 2024/10/24 22:16
+ * 2025/2/24 16:16
  */
 @Component
-public class MysqlConsoleNotifier extends AbstractConsoleNotifier implements InitializingBean {
+public class MessengerConsoleNotifier extends AbstractConsoleNotifier implements InitializingBean {
 
     @Autowired
     private DataCenterService dataCenterService;
@@ -26,18 +26,18 @@ public class MysqlConsoleNotifier extends AbstractConsoleNotifier implements Ini
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        consoleHosts = getMysqlConsoleHosts();
+        consoleHosts = getMessengerConsoleHosts();
         super.startScheduleCheck();
     }
 
     @Override
     public String type() {
-        return "mysqlMasterChanged";
+        return "messengerMasterChanged";
     }
 
     @Override
     public String getBaseUrl() {
-        return "%s/api/drc/v1/switch/clusters/dbs/master/";
+        return "%s/api/drc/v1/switch/clusters/messengers/master/";
     }
 
     @Override
@@ -45,16 +45,11 @@ public class MysqlConsoleNotifier extends AbstractConsoleNotifier implements Ini
         return clusterManagerConfig.getConsoleBatchNotifySize();
     }
 
-    private List<String> getMysqlConsoleHosts() {
-        List<String> mysqlConsoleHosts = new ArrayList<>();
+    private List<String> getMessengerConsoleHosts() {
+        String localRegion = dataCenterService.getRegion();
+
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
-        for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
-            String consoleHost = entry.getValue().getMetaServerAddress();
-            if (dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
-                mysqlConsoleHosts.add(consoleHost);
-                break;
-            }
-        }
-        return mysqlConsoleHosts;
+        String consoleHost = consoleRegionInfos.get(localRegion).getMetaServerAddress();
+        return Lists.newArrayList(consoleHost);
     }
 }
