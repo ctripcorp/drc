@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
@@ -107,6 +109,42 @@ public class CentralServiceController {
         } catch (Throwable e) {
             logger.info("updateMasterReplicatorIfChange fail,requestBody:{}, {}", requestBody);
             return ApiResult.getFailInstance(null, "updateMasterReplicatorIfChange fail: " + requestBody);
+        }
+    }
+
+    @GetMapping("allDcTbl")
+    public ApiResult queryAllDcTbl() {
+        try {
+            logger.info("[[tag=centralService]] queryAllDcTbl");
+            List<DcTbl> dcTbls = centralService.queryAllDcTbl();
+            return ApiResult.getSuccessInstance(dcTbls);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] queryAllDcTbl fail");
+            return ApiResult.getFailInstance(null, "queryAllDcTbl fail");
+        }
+    }
+
+    @GetMapping("allMhaTbl")
+    public ApiResult queryAllMhaTblV2() {
+        try {
+            logger.info("[[tag=centralService]] queryAllMhaTblV2");
+            List<MhaTblV2> mhaTblV2s = centralService.queryAllMhaTblV2();
+            return ApiResult.getSuccessInstance(mhaTblV2s);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] queryAllMhaTblV2 fail");
+            return ApiResult.getFailInstance(null, "queryAllMhaTblV2 fail");
+        }
+    }
+
+    @GetMapping("allResourceTbl")
+    public ApiResult queryAllResourceTbl() {
+        try {
+            logger.info("[[tag=centralService]] queryAllResourceTbl");
+            List<ResourceTbl> resourceTbls = centralService.queryAllResourceTbl();
+            return ApiResult.getSuccessInstance(resourceTbls);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] queryAllResourceTbl fail");
+            return ApiResult.getFailInstance(null, "queryAllResourceTbl fail");
         }
     }
 
