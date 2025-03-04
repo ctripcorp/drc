@@ -10,6 +10,8 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
     private boolean persistent;
     private List<String> excludeFilterTypes;
     private long delayTime;
+    private List<String> filterFields;
+    private boolean sendOnlyUpdated;
 
     public List<String> getExcludeFilterTypes() {
         return excludeFilterTypes;
@@ -63,11 +65,27 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
         this.persistent = persistent;
     }
 
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
     public long getDelayTime() {
         return delayTime;
     }
 
     public void setDelayTime(long delayTime) {
         this.delayTime = delayTime;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
+        this.sendOnlyUpdated = sendOnlyUpdated;
     }
 }

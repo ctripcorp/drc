@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.dianping.cat.Cat;
+import com.google.common.collect.Lists;
 import muise.ctrip.canal.DataChange;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -23,6 +24,7 @@ import qunar.tc.qmq.producer.MessageProducerProvider;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.MESSENGER_DELAY_MONITOR_TOPIC;
 import static qunar.tc.qmq.utils.SubjectBranchUtils.SUB_ENV;
@@ -60,6 +62,9 @@ public class QmqProducer extends AbstractProducer {
     private boolean cpuOptimizeSwitch;
     private boolean cpuCompareSwitch;
 
+    private Set<String> filterFields;
+    private boolean sendOnlyUpdated;
+
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
@@ -71,6 +76,9 @@ public class QmqProducer extends AbstractProducer {
         this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
         this.cpuOptimizeSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeEnable(topic);
         this.cpuCompareSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeCompareModeEnable(topic);
+        this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
+                        .stream().map(String::toLowerCase).collect(Collectors.toSet());
+        this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
         init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
@@ -106,6 +114,9 @@ public class QmqProducer extends AbstractProducer {
                     message = pair.getLeft();
                     String mOld = pair.getRight();
                     Pair<Message,String> pairNewLogic = generateMessage(eventData, false);
+                    if (pairNewLogic == null) {
+                        return false;
+                    }
                     String mNew = pairNewLogic.getRight();
                     String jsonOld = removeTimestamps(mOld);
                     String jsonNew = removeTimestamps(mNew);
@@ -117,6 +128,9 @@ public class QmqProducer extends AbstractProducer {
                     Pair<Message, String> pair;
                     if (cpuOptimizeSwitch) {
                         pair = generateMessage(eventData, true);
+                        if (pair == null) {
+                            return false;
+                        }
                     } else {
                         pair = generateMessageOld(eventData);
                     }
@@ -216,11 +230,22 @@ public class QmqProducer extends AbstractProducer {
         return Pair.of(message, dataChangeToSend);
     }
 
+    /**
+     * return null when no fields have been modified and sendOnlyUpdated is configured.
+     */
     @VisibleForTesting
     protected Pair<Message,String> generateMessage(EventData eventData, boolean operateMessage) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
-        DataChangeVo dataChange = transferDataChange(eventData);
+        DataChangeVo dataChange = transferDataChange(eventData,filterFields);
+        boolean isChanged = true;
+        if (eventData.getEventType() == EventType.UPDATE) {
+            isChanged = dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
+        }
+
+        if (sendOnlyUpdated && !isChanged) {
+            return null;
+        }
         Message message = null;
         String dc = eventData.getDcTag().getName();
         if (operateMessage) {

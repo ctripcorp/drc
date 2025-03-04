@@ -56,6 +56,10 @@ public class MqConfigVo {
 
     private List<String> excludeFilterTypes;
 
+    private List<String> filterFields;
+
+    private boolean sendOnlyUpdated;
+
     public List<String> getExcludeFilterTypes() {
         return excludeFilterTypes;
     }
@@ -142,5 +146,21 @@ public class MqConfigVo {
 
     public void setDatachangeLasttime(Long datachangeLasttime) {
         this.datachangeLasttime = datachangeLasttime;
+    }
+
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
+        this.sendOnlyUpdated = sendOnlyUpdated;
     }
 }

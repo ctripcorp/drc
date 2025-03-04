@@ -39,7 +39,8 @@ public class MqConfig {
     private String subenv;
     //EventType value: I, U, D
     private List<String> excludeFilterTypes;
-
+    private List<String> filterFields;
+    private boolean sendOnlyUpdated;
 
     @Override
     public String toString() {
@@ -56,6 +57,8 @@ public class MqConfig {
                 ", delayTime=" + delayTime +
                 ", subenv='" + subenv + '\'' +
                 ", excludeFilterTypes=" + excludeFilterTypes +
+                ", filterFields=" + filterFields +
+                ", sendOnlyUpdated=" + sendOnlyUpdated +
                 '}';
     }
 
@@ -157,5 +160,21 @@ public class MqConfig {
 
     public String toJson() {
         return JsonUtils.toJson(this);
+    }
+
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
+        this.sendOnlyUpdated = sendOnlyUpdated;
     }
 }

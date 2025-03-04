@@ -720,6 +720,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 mqLogicTableSummaryDto.setPersistent(mqConfig.isPersistent());
                 mqLogicTableSummaryDto.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
                 mqLogicTableSummaryDto.setDelayTime(mqConfig.getDelayTime());
+                mqLogicTableSummaryDto.setFilterFields(mqConfig.getFilterFields());
+                mqLogicTableSummaryDto.setSendOnlyUpdated(mqConfig.isSendOnlyUpdated());
                 return mqLogicTableSummaryDto;
             }).collect(Collectors.toList());
             dbDrcConfigInfoDto.setLogicTableSummaryDtos(mqLogicTableSummaryDtos);

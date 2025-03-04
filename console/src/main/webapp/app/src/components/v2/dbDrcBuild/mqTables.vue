@@ -125,10 +125,29 @@ export default {
         },
         {
           title: '延迟投递(s)',
+          width: 50,
           key: 'delayTime',
           render: (h, params) => {
-            const time = params.row.delayTime
+            const time = params.row.delayTime === 0 ? '' : params.row.delayTime
             return h('span', time)
+          }
+        },
+        {
+          title: '仅更新时投递',
+          key: 'sendOnlyUpdated',
+          width: 50,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.sendOnlyUpdated ? '✓' : ''
+            return h('span', text)
+          }
+        },
+        {
+          title: '投递字段',
+          key: 'filterFields',
+          render: (h, params) => {
+            const value = params.row.filterFields !== null ? params.row.filterFields.join(',') : '全部'
+            return h('span', value)
           }
         },
         {

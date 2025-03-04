@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Lists;
 import muise.ctrip.canal.DataChange;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.producer.Callback;
@@ -19,10 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -49,6 +48,9 @@ public class KafkaProducer extends AbstractProducer {
     private boolean cpuOptimizeSwitch;
     private boolean cpuCompareSwitch;
 
+    private Set<String> filterFields;
+    private boolean sendOnlyUpdated;
+
     public KafkaProducer(MqConfig mqConfig) {
         this.topic = mqConfig.getTopic();
         this.excludeFilterTypes = mqConfig.getExcludeFilterTypes();
@@ -57,6 +59,9 @@ public class KafkaProducer extends AbstractProducer {
         this.orderKey = mqConfig.getOrderKey();
         this.cpuOptimizeSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeEnable(topic);
         this.cpuCompareSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeCompareModeEnable(topic);
+        this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
+                .stream().map(String::toLowerCase).collect(Collectors.toSet());
+        this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
     }
 
     @Override
@@ -83,6 +88,9 @@ public class KafkaProducer extends AbstractProducer {
             if (cpuCompareSwitch) {
                 messagePair = generateMessageOld(eventData);
                 Pair<String, String> messagePairNew = generateMessage(eventData);
+                if (messagePairNew == null) {
+                    return false;
+                }
                 String jsonOld = removeTimestamps(messagePair.getValue());
                 String jsonNew = removeTimestamps(messagePairNew.getValue());
                 if (!jsonOld.equals(jsonNew)) {
@@ -92,6 +100,9 @@ public class KafkaProducer extends AbstractProducer {
             } else {
                 if (cpuOptimizeSwitch) {
                     messagePair = generateMessage(eventData);
+                    if (messagePair == null) {
+                        return false;
+                    }
                 } else {
                     messagePair = generateMessageOld(eventData);
                 }
@@ -170,7 +181,13 @@ public class KafkaProducer extends AbstractProducer {
     protected Pair<String, String> generateMessage(EventData eventData) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
-        DataChangeVo dataChange = transferDataChange(eventData);
+        DataChangeVo dataChange = transferDataChange(eventData, filterFields);
+        boolean isChanged = eventData.getEventType() == EventType.DELETE ?
+                dataChange.getBeforeColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated) :
+                dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
+        if (sendOnlyUpdated && !isChanged) {
+            return null;
+        }
 
         DataChangeMessage.OrderKeyInfo orderKeyInfo = new DataChangeMessage.OrderKeyInfo();
         orderKeyInfo.setSchemaName(schema);

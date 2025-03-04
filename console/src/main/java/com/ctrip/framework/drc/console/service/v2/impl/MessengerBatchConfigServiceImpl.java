@@ -207,7 +207,7 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
     @VisibleForTesting
     public static List<MqLogicTableSummaryDto> filterAndSortRegistryConfig(List<MqLogicTableSummaryDto> logicTableSummaryDtos1) {
         return logicTableSummaryDtos1.stream()
-                .filter(e -> CollectionUtils.isEmpty(e.getExcludeFilterTypes()))
+                .filter(e -> CollectionUtils.isEmpty(e.getExcludeFilterTypes()) && CollectionUtils.isEmpty(e.getFilterFields()) && e.getDelayTime() == 0)
                 .sorted(((o1, o2) -> {
                     long firstMaxId = o1.getDbReplicationIds().stream().mapToLong(e -> e).max().orElse(0L);
                     long secondMaxId = o2.getDbReplicationIds().stream().mapToLong(e -> e).max().orElse(0L);

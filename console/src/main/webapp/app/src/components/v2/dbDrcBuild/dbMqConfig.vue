@@ -36,8 +36,8 @@
               <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
             </Select>
           </FormItem>
-          <FormItem v-if="mqType === 'qmq'" label="延迟投递">
-            <Input v-model="formItem.delayTime"  style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>
+          <FormItem v-if="mqType === 'qmq'" label="延迟投递(s)">
+            <Input v-model="formItem.delayTime"  style="width:200px" :disabled="filterReadOnly" placeholder="qmq延迟投递时间,单位:秒"/>
           </FormItem>
           <FormItem label="有序消息">
             <i-switch v-model="formItem.switch.order" size="large">
@@ -64,6 +64,52 @@
               </Select>
             </FormItem>
           </Card>
+          <FormItem label="消息包括字段">
+            <template v-if="filterReadOnly">
+              <div v-if="formItem.filterFields != null && formItem.filterFields.length > 0">
+                {{ formItem.filterFields.join(', ') }}
+              </div>
+              <div v-else class="array-item">
+                <tag color="blue">全部列</tag>
+              </div>
+            </template>
+            <template v-else>
+              <i-switch v-model="formItem.switch.fields" size="large">
+                <template #open>
+                  <span>On</span>
+                </template>
+                <template #close>
+                  <span>Off</span>
+                </template>
+              </i-switch>
+            </template>
+          </FormItem>
+          <template v-if="filterReadOnly">
+            <FormItem label="仅在字段有更新时投递">
+              <div>
+                <span v-if="formItem.sendOnlyUpdated">是</span>
+                <span v-else>否</span>
+              </div>
+            </FormItem>
+          </template>
+          <Card v-if="formItem.switch.fields" style="margin-left: 100px">
+            <template #title>
+              <Icon type="md-settings"/>
+              消息包括字段
+              <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading2"
+                      @click="() => getCommonColumns('fields')" style="margin-left: 50px">获取公共字段
+              </Button>
+            </template>
+            <FormItem label="字段">
+              <Select v-model="formItem.filterFields" filterable multiple
+                      style="width: 200px" placeholder="不选表示消息包括全部字段" clearable>
+                <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
+              </Select>
+            </FormItem>
+            <FormItem label="仅在字段有更新时投递">
+              <Checkbox v-model="formItem.sendOnlyUpdated"  :disabled="filterReadOnly"></Checkbox>
+            </FormItem>
+          </Card>
         </Form>
       </Col>
       <Col span="11">
@@ -78,7 +124,7 @@
     </Row>
     <Divider></Divider>
     <Button :type="buttonTypeMap.get(formAction)" @click="submitAll" style="margin-left: 50px"
-            :loading="dataLoading || commonColumnLoading">{{
+            :loading="dataLoading || commonColumnLoading || commonColumnLoading2">{{
         buttonTextMap.get(formAction) + ': ' + mqType
       }}
     </Button>
@@ -124,6 +170,8 @@ export default {
         topic: null,
         orderKey: null,
         excludeFilterTypes: [],
+        filterFields: [],
+        sendOnlyUpdated: false,
         switch: {
           order: false
         },
@@ -253,6 +301,7 @@ export default {
       dataLoading: false,
       successSubmit: false,
       commonColumnLoading: false,
+      commonColumnLoading2: false,
       excludeFilterTypesForChose: [
         {
           value: 'D',
@@ -308,15 +357,21 @@ export default {
         order: this.formItem.switch.order,
         orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey,
         excludeFilterTypes: this.formItem.excludeFilterTypes,
-        delayTime: this.formItem.delayTime
+        delayTime: this.formItem.delayTime,
+        filterFields: this.formItem.filterFields,
+        sendOnlyUpdated: this.formItem.sendOnlyUpdated
       }
       console.log(param)
       return param
     },
-    async getCommonColumns () {
+    async getCommonColumns (method) {
       const params = this.getParams()
       this.formItem.constants.columnsForChose = []
-      this.commonColumnLoading = true
+      if (method === 'fields') {
+        this.commonColumnLoading2 = true
+      } else {
+        this.commonColumnLoading = true
+      }
       await this.axios.get('/api/drc/v2/autoconfig/commonColumns', {
         params: this.flattenObj(params)
       }).then(response => {
@@ -329,7 +384,11 @@ export default {
       }).catch(message => {
         this.$Message.error('查询公共列名异常: ' + message)
       }).finally(() => {
-        this.commonColumnLoading = false
+        if (method === 'fields') {
+          this.commonColumnLoading2 = false
+        } else {
+          this.commonColumnLoading = false
+        }
       })
     },
     handleCreateColumn (val) {
@@ -375,6 +434,8 @@ export default {
         this.formItem.switch.order = this.configData.order
         this.formItem.excludeFilterTypes = this.configData.excludeFilterTypes
         this.formItem.delayTime = this.configData.delayTime
+        this.formItem.filterFields = this.configData.filterFields
+        this.formItem.sendOnlyUpdated = this.configData.sendOnlyUpdated
         this.refreshTopicBu()
         this.getCommonColumns()
         this.meta.dbReplicationIds = this.configData.dbReplicationIds
