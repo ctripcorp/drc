@@ -1,17 +1,16 @@
 package com.ctrip.framework.drc.console.monitor.delay;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -44,12 +43,6 @@ public class KafkaDelayMonitorServerTest {
     @Mock
     private MonitorTableSourceProvider monitorProvider;
     @Mock
-    private ResourceTblDao resourceTblDao;
-    @Mock
-    private MhaTblV2Dao mhaTblV2Dao;
-    @Mock
-    private DcTblDao dcTblDao;
-    @Mock
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private MetaProviderV2 metaProviderV2;
@@ -57,6 +50,8 @@ public class KafkaDelayMonitorServerTest {
     private ResourceService resourceService;
     @Mock
     private IKafkaDelayMessageConsumer kafkaConsumer;
+    @Mock
+    private CentralService centralService;
 
     private final static String localDc = "ntgxh";
 
@@ -69,7 +64,7 @@ public class KafkaDelayMonitorServerTest {
         DcTbl dcTbl = new DcTbl();
         dcTbl.setId(1L);
         dcTbl.setDcName(localDc);
-        Mockito.when(dcTblDao.queryByDcName(localDc)).thenReturn(dcTbl);
+        Mockito.when(centralService.queryAllDcTbl()).thenReturn(Lists.newArrayList(dcTbl));
 
         MhaTblV2 mhaTblV2 = new MhaTblV2();
         mhaTblV2.setMhaName("ob_zyn_test");
@@ -79,8 +74,8 @@ public class KafkaDelayMonitorServerTest {
         mha1.setMhaName("test");
         mha1.setDcId(1L);
 
-        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(Lists.newArrayList(mhaTblV2, mha1));
-        Mockito.when(dcTblDao.queryAllExist()).thenReturn(Lists.newArrayList(dcTbl));
+        Mockito.when(centralService.queryAllMhaTblV2()).thenReturn(Lists.newArrayList(mhaTblV2));
+
         Mockito.when(kafkaConsumer.resumeConsume()).thenReturn(true);
         Mockito.when(kafkaConsumer.stopConsume()).thenReturn(true);
 
@@ -90,7 +85,10 @@ public class KafkaDelayMonitorServerTest {
 
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp("127.0.0.1");
-        Mockito.when(resourceTblDao.queryByDcAndType(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList());
+        resourceTbl.setDcId(1L);
+        resourceTbl.setType(ModuleEnum.MESSENGER.getCode());
+
+        Mockito.when(centralService.queryAllResourceTbl()).thenReturn(Lists.newArrayList(resourceTbl));
     }
 
     @Test
@@ -106,14 +104,14 @@ public class KafkaDelayMonitorServerTest {
 
         Mockito.when(kafkaConsumer.resumeConsume()).thenReturn(true);
         kafkaDelayMonitorServer.isleader();
-        Mockito.verify(mhaTblV2Dao, Mockito.times(1)).queryAllExist();
+        Mockito.verify(centralService, Mockito.times(1)).queryAllMhaTblV2();
 
     }
 
     @Test
     public void testNotLeader() throws SQLException {
         kafkaDelayMonitorServer.notLeader();
-        Mockito.verify(mhaTblV2Dao, Mockito.never()).queryAllExist();
+        Mockito.verify(centralService, Mockito.never()).queryAllMhaTblV2();
     }
 
     @Test

@@ -1,9 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
-import com.ctrip.framework.drc.console.aop.forward.response.MhaAccountsApiRes;
-import com.ctrip.framework.drc.console.aop.forward.response.MhaDbReplicationListResponse;
-import com.ctrip.framework.drc.console.aop.forward.response.MhaV2ListResponse;
+import com.ctrip.framework.drc.console.aop.forward.response.*;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -153,6 +151,24 @@ public class CentralServiceImpl implements CentralService {
             logger.debug("replicator master ip not change,mha:{},ip:{}", mhaName, newIp);
         }
         return false;
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/allDcTbl", forwardType = ForwardTypeEnum.TO_META_DB, responseType = DcTblListResponse.class)
+    public List<DcTbl> queryAllDcTbl() throws SQLException {
+        return dcTblDao.queryAllExist();
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/allMhaTbl", forwardType = ForwardTypeEnum.TO_META_DB, responseType = MhaV2ListResponse.class)
+    public List<MhaTblV2> queryAllMhaTblV2() throws SQLException {
+        return mhaTblV2Dao.queryAllExist();
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/allResourceTbl", forwardType = ForwardTypeEnum.TO_META_DB, responseType = ResourceTblLstResponse.class)
+    public List<ResourceTbl> queryAllResourceTbl() throws SQLException {
+        return resourceTblDao.queryAllExist();
     }
 
     private Map<String, ReplicatorTbl> getIpReplicatorMap(String mha) throws SQLException {

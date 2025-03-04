@@ -1,16 +1,14 @@
 package com.ctrip.framework.drc.console.monitor.delay;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -56,17 +54,13 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     @Autowired
     private MonitorTableSourceProvider monitorProvider;
     @Autowired
-    private ResourceTblDao resourceTblDao;
-    @Autowired
-    private MhaTblV2Dao mhaTblV2Dao;
-    @Autowired
-    private DcTblDao dcTblDao;
-    @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private ResourceService resourceService;
+    @Autowired
+    private CentralService centralService;
 
     private final IKafkaDelayMessageConsumer kafkaConsumer = ApiContainer.getKafkaDelayMessageConsumer();
     private final ScheduledExecutorService monitorMessengerChangerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
@@ -80,7 +74,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     @Override
     public void afterPropertiesSet() throws Exception {
         localDc = dataCenterService.getDc();
-        localDcId = dcTblDao.queryByDcName(localDc).getId();
+        localDcId = centralService.queryAllDcTbl().stream().filter(e -> e.getDcName().equals(localDc)).findFirst().map(DcTbl::getId).orElse(0L);
         monitorMessengerChangerExecutor.scheduleWithFixedDelay(this::monitorMessengerChange, 5, 30, TimeUnit.SECONDS);
 
         kafkaConsumer.initConsumer(
@@ -140,9 +134,10 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         }
         try {
             logger.info("[[monitor=delay]] switchListenMessenger: {}", mhaToMessengerIps);
-            List<String> localDcMessengerIps = resourceTblDao.queryByDcAndType(Lists.newArrayList(localDcId), ModuleEnum.MESSENGER.getCode())
-                    .stream().map(ResourceTbl::getIp).toList();
-
+            List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
+                    .filter(e -> e.getDcId() == localDcId && e.getType() == ModuleEnum.MESSENGER.getCode())
+                    .map(ResourceTbl::getIp)
+                    .toList();
             Set<String> toAddMhas = Sets.newHashSet();
             Set<String> toRemoveMhas = Sets.newHashSet();
             for (Map.Entry<String, String> entry : mhaToMessengerIps.entrySet()) {
@@ -164,8 +159,10 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     }
 
     private Map<String, String> getAllMhasToDcRelated() throws SQLException {
-        List<String> localDcMessengerIps = resourceTblDao.queryByDcAndType(Lists.newArrayList(localDcId), ModuleEnum.MESSENGER.getCode())
-                .stream().map(ResourceTbl::getIp).toList();
+        List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
+                .filter(e -> e.getDcId() == localDcId && e.getType() == ModuleEnum.MESSENGER.getCode())
+                .map(ResourceTbl::getIp)
+                .toList();
         Pair<List<String>, List<String>> pair = getAllMessengerIpsInLocalRegion();
         List<String> mhas = pair.getLeft();
         List<String> allMessengerIpsInLocalRegion = pair.getRight();
@@ -190,8 +187,8 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     }
 
     private Map<String, String> getMhasToDcs(List<String> mhaNames) throws SQLException {
-        List<MhaTblV2> mhas = mhaTblV2Dao.queryAllExist().stream().filter(e -> mhaNames.contains(e.getMhaName())).toList();
-        Map<Long, String> dcMap = dcTblDao.queryAllExist().stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
+        List<MhaTblV2> mhas = centralService.queryAllMhaTblV2().stream().filter(e -> mhaNames.contains(e.getMhaName())).toList();
+        Map<Long, String> dcMap = centralService.queryAllDcTbl().stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
 
         return mhas.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, e -> dcMap.get(e.getDcId())));
     }
