@@ -45,6 +45,12 @@ public class DbMqCreateDto {
             mqConfig.setOrderKey(mqConfig.getOrderKey().trim());
         }
 
+        if (!CollectionUtils.isEmpty(mqConfig.getFilterFields())) {
+            List<String> lowerCaseString = mqConfig.getFilterFields().stream()
+                    .map(String::toLowerCase).toList();
+            mqConfig.setFilterFields(lowerCaseString);
+        }
+
         srcRegionName = srcRegionName.trim();
         logicTableConfig.setLogicTable(logicTableConfig.getLogicTable().trim());
         logicTableConfig.setDstLogicTable(logicTableConfig.getDstLogicTable().trim());

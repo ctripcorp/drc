@@ -488,6 +488,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 mqConfigVo.setPersistent(mqConfig.isPersistent());
                 mqConfigVo.setDelayTime(mqConfig.getDelayTime());
                 mqConfigVo.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
+                mqConfigVo.setFilterFields(mqConfig.getFilterFields());
+                mqConfigVo.setSendOnlyUpdated(mqConfig.isSendOnlyUpdated());
                 list.add(mqConfigVo);
             }
             return list;
@@ -849,7 +851,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     public void processAddMqConfig(MqConfigDto dto) throws Exception {
         MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName(), dto.getMqTypeEnum());
         this.initMqConfigIfNeeded(dto, this.getDcName(mhaTblV2));
-        if (CollectionUtils.isEmpty(dto.getExcludeFilterTypes())) {
+        if (CollectionUtils.isEmpty(dto.getExcludeFilterTypes()) && CollectionUtils.isEmpty(dto.getFilterFields()) && dto.getDelayTime() == 0) {
             this.addDalClusterMqConfig(dto, mhaTblV2);
         }
 
@@ -860,7 +862,9 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     public void processUpdateMqConfig(MqConfigDto dto) throws Exception {
         MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName(), dto.getMqTypeEnum());
         this.initMqConfigIfNeeded(dto, this.getDcName(mhaTblV2));
-        this.updateDalClusterMqConfig(dto, mhaTblV2);
+        if (CollectionUtils.isEmpty(dto.getExcludeFilterTypes()) && CollectionUtils.isEmpty(dto.getFilterFields()) && dto.getDelayTime() == 0) {
+            this.updateDalClusterMqConfig(dto, mhaTblV2);
+        }
         this.updateMqConfig(dto, mhaTblV2);
     }
 
@@ -1279,7 +1283,31 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     private Map<String, List<String>> getTableNameFiltersWithSameTopic(String topic, String dalclusterName, MqType mqTypeEnum) throws Exception {
         // query other table with same topic
-        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, mqTypeEnum.getReplicationType().getType());
+        List<DbReplicationTbl> allDbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, mqTypeEnum.getReplicationType().getType());
+
+        List<Long> allDbReplicationTblIds = allDbReplicationTbls.stream().map(DbReplicationTbl::getId).toList();
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(allDbReplicationTblIds);
+        List<Long> messengerFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getMessengerFilterId)
+                .filter(id -> id != -1).toList();
+        Map<Long, Long> dbReplicationId2MessengerFilterTblId = dbReplicationFilterMappingTbls.stream()
+                .collect(Collectors.toMap(DbReplicationFilterMappingTbl::getDbReplicationId, DbReplicationFilterMappingTbl::getMessengerFilterId));
+        List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryByIds(messengerFilterIds);
+        Map<Long, MessengerFilterTbl> messengerFilterTblMap = messengerFilterTbls.stream().collect(Collectors.toMap(MessengerFilterTbl::getId, e -> e));
+
+        List<DbReplicationTbl> dbReplicationTbls = Lists.newArrayList();
+        allDbReplicationTbls.forEach(e -> {
+            Long messengerFilterTblId = dbReplicationId2MessengerFilterTblId.getOrDefault(e.getId(), -1L);
+            if (messengerFilterTblId > 0) {
+                MessengerFilterTbl filterTbl = messengerFilterTblMap.getOrDefault(messengerFilterTblId, null);
+                if (filterTbl != null) {
+                    MqConfig mqConfig = JsonUtils.fromJson(filterTbl.getProperties(), MqConfig.class);
+                    if (CollectionUtils.isEmpty(mqConfig.getExcludeFilterTypes()) && CollectionUtils.isEmpty(mqConfig.getFilterFields()) && mqConfig.getDelayTime() == 0) {
+                        dbReplicationTbls.add(e);
+                    }
+                }
+            }
+        });
+
         List<Long> srcMhaDbMapping = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(srcMhaDbMapping);
         Map<Long, Long> mappingIdToDbIdMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));

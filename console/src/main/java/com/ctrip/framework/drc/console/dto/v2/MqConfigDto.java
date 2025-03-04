@@ -27,6 +27,8 @@ public class MqConfigDto implements Serializable {
     private long messengerGroupId;
     //EventType value: I, U, D
     private List<String> excludeFilterTypes;
+    private List<String> filterFields;
+    private boolean sendOnlyUpdated;
 
     public void validCheckRequest() {
         if (StringUtils.isBlank(mhaName)) {
@@ -184,6 +186,22 @@ public class MqConfigDto implements Serializable {
         this.excludeFilterTypes = excludeFilterTypes;
     }
 
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
+        this.sendOnlyUpdated = sendOnlyUpdated;
+    }
+
     @Override
     public String toString() {
         return "MqConfigDto{" +
@@ -202,6 +220,8 @@ public class MqConfigDto implements Serializable {
                 ", processor='" + processor + '\'' +
                 ", messengerGroupId=" + messengerGroupId +
                 ", excludeFilterTypes=" + excludeFilterTypes +
+                ", filterFields=" + filterFields +
+                ", sendOnlyUpdated=" + sendOnlyUpdated +
                 '}';
     }
 
@@ -220,6 +240,11 @@ public class MqConfigDto implements Serializable {
         if (!CollectionUtils.isEmpty(this.getExcludeFilterTypes())) {
             mqConfig.setExcludeFilterTypes(this.getExcludeFilterTypes());
         }
+        if (!CollectionUtils.isEmpty(this.getFilterFields())) {
+            mqConfig.setFilterFields(this.getFilterFields());
+        }
+        mqConfig.setSendOnlyUpdated(this.isSendOnlyUpdated());
+
 
         return mqConfig;
     }

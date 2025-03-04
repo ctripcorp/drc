@@ -6,9 +6,11 @@ import com.ctrip.framework.drc.core.mq.Producer;
 import com.google.common.collect.Lists;
 import muise.ctrip.canal.ColumnData;
 import muise.ctrip.canal.DataChange;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by jixinwang on 2022/10/17
@@ -37,7 +39,7 @@ public abstract class AbstractProducer implements Producer {
         return dataChange;
     }
 
-    public DataChangeVo transferDataChange(EventData eventData) {
+    public DataChangeVo transferDataChange(EventData eventData, Set<String> filterFields) {
         DataChangeVo dataChange = new DataChangeVo();
         dataChange.setSchemaName(eventData.getSchemaName());
         dataChange.setTableName(eventData.getTableName());
@@ -46,16 +48,34 @@ public abstract class AbstractProducer implements Producer {
         List<DataChangeMessage.ColumnData> afterList = Lists.newArrayList();
         dataChange.setBeforeColumnList(beforeList);
         dataChange.setAfterColumnList(afterList);
-        if (eventData.getBeforeColumns() != null) {
-            for (EventColumn column : eventData.getBeforeColumns()) {
-                beforeList.add(new DataChangeMessage.ColumnData(column.getColumnName(), column.getColumnValue() == null ? "" : column.getColumnValue(), column.isUpdate(), column.isKey(), column.isNull()));
-            }
-        }
-        if (eventData.getAfterColumns() != null) {
-            for (EventColumn column : eventData.getAfterColumns()) {
-                afterList.add(new DataChangeMessage.ColumnData(column.getColumnName(), column.getColumnValue() == null ? "" : column.getColumnValue(), column.isUpdate(), column.isKey(), column.isNull()));
-            }
-        }
+        populateColumnList(eventData.getBeforeColumns(), beforeList, filterFields);
+        populateColumnList(eventData.getAfterColumns(), afterList, filterFields);
         return dataChange;
+    }
+
+    private void populateColumnList(List<EventColumn> columns, List<DataChangeMessage.ColumnData> targetList, Set<String> filterFields) {
+        if (columns != null) {
+            for (EventColumn column : columns) {
+                if (CollectionUtils.isEmpty(filterFields)) {
+                    targetList.add(new DataChangeMessage.ColumnData(
+                            column.getColumnName(),
+                            column.getColumnValue() == null ? "" : column.getColumnValue(),
+                            column.isUpdate(),
+                            column.isKey(),
+                            column.isNull()
+                    ));
+                    continue;
+                }
+                if (filterFields.contains(column.getColumnName().toLowerCase())) {
+                    targetList.add(new DataChangeMessage.ColumnData(
+                            column.getColumnName(),
+                            column.getColumnValue() == null ? "" : column.getColumnValue(),
+                            column.isUpdate(),
+                            column.isKey(),
+                            column.isNull()
+                    ));
+                }
+            }
+        }
     }
 }

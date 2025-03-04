@@ -32,17 +32,19 @@
             }})==>{{ initInfo.dstMhaName }}({{ initInfo.dstDc }})</span>
         </Col>
       </Row>
-      <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec; justify-content: space-between;">
-        <Col span="2" style="display: flex;float: left;margin: 5px" >
+      <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec; display: flex; justify-content: flex-start; align-items: center;">
+        <Col style="display: flex; margin: 5px;" >
           <Button :loading="dataLoading" style="text-align: right" type="default"
                   v-if="!submitted" @click="preBatchUpdate()"> 批量修改
           </Button>
         </Col>
-        <Col span="2" style="display: flex;float: left;margin: 5px" >
+        <Col style="display: flex; margin: 5px;" >
           <Button icon="md-arrow-up" :loading="dataLoading" style="text-align: right" type="primary"
                   v-if="!submitted" @click="preSubmit()">提交
           </Button>
-          <Button icon="md-swap" :loading="dataLoading" style="margin-left: 20px; text-align: right" type="primary"
+        </Col>
+        <Col style="display: flex; margin: 5px;">
+          <Button icon="md-swap" :loading="dataLoading" style="margin-left: 1px; text-align: right" type="primary"
                   v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
           </Button>
         </Col>
