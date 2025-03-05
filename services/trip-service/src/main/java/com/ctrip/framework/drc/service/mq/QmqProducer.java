@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.service.mq;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.EventColumn;
@@ -11,9 +10,7 @@ import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.dianping.cat.Cat;
 import com.google.common.collect.Lists;
-import muise.ctrip.canal.DataChange;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -22,7 +19,10 @@ import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -58,10 +58,6 @@ public class QmqProducer extends AbstractProducer {
 
     //EventType value: I, U, D
     private List<String> excludeFilterTypes;
-
-    private boolean cpuOptimizeSwitch;
-    private boolean cpuCompareSwitch;
-
     private Set<String> filterFields;
     private boolean sendOnlyUpdated;
 
@@ -74,8 +70,6 @@ public class QmqProducer extends AbstractProducer {
         this.qmqTraceSubenv = mqConfig.getSubenv();
         this.excludeFilterTypes = mqConfig.getExcludeFilterTypes();
         this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
-        this.cpuOptimizeSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeEnable(topic);
-        this.cpuCompareSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeCompareModeEnable(topic);
         this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
                         .stream().map(String::toLowerCase).collect(Collectors.toSet());
         this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
@@ -91,11 +85,6 @@ public class QmqProducer extends AbstractProducer {
         }
     }
 
-    @VisibleForTesting
-    protected static String removeTimestamps(String jsonStr) {
-        String pattern = "(\"otterSendTime\"|\"otterParseTime\"|\"drcSendTime\"):\\d+";
-        return jsonStr.replaceAll(pattern, "$1:\"\"");
-    }
     @Override
     public boolean send(List<EventData> eventDatas, EventType eventType) {
         if (subenvSwitch && !StringUtils.isEmpty(qmqTraceSubenv) && !MESSENGER_DELAY_MONITOR_TOPIC.equals(topic)) {
@@ -108,33 +97,9 @@ public class QmqProducer extends AbstractProducer {
 
         try {
             for (EventData eventData : eventDatas) {
-                Message message;
-                if (cpuCompareSwitch) {
-                    Pair<Message,String> pair = generateMessageOld(eventData);
-                    message = pair.getLeft();
-                    String mOld = pair.getRight();
-                    Pair<Message,String> pairNewLogic = generateMessage(eventData, false);
-                    if (pairNewLogic == null) {
-                        return false;
-                    }
-                    String mNew = pairNewLogic.getRight();
-                    String jsonOld = removeTimestamps(mOld);
-                    String jsonNew = removeTimestamps(mNew);
-                    if (!jsonOld.equals(jsonNew)) {
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.json.compare.different", topic);
-                        loggerMsgSend.error("[JSON COMPARE FAIL,QMQ] topic:{}, id:{}, old:{}, new:{}", topic, message.getMessageId(), jsonOld, jsonNew);
-                    }
-                } else {
-                    Pair<Message, String> pair;
-                    if (cpuOptimizeSwitch) {
-                        pair = generateMessage(eventData, true);
-                        if (pair == null) {
-                            return false;
-                        }
-                    } else {
-                        pair = generateMessageOld(eventData);
-                    }
-                    message = pair.getLeft();
+                Message message = generateMessage(eventData);
+                if (message == null) {
+                    return false;
                 }
 
                 long start = System.nanoTime();
@@ -158,18 +123,25 @@ public class QmqProducer extends AbstractProducer {
         return true;
     }
 
+    /**
+     * return null when no fields have been modified and sendOnlyUpdated is configured.
+     */
     @VisibleForTesting
-    protected Pair<Message,String> generateMessageOld(EventData eventData) {
+    protected Message generateMessage(EventData eventData) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
-        DataChange dataChange = transfer(eventData);
-        JSONObject jsonObject = JSON.parseObject(dataChange.toString());
-        Message message = provider.generateMessage(topic);
+        DataChangeVo dataChange = transferDataChange(eventData,filterFields);
 
+        boolean isChanged = true;
+        if (eventData.getEventType() == EventType.UPDATE) {
+            isChanged = dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
+        }
+        if (sendOnlyUpdated && !isChanged) {
+            return null;
+        }
+        Message message = provider.generateMessage(topic);
         String dc = eventData.getDcTag().getName();
         message.addTag(dc);
-        jsonObject.put("dc", dc);
-
         if (persist) {
             message.setStoreAtFailed(true);
         }
@@ -177,9 +149,11 @@ public class QmqProducer extends AbstractProducer {
             message.setDelayTime(delayTime, TimeUnit.SECONDS);
         }
 
-        Map<String, Object> orderKeyMap = new HashMap<>();
-        orderKeyMap.put("schemaName", schema);
-        orderKeyMap.put("tableName", table);
+        dataChange.setDc(dc);
+
+        DataChangeMessage.OrderKeyInfo orderKeyInfo = new DataChangeMessage.OrderKeyInfo();
+        orderKeyInfo.setSchemaName(schema);
+        orderKeyInfo.setTableName(table);
         List<String> keys = new ArrayList<>();
 
         List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
@@ -216,96 +190,6 @@ public class QmqProducer extends AbstractProducer {
         if (eventData.getOrderKey() != null) {
             message.setOrderKey(eventData.getOrderKey());
         }
-
-        orderKeyMap.put("pks", keys);
-        jsonObject.put("orderKeyInfo", orderKeyMap);
-
-        long currentTime = System.currentTimeMillis();
-        jsonObject.put("otterParseTime", currentTime);
-        jsonObject.put("otterSendTime", currentTime);
-        jsonObject.put("drcSendTime", currentTime);
-
-        String dataChangeToSend = jsonObject.toJSONString();
-        message.setProperty(DATA_CHANGE, dataChangeToSend);
-        return Pair.of(message, dataChangeToSend);
-    }
-
-    /**
-     * return null when no fields have been modified and sendOnlyUpdated is configured.
-     */
-    @VisibleForTesting
-    protected Pair<Message,String> generateMessage(EventData eventData, boolean operateMessage) {
-        String schema = eventData.getSchemaName();
-        String table = eventData.getTableName();
-        DataChangeVo dataChange = transferDataChange(eventData,filterFields);
-        boolean isChanged = true;
-        if (eventData.getEventType() == EventType.UPDATE) {
-            isChanged = dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
-        }
-
-        if (sendOnlyUpdated && !isChanged) {
-            return null;
-        }
-        Message message = null;
-        String dc = eventData.getDcTag().getName();
-        if (operateMessage) {
-            message = provider.generateMessage(topic);
-            message.addTag(dc);
-            if (persist) {
-                message.setStoreAtFailed(true);
-            }
-            if (delayTime > 0) {
-                message.setDelayTime(delayTime, TimeUnit.SECONDS);
-            }
-        }
-
-        dataChange.setDc(dc);
-
-        DataChangeMessage.OrderKeyInfo orderKeyInfo = new DataChangeMessage.OrderKeyInfo();
-        orderKeyInfo.setSchemaName(schema);
-        orderKeyInfo.setTableName(table);
-        List<String> keys = new ArrayList<>();
-
-        List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
-        if (isOrder) {
-            boolean hasOrderKey = false;
-            for (EventColumn column : changedColumns) {
-                if (column.getColumnName().equalsIgnoreCase(orderKey)) {
-                    if (operateMessage) {
-                        message.setOrderKey(column.getColumnValue());
-                    }
-
-                    hasOrderKey = true;
-                }
-                if (column.isKey()) {
-                    keys.add(column.getColumnValue());
-                }
-            }
-
-            if (orderKey == null) {
-                String defaultOrderKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_",keys));
-                if (operateMessage) {
-                    message.setOrderKey(defaultOrderKey);
-                }
-
-                hasOrderKey = true;
-            }
-
-            if (!hasOrderKey) {
-                String schemaDotTable = String.format("%s.%s", schema, table);
-                loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.order.key.absent", schemaDotTable);
-            }
-        } else {
-            for (EventColumn column : changedColumns) {
-                if (column.isKey()) {
-                    keys.add(column.getColumnValue());
-                }
-            }
-        }
-        if (eventData.getOrderKey() != null && operateMessage) {
-            message.setOrderKey(eventData.getOrderKey());
-        }
         orderKeyInfo.setPk(keys);
         dataChange.setOrderKeyInfo(orderKeyInfo);
 
@@ -316,10 +200,8 @@ public class QmqProducer extends AbstractProducer {
         dataChange.setDrcSendTime(currentTime);
 
         String dataChangeToSend = JSON.toJSONString(dataChange);
-        if (operateMessage) {
-            message.setProperty(DATA_CHANGE, dataChangeToSend);
-        }
-        return Pair.of(message, dataChangeToSend);
+        message.setProperty(DATA_CHANGE, dataChangeToSend);
+        return message;
     }
 
     public String getTopic() {

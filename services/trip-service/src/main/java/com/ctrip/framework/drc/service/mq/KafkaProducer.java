@@ -1,16 +1,13 @@
 package com.ctrip.framework.drc.service.mq;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
-import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import muise.ctrip.canal.DataChange;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
@@ -20,7 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -45,9 +45,6 @@ public class KafkaProducer extends AbstractProducer {
 
     private static final Logger loggerMsg = LoggerFactory.getLogger("MESSENGER");
 
-    private boolean cpuOptimizeSwitch;
-    private boolean cpuCompareSwitch;
-
     private Set<String> filterFields;
     private boolean sendOnlyUpdated;
 
@@ -57,8 +54,6 @@ public class KafkaProducer extends AbstractProducer {
         this.producer = KafkaProducerFactory.createProducer(topic);
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
-        this.cpuOptimizeSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeEnable(topic);
-        this.cpuCompareSwitch = TripServiceDynamicConfig.getInstance().isCpuOptimizeCompareModeEnable(topic);
         this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
                 .stream().map(String::toLowerCase).collect(Collectors.toSet());
         this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
@@ -67,11 +62,6 @@ public class KafkaProducer extends AbstractProducer {
     @Override
     public String getTopic() {
         return topic;
-    }
-
-    protected String removeTimestamps(String jsonStr) {
-        String pattern = "(\"otterSendTime\"|\"otterParseTime\"|\"drcSendTime\"):\\d+";
-        return jsonStr.replaceAll(pattern, "$1:\"\"");
     }
 
     @Override
@@ -84,28 +74,9 @@ public class KafkaProducer extends AbstractProducer {
             return false;
         }
         for (EventData eventData : eventDatas) {
-            Pair<String, String> messagePair;
-            if (cpuCompareSwitch) {
-                messagePair = generateMessageOld(eventData);
-                Pair<String, String> messagePairNew = generateMessage(eventData);
-                if (messagePairNew == null) {
-                    return false;
-                }
-                String jsonOld = removeTimestamps(messagePair.getValue());
-                String jsonNew = removeTimestamps(messagePairNew.getValue());
-                if (!jsonOld.equals(jsonNew)) {
-                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.json.compare.different", topic);
-                    loggerMsgSend.error("[JSON COMPARE FAIL,KAFKA] topic:{}, old:{}, new:{}", topic, jsonOld, jsonNew);
-                }
-            } else {
-                if (cpuOptimizeSwitch) {
-                    messagePair = generateMessage(eventData);
-                    if (messagePair == null) {
-                        return false;
-                    }
-                } else {
-                    messagePair = generateMessageOld(eventData);
-                }
+            Pair<String, String> messagePair = generateMessage(eventData);
+            if (messagePair == null) {
+                return false;
             }
 
             String partitionKey = messagePair.getKey();
@@ -121,70 +92,21 @@ public class KafkaProducer extends AbstractProducer {
                     }
                 }
             });
-
-
         }
         return true;
     }
 
     //partitionKey: message
     @VisibleForTesting
-    protected Pair<String, String> generateMessageOld(EventData eventData) {
-        String schema = eventData.getSchemaName();
-        String table = eventData.getTableName();
-        DataChange dataChange = transfer(eventData);
-        JSONObject jsonObject = JSON.parseObject(dataChange.toString());
-
-        Map<String, Object> orderKeyMap = new HashMap<>();
-        orderKeyMap.put("schemaName", schema);
-        orderKeyMap.put("tableName", table);
-        jsonObject.put("orderKeyInfo", orderKeyMap);
-
-        String partitionKey = null;
-        List<String> keys = new ArrayList<>();
-
-        List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
-        if (isOrder) {
-            boolean hasOrderKey = false;
-            for (EventColumn column : changedColumns) {
-                if (column.getColumnName().equalsIgnoreCase(orderKey)) {
-                    partitionKey = column.getColumnValue();
-                    hasOrderKey = true;
-                }
-                if (column.isKey()) {
-                    keys.add(column.getColumnValue());
-                }
-            }
-
-            if (!hasOrderKey) {
-                String schemaDotTable = String.format("%s.%s", schema, table);
-                loggerMsg.error("[KAFKA] order key is absent for table: {}", schemaDotTable);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.order.key.absent", schemaDotTable);
-            }
-        } else {
-            for (EventColumn column : changedColumns) {
-                if (column.isKey()) {
-                    keys.add(column.getColumnValue());
-                }
-            }
-        }
-
-        orderKeyMap.put("pks", keys);
-
-        long currentTime = System.currentTimeMillis();
-        jsonObject.put("otterParseTime", currentTime);
-        jsonObject.put("otterSendTime", currentTime);
-        return Pair.of(partitionKey, jsonObject.toJSONString());
-    }
-
-    @VisibleForTesting
     protected Pair<String, String> generateMessage(EventData eventData) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
         DataChangeVo dataChange = transferDataChange(eventData, filterFields);
-        boolean isChanged = eventData.getEventType() == EventType.DELETE ?
-                dataChange.getBeforeColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated) :
-                dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
+
+        boolean isChanged = true;
+        if (eventData.getEventType() == EventType.UPDATE) {
+            isChanged = dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
+        }
         if (sendOnlyUpdated && !isChanged) {
             return null;
         }

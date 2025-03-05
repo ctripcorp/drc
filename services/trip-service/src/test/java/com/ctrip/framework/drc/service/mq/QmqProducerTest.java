@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -23,7 +22,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
-import static com.ctrip.framework.drc.core.mq.EventType.*;
+import static com.ctrip.framework.drc.core.mq.EventType.UPDATE;
 import static com.ctrip.framework.drc.service.mq.QmqProducer.DATA_CHANGE;
 
 /**
@@ -77,7 +76,7 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        Message message = producer.generateMessage(data,true).getLeft();
+        Message message = producer.generateMessage(data);
         String dataChange = message.getStringProperty(DATA_CHANGE);
         JSONObject jsonObject = JSON.parseObject(dataChange);
 
@@ -150,7 +149,7 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        Message message = producer.generateMessage(data,true).getLeft();
+        Message message = producer.generateMessage(data);
         Assert.assertEquals("testdb.table_1", message.getOrderKey());
 
         beforeColumns = Lists.newArrayList();
@@ -167,7 +166,7 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        message = producer.generateMessage(data,true).getLeft();
+        message = producer.generateMessage(data);
         Assert.assertEquals("testdb.table_1_Joe", message.getOrderKey());
 
         beforeColumns = Lists.newArrayList();
@@ -184,119 +183,12 @@ public class QmqProducerTest {
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
 
-        message = producer.generateMessage(data,true).getLeft();
+        message = producer.generateMessage(data);
         Assert.assertEquals("testdb.table", message.getOrderKey());
 
     }
 
-    @Test
-    public void testGenerateMessageUpdate() {
-        EventData data = new EventData();
-        data.setSchemaName(schema);
-        data.setTableName(table);
-        data.setDcTag(NON_LOCAL);
-        data.setEventType(UPDATE);
-        List<EventColumn> beforeColumns = Lists.newArrayList();
-        EventColumn beforeColumn0 = new EventColumn("id", "1", true, true, false);
-        EventColumn beforeColumn1 = new EventColumn("name", null, false, false, true);
-        EventColumn beforeColumn2 = new EventColumn("name2", "aaa", false, false, true);
-        EventColumn beforeColumn3 = new EventColumn("name3", "", false, false, true);
-        beforeColumns.add(beforeColumn0);
-        beforeColumns.add(beforeColumn1);
-        beforeColumns.add(beforeColumn2);
-        beforeColumns.add(beforeColumn3);
-        data.setBeforeColumns(beforeColumns);
 
-        List<EventColumn> afterColumns = Lists.newArrayList();
-        EventColumn afterColumn0 = new EventColumn("id", "1", true, true, false);
-        EventColumn afterColumn1 = new EventColumn("name", null, false, false, true);
-        EventColumn afterColumn2 = new EventColumn("name2", "sss", false, false, true);
-        EventColumn afterColumn3 = new EventColumn("name3", "", false, false, true);
-        afterColumns.add(afterColumn0);
-        afterColumns.add(afterColumn1);
-        afterColumns.add(afterColumn2);
-        afterColumns.add(afterColumn3);
-        data.setAfterColumns(afterColumns);
-
-        MqConfig config = new MqConfig();
-        config.setTopic("drc.test.topic");
-        config.setOrder(true);
-        config.setOrderKey(null);
-        QmqProducer producer = new QmqProducer(config);
-
-        String messageOld = producer.generateMessageOld(data).getRight();
-        String messageNew = producer.generateMessage(data,true).getRight();
-        String cleanedStr1 = producer.removeTimestamps(messageOld);
-        String cleanedStr2 = producer.removeTimestamps(messageNew);
-
-        Assert.assertEquals(cleanedStr1,cleanedStr2);
-    }
-
-    @Test
-    public void testGenerateMessageDelete() {
-        EventData data = new EventData();
-        data.setSchemaName(schema);
-        data.setTableName(table);
-        data.setDcTag(NON_LOCAL);
-        data.setEventType(DELETE);
-        List<EventColumn> beforeColumns = Lists.newArrayList();
-        EventColumn beforeColumn0 = new EventColumn("id", "1", true, true, false);
-        EventColumn beforeColumn1 = new EventColumn("name", null, false, false, true);
-        EventColumn beforeColumn2 = new EventColumn("name2", "aaa", false, false, true);
-        EventColumn beforeColumn3 = new EventColumn("name3", "", false, false, true);
-        beforeColumns.add(beforeColumn0);
-        beforeColumns.add(beforeColumn1);
-        beforeColumns.add(beforeColumn2);
-        beforeColumns.add(beforeColumn3);
-        data.setBeforeColumns(beforeColumns);
-
-
-        MqConfig config = new MqConfig();
-        config.setTopic("drc.test.topic");
-        config.setOrder(true);
-        config.setOrderKey(null);
-        QmqProducer producer = new QmqProducer(config);
-
-        String messageOld = producer.generateMessageOld(data).getRight();
-        String messageNew = producer.generateMessage(data,true).getRight();
-        String cleanedStr1 = producer.removeTimestamps(messageOld);
-        String cleanedStr2 = producer.removeTimestamps(messageNew);
-
-        Assert.assertEquals(cleanedStr1,cleanedStr2);
-    }
-
-    @Test
-    public void testGenerateMessageInsert() {
-        EventData data = new EventData();
-        data.setSchemaName(schema);
-        data.setTableName(table);
-        data.setDcTag(NON_LOCAL);
-        data.setEventType(INSERT);
-
-        List<EventColumn> afterColumns = Lists.newArrayList();
-        EventColumn afterColumn0 = new EventColumn("id", "1", true, true, false);
-        EventColumn afterColumn1 = new EventColumn("name", null, false, false, true);
-        EventColumn afterColumn2 = new EventColumn("name2", "sss", false, false, true);
-        EventColumn afterColumn3 = new EventColumn("name3", "", false, false, true);
-        afterColumns.add(afterColumn0);
-        afterColumns.add(afterColumn1);
-        afterColumns.add(afterColumn2);
-        afterColumns.add(afterColumn3);
-        data.setAfterColumns(afterColumns);
-
-        MqConfig config = new MqConfig();
-        config.setTopic("drc.test.topic");
-        config.setOrder(true);
-        config.setOrderKey(null);
-        QmqProducer producer = new QmqProducer(config);
-
-        String messageOld = producer.generateMessageOld(data).getRight();
-        String messageNew = producer.generateMessage(data,true).getRight();
-        String cleanedStr1 = producer.removeTimestamps(messageOld);
-        String cleanedStr2 = producer.removeTimestamps(messageNew);
-
-        Assert.assertEquals(cleanedStr1,cleanedStr2);
-    }
 
     @Test
     public void testTransferDataChange() {
@@ -343,7 +235,7 @@ public class QmqProducerTest {
         Assert.assertEquals(vo.getAfterColumnList().size(),2);
         Assert.assertEquals(vo.getAfterColumnList().size(),2);
 
-        Pair<Message, String> pair = producer.generateMessage(data, true);
+        Message pair = producer.generateMessage(data);
         Assert.assertNotNull(pair);
 
         config = new MqConfig();
@@ -359,7 +251,7 @@ public class QmqProducerTest {
 
         Assert.assertEquals(vo.getAfterColumnList().size(),1);
         Assert.assertEquals(vo.getAfterColumnList().size(),1);
-        pair = producer.generateMessage(data, true);
+        pair = producer.generateMessage(data);
         Assert.assertNull(pair);
 
         config = new MqConfig();
@@ -374,7 +266,7 @@ public class QmqProducerTest {
         vo = producer.transferDataChange(data, fs);
         Assert.assertEquals(vo.getAfterColumnList().size(),4);
         Assert.assertEquals(vo.getAfterColumnList().size(),4);
-        pair = producer.generateMessage(data, true);
+        pair = producer.generateMessage(data);
         Assert.assertNotNull(pair);
 
     }
