@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
-
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
 
 @Component
@@ -28,11 +26,7 @@ public class RemoteConfig extends AbstractConfig implements Config {
 
     @Override
     public void updateConfig() {
-        Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
         String centerRegionUrl = consoleConfig.getCenterRegionUrl();
-        if (localConfigCloudDc.contains(dataCenterService.getDc())) {
-            return;
-        }
         if (!StringUtils.isEmpty(centerRegionUrl)) {
             try {
                 DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.meta.update", "remote", () -> {

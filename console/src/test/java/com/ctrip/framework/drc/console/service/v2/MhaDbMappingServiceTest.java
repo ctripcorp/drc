@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaDbMappingServiceImpl;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
@@ -72,12 +71,10 @@ public class MhaDbMappingServiceTest {
     public void testInitMhaDbMappings() throws Exception{
         List<MhaTblV2> mhaTblV2s = getMhaTblV2s();
 
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(new ArrayList<>());
         Pair<List<String>, List<String>> result = mhaDbMappingService.initMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1");
         Assert.assertEquals(result.getLeft().size(), 1);
         Assert.assertEquals(result.getRight().size(), 1);
 
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList("mha1"));
         result = mhaDbMappingService.initMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1\\..*");
         Assert.assertEquals(result.getLeft().size(), 1);
         Assert.assertEquals(result.getRight().size(), 1);

@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -74,9 +75,11 @@ public interface ResourceService {
 
     MhaAzView getAllInstanceAzInfo() throws Exception;
 
-    List<ApplierInfoDto> getAppliersInAz(String region, List<String> ips);
+    List<ApplierInfoDto> getMasterAppliersInRegion(String region, List<String> ips);
 
-    List<MessengerInfoDto> getMessengersInRegion(String region, List<String> ips);
+    List<MessengerInfoDto> getMasterMessengersInRegion(String region, List<String> ips);
+
+    List<ReplicatorInfoDto> getMasterReplicatorsInRegion(String region, List<String> ips);
 
     Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() throws Exception;
 }

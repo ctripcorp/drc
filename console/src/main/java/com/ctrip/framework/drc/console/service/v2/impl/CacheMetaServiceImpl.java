@@ -11,14 +11,7 @@ import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.Db;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dbs;
-import com.ctrip.framework.drc.core.entity.Dc;
-import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -27,19 +20,17 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.sql.SQLException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName CacheMetaServiceImpl
@@ -83,6 +74,24 @@ public class CacheMetaServiceImpl implements CacheMetaService {
             replicators.putAll(getReplicatorsSrcDcRelated(mhaNamesToBeMonitored,dcInLocalRegion));
         }
         return replicators;
+    }
+
+    @Override
+    public Map<String, Set<String>> getDc2ReplicatorIps(List<String> clusterIds) {
+        Map<String, Set<String>> dc2ReplicatorIps = Maps.newHashMap();
+        Map<String, Dc> dcs = metaProviderV2.getDrc().getDcs();
+        for (Dc dc : dcs.values()) {
+            String dcName = dc.getId();
+            Set<String> replicatorIps = new HashSet<>();
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            for (DbCluster dbCluster : dbClusters.values()) {
+                if (clusterIds.contains(dbCluster.getId())) {
+                    replicatorIps.addAll(dbCluster.getReplicators().stream().map(Replicator::getIp).collect(Collectors.toList()));
+                }
+            }
+            dc2ReplicatorIps.put(dcName, replicatorIps);
+        }
+        return dc2ReplicatorIps;
     }
 
     /**
@@ -379,7 +388,6 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                 List<Applier> appliers = dbCluster.getAppliers();
                 for (Applier applier : appliers) {
                     if (srcDc.equals(applier.getTargetIdc()) && mhasRelated.contains(applier.getTargetMhaName())) {
-
                         if (dbCluster.getReplicators().isEmpty()) {
                             break;
                         }
@@ -387,16 +395,12 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
                         List<Route> routes = Lists.newArrayList();
                         for (String dcInLocalRegion : dcsInLocalRegion) {
-                            routes.addAll(RouteUtils.filterRoutes(
-                                    dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)
-                            ));
+                            routes.addAll(RouteUtils.filterRoutes(dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)));
                         }
                         replicators.put(
                                 dbCluster.getId(),
                                 new ReplicatorWrapper(
-                                        dbCluster.getReplicators().
-                                                stream().filter(Replicator::isMaster).
-                                                findFirst().orElse(dbCluster.getReplicators().get(0)),
+                                        dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
                                         srcDc,
                                         dcName,
                                         dbCluster.getName(),

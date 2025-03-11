@@ -45,8 +45,8 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     private static final long HUGE_VAL = 60 * 60000L;
     private static final String MQ_DELAY_MEASUREMENT = "fx.drc.messenger.delay";
 
-    private Consumer<String,String> kafkaConsumer;
-    private final ExecutorService kafkaConsumeService= ThreadUtils.newSingleThreadExecutor("DRC-Kafka-Consume");
+    private Consumer<String, String> kafkaConsumer;
+    private final ExecutorService kafkaConsumeService = ThreadUtils.newSingleThreadExecutor("DRC-Kafka-Consume");
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "DRC-Kafka-Consume-Process");
     private Future future;
 
@@ -55,7 +55,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     private volatile Map<String, String> mha2Dc = Maps.newConcurrentMap();
 
     // k: mhaInfo ,v :receiveTime
-    private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
+    private final Map<MhaInfo, Long> receiveTimeMap = Maps.newConcurrentMap();
     private final ScheduledExecutorService checkScheduledExecutor =
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
     private ScheduledFuture<?> checkTaskFuture;
@@ -81,7 +81,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             kafkaConf.put(HermesConsumerConfig.HERMES_MESSAGE_CLASS_CONFIG, String.class.getCanonicalName());
             kafkaConf.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
             kafkaConf.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-            checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss,5,1, TimeUnit.SECONDS);
+            checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss, 5, 1, TimeUnit.SECONDS);
             logger.info("kafka conf init over");
 
         } catch (Exception e) {
@@ -98,7 +98,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         future = kafkaConsumeService.submit(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    ConsumerRecords<String,String> records = kafkaConsumer.poll(Duration.ofMillis(200));
+                    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(200));
                     for (ConsumerRecord<String, String> mqRecord : records) {
                         executorService.submit(() -> processMessage(mqRecord));
                     }
@@ -141,7 +141,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                 logger.warn("[[monitor=delay,mqType=kafka]] not contains mha: {}", mhaName);
                 return;
             }
-            Pair<Integer, Long> lastProcessRecordPair = mhaLastReceiveMap.computeIfAbsent(mhaName, (key) -> Pair.of(-1,-1L));
+            Pair<Integer, Long> lastProcessRecordPair = mhaLastReceiveMap.computeIfAbsent(mhaName, (key) -> Pair.of(-1, -1L));
             Pair<Integer, Long> incomingMessagePair = Pair.of(record.partition(), record.offset());
             if (lastProcessRecordPair.equals(incomingMessagePair)) {
                 return;
@@ -155,7 +155,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                     mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
             logger.info("[[monitor=delay,mha={},mqType=kafka,partition={},offset={}]] receiveTime:{}, updateDbTime:{}, report messenger delay:{} ms", mhaName, record.partition(), record.offset(), receiveTime, updateDbTime.getTime(), delayTime);
 
-            receiveTimeMap.put(mhaInfo,receiveTime);
+            receiveTimeMap.put(mhaInfo, receiveTime);
 
             mhaLastReceiveMap.put(mhaName, incomingMessagePair);
         } else {
@@ -183,27 +183,25 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
 
     @Override
     public void mhasRefresh(Map<String, String> mha2Dc) {
-      synchronized (this) {
-          logger.info("[KafkaDelayMessageConsumer] mhasRefresh: {}",mha2Dc);
-          Set<String> mhas = Sets.newHashSet(mha2Dc.keySet());
-          Set<String> deleteMhas = Sets.newHashSet(mhasRelated);
-          deleteMhas.removeAll(mhas);
-          for (String mhaName : deleteMhas) {
-              String dc = this.mha2Dc.get(mhaName);
-              logger.info("[KafkaDelayMessageConsumer] remove mha: {}, {}", mhaName, dc);
-              if (dc == null) {
-                  if (this.mhasRelated.contains(mhaName)) {
-                      logger.warn("[KafkaDelayMessageConsumer] mhasRefresh error mha: {}", mhaName);
-                  }
-                  continue;
-              }
-              MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
-              boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
-              logger.info("[KafkaDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
-          }
-          this.mhasRelated = mhas;
-          this.mha2Dc = mha2Dc;
-      }
+        synchronized (this) {
+            logger.info("[KafkaDelayMessageConsumer] mhasRefresh: {}", mha2Dc);
+            Set<String> mhas = Sets.newHashSet(mha2Dc.keySet());
+            Set<String> deleteMhas = Sets.newHashSet(mhasRelated);
+            deleteMhas.removeAll(mhas);
+            for (String mhaName : deleteMhas) {
+                String dc = this.mha2Dc.get(mhaName);
+                logger.info("[KafkaDelayMessageConsumer] remove mha: {}, {}", mhaName, dc);
+                if (dc == null && this.mhasRelated.contains(mhaName)) {
+                    logger.warn("[KafkaDelayMessageConsumer] mhasRefresh error mha: {}", mhaName);
+                    continue;
+                }
+                MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+                boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
+                logger.info("[KafkaDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
+            }
+            this.mhasRelated = mhas;
+            this.mha2Dc = mha2Dc;
+        }
     }
 
     @Override
@@ -265,7 +263,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         }
 
         if (checkTaskFuture == null || checkTaskFuture.isCancelled() || checkTaskFuture.isDone()) {
-            checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss,5,1, TimeUnit.SECONDS);
+            checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss, 5, 1, TimeUnit.SECONDS);
         }
         try {
             kafkaConsumer = KafkaClientFactory.newConsumer(subject, consumerGroup, kafkaConf);
@@ -288,12 +286,11 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         private String mhaName;
         private String dc;
 
-
-        public Map<String,String> getTags() {
+        public Map<String, String> getTags() {
             if (tags == null) {
                 tags = Maps.newHashMap();
-                tags.put("mhaName",mhaName);
-                tags.put("dc",dc);
+                tags.put("mhaName", mhaName);
+                tags.put("dc", dc);
                 tags.put("mqType", MqType.kafka.name());
             }
             return tags;

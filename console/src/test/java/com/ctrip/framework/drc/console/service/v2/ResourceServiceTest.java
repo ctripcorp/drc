@@ -27,19 +27,21 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
-import com.ctrip.framework.drc.core.service.inquirer.ApplierInfoInquirer;
-import com.ctrip.framework.drc.core.service.inquirer.MessengerInfoInquirer;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 import java.util.*;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,6 +95,8 @@ public class ResourceServiceTest {
     private MetaProviderV2 metaProviderV2;
     @Mock
     private ResourceService resourceService2;
+    @Mock
+    private BatchInfoInquirer batchInfoInquirer;
 
     @Before
     public void setUp() {
@@ -515,42 +519,37 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.getAz2DrcDb().size(), 1);
     }
 
-    @Mock
-    ApplierInfoInquirer inquirer;
+
+    @Test
+    public void testGetMasterAppliersInRegion() throws Exception {
+        ApplierInfoDto applierInfoDto = new ApplierInfoDto();
+        applierInfoDto.setMaster(true);
+        Mockito.when(batchInfoInquirer.getApplierInfo(Mockito.anyList()))
+                .thenReturn(Pair.of(Lists.newArrayList("ip"), Lists.newArrayList(applierInfoDto)));
+        List<ApplierInfoDto> result = resourceService.getMasterAppliersInRegion("sha", Lists.newArrayList("ip"));
+        Assert.assertEquals(1, result.size());
+    }
 
 
     @Test
-    public void testGetAppliersInAz() throws Exception {
-        String testRegion = "sha";
-        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
-        MockedStatic<ApplierInfoInquirer> mockedStatic = Mockito.mockStatic(ApplierInfoInquirer.class);
-        mockedStatic.when(ApplierInfoInquirer::getInstance).thenReturn(inquirer);
-        Future<List<ApplierInfoDto>> mockFuture = Mockito.mock(Future.class);
-        Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getApplierInfoDtos());
-        Mockito.when(inquirer.query(Mockito.anyString())).thenReturn(mockFuture);
-
-        List<ApplierInfoDto> result = resourceService.getAppliersInAz(testRegion, Lists.newArrayList("ip"));
-        Assert.assertEquals(result.size(), 1);
-        mockedStatic.close();
+    public void testGetMasterMessengersInRegion() throws Exception {
+        MessengerInfoDto messengerInfoDto = new MessengerInfoDto();
+        messengerInfoDto.setMaster(true);
+        Mockito.when(batchInfoInquirer.getMessengerInfo(Mockito.anyList()))
+                .thenReturn(Pair.of(Lists.newArrayList("ip"), Lists.newArrayList(messengerInfoDto)));
+        List<MessengerInfoDto> result = resourceService.getMasterMessengersInRegion("sha", Lists.newArrayList("ip"));
+        Assert.assertEquals(1, result.size());
     }
 
-    @Mock
-    MessengerInfoInquirer messengerInfoInquirer;
     @Test
-    public void testGetMessengersInRegion() throws Exception {
-        String testRegion = "sha";
-        Mockito.when(metaProviderV2.getDrc()).thenReturn(PojoBuilder.getDrc2());
-        MockedStatic<MessengerInfoInquirer> mockedStatic = Mockito.mockStatic(MessengerInfoInquirer.class);
-        mockedStatic.when(MessengerInfoInquirer::getInstance).thenReturn(messengerInfoInquirer);
-        Future<List<MessengerInfoDto>> mockFuture = Mockito.mock(Future.class);
-        Mockito.when(mockFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class))).thenReturn(PojoBuilder.getMessengerInfoDtos());
-        Mockito.when(messengerInfoInquirer.query(Mockito.anyString())).thenReturn(mockFuture);
-
-        List<MessengerInfoDto> result = resourceService.getMessengersInRegion(testRegion, Lists.newArrayList("ip"));
-        Assert.assertEquals(result.size(), 1);
-        mockedStatic.close();
+    public void testGetMasterReplicatorsInRegion() throws Exception {
+        ReplicatorInfoDto replicatorInfoDto = new ReplicatorInfoDto();
+        replicatorInfoDto.setMaster(true);
+        Mockito.when(batchInfoInquirer.getReplicatorInfo(Mockito.anyList()))
+                .thenReturn(Pair.of(Lists.newArrayList("ip"), Lists.newArrayList(replicatorInfoDto)));
+        List<ReplicatorInfoDto> result = resourceService.getMasterReplicatorsInRegion("sha", Lists.newArrayList("ip"));
+        Assert.assertEquals(1, result.size());
     }
-
     @Test
     public void testMhaRelatedDrcDb() {
         Map<String, Set<String>> az2MhaName = Maps.newHashMap();

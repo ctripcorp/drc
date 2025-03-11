@@ -63,7 +63,6 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
         when(qConfigService.updateDalClusterMqConfig(anyString(), any(), any(), anyList())).thenReturn(true);
         when(qConfigService.removeDalClusterMqConfigIfNecessary(anyString(), any(), any(), any(), anyList(), anyList())).thenReturn(true);
         when(qConfigService.addOrUpdateDalClusterMqConfig(anyString(), any(), any(), any(), anyList())).thenReturn(true);

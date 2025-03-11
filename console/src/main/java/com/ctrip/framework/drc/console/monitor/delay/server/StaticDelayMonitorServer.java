@@ -370,7 +370,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getDestMha());
                     } else {
                         boolean mhaMonitorEnabled = periodicalUpdateDbTask.isMhaMonitorEnabled(config.getMha());
-                        mhasShouldMonitor = mhaMonitorEnabled? Sets.newHashSet(config.getMha()) : Sets.newHashSet();
+                        mhasShouldMonitor = mhaMonitorEnabled ? Sets.newHashSet(config.getMha()) : Sets.newHashSet();
                     }
 
                     Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
@@ -382,7 +382,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                             tags.put("destMha", config.getDestMha());
                             tags.put("srcMha", srcMha);
                             iterator.remove();
-                            DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(),tags);
+                            DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(), tags);
                             continue;
                         }
                         Long receiveTime = entry.getValue();

@@ -74,24 +74,16 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String PUBLIC_CLOUD_DC = "drc.public.cloud.dc";
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
     private static String PUBLIC_CLOUD_REGION = "drc.public.cloud.region";
-    private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sin,ali";
+    private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sgp,ali";
     private static String CENTER_REGION = "console.center.region";
     private static String DEFAULT_CENTER_REGION = "sha";
     private static String DRC_CENTER_IDC = "drc.center.idc";
-
-    private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
-    private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
-    private static String LOCAL_CONFIG_MONITOR_MHAS = "local.config.monitor.mhas";
-    private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
-    private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
-    private static String DEFAULT_LOCAL_CONFIG_MHAS_MAP = "{}";
     
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
 
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
-    private static String VPC_MHA = "vpc.mha";
 
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_REALTIME_SWITCH = "meta.realtime";
@@ -144,6 +136,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
     private static String DRC_ADMIN_TOKEN = "drc.admin.token";
     private static String SUPPORT_KAFKA_SWITCH = "support.kafka.switch";
+    private static String CONSOLE_REPLICATOR_MONITOR_SWITCH = "console.replicator.monitor.switch";
 
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
@@ -282,13 +275,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return consoleDcInfos;
     }
 
-
-    public Map<String, String> getConsoleDcEndpointInfos() {
-        if(consoleDcEndpointInfos.size() == 0) {
-            consoleDcEndpointInfos = getConsoleDcEndpointMapping();
-        }
-        return consoleDcEndpointInfos;
-    }
 
     public void setDefaultDcInfos(String defaultDcInfos) {
         this.defaultDcInfos = defaultDcInfos;
@@ -440,45 +426,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return Sets.newHashSet(publicCloudRegion.toLowerCase().split(","));
     }
 
-    public Set<String> getLocalConfigCloudDc() {
-        String localConfigCloudDc = getProperty(LOCAL_CONFIG_CLOUD_DC, DEFAULT_LOCAL_CONFIG_CLOUD_DC);
-        logger.info("localConfigCloudDc: {}", localConfigCloudDc);
-        return Sets.newHashSet(localConfigCloudDc.split(","));
-    }
-
-    public List<String> getLocalDcMhaNamesToBeMonitored() {
-        String localDcMhaNamesToBeMonitored = getProperty(LOCAL_CONFIG_MONITOR_MHAS, DEFAULT_LOCAL_CONFIG_MONITOR_MHAS);
-        logger.info("localDcMhaNamesToBeMonitored: {}", localDcMhaNamesToBeMonitored);
-        if (null == localDcMhaNamesToBeMonitored || StringUtils.isBlank(localDcMhaNamesToBeMonitored)) {
-            return null;
-        }
-        return Lists.newArrayList(localDcMhaNamesToBeMonitored.split(","));
-    }
-
-    public Map<String, Long> getLocalConfigMhasMap() {
-        HashMap<String, Long> mhasIdNameMap = Maps.newHashMap();
-        String mhaNameIdMapString = getProperty(LOCAL_CONFIG_MHAS_MAP, DEFAULT_LOCAL_CONFIG_MHAS_MAP);
-        logger.info("mhaNameIdMapString: {}", mhaNameIdMapString);
-        Map<String, String> decode = JsonCodec.INSTANCE.decode(mhaNameIdMapString, new GenericTypeReference<Map<String, String>>() {});
-        for (Map.Entry<String,String> entry : decode.entrySet()) {
-            mhasIdNameMap.put(entry.getKey(),Long.valueOf(entry.getValue()));
-        }
-        return mhasIdNameMap;
-
-    }
-
     public Map<String, String> getDbaDc2DrcDcMap() {
         String dbaDc2DrcDcMapString = getProperty(DBA_DC_2_DRC_DC_MAP, DEFAULT_DBA_DC_2_DRC_DC_MAP);
         logger.info("dbaDc2DrcDcMapString: {}", dbaDc2DrcDcMapString);
         return JsonCodec.INSTANCE.decode(dbaDc2DrcDcMapString, new GenericTypeReference<Map<String, String>>() {});
-    }
-
-    public List<String> getVpcMhaNames() {
-        String vpcMhaStr = getProperty(VPC_MHA);
-        if (StringUtils.isBlank(vpcMhaStr)) {
-            return new ArrayList<>();
-        }
-        return Lists.newArrayList(vpcMhaStr.split(","));
     }
 
     public String getSwitchCmRegionUrl() {
@@ -649,6 +600,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getSupportKafkaSwitch() {
         return getBooleanProperty(SUPPORT_KAFKA_SWITCH, false);
+    }
+
+    public boolean getConsoleReplicatorMonitorSwitch() {
+        return getBooleanProperty(CONSOLE_REPLICATOR_MONITOR_SWITCH, false);
     }
 
 }

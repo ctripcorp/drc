@@ -64,16 +64,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     @Override
     public Pair<List<String>, List<String>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
         logger.info("initMhaDbMappings, srcMha: {}, dstMha: {}, nameFilter: {}", srcMha.getMhaName(), dstMha.getMhaName(), nameFilter);
-        List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
-        if (vpcMhaNames.contains(srcMha.getMhaName()) && vpcMhaNames.contains(dstMha.getMhaName())) {
-            logger.info("srcMha: {}, dstMha: {} are vpcMha", srcMha.getMhaName(), dstMha.getMhaName());
-            throw ConsoleExceptionUtils.message("not support srcMha and dstMha are both IBU_VPC");
-        }
-        if (vpcMhaNames.contains(srcMha.getMhaName()) || vpcMhaNames.contains(dstMha.getMhaName())) {
-            return insertVpcMhaDbMappings(srcMha, dstMha, vpcMhaNames, nameFilter);
-        } else {
-            return insertMhaDbMappings(srcMha, dstMha, nameFilter);
-        }
+        return insertMhaDbMappings(srcMha, dstMha, nameFilter);
     }
 
     @Override
@@ -153,19 +144,6 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
 
         //insertMhaDbMappings
         return this.insertOrRecoverMhaDbMappings(srcMha.getId(), srcDbList);
-    }
-
-    private Pair<List<String>, List<String>> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
-        String mhaName = vpcMhaNames.contains(srcMha.getMhaName()) ? dstMha.getMhaName() : srcMha.getMhaName();
-        List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
-        List<String> dbList = extractDbs(tableList);
-        insertDbs(dbList);
-
-        //insertMhaDbMappings
-        insertMhaDbMappings(srcMha.getId(), dbList);
-        insertMhaDbMappings(dstMha.getId(), dbList);
-
-        return Pair.of(dbList, tableList);
     }
 
     private void insertDbs(List<String> dbList) throws SQLException {

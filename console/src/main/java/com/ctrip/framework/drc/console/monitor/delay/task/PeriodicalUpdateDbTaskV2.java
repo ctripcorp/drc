@@ -115,10 +115,6 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
     private Map<String, Map<String, List<MhaDbReplicationDto>>> refreshAndGetMhaDbMap() {
         try {
-            if (consoleConfig.getLocalConfigCloudDc().contains(dataCenterService.getDc())) {
-                logger.warn("[[task=updateDelayTable_v2]] skip update localDcName");
-                return Maps.newHashMap();
-            }
             Map<String, Map<String, List<MhaDbReplicationDto>>> mhaDbReplication = Maps.newHashMap();
             for (String dc : dcsInRegion) {
                 mhaDbReplication.putAll(getMhaDbReplicationByDc(dc));

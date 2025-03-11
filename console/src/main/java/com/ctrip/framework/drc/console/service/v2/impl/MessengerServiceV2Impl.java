@@ -517,9 +517,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         List<DbReplicationTbl> dbReplicationTbls;
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls;
         try {
-            if (defaultConsoleConfig.getVpcMhaNames().contains(mhaName)) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DELETE_TBL_CHECK_FAIL_EXCEPTION, "Vpc mha not supported");
-            }
             // check input: dbReplicationIds
             if (CollectionUtils.isEmpty(dbReplicationIds)) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dbReplicationIds is empty");
@@ -889,10 +886,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         if (mhaTblV2 == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
         }
-        if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
-        }
-
         MqType mqType = MqType.valueOf(dto.getMqType());
         Map<String, List<MqConfigVo>> groupByTopic = queryByReplicationIdsAndMhaTbl(Sets.newHashSet(dto.getDbReplicationIdList()), mhaTblV2, mqType);
         this.deleteDbReplicationForMq(dto.getMhaName(), mqType, dto.getDbReplicationIdList());
@@ -1093,10 +1086,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     }
 
     private boolean initQmqTopic(MqConfigDto dto, String dcNameForMha) {
-        if (defaultConsoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
-            logger.info("[[tag=qmqInit]] localConfigCloudDc init qmq topic:{}", dto.getTopic());
-            return true;
-        }
         String topicApplicationUrl = domainConfig.getQmqTopicApplicationUrl(dcNameForMha);
         LinkedHashMap<String, String> requestBody = Maps.newLinkedHashMap();
         requestBody.put("subject", dto.getTopic());
@@ -1127,10 +1116,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     }
 
     private boolean initQmqProducer(MqConfigDto dto, String dcNameForMha) {
-        if (defaultConsoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
-            logger.info("[[tag=qmqInit]] localConfigCloudDc init qmq topic:{}", dto.getTopic());
-            return true;
-        }
         String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl(dcNameForMha);
         LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
         requestBody.put("appCode", "100059182");

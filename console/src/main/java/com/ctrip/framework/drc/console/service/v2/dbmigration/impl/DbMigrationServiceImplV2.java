@@ -233,12 +233,6 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
                 errorInfo.append(region).append(": multi mhaTbs in drcReplication, please check! mha: ").append(mhasInSameRegion);
             }
         });
-        Set<String> regions = mhaTblsByRegion.keySet();
-        Set<String> vpcRegions = consoleConfig.getLocalConfigCloudDc();
-        vpcRegions.retainAll(regions);
-        if (!CollectionUtils.isEmpty(vpcRegions)) {
-            throw ConsoleExceptionUtils.message("migrate db in vpc region: " + vpcRegions + ", please contact drcTeam!");
-        }
         if (!StringUtils.isEmpty(errorInfo.toString())) {
             throw ConsoleExceptionUtils.message(errorInfo.toString());
         }

@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import org.apache.commons.lang3.tuple.Pair;
-import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +47,6 @@ public class DbReplicationServiceImplTest extends CommonDataInit{
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
         when(qConfigService.updateDalClusterMqConfig(anyString(),any(),any(),anyList())).thenReturn(true);
         when(qConfigService.removeDalClusterMqConfigIfNecessary(anyString(),any(),any(),any(),anyList(),anyList())).thenReturn(true);
         when(qConfigService.addOrUpdateDalClusterMqConfig(anyString(),any(),any(),any(),anyList())).thenReturn(true);

@@ -91,7 +91,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
             if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
                 monitorMessengerChange();
                 boolean b = kafkaConsumer.resumeConsume();
-                logger.info("[[monitor=delay]] is leader,going to start kafkaConsumer,result:{}", b);
+                logger.info("[[monitor=kafkaDelay]] is leader,going to start kafkaConsumer,result:{}", b);
             }
         }
     }
@@ -103,7 +103,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
             if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
                 monitorMessengerChange();
                 boolean b = kafkaConsumer.stopConsume();
-                logger.info("[[monitor=delay]] not leader,going to stop kafkaConsumer,result:{}", b);
+                logger.info("[[monitor=kafkaDelay]] not leader,going to stop kafkaConsumer,result:{}", b);
             }
         }
     }
@@ -111,14 +111,14 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     private void monitorMessengerChange() {
         if (isLeader) {
             try {
-                logger.info("[[monitor=delay]] start monitorMessengerChange");
+                logger.info("[[monitor=kafkaDelay]] start monitorMessengerChange");
                 long start = System.currentTimeMillis();
                 Map<String, String> allMhasToDcRelated = getAllMhasToDcRelated();
                 long end = System.currentTimeMillis();
-                logger.info("[[monitor=delay]] monitorMessengerChange end cost {} ms", end - start);
+                logger.info("[[monitor=kafkaDelay]] monitorMessengerChange end cost {} ms", end - start);
                 kafkaConsumer.mhasRefresh(allMhasToDcRelated);
             } catch (Exception e) {
-                logger.error("[[monitor=delay]] monitorMessengerChange fail", e);
+                logger.error("[[monitor=kafkaDelay]] monitorMessengerChange fail", e);
             }
         } else {
             kafkaConsumer.mhasRefresh(Maps.newHashMap());
@@ -154,7 +154,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
                 kafkaConsumer.removeMhas(getMhasToDcs(Lists.newArrayList(toRemoveMhas)));
             }
         } catch (Exception e) {
-            logger.error("[[monitor=delay]] switchListenMessenger fail", e);
+            logger.error("[[monitor=kafkaDelay]] switchListenMessenger fail", e);
         }
     }
 
@@ -167,7 +167,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         List<String> mhas = pair.getLeft();
         List<String> allMessengerIpsInLocalRegion = pair.getRight();
 
-        List<MessengerInfoDto> messengersInAz = resourceService.getMessengersInRegion(consoleConfig.getRegion(), allMessengerIpsInLocalRegion);
+        List<MessengerInfoDto> messengersInAz = resourceService.getMasterMessengersInRegion(consoleConfig.getRegion(), allMessengerIpsInLocalRegion);
         List<String> localDcMhas = messengersInAz.stream()
                 .filter(e -> RegistryKey.getTargetMha(e.getRegistryKey()).equals(SystemConfig.DRC_KAFKA) && localDcMessengerIps.contains(e.getIp()))
                 .map(e -> RegistryKey.from(e.getRegistryKey()).getMhaName()).collect(Collectors.toList());
@@ -179,7 +179,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         mhas.removeAll(localRegionMhas);
 
         if (!CollectionUtils.isEmpty(mhas)) {
-            logger.warn("[[monitor=delay]] mhas has no master messenger, {}", mhas);
+            logger.warn("[[monitor=kafkaDelay]] mhas has no master messenger, {}", mhas);
             localDcMhas.addAll(mhas);
         }
 
