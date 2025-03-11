@@ -58,7 +58,6 @@ public class KafkaDelayMonitorServerTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(monitorProvider.getKafkaDelayMonitorSwitch()).thenReturn("on");
         Mockito.when(dataCenterService.getDc()).thenReturn(localDc);
 
         DcTbl dcTbl = new DcTbl();
@@ -89,6 +88,7 @@ public class KafkaDelayMonitorServerTest {
         resourceTbl.setType(ModuleEnum.MESSENGER.getCode());
 
         Mockito.when(centralService.queryAllResourceTbl()).thenReturn(Lists.newArrayList(resourceTbl));
+        Mockito.when(monitorProvider.getKafkaDelayMonitorSwitch()).thenReturn("on");
     }
 
     @Test
@@ -100,7 +100,7 @@ public class KafkaDelayMonitorServerTest {
         MessengerInfoDto messengerInfoDto = new MessengerInfoDto();
         messengerInfoDto.setIp("127.0.0.1");
         messengerInfoDto.setRegistryKey("ob_zyn_test_dalcluster.ob_zyn_test._drc_kafka");
-        Mockito.when(resourceService.getMessengersInRegion(Mockito.anyString(), Mockito.anyList())).thenReturn(Lists.newArrayList(messengerInfoDto));
+        Mockito.when(resourceService.getMasterMessengersInRegion(Mockito.anyString(), Mockito.anyList())).thenReturn(Lists.newArrayList(messengerInfoDto));
 
         Mockito.when(kafkaConsumer.resumeConsume()).thenReturn(true);
         kafkaDelayMonitorServer.isleader();

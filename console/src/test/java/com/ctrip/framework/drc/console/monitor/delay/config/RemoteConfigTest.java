@@ -8,8 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.util.HashSet;
-
 import static com.ctrip.framework.drc.console.AllTests.DRC_XML;
 
 public class RemoteConfigTest extends AbstractConfigTest {
@@ -48,8 +46,7 @@ public class RemoteConfigTest extends AbstractConfigTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
-        Mockito.doReturn(new HashSet<> () {{add("dc");}}).when(consoleConfig).getLocalConfigCloudDc();
+
         remoteConfig.updateConfig();
     }
     

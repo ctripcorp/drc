@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.resource.impl;
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.ApplierInfoApiRes;
 import com.ctrip.framework.drc.console.aop.forward.response.MessengerInfoApiRes;
+import com.ctrip.framework.drc.console.aop.forward.response.ReplicatorInfoApiRes;
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
@@ -40,9 +41,9 @@ import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.service.inquirer.ApplierInfoInquirer;
-import com.ctrip.framework.drc.core.service.inquirer.MessengerInfoInquirer;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.monitor.EventMonitor;
@@ -63,10 +64,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -120,6 +118,8 @@ public class ResourceServiceImpl implements ResourceService {
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private ResourceService resourceService;
+
+    private BatchInfoInquirer batchInfoInquirer = BatchInfoInquirer.getInstance();
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "migrateResource"));
 
@@ -1285,7 +1285,7 @@ public class ResourceServiceImpl implements ResourceService {
 
             for (Map.Entry<String, List<String>> entry : dcName2IpsInThisRegion.entrySet()) {
                 if (ModuleEnum.APPLIER.getCode() == type) {
-                    List<ApplierInfoDto> infoDtos = resourceService.getAppliersInAz(region, entry.getValue());
+                    List<ApplierInfoDto> infoDtos = resourceService.getMasterAppliersInRegion(region, entry.getValue());
                     if (infoDtos == null) {
                         EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.applier.fail", region + ":" + entry.getValue());
                         infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
@@ -1294,7 +1294,7 @@ public class ResourceServiceImpl implements ResourceService {
                     }
                 }
                 if (ModuleEnum.MESSENGER.getCode() == type) {
-                    List<MessengerInfoDto> infoDtos = resourceService.getMessengersInRegion(region, entry.getValue());
+                    List<MessengerInfoDto> infoDtos = resourceService.getMasterMessengersInRegion(region, entry.getValue());
                     if (infoDtos == null) {
                         EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.messenger.fail", region + ":" + entry.getValue());
                         infoDtosInAllDc.put(entry.getKey(), Lists.newArrayList());
@@ -1308,31 +1308,17 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/resource/getAppliersInAz", responseType = ApplierInfoApiRes.class)
-    public List<ApplierInfoDto> getAppliersInAz(String region, List<String> ips) {
-        ApplierInfoInquirer applierInquirer = ApplierInfoInquirer.getInstance();
-        List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
-        for (String applierIp : ips) {
-            applierIp = applierIp.trim();
-            futures.add(applierInquirer.query(applierIp + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT));
-        }
-        List<ApplierInfoDto> applierInfoDtos = Lists.newArrayList();
-        for (int i = 0; i < futures.size(); i++) {
-            Future<List<ApplierInfoDto>> future = futures.get(i);
-            try {
-                List<ApplierInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
-                applierInfoDtos.addAll(infoDtos);
-                logger.info("drc.console.inquiry.applier.success: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                future.cancel(true);
-                logger.warn("get applier fail, skip for: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
-                logger.warn("drc.console.inquiry.applier.fail {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_APPLIER_PORT);
-            }
-        }
-        List<ApplierInfoDto> masterApplierInfoDtos = applierInfoDtos.stream()
-                .filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
+    @PossibleRemote(path = "/api/drc/v2/resource/getAppliersInRegion", responseType = ApplierInfoApiRes.class)
+    public List<ApplierInfoDto> getMasterAppliersInRegion(String region, List<String> ips) {
+        List<Applier> appliers = ips.stream().map(ip -> {
+            Applier applier = new Applier();
+            applier.setIp(ip);
+            applier.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+            return applier;
+        }).toList();
 
-        return masterApplierInfoDtos;
+        com.ctrip.xpipe.tuple.Pair<List<String>, List<ApplierInfoDto>> applierInfo = batchInfoInquirer.getApplierInfo(appliers);
+        return applierInfo.getValue().stream().filter(applierInfoDto -> Boolean.TRUE.equals(applierInfoDto.getMaster())).collect(Collectors.toList());
     }
 
     public Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() throws Exception {
@@ -1344,31 +1330,31 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/resource/getMessengersInAz", responseType = MessengerInfoApiRes.class)
-    public List<MessengerInfoDto> getMessengersInRegion(String region, List<String> ips) {
-        MessengerInfoInquirer messengerInfoInquirer = MessengerInfoInquirer.getInstance();
-        List<Future<List<MessengerInfoDto>>> futures = Lists.newArrayList();
-        for (String messengerIp : ips) {
-            messengerIp = messengerIp.trim();
-            futures.add(messengerInfoInquirer.query(messengerIp + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT));
-        }
-        List<MessengerInfoDto> messengerInfoDtos = Lists.newArrayList();
-        for (int i = 0; i < futures.size(); i++) {
-            Future<List<MessengerInfoDto>> future = futures.get(i);
-            try {
-                List<MessengerInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
-                messengerInfoDtos.addAll(infoDtos);
-                logger.info("drc.console.inquiry.messenger.success: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                future.cancel(true);
-                logger.warn("get messenger fail, skip for: {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT);
-                logger.warn("drc.console.inquiry.messenger.fail {}", ips.get(i) + ":" + ConsoleConfig.DEFAULT_MESSENGER_PORT);
-            }
-        }
-        List<MessengerInfoDto> masterMessengerInfoDtos = messengerInfoDtos.stream()
-                .filter(messengerInfoDto -> Boolean.TRUE.equals(messengerInfoDto.getMaster())).collect(Collectors.toList());
+    @PossibleRemote(path = "/api/drc/v2/resource/getMessengersInRegion", responseType = MessengerInfoApiRes.class)
+    public List<MessengerInfoDto> getMasterMessengersInRegion(String region, List<String> ips) {
+        List<Messenger> messengers = ips.stream().map(ip -> {
+            Messenger messenger = new Messenger();
+            messenger.setIp(ip);
+            messenger.setPort(ConsoleConfig.DEFAULT_MESSENGER_PORT);
+            return messenger;
+        }).toList();
 
-        return masterMessengerInfoDtos;
+        com.ctrip.xpipe.tuple.Pair<List<String>, List<MessengerInfoDto>> messengerInfo = batchInfoInquirer.getMessengerInfo(messengers);
+        return messengerInfo.getValue().stream().filter(messengerInfoDto -> Boolean.TRUE.equals(messengerInfoDto.getMaster())).collect(Collectors.toList());
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/resource/getReplicatorsInRegion", responseType = ReplicatorInfoApiRes.class)
+    public List<ReplicatorInfoDto> getMasterReplicatorsInRegion(String region, List<String> ips) {
+        List<Replicator> replicators = ips.stream().map(ip -> {
+            Replicator replicator = new Replicator();
+            replicator.setIp(ip);
+            replicator.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
+            return replicator;
+        }).toList();
+
+        com.ctrip.xpipe.tuple.Pair<List<String>, List<ReplicatorInfoDto>> replicatorInfo = batchInfoInquirer.getReplicatorInfo(replicators);
+        return replicatorInfo.getValue().stream().filter(replicatorInfoDto -> Boolean.TRUE.equals(replicatorInfoDto.getMaster())).collect(Collectors.toList());
     }
 
     private Map<String, List<String>> getReplicatorAz(Drc drc) throws SQLException {

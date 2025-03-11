@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BroadcastEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
@@ -50,6 +51,9 @@ public class SwitchServiceImpl implements SwitchService {
 
     @Autowired
     private KafkaDelayMonitorServer kafkaDelayMonitorServer;
+
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     private ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("SwitchServiceImpl"));
     private static final int RETRY_TIME = 1;

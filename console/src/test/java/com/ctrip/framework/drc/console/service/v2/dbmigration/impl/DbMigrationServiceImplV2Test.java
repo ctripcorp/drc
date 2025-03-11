@@ -14,7 +14,9 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
-import com.ctrip.framework.drc.console.dto.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.MhaApplierDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -24,7 +26,6 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
@@ -199,7 +200,6 @@ public class DbMigrationServiceImplV2Test {
         existedTask.setNewMhaDba("mha2");
         existedTask.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList(existedTask));
-        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet());
         Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         Assert.assertEquals(1L,stringLongPair1.getRight().longValue());
 

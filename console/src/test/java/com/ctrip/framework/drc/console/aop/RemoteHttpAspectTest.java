@@ -89,24 +89,23 @@ public class RemoteHttpAspectTest {
         Mockito.when(consoleConfig.getRegion2dcsMapping()).thenReturn(map);
         Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
-        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet(""));
         Map<String, String> map2 = Maps.newHashMap();
         map2.put("sha", "uri");
         map2.put("sin", "uri");
         Mockito.when(consoleConfig.getConsoleRegionUrls()).thenReturn(map2);
         try {
-            proxy2.getAppliersInAz("sin", Lists.newArrayList());
+            proxy2.getMasterAppliersInRegion("sin", Lists.newArrayList());
         } catch (Exception e) {
 
         }
-        Mockito.verify(resourceServiceSpy, Mockito.never()).getAppliersInAz(Mockito.anyString(), Mockito.anyList());
+        Mockito.verify(resourceServiceSpy, Mockito.never()).getMasterAppliersInRegion(Mockito.anyString(), Mockito.anyList());
 
         try {
-            proxy2.getAppliersInAz("sha", Lists.newArrayList());
+            proxy2.getMasterAppliersInRegion("sha", Lists.newArrayList());
         } catch (Exception e) {
 
         }
-        Mockito.verify(resourceServiceSpy, Mockito.atLeastOnce()).getAppliersInAz(Mockito.anyString(), Mockito.anyList());
+        Mockito.verify(resourceServiceSpy, Mockito.atLeastOnce()).getMasterAppliersInRegion(Mockito.anyString(), Mockito.anyList());
     }
 
 

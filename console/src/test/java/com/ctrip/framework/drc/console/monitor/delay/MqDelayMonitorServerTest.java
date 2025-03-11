@@ -5,11 +5,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
-import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
-import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +17,6 @@ import org.mockito.MockitoAnnotations;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -36,15 +32,11 @@ public class MqDelayMonitorServerTest {
     @Mock
     private DelayMessageConsumer consumer;
     @Mock
-    private IKafkaDelayMessageConsumer kafkaConsumer;
-    @Mock
     private MetaProviderV2 metaProviderV2;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(monitorProvider.getMqDelayMonitorSwitch()).thenReturn("on");
-        Mockito.when(monitorProvider.getKafkaDelayMonitorSwitch()).thenReturn("on");
         Mockito.when(monitorProvider.getMqDelaySubject()).thenReturn("bbz.drc.delaymonitor");
         Mockito.when(monitorProvider.getMqDelayConsumerGroup()).thenReturn("100023928");
         Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Set.of("shaxy"));
@@ -52,6 +44,7 @@ public class MqDelayMonitorServerTest {
         Mockito.when(consumer.stopListen()).thenReturn(true);
         Mockito.when(metaProviderV2.getDrc()).thenReturn(buildDrc());
         Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet("ntgxh","shaxy","sharb"));
+        Mockito.when(monitorProvider.getMqDelayMonitorSwitch()).thenReturn("on");
     }
 
     private Drc buildDrc() throws IOException, SAXException {
@@ -82,11 +75,8 @@ public class MqDelayMonitorServerTest {
 
     @Test
     public void testGetAllMhaWithMessengerInLocalRegion() {
-        Map<String, Set<Pair<String, String>>> map = mqDelayMonitorServer.getAllMhaWithMessengerInLocalRegion();
-        Set<Pair<String, String>> allMhaWithMessengerInLocalRegion = map.get(MqType.qmq.name());
-        Assert.assertEquals(1, allMhaWithMessengerInLocalRegion.size());
-        Set<Pair<String, String>> allMhaWithMessengerInLocalRegionKafka = map.get(MqType.kafka.name());
-        Assert.assertEquals(1, allMhaWithMessengerInLocalRegionKafka.size());
+        Set<String> mhas = mqDelayMonitorServer.getAllMhaWithMessengerInLocalRegion();
+        Assert.assertEquals(1, mhas.size());
     }
 
     @Test

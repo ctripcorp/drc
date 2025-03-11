@@ -34,5 +34,4 @@ public interface CentralService {
 
     List<ResourceTbl> queryAllResourceTbl() throws SQLException;
 
-
 }

@@ -16,9 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
@@ -47,7 +45,6 @@ public class MonitorServiceV2ImplTest {
         mhaTblV2.setMhaName("srcMha");
         when(mhaTblV2Dao.queryBy(any())).thenReturn(List.of(mhaTblV2));
         when(consoleConfig.getRegion()).thenReturn("region");
-        when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Collections.emptySet());
         Drc drc = new Drc();
         Dc dc = new Dc();
         dc.addDbCluster(new DbCluster().setId("id1").setMhaName("dstMha").addApplier(new Applier().setTargetMhaName("srcMha")));

@@ -7,12 +7,12 @@ import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.xpipe.tuple.Pair;
 import org.apache.commons.lang.StringUtils;
@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.ctrip.framework.drc.console.service.v2.impl.MessengerServiceV2ImplTest.VPC_MHA_NAME;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -41,7 +40,6 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
         super.setUp();
     }
 

@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -288,24 +289,35 @@ public class ResourceController {
         }
     }
 
-    @GetMapping("getAppliersInAz")
-    public ApiResult<List<ApplierInfoDto>> getAppliersInAz(@RequestParam String region, @RequestParam List<String> ips) {
+    @GetMapping("getAppliersInRegion")
+    public ApiResult<List<ApplierInfoDto>> getAppliersInRegion(@RequestParam String region, @RequestParam List<String> ips) {
         try {
-            List<ApplierInfoDto> res = resourceService.getAppliersInAz(region, ips);
+            List<ApplierInfoDto> res = resourceService.getMasterAppliersInRegion(region, ips);
             return ApiResult.getSuccessInstance(res);
         } catch (Exception e) {
-            logger.error("getAppliersInAz, az={}, fail", region, e);
+            logger.error("getAppliersInRegion, region={}, fail", region, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
-    @GetMapping("getMessengersInAz")
-    public ApiResult<List<MessengerInfoDto>> getMessengersInAz(@RequestParam String region, @RequestParam List<String> ips) {
+    @GetMapping("getMessengersInRegion")
+    public ApiResult<List<MessengerInfoDto>> getMessengersInRegion(@RequestParam String region, @RequestParam List<String> ips) {
         try {
-            List<MessengerInfoDto> res = resourceService.getMessengersInRegion(region, ips);
+            List<MessengerInfoDto> res = resourceService.getMasterMessengersInRegion(region, ips);
             return ApiResult.getSuccessInstance(res);
         } catch (Exception e) {
-            logger.error("getMessengersInAz, az={}, fail", region, e);
+            logger.error("getMessengersInRegion, region={}, fail", region, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getReplicatorsInRegion")
+    public ApiResult<List<ReplicatorInfoDto>> getReplicatorsInRegion(@RequestParam String region, @RequestParam List<String> ips) {
+        try {
+            List<ReplicatorInfoDto> res = resourceService.getMasterReplicatorsInRegion(region, ips);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getReplicatorsInRegion, region={}, fail", region, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

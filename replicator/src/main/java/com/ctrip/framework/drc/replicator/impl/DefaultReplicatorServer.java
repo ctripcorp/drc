@@ -219,7 +219,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
         replicatorInfoDto.setMaster(instanceStatus == InstanceStatus.ACTIVE);
         replicatorInfoDto.setIp(this.replicatorConfig.getMySQLMasterConfig().getIp());
-        replicatorInfoDto.setPort(this.replicatorConfig.getApplierPort());
+        replicatorInfoDto.setPort(null);
+        replicatorInfoDto.setApplierPort(this.replicatorConfig.getApplierPort());
         replicatorInfoDto.setUpstreamMasterIp(this.replicatorConfig.getMySQLSlaveConfig().getEndpoint().getHost());
         return replicatorInfoDto;
     }
