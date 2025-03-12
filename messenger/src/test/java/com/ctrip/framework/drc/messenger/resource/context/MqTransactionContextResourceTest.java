@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.mq.Producer;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.messenger.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.messenger.mq.MqProvider;
@@ -22,8 +23,9 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
 import static com.ctrip.framework.drc.core.mq.EventType.*;
@@ -175,6 +177,9 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
             this.registryKey = "dalcluster.mha";
             this.applyMode = 2;
         }
+        void setInternal(ExecutorService i) {
+            this.internal = i;
+        }
     }
 
     class testProducer implements Producer {
@@ -200,15 +205,16 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
     public void testSendEventDatasNormal() throws Exception {
         MqRowEventExecutorResource executorService = Mockito.mock(MqRowEventExecutorResource.class);
         context.mqRowEventExecutor = executorService;
-        Future<Boolean> f = Mockito.mock(Future.class);
+        CompletableFuture<Boolean> f = Mockito.mock(CompletableFuture.class);
         Mockito.when(f.get()).thenReturn(true);
-        Mockito.when(executorService.submit(Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.thenApplyAsync(Mockito.any(), Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.supplyAsync(Mockito.any())).thenReturn(f);
 
         context.doInitialize();
         context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
         context.complete();
 
-        Mockito.verify(executorService, Mockito.times(2)).submit(Mockito.any());
+        Mockito.verify(executorService, Mockito.times(2)).supplyAsync(Mockito.any());
         Mockito.verify(f, Mockito.times(2)).get();
     }
 
@@ -216,14 +222,15 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
     public void testSendEventDatasWithExecutionException() throws Exception {
         MqRowEventExecutorResource executorService = Mockito.mock(MqRowEventExecutorResource.class);
         context.mqRowEventExecutor = executorService;
-        Future<Boolean> f = Mockito.mock(Future.class);
+        CompletableFuture<Boolean> f = Mockito.mock(CompletableFuture.class);
         Mockito.when(f.get()).thenThrow(new ExecutionException("Mocked exception", new Throwable()));
-        Mockito.when(executorService.submit(Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.thenApplyAsync(Mockito.any(), Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.supplyAsync(Mockito.any())).thenReturn(f);
 
         context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
         context.complete();
 
-        Mockito.verify(executorService, Mockito.times(2)).submit(Mockito.any());
+        Mockito.verify(executorService, Mockito.times(2)).supplyAsync(Mockito.any());
     }
 
 
@@ -234,6 +241,28 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         return Lists.newArrayList(data,data2);
     }
 
+    private EventData bulidUpdateEvendDataMultiKey(String idVal, String nameValue1, String nameValue2) {
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", idVal, true, true, false);
+        EventColumn beforeColumn1 = new EventColumn("name", nameValue1, false, true, false);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", idVal, true, true, false);
+        EventColumn afterColumn1 = new EventColumn("name", nameValue2, false, true, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        return data;
+    }
     private EventData bulidUpdateEvendData(String idVal, String nameValue1, String nameValue2) {
         EventData data = new EventData();
         data.setSchemaName(schema);
@@ -241,15 +270,37 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         data.setDcTag(NON_LOCAL);
         data.setEventType(UPDATE);
         List<EventColumn> beforeColumns = Lists.newArrayList();
-        EventColumn beforeColumn0 = new EventColumn("id", idVal, true, true, true);
-        EventColumn beforeColumn1 = new EventColumn("name", nameValue1, false, false, true);
+        EventColumn beforeColumn0 = new EventColumn("id", idVal, true, true, false);
+        EventColumn beforeColumn1 = new EventColumn("name", nameValue1, false, false, false);
         beforeColumns.add(beforeColumn0);
         beforeColumns.add(beforeColumn1);
         data.setBeforeColumns(beforeColumns);
 
         List<EventColumn> afterColumns = Lists.newArrayList();
-        EventColumn afterColumn0 = new EventColumn("id", idVal, true, true, true);
+        EventColumn afterColumn0 = new EventColumn("id", idVal, true, true, false);
         EventColumn afterColumn1 = new EventColumn("name", nameValue2, false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        return data;
+    }
+    private EventData bulidUpdateEvendDataKey(String idVal, String nameValue1, String idVal2) {
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", idVal, true, true, false);
+        EventColumn beforeColumn1 = new EventColumn("name", nameValue1, false, false, false);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", idVal2, true, true, true);
+        EventColumn afterColumn1 = new EventColumn("name", nameValue1, false, false, false);
         afterColumns.add(afterColumn0);
         afterColumns.add(afterColumn1);
         data.setAfterColumns(afterColumns);
@@ -262,4 +313,177 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         boolean res = context.sendAndReport(buildUpdateEventDatas(), UPDATE, new testProducer());
         Assert.assertTrue(res);
     }
+
+    @Test
+    public void testInnerOrderedTransaction() {
+        EventData d1 = bulidUpdateEvendData("1", "a", "1");
+        EventData d2 = bulidUpdateEvendData("2", "b", "2");
+        EventData d3 = bulidUpdateEvendData("2", "c", "3");
+        EventData d4 = bulidUpdateEvendData("1", "d", "4");
+        context.sendEventDatas(Lists.newArrayList(d1, d2, d3, d4), UPDATE);
+        Assert.assertEquals(4, context.orderedTransaction.allFutures.size());
+        Assert.assertEquals(2, context.orderedTransaction.depends.size());
+
+    }
+
+
+    @Test
+    public void testSend() throws Exception {
+        EventData d1 = bulidUpdateEvendData("1", "a", "1");
+        EventData d2 = bulidUpdateEvendData("1", "b", "2");
+        EventData d3 = bulidUpdateEvendData("2", "c", "3");
+        EventData d4 = bulidUpdateEvendData("3", "d", "4");
+        ExecutorService internel = ThreadUtils.newFixedThreadPool(1, "test");
+        testExecutor executor = new testExecutor();
+        executor.setInternal(internel);
+        StringBuilder sb = new StringBuilder();
+        Handler h1 = new Handler(d1,executor,sb);
+        Handler h2 = new Handler(d2,executor,sb);
+        Handler h3 = new Handler(d3,executor,sb);
+        Handler h4 = new Handler(d4,executor,sb);
+        h1.onSendAndReport(null);
+        h2.onSendAndReport(h1.f);
+        h3.onSendAndReport(null);
+        h4.onSendAndReport(null);
+        h1.f.get();
+        h2.f.get();
+        h3.f.get();
+        h4.f.get();
+        String target = "submit:1\n" +
+                "submit:2\n" +
+                "execute:1\n" +
+                "submit:3\n" +
+                "submit:4\n" +
+                "execute:3\n" +
+                "execute:4\n" +
+                "execute:2\n";
+        Assert.assertEquals(target, sb.toString());
+    }
+    class Handler {
+        EventData row;
+        CompletableFuture<Boolean> f;
+        testExecutor e;
+        StringBuilder sb;
+        Handler(EventData data, testExecutor e, StringBuilder sb) {
+            this.row = data;
+            this.e = e;
+            this.sb = sb;
+        }
+        void onSendAndReport(CompletableFuture<Boolean> df) {
+            sb.append("submit:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
+            if (df != null) {
+                this.f = e.thenApplyAsync(df, result -> {
+                    sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
+                    if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    return false;
+                });
+            } else {
+                this.f = e.supplyAsync(() -> {
+                    sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
+                    if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    return false;
+                });
+            }
+        }
+    }
+
+    @Test
+    public void testSendException() throws Exception {
+        EventData d1 = bulidUpdateEvendData("1", "a", "1");
+        EventData d2 = bulidUpdateEvendData("1", "b", "2");
+        EventData d3 = bulidUpdateEvendData("1", "c", "3");
+        EventData d4 = bulidUpdateEvendData("2", "d", "4");
+        EventData d5 = bulidUpdateEvendData("3", "e", "5");
+        ExecutorService internel = ThreadUtils.newFixedThreadPool(1, "test");
+        testExecutor executor = new testExecutor();
+        executor.setInternal(internel);
+        StringBuilder sb = new StringBuilder();
+        Handler2 h1 = new Handler2(d1,executor,sb);
+        Handler2 h2 = new Handler2(d2,executor,sb);
+        Handler2 h3 = new Handler2(d3,executor,sb);
+        Handler2 h4 = new Handler2(d4,executor,sb);
+        Handler2 h5 = new Handler2(d5,executor,sb);
+        h1.onSendAndReport(null);
+        h2.onSendAndReport(h1.f);
+        h3.onSendAndReport(h2.f);
+        h4.onSendAndReport(null);
+        h5.onSendAndReport(null);
+        try {
+            h1.f.get();
+        } catch (ExecutionException e) {
+            sb.append("h1 exception\n");
+        }
+        try {
+            h2.f.get();
+        } catch (ExecutionException e) {
+            sb.append("h2 exception\n");
+        }
+        try {
+            h3.f.get();
+        } catch (ExecutionException e) {
+            sb.append("h3 exception\n");
+        }
+        try {
+            h4.f.get();
+        } catch (ExecutionException e) {
+            sb.append("h4 exception\n");
+        }
+        try {
+            h5.f.get();
+        } catch (ExecutionException e) {
+            sb.append("h5 exception\n");
+        }
+        String target = "submit:1\n" +
+                "submit:2\n" +
+                "execute:1\n" +
+                "submit:3\n" +
+                "submit:4\n" +
+                "submit:5\n" +
+                "execute:4\n" +
+                "execute:5\n" +
+                "h1 exception\n" +
+                "h2 exception\n" +
+                "h3 exception\n";
+        Assert.assertEquals(target, sb.toString());
+    }
+
+    class Handler2 extends Handler {
+        Handler2(EventData data, testExecutor e, StringBuilder sb) {
+            super(data, e, sb);
+        }
+        void onSendAndReport(CompletableFuture<Boolean> df) {
+            sb.append("submit:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
+            if (df != null) {
+                this.f = e.thenApplyAsync(df, result -> {
+                    sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
+                    if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
+                        throw new RuntimeException("testerror");
+                    }
+                    return false;
+                });
+            } else {
+                this.f = e.supplyAsync(() -> {
+                    sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
+                    if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
+                        throw new RuntimeException("testerror");
+                    }
+                    return false;
+                });
+            }
+        }
+    }
+
+
 }
