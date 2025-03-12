@@ -31,11 +31,12 @@ public class MqMonitorContext {
         this.metricName = metricName;
     }
 
-    public MqMonitorContext(String dbName, long timeCost, String registryKey, String metricName) {
+    public MqMonitorContext(String dbName, long timeCost, String registryKey, String metricName, String mqType) {
         this.dbName = dbName;
         this.timeCost = timeCost;
         this.registryKey = registryKey;
         this.metricName = metricName;
+        this.mqType = mqType;
     }
 
     public MqMonitorContext(String dbName, String tableName, int value, EventType eventType, DcTag dcTag,

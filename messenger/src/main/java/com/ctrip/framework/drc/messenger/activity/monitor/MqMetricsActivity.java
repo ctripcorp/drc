@@ -46,6 +46,7 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
             DefaultReporterHolder.getInstance().reportMessengerDelay(tagsMessengerActive, (long)context.getValue(), measurementMessengerActive);
         }  else if (context.getMetricName() != null && context.getMetricName().contains("processing.delay")) {
             processingDelayTags.put("db", context.getDbName());
+            processingDelayTags.put("mqType", context.getMqType());
             DefaultReporterHolder.getInstance().reportMessengerDelay(processingDelayTags, context.getTimeCost(), measurementDelay);
         } else {
             tags.put("db", context.getDbName());

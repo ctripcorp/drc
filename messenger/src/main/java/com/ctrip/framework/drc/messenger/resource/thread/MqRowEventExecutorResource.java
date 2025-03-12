@@ -6,10 +6,9 @@ import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Created by shiruixin
@@ -42,6 +41,17 @@ public class MqRowEventExecutorResource extends AbstractResource implements MqRo
     public Future<Boolean> submit(Callable<Boolean> callable) {
         return internal.submit(callable);
     }
+
+    @Override
+    public CompletableFuture<Boolean> supplyAsync(Supplier<Boolean> supplier) {
+        return CompletableFuture.supplyAsync(supplier, internal);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> thenApplyAsync(CompletableFuture<Boolean> future, Function<Boolean,Boolean> fn) {
+        return future.thenApplyAsync(fn, internal);
+    }
+
 
     @Override
     protected void doDispose() throws Exception {
