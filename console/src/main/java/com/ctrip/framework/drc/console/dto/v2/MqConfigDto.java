@@ -29,6 +29,7 @@ public class MqConfigDto implements Serializable {
     private List<String> excludeFilterTypes;
     private List<String> filterFields;
     private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     public void validCheckRequest() {
         if (StringUtils.isBlank(mhaName)) {
@@ -198,8 +199,8 @@ public class MqConfigDto implements Serializable {
         return sendOnlyUpdated;
     }
 
-    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
-        this.sendOnlyUpdated = sendOnlyUpdated;
+    public boolean isExcludeColumn() {
+        return excludeColumn;
     }
 
     @Override
@@ -222,6 +223,7 @@ public class MqConfigDto implements Serializable {
                 ", excludeFilterTypes=" + excludeFilterTypes +
                 ", filterFields=" + filterFields +
                 ", sendOnlyUpdated=" + sendOnlyUpdated +
+                ", excludeColumn=" + excludeColumn +
                 '}';
     }
 
@@ -244,7 +246,7 @@ public class MqConfigDto implements Serializable {
             mqConfig.setFilterFields(this.getFilterFields());
         }
         mqConfig.setSendOnlyUpdated(this.isSendOnlyUpdated());
-
+        mqConfig.setExcludeColumn(this.isExcludeColumn());
 
         return mqConfig;
     }

@@ -60,6 +60,8 @@ public class MqConfigVo {
 
     private boolean sendOnlyUpdated;
 
+    private boolean excludeColumn;
+
     public List<String> getExcludeFilterTypes() {
         return excludeFilterTypes;
     }
@@ -162,5 +164,13 @@ public class MqConfigVo {
 
     public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
         this.sendOnlyUpdated = sendOnlyUpdated;
+    }
+
+    public boolean isExcludeColumn() {
+        return excludeColumn;
+    }
+
+    public void setExcludeColumn(boolean excludeColumn) {
+        this.excludeColumn = excludeColumn;
     }
 }

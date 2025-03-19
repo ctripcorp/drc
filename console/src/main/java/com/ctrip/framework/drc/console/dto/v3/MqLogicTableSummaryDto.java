@@ -12,6 +12,7 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
     private long delayTime;
     private List<String> filterFields;
     private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     public List<String> getExcludeFilterTypes() {
         return excludeFilterTypes;
@@ -87,5 +88,13 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
 
     public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
         this.sendOnlyUpdated = sendOnlyUpdated;
+    }
+
+    public boolean isExcludeColumn() {
+        return excludeColumn;
+    }
+
+    public void setExcludeColumn(boolean excludeColumn) {
+        this.excludeColumn = excludeColumn;
     }
 }

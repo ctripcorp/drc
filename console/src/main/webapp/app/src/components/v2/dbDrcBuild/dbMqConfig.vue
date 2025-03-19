@@ -91,6 +91,12 @@
                 <span v-else>否</span>
               </div>
             </FormItem>
+            <FormItem label="投递方式">
+              <div>
+                <span v-if="formItem.excludeColumn">排除所选字段</span>
+                <span v-else>包含所选字段</span>
+              </div>
+            </FormItem>
           </template>
           <Card v-if="formItem.switch.fields" style="margin-left: 100px">
             <template #title>
@@ -106,9 +112,14 @@
                 <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </FormItem>
-            <FormItem label="仅在字段有更新时投递">
-              <Checkbox v-model="formItem.sendOnlyUpdated"  :disabled="filterReadOnly"></Checkbox>
-            </FormItem>
+            <Row>
+              <FormItem label="仅在字段有更新时投递">
+                <Checkbox v-model="formItem.sendOnlyUpdated"  :disabled="filterReadOnly"></Checkbox>
+              </FormItem>
+              <FormItem label="是否仅排除所选字段">
+                <Checkbox v-model="formItem.excludeColumn"  :disabled="filterReadOnly"></Checkbox>
+              </FormItem>
+            </Row>
           </Card>
         </Form>
       </Col>
@@ -172,6 +183,7 @@ export default {
         excludeFilterTypes: [],
         filterFields: [],
         sendOnlyUpdated: false,
+        excludeColumn: false,
         switch: {
           order: false
         },
@@ -359,7 +371,8 @@ export default {
         excludeFilterTypes: this.formItem.excludeFilterTypes,
         delayTime: this.formItem.delayTime,
         filterFields: this.formItem.filterFields,
-        sendOnlyUpdated: this.formItem.sendOnlyUpdated
+        sendOnlyUpdated: this.formItem.sendOnlyUpdated,
+        excludeColumn: this.formItem.excludeColumn
       }
       console.log(param)
       return param
@@ -436,6 +449,7 @@ export default {
         this.formItem.delayTime = this.configData.delayTime
         this.formItem.filterFields = this.configData.filterFields
         this.formItem.sendOnlyUpdated = this.configData.sendOnlyUpdated
+        this.formItem.excludeColumn = this.configData.excludeColumn
         this.refreshTopicBu()
         this.getCommonColumns()
         this.meta.dbReplicationIds = this.configData.dbReplicationIds

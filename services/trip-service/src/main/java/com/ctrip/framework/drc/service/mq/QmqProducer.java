@@ -60,6 +60,7 @@ public class QmqProducer extends AbstractProducer {
     private List<String> excludeFilterTypes;
     private Set<String> filterFields;
     private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
@@ -73,6 +74,7 @@ public class QmqProducer extends AbstractProducer {
         this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
                         .stream().map(String::toLowerCase).collect(Collectors.toSet());
         this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
+        this.excludeColumn = mqConfig.isExcludeColumn();
         init(persist, mqConfig.getPersistentDb());
         loggerMsg.info("[MQ] create provider for topic: {}", topic);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
@@ -130,7 +132,7 @@ public class QmqProducer extends AbstractProducer {
     protected Message generateMessage(EventData eventData) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
-        DataChangeVo dataChange = transferDataChange(eventData,filterFields);
+        DataChangeVo dataChange = transferDataChange(eventData,filterFields, excludeColumn);
 
         boolean isChanged = true;
         if (eventData.getEventType() == EventType.UPDATE) {

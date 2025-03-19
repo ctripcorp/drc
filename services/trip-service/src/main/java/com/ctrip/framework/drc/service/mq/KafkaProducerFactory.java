@@ -33,9 +33,14 @@ public class KafkaProducerFactory {
     private static Map<String, Lock> topicLocks = new ConcurrentHashMap<>();
     private static Properties properties = new Properties();
 
+    public static final String HERMES_CODEC_TYPE = "hermes.codecType";
+
+    public static final String JSON_CODEC_TYPE = "JSON";
+
     static {
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, HermesJsonSerializer.class.getCanonicalName());
+        properties.put(HERMES_CODEC_TYPE, JSON_CODEC_TYPE);
         properties.put(ProducerConfig.CLIENT_ID_CONFIG, TripServiceDynamicConfig.getInstance().getKafkaAppidToken() + "-drcMessenger");
     }
 

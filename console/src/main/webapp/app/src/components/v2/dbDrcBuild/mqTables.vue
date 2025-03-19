@@ -143,6 +143,16 @@ export default {
           }
         },
         {
+          title: '投递方式',
+          key: 'excludeColumn',
+          width: 70,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.excludeColumn ? '排除' : '包括'
+            return h('span', text)
+          }
+        },
+        {
           title: '投递字段',
           key: 'filterFields',
           render: (h, params) => {

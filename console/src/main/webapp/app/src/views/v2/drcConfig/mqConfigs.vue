@@ -224,9 +224,14 @@
                   <Button @click="refreshOptions" style="margin-left: 10px;">刷新</Button>
                 </template>
               </FormItem>
-              <FormItem label="仅在字段有更新时投递">
-                <Checkbox v-model="mqConfig.sendOnlyUpdated"  :disabled="display.filterReadOnly"></Checkbox>
-              </FormItem>
+              <Row>
+                <FormItem label="仅在字段有更新时投递">
+                  <Checkbox v-model="mqConfig.sendOnlyUpdated"  :disabled="display.filterReadOnly"></Checkbox>
+                </FormItem>
+                <FormItem label="是否仅排除所选字段">
+                  <Checkbox v-model="mqConfig.excludeColumn"  :disabled="display.filterReadOnly"></Checkbox>
+                </FormItem>
+              </Row>
               <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
               <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
               <!--                       placeholder="存在冲突，请输入业务名作为唯一标识（小写英文）"/>-->
@@ -298,7 +303,8 @@ export default {
         tag: '',
         excludeFilterTypes: [],
         filterFields: [],
-        sendOnlyUpdated: false
+        sendOnlyUpdated: false,
+        excludeColumn: false
       },
       checkDbTableLoading: false,
       submitConfigDataLoading: false,
@@ -438,6 +444,16 @@ export default {
           render: (h, params) => {
             const row = params.row
             const text = row.sendOnlyUpdated ? '✓' : ''
+            return h('span', text)
+          }
+        },
+        {
+          title: '投递方式',
+          key: 'excludeColumn',
+          width: 70,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.excludeColumn ? '排除' : '包括'
             return h('span', text)
           }
         },
@@ -583,7 +599,8 @@ export default {
         tag: '',
         excludeFilterTypes: [],
         filterFields: [],
-        sendOnlyUpdated: false
+        sendOnlyUpdated: false,
+        excludeColumn: false
       }
       this.topic = {
         bu: '',
@@ -610,7 +627,8 @@ export default {
         tag: row.tag == null ? '' : row.tag,
         excludeFilterTypes: row.excludeFilterTypes,
         filterFields: row.filterFields,
-        sendOnlyUpdated: row.sendOnlyUpdated
+        sendOnlyUpdated: row.sendOnlyUpdated,
+        excludeColumn: row.excludeColumn
       }
       const topicInfo = row.topic.split('.')
       const tableInfo = row.table.split('\\.')
@@ -691,6 +709,7 @@ export default {
       dto.excludeFilterTypes = this.mqConfig.excludeFilterTypes
       dto.filterFields = this.mqConfig.filterFields
       dto.sendOnlyUpdated = this.mqConfig.sendOnlyUpdated
+      dto.excludeColumn = this.mqConfig.excludeColumn
       this.$Message.loading('步骤二：提交中')
       await this.axios.post('/api/drc/v2/messenger/submitConfig', dto).then(response => {
         if (response.data.status === 1) {
@@ -784,7 +803,8 @@ export default {
         tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag,
         excludeFilterTypes: this.mqConfig.excludeFilterTypes == null ? null : this.mqConfig.excludeFilterTypes.join(','),
         filterFields: this.mqConfig.filterFields == null ? null : this.mqConfig.filterFields.join(','),
-        sendOnlyUpdated: this.mqConfig.sendOnlyUpdated
+        sendOnlyUpdated: this.mqConfig.sendOnlyUpdated,
+        excludeColumn: this.mqConfig.excludeColumn
       }
       this.tagInfo.conflictVos = []
       // const reqParam = this.flattenObj(dto)
@@ -801,6 +821,7 @@ export default {
         }
         this.$Message.success('查询成功')
         this.mqConfigsData = response.data.data
+        console.log(this.mqConfigsData)
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
