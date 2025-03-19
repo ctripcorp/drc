@@ -90,6 +90,16 @@ function getSafeXmn() {
     echo `expr $xmx \* $XMN_PERCENT / 100`
 }
 
+function getConcGcThread() {
+    CPU_CORES=$(nproc)
+
+    if [ "$CPU_CORES" -ge 4 ]; then
+        echo "2"
+    else
+        echo "1"
+    fi
+}
+
 function getEnv(){
     ENV=local
     if [ -f /opt/settings/server.properties ];then
@@ -178,7 +188,9 @@ else
     FILE_SIZE=`getSafeFileSize`
     JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}m -Xmx${USED_MEM}m -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}m -Ddrc.replicator.binlog.scaleout=${FILE_SIZE} -Ddrc.replicator.binlog.firstfile=true"
 fi
-export JAVA_OPTS="-server $JAVA_OPTS -Djdk.nio.maxCachedBufferSize=52428800 -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:MaxTenuringThreshold=1 -Dio.netty.maxDirectMemory=0 -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:+HeapDumpOnOutOfMemoryError -XX:+HeapDumpBeforeFullGC -XX:-OmitStackTraceInFastThrow -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xlog:safepoint,classhisto*=trace,age*,gc*=info:file=$LOG_DIR/gc-%t.log:time,tid,tags:filecount=5,filesize=50m -XX:HeapDumpPath=$LOG_DIR/ -Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${IP} -XX:+FlightRecorder -Djava.security.egd=file:/dev/./urandom"
+GC_THREAD=`getConcGcThread`
+echo "GC_THREAD: "$GC_THREAD
+export JAVA_OPTS="-server $JAVA_OPTS -Djdk.nio.maxCachedBufferSize=52428800 -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:ZCollectionInterval=120 -XX:ConcGCThreads=${GC_THREAD} -XX:ZAllocationSpikeTolerance=5 -XX:MaxTenuringThreshold=1 -Dio.netty.maxDirectMemory=0 -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:+HeapDumpOnOutOfMemoryError -XX:+HeapDumpBeforeFullGC -XX:-OmitStackTraceInFastThrow -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xlog:safepoint,classhisto*=trace,age*,gc*=info:file=$LOG_DIR/gc-%t.log:time,tid,tags:filecount=5,filesize=50m -XX:HeapDumpPath=$LOG_DIR/ -Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${IP} -XX:+FlightRecorder -Djava.security.egd=file:/dev/./urandom"
 export JAVA_OPTS="$JAVA_OPTS -cp .:./META-INF/"
 export JAVA_OPTS="$JAVA_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/sun.net.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens jdk.attach/sun.tools.attach=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true"
 echo $JAVA_OPTS
