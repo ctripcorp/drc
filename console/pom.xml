@@ -168,7 +168,7 @@
                         <excludes>
                             <exclude>Dal.config</exclude>
                             <exclude>fxdrcmetadb_dalcluster.xml</exclude>
-<!--                            <exclude>log4j2.xml</exclude>-->
+                            <exclude>log4j2.xml</exclude>
                             <exclude>META-INF/services/*</exclude>
                         </excludes>
                     </resource>
