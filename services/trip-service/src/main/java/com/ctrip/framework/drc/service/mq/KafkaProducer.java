@@ -47,6 +47,7 @@ public class KafkaProducer extends AbstractProducer {
 
     private Set<String> filterFields;
     private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     public KafkaProducer(MqConfig mqConfig) {
         this.topic = mqConfig.getTopic();
@@ -57,6 +58,7 @@ public class KafkaProducer extends AbstractProducer {
         this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
                 .stream().map(String::toLowerCase).collect(Collectors.toSet());
         this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
+        this.excludeColumn = mqConfig.isExcludeColumn();
     }
 
     @Override
@@ -101,7 +103,7 @@ public class KafkaProducer extends AbstractProducer {
     protected Pair<String, String> generateMessage(EventData eventData) {
         String schema = eventData.getSchemaName();
         String table = eventData.getTableName();
-        DataChangeVo dataChange = transferDataChange(eventData, filterFields);
+        DataChangeVo dataChange = transferDataChange(eventData, filterFields, excludeColumn);
 
         boolean isChanged = true;
         if (eventData.getEventType() == EventType.UPDATE) {

@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2.security.impl;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
@@ -25,17 +23,6 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -43,6 +30,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import javax.annotation.PostConstruct;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * @ClassName AccountServiceImpl
@@ -167,15 +166,25 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void loadEncryptCache() throws SQLException, InterruptedException {
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
-        CountDownLatch latch = new CountDownLatch(mhaTblV2s.size());
-        for (MhaTblV2 mhaTblV2 : mhaTblV2s) {
-             accountExecutorService.submit(
-                     () -> {
-                         loadEncryptCache(mhaTblV2);
-                         logger.info("mha:{},loadEncryptCache success",mhaTblV2.getMhaName());
-                         latch.countDown();
-                     }
-             );
+        Set<String> uniqueTokens = mhaTblV2s.stream()
+                .flatMap(mha -> Stream.of(
+                        mha.getMonitorPasswordTokenV2(),
+                        mha.getReadPasswordTokenV2(),
+                        mha.getWritePasswordTokenV2()
+                ))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        CountDownLatch latch = new CountDownLatch(uniqueTokens.size());
+        for (String token : uniqueTokens) {
+            accountExecutorService.submit(
+                    () -> {
+                        if (!decryptCache.containsKey(token)) {
+                            decryptCache.put(token,decrypt(token));
+                        }
+                        logger.info("token:{},loadEncryptCache success",token);
+                        latch.countDown();
+                    }
+            );
         }
         boolean await = latch.await(10, TimeUnit.SECONDS);
         logger.info("loadEncryptCache finish,res:{}",await);

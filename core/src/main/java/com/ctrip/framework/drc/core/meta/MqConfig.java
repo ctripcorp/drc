@@ -41,6 +41,7 @@ public class MqConfig {
     private List<String> excludeFilterTypes;
     private List<String> filterFields;
     private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     @Override
     public String toString() {
@@ -59,6 +60,7 @@ public class MqConfig {
                 ", excludeFilterTypes=" + excludeFilterTypes +
                 ", filterFields=" + filterFields +
                 ", sendOnlyUpdated=" + sendOnlyUpdated +
+                ", excludeColumn=" + excludeColumn +
                 '}';
     }
 
@@ -176,5 +178,13 @@ public class MqConfig {
 
     public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
         this.sendOnlyUpdated = sendOnlyUpdated;
+    }
+
+    public boolean isExcludeColumn() {
+        return excludeColumn;
+    }
+
+    public void setExcludeColumn(boolean excludeColumn) {
+        this.excludeColumn = excludeColumn;
     }
 }

@@ -490,6 +490,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 mqConfigVo.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
                 mqConfigVo.setFilterFields(mqConfig.getFilterFields());
                 mqConfigVo.setSendOnlyUpdated(mqConfig.isSendOnlyUpdated());
+                mqConfigVo.setExcludeColumn(mqConfig.isExcludeColumn());
                 list.add(mqConfigVo);
             }
             return list;

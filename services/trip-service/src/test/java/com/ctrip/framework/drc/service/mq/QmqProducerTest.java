@@ -230,7 +230,7 @@ public class QmqProducerTest {
         Set<String> fs= Optional.ofNullable(config.getFilterFields()).orElse(Lists.newArrayList())
                 .stream().map(String::toLowerCase).collect(Collectors.toSet());
 
-        DataChangeVo vo = producer.transferDataChange(data, fs);
+        DataChangeVo vo = producer.transferDataChange(data, fs, false);
 
         Assert.assertEquals(vo.getAfterColumnList().size(),2);
         Assert.assertEquals(vo.getAfterColumnList().size(),2);
@@ -247,7 +247,7 @@ public class QmqProducerTest {
         producer = new QmqProducer(config);
         fs= Optional.ofNullable(config.getFilterFields()).orElse(Lists.newArrayList())
                 .stream().map(String::toLowerCase).collect(Collectors.toSet());
-        vo = producer.transferDataChange(data, fs);
+        vo = producer.transferDataChange(data, fs, false);
 
         Assert.assertEquals(vo.getAfterColumnList().size(),1);
         Assert.assertEquals(vo.getAfterColumnList().size(),1);
@@ -263,7 +263,7 @@ public class QmqProducerTest {
         producer = new QmqProducer(config);
         fs= Optional.ofNullable(config.getFilterFields()).orElse(Lists.newArrayList())
                 .stream().map(String::toLowerCase).collect(Collectors.toSet());
-        vo = producer.transferDataChange(data, fs);
+        vo = producer.transferDataChange(data, fs, false);
         Assert.assertEquals(vo.getAfterColumnList().size(),4);
         Assert.assertEquals(vo.getAfterColumnList().size(),4);
         pair = producer.generateMessage(data);
