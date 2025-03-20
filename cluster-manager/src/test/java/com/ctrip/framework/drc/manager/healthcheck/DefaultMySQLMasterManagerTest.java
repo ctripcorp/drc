@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.healthcheck;
 
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.manager.ha.cluster.impl.ClusterServerStateManager;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -28,6 +29,9 @@ public class DefaultMySQLMasterManagerTest extends AbstractDbClusterTest {
 
     @Mock
     private CurrentMetaManager currentMetaManager;
+
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
 
     @Before
     public void setUp() throws Exception {

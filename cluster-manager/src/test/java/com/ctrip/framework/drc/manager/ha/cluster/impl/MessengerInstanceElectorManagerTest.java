@@ -47,6 +47,9 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
     @Mock
     private InstanceActiveElectAlgorithmManager instanceActiveElectAlgorithmManager;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
 
     @Before
     public void setUp() throws Exception {

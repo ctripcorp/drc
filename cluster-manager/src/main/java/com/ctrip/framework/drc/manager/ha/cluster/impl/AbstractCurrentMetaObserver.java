@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -23,17 +24,22 @@ public abstract class AbstractCurrentMetaObserver extends AbstractLifecycleObser
     @Autowired
     protected CurrentClusterServer currentClusterServer;
 
+    @Autowired
+    protected ClusterServerStateManager clusterServerStateManager;
+
     @Override
     protected void doInitialize() throws Exception {
         super.doInitialize();
 
         currentMetaManager.addObserver(this);
+        clusterServerStateManager.addObserver(this);
     }
 
     @Override
     protected void doDispose() throws Exception {
 
         currentMetaManager.removeObserver(this);
+        clusterServerStateManager.removeObserver(this);
         super.doDispose();
     }
 
@@ -62,7 +68,15 @@ public abstract class AbstractCurrentMetaObserver extends AbstractLifecycleObser
             return;
         }
 
+        if (args instanceof ServerStateEnum serverStateEnum) {
+            logger.info("[update][changed][{}]{}", getClass().getSimpleName(), serverStateEnum);
+            handleServerStateChanged(serverStateEnum);
+        }
+
         throw new IllegalArgumentException("unknown argument:" + args);
+    }
+
+    protected void handleServerStateChanged(ServerStateEnum serverStateEnum) {
     }
 
     protected abstract void handleClusterModified(ClusterComparator comparator);

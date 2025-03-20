@@ -1,13 +1,16 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
+import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.observer.NodeAdded;
 import com.ctrip.xpipe.observer.NodeDeleted;
+import com.ctrip.xpipe.utils.XpipeThreadFactory;
 import com.ctrip.xpipe.zk.ZkClient;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.nodes.PersistentNode;
 import org.apache.zookeeper.CreateMode;
 import org.junit.After;
@@ -29,7 +32,7 @@ public class ReplicatorInstanceElectorManagerTest extends AbstractDbClusterTest 
     private ZkClient zkClient;
 
     @Mock
-    private CurrentMetaManager currentMetaManager;
+    private DefaultCurrentMetaManager currentMetaManager;
 
     @Mock
     private RegionCache regionCache;
@@ -39,6 +42,9 @@ public class ReplicatorInstanceElectorManagerTest extends AbstractDbClusterTest 
 
     @Mock
     private InstanceActiveElectAlgorithmManager instanceActiveElectAlgorithmManager;
+
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
 
 
     @Before
@@ -90,5 +96,15 @@ public class ReplicatorInstanceElectorManagerTest extends AbstractDbClusterTest 
     public void handleClusterModify() {
         replicatorInstanceElectorManager.update(new NodeDeleted<>(dbCluster), null);
         verify(instanceStateController, times(0)).removeReplicator(anyString(), anyObject());
+    }
+
+    @Test
+    public void handleServerStateChanged() throws Exception {
+
+        PathChildrenCache pathChildrenCache = new PathChildrenCache(curatorFramework, "/replicator", true, XpipeThreadFactory.create(String.format("PathChildrenCache:%s-%s", "replicator", "registryKey")));
+        replicatorInstanceElectorManager.addPathChildrenCache("registryKey", pathChildrenCache);
+        replicatorInstanceElectorManager.handleServerStateChanged(ServerStateEnum.LOST);
+        replicatorInstanceElectorManager.handleServerStateChanged(ServerStateEnum.NORMAL);
+        replicatorInstanceElectorManager.handleServerStateChanged(ServerStateEnum.NORMAL);
     }
 }

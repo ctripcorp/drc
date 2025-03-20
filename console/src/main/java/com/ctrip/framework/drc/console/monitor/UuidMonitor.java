@@ -20,9 +20,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +120,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
             reporter.resetReportCounter(entityTags, uuidCorrect? 0L : 1L, UUID_ERROR_NUM_MEASUREMENT);
             if (!uuidCorrect) {
                 logger.info("[[monitor=UUIDMonitor]] mysql {}:{},RealUUID:{},ErrorUUID:{}", ip,port,uuidFromCommand, uuidStringFromDB);
-                if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUuidCorrectSwitch())) {
+                if (monitorTableSourceProvider.getUuidCorrectMhaSwitch(metaKey.getMhaName())) {
                     autoCorrect(ip, port, uuidsFromMetaDB, uuidFromCommand);
                 }
             }

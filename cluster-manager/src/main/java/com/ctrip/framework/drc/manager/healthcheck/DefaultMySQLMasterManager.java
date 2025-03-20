@@ -174,7 +174,7 @@ public class DefaultMySQLMasterManager extends AbstractCurrentMetaObserver imple
 
         Db currentDb = getMaster(current);
         Db futureDb = getMaster(future);
-        if (futureDb != null && !futureDb.equals(currentDb)) {
+        if (futureDb != null && !futureDb.equalsWithIpPort(currentDb)) {
             return Pair.from(true, futureDb);
         }
         return Pair.from(false, null);

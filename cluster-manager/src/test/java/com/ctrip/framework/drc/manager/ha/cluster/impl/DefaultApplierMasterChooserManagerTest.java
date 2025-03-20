@@ -28,6 +28,9 @@ public class DefaultApplierMasterChooserManagerTest extends AbstractDbClusterTes
     @Mock
     private CurrentMetaManager currentMetaManager;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
