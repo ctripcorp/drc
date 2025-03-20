@@ -68,7 +68,7 @@ public class DbComparator extends AbstractMetaComparator<Db, DbChange>{
         for(Pair<Db, Db> pair : allModified){
             Db current = pair.getValue();
             Db future = pair.getKey();
-            if(current.equals(future)){
+            if (current.equalsWithIpPort(future) && current.getMaster() == future.getMaster()) {
                 continue;
             }
             InstanceComparator instanceComparator = new InstanceComparator(current, future);

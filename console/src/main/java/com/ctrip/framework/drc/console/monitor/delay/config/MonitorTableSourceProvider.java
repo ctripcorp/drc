@@ -36,6 +36,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String UUID_MONITOR_SWITCH = "uuid.monitor.switch";
     private static final String UUID_CORRECT_SWITCH = "uuid.correct.switch";
+    private static final String UUID_CORRECT_MHA_SWITCH = "uuid.correct.mha.switch.%s";
 
     private static final String DRC_DELAY_MONITOR_SWITCH = "drc.delay.monitor.switch";
 
@@ -252,6 +253,13 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getUuidCorrectSwitch() {
         return getProperty(UUID_CORRECT_SWITCH, SWITCH_STATUS_OFF);
+    }
+
+    public boolean getUuidCorrectMhaSwitch(String mhaName) {
+        if (getUuidCorrectSwitch().equals(SWITCH_STATUS_ON)) {
+            return true;
+        }
+        return getBooleanProperty(String.format(UUID_CORRECT_MHA_SWITCH, mhaName), false);
     }
 
 
