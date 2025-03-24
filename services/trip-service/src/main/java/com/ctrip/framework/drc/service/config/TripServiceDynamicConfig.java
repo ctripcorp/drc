@@ -11,7 +11,7 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
     private static final String KAFKA_APPID_TOKEN = "kafka.appid.token";
 
     private static final String LINGER_MS_CONFIG = "kafka.linger.ms";
-    private static final String DEFAULT_LINGER_MS_CONFIG = "5";
+    private static final String DEFAULT_LINGER_MS_CONFIG = "500";
 
     private static final String BATCH_SIZE_CONFIG = "kafka.batch.size";
     private static final String DEFAULT_BATCH_SIZE_CONFIG = "163840";
@@ -23,10 +23,10 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
     private static final String DEFAULT_MAX_REQUEST_SIZE_CONFIG = "1048576";
 
     private static final String COMPRESSION_TYPE_CONFIG = "kafka.compression.type";
-    private static final String DEFAULT_COMPRESSION_TYPE_CONFIG = "none";
+    private static final String DEFAULT_COMPRESSION_TYPE_CONFIG = "gzip";
 
     private static final String ACKS_CONFIG = "kafka.acks";
-    private static final String DEFAULT_ACKS_CONFIG = "all";
+    private static final String DEFAULT_ACKS_CONFIG = "1";
 
     private TripServiceDynamicConfig() {}
 
