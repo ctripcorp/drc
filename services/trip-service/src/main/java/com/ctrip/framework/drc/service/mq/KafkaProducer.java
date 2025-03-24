@@ -41,7 +41,7 @@ public class KafkaProducer extends AbstractProducer {
 
     private volatile boolean producerException;
 
-    private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
+    private static final Logger loggerMsgSend = LoggerFactory.getLogger("KAFKA SEND");
 
     private static final Logger loggerMsg = LoggerFactory.getLogger("MESSENGER");
 
@@ -83,17 +83,19 @@ public class KafkaProducer extends AbstractProducer {
 
             String partitionKey = messagePair.getKey();
             String message = messagePair.getValue();
+            long start = System.nanoTime();
             producer.send(new ProducerRecord<>(topic, partitionKey, message), new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata recordMetadata, Exception e) {
                     if (e == null) {
-                        loggerMsgSend.info("[kafka]topic: {} send partitionKey:{},  message: {}", topic, partitionKey, message);
+                        loggerMsgSend.info("[kafka]topic: {} send partitionKey:{},  message: {}, cost:{} us", topic, partitionKey, message, (System.nanoTime() - start) / 1000);
                     } else {
                         loggerMsgSend.error("[kafka]topic: {} send message: {} error", topic, message, e);
                         producerException = true;
                     }
                 }
             });
+
         }
         return true;
     }
@@ -107,7 +109,7 @@ public class KafkaProducer extends AbstractProducer {
 
         boolean isChanged = true;
         if (eventData.getEventType() == EventType.UPDATE) {
-            isChanged = dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData :: isUpdated);
+            isChanged = dataChange.getAfterColumnList().stream().anyMatch(DataChangeMessage.ColumnData::isUpdated);
         }
         if (sendOnlyUpdated && !isChanged) {
             return null;
@@ -133,6 +135,11 @@ public class KafkaProducer extends AbstractProducer {
                 if (column.isKey()) {
                     keys.add(column.getColumnValue());
                 }
+            }
+
+            if (orderKey == null) {
+                partitionKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_", keys));
+                hasOrderKey = true;
             }
 
             if (!hasOrderKey) {

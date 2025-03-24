@@ -273,6 +273,55 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="kafka.send" fileName="${baseDir}/kafka.send.log"
+                     filePattern="${baseDir}/kafka.send-%i.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
+            <Filters>
+                <ThresholdFilter level="INFO"/>
+                <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="NEUTRAL"/>
+            </Filters>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="256 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="kafka.send-*.log.gz"/>
+                    <IfAccumulatedFileCount exceeds="10"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <RollingFile name="kafka.send.warn" fileName="${baseDir}/kafka.send_warn.log"
+                     filePattern="${baseDir}/kafka.send_warn-%i.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
+            <ThresholdFilter level="WARN"/>
+            <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="256 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="kafka.send_warn-*.log.gz"/>
+                    <IfAccumulatedFileCount exceeds="10"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <RollingFile name="kafka.send.error" fileName="${baseDir}/kafka.send_error.log"
+                     filePattern="${baseDir}/kafka.send_error-%i.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
+            <ThresholdFilter level="ERROR"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="256 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="kafka.send_error-*.log.gz"/>
+                    <IfAccumulatedFileCount exceeds="10"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
 
         <RollingFile name="delay" fileName="${baseDir}/delay.log"
                      filePattern="${baseDir}/delay-%i.log.gz">
@@ -421,6 +470,11 @@
             <AppenderRef ref="messenger.send"/>
             <AppenderRef ref="messenger.send.warn"/>
             <AppenderRef ref="messenger.send.error"/>
+        </Logger>
+        <Logger name="KAFKA SEND" additivity="false">
+            <AppenderRef ref="kafka.send"/>
+            <AppenderRef ref="kafka.send.warn"/>
+            <AppenderRef ref="kafka.send.error"/>
         </Logger>
         <Logger name="EVT DELAY" additivity="false">
             <AppenderRef ref="delay"/>
