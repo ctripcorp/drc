@@ -117,8 +117,8 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
             }
             List<String> uuidsFromMetaDB = StringUtils.isBlank(uuidStringFromDB)? Lists.newArrayList() : Lists.newArrayList(uuidStringFromDB.split(","));
             boolean uuidCorrect = uuidsFromMetaDB.contains(uuidFromCommand);
-            reporter.resetReportCounter(entityTags, uuidCorrect? 0L : 1L, UUID_ERROR_NUM_MEASUREMENT);
             if (!uuidCorrect) {
+                reporter.reportResetCounter(entityTags, 1L, UUID_ERROR_NUM_MEASUREMENT);
                 logger.info("[[monitor=UUIDMonitor]] mysql {}:{},RealUUID:{},ErrorUUID:{}", ip,port,uuidFromCommand, uuidStringFromDB);
                 if (monitorTableSourceProvider.getUuidCorrectMhaSwitch(metaKey.getMhaName())) {
                     autoCorrect(ip, port, uuidsFromMetaDB, uuidFromCommand);

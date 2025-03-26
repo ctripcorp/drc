@@ -17,7 +17,7 @@ public class MessengerGtidQueryTaskTest {
     @Test
     public void doQuery() {
         MessengerGtidQueryTask messengerGtidQueryTask = new MessengerGtidQueryTask(wrongCiEndpoint, "registryKey");
-        Pair<String, Boolean> res = messengerGtidQueryTask.getExecutedGtid(wrongCiEndpoint);
+        Pair<String, Boolean> res = messengerGtidQueryTask.getExecutedGtid();
         Assert.assertEquals("", res.getLeft());
         Assert.assertFalse(res.getRight());
     }

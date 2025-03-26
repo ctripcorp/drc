@@ -17,6 +17,7 @@ import org.mockito.MockitoAnnotations;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Set;
 
 
@@ -43,29 +44,25 @@ public class MqDelayMonitorServerTest {
         Mockito.when(consumer.resumeListen()).thenReturn(true);
         Mockito.when(consumer.stopListen()).thenReturn(true);
         Mockito.when(metaProviderV2.getDrc()).thenReturn(buildDrc());
-        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet("ntgxh","shaxy","sharb"));
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet("ntgxh", "shaxy", "sharb"));
         Mockito.when(monitorProvider.getMqDelayMonitorSwitch()).thenReturn("on");
     }
 
-    private Drc buildDrc() throws IOException, SAXException {
-        return DefaultSaxParser.parse(getXml());
+    @Test
+    public void testRefreshMhaDelayFromOtherDc() {
+        mqDelayMonitorServer.refreshMhaDelayFromOtherDc(new HashMap<>());
+
+        mqDelayMonitorServer.isleader();
+        mqDelayMonitorServer.refreshMhaDelayFromOtherDc(new HashMap<>());
     }
 
-    private static String getXml() {
-        return "<drc>\n" +
-                "   <dc id=\"ntgxh\" region=\"ntgxh\">\n" +
-                "      <dbClusters>\n" +
-                "         <dbCluster id=\"ob_zyn_test_dalcluster.ob_zyn_test\" name=\"ob_zyn_test_dalcluster\" mhaName=\"ob_zyn_test\" buName=\"BBZ\" org-id=\"3\" appId=\"-1\" applyMode=\"1\">\n" +
-                "            <dbs>\n" +
-                "               <db ip=\"10.119.118.18\" port=\"2883\" master=\"true\" uuid=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2\"/>\n" +
-                "            </dbs>\n" +
-                "            <replicator ip=\"10.118.1.141\" port=\"8080\" applierPort=\"8383\" gtidSkip=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2:1-11\" master=\"true\" excludedTables=\"\"/>\n" +
-                "            <messenger ip=\"10.118.1.127\" port=\"8080\" gtidExecuted=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2:1-11\" master=\"false\" applyMode=\"2\" nameFilter=\"bbzobdaltestdb\\..*\" properties=\"{&quot;nameFilter&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;dataMediaConfig&quot;:{&quot;rowsFilters&quot;:[],&quot;ruleFactory&quot;:{},&quot;table2Config&quot;:{},&quot;table2ColumnConfig&quot;:{},&quot;table2Filter&quot;:{},&quot;table2ColumnFilter&quot;:{},&quot;table2Rule&quot;:{},&quot;table2ColumnRule&quot;:{},&quot;matchResult&quot;:{&quot;isolateCache&quot;:{}},&quot;matchColumnsResult&quot;:{&quot;isolateCache&quot;:{}}},&quot;mqConfigs&quot;:[{&quot;table&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;topic&quot;:&quot;bbz.obtest.binlog&quot;,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;order&quot;:false,&quot;delayTime&quot;:0}],&quot;regex2Configs&quot;:{},&quot;regex2Filter&quot;:{},&quot;regex2Producers&quot;:{},&quot;tableName2Producers&quot;:{}}\"/>\n" +
-                "            <messenger ip=\"10.118.1.127\" port=\"8080\" gtidExecuted=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2:1-11\" master=\"false\" applyMode=\"5\" nameFilter=\"bbzobdaltestdb\\..*\" properties=\"{&quot;nameFilter&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;dataMediaConfig&quot;:{&quot;rowsFilters&quot;:[],&quot;ruleFactory&quot;:{},&quot;table2Config&quot;:{},&quot;table2ColumnConfig&quot;:{},&quot;table2Filter&quot;:{},&quot;table2ColumnFilter&quot;:{},&quot;table2Rule&quot;:{},&quot;table2ColumnRule&quot;:{},&quot;matchResult&quot;:{&quot;isolateCache&quot;:{}},&quot;matchColumnsResult&quot;:{&quot;isolateCache&quot;:{}}},&quot;mqConfigs&quot;:[{&quot;table&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;topic&quot;:&quot;bbz.obtest.binlog&quot;,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;order&quot;:false,&quot;delayTime&quot;:0}],&quot;regex2Configs&quot;:{},&quot;regex2Filter&quot;:{},&quot;regex2Producers&quot;:{},&quot;tableName2Producers&quot;:{}}\"/>\n" +
-                "         </dbCluster>\n" +
-                "      </dbClusters>\n" +
-                "   </dc>\n" +
-                "</drc>";
+    @Test
+    public void testForwardMhaDelay() {
+        mqDelayMonitorServer.forwardMhaDelay();
+        mqDelayMonitorServer.isleader();
+        mqDelayMonitorServer.forwardMhaDelay();
+        Mockito.when(monitorProvider.getMqDelayForwardSwitch()).thenReturn("on");
+        mqDelayMonitorServer.forwardMhaDelay();
     }
 
     @Test
@@ -87,6 +84,28 @@ public class MqDelayMonitorServerTest {
     @Test
     public void testTestNotLeader() {
         mqDelayMonitorServer.notLeader();
+    }
+
+
+    private Drc buildDrc() throws IOException, SAXException {
+        return DefaultSaxParser.parse(getXml());
+    }
+
+    private static String getXml() {
+        return "<drc>\n" +
+                "   <dc id=\"ntgxh\" region=\"ntgxh\">\n" +
+                "      <dbClusters>\n" +
+                "         <dbCluster id=\"ob_zyn_test_dalcluster.ob_zyn_test\" name=\"ob_zyn_test_dalcluster\" mhaName=\"ob_zyn_test\" buName=\"BBZ\" org-id=\"3\" appId=\"-1\" applyMode=\"1\">\n" +
+                "            <dbs>\n" +
+                "               <db ip=\"10.119.118.18\" port=\"2883\" master=\"true\" uuid=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2\"/>\n" +
+                "            </dbs>\n" +
+                "            <replicator ip=\"10.118.1.141\" port=\"8080\" applierPort=\"8383\" gtidSkip=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2:1-11\" master=\"true\" excludedTables=\"\"/>\n" +
+                "            <messenger ip=\"10.118.1.127\" port=\"8080\" gtidExecuted=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2:1-11\" master=\"false\" applyMode=\"2\" nameFilter=\"bbzobdaltestdb\\..*\" properties=\"{&quot;nameFilter&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;dataMediaConfig&quot;:{&quot;rowsFilters&quot;:[],&quot;ruleFactory&quot;:{},&quot;table2Config&quot;:{},&quot;table2ColumnConfig&quot;:{},&quot;table2Filter&quot;:{},&quot;table2ColumnFilter&quot;:{},&quot;table2Rule&quot;:{},&quot;table2ColumnRule&quot;:{},&quot;matchResult&quot;:{&quot;isolateCache&quot;:{}},&quot;matchColumnsResult&quot;:{&quot;isolateCache&quot;:{}}},&quot;mqConfigs&quot;:[{&quot;table&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;topic&quot;:&quot;bbz.obtest.binlog&quot;,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;order&quot;:false,&quot;delayTime&quot;:0}],&quot;regex2Configs&quot;:{},&quot;regex2Filter&quot;:{},&quot;regex2Producers&quot;:{},&quot;tableName2Producers&quot;:{}}\"/>\n" +
+                "            <messenger ip=\"10.118.1.127\" port=\"8080\" gtidExecuted=\"3e0c9823-4da0-11ef-ad38-fa163eb2f6d2:1-11\" master=\"false\" applyMode=\"5\" nameFilter=\"bbzobdaltestdb\\..*\" properties=\"{&quot;nameFilter&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;dataMediaConfig&quot;:{&quot;rowsFilters&quot;:[],&quot;ruleFactory&quot;:{},&quot;table2Config&quot;:{},&quot;table2ColumnConfig&quot;:{},&quot;table2Filter&quot;:{},&quot;table2ColumnFilter&quot;:{},&quot;table2Rule&quot;:{},&quot;table2ColumnRule&quot;:{},&quot;matchResult&quot;:{&quot;isolateCache&quot;:{}},&quot;matchColumnsResult&quot;:{&quot;isolateCache&quot;:{}}},&quot;mqConfigs&quot;:[{&quot;table&quot;:&quot;bbzobdaltestdb\\\\..*&quot;,&quot;topic&quot;:&quot;bbz.obtest.binlog&quot;,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;order&quot;:false,&quot;delayTime&quot;:0}],&quot;regex2Configs&quot;:{},&quot;regex2Filter&quot;:{},&quot;regex2Producers&quot;:{},&quot;tableName2Producers&quot;:{}}\"/>\n" +
+                "         </dbCluster>\n" +
+                "      </dbClusters>\n" +
+                "   </dc>\n" +
+                "</drc>";
     }
 
 }

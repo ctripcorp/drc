@@ -123,6 +123,33 @@
             return clone;
             }
         </snippet>
+        <snippet>
+            public boolean equalsWithUserAndPassword(Object obj) {
+            if (obj instanceof Dbs) {
+            Dbs _o = (Dbs) obj;
+            if (!equals(getReadUser(), _o.getReadUser())) {
+            return false;
+            }
+            if (!equals(getReadPassword(), _o.getReadPassword())) {
+            return false;
+            }
+            if (!equals(getWriteUser(), _o.getWriteUser())) {
+            return false;
+            }
+            if (!equals(getWritePassword(), _o.getWritePassword())) {
+            return false;
+            }
+            if (!equals(getMonitorUser(), _o.getMonitorUser())) {
+            return false;
+            }
+            if (!equals(getMonitorPassword(), _o.getMonitorPassword())) {
+            return false;
+            }
+            return true;
+            }
+            return false;
+            }
+        </snippet>
     </entity>
     <entity name="db">
         <attribute name="ip" value-type="String"/>

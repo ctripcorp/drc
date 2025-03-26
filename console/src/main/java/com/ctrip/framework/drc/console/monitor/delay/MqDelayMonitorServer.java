@@ -3,8 +3,10 @@ package com.ctrip.framework.drc.console.monitor.delay;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.enums.BroadcastEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.service.broadcast.HttpNotificationBroadCast;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.entity.DbCluster;
@@ -14,7 +16,9 @@ import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.server.DcLeaderAware;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.console.dto.MhaDelayDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -24,6 +28,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -53,10 +58,14 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private CentralService centralService;
+    @Autowired
+    private HttpNotificationBroadCast broadCast;
 
     private final DelayMessageConsumer consumer = ApiContainer.getDelayMessageConsumer();
     private final ScheduledExecutorService monitorMessengerChangerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
             getClass().getSimpleName() + "messengerMonitor");
+    private final ScheduledExecutorService qmqDelayRefreshExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
+            getClass().getSimpleName() + "qmqDelayRefreshExecutor");
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
@@ -66,11 +75,40 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
     public void afterPropertiesSet() throws Exception {
         logger.info("[[monitor=qmqDelay]] mq consumer starting");
         monitorMessengerChangerExecutor.scheduleWithFixedDelay(this::monitorMessengerChange, 5, 30, TimeUnit.SECONDS);
+        qmqDelayRefreshExecutor.scheduleWithFixedDelay(this::forwardMhaDelay, 1, 1, TimeUnit.MINUTES);
         consumer.initConsumer(
                 monitorProvider.getMqDelaySubject(),
                 monitorProvider.getMqDelayConsumerGroup(),
                 consoleConfig.getDcsInLocalRegion()
         );
+    }
+
+    public void refreshMhaDelayFromOtherDc(Map<String, Long> mhaDelay) {
+        if (!isLeader) {
+            return;
+        }
+        logger.info("[[monitor=qmqDelay]] refreshMhaDelayFromOtherDc");
+        consumer.refreshMhaDelayFromOtherDc(mhaDelay);
+    }
+
+    protected void forwardMhaDelay() {
+        if (!isLeader) {
+            return;
+        }
+        try {
+            if ("on".equalsIgnoreCase(monitorProvider.getMqDelayForwardSwitch())) {
+                logger.info("[[monitor=qmqDelay]] forwardMhaDelay");
+                broadCast.broadcastWithRetry(BroadcastEnum.QMQ_DELAY_REFRESH.getPath(),
+                        RequestMethod.PUT, JsonUtils.toJson(new MhaDelayDto(consumer.getMhaDelay())), 1);
+            } else {
+                logger.info("[[monitor=qmqDelay]] mQDelayForwardSwitch is off");
+            }
+
+        } catch (Exception e) {
+            logger.error("[[monitor=qmqDelay]] forwardMhaDelay error", e);
+        }
+
+
     }
 
     public void monitorMessengerChange() {
@@ -126,8 +164,8 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
     @Override
     public void isleader() {
         synchronized (this) {
+            isLeader = true;
             if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
-                isLeader = true;
                 monitorMessengerChange();
                 boolean res = consumer.resumeListen();
                 logger.info("[[monitor=qmqDelay]] is leader,going to start qmqConsumer,result:{}", res);
@@ -140,8 +178,8 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
     @Override
     public void notLeader() {
         synchronized (this) {
+            isLeader = false;
             if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
-                isLeader = false;
                 monitorMessengerChange();
                 boolean res = consumer.stopListen();
                 logger.info("[[monitor=qmqDelay]] not leader,going to stop qmqConsumer,result:{}", res);

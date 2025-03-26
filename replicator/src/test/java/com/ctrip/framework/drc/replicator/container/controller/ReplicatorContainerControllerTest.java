@@ -1,10 +1,6 @@
 package com.ctrip.framework.drc.replicator.container.controller;
 
-import static com.ctrip.framework.drc.replicator.AllTests.MYSQL_PASSWORD;
-import static com.ctrip.framework.drc.replicator.AllTests.MYSQL_USER;
-import static com.ctrip.framework.drc.replicator.AllTests.SRC_IP;
-import static com.ctrip.framework.drc.replicator.AllTests.SRC_PORT;
-
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.config.GlobalConfig;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.entity.Db;
@@ -15,9 +11,9 @@ import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfi
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDtoV2;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.google.common.collect.Lists;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -29,6 +25,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+
+import static com.ctrip.framework.drc.replicator.AllTests.*;
 
 /**
  * Created by jixinwang on 2023/6/25
@@ -99,6 +99,28 @@ public class ReplicatorContainerControllerTest {
         Thread.sleep(200);
         Mockito.verify(serverContainer, Mockito.times(1)).removeServer(Mockito.anyString(), Mockito.anyBoolean());
         Mockito.verify(serverContainer, Mockito.times(1)).addServer(Mockito.any());
+    }
+
+    @Test
+    public void testRestart() throws InterruptedException {
+        controller.start(configDto);
+        Thread.sleep(200);
+        Endpoint endpoint = replicatorConfig.getEndpoint();
+        Endpoint endpoint1 = new DefaultEndPoint(endpoint.getHost(), endpoint.getPort(), MYSQL_USER, MYSQL_PASSWORD);
+        Endpoint endpoint2 = new DefaultEndPoint(endpoint.getHost(), endpoint.getPort(), MYSQL_USER, "password");
+
+        Mockito.when(serverContainer.getUpstreamMaster(replicatorConfig.getRegistryKey())).thenReturn(endpoint1);
+        controller.start(configDto);
+        Thread.sleep(200);
+        Mockito.verify(serverContainer, Mockito.times(1)).removeServer(Mockito.anyString(), Mockito.anyBoolean());
+        Mockito.verify(serverContainer, Mockito.times(1)).addServer(Mockito.any());
+
+
+        Mockito.when(serverContainer.getUpstreamMaster(replicatorConfig.getRegistryKey())).thenReturn(endpoint2);
+        controller.start(configDto);
+        Thread.sleep(200);
+        Mockito.verify(serverContainer, Mockito.times(2)).removeServer(Mockito.anyString(), Mockito.anyBoolean());
+        Mockito.verify(serverContainer, Mockito.times(2)).addServer(Mockito.any());
     }
 
     @Test
