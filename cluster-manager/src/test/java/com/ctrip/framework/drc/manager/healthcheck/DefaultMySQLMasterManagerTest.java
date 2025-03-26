@@ -40,6 +40,71 @@ public class DefaultMySQLMasterManagerTest extends AbstractDbClusterTest {
         mySQLMasterManager.start();
     }
 
+    @Test
+    public void testDbsEqualsWithUserAndPassword() throws Exception {
+        Dbs dbs1 = new Dbs();
+        Dbs dbs2 = new Dbs();
+        dbs1.setMonitorUser("monitorUser");
+        dbs1.setMonitorPassword("monitorPassword");
+        dbs1.setReadUser("readUser");
+        dbs1.setReadPassword("readPassword");
+        dbs1.setWriteUser("writeUser");
+        dbs1.setWritePassword("writePassword");
+
+
+        dbs2.setMonitorUser("monitorUser");
+        dbs2.setMonitorPassword("monitorPassword");
+        dbs2.setReadUser("readUser");
+        dbs2.setReadPassword("readPassword");
+        dbs2.setWriteUser("writeUser");
+        dbs2.setWritePassword("writePassword");
+
+        Assert.assertTrue(dbs1.equalsWithUserAndPassword(dbs2));
+
+        dbs2.setMonitorPassword("monitorPassword1");
+        dbs2.setReadPassword("readPassword11");
+        dbs2.setWritePassword("writePassword1");
+
+        Assert.assertFalse(dbs1.equalsWithUserAndPassword(dbs2));
+
+    }
+
+    @Test
+    public void testHandleClusterModified() throws Exception {
+        Dbs dbs1 = new Dbs();
+        Dbs dbs2 = new Dbs();
+
+        Db db1 = new Db();
+        db1.setMaster(true);
+        db1.setIp("127.0.0.1");
+        db1.setPort(3306);
+
+
+        dbs1.addDb(db1);
+        dbs2.addDb(db1);
+
+        dbs1.setMonitorUser("user");
+        dbs1.setMonitorPassword("pwd1");
+        dbs2.setMonitorUser("user");
+        dbs2.setMonitorPassword("pwd2");
+
+        DbCluster currentDbCluster = new DbCluster();
+        currentDbCluster.setId("cluster");
+        currentDbCluster.setDbs(dbs1);
+
+        DbCluster futureDbCluster = new DbCluster();
+        futureDbCluster.setId("cluster");
+        futureDbCluster.setDbs(dbs2);
+
+
+        ClusterComparator clusterComparator = new ClusterComparator(currentDbCluster, futureDbCluster);
+        clusterComparator.compare();
+        doNothing().when(currentMetaManager).switchMySQLMaster(Mockito.anyString(), Mockito.any());
+        mySQLMasterManager.handleClusterModified(clusterComparator);
+        verify(currentMetaManager, times(1)).switchMySQLMaster(Mockito.anyString(), Mockito.any());
+
+    }
+
     @After
     public void tearDown() {
         super.tearDown();
@@ -112,4 +177,6 @@ public class DefaultMySQLMasterManagerTest extends AbstractDbClusterTest {
         mySQLMasterManager.handleClusterModified(clusterComparator);
         Mockito.verify(currentMetaManager, times(1)).switchMySQLMaster(anyString(), any(Endpoint.class));
     }
+
+
 }

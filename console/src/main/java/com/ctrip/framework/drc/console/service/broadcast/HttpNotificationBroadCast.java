@@ -25,9 +25,6 @@ import java.util.List;
 public class HttpNotificationBroadCast implements DisposableBean {
 
     public static final String SCHEMA = "http://%s:8080/%s";
-    public static final String BROADCAST = "broadcast";
-    public static final String NEED_BROADCAST = "true";
-    public static final String NOT_NEED_BROADCAST = "false";
 
     @Autowired
     private ConsoleLeaderElector leaderElector;
@@ -35,35 +32,6 @@ public class HttpNotificationBroadCast implements DisposableBean {
     private AsyncHttpClient asyncHttpClient = AsyncHttpClientFactory.create(1000, 5000, 6000, 0, 100, 1000);
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-
-
-    public void broadcast(String urlPath, RequestMethod requestMethod, String requestBody) {
-        try {
-            List<String> othersIp = getOthersIp();
-            for (String ip : othersIp) {
-                String url = String.format(SCHEMA, ip, urlPath);
-                ListenableFuture<Response> future = asyncHttpClient
-                        .prepare(requestMethod.name(), url)
-                        .addQueryParam(BROADCAST, NOT_NEED_BROADCAST)
-                        .setBody(requestBody)
-                        .execute();
-                logger.debug("broadcasting,url:{},method:{},body:{}", urlPath, requestMethod.name(), requestBody);
-                future.addListener(() -> {
-                    try {
-                        Response response = future.get();
-                        if (response.getStatusCode() != HttpStatus.OK.value()) {
-                            logger.warn("broadcast not ok,url:{},method:{},body:{},response:{}", urlPath, requestMethod.name(), requestBody, response.getResponseBody());
-                        }
-                        logger.debug("broadcast success,url:{},method:{},body:{},response", urlPath, requestMethod.name(), requestBody);
-                    } catch (Throwable e) {
-                        logger.error("broadcast error,url:{},method:{},body:{}", urlPath, requestMethod.name(), requestBody, e);
-                    }
-                }, MoreExecutors.directExecutor());
-            }
-        } catch (Throwable e) {
-            logger.error("broadcast error,url:{},method:{},body:{}", urlPath, requestMethod.name(), requestBody, e);
-        }
-    }
 
 
     public void broadcastWithRetry(String urlPath, RequestMethod requestMethod, String requestBody, int retryTime) {

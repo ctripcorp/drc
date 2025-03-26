@@ -30,6 +30,16 @@ public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     }
 
     @Override
+    public Map<String, Long> getMhaDelay() {
+        return Map.of();
+    }
+
+    @Override
+    public void refreshMhaDelayFromOtherDc(Map<String, Long> receiveTimeMap) {
+
+    }
+
+    @Override
     public int getOrder() {
         return 1;
     }

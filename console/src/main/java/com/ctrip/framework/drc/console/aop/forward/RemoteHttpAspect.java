@@ -56,7 +56,8 @@ public class RemoteHttpAspect {
     public Object aroundOperate(ProceedingJoinPoint point, PossibleRemote possibleRemote) {
         try {
             String localRegion = consoleConfig.getRegion();
-            Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+            String centerRegion = consoleConfig.getCenterRegion();
+
             Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
 
             Map<String, Object> argsNotExcluded = getArgsNotExcluded(point,possibleRemote.excludeArguments());
@@ -64,23 +65,22 @@ public class RemoteHttpAspect {
 
             switch (forwardType) {
                 case TO_META_DB:
-                    if (publicCloudRegion.contains(localRegion)) {
+                    if (centerRegion.equals(localRegion)) {
+                        return invokeOriginalMethod(point);
+                    } else {
                         StringBuilder url = new StringBuilder(consoleConfig.getCenterRegionUrl());
                         return forwardByHttp(url,possibleRemote,argsNotExcluded);
-                    } else {
-                        return invokeOriginalMethod(point);
                     }
                 case TO_OVERSEA_BY_ARG:
-                    if (!publicCloudRegion.contains(localRegion) ) {
-                        String regionByArgs = getRegionByArgs(argsNotExcluded, possibleRemote);
-                        if (publicCloudRegion.contains(regionByArgs)) {
-                            StringBuilder url = new StringBuilder(consoleRegionUrls.get(regionByArgs));
-                            return forwardByHttp(url,possibleRemote,argsNotExcluded);
-                        } else {
-                            return invokeOriginalMethod(point);
-                        }
-                    } else {
+                    String regionByArgs = getRegionByArgs(argsNotExcluded, possibleRemote);
+                    if (localRegion.equals(regionByArgs)) {
                         return invokeOriginalMethod(point);
+                    } else {
+                        StringBuilder url = new StringBuilder(consoleRegionUrls.get(regionByArgs));
+                        if (StringUtils.isEmpty(url)) {
+                            throw new IllegalArgumentException("no regionUrl find, region: " + regionByArgs);
+                        }
+                        return forwardByHttp(url,possibleRemote,argsNotExcluded);
                     }
                 default:
                     return invokeOriginalMethod(point);
@@ -97,10 +97,6 @@ public class RemoteHttpAspect {
     }
 
     private Object forwardByHttp(StringBuilder regionUrl, PossibleRemote possibleRemote, Map<String, Object> args) {
-        if (StringUtils.isEmpty(regionUrl)) {
-            throw new IllegalArgumentException("no regionUrl find");
-        }
-
         regionUrl.append(possibleRemote.path());
         ApiResult apiResult;
         HttpRequestEnum httpRequestType = possibleRemote.httpType();

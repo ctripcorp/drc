@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
+import com.ctrip.framework.drc.core.mq.MhaInfo;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -19,7 +20,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.*;
 
 /**
@@ -96,8 +100,8 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         }
         logger.info("kafka consumer start consuming");
         future = kafkaConsumeService.submit(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
+            try {
+                while (true) {
                     ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(200));
                     for (ConsumerRecord<String, String> mqRecord : records) {
                         executorService.submit(() -> processMessage(mqRecord));
@@ -105,10 +109,12 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                     if (!records.isEmpty()) {
                         kafkaConsumer.commitSync();
                     }
-                } catch (KafkaException e) {
-                    logger.warn("[[monitor=delay,mqType=kafka]] consumer exception:", e);
-                    kafkaConsumer.seekToEnd(kafkaConsumer.assignment());
                 }
+            } catch (WakeupException e) {
+                logger.info("going to close kafkaConsumer", e);
+            } finally {
+                kafkaConsumer.close();
+                logger.info("close kafkaConsumer finished");
             }
         });
         return true;
@@ -147,7 +153,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                 return;
             }
 
-            MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+            MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.kafka.name());
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
 
@@ -166,7 +172,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     private void checkDelayLoss() {
 
         for (String mhaName : mhasRelated) {
-            MhaInfo mhaInfo = new MhaInfo(mhaName, mha2Dc.get(mhaName));
+            MhaInfo mhaInfo = new MhaInfo(mhaName, mha2Dc.get(mhaName), MqType.kafka.name());
             Long receiveTime = receiveTimeMap.putIfAbsent(mhaInfo, System.currentTimeMillis());
             if (receiveTime == null) {
                 continue;
@@ -195,7 +201,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                     logger.warn("[KafkaDelayMessageConsumer] mhasRefresh error mha: {}", mhaName);
                     continue;
                 }
-                MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+                MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.kafka.name());
                 boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
                 logger.info("[KafkaDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
             }
@@ -225,7 +231,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                     logger.warn("[KafkaDelayMessageConsumer] error mha: {}", mhaName);
                 }
                 if (dc != null) {
-                    MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+                    MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.kafka.name());
                     boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
                     logger.info("[KafkaDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
                 }
@@ -241,12 +247,11 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             return false;
         }
         checkTaskFuture.cancel(true);
-        future.cancel(true);
         receiveTimeMap.clear();
         mhaLastReceiveMap.clear();
         DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT);
         if (kafkaConsumer != null) {
-            kafkaConsumer.close();
+            kafkaConsumer.wakeup();
         }
         return true;
     }
@@ -267,6 +272,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         }
         try {
             kafkaConsumer = KafkaClientFactory.newConsumer(subject, consumerGroup, kafkaConf);
+            kafkaConsumer.seekToEnd(kafkaConsumer.assignment());
         } catch (IOException e) {
             logger.error("kafka consumer init error", e);
         }
@@ -280,54 +286,4 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         return 0;
     }
 
-    private static class MhaInfo {
-
-        private Map<String, String> tags;
-        private String mhaName;
-        private String dc;
-
-        public Map<String, String> getTags() {
-            if (tags == null) {
-                tags = Maps.newHashMap();
-                tags.put("mhaName", mhaName);
-                tags.put("dc", dc);
-                tags.put("mqType", MqType.kafka.name());
-            }
-            return tags;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MhaInfo mhaInfo = (MhaInfo) o;
-            return Objects.equals(mhaName, mhaInfo.mhaName) && Objects.equals(dc, mhaInfo.dc);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(mhaName, dc);
-        }
-
-        public MhaInfo(String mhaName, String dc) {
-            this.mhaName = mhaName;
-            this.dc = dc;
-        }
-
-        public String getMhaName() {
-            return mhaName;
-        }
-
-        public void setMhaName(String mhaName) {
-            this.mhaName = mhaName;
-        }
-
-        public String getDc() {
-            return dc;
-        }
-
-        public void setDc(String dc) {
-            this.dc = dc;
-        }
-    }
 }

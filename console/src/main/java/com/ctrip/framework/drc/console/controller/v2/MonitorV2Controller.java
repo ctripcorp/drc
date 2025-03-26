@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.monitor.delay.MqDelayMonitorServer;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.config.console.dto.MhaDelayDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,10 @@ public class MonitorV2Controller {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired private MonitorServiceV2 monitorServiceV2;
+    @Autowired
+    private MonitorServiceV2 monitorServiceV2;
+    @Autowired
+    private MqDelayMonitorServer mqDelayMonitorServer;
 
     @GetMapping("mhaNames")
     public ApiResult queryMhaNamesToBeMonitored() {
@@ -31,8 +35,8 @@ public class MonitorV2Controller {
             List<String> mhaNames = monitorServiceV2.getMhaNamesToBeMonitored();
             return ApiResult.getSuccessInstance(mhaNames);
         } catch (Exception e) {
-            logger.error("[[monitor=mhaNames]] queryMhaNamesToBeMonitored fail",e);
-            return ApiResult.getFailInstance(null,"queryMhaNamesToBeMonitored fail");
+            logger.error("[[monitor=mhaNames]] queryMhaNamesToBeMonitored fail", e);
+            return ApiResult.getFailInstance(null, "queryMhaNamesToBeMonitored fail");
         }
     }
 
@@ -43,8 +47,8 @@ public class MonitorV2Controller {
             List<String> mhaNames = monitorServiceV2.getDestMhaNamesToBeMonitored();
             return ApiResult.getSuccessInstance(mhaNames);
         } catch (Exception e) {
-            logger.error("[[monitor=mhaNames]] queryDstMhaNamesToBeMonitored fail",e);
-            return ApiResult.getFailInstance(null,"queryDstMhaNamesToBeMonitored fail");
+            logger.error("[[monitor=mhaNames]] queryDstMhaNamesToBeMonitored fail", e);
+            return ApiResult.getFailInstance(null, "queryDstMhaNamesToBeMonitored fail");
         }
     }
 
@@ -55,6 +59,19 @@ public class MonitorV2Controller {
             monitorServiceV2.switchMonitors(mhaName, status);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @RequestMapping(value = "refreshQmqDelay", method = RequestMethod.PUT)
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> refreshQmqDelay(@RequestBody MhaDelayDto dto) {
+        try {
+            logger.info("[[monitor=qmqDelay]] refreshQmqDelay");
+            mqDelayMonitorServer.refreshMhaDelayFromOtherDc(dto.getMhaDelay());
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("[[monitor=qmqDelay]] refreshQmqDelay fail", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

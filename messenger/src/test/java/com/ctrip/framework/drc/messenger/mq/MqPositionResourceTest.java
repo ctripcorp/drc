@@ -28,10 +28,10 @@ public class MqPositionResourceTest {
         mqPositionResource.initialize();
         mqPositionResource.add(new Gtid("712c708a-2fa6-11eb-b7e5-98039ba92412:378"));
         Thread.sleep(100);
-        Assert.assertEquals(new GtidSet(mqPositionResource.getCurrentPosition()), new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:1-378"));
+        Assert.assertEquals(new GtidSet(mqPositionResource.getCurrentPosition()), new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:378"));
         mqPositionResource.union(new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-100"));
         Thread.sleep(100);
-        Assert.assertEquals(new GtidSet(mqPositionResource.getCurrentPosition()), new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-100,712c708a-2fa6-11eb-b7e5-98039ba92412:1-378"));
+        Assert.assertEquals(new GtidSet(mqPositionResource.getCurrentPosition()), new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-100,712c708a-2fa6-11eb-b7e5-98039ba92412:378"));
     }
 
     @Test

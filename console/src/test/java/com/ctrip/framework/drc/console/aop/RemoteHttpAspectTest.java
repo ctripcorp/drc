@@ -7,7 +7,9 @@ import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.impl.CentralServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MysqlServiceV2Impl;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ResourceServiceImpl;
@@ -22,7 +24,10 @@ import org.mockito.*;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 
 public class RemoteHttpAspectTest {
@@ -52,10 +57,15 @@ public class RemoteHttpAspectTest {
 
     private ResourceService proxy2;
 
+    @Spy
+    private CentralServiceImpl centralServiceSpy;
+    private CentralService proxy3;
+
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(consoleConfig.getCenterRegion()).thenReturn("sha");
         Mockito.when(consoleConfig.getRegion()).thenReturn("region1");
         Mockito.when(consoleConfig.getCenterRegionUrl()).thenReturn("centerRegionUrl");
         Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("region1");
@@ -79,6 +89,24 @@ public class RemoteHttpAspectTest {
         factory2.setProxyTargetClass(true);
         factory2.addAspect(aop);
         proxy2 = factory2.getProxy();
+
+        AspectJProxyFactory factory3 = new AspectJProxyFactory(centralServiceSpy);
+        factory3.setProxyTargetClass(true);
+        factory3.addAspect(aop);
+        proxy3 = factory3.getProxy();
+
+    }
+
+
+    @Test
+    public void testForwardToMetaDb() throws Exception {
+        Mockito.when(consoleConfig.getRegion()).thenReturn("region1");
+        proxy3.queryAllMhaTblV2();
+        Mockito.verify(centralServiceSpy, Mockito.never()).queryAllMhaTblV2();
+
+        Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
+        proxy3.queryAllMhaTblV2();
+        Mockito.verify(centralServiceSpy, Mockito.times(1)).queryAllMhaTblV2();
     }
 
     @Test

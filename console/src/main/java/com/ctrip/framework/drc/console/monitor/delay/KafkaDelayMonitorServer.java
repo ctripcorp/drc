@@ -90,8 +90,9 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
             isLeader = true;
             if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
                 monitorMessengerChange();
+                logger.info("[[monitor=kafkaDelay]] is leader,going to start kafkaConsumer");
                 boolean b = kafkaConsumer.resumeConsume();
-                logger.info("[[monitor=kafkaDelay]] is leader,going to start kafkaConsumer,result:{}", b);
+                logger.info("[[monitor=kafkaDelay]] is leader, start kafkaConsumer finished,result:{}", b);
             }
         }
     }
@@ -102,8 +103,9 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
             isLeader = false;
             if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
                 monitorMessengerChange();
+                logger.info("[[monitor=kafkaDelay]] not leader,going to stop kafkaConsumer");
                 boolean b = kafkaConsumer.stopConsume();
-                logger.info("[[monitor=kafkaDelay]] not leader,going to stop kafkaConsumer,result:{}", b);
+                logger.info("[[monitor=kafkaDelay]] not leader, stop kafkaConsumer finished,result:{}", b);
             }
         }
     }

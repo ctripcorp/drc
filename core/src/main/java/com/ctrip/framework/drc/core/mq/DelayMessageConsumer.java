@@ -14,4 +14,8 @@ public interface DelayMessageConsumer extends Ordered {
     boolean resumeListen();
 
     void mhasRefresh(Map<String, String> mhas2Dc);
+
+    Map<String, Long> getMhaDelay();
+
+    void refreshMhaDelayFromOtherDc(Map<String, Long> mhaDelayMap);
 }

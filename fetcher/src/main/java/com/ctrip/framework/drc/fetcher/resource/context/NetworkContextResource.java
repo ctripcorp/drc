@@ -131,7 +131,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     protected GtidSet queryMessengerPositionFromDb() {
         Endpoint endpoint = new KeyedEndPoint(registryKey, new DefaultEndPoint(ip, port, username, password));
         MessengerGtidQueryTask gtidQueryTask = new MessengerGtidQueryTask(endpoint, registryKey);
-        Pair<String, Boolean> executedGtid = gtidQueryTask.getExecutedGtid(endpoint);
+        Pair<String, Boolean> executedGtid = gtidQueryTask.getExecutedGtid();
         emptyPositionFromDb = !executedGtid.getRight();
         return new GtidSet(executedGtid.getLeft());
     }

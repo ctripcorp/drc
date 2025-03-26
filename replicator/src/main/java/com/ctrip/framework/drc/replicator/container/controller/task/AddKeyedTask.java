@@ -38,11 +38,24 @@ public class AddKeyedTask extends AbstractKeyedTask {
         Endpoint upstreamMaster = serverContainer.getUpstreamMaster(registryKey);
         Endpoint currentUpstreamMaster = replicatorConfig.getEndpoint();
         logger.info("[Start] replicator instance({}), upstreamMaster is {}, current is {}", registryKey, upstreamMaster, currentUpstreamMaster);
-        if (upstreamMaster != null && upstreamMaster.equals(replicatorConfig.getEndpoint())) {
+        if (upstreamMaster != null && upstreamMaster.equals(currentUpstreamMaster) && equalsWithUserAndPassword(upstreamMaster, currentUpstreamMaster)) {
             logger.info("[Start] replicator instance({}), ignore duplicate instance, with role: {}", registryKey, instanceStatus);
             return false;
         }
         return true;
+    }
+
+    private boolean equalsWithUserAndPassword(Endpoint endpoint1, Endpoint endpoint2) {
+        if (endpoint1 == null && endpoint2 == null) {
+            return true;
+        }
+        if (endpoint1 == null || endpoint2 == null) {
+            return false;
+        }
+        if (!endpoint1.getUser().equals(endpoint2.getUser())) {
+            return false;
+        }
+        return endpoint1.getPassword().equals(endpoint2.getPassword());
     }
 
     private void removeOldInstance() {

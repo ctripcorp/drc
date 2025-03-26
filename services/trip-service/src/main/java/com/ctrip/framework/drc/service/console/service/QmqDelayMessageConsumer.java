@@ -3,10 +3,7 @@ package com.ctrip.framework.drc.service.console.service;
 
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
-import com.ctrip.framework.drc.core.mq.DcTag;
-import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
-import com.ctrip.framework.drc.core.mq.EventType;
-import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
@@ -21,7 +18,6 @@ import qunar.tc.qmq.consumer.MessageConsumerProvider;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +48,8 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo, Long> receiveTimeMap = Maps.newConcurrentMap();
+    private Map<String, Long> mhaDelayFromOtherDc = Maps.newConcurrentMap();
+
     private final ScheduledExecutorService checkScheduledExecutor =
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
 
@@ -108,12 +106,34 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 logger.warn("[QmqDelayMessageConsumer] mhasRefresh error mha: {}", mhaName);
                 continue;
             }
-            MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+            MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.qmq.name());
             boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
             logger.info("[QmqDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
         }
         this.mhasRelated = mhas;
         this.mha2Dc = mha2Dc;
+    }
+
+    @Override
+    public Map<String, Long> getMhaDelay() {
+        Map<String, Long> delay = Maps.newHashMap();
+        receiveTimeMap.forEach((mhaInfo, delayTime) -> {
+            delay.put(mhaInfo.getMhaName(), delayTime);
+        });
+        return delay;
+    }
+
+    @Override
+    public void refreshMhaDelayFromOtherDc(Map<String, Long> mhaDelayMap) {
+        for (Map.Entry<String, Long> entry : mhaDelayMap.entrySet()) {
+            String mhaName = entry.getKey();
+            Long delay = entry.getValue();
+
+            Long lastDelay = mhaDelayFromOtherDc.get(mhaName);
+            if (lastDelay == null || delay > lastDelay) {
+                mhaDelayFromOtherDc.put(mhaName, delay);
+            }
+        }
     }
 
     private void processMessage(Message message) {
@@ -141,7 +161,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 return;
             }
 
-            MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+            MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.qmq.name());
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
             DefaultReporterHolder.getInstance().reportMessengerDelay(
@@ -156,18 +176,25 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
 
     private void checkDelayLoss() {
-        for (Map.Entry<MhaInfo, Long> entry : receiveTimeMap.entrySet()) {
-            MhaInfo mhaInfo = entry.getKey();
-            String mhaName = mhaInfo.getMhaName();
-            if (mhasRelated.contains(mhaName)) {
-                long receiveTime = entry.getValue();
-                long curTime = System.currentTimeMillis();
-                long timeDiff = curTime - receiveTime;
-                if (timeDiff > TOLERANCE_TIME) {
-                    logger.error("[[monitor=delay,mqType=qmq]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
-                    DefaultReporterHolder.getInstance().reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
-                }
+        for (String mhaName : mhasRelated) {
+            MhaInfo mhaInfo = new MhaInfo(mhaName, mha2Dc.get(mhaName), MqType.qmq.name());
+            Long receiveTime = receiveTimeMap.putIfAbsent(mhaInfo, System.currentTimeMillis());
+            if (receiveTime == null) {
+                continue;
             }
+            long curTime = System.currentTimeMillis();
+            long timeDiff = curTime - receiveTime;
+
+            if (timeDiff < TOLERANCE_TIME) {
+                continue;
+            }
+            Long receiveTimeFromOtherDc = mhaDelayFromOtherDc.get(mhaName);
+            if (receiveTimeFromOtherDc != null && curTime - receiveTimeFromOtherDc < TOLERANCE_TIME) {
+                logger.info("[[monitor=delay,mqType=qmq]] receive delay from other dc, mha:{}, ,curTime:{}, receiveTime:{}", mhaInfo.getMhaName(), curTime, receiveTime);
+                continue;
+            }
+            logger.error("[[monitor=delay,mqType=qmq]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
+            DefaultReporterHolder.getInstance().reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
         }
     }
 
@@ -179,58 +206,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     private static class ConsumerProviderHolder {
         private static final MessageConsumerProvider instance = new MessageConsumerProvider();
-    }
-
-    private static class MhaInfo {
-
-        private Map<String, String> tags;
-        private String mhaName;
-        private String dc;
-
-
-        public Map<String, String> getTags() {
-            if (tags == null) {
-                tags = Maps.newHashMap();
-                tags.put("mhaName", mhaName);
-                tags.put("dc", dc);
-                tags.put("mqType", MqType.qmq.name());
-            }
-            return tags;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MhaInfo mhaInfo = (MhaInfo) o;
-            return Objects.equals(mhaName, mhaInfo.mhaName) && Objects.equals(dc, mhaInfo.dc);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(mhaName, dc);
-        }
-
-        public MhaInfo(String mhaName, String dc) {
-            this.mhaName = mhaName;
-            this.dc = dc;
-        }
-
-        public String getMhaName() {
-            return mhaName;
-        }
-
-        public void setMhaName(String mhaName) {
-            this.mhaName = mhaName;
-        }
-
-        public String getDc() {
-            return dc;
-        }
-
-        public void setDc(String dc) {
-            this.dc = dc;
-        }
     }
 
 

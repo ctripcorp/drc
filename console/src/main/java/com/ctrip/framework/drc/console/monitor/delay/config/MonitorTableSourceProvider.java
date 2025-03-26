@@ -147,6 +147,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
 
     private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
+    private static final String MQ_DELAY_FORWARD_SWITCH = "mq.delay.forward.switch";
     private static final String KAFKA_DELAY_MONITOR_SWITCH = "kafka.delay.monitor.switch";
     private static final String MQ_DELAY_MONITOR_SUBJECT = "mq.delay.monitor.subject";
     private static final String KAFKA_DELAY_MONITOR_SUBJECT = "kafka.delay.monitor.subject";
@@ -452,5 +453,9 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getKafkaDelayMonitorSwitch() {
         return getProperty(KAFKA_DELAY_MONITOR_SWITCH, SWITCH_STATUS_ON);
+    }
+
+    public String getMqDelayForwardSwitch() {
+        return getProperty(MQ_DELAY_FORWARD_SWITCH, SWITCH_STATUS_OFF);
     }
 }
