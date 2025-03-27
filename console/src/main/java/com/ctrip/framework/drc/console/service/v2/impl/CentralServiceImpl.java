@@ -171,6 +171,16 @@ public class CentralServiceImpl implements CentralService {
         return resourceTblDao.queryAllExist();
     }
 
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/dcName", forwardType = ForwardTypeEnum.TO_META_DB)
+    public String getDcName(String mhaName) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            return null;
+        }
+        return dcTblDao.queryByPk(mhaTblV2.getDcId()).getDcName();
+    }
+
     private Map<String, ReplicatorTbl> getIpReplicatorMap(String mha) throws SQLException {
         Map<String, ReplicatorTbl> ip2Replicator = Maps.newHashMap();
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha);

@@ -34,4 +34,6 @@ public interface CentralService {
 
     List<ResourceTbl> queryAllResourceTbl() throws SQLException;
 
+    String getDcName(String mhaName) throws SQLException;
+
 }
