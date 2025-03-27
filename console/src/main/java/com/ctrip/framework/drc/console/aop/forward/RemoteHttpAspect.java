@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
@@ -45,6 +46,8 @@ public class RemoteHttpAspect {
 
     @Autowired
     private CentralService centralService;
+
+    private static final Map<String, String> mha2DcMap = Maps.newConcurrentMap();
 
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
     public void pointCut(){};
@@ -188,7 +191,15 @@ public class RemoteHttpAspect {
     }
 
     private String getDcName(String mha) throws SQLException {
-        return centralService.getDcName(mha);
+        if (!mha2DcMap.containsKey(mha)) {
+            String dcName = centralService.getDcName(mha);
+            if (StringUtils.isEmpty(dcName)) {
+                logger.warn("[[tag=remoteHttpAop]] dcName is empty, mha: {}", mha);
+                return dcName;
+            }
+            mha2DcMap.put(mha, dcName);
+        }
+        return mha2DcMap.get(mha);
     }
 
     private String getRegionByArgs(Map<String, Object> arguments, PossibleRemote possibleRemote) {
