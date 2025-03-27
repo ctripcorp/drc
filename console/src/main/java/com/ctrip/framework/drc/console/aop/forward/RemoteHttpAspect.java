@@ -1,12 +1,9 @@
 package com.ctrip.framework.drc.console.aop.forward;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -26,7 +23,10 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName RemoteAspect
@@ -44,10 +44,7 @@ public class RemoteHttpAspect {
     private DefaultConsoleConfig consoleConfig;
 
     @Autowired
-    private MhaTblV2Dao mhaTblV2Dao;
-
-    @Autowired
-    private DcTblDao dcTblDao;
+    private CentralService centralService;
 
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
     public void pointCut(){};
@@ -191,11 +188,7 @@ public class RemoteHttpAspect {
     }
 
     private String getDcName(String mha) throws SQLException {
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, BooleanEnum.FALSE.getCode());
-        if (mhaTblV2 == null) {
-            return null;
-        }
-        return dcTblDao.queryByPk(mhaTblV2.getDcId()).getDcName();
+        return centralService.getDcName(mha);
     }
 
     private String getRegionByArgs(Map<String, Object> arguments, PossibleRemote possibleRemote) {

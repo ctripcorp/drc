@@ -148,4 +148,16 @@ public class CentralServiceController {
         }
     }
 
+    @GetMapping("dcName")
+    public ApiResult getDcName(@RequestParam String mhaName) {
+        try {
+            logger.info("[[tag=centralService]] getDcName");
+            String dcName = centralService.getDcName(mhaName);
+            return ApiResult.getSuccessInstance(dcName);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getDcName fail");
+            return ApiResult.getFailInstance(null, "getDcName fail");
+        }
+    }
+
 }

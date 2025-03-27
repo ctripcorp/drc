@@ -2,10 +2,8 @@ package com.ctrip.framework.drc.console.aop;
 
 import com.ctrip.framework.drc.console.aop.forward.RemoteHttpAspect;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -39,10 +37,7 @@ public class RemoteHttpAspectTest {
     private DefaultConsoleConfig consoleConfig;
 
     @Mock
-    private MhaTblV2Dao mhaTblV2Dao;
-
-    @Mock
-    private DcTblDao dcTblDao;
+    private CentralServiceImpl centralService;
 
     @Mock
     private CacheMetaService cacheMetaService;
@@ -139,8 +134,8 @@ public class RemoteHttpAspectTest {
 
     @Test
     public void testForwardByArgs() throws SQLException {
-        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha1"), Mockito.anyInt())).thenReturn(getMhaTblV2());
-        Mockito.when(dcTblDao.queryByPk(Mockito.anyLong())).thenReturn(getDc());
+
+        Mockito.when(centralService.getDcName(Mockito.eq("mha1"))).thenReturn(getDc().getDcName());
         MySqlEndpoint mySqlEndpoint = new MySqlEndpoint("ip", 3306, "usr", "psw", true);
         Mockito.when(cacheMetaService.getMasterEndpoint(Mockito.anyString())).thenReturn(mySqlEndpoint);
 
