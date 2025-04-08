@@ -85,10 +85,12 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         mode = ApplyMode.getApplyMode(applyMode);
         orderedTransaction = new InnerOrderedTransaction();
         rowCnt = new AtomicInteger(0);
+        beginTrace("t");
     }
 
     @Override
     public void doDispose() {
+        endTrace("T");
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "rows", rowsSize.intValue(), 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "gtid", 1, 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "xid", 1, 0);
