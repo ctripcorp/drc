@@ -24,19 +24,20 @@ public class Columns extends ArrayList<Column> {
     private List<Bitmap> bitmapsOnUpdate;
     private Bitmap standardOnUpdate;
 
-    public List<Bitmap> getBitmapsOfIdentifier() {
+    private void arrangeOnce() {
         if (!arranged) {
             arrange();
             arranged = true;
         }
+    }
+
+    public List<Bitmap> getBitmapsOfIdentifier() {
+        arrangeOnce();
         return bitmapsOfIdentifier;
     }
 
     public List<Bitmap> getBitmapsOnUpdate() {
-        if (!arranged) {
-            arrange();
-            arranged = true;
-        }
+        arrangeOnce();
         return bitmapsOnUpdate;
     }
 
@@ -119,14 +120,8 @@ public class Columns extends ArrayList<Column> {
     }
 
     public void removeColumn(String name) {
-        for (int i = 0; i < this.size(); i++) {
-            if (name.equals(this.get(i).getName()))
-                this.remove(i);
-        }
-        for (int i = 0; i < identifiers.size(); i++) {
-            if (identifiers.get(i).contains(name))
-                identifiers.remove(i);
-        }
+        this.removeIf(column -> name.equals(column.getName()));
+        identifiers.removeIf(keyCombination -> keyCombination.contains(name));
         arranged = false;
     }
 
@@ -146,6 +141,7 @@ public class Columns extends ArrayList<Column> {
         }
 
         cloneColumns.arranged = this.arranged;
+        cloneColumns.standardOnUpdate = this.standardOnUpdate;
         return cloneColumns;
     }
 }

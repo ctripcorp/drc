@@ -80,7 +80,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         }
         listenerHolder.stopListen();
         receiveTimeMap.clear();
-        DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT);
         return true;
     }
 
@@ -107,8 +106,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 continue;
             }
             MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.qmq.name());
-            boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
-            logger.info("[QmqDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
+            receiveTimeMap.remove(mhaInfo);
         }
         this.mhasRelated = mhas;
         this.mha2Dc = mha2Dc;
@@ -164,8 +162,8 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.qmq.name());
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
-            DefaultReporterHolder.getInstance().reportMessengerDelay(
-                    mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
+            DefaultReporterHolder.getInstance().reportResetTimer(
+                    mhaInfo.getTags(), delayTime, MQ_DELAY_MEASUREMENT);
             logger.info("[[monitor=delay,mha={},mqType=qmq,messageId={}]] receiveTime:{}, updateDbTime:{}, report messenger delay:{} ms", mhaName, message.getMessageId(), receiveTime, updateDbTime.getTime(), delayTime);
 
             receiveTimeMap.put(mhaInfo, receiveTime);
@@ -194,7 +192,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 continue;
             }
             logger.error("[[monitor=delay,mqType=qmq]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
-            DefaultReporterHolder.getInstance().reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
+            DefaultReporterHolder.getInstance().reportResetTimer(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
         }
     }
 

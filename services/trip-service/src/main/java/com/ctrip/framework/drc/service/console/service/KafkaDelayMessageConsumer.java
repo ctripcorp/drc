@@ -157,8 +157,8 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
 
-            DefaultReporterHolder.getInstance().reportMessengerDelay(
-                    mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
+            DefaultReporterHolder.getInstance().reportResetTimer(
+                    mhaInfo.getTags(), delayTime, MQ_DELAY_MEASUREMENT);
             logger.info("[[monitor=delay,mha={},mqType=kafka,partition={},offset={}]] receiveTime:{}, updateDbTime:{}, report messenger delay:{} ms", mhaName, record.partition(), record.offset(), receiveTime, updateDbTime.getTime(), delayTime);
 
             receiveTimeMap.put(mhaInfo, receiveTime);
@@ -182,7 +182,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             if (timeDiff > TOLERANCE_TIME) {
                 logger.error("[[monitor=delay,mqType=kafka]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
                 DefaultReporterHolder.getInstance()
-                        .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
+                        .reportResetTimer(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
             }
         }
     }
@@ -202,8 +202,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                     continue;
                 }
                 MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.kafka.name());
-                boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
-                logger.info("[KafkaDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
+                receiveTimeMap.remove(mhaInfo);
             }
             this.mhasRelated = mhas;
             this.mha2Dc = mha2Dc;
@@ -232,8 +231,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                 }
                 if (dc != null) {
                     MhaInfo mhaInfo = new MhaInfo(mhaName, dc, MqType.kafka.name());
-                    boolean res = DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT, mhaInfo.getTags());
-                    logger.info("[KafkaDelayMessageConsumer] removeRegister: {}, {}, {}", mhaName, dc, res);
+                    receiveTimeMap.remove(mhaInfo);
                 }
             }
             this.mhasRelated.removeAll(mhas2Dc.keySet());
@@ -249,7 +247,6 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         checkTaskFuture.cancel(true);
         receiveTimeMap.clear();
         mhaLastReceiveMap.clear();
-        DefaultReporterHolder.getInstance().removeRegister(MQ_DELAY_MEASUREMENT);
         if (kafkaConsumer != null) {
             kafkaConsumer.wakeup();
         }

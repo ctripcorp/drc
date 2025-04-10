@@ -8,10 +8,11 @@ import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import com.ctrip.framework.drc.fetcher.conflict.enums.ConflictResult;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource;
 import com.ctrip.framework.drc.fetcher.resource.position.TransactionTable;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Queue;
 
 import static com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult.TYPE.*;
+import static com.ctrip.framework.drc.core.monitor.enums.ConflictDetail.*;
 
 /**
  * Created by shiruixin
@@ -492,15 +494,21 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private int/*row count*/ select(List<Object> identifier, Bitmap bitmap0,
+    private int/*row count*/ selectCount(List<Object> identifier, Bitmap bitmap0,
+                                    Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
+        return select(identifier, Lists.<Bitmap>newArrayList(bitmap0), columns, comment, preparedStatementExecutor).size();
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    private List<List<Object>>/*rows*/ select(List<Object> identifier, Bitmap bitmap0,
                                     Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
         return select(identifier, Lists.<Bitmap>newArrayList(bitmap0), columns, comment, preparedStatementExecutor);
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private int/*row count*/ select(List<Object> identifier, List<Bitmap> bitmaps,
+    private List<List<Object>>/*row count*/ select(List<Object> identifier, List<Bitmap> bitmaps,
                                     Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
-        int rowCount = 0;
+        List<List<Object>> rowValuesInDb = Lists.newArrayList();
         for (Bitmap bitmap : bitmaps) {
             try (PreparedStatement statement = prepareSelect(
                     columns.getNames(),
@@ -512,10 +520,13 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 try (ResultSet result = statement.getResultSet()) {
                     if (result != null) {
                         while (result.next()) {
-                            rowCount += 1;
+                            List<Object> values = Lists.newArrayList();
+                            rowValuesInDb.add(values);
                             String log = "|";
                             for (String columnName : columns.getNames()) {
-                                log = log + result.getString(columnName) + "|";
+                                Object resultObject = result.getObject(columnName);
+                                values.add(resultObject);
+                                log = log + resultObject + "|";
                             }
                             addLogs(log);
                             destCurrentRecord = log;
@@ -527,11 +538,12 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 logger.warn("fail to select current row at conflict - IGNORE -", t);
             }
         }
+        int rowCount = rowValuesInDb.size();
         addLogs("related rows count: " + rowCount);
         if (rowCount == 0) {
             destCurrentRecord = "related rows count is 0";
         }
-        return rowCount;
+        return rowValuesInDb;
     }
 
     @Override
@@ -559,7 +571,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                     String removedColumnName = shrink();
                     if (insert(this.beforeRows.get(i), this.beforeBitmap,
                             this.columns, "DRC INSERT AFTER REMOVE " + removedColumnName, preparedStatementExecutor)) {
-                        overwriteMark(true, "unknown column", rawSql, rawSqlExecuteResult);
+                        overwriteMark(INSERT_UNKNOWN_COLUMN, "unknown column", rawSql, rawSqlExecuteResult);
                         continue STATEMENT;
                     }
                 }
@@ -568,7 +580,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 for (int j = this.columns.getBitmapsOfIdentifier().size() - 1; j >= 0; j--) {
                     Bitmap bitmapOfIdentifier = this.columns.getBitmapsOfIdentifier().get(j);
                     List<Object> identifier = this.beforeBitmap.onBitmap(bitmapOfIdentifier).on(this.beforeRows.get(i));
-                    if (1 == select(
+                    if (1 == selectCount(
                             identifier, bitmapOfIdentifier,
                             this.columns, "DRC INSERT CONFLICT", preparedStatementExecutor
                     )) {
@@ -577,15 +589,21 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                                 identifier, bitmapOfIdentifier,
                                 valueOnUpdate, bitmapOfValueOnUpdate,
                                 this.columns, "DRC INSERT 1", preparedStatementExecutor)) {
-                            overwriteMark(true, destCurrentRecord, conflictHandleSql, conflictHandleSqlResult);
+                            overwriteMark(INSERT_TO_UPDATE, destCurrentRecord, conflictHandleSql, conflictHandleSqlResult);
+                            continue STATEMENT;
+                        }
+                        if (1 == selectCount(this.beforeRows.get(i),
+                                this.beforeBitmap, this.columns,
+                                "DRC INSERT CONFLICT", preparedStatementExecutor)) {
+                            overwriteMark(INSERT_TO_UPDATE_SAME_EXIST, destCurrentRecord, null, "same data exist");
                             continue STATEMENT;
                         }
                     }
                 }
-                overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
+                overwriteMark(INSERT_TO_UPDATE_NEWER_EXIST, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
-            throwableLeadToRollback(e.getMessage());
+            throwableLeadToRollback(INSERT_EXCEPTION, e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.insert() - execute: ", e);
         }
@@ -638,7 +656,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                             this.afterRows.get(i), this.afterBitmap,
                             conditions, bitmapOfConditions,
                             this.columns, "DRC UPDATE AFTER REMOVE " + removedColumnName, preparedStatementExecutor)) {
-                        overwriteMark(true, "unknown column", rawSql, rawSqlExecuteResult);
+                        overwriteMark(UPDATE_UNKNOWN_COLUMN, "unknown column", rawSql, rawSqlExecuteResult);
                         continue STATEMENT;
                     }
                 }
@@ -651,40 +669,56 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                             this.afterRows.get(i), this.afterBitmap,
                             conditions, bitmapOfConditions,
                             this.columns, "DRC UPDATE AFTER REMOVE WHERE ON_UPDATE=?", preparedStatementExecutor)) {
-                        overwriteMark(true, "no parameter", rawSql, rawSqlExecuteResult);
+                        overwriteMark(UPDATE_NO_PARAMETER, "no parameter", rawSql, rawSqlExecuteResult);
                         continue STATEMENT;
                     }
                 }
 
                 Bitmap bitmap2 = this.columns.getLastBitmapOnUpdate();
                 List<Object> valueOnUpdate = this.afterBitmap.onBitmap(bitmap2).on(this.afterRows.get(i));
+                boolean rowExist = false;
                 for (int j = this.columns.getBitmapsOfIdentifier().size() - 1; j >= 0; j--) {
                     Bitmap bitmap1 = this.columns.getBitmapsOfIdentifier().get(j);
                     List<Object> identifier = this.beforeBitmap.onBitmap(bitmap1).on(this.beforeRows.get(i));
-                    if (1 == select(
+                    if (1 == selectCount(
                             identifier, bitmap1,
                             this.columns, "DRC UPDATE CONFLICT", preparedStatementExecutor
                     )) {
+                        rowExist = true;
                         if (update1(
                                 this.afterRows.get(i), this.afterBitmap,
                                 identifier, bitmap1,
                                 valueOnUpdate, bitmap2,
                                 this.columns, "DRC UPDATE 1", preparedStatementExecutor)) {
-                            overwriteMark(true, destCurrentRecord, conflictHandleSql, conflictHandleSqlResult);
+                            overwriteMark(UPDATE_OLD_TO_NEW, destCurrentRecord, conflictHandleSql, conflictHandleSqlResult);
+                            continue STATEMENT;
+                        }
+                        if (1 == selectCount(this.afterRows.get(i),
+                                this.afterBitmap, this.columns,
+                                "DRC INSERT CONFLICT", preparedStatementExecutor)) {
+                            overwriteMark(INSERT_TO_UPDATE_SAME_EXIST, destCurrentRecord, null, "same data exist");
                             continue STATEMENT;
                         }
                     }
                 }
-                if (insert(
-                        this.afterRows.get(i), this.afterBitmap,
-                        this.columns, "DRC UPDATE 2", preparedStatementExecutor)) {
-                    overwriteMark(true, destCurrentRecord, rawSql, rawSqlExecuteResult);
-                    continue STATEMENT;
+                // row exists, no need try insert
+                if (!rowExist) {
+                    if (insert(
+                            this.afterRows.get(i), this.afterBitmap,
+                            this.columns, "DRC UPDATE 2", preparedStatementExecutor)) {
+                        overwriteMark(UPDATE_TO_INSERT, destCurrentRecord, rawSql, rawSqlExecuteResult);
+                        continue STATEMENT;
+                    } else {
+                        // UNLIKELY
+                        overwriteMark(UPDATE_TO_INSERT_DUPLICATE_KEY, destCurrentRecord, rawSql, rawSqlExecuteResult);
+                        continue STATEMENT;
+                    }
                 }
-                overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
+
+                overwriteMark(UPDATE_NEWER_EXIST, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
-            throwableLeadToRollback(e.getMessage());
+            throwableLeadToRollback(UPDATE_EXCEPTION, e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.update() - execute: ", e);
         }
@@ -729,7 +763,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                             .on(beforeRows.get(i));
                     if (delete(conditions, bitmapOfConditions,
                             columns, "DRC DELETE AFTER REMOVE WHERE ON_UPDATE=?", preparedStatementExecutor)) {
-                        overwriteMark(true, "no parameter", rawSql, rawSqlExecuteResult);
+                        overwriteMark(DELETE_NO_PARAMETER, "no parameter", rawSql, rawSqlExecuteResult);
                         continue STATEMENT;
                     }
                 }
@@ -738,14 +772,14 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 List<Object> identifier = beforeBitmap
                         .onBitmap(bitmapOfIdentifier)
                         .on(beforeRows.get(i));
-                select(
+                selectCount(
                         identifier, bitmapOfIdentifier,
-                        columns, "DRC INSERT CONFLICT", preparedStatementExecutor
+                        columns, "DRC DELETE CONFLICT", preparedStatementExecutor
                 );
-                overwriteMark(true, destCurrentRecord, null, "ignore conflict");
+                overwriteMark(DELETE_NOT_FOUND, destCurrentRecord, null, "ignore conflict");
             }
         } catch (Throwable e) {
-            throwableLeadToRollback(e.getMessage());
+            throwableLeadToRollback(DELETE_EXCEPTION, e.getMessage());
             lastUnbearable = e;
             logger.error("transaction.delete()", e);
         }
@@ -810,19 +844,19 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
         }
     }
 
-    private void throwableLeadToRollback(String errorMsg) {
+    private void throwableLeadToRollback(ConflictDetail conflictDetail, String errorMsg) {
         try {
             if (curCflRowLog == null) { // Not initialized yet
                 conflictMark(true);
             }
             String sqlResult = (UNKNOWN_COLUMN.toString().equalsIgnoreCase(rawSqlExecuteResult) ? "missing column value is not default:" : "apply throw Exception:");
-            overwriteMark(false, destCurrentRecord, null, sqlResult + errorMsg);
+            overwriteMark(conflictDetail, destCurrentRecord, null, sqlResult + errorMsg);
         } catch (Throwable e) {
             logger.error("throwableLeadToRollback:{},record fail",errorMsg,e);
         }
     }
 
-    private void overwriteMark(Boolean overWriteSuccess, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
+    private void overwriteMark(ConflictDetail conflictDetail, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
         String db = fetchTableKey().getDatabaseName();
         String table = fetchTableKey().getTableName();
         curCflRowLog.setDb(db);
@@ -830,7 +864,8 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
         curCflRowLog.setDstRecord(destCurrentRecord);
         curCflRowLog.setHandleSql(conflictHandleSql);
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
-        curCflRowLog.setRowRes(overWriteSuccess ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
+        curCflRowLog.setConflictDetail(conflictDetail);
+        curCflRowLog.setRowRes(conflictDetail.getConflictResult().getValue());
         boolean b = trxRecorder.recordCflRowLogIfNecessary(curCflRowLog);
     }
 

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.fetcher.conflict;
 
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
+
 import java.util.Objects;
 
 /**
@@ -17,6 +19,10 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
     private String handleSql;
     private String handleSqlRes;
     private int rowRes; // 0-commit 1-rollback
+    /**
+     * @see ConflictDetail
+     */
+    private String conflictDetail;
     private long rowId;
     
     public void brief () {
@@ -67,6 +73,14 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
                 ", rowRes=" + rowRes +
                 ", rowId=" + rowId +
                 '}';
+    }
+
+    public String getConflictDetail() {
+        return conflictDetail;
+    }
+
+    public void setConflictDetail(ConflictDetail conflictDetail) {
+        this.conflictDetail = conflictDetail.name();
     }
 
     public String getDb() {
