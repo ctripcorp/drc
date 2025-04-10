@@ -138,6 +138,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String SUPPORT_KAFKA_SWITCH = "support.kafka.switch";
     private static String CONSOLE_REPLICATOR_MONITOR_SWITCH = "console.replicator.monitor.switch";
 
+    private static final String CONFLICT_OPTIMIZE_SWITCH = "conflict.optimize.switch";
+    private static final String IGNORE_CONFLICT_TYPES = "ignore.conflict.types";
+
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
     }
@@ -604,6 +607,18 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getConsoleReplicatorMonitorSwitch() {
         return getBooleanProperty(CONSOLE_REPLICATOR_MONITOR_SWITCH, false);
+    }
+
+    public boolean getConflictOptimizeSwitch() {
+        return getBooleanProperty(CONFLICT_OPTIMIZE_SWITCH, false);
+    }
+
+    public Set<String> getIgnoreConflictTypes() { //todo set
+        String ignoreStr = getProperty(IGNORE_CONFLICT_TYPES, "");
+        if (StringUtils.isBlank(ignoreStr)) {
+            return Sets.newHashSet();
+        }
+        return Sets.newHashSet(ignoreStr.split(","));
     }
 
 }

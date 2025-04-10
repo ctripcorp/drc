@@ -12,7 +12,7 @@ public class UpdateBuilder implements SQLUtil {
     public final List<String> columnNames;
     public final List<Boolean> valueBitmap;
     public final List<Boolean> eqBitmap;
-    public List<Boolean> lteBitmap = null;
+    public List<Boolean> ltBitmap = null;
 
     public UpdateBuilder(String tableName, List<String> columnNames,
                          List<Boolean> valueBitmap, List<Boolean> eqBitmap) {
@@ -23,17 +23,17 @@ public class UpdateBuilder implements SQLUtil {
     }
 
     public UpdateBuilder(String tableName, List<String> columnNames,
-                         List<Boolean> valueBitmap, List<Boolean> eqBitmap, List<Boolean> lteBitmap) {
+                         List<Boolean> valueBitmap, List<Boolean> eqBitmap, List<Boolean> ltBitmap) {
         this(tableName, columnNames, valueBitmap, eqBitmap);
-        this.lteBitmap = lteBitmap;
+        this.ltBitmap = ltBitmap;
     }
 
     public String prepare() {
         StringBuilder stringBuilder = new StringBuilder(256);
         stringBuilder.append("UPDATE ").append(tableName).append(" SET ").append(prepareEquations(selectColumnNames(columnNames, valueBitmap), ","))
                 .append(" WHERE ").append(prepareEquations(selectColumnNames(columnNames, eqBitmap), " AND "));
-        if (lteBitmap != null) {
-            stringBuilder.append(" AND ").append(prepareExpressions(selectColumnNames(columnNames, lteBitmap), " AND ", "<="));
+        if (ltBitmap != null) {
+            stringBuilder.append(" AND ").append(prepareExpressions(selectColumnNames(columnNames, ltBitmap), " AND ", "<"));
         }
         return stringBuilder.toString();
     }

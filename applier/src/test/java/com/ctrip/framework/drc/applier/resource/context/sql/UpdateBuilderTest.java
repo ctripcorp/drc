@@ -20,7 +20,7 @@ public class UpdateBuilderTest extends SQLUtilTest {
                 buildArray(true, true),
                 buildArray(true, true)).prepare());
 
-        assertEquals("UPDATE `prod`.`hello` SET `id`=?,`user`=?,`lt`=? WHERE `id`=? AND `lt`<=?", new UpdateBuilder(
+        assertEquals("UPDATE `prod`.`hello` SET `id`=?,`user`=?,`lt`=? WHERE `id`=? AND `lt`<?", new UpdateBuilder(
                 "`prod`.`hello`",
                 buildArray("id", "user", "lt"),
                 buildArray(true, true, true),
@@ -28,7 +28,7 @@ public class UpdateBuilderTest extends SQLUtilTest {
                 buildArray(false, false, true)
                 ).prepare());
 
-        assertEquals("UPDATE `prod`.`hello` SET `id`=?,`user`=?,`lt`=? WHERE `id`=? AND `user`=? AND `lt`<=?", new UpdateBuilder(
+        assertEquals("UPDATE `prod`.`hello` SET `id`=?,`user`=?,`lt`=? WHERE `id`=? AND `user`=? AND `lt`<?", new UpdateBuilder(
                 "`prod`.`hello`",
                 buildArray("id", "user", "lt"),
                 buildArray(true, true, true),

@@ -1,8 +1,5 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
 import com.ctrip.framework.drc.applier.confirmed.mysql.ConflictTest;
@@ -10,17 +7,21 @@ import com.ctrip.framework.drc.applier.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
-import com.ctrip.framework.drc.fetcher.conflict.enums.ConflictResult;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
 import com.google.common.collect.Lists;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
  * @Author Slight
@@ -101,6 +102,38 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue()));
         assertEquals(1L,count.longValue());
         context.commit();
+        context.dispose();
+    }
+
+    @Test
+    public void insertOnNewRowButSameExist() throws Exception {
+        context = new ApplierTransactionContextResource();
+        context.dataSource = DataSource.wrap(dataSource);
+        context.initialize();
+        context.setTableKey(TableKey.from("prod", "hello1"));
+        context.insert(
+                buildArray(buildArray(1, "Phi", "2019-12-09 16:00:01.000")),
+                Bitmap.from(true, true, true),
+                columns0()
+        );
+        context.dispose();
+
+        context = new ApplierTransactionContextResource();
+        context.dataSource = DataSource.wrap(dataSource);
+        context.initialize();
+        context.setTableKey(TableKey.from("prod", "hello1"));
+        context.begin();
+        context.insert(
+                buildArray(buildArray(1, "Phi", "2019-12-09 16:00:00.000")),
+                Bitmap.from(true, true, true),
+                columns0()
+        );
+        assertEquals(1, context.trxRecorder.getTrxRowNum());
+        assertEquals(1, context.trxRecorder.getRollbackRowNum());
+        assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue()));
+        assertEquals(1L,count.longValue());
+        context.rollback();
         context.dispose();
     }
 
@@ -571,6 +604,6 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         context.commit();
         context.dispose();
     }
-    
+
 
 }

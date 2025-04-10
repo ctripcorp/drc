@@ -340,4 +340,10 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         return MetricName.build(measurement).tagged(tags);
     }
 
+    @Override
+    public void reportResetTimer(Map<String, String> tags, long delay, String measurement) {
+        MetricName metricName = getMetricName(tags, measurement);
+        final ResetTimer resetTimer = metrics.resetTimer(metricName);
+        resetTimer.update(delay, TimeUnit.MILLISECONDS);
+    }
 }

@@ -347,6 +347,12 @@ export default {
           }
         },
         {
+          title: '执行结果',
+          key: 'rowResultDetail',
+          width: 150,
+          align: 'center'
+        },
+        {
           title: '数据是否一致',
           key: 'recordIsEqual',
           width: 150,

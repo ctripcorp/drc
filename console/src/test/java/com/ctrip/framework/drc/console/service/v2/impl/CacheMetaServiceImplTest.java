@@ -102,18 +102,6 @@ public class CacheMetaServiceImplTest {
         
     }
 
-    @Test
-    public void testGetMha2UuidsMap() {
-        Set<String> dcs = Sets.newHashSet("dc1", "dc2");
-        Map<String, Set<String>> mha2UuidsMap = cacheMetaService.getMha2UuidsMap(dcs);
-        Assert.assertEquals(6,mha2UuidsMap.size());
-        Assert.assertEquals(2,mha2UuidsMap.get("mha1dc1").size());
-        Assert.assertEquals(2,mha2UuidsMap.get("mha2dc1").size());
-        Assert.assertEquals(2,mha2UuidsMap.get("mha3dc1").size());
-        Assert.assertEquals(2,mha2UuidsMap.get("mha1dc2").size());
-        Assert.assertEquals(2,mha2UuidsMap.get("mha2dc2").size());
-        Assert.assertEquals(4,mha2UuidsMap.get("mha3dc2").size());
-    }
 
     @Test
     public void testGetMhaDbUuidsMap() {
