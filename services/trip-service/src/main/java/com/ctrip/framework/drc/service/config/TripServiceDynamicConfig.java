@@ -78,4 +78,9 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
         return getProperty(compositeKey, defaultResult);
     }
 
+    public boolean getAddKafkaCodecTypeSwitch(String topic) {
+        String condecTypeSwitch = getDefaultStringValue("kafka.codectype.switch", topic, "on");
+        return condecTypeSwitch.equalsIgnoreCase("on");
+    }
+
 }
