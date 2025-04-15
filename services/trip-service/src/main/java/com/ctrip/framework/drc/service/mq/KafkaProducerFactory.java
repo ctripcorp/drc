@@ -45,7 +45,9 @@ public class KafkaProducerFactory {
                     Properties properties = new Properties();
                     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
                     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, HermesJsonSerializer.class.getCanonicalName());
-                    properties.put(HERMES_CODEC_TYPE, JSON_CODEC_TYPE);
+                    if (TripServiceDynamicConfig.getInstance().getAddKafkaCodecTypeSwitch(topic)) {
+                        properties.put(HERMES_CODEC_TYPE, JSON_CODEC_TYPE);
+                    }
                     properties.put(ProducerConfig.CLIENT_ID_CONFIG, TripServiceDynamicConfig.getInstance().getKafkaAppidToken() + "-drcMessenger");
                     properties.put(ProducerConfig.LINGER_MS_CONFIG, TripServiceDynamicConfig.getInstance().getKafkaLingerMs(topic));
                     properties.put(ProducerConfig.BATCH_SIZE_CONFIG, TripServiceDynamicConfig.getInstance().getKafkaBatchSize(topic));
