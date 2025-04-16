@@ -41,7 +41,8 @@ public class AuthTokenAspect {
     @Autowired
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
 
-    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.AuthToken)")
+    @Pointcut("within(com.ctrip.framework.drc.console.controller..*) && " +
+            "@annotation(com.ctrip.framework.drc.console.aop.AuthToken)")
     public void pointcut() {
     }
 

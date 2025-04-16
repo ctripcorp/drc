@@ -24,7 +24,6 @@ import com.ctrip.framework.drc.console.monitor.*;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.SqlOperatorTest;
 import com.ctrip.framework.drc.console.monitor.consistency.table.DefaultTableProviderTest;
-import com.ctrip.framework.drc.console.monitor.delay.DelayMapTest;
 import com.ctrip.framework.drc.console.monitor.delay.KafkaDelayMonitorServerTest;
 import com.ctrip.framework.drc.console.monitor.delay.MqDelayMonitorServerTest;
 import com.ctrip.framework.drc.console.monitor.delay.config.*;
@@ -231,7 +230,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         SSOServiceImplTest.class,
 
         EstablishStatusEnumTest.class,
-        DelayMapTest.class,
 
         DefaultCurrentMetaManagerTest.class,
         CurrentDstMetaManagerTest.class,

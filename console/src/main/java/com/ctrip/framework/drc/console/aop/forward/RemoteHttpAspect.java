@@ -49,7 +49,8 @@ public class RemoteHttpAspect {
 
     private static final Map<String, String> mha2DcMap = Maps.newConcurrentMap();
 
-    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
+    @Pointcut("within(com.ctrip.framework.drc.console.service..*) && " +
+            "@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
     public void pointCut(){};
 
     @Around(value = "pointCut() && @annotation(possibleRemote)")

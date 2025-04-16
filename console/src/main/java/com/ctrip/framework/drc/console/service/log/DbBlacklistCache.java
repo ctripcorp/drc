@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -11,6 +13,9 @@ import com.ctrip.framework.drc.core.service.ops.AppNode;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.validation.constraints.NotNull;
@@ -35,14 +40,14 @@ public class DbBlacklistCache implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private ConflictLogService conflictLogService;
-    @Autowired
     private SSOService ssoService;
     @Autowired
     private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired
+    private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
 
     private static final String REFRESH_URL = "http://%s:%s/api/drc/v2/log/conflict/blacklist/refresh";
-    private static List<AviatorRegexFilter> blacklist;
+    private List<AviatorRegexFilter> blacklist;
     private final LoadingCache<String, Boolean> cache = CacheBuilder.newBuilder()
             .maximumSize(100000)
             .expireAfterAccess(1, TimeUnit.MINUTES)
@@ -61,10 +66,10 @@ public class DbBlacklistCache implements InitializingBean {
     public List<AviatorRegexFilter> getDbBlacklistInCache() {
         return blacklist;
     }
-    
+
     public void refresh(boolean notify) throws Exception {
         logger.info("refresh dbBlacklist, notify: {}", notify);
-        blacklist = conflictLogService.queryBlackList();
+        blacklist = this.queryBlackList();
         cache.cleanUp();
         if (notify) {
             List<AppNode> appNodes = ssoService.getAppNodes();
@@ -108,6 +113,18 @@ public class DbBlacklistCache implements InitializingBean {
             }
         }
         return false;
+    }
+
+    public List<AviatorRegexFilter> queryBlackList() throws SQLException {
+        if (!defaultConsoleConfig.isCenterRegion()) {
+            return new ArrayList<>();
+        }
+        List<AviatorRegexFilter> blackList = new ArrayList<>();
+        List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
+        for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
+            blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
+        }
+        return blackList;
     }
 
 }

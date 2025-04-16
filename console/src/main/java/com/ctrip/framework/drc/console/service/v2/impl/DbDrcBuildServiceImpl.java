@@ -55,6 +55,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -68,6 +69,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@Lazy
 public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());

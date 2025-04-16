@@ -48,6 +48,7 @@ import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -61,6 +62,7 @@ import java.util.stream.Stream;
 import static com.ctrip.framework.drc.console.utils.StreamUtils.getKey;
 
 @Service
+@Lazy
 public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
