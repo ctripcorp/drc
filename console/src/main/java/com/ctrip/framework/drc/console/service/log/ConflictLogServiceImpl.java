@@ -1443,19 +1443,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return Pair.of(dbReplicationViews, columnsFieldMap);
     }
 
-    @Override
-    public List<AviatorRegexFilter> queryBlackList() throws SQLException {
-        if (!consoleConfig.isCenterRegion()) {
-            return new ArrayList<>();
-        }
-        List<AviatorRegexFilter> blackList = new ArrayList<>();
-        List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
-        for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
-            blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
-        }
-        return blackList;
-    }
-
     private class ColumnsFilterAndIndexColumn {
         private MultiKey multiKey;
         private Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair;

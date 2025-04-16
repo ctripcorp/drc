@@ -3,11 +3,9 @@ package com.ctrip.framework.drc.console.service.log;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.*;
 import com.ctrip.framework.drc.console.vo.log.*;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +63,5 @@ public interface ConflictLogService {
     List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception;
 
     ConflictRowsLogCountView getRowsLogCountView(long beginHandleTime, long endHandlerTime) throws Exception;
-
-    List<AviatorRegexFilter> queryBlackList() throws SQLException;
 
 }

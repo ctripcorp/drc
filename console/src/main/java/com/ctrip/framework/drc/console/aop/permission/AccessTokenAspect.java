@@ -36,7 +36,8 @@ public class AccessTokenAspect {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
-    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.permission.AccessToken)")
+    @Pointcut("within(com.ctrip.framework.drc.console.controller..*) && " +
+            "@annotation(com.ctrip.framework.drc.console.aop.permission.AccessToken)")
     public void pointcut() {}
 
     @Around(value = "pointcut() && @annotation(accessToken)")

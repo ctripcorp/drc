@@ -47,7 +47,8 @@ public class LogRecordAspect {
     private static final Pattern pattern = Pattern.compile("\\{(.*?)}");
     private SpelExpressionParser parser = new SpelExpressionParser();
 
-    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.log.LogRecord)")
+    @Pointcut("within(com.ctrip.framework.drc.console.controller..*) && " +
+            "@annotation(com.ctrip.framework.drc.console.aop.log.LogRecord)")
     public void pointcut() {}
 
     @Around(value = "pointcut() && @annotation(logRecord)")
