@@ -5,7 +5,7 @@
       <BreadcrumbItem to="/v2/dbMqBuildV2">DB粒度 Mq</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content"
-             :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
+             :style="{padding: '10px', background: '#ffffff', margin: '50px -250px 111px 185px', zIndex: '1'}">
       <Row :gutter=10 align="middle">
         <Col span="18">
           <Form :model="formItem" :label-width="100" style="margin-right: 20px;margin-top: 10px">
@@ -49,8 +49,8 @@
             <Divider orientation="left">消息投递配置</Divider>
             <Card style="width:100%">
               <mq-tables :dalcluster-name="drcConfig.dalclusterName" :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
-                      :src-region="meta.srcRegionName" :dst-region="meta.dstRegionName" :db-name="meta.dbName"
-                      :db-names="drcConfig.dbNames" :mq-type="meta.mqType" @updated="getDrcConfig"
+                         :src-region="meta.srcRegionName" :dst-region="meta.dstRegionName" :db-name="meta.dbName"
+                         :db-names="drcConfig.dbNames" :mq-type="meta.mqType" @updated="getDrcConfig"
               />
             </Card>
             <Divider orientation="left">DB</Divider>

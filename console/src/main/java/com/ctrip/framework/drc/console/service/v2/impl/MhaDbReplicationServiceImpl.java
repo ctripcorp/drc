@@ -413,7 +413,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
                         logicTableConfig.setMessengerFilterId(filterMapping.getMessengerFilterId());
                     }
                 }
-                return new DbReplicationDto(source.getId(), logicTableConfig);
+                return new DbReplicationDto(source.getId(), logicTableConfig, source.getDatachangeLasttime());
 
             }).collect(Collectors.toList());
         } catch (SQLException e) {

@@ -66,6 +66,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
@@ -436,11 +437,15 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             }
             MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaTblV2.getId(), mqType, BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
-
+            Timestamp latestTimestamp = messengerTbls.stream()
+                    .map(MessengerTbl::getDatachangeLasttime)
+                    .filter(Objects::nonNull)
+                    .max(Timestamp::compareTo)
+                    .orElse(null);
             List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
             List<ResourceTbl> resourceTbl = resourceTblDao.queryByIds(resourceIds);
             List<String> ips = resourceTbl.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-            return new MhaMessengerDto(ips, messengerGroupTbl.getMqType(), messengerGroupTbl.getGtidExecuted());
+            return new MhaMessengerDto(ips, messengerGroupTbl.getMqType(), messengerGroupTbl.getGtidExecuted(), latestTimestamp);
         } catch (SQLException e) {
             logger.error("getMhaAvailableMessengerResource exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);

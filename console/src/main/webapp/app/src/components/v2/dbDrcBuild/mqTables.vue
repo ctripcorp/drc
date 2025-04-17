@@ -15,15 +15,15 @@
     </Button>
     <Modal v-model="editModal.open" width="1200px" :footer-hide="true" :title="actionTitle">
       <db-mq-config ref="dbReplicationConfigComponent" @finished="finishConfig"
-                             v-if="editModal.open"
-                             :dalcluster-name="dalclusterName"
-                             :mq-type="mqType"
-                             :config-data="selectedRow"
-                             :src-region="srcRegion"
-                             :dst-region="srcRegion"
-                             :db-names="dbNames"
-                             :form-action="action"
-                             :filter-read-only="filterReadOnly"
+                    v-if="editModal.open"
+                    :dalcluster-name="dalclusterName"
+                    :mq-type="mqType"
+                    :config-data="selectedRow"
+                    :src-region="srcRegion"
+                    :dst-region="srcRegion"
+                    :db-names="dbNames"
+                    :form-action="action"
+                    :filter-read-only="filterReadOnly"
       />
     </Modal>
   </div>
@@ -100,7 +100,7 @@ export default {
           width: 100,
           render: (h, params) => {
             const row = params.row
-            const color = 'blue'
+            const color = row.order ? 'orange' : 'blue'
             const text = row.order ? '有序' : '无序'
             return h('Tag', {
               props: {
@@ -121,7 +121,13 @@ export default {
         },
         {
           title: '过滤类型',
-          key: 'excludeFilterTypes'
+          width: 70,
+          key: 'excludeFilterTypes',
+          render: (h, params) => {
+            const excludeFilterTypes = params.row.excludeFilterTypes
+            const formattedString = excludeFilterTypes.join(', ')
+            return h('span', formattedString)
+          }
         },
         {
           title: '延迟投递(s)',
@@ -155,6 +161,7 @@ export default {
         {
           title: '投递字段',
           key: 'filterFields',
+          width: 100,
           render: (h, params) => {
             const value = params.row.filterFields !== null ? params.row.filterFields.join(',') : '全部'
             return h('span', value)
@@ -163,8 +170,17 @@ export default {
         {
           title: '操作',
           slot: 'action',
-          align: 'center',
-          fixed: 'right'
+          align: 'center'
+        },
+        {
+          title: '修改时间',
+          key: 'filterFields',
+          render: (h, params) => {
+            const timestamp = params.row.datachangeLasttime
+            const date = new Date(timestamp)
+            const formattedDate = date.toLocaleString() // 使用本地时间格式
+            return h('span', formattedDate)
+          }
         }
       ]
     }

@@ -4,6 +4,7 @@ import com.ctrip.framework.ckafka.client.KafkaClientFactory;
 import com.ctrip.framework.ckafka.codec.deserializer.HermesJsonDeserializer;
 import com.ctrip.framework.ckafka.codec.entity.HermesConsumerConfig;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.mq.IKafkaDelayMessageConsumer;
@@ -20,6 +21,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
@@ -112,6 +114,13 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                 }
             } catch (WakeupException e) {
                 logger.info("going to close kafkaConsumer", e);
+            } catch (KafkaException e) {
+                logger.warn("[[monitor=delay,mqType=kafka]] consumer exception: ", e);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
+                kafkaConsumer.seekToEnd(kafkaConsumer.assignment());
+            } catch (Exception e) {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
+                logger.warn("unexpected exception occur in kafkaConsumer", e);
             } finally {
                 kafkaConsumer.close();
                 logger.info("close kafkaConsumer finished");
