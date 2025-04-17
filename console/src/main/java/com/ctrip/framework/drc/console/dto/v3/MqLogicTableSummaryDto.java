@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
@@ -24,6 +25,10 @@ public class MqLogicTableSummaryDto extends LogicTableSummaryDto {
 
     public MqLogicTableSummaryDto(List<Long> dbReplicationIds, LogicTableConfig config) {
         super(dbReplicationIds, config);
+    }
+
+    public MqLogicTableSummaryDto(List<Long> dbReplicationIds, LogicTableConfig config, Timestamp datachangeLasttime) {
+        super(dbReplicationIds, config, datachangeLasttime);
     }
 
     public String getMqType() {

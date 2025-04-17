@@ -711,7 +711,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             ));
 
             List<MqLogicTableSummaryDto> mqLogicTableSummaryDtos = logicTableSummaryDtos.stream().map(e -> {
-                MqLogicTableSummaryDto mqLogicTableSummaryDto = new MqLogicTableSummaryDto(e.getDbReplicationIds(), e.getConfig());
+                MqLogicTableSummaryDto mqLogicTableSummaryDto = new MqLogicTableSummaryDto(e.getDbReplicationIds(), e.getConfig(), e.getDatachangeLasttime());
 
                 Long messengerFilterId = mqLogicTableSummaryDto.getConfig().getMessengerFilterId();
                 MqConfig mqConfig = idToMqConfig.get(messengerFilterId);
@@ -727,6 +727,9 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 mqLogicTableSummaryDto.setExcludeColumn(mqConfig.isExcludeColumn());
                 return mqLogicTableSummaryDto;
             }).collect(Collectors.toList());
+            mqLogicTableSummaryDtos.sort(
+                    Comparator.comparing(MqLogicTableSummaryDto::getDatachangeLasttime, Comparator.nullsLast(Comparator.naturalOrder()))
+            );
             dbDrcConfigInfoDto.setLogicTableSummaryDtos(mqLogicTableSummaryDtos);
             dbDrcConfigInfoDto.setDbNames(dbNames);
             dbDrcConfigInfoDto.setDalclusterName(dalclusterName);

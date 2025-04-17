@@ -203,6 +203,16 @@ export default {
           render: (h, params) => {
             return h('p', params.row.mhaMessengerDto.gtidInit)
           }
+        },
+        {
+          title: '修改时间',
+          key: 'filterFields',
+          render: (h, params) => {
+            const timestamp = params.row.mhaMessengerDto.datachangeLasttime
+            const date = new Date(timestamp)
+            const formattedDate = date.toLocaleString() // 使用本地时间格式
+            return h('span', formattedDate)
+          }
         }
       ]
     }
