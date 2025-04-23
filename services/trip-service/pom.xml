@@ -215,6 +215,10 @@
             <artifactId>client</artifactId>
             <exclusions>
                 <exclusion>
+                    <groupId>com.squareup.okhttp3</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>com.github.luben</groupId>
                     <artifactId>zstd-jni</artifactId>
                 </exclusion>
