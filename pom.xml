@@ -31,7 +31,7 @@
     </modules>
 
     <properties>
-        <framework.bom.version>7.43.1</framework.bom.version>
+        <framework.bom.version>9.7.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.50</dal.version>
@@ -41,7 +41,7 @@
         <xpipe.proxy.client.version>1.2.13</xpipe.proxy.client.version>
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
-        <netty-all.version>4.1.68.Final</netty-all.version>
+        <netty-all.version>4.1.93.Final</netty-all.version>
         <guava.version>31.0.1-jre</guava.version>
         <fastjson.version>1.2.83</fastjson.version>
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
@@ -67,7 +67,6 @@
         <!-- mysql connector -->
         <mysql-connector.version>5.1.48</mysql-connector.version>
         <herlder-token.version>1.5.0</herlder-token.version>
-        <ckafka.version>0.1.21</ckafka.version>
         <argLine/>
     </properties>
 
@@ -493,32 +492,6 @@
                 <artifactId>spring-boot-starter-test</artifactId>
                 <version>${spring-boot.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.ctrip.framework.ckafka</groupId>
-                <artifactId>client</artifactId>
-                <version>${ckafka.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.squareup.okhttp3</groupId>
-                        <artifactId>okhttp</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.github.luben</groupId>
-                        <artifactId>zstd-jni</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.ctrip.framework.ckafka</groupId>
-                <artifactId>codec</artifactId>
-                <version>${ckafka.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>okhttp</artifactId>
-                        <groupId>com.squareup.okhttp3</groupId>
-                    </exclusion>
-                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
