@@ -23,6 +23,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.NotifyCmService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.google.common.collect.Lists;
@@ -99,6 +100,8 @@ public class DbMigrationServiceImplV2Test {
     private ApplierTblV3Dao applierTblV3Dao;
     @Mock
     private MessengerServiceV2 messengerServiceV2;
+    @Mock
+    private NotifyCmService notifyCmService;
 
 
     // init tblEntity  mhaTbls & mhaReplicationTbls & dbTbls & mhaDbMappingTbls & dbReplicationTbls & filterMapping

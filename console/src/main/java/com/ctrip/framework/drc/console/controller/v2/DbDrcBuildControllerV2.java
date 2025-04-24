@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.mq.MqType;
@@ -396,6 +397,26 @@ public class DbDrcBuildControllerV2 {
             return ApiResult.getSuccessInstance(true);
         } catch (Throwable e) {
             logger.error("[meta] createMhaDbReplicationForMq, req {}", createDto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    /**
+     * for other users
+     */
+    @PostMapping("autoCreateMq")
+    @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.AUTO_MQ_API, attr = OperateAttrEnum.ADD, operator = "AutoConfig",
+            success = "createMqMeta with MqAutoCreateRequestDto:{#createDto.toString()}")
+    public ApiResult<MqMetaCreateResultView> autoCreateMq(@RequestBody MqAutoCreateRequestDto createDto) {
+        try {
+            MqMetaCreateResultView resultMessage = dbDrcBuildService.autoCreateMq(createDto);
+            if (resultMessage.getContainTables() == 0) {
+                return ApiResult.getSuccessInstance(resultMessage, "this config already existed in DRC");
+            }
+            return ApiResult.getSuccessInstance(resultMessage);
+        } catch (Throwable e) {
+            logger.error("[meta] createMqBinlogMessage, req {}", createDto, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

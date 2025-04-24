@@ -28,6 +28,16 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
     private static final String ACKS_CONFIG = "kafka.acks";
     private static final String DEFAULT_ACKS_CONFIG = "1";
 
+    private static final String CKAFKA_VALIDATE_ACL_URL = "ckafka.topic.acl.url";
+    private static final String DEFAULT_CKAFKA_VALIDATE_ACL_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/ValidateTopicACLInFWS";
+
+    private static final String CKAFKA_VALIDATE_URL = "ckafka.topic.exist.url";
+    private static final String DEFAULT_CKAFKA_VALIDATE_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/ValidateTopicInFWS";
+
+    private static final String CKAFKA_CREATE_URL = "ckafka.topic.create.url";
+    private static final String DEFAULT_CKAFKA_CREATE_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/CreateTopicInFWS";
+
+
     private TripServiceDynamicConfig() {}
 
     private static class TripServiceDynamicConfigHolder {
@@ -77,6 +87,19 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
         String compositeKey = String.format(prefix + ".%s", key);
         return getProperty(compositeKey, defaultResult);
     }
+
+    public String getCkafkaValidateTopicAclUrl() {
+        return getProperty(CKAFKA_VALIDATE_ACL_URL, DEFAULT_CKAFKA_VALIDATE_ACL_URL);
+    }
+
+    public String getCkafkaValidateTopicExistenceUrl() {
+        return getProperty(CKAFKA_VALIDATE_URL, DEFAULT_CKAFKA_VALIDATE_URL);
+    }
+
+    public String getCkafkaCreateTopicUrl() {
+        return getProperty(CKAFKA_CREATE_URL, DEFAULT_CKAFKA_CREATE_URL);
+    }
+
 
     public boolean getAddKafkaCodecTypeSwitch(String topic) {
         String condecTypeSwitch = getDefaultStringValue("kafka.codectype.switch", topic, "on");

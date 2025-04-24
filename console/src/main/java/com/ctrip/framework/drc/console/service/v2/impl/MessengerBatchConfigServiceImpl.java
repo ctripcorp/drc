@@ -298,7 +298,8 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
                     && e.getDstLogicTable().equalsIgnoreCase(originLogicTableConfig.getDstLogicTable()));
         }
         for (LogicTableConfig otherConfig : currentTableConfig) {
-            if (!otherConfig.getDstLogicTable().equalsIgnoreCase(logicTableConfig.getDstLogicTable())) {
+            if (!dbMqDto.isNotPermitSameTableMqConfig()
+                    && !otherConfig.getDstLogicTable().equalsIgnoreCase(logicTableConfig.getDstLogicTable())) {
                 continue;
             }
             AviatorRegexFilter filter = new AviatorRegexFilter("(" + String.join("|", dbMqDto.getDbNames()) + ")" + "\\." + otherConfig.getLogicTable());
@@ -306,6 +307,7 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
                 String directSchemaTableName = requestTable.getDirectSchemaTableName();
                 boolean sameTable = filter.filter(directSchemaTableName);
                 if (sameTable) {
+                    // do not modify this error msg,see com.ctrip.framework.drc.console.service.v2.impl.DbDrcBuildServiceImpl.autoCreateMq
                     throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DUPLICATE_MQ_CONFIGURATION, directSchemaTableName + ":" + otherConfig.getDstLogicTable());
                 }
             }

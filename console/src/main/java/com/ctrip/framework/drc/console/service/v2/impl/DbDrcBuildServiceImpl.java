@@ -18,12 +18,15 @@ import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
+import com.ctrip.framework.drc.console.enums.DlockEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.service.NotifyCmService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
@@ -33,7 +36,9 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DalclusterUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -42,9 +47,14 @@ import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.ckafka.KafkaApiService;
+import com.ctrip.framework.drc.core.service.ckafka.KafkaTopicCreateVo;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.dianping.cat.Cat;
+import com.dianping.cat.message.Transaction;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -73,6 +83,7 @@ import java.util.stream.Stream;
 public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger autoConfigLogger = LoggerFactory.getLogger("autoConfig");
 
     @Autowired
     private MetaInfoServiceV2 metaInfoService;
@@ -124,11 +135,17 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Autowired
+    private NotifyCmService notifyCmService;
+    @Autowired
+    private DLockService dLockService;
 
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
 
     private final DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
+
+    private final KafkaApiService kafkaApiService = ApiContainer.getKafkaApiServiceImpl();
 
     @Override
     public List<DbApplierDto> getMhaDbAppliers(String srcMhaName, String dstMhaName) {
@@ -836,10 +853,39 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
+    /**
+     * buildMha and prepareMha should not be done in a transaction
+     */
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
     public void createMhaDbReplicationForMq(MhaDbReplicationCreateDto createDto) throws Exception {
         createDto.validAndTrimForCreateReq();
+        List<DrcAutoBuildParam> drcBuildParam = buildMha(createDto);
+        prepareMha(createDto, drcBuildParam);
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
+    protected void prepareMha(MhaDbReplicationCreateDto createDto, List<DrcAutoBuildParam> drcBuildParam) throws SQLException {
+        Integer replicationType = createDto.getReplicationType();
+        ReplicationTypeEnum replicationTypeEnum = ReplicationTypeEnum.getByType(replicationType);
+
+        for (DrcAutoBuildParam param : drcBuildParam) {
+            MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
+            try {
+
+                // 4. mha db replication
+                mhaDbReplicationService.maintainMhaDbReplicationForMq(param.getSrcMhaName(), Lists.newArrayList(param.getDbName()), replicationTypeEnum);
+
+                // 5. replicator
+                replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
+                drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.CONFIGURE_MESSENGER_MHA_FAIL, "mha: " + srcMhaTbl.getMhaName(), e);
+            }
+        }
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
+    protected List<DrcAutoBuildParam> buildMha(MhaDbReplicationCreateDto createDto) throws Exception {
         Integer replicationType = createDto.getReplicationType();
         ReplicationTypeEnum replicationTypeEnum = ReplicationTypeEnum.getByType(replicationType);
         MqType mqType = MqType.parseByReplicationType(replicationTypeEnum);
@@ -892,21 +938,14 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             if (srcMhaTbl == null) {
                 throw ConsoleExceptionUtils.message("init mha fail");
             }
-
             try {
                 // 3. sync mha db info
                 drcBuildServiceV2.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
-
-                // 4. mha db replication
-                mhaDbReplicationService.maintainMhaDbReplicationForMq(param.getSrcMhaName(), Lists.newArrayList(param.getDbName()), replicationTypeEnum);
-
-                // 5. replicator
-                replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
-                drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
             } catch (Exception e) {
                 throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.CONFIGURE_MESSENGER_MHA_FAIL, "mha: " + srcMhaTbl.getMhaName(), e);
             }
         }
+        return drcBuildParam;
     }
 
     @Override
@@ -1249,4 +1288,142 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
         return Pair.of(addIps, deleteIps);
     }
+
+
+    @Override
+    public MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto createDto) throws Exception {
+        autoConfigLogger.info("[[tag=autoconfig]] start autoCreateMq: {}", createDto.toString());
+        Transaction transaction = Cat.newTransaction("DRC.autocreate.mq", createDto.getDbName());
+        transaction.addProperty("createDto", createDto.toString());
+        try {
+            createDto.check();
+            checkKafkaTopic(createDto);
+
+            MqAutoCreateDto dto = createDto.deriveMqAutoCreateDto();
+            checkRegionAndCreateMhaDbReplicationForMq(dto);
+            MqMetaCreateResultView view = createMqConfigAndSwitchMessenger(dto);
+            autoConfigLogger.info("[[tag=autoconfig]] autoCreateMq success: {}", view);
+            return view;
+        } catch (Exception e) {
+            autoConfigLogger.error("[[tag=autoconfig]] autoCreateMq error", e);
+            String duplicateMessage = e.getMessage();
+            if (duplicateMessage.startsWith(AutoBuildErrorEnum.DUPLICATE_MQ_CONFIGURATION.getMessage())) {
+                try {
+                    String duplicateTable = duplicateMessage.split("\\|")[1].split(":")[0].split("\\.")[1];
+                    String duplicateTopic = duplicateMessage.split("\\|")[1].split(":")[1];
+                    if (createDto.getTable().equals(duplicateTable) && createDto.getTopic().equals(duplicateTopic)) {
+                        MqMetaCreateResultView view = createDto.deriveMqAutoCreateDto().deriveMqMetaCreateResultView();
+                        view.setContainTables(0);
+                        autoConfigLogger.info("[[tag=autoconfig]] autoCreateMq success: {}", view);
+                        return view;
+                    }
+                } catch (Exception e1) {
+                    autoConfigLogger.error("[[tag=autoconfig]] extract message error", e);
+                }
+            }
+
+            transaction.setStatus(e);
+            throw e;
+        } finally {
+            transaction.complete();
+        }
+    }
+
+    /**
+     * should not have @DalTransactional here
+     */
+    @VisibleForTesting
+    protected void checkRegionAndCreateMhaDbReplicationForMq(MqAutoCreateDto dto) throws Exception {
+        MqType mqType = MqType.valueOf(dto.getMqConfig().getMqType());
+        DrcAutoBuildReq queryRegionDto = dto.deriveDrcAutoBuildReq(DrcAutoBuildReq.BuildMode.DAL_CLUSTER_NAME);
+        List<String> availableRegions = drcAutoBuildService.getRegionOptions(queryRegionDto);
+        if (!availableRegions.contains(dto.getSrcRegionName())) {
+            throw ConsoleExceptionUtils.message(String.format("wrong region (%s only in %s)", dto.getDbName(), availableRegions));
+        }
+        String correctDbName = queryRegionDto.getDalClusterName().replaceFirst("_dalcluster$", "");
+        if (!correctDbName.equals(dto.getDbName())) {
+            throw ConsoleExceptionUtils.message(String.format("need to be shard db like: %s", correctDbName));
+        }
+        dto.setDalclusterName(queryRegionDto.getDalClusterName());
+
+        List<DbMqConfigInfoDto> dbMqConfigInfoDtos = this.getExistDbMqConfigDcOption(dto.getDbName(), mqType);
+        Set<String> existRegion = dbMqConfigInfoDtos.stream().map(DbMqConfigInfoDto::getSrcRegionName).collect(Collectors.toSet());
+        if (!existRegion.contains(dto.getSrcRegionName())) {
+            MhaDbReplicationCreateDto createDto = dto.deriveMhaDbReplicationCreateDto();
+            this.createMhaDbReplicationForMq(createDto);
+        }
+    }
+
+    @VisibleForTesting
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
+    protected MqMetaCreateResultView createMqConfigAndSwitchMessenger(MqAutoCreateDto dto) throws Exception {
+        MqType mqType = MqType.valueOf(dto.getMqConfig().getMqType());
+
+        DbMqConfigInfoDto dbMqConfigInfoDto = this.getDbMqConfig(dto.getDbName(), dto.getSrcRegionName(), mqType);
+        dto.setDbNames(dbMqConfigInfoDto.getDbNames());
+        MqMetaCreateResultView view = dto.deriveMqMetaCreateResultView();
+
+        try {
+            DrcAutoBuildReq queryTableDto = dto.deriveDrcAutoBuildReq(DrcAutoBuildReq.BuildMode.MULTI_DB_NAME);
+            List<TableCheckVo> tables = drcAutoBuildService.preCheckMysqlTables(queryTableDto);
+            view.setContainTables(tables.size());
+        } catch (ConsoleException e) {
+            throw ConsoleExceptionUtils.message("no tables found in db or other error in finding tables");
+        }
+
+        dto.setNotPermitSameTableMqConfig(true);
+
+        List<String> mhaNames = dbMqConfigInfoDto.getMhaMqDtos().stream().map(MhaMqDto::getSrcMha).map(MhaDto::getName).toList();
+
+        try {
+            dLockService.tryLocks(mhaNames, DlockEnum.AUTOCONFIG);
+            Thread.sleep(5000);
+            this.createDbMqReplication(dto);
+            List<MessengerSwitchReqDto> switchReqDtos = dbMqConfigInfoDto.getMhaMqDtos().stream()
+                    .map(mhaMqDto -> {
+                        MessengerSwitchReqDto switchReqDto = new MessengerSwitchReqDto();
+                        switchReqDto.setSrcMhaName(mhaMqDto.getSrcMha().getName());
+                        switchReqDto.setMqType(mqType.name());
+                        return switchReqDto;
+                    }).toList();
+            switchMessengers(switchReqDtos);
+            // push to cm
+            List<String> relatedMhaName = dbMqConfigInfoDto.getMhaMqDtos().stream()
+                    .map(MhaMqDto::getSrcMha).map(MhaDto::getName).toList();
+            notifyCmService.pushConfigToCM(relatedMhaName, DlockEnum.AUTOCONFIG, HttpRequestEnum.PUT);
+
+        } catch (Exception e) {
+            logger.error("autoCreateMq failed", e);
+            throw e;
+        } finally {
+            dLockService.unlockLocks(mhaNames, DlockEnum.AUTOCONFIG);
+        }
+
+        return view;
+    }
+
+    @VisibleForTesting
+    protected void checkKafkaTopic(MqAutoCreateRequestDto dto) {
+        if (MqType.kafka == MqType.valueOf(dto.getMqType())) {
+            String accessToken = domainConfig.getOpsAccessToken();
+            String ckafkaRegion = consoleConfig.getDrcCkafkaRegionMapping().get(dto.getRegion());
+            if (StringUtils.isEmpty(ckafkaRegion)) {
+                throw ConsoleExceptionUtils.message("empty ckafkaRegion");
+            }
+            String dbOwner = dbaApiService.getDbOwner(dto.getDbName());
+            if (StringUtils.isEmpty(dbOwner)) {
+                throw ConsoleExceptionUtils.message("error in check db owner");
+            }
+            try {
+                boolean checkResult = kafkaApiService.prepareTopic(accessToken, new KafkaTopicCreateVo(dto.getTopic(), dto.getKafkaCluster(),
+                        dbOwner, dto.getBu(), dto.getPartitions(), dto.getMaxMessageMB(), ckafkaRegion));
+                if (!checkResult) {
+                    throw ConsoleExceptionUtils.message("kafka topic check fail");
+                }
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message("error in check kafka topic");
+            }
+        }
+    }
+
 }

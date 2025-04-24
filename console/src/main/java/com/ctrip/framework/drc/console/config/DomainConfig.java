@@ -45,6 +45,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_CMS_GET_SERVER_URL = "http://localhost:8080/ops/getFATServers";
     private static final String OPS_ACCESS_TOKEN = "ops.access.token";
     private static final String DEFAULT_OPS_ACCESS_TOKEN = "";
+    private static final String DBAAPI_OPS_ACCESS_TOKEN = "dba.ops.access.token";
 
     private static final String CMS_GET_DB_INFO_URL = "cms.get.db.info.url";
     private static final String DEFAULT_CMS_GET_DB_INFO_URL = "http://localhost:8080/cms/getAllDbInfo";
@@ -165,6 +166,12 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getOpsAccessToken() {
         return EncryptUtils.decryptRawToken(getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN));
+    }
+
+    public String getDBAApiOpsAccessToken() {
+        String opsToken = getOpsAccessToken();
+        String token = getProperty(DBAAPI_OPS_ACCESS_TOKEN, opsToken);
+        return EncryptUtils.decryptRawToken(token);
     }
 
     public String getCmsGetDbInfoUrl() {
