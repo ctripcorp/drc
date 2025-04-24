@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
 import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.mq.MqType;
 
@@ -71,4 +72,5 @@ public interface DbDrcBuildService {
 
     void deleteDbMqReplication(DbMqEditDto editDto) throws Exception;
 
+    MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto createDto) throws Exception;
 }

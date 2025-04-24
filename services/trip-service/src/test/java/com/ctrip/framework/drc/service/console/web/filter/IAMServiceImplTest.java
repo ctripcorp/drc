@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.service.console.web.filter;
 
-import static org.junit.Assert.*;
-
 import com.ctrip.basebiz.offline.iam.apifacade.contract.IAMFacadeServiceClient;
 import com.ctrip.basebiz.offline.iam.apifacade.contract.authorization.ResultItem;
 import com.ctrip.basebiz.offline.iam.apifacade.contract.authorization.VerifyByBatchCodeRequestType;
@@ -11,7 +9,6 @@ import com.ctriposs.baiji.rpc.common.types.AckCodeType;
 import com.ctriposs.baiji.rpc.common.types.ResponseStatusType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.HashMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +16,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.util.HashMap;
+
+import static org.junit.Assert.assertTrue;
 
 public class IAMServiceImplTest {
     
@@ -37,6 +38,7 @@ public class IAMServiceImplTest {
         MockitoAnnotations.openMocks(this);
         Mockito.when(qConfig.get(Mockito.eq("iam.filter.switch"), Mockito.any())).thenReturn("on");
         Mockito.when(qConfig.get(Mockito.eq("query.all.db.permission.code"), Mockito.any())).thenReturn("code3");
+        Mockito.when(qConfig.get(Mockito.eq("create.mq.meta.permission.code"), Mockito.any())).thenReturn("code3");
     }
     
     @Test

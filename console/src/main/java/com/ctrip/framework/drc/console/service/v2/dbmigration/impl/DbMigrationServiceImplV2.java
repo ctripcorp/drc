@@ -14,12 +14,16 @@ import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.dto.v2.*;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
-import com.ctrip.framework.drc.console.enums.*;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
+import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.NotifyCmService;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
@@ -27,8 +31,6 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.config.RegionConfig;
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -128,6 +130,8 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
     private ApplierGroupTblV3Dao dbApplierGroupTblDao;
     @Autowired
     private ApplierTblV3Dao dbApplierTblDao;
+    @Autowired
+    private NotifyCmService notifyCmService;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -327,7 +331,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
         drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(newMhaTbl);
         try {
-            pushConfigToCM(Lists.newArrayList(newMhaTbl.getId()),migrationTaskTbl.getOperator(),HttpRequestEnum.POST);
+            notifyCmService.pushConfigToCM(Lists.newArrayList(newMhaTbl.getId()),migrationTaskTbl.getOperator(),HttpRequestEnum.POST);
         } catch (Exception e) {
             logger.warn("[[migration=exStarting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId,e);
         }
@@ -452,7 +456,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             List<Long> mhaIdsStartRelated = Lists.newArrayList(newMhaTbl.getId());
             mhaIdsStartRelated.addAll(otherMhaTblsInSrc.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
             mhaIdsStartRelated.addAll(otherMhaTblsInDest.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
-            pushConfigToCM(mhaIdsStartRelated,migrationTaskTbl.getOperator(),HttpRequestEnum.PUT);
+            notifyCmService.pushConfigToCM(mhaIdsStartRelated,migrationTaskTbl.getOperator(),HttpRequestEnum.PUT);
         } catch (Exception e) {
             logger.warn("[[migration=starting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId);
         }
@@ -1156,7 +1160,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         try {
             List<Long> mhaIds = Lists.newArrayList(relatedMhaIds);
             mhaIds.add(targetMhaId);
-            pushConfigToCM(mhaIds, operator, HttpRequestEnum.PUT);
+            notifyCmService.pushConfigToCM(mhaIds, operator, HttpRequestEnum.PUT);
         } catch (Exception e) {
             logger.warn("pushConfigToCM failed, mhaIds: {}", relatedMhaIds, e);
         }
@@ -1265,30 +1269,6 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         }
 
         return !CollectionUtils.isEmpty(mhaReplicationTbls) || messengerGroupTbl != null || messengerGroupTblKafka != null;
-    }
-
-    private void pushConfigToCM(List<Long> mhaIds, String operator, HttpRequestEnum httpRequestEnum) throws Exception {
-        Map<String, String> cmRegionUrls = regionConfig.getCMRegionUrls();
-        for (long mhaId : mhaIds) {
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
-            DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
-            String dbClusterId = mhaTblV2.getClusterName() + "." + mhaTblV2.getMhaName();
-            try {
-                String url = null;
-                Map<String, String> paramMap = new HashMap<>();
-                paramMap.put("operator", operator);
-                if (httpRequestEnum.equals(HttpRequestEnum.POST)) {
-                    paramMap.put("dcId", dcTbl.getDcName());
-                    url = cmRegionUrls.get(dcTbl.getRegionName()) + String.format(POST_BASE_API_URL, dbClusterId);
-                    HttpUtils.post(url, null, ApiResult.class, paramMap);
-                } else if (httpRequestEnum.equals(HttpRequestEnum.PUT)) {
-                    url = cmRegionUrls.get(dcTbl.getRegionName()) + String.format(PUT_BASE_API_URL, dbClusterId);
-                    HttpUtils.put(url, null, ApiResult.class, paramMap);
-                }
-            } catch (Exception e) {
-                logger.error("pushConfigToCM fail: {}", mhaTblV2.getMhaName(), e);
-            }
-        }
     }
 
     private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> allMhaDbMappingTbls, List<MhaDbMappingTbl> deleteMhaDbMappingTbls, MqType mqType) throws Exception {

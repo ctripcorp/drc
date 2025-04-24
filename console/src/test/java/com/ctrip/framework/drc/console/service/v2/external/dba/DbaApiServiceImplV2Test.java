@@ -9,10 +9,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -186,4 +183,16 @@ public class DbaApiServiceImplV2Test {
         }
     }
 
+    @Test
+    public void testGetDbOwner() {
+        Mockito.when(domainConfig.getDBAApiOpsAccessToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDbaDbOwnerUrl()).thenReturn("url");
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"\", \"data\": [{\"dbname\": \"bbzbbzdrcbenchmarktmpdb\", \"db_type\": \"MySQL\", \"owner\":\n" +
+                    "\"owner1;owner2;\"}]}");
+            String owner = dbaApiService.getDbOwner("dbName");
+            Assert.assertEquals("owner1", owner);
+        }
+
+    }
 }

@@ -141,6 +141,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String CONFLICT_OPTIMIZE_SWITCH = "conflict.optimize.switch";
     private static final String IGNORE_CONFLICT_TYPES = "ignore.conflict.types";
 
+    private static String KEY_REGION_CKAFKA_MAPPING = "drc.region.ckafka.region.mapping";
+    private static String DEFAULT_KEY_REGION_CKAFKA_MAPPING = "{}";
+
+    private static String DBA_QUERY_DB_OWNER_URL = "dba.get.db.owner.url";
+    private static String DEFAULT_DBA_QUERY_DB_OWNER_URL = "http://osg.ops.ctripcorp.com/api/get_general_db_owner";
+
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
     }
@@ -621,4 +627,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return Sets.newHashSet(ignoreStr.split(","));
     }
 
+    public Map<String, String> getDrcCkafkaRegionMapping() {
+        String mappingStr = getProperty(KEY_REGION_CKAFKA_MAPPING, DEFAULT_KEY_REGION_CKAFKA_MAPPING);
+        return JsonCodec.INSTANCE.decode(mappingStr, new GenericTypeReference<Map<String, String>>() {
+        });
+    }
+
+    public String getDbaDbOwnerUrl() {
+        return getProperty(DBA_QUERY_DB_OWNER_URL, DEFAULT_DBA_QUERY_DB_OWNER_URL);
+    }
 }

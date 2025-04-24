@@ -834,6 +834,25 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <!--Auto Config appenders-->
+        <RollingFile name="AutoConfigInfo" fileName="${baseDir}/auto-config_info.log"
+                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.auto-config_info.log.gz">
+            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
+            <Filters>
+                <ThresholdFilter level="INFO"/>
+            </Filters>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="${appName}*.auto-config_info.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
     </Appenders>
     <Loggers>
         <Logger name="qunar.tc.qconfig.client" level="warn" additivity="false">
@@ -927,6 +946,10 @@
             <AppenderRef ref="Cat" />
             <AppenderRef ref="ConsoleMonitorRollingFileInfo"/>
             <AppenderRef ref="ConsoleMonitorRollingFileError"/>
+        </Logger>
+        <Logger name="autoConfig" additivity="false" level="info">
+            <AppenderRef ref="Cat" />
+            <AppenderRef ref="AutoConfigInfo"/>
         </Logger>
     </Loggers>
 </Configuration>

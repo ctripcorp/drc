@@ -13,6 +13,7 @@ public class DbMqCreateDto {
     protected String srcRegionName;
     protected LogicTableConfig logicTableConfig;
     protected MqConfigDto mqConfig;
+    private boolean notPermitSameTableMqConfig;
 
     public void validAndTrim() {
         if (StringUtils.isBlank(dalclusterName)) {
@@ -95,5 +96,13 @@ public class DbMqCreateDto {
 
     public void setMqConfig(MqConfigDto mqConfig) {
         this.mqConfig = mqConfig;
+    }
+
+    public boolean isNotPermitSameTableMqConfig() {
+        return notPermitSameTableMqConfig;
+    }
+
+    public void setNotPermitSameTableMqConfig(boolean notPermitSameTableMqConfig) {
+        this.notPermitSameTableMqConfig = notPermitSameTableMqConfig;
     }
 }

@@ -167,4 +167,11 @@ public class DefaultConsoleConfigTest {
         String dbaApiPwdChangeUrl = config.getDbaApiPwdChangeUrl();
         Assert.assertEquals("",dbaApiPwdChangeUrl);
     }
+
+
+    @Test
+    public void testGetDrcCkafkaRegionMapping() {
+        Map<String, String> drcCkafkaRegionMapping = config.getDrcCkafkaRegionMapping();
+        Assert.assertEquals(0,drcCkafkaRegionMapping.size());
+    }
 }

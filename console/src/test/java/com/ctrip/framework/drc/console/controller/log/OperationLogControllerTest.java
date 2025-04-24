@@ -1,15 +1,10 @@
 package com.ctrip.framework.drc.console.controller.log;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 import com.ctrip.framework.drc.console.param.log.OperationLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.OperationLogService;
 import com.ctrip.framework.drc.console.vo.log.OperationLogView;
 import com.ctrip.framework.drc.console.vo.log.OptionView;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.sql.SQLException;
-import java.util.List;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +12,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.sql.SQLException;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
 public class OperationLogControllerTest {
     
@@ -61,7 +63,7 @@ public class OperationLogControllerTest {
     public void testGetAllType() {
         ApiResult<List<OptionView>> allType = operationLogController.getAllType();
         assertEquals(0,allType.getStatus().intValue());
-        assertEquals(8,allType.getData().size());
+        assertEquals(9,allType.getData().size());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
+import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
@@ -18,20 +19,20 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName DbaApiServiceImpl
@@ -42,6 +43,7 @@ import java.util.List;
 public class DbaApiServiceImpl implements DbaApiService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger autoConfigLogger = LoggerFactory.getLogger("autoConfig");
 
     private static final String GET_CLUSTER_NODE_INFO = "/clusterapi/getmemberinfo";
     private static final String GET_DATABASE_CLUSTER_INFO = "/database/getdatabaseclusterinfo";
@@ -302,5 +304,26 @@ public class DbaApiServiceImpl implements DbaApiService {
                 });
     }
 
-
+    @Override
+    public String getDbOwner(String dbName) {
+        String token = domainConfig.getDBAApiOpsAccessToken();
+        String url = consoleConfig.getDbaDbOwnerUrl();
+        LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
+        request.put("access_token", token);
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("dbtype", "MySQL");
+        jsonObject.addProperty("dbname", dbName);
+        JsonArray jsonArray = new JsonArray();
+        jsonArray.add(jsonObject);
+        request.put("request_body", new Gson().toJson(jsonArray));
+        try {
+            String responseString = HttpUtils.post(url, request, String.class);
+            autoConfigLogger.info("[[tag=autoconfig]] getDbOwner resp: {}", responseString);
+            String owners = JSON.parseObject(responseString).getJSONArray("data").getJSONObject(0).getString("owner");
+            return owners.split(";")[0];
+        } catch (Exception e) {
+            autoConfigLogger.error("[[tag=autoconfig]] getDbOwner error", e);
+            return null;
+        }
+    }
 }

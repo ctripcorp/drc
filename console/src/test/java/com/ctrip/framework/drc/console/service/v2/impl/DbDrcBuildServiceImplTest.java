@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
@@ -17,13 +18,19 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.service.ckafka.BlankKafkaApiServiceImpl;
+import com.ctrip.framework.drc.core.service.ckafka.KafkaApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -32,6 +39,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -60,9 +68,21 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     @Mock
     private MessengerBatchConfigService messengerBatchConfigService;
 
+    KafkaApiService kafkaApiService = Mockito.mock(BlankKafkaApiServiceImpl.class);
+    MockedStatic<ApiContainer> theMock;
+
+    @After
+    public void tearDown() throws Exception {
+        theMock.close();
+    }
+
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
+
+        theMock = Mockito.mockStatic(ApiContainer.class);
+        theMock.when(() -> ApiContainer.getKafkaApiServiceImpl()).thenReturn(kafkaApiService);
+
         MhaDbReplicationDto dto1 = new MhaDbReplicationDto();
         String srcMha = "mha1";
         String dstMha = "mha2";
@@ -522,5 +542,113 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         ResourceView v2 = new ResourceView();
         v2.setIp("2.113.60.2");
         return Lists.newArrayList(v1, v2);
+    }
+
+    @Test
+    public void testCheckKafkaTopic() throws Exception {
+        MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("empty params"));
+        }
+        dto.setDbName("db");
+        dto.setMqType("qmq");
+        dto.setTable("table");
+        dto.setTopic("topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("wrong qmq topic "));
+        }
+
+        dto.setTopic("bu.topic");
+        dto.check();
+        dbDrcBuildService.checkKafkaTopic(dto);
+
+        dto.setDbName("db");
+        dto.setMqType("mqtype");
+        dto.setTable("table");
+        dto.setTopic("topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("No enum"));
+        }
+
+        dto.setDbName("db");
+        dto.setMqType("kafka");
+        dto.setTable("table");
+        dto.setTopic("topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("empty param kafkaCluster"));
+        }
+
+        dto.setKafkaCluster("kafkaCluster");
+        dto.setOrder(false);
+        dto.setOrderKey("orderkey");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("wrong order or orderKey"));
+        }
+
+        dto.setOrder(true);
+        Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("opstoken");
+        Mockito.when(defaultConsoleConfig.getDrcCkafkaRegionMapping()).thenReturn(Maps.newHashMap());
+        Mockito.when(kafkaApiService.checkTopicProducePermission(Mockito.anyString(), Mockito.any())).thenReturn(false);
+        Mockito.when(dbaApiService.getDbOwner(Mockito.anyString())).thenReturn("owner");
+        Map<String, String> mapping = Maps.newHashMap();
+        mapping.put("region", "cregion");
+        Mockito.when(defaultConsoleConfig.getDrcCkafkaRegionMapping()).thenReturn(mapping);
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("error in check kafka topic"));
+        }
+    }
+
+    @Test(expected = ConsoleException.class)
+    public void testAutoCreateMq() throws Exception {
+        MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
+        dto.setDbName("db");
+        dto.setMqType("qmq");
+        dto.setTable("table");
+        dto.setTopic("bu.topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+
+        Mockito.when(drcAutoBuildService.getRegionOptions(Mockito.any())).thenReturn(List.of("region"));
+        dbDrcBuildService.autoCreateMq(dto);
+    }
+
+    @Test(expected = ConsoleException.class)
+    public void testCreateMqConfigAndSwitchMessenger() throws Exception {
+        Mockito.when(dbaApiService.getDatabaseClusterInfoList(Mockito.eq("db_dalcluster"))).thenReturn(List.of(new DbClusterInfoDto("db", Lists.newArrayList())));
+        MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
+        dto.setDbName("db");
+        dto.setMqType("qmq");
+        dto.setTable("table");
+        dto.setTopic("bu.topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        MqAutoCreateDto autoCreateDto = dto.deriveMqAutoCreateDto();
+        autoCreateDto.setDalclusterName("db_dalcluster");
+        autoCreateDto.setDbNames(Lists.newArrayList("db"));
+        dbDrcBuildService.createMqConfigAndSwitchMessenger(autoCreateDto);
     }
 }

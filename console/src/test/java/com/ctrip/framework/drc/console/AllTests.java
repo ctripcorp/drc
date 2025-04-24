@@ -266,7 +266,9 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         OverseaDalTableDaoTest.class,
         AbstractDaoTest.class,
 
-        ApiContainerTest.class
+        ApiContainerTest.class,
+        NotifyCmServiceImplTest.class,
+        DlockServiceImplTest.class,
 })
 public class AllTests {
 

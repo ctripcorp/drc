@@ -106,4 +106,9 @@ public class DbaApiServiceImplV2 extends DbaApiServiceImpl implements DbaApiServ
 
         return response.getData();
     }
+
+    @Override
+    public String getDbOwner(String dbName){
+        return super.getDbOwner(dbName);
+    }
 }
