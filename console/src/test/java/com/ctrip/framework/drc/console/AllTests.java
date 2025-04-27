@@ -67,6 +67,7 @@ import com.ctrip.framework.drc.console.service.v2.security.impl.MetaAccountServi
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilderTest;
+import com.ctrip.framework.drc.console.vo.api.DbTableDrcRegionInfoTest;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDtoTest;
@@ -260,6 +261,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaDbReplicationCreateDtoTest.class,
         MhaReplicationPreviewDtoTest.class,
         DbMqConfigInfoDtoTest.class,
+        DbTableDrcRegionInfoTest.class,
 
         //DAO
         BaseDalTableDaoTest.class,
