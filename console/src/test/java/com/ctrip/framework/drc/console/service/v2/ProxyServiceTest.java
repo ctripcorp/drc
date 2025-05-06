@@ -4,9 +4,8 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.BuTblDao;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.ProxyTblDao;
-import com.ctrip.framework.drc.console.dao.entity.ProxyTbl;
-import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.service.v2.resource.impl.ProxyServiceImpl;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,8 +15,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getDcTbls;
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getProxyTbls;
@@ -56,19 +55,29 @@ public class ProxyServiceTest {
     }
 
     @Test
-    public void testGetAllProxyUris() throws Exception {
-        Mockito.when(proxyTblDao.queryAllExist()).thenReturn(getProxyTbls());
-        List<String> result = proxyService.getAllProxyUris();
-        Assert.assertEquals(result.size(), getProxyTbls().size());
+    public void testGetProxyUri() throws Exception {
+        Mockito.when(consoleConfig.getDcsInSameRegion(Mockito.anyString())).thenReturn(Sets.newHashSet("dc"));
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.when(proxyTblDao.queryByDcId(Mockito.anyLong(), Mockito.anyString(), Mockito.anyString())).thenReturn(getProxyTbls());
+
+        List<String> res = proxyService.getProxyUris("dc", true);
+        Assert.assertEquals(res.size(), getProxyTbls().size());
     }
 
     @Test
-    public void testInputProxy() throws SQLException {
-        Mockito.doNothing().when(proxyTblDao).upsert(Mockito.any(ProxyTbl.class));
-        Mockito.when(dcTblDao.upsert(Mockito.anyString())).thenReturn(1L);
-
-        ProxyDto proxyDto = new ProxyDto("dc", "protocol", "ip", "port");
-        proxyService.inputProxy(proxyDto);
-        Mockito.verify(proxyTblDao, Mockito.times(1)).upsert(Mockito.any(ProxyTbl.class));
+    public void testGetRelayProxyUri() throws Exception {
+        Mockito.when(proxyTblDao.queryByPrefix(Mockito.anyString(), Mockito.anyString())).thenReturn(getProxyTbls());
+        List<String> relayProxyUris = proxyService.getRelayProxyUris();
+        Assert.assertEquals(relayProxyUris.size(), getProxyTbls().size());
     }
+
+    @Test
+    public void inputProxy() throws Exception {
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(getDcTbls().get(0));
+        Mockito.doNothing().when(proxyTblDao).upsert(Mockito.any());
+        proxyService.inputProxy("dc", "ip");
+        Mockito.verify(proxyTblDao, Mockito.times(2)).upsert(Mockito.any());
+    }
+
+
 }

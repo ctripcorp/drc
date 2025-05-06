@@ -103,8 +103,7 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
                 String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(modified);
                 Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupRegistryKey);
                 if (modified.equalsWithIpPort(activeApplier) && ObjectUtils.equals(modified.getIncludedDbs(), activeApplier.getIncludedDbs())) {
-                    activeApplier.setNameFilter(modified.getNameFilter());
-                    activeApplier.setProperties(modified.getProperties());
+                    activeApplier.setRouteInfo(modified.getRouteInfo());
                     logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupRegistryKey, activeApplier);
                     instanceStateController.applierPropertyChange(clusterId, activeApplier);
                 }

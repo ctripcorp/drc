@@ -26,7 +26,7 @@ public class DcComparatorTest2 {
             "                    <db ip=\"10.2.83.110\" port=\"3306\" master=\"false\" uuid=\"54f651cb-6960-11eb-8861-fa163ec90ff6\"/>\n" +
             "                </dbs>\n" +
             "                <replicator ip=\"10.2.83.105\" port=\"8080\" applierPort=\"8407\" gtidSkip=\"a33ded23-6960-11eb-a8e0-fa163e02998c:1-28218422,da293753-695e-11eb-a4c9-fa163eaa9d69:1-21617323\" master=\"false\"/>\n" +
-            "                <applier ip=\"10.2.83.100\" port=\"8080\" targetIdc=\"sharb\" targetMhaName=\"drcRb\" gtidExecuted=\"a33ded23-6960-11eb-a8e0-fa163e02998c:1-101\" master=\"false\"/>\n" +
+            "                <applier ip=\"10.2.83.100\" port=\"8080\" targetIdc=\"sharb\" targetMhaName=\"drcRb\" gtidExecuted=\"a33ded23-6960-11eb-a8e0-fa163e02998c:1-101\" master=\"false\" routeInfo=\"PROXY://127.0.0.1:80,PROXY://127.0.0.2:80 PROXYTLS://128.0.0.1:443,PROXYTLS://128.0.0.2:443\"/>\n" +
             "            </dbCluster>\n" +
             "            <dbCluster id=\"integration-test2.drcTestW1\" name=\"integration-test2\" mhaName=\"drcTestW1\" buName=\"FX\" org-id=\"5\" appId=\"100012345\">\n" +
             "                <dbs readUser=\"root\" readPassword=\"root\" writeUser=\"root\" writePassword=\"root\" monitorUser=\"root\" monitorPassword=\"root\">\n" +
@@ -65,7 +65,7 @@ public class DcComparatorTest2 {
             "                    <db ip=\"10.2.83.110\" port=\"3306\" master=\"false\" uuid=\"54f651cb-6960-11eb-8861-fa163ec90ff6\"/>\n" +
             "                </dbs>\n" +
             "                <replicator ip=\"10.2.83.105\" port=\"8080\" applierPort=\"8407\" gtidSkip=\"a33ded23-6960-11eb-a8e0-fa163e02998c:1-28218422,da293753-695e-11eb-a4c9-fa163eaa9d69:1-21617323\" master=\"false\"/>\n" +
-            "                <applier ip=\"10.2.83.100\" port=\"8080\" targetIdc=\"sharb\" targetMhaName=\"drcRb\" gtidExecuted=\"a33ded23-6960-11eb-a8e0-fa163e02998c:1-101\" master=\"false\"/>\n" +
+            "                <applier ip=\"10.2.83.100\" port=\"8080\" targetIdc=\"sharb\" targetMhaName=\"drcRb\" gtidExecuted=\"a33ded23-6960-11eb-a8e0-fa163e02998c:1-101\" master=\"false\" routeInfo=\"PROXY://127.0.0.1:80,PROXY://127.0.0.2:80 PROXYTLS://128.0.0.1:443,PROXYTLS://128.0.0.2:443\"/>\n" +
             "            </dbCluster>\n" +
             "            <dbCluster id=\"integration-test2.drcTestW1\" name=\"integration-test2\" mhaName=\"drcTestW1\" buName=\"FX\" org-id=\"5\" appId=\"100012345\">\n" +
             "                <dbs readUser=\"root\" readPassword=\"root\" writeUser=\"root\" writePassword=\"root\" monitorUser=\"root\" monitorPassword=\"root\">\n" +

@@ -83,7 +83,7 @@ public class ApplierInstanceManagerTest {
         future.setDbs(dbs);
         future.setId(clusterId);
         Applier applier2 = new Applier();
-        applier2.setProperties("test_property");
+        applier2.setRouteInfo("routeInfo");
         applier2.setIp("127.0.0.1");
         applier2.setPort(8080);
         applier2.setApplyMode(ApplyMode.transaction_table.getType());

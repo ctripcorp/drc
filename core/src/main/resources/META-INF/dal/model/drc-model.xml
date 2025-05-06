@@ -30,5 +30,8 @@
     <entity name="route" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.IRoute, com.ctrip.framework.drc.core.entity.CloneableInstance">
         <attribute name="id" key="true" />
     </entity>
+    <entity name="dbClusterRoute" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.IRoute, com.ctrip.framework.drc.core.entity.CloneableInstance">
+        <attribute name="id" key="true" />
+    </entity>
 </model>
 

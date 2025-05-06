@@ -55,7 +55,7 @@ import static com.ctrip.framework.drc.console.utils.StreamUtils.getKey;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
 
 /**
- *  V5 + kafka messenger
+ * V5 + kafka messenger
  * 2025/1/9 11:13
  */
 @Service
@@ -119,6 +119,8 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
     @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Autowired
+    private DbReplicationRouteMappingTblDao dbReplicationRouteMappingTblDao;
+    @Autowired
     private AccountService accountService;
 
     private static final ExecutorService executorService = ThreadUtils.newFixedThreadPool(50, "queryAllExist");
@@ -164,6 +166,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
         private volatile List<MessengerFilterTbl> messengerFilterTbls;
         private volatile List<MessengerGroupTbl> messengerGroupTbls;
         private volatile List<MessengerTbl> messengerTbls;
+        private volatile List<DbReplicationRouteMappingTbl> dbReplicationRouteMappingTbls;
 
 
         // index
@@ -192,6 +195,10 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
         private Map<Long, MessengerGroupTblV3> dbMessengerGroupTblByMhaDbReplicationId;
         private Map<MultiKey, MhaDbReplicationTbl> mhaDbReplicationByKeyMap;
         private volatile Map<Long, Map<Long, List<MhaDbReplicationTbl>>> mhaDbReplicationGroupByDstToSrcMhaIdMap;
+        private Map<Long, RouteTbl> routeTblByIdMap;
+        private Map<Long, DbReplicationRouteMappingTbl> routeMappingByDbRplicationIdMap;
+        private Map<Long, List<Long>> mhaIdToRouteIds;
+        private Map<Long, ProxyTbl> proxyTblByIdMap;
 
         private final RowsFilterServiceV2 rowsFilterServiceV2;
         private final ColumnsFilterServiceV2 columnsFilterServiceV2;
@@ -234,7 +241,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
 
         private void generateRoute(Dc dc, Long dcId) {
             List<RouteTbl> localRouteTbls = routeTbls.stream()
-                    .filter(routeTbl -> routeTbl.getSrcDcId().equals(dcId))
+                    .filter(routeTbl -> routeTbl.getSrcDcId().equals(dcId) && routeTbl.getGlobalActive().equals(BooleanEnum.TRUE.getCode()))
                     .collect(Collectors.toList());
 
             for (RouteTbl routeTbl : localRouteTbls) {
@@ -304,6 +311,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                 DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
                 Dbs dbs = generateDbs(dbCluster, mhaTbl);
                 generateDb(dbs, mhaTbl);
+                generateDbClusterRoutes(dbCluster, mhaTbl);
                 generateReplicators(dbCluster, mhaTbl);
                 generateMessengers(dbCluster, mhaTbl);
                 generateDbAppliers(dbCluster, mhaTbl);
@@ -341,10 +349,13 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                     continue;
                 }
 
-                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(mhaDbReplicationTbl.getSrcMhaDbMappingId(),"");
+                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(mhaDbReplicationTbl.getSrcMhaDbMappingId(), "");
                 String nameFilter = TableNameBuilder.buildNameFilter(mhaDbMappingId2DbNameMap, dbReplicationTblList);
                 String nameMapping = TableNameBuilder.buildNameMapping(mhaDbMappingId2DbNameMap, dbReplicationTblList);
                 String properties = getProperties(dbReplicationTblList, applierGroupTbl.getConcurrency());
+
+                String applierRouteInfo = generateApplierRouteInfo(mhaDbReplicationTbl.getId());
+
                 for (ApplierTblV3 applierTbl : applierTblV3s) {
                     String resourceIp = Optional.ofNullable(resourceTblIdMap.get(applierTbl.getResourceId())).map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
                     Applier applier = new Applier();
@@ -358,11 +369,21 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                             .setNameMapping(nameMapping)
                             .setTargetName(srcMhaTbl.getClusterName())
                             .setApplyMode(ApplyMode.db_transaction_table.getType())
-                            .setProperties(properties);
+                            .setProperties(properties)
+                            .setRouteInfo(applierRouteInfo);
                     applier.setTargetRegion(srcDcTbl.getRegionName());
                     dbCluster.addApplier(applier);
                 }
             }
+        }
+
+        private String generateApplierRouteInfo(long mhaDbReplicationId) {
+            DbReplicationRouteMappingTbl dbReplicationRouteMappingTbl = routeMappingByDbRplicationIdMap.get(mhaDbReplicationId);
+            if (dbReplicationRouteMappingTbl == null) {
+                return StringUtils.EMPTY;
+            }
+            RouteTbl routeTbl = routeTblByIdMap.get(dbReplicationRouteMappingTbl.getRouteId());
+            return generateRouteInfo(routeTbl.getSrcProxyIds(), routeTbl.getOptionalProxyIds(), routeTbl.getDstProxyIds());
         }
 
         private MessengerProperties getMessengerProperties(List<DbReplicationTbl> dbReplicationTbls) {
@@ -385,7 +406,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                 }
                 MqConfig mqConfig = JsonUtils.fromJson(messengerFilterTbl.getProperties(), MqConfig.class);
 
-                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(),"");
+                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), "");
                 String tableName = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
                 srcTables.add(tableName);
                 mqConfig.setTable(tableName);
@@ -420,7 +441,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
 
         private Dbs generateDbs(DbCluster dbCluster, MhaTblV2 mhaTbl) {
             String mhaName = mhaTbl.getMhaName();
-            logger.debug("generate dbs for mha: {}",mhaName );
+            logger.debug("generate dbs for mha: {}", mhaName);
             Dbs dbs = new Dbs();
             try {
                 MhaAccounts mhaAccounts = accountService.getMhaAccounts(mhaTbl);
@@ -446,7 +467,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
             return dbs;
         }
 
-        private boolean checkAccounts(MhaAccounts mhaAccounts,MhaTblV2 mhaTbl) {
+        private boolean checkAccounts(MhaAccounts mhaAccounts, MhaTblV2 mhaTbl) {
             return mhaAccounts.getMonitorAcc().getUser().equals(mhaTbl.getMonitorUser())
                     && mhaAccounts.getReadAcc().getUser().equals(mhaTbl.getReadUser())
                     && mhaAccounts.getWriteAcc().getUser().equals(mhaTbl.getWriteUser())
@@ -465,6 +486,31 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                         .setMaster(machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode()))
                         .setUuid(machineTbl.getUuid());
                 dbs.addDb(db);
+            }
+        }
+
+        private void generateDbClusterRoutes(DbCluster dbCluster, MhaTblV2 mhaTbl) {
+            List<Long> routeIds = mhaIdToRouteIds.get(mhaTbl.getId());
+            if (CollectionUtils.isEmpty(routeIds)) {
+                return;
+            }
+            for (Long routeId : routeIds) {
+                RouteTbl routeTbl = routeTblByIdMap.get(routeId);
+                DbClusterRoute dbClusterRoute = new DbClusterRoute();
+
+                dbClusterRoute.setId(routeTbl.getId().intValue());
+                dbClusterRoute.setOrgId(routeTbl.getRouteOrgId().intValue());
+
+                dbClusterRoute.setRouteInfo(generateRouteInfo(routeTbl.getSrcProxyIds(), routeTbl.getOptionalProxyIds(), routeTbl.getDstProxyIds()));
+                dbClusterRoute.setTag(routeTbl.getTag());
+                dbCluster.addDbClusterRoute(dbClusterRoute);
+
+                DcTbl srcDcTbl = dcTblMap.get(routeTbl.getSrcDcId());
+                DcTbl dstDcTbl = dcTblMap.get(routeTbl.getDstDcId());
+                dbClusterRoute.setSrcDc(srcDcTbl != null ? srcDcTbl.getDcName() : StringUtils.EMPTY);
+                dbClusterRoute.setDstDc(dstDcTbl != null ? dstDcTbl.getDcName() : StringUtils.EMPTY);
+                dbClusterRoute.setSrcRegion(srcDcTbl != null ? srcDcTbl.getRegionName() : StringUtils.EMPTY);
+                dbClusterRoute.setDstRegion(dstDcTbl != null ? dstDcTbl.getRegionName() : StringUtils.EMPTY);
             }
         }
 
@@ -539,7 +585,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                 String[] proxyIdArr = proxyIds.split(",");
                 for (String idStr : proxyIdArr) {
                     Long proxyId = Long.parseLong(idStr);
-                    proxyTbls.stream().filter(p -> p.getId().equals(proxyId)).findFirst().ifPresent(proxyTbl -> proxyUris.add(proxyTbl.getUri()));
+                    proxyUris.add(proxyTblByIdMap.get(proxyId).getUri());
                 }
             }
             return proxyUris;
@@ -555,7 +601,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                 if (CollectionUtils.isEmpty(dbReplicationFilterMappings)) {
                     continue;
                 }
-                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationDto.getSrcMhaDbMappingId(),"");
+                String dbName = mhaDbMappingId2DbNameMap.getOrDefault(dbReplicationDto.getSrcMhaDbMappingId(), "");
                 String tableName = dbName + "\\." + dbReplicationDto.getSrcLogicTableName();
 
                 // rows filter
@@ -593,7 +639,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
                 return messengers;
             }
 
-            for (MessengerGroupTbl messengerGroupTbl: messengerGroupTblList) {
+            for (MessengerGroupTbl messengerGroupTbl : messengerGroupTblList) {
                 MqType mqType = MqType.valueOf(messengerGroupTbl.getMqType());
                 List<MessengerTbl> messengerTbls = messengerTblByGroupIdMap.getOrDefault(messengerGroupTbl.getId(), Collections.emptyList());
                 if (CollectionUtils.isEmpty(messengerTbls)) {
@@ -666,6 +712,7 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
         list.add(executorService.submit(() -> task.columnsFilterTbls = columnsFilterTblV2Dao.queryAllExist()));
         list.add(executorService.submit(() -> task.messengerFilterTbls = messengerFilterTblDao.queryAllExist()));
         list.add(executorService.submit(() -> task.rowsFilterTbls = rowsFilterTblV2Dao.queryAllExist()));
+        list.add(executorService.submit(() -> task.dbReplicationRouteMappingTbls = dbReplicationRouteMappingTblDao.queryAllExist()));
 
         // wait
         for (Future<?> future : list) {
@@ -721,6 +768,14 @@ public class MetaGeneratorV6Impl implements MetaGenerator {
         task.dbReplicationFilterMappingTblsByDbRplicationIdMap = task.dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
         task.dbMessengerTblsByGroupIdMap = task.dbMessengerTbls.stream().collect(Collectors.groupingBy(MessengerTblV3::getMessengerGroupId));
         task.dbApplierTblsByGroupIdMap = task.dbApplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getApplierGroupId));
+        task.routeTblByIdMap = task.routeTbls.stream().collect(Collectors.toMap(RouteTbl::getId, Function.identity()));
+        task.proxyTblByIdMap = task.proxyTbls.stream().collect(Collectors.toMap(ProxyTbl::getId, Function.identity()));
+        task.routeMappingByDbRplicationIdMap = task.dbReplicationRouteMappingTbls.stream()
+                .filter(e -> e.getMhaDbReplicationId() != null && e.getMhaDbReplicationId() > 0L)
+                .collect(Collectors.toMap(DbReplicationRouteMappingTbl::getMhaDbReplicationId, Function.identity()));
+        task.mhaIdToRouteIds = task.dbReplicationRouteMappingTbls.stream()
+                .filter(e -> e.getMhaId() != null && e.getMhaId() > 0L)
+                .collect(Collectors.groupingBy(DbReplicationRouteMappingTbl::getMhaId, Collectors.mapping(DbReplicationRouteMappingTbl::getRouteId, Collectors.toList())));
     }
 
     @VisibleForTesting

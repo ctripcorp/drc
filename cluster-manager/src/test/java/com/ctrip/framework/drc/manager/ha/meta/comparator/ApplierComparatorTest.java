@@ -84,7 +84,7 @@ public class ApplierComparatorTest extends AbstractDbClusterTest {
 
         for (MetaComparator metaComparator : metaComparators) {
             ApplierPropertyComparator propertyComparator = (ApplierPropertyComparator) metaComparator;
-            Assert.assertEquals(1, propertyComparator.getAdded().size());
+            Assert.assertEquals(0, propertyComparator.getAdded().size());
             Applier applier1 = (Applier) propertyComparator.getCurrent();
             Applier applier2 = (Applier) propertyComparator.getFuture();
             Assert.assertEquals(applier1.getIp(), applier2.getIp());
@@ -113,7 +113,7 @@ public class ApplierComparatorTest extends AbstractDbClusterTest {
 
         for (MetaComparator metaComparator : metaComparators) {
             ApplierPropertyComparator propertyComparator = (ApplierPropertyComparator) metaComparator;
-            Assert.assertEquals(1, propertyComparator.getAdded().size());
+            Assert.assertEquals(0, propertyComparator.getAdded().size());
             Applier applier1 = (Applier) propertyComparator.getCurrent();
             Applier applier2 = (Applier) propertyComparator.getFuture();
             Assert.assertEquals(applier1.getIp(), applier2.getIp());
@@ -121,6 +121,34 @@ public class ApplierComparatorTest extends AbstractDbClusterTest {
             Assert.assertEquals(applier1.getTargetMhaName(), applier2.getTargetMhaName());
             Assert.assertNotEquals(applier1.getProperties(), applier2.getProperties());
             Assert.assertEquals(applier2.getProperties(), "test.property");
+        }
+    }
+
+    @Test
+    public void compareModifyRouteInfo() {
+        DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
+        Applier applier = cloneDbCluster.getAppliers().get(0);
+        applier.setRouteInfo("routeInfo");
+
+        applierComparator = new ApplierComparator(dbCluster, cloneDbCluster);
+
+        applierComparator.compare();
+        Assert.assertEquals(applierComparator.getAdded().size(), 0);
+        Assert.assertEquals(applierComparator.getRemoved().size(), 0);
+        Assert.assertEquals(applierComparator.getMofified().size(), 1);
+
+        Set<MetaComparator> metaComparators = applierComparator.getMofified();
+        Assert.assertEquals(metaComparators.size(), 1);
+
+        for (MetaComparator metaComparator : metaComparators) {
+            ApplierPropertyComparator propertyComparator = (ApplierPropertyComparator) metaComparator;
+            Assert.assertEquals(1, propertyComparator.getAdded().size());
+            Applier applier1 = (Applier) propertyComparator.getCurrent();
+            Applier applier2 = (Applier) propertyComparator.getFuture();
+            Assert.assertEquals(applier1.getIp(), applier2.getIp());
+            Assert.assertEquals(applier1.getPort(), applier2.getPort());
+            Assert.assertEquals(applier1.getTargetMhaName(), applier2.getTargetMhaName());
+            Assert.assertEquals(applier1.getProperties(), applier2.getProperties());
         }
     }
 }

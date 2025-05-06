@@ -26,6 +26,8 @@ import com.ctrip.xpipe.spring.AbstractSpringConfigContext;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -524,18 +526,23 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     protected void routeChanges() {
         for(String clusterId : allClusters()) {
             DbCluster clusterMeta = regionCache.getCluster(clusterId);
-            List<Pair<String, String>> upstreamDcClusterIdList = getUpstreamDcClusterIdList(clusterMeta);
-            for(Pair<String, String> upstreamDcClusterId : upstreamDcClusterIdList) {
-                if(randomRoute(clusterId, upstreamDcClusterId.getKey()) != null) {
-                    refreshApplierMaster(clusterMeta, upstreamDcClusterId.getValue());
+            Map<String, Set<String>> upstreamDcClusterIds = getUpstreamDcClusterIds(clusterMeta);
+            for (Map.Entry<String, Set<String>> upstreamDcClusterId : upstreamDcClusterIds.entrySet()) {
+                String targetIdc = upstreamDcClusterId.getKey();
+                Set<String> upstreamClusterIds = upstreamDcClusterId.getValue();
+                if (randomRoute(clusterId, targetIdc) == null) {
+                    continue;
+                }
+                for (String upstreamClusterId : upstreamClusterIds) {
+                    refreshApplierMaster(clusterMeta, upstreamClusterId);
                 }
             }
         }
     }
 
     @VisibleForTesting
-    protected List<Pair<String, String>> getUpstreamDcClusterIdList(DbCluster clusterMeta) {
-        List<Pair<String, String>> upstreamDcClusterIdList = Lists.newArrayList();
+    protected Map<String, Set<String>> getUpstreamDcClusterIds(DbCluster clusterMeta) {
+        Map<String, Set<String>> upstreamDcClusterIdMap = Maps.newHashMap();
         List<Applier> applierList = clusterMeta.getAppliers();
 
         for (Applier applier : applierList) {
@@ -543,11 +550,16 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
             String targetName = applier.getTargetName();
             String targetIdc = applier.getTargetIdc();
             if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                upstreamDcClusterIdList.add(new Pair<>(targetIdc, RegistryKey.from(targetName, targetMhaName)));
+                String upstreamClusterId = RegistryKey.from(targetName, targetMhaName);
+                if (upstreamDcClusterIdMap.containsKey(targetIdc)) {
+                    upstreamDcClusterIdMap.get(targetIdc).add(upstreamClusterId);
+                } else {
+                    upstreamDcClusterIdMap.put(targetIdc, Sets.newHashSet(upstreamClusterId));
+                }
             }
         }
 
-        return upstreamDcClusterIdList;
+        return upstreamDcClusterIdMap;
     }
 
     @VisibleForTesting

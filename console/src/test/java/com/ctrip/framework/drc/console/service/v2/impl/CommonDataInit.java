@@ -128,6 +128,8 @@ public class CommonDataInit {
     ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Mock
     MhaDbReplicationTblDao mhaDbReplicationTblDao;
+    @Mock
+    DbReplicationRouteMappingTblDao dbReplicationRouteMappingTblDao;
 
 
     @Before

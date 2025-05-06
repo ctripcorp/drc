@@ -13,24 +13,8 @@ const dcList = [
     label: '上海日版'
   },
   {
-    value: 'shajq',
-    label: '上海金桥'
-  },
-  {
-    value: 'shafq',
-    label: '上海福泉'
-  },
-  {
-    value: 'shajz',
-    label: '上海金钟'
-  },
-  {
     value: 'ntgxh',
     label: 'ntgxh'
-  },
-  {
-    value: 'ntgxy',
-    label: 'ntgxy'
   },
   {
     value: 'fraaws',
@@ -39,14 +23,6 @@ const dcList = [
   {
     value: 'shali',
     label: '上海阿里'
-  },
-  {
-    value: 'sinibuaws',
-    label: 'IBU-VPC'
-  },
-  {
-    value: 'sinibualiyun',
-    label: 'IBU-VPC(aliyun)'
   },
   {
     value: 'sinaws',
@@ -67,6 +43,7 @@ const tagList = [
   'PCI',
   'TEST'
 ]
+const routeTags = ['meta', 'console']
 const azList = [
   'SHARB',
   'SHAXY',
@@ -100,7 +77,8 @@ export default {
   azList,
   mqTypeList,
   replicationType,
-  mqTypeToReplicationType
+  mqTypeToReplicationType,
+  routeTags
 }
 </script>
 
