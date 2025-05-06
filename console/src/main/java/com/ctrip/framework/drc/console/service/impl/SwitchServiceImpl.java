@@ -14,8 +14,10 @@ import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.console.dto.ClusterConfigDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,11 +85,14 @@ public class SwitchServiceImpl implements SwitchService {
 
     @Override
     public void switchListenReplicator(ClusterConfigDto clusterConfigDto) {
+        Map<String, Pair<String, Integer>> clusterId2Replicators = Maps.newHashMap();
         for (Map.Entry<String, String> entry : clusterConfigDto.getClusterMap().entrySet()) {
             logger.info("switchListenReplicator firstHand:{}, clusterId: {}, endpoint: {}", clusterConfigDto.isFirstHand(), entry.getKey(), entry.getValue());
             String[] split = entry.getValue().split(":");
-            listenReplicatorTask.switchListenReplicator(entry.getKey(), split[0], Integer.parseInt(split[1]));
+            clusterId2Replicators.put(entry.getKey(), Pair.of(split[0], Integer.parseInt(split[1])));
         }
+        listenReplicatorTask.batchSwitchListenReplicator(clusterId2Replicators);
+
         if (clusterConfigDto.isFirstHand()) {
             ClusterConfigDto copyDto = new ClusterConfigDto(clusterConfigDto.getClusterMap(), false);
             executorService.submit(() -> httpBoardCast.broadcastWithRetry(BroadcastEnum.REPLICATOR_CHANGE.getPath(), RequestMethod.PUT, JsonUtils.toJson(copyDto), RETRY_TIME));

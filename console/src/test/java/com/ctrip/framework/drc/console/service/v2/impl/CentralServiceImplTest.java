@@ -10,9 +10,6 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
-import java.sql.SQLException;
-import java.util.List;
-
 import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import org.junit.Assert;
 import org.junit.Before;
@@ -21,6 +18,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getMhaTblV2s;
+import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.getReplicatorGroupTbls;
 
 public class CentralServiceImplTest {
     @InjectMocks
@@ -82,6 +88,61 @@ public class CentralServiceImplTest {
         boolean b1 = centralServiceImpl.updateMasterReplicatorIfChange(new MhaReplicatorEntity("mha", "ip2"));
         Assert.assertTrue(b);
         Assert.assertFalse(b1);
+    }
+
+    @Test
+    public void testBatchUpdateMasterReplicatorIfChange() throws SQLException {
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(getMhaTblV2s());
+        Mockito.when(rGroupTblDao.queryAllExist()).thenReturn(getReplicatorGroupTbls());
+        Mockito.when(replicatorTblDao.queryAllExist()).thenReturn(getReplicatorTbls());
+        Mockito.when(resourceTblDao.queryAllExist()).thenReturn(getResourceTbls());
+
+        Map<String, String> map = new HashMap<>();
+        map.put("mha200", "ip200");
+        centralServiceImpl.batchUpdateMasterReplicatorIfChange(new MhaReplicatorEntity(map));
+        Mockito.verify(replicatorTblDao, Mockito.never()).batchUpdate(Mockito.anyList());
+
+        map.put("mha200", "ip201");
+        centralServiceImpl.batchUpdateMasterReplicatorIfChange(new MhaReplicatorEntity(map));
+        Mockito.verify(replicatorTblDao, Mockito.times(1)).batchUpdate(Mockito.anyList());
+    }
+
+    public static List<ReplicatorTbl> getReplicatorTbls() {
+        List<ReplicatorTbl> tbls = new ArrayList<>();
+        for (int i = 200; i < 202; i++) {
+            ReplicatorTbl replicatorTbl = new ReplicatorTbl();
+            replicatorTbl.setId(Long.valueOf(i));
+            replicatorTbl.setDeleted(0);
+            replicatorTbl.setRelicatorGroupId(200L);
+            replicatorTbl.setResourceId(replicatorTbl.getId());
+            replicatorTbl.setApplierPort(1010);
+            replicatorTbl.setGtidInit("gtId");
+            replicatorTbl.setPort(3030);
+            if (i == 200) {
+                replicatorTbl.setMaster(1);
+            } else {
+                replicatorTbl.setMaster(0);
+            }
+            tbls.add(replicatorTbl);
+        }
+
+        return tbls;
+    }
+
+    public static List<ResourceTbl> getResourceTbls() {
+        List<ResourceTbl> tbls = new ArrayList<>();
+
+        for (int i = 200; i < 202; i++) {
+            ResourceTbl resourceTbl = new ResourceTbl();
+            resourceTbl.setId(Long.valueOf(i));
+            resourceTbl.setType(0);
+            resourceTbl.setAz("AZ");
+            resourceTbl.setIp("ip" + i);
+            resourceTbl.setTag("tag");
+            resourceTbl.setDcId(200L);
+            tbls.add(resourceTbl);
+        }
+        return tbls;
     }
 
 }

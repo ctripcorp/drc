@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.param;
 
+import java.util.Map;
+
 /**
  * Created by dengquanliang
  * 2024/10/29 21:10
@@ -7,6 +9,12 @@ package com.ctrip.framework.drc.console.param;
 public class MhaReplicatorEntity {
     private String mhaName;
     private String replicatorIp;
+    Map<String, String> mhaName2ReplicatorIps;
+
+
+    public MhaReplicatorEntity(Map<String, String> mhaName2ReplicatorIps) {
+        this.mhaName2ReplicatorIps = mhaName2ReplicatorIps;
+    }
 
     public MhaReplicatorEntity(String mhaName, String replicatorIp) {
         this.mhaName = mhaName;
@@ -14,6 +22,14 @@ public class MhaReplicatorEntity {
     }
 
     public MhaReplicatorEntity() {
+    }
+
+    public Map<String, String> getMhaName2ReplicatorIps() {
+        return mhaName2ReplicatorIps;
+    }
+
+    public void setMhaName2ReplicatorIps(Map<String, String> mhaName2ReplicatorIps) {
+        this.mhaName2ReplicatorIps = mhaName2ReplicatorIps;
     }
 
     public String getMhaName() {

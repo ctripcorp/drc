@@ -112,6 +112,17 @@ public class CentralServiceController {
         }
     }
 
+    @PostMapping("replicator/batch")
+    public ApiResult batchUpdateMasterReplicatorIfChange(@RequestBody MhaReplicatorEntity requestBody) {
+        try {
+            logger.info("[updateMasterReplicatorIfChange] requestBody: {}", requestBody);
+            return ApiResult.getSuccessInstance(centralService.batchUpdateMasterReplicatorIfChange(requestBody));
+        } catch (Throwable e) {
+            logger.info("updateMasterReplicatorIfChange fail,requestBody:{}, {}", requestBody);
+            return ApiResult.getFailInstance(null, "updateMasterReplicatorIfChange fail: " + requestBody);
+        }
+    }
+
     @GetMapping("allDcTbl")
     public ApiResult queryAllDcTbl() {
         try {

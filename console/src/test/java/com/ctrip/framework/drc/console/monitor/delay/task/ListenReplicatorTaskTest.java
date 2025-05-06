@@ -153,9 +153,6 @@ public class ListenReplicatorTaskTest extends MockTest {
         drc = DefaultSaxParser.parse(oldRouteDrcXmlStr);
         Mockito.when(cacheMetaService.getAllReplicatorsInLocalRegion()).thenReturn(getAllReplicatorsInDc(drc, "dc1"));
 
-        Mockito.doNothing().when(listenReplicatorTask).updateMasterReplicatorIfChange(Mockito.anyString(), Mockito.anyString());
-
-
         // case1: get null
         listenReplicatorTask.updateListenReplicatorSlaves();
     }
@@ -267,7 +264,7 @@ public class ListenReplicatorTaskTest extends MockTest {
         Mockito.when(centralService.updateMasterReplicatorIfChange(Mockito.any())).thenReturn(true);
         listenReplicatorTask.filterMasterReplicatorV2(getReplicatorWrappers());
         Thread.sleep(200);
-        verify(centralService, times(1)).updateMasterReplicatorIfChange(Mockito.any());
+        verify(centralService, times(1)).batchUpdateMasterReplicatorIfChange(Mockito.any());
     }
 
     private Map<String, List<ReplicatorWrapper>> getReplicatorWrappers() {

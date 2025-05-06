@@ -166,8 +166,8 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
         synchronized (this) {
             isLeader = true;
             if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
-                monitorMessengerChange();
                 boolean res = consumer.resumeListen();
+                monitorMessengerChange();
                 logger.info("[[monitor=qmqDelay]] is leader,going to start qmqConsumer,result:{}", res);
             }
         }
@@ -180,7 +180,6 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
         synchronized (this) {
             isLeader = false;
             if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
-                monitorMessengerChange();
                 boolean res = consumer.stopListen();
                 logger.info("[[monitor=qmqDelay]] not leader,going to stop qmqConsumer,result:{}", res);
             }

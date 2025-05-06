@@ -25,12 +25,12 @@ import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.proxy.ProxyEndpoint;
-import com.ctrip.xpipe.utils.OsUtils;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +46,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -73,12 +74,13 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     private final ExecutorService monitorMasterRExecutorService = ThreadUtils.newSingleThreadExecutor(getClass().getSimpleName() + "-masterR");
 
-    private final ExecutorService handleChangeExecutor = ThreadUtils.newFixedThreadPool(OsUtils.getCpuCount(), "handle-listen-replicator-change-executor");
+    private final ExecutorService handleChangeExecutor = ThreadUtils.newFixedThreadPool(50, "handle-listen-replicator-change-executor");
 
     // key: slave's ip:port
     private final Map<String, ReplicatorWrapper> slaveReplicatorWrappers = Maps.newConcurrentMap();
     private final Map<String, StaticDelayMonitorServer> slaveReplicatorDelayMonitorServerMap = Maps.newConcurrentMap();
     private final Set<String> processingListenServer = Sets.newConcurrentHashSet();
+    private final Map<String, Lock> locks = Maps.newConcurrentMap();
 
     // key: id(aka registryKey)
     private Map<String, ReplicatorWrapper> replicatorWrappers = Maps.newConcurrentMap();
@@ -310,33 +312,43 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
             logger.error("[[monitor=delaylisten]] switch replicator listen fail for cluster: {} due to already in processingListenServer", clusterId);
             return;
         }
-        if (delayMonitorServerMap.containsKey(clusterId)) {
-            handleChangeExecutor.submit(() -> {
-                try {
-                    StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
-                    DelayMonitorSlaveConfig oldConfig = delayMonitorServer.getConfig();
-                    updateMasterReplicatorIfChange(delayMonitorServer.getConfig().getDestMha(), newReplicatorIp);
-                    if (!oldConfig.getIp().equalsIgnoreCase(newReplicatorIp) || oldConfig.getPort() != newReplicatorPort) {
-                        logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, old endpoint({}:{}), new endpoint({}:{})",
-                                clusterId, oldConfig.getIp(), oldConfig.getPort(), newReplicatorIp, newReplicatorPort);
-                        DelayMonitorSlaveConfig newConfig = oldConfig.clone();
-                        Endpoint newEndpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
-                        newConfig.setEndpoint(newEndpoint);
-                        restartListenServer(clusterId, newConfig, delayMonitorServerMap);
-                        logger.info("[[monitor=delaylisten]] switch replicator listen success for cluster: {},new Config is:{}", clusterId, newConfig);
-                    } else {
-                        log(oldConfig, "ignore switch for old replicator endpoint(" + oldConfig.getIp() + ":" + oldConfig.getPort() + ") equals new replicator ip", INFO, null);
-                    }
-                } catch (Exception e) {
-                    logger.error("[[monitor=delaylisten]] switch replicator listen error for cluster: {},", clusterId, e);
-                } finally {
-                    clearProcessingListenServer(clusterId);
+        handleChangeExecutor.submit(() -> {
+            try {
+                StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
+                DelayMonitorSlaveConfig oldConfig = delayMonitorServer.getConfig();
+                if (!oldConfig.getIp().equalsIgnoreCase(newReplicatorIp) || oldConfig.getPort() != newReplicatorPort) {
+                    logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, old endpoint({}:{}), new endpoint({}:{})",
+                            clusterId, oldConfig.getIp(), oldConfig.getPort(), newReplicatorIp, newReplicatorPort);
+                    DelayMonitorSlaveConfig newConfig = oldConfig.clone();
+                    Endpoint newEndpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
+                    newConfig.setEndpoint(newEndpoint);
+                    restartListenServer(clusterId, newConfig, delayMonitorServerMap);
+                    logger.info("[[monitor=delaylisten]] switch replicator listen success for cluster: {},new Config is:{}", clusterId, newConfig);
+                } else {
+                    log(oldConfig, "ignore switch for old replicator endpoint(" + oldConfig.getIp() + ":" + oldConfig.getPort() + ") equals new replicator ip", INFO, null);
                 }
-            });
-        } else {
-            logger.warn("[[monitor=delaylisten]] delayMonitorServerMap not contain: {}", clusterId);
-            clearProcessingListenServer(clusterId);
+            } catch (Exception e) {
+                logger.error("[[monitor=delaylisten]] switch replicator listen error for cluster: {},", clusterId, e);
+            } finally {
+                clearProcessingListenServer(clusterId);
+            }
+        });
+    }
+
+    public void batchSwitchListenReplicator(Map<String, Pair<String, Integer>> clusterId2Replicators) {
+        Map<String, String> mhaName2ReplicatorIps = Maps.newHashMap();
+        for (Map.Entry<String, Pair<String, Integer>> entry : clusterId2Replicators.entrySet()) {
+            String clusterId = entry.getKey();
+            String newReplicatorIp = entry.getValue().getKey();
+            int newReplicatorPort = entry.getValue().getValue();
+            if (!delayMonitorServerMap.containsKey(clusterId)) {
+                continue;
+            }
+            StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
+            mhaName2ReplicatorIps.put(delayMonitorServer.getConfig().getDestMha(), newReplicatorIp);
+            switchListenReplicator(clusterId, newReplicatorIp, newReplicatorPort);
         }
+        batchUpdateMasterReplicatorIfChange(mhaName2ReplicatorIps);
     }
 
     public void restartListenServer(String replicatorUniqueKey, DelayMonitorSlaveConfig newConfig, Map<String, StaticDelayMonitorServer> delayMonitorServersHolder) {
@@ -383,6 +395,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 .collect(Collectors.groupingBy(ReplicatorWrapper::getDcName, Collectors.mapping(ReplicatorWrapper::getIp, Collectors.toSet())));
         Map<String, ReplicatorInfoDto> clusterIdT2MasterReplicators = getMasterReplicatorInfoDtos(dc2ReplicatorIps);
 
+        Map<String, String> mhaName2ReplicatorIps = Maps.newHashMap();
         for (Entry<String, List<ReplicatorWrapper>> entry : allReplicators.entrySet()) {
             String clusterId = entry.getKey();
             List<ReplicatorWrapper> rWrappers = entry.getValue();
@@ -394,12 +407,13 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 int applierPort = activeReplicator.getApplierPort();
                 logger.info("filterMasterReplicator cluster: {}, replicator: {}", clusterId, ip + ":" + applierPort);
                 rWrappers.removeIf(current -> current.getIp().equalsIgnoreCase(activeReplicator.getIp()) && current.getPort() == activeReplicator.getApplierPort());
-                updateMasterReplicatorIfChange(rWrapper.mhaName, activeReplicator.getIp());
+                mhaName2ReplicatorIps.put(rWrapper.mhaName, activeReplicator.getIp());
             } else {
                 logger.warn("filterMasterReplicator no master replicator, cluster: {}", clusterId);
                 rWrappers.removeIf(current -> current.getReplicator().isMaster());
             }
         }
+        batchUpdateMasterReplicatorIfChange(mhaName2ReplicatorIps);
     }
 
     @VisibleForTesting
@@ -464,6 +478,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         Map<String, Set<String>> dc2ReplicatorIps = cacheMetaService.getDc2ReplicatorIps(clusterIds);
         Map<String, ReplicatorInfoDto> clusterIdT2MasterReplicators = getMasterReplicatorInfoDtos(dc2ReplicatorIps);
 
+        Map<String, Pair<String, Integer>> clusterId2Replicators = Maps.newHashMap();
         for (String id : delayMonitorServerMap.keySet()) {
             logger.info("pollDetectReplicators cluster: {}", id);
             ReplicatorInfoDto activeReplicator = clusterIdT2MasterReplicators.get(id);
@@ -471,11 +486,12 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 String ip = activeReplicator.getIp();
                 int applierPort = activeReplicator.getApplierPort();
                 logger.info("pollDetectReplicators cluster: {}, replicator: {}", id, ip + ":" + applierPort);
-                switchListenReplicator(id, ip, applierPort);
+                clusterId2Replicators.put(id, Pair.of(ip, applierPort));
             } else {
                 logger.warn("pollDetectReplicators no master replicator, cluster: {}", id);
             }
         }
+        batchSwitchListenReplicator(clusterId2Replicators);
     }
 
     private Map<String, ReplicatorInfoDto> getMasterReplicatorInfoDtos(Map<String, Set<String>> dc2ReplicatorIps) {
@@ -505,12 +521,12 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         return masterReplicators.stream().collect(Collectors.toMap(ReplicatorInfoDto::getRegistryKey, Function.identity(), (k1, k2) -> k1));
     }
 
-    protected void updateMasterReplicatorIfChange(String mhaName, String newReplicatorIp) {
+    protected void batchUpdateMasterReplicatorIfChange(Map<String, String> mhaName2ReplicatorIps) {
         monitorMasterRExecutorService.submit(() -> {
             try {
-                centralService.updateMasterReplicatorIfChange(new MhaReplicatorEntity(mhaName, newReplicatorIp));
+                centralService.batchUpdateMasterReplicatorIfChange(new MhaReplicatorEntity(mhaName2ReplicatorIps));
             } catch (Throwable t) {
-                logger.error("updateMasterReplicatorIfChange error mha:{},newRIp:{}", mhaName, newReplicatorIp, t);
+                logger.error("batchUpdateMasterReplicatorIfChange error",  t);
             }
         });
     }
