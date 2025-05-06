@@ -85,6 +85,7 @@
         <attribute name="appId" value-type="int"/>
         <attribute name="applyMode" value-type="int"/>
         <entity-ref name="dbs"/>
+        <entity-ref name="dbClusterRoute" type="list" names="dbClusterRoutes" xml-indent="true"/>
         <entity-ref name="replicatorMonitor"/>
         <entity-ref name="replicator" type="list" names="replicators"/>
         <entity-ref name="applier" type="list" names="appliers"/>
@@ -151,6 +152,25 @@
             }
         </snippet>
     </entity>
+    <entity name="dbClusterRoute">
+        <attribute name="id" value-type="int"/>
+        <attribute name="org-id" value-type="int"/>
+        <attribute name="tag" value-type="String"/>
+        <attribute name="src-dc" value-type="String"/>
+        <attribute name="src-region" value-type="String"/>
+        <attribute name="dst-dc" value-type="String"/>
+        <attribute name="dst-region" value-type="String"/>
+        <attribute name="routeInfo" value-type="String"/>
+        <snippet>
+            &#64;Override
+            public DbClusterRoute cloneInstance() throws CloneNotSupportedException {
+            DbClusterRoute clone = new DbClusterRoute();
+            clone.setId(this.m_id);
+            clone.mergeAttributes(this);
+            return clone;
+            }
+        </snippet>
+    </entity>
     <entity name="db">
         <attribute name="ip" value-type="String"/>
         <attribute name="port" value-type="int"/>
@@ -210,6 +230,7 @@
         <attribute name="nameFilter" value-type="String"/>
         <attribute name="nameMapping" value-type="String"/>
         <attribute name="properties" value-type="String"/>
+        <attribute name="routeInfo" value-type="String"/>
         <snippet>
             &#64;Override
             public Applier cloneInstance() throws CloneNotSupportedException {

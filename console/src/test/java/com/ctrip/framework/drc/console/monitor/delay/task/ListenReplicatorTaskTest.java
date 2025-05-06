@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.monitor.comparator.ListeningReplicatorCom
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
-import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
@@ -71,8 +70,6 @@ public class ListenReplicatorTaskTest extends MockTest {
     private ResourceService resourceService;
     @Mock
     private CentralService centralService;
-    @Mock
-    private ModuleCommunicationServiceImpl moduleCommunicationService;
 
     private Map<String, ReplicatorWrapper> oldReplicatorWrappers;
 
@@ -160,7 +157,6 @@ public class ListenReplicatorTaskTest extends MockTest {
 
 
         // case1: get null
-        Mockito.when(moduleCommunicationService.getActiveReplicator(Mockito.anyString(), Mockito.anyString())).thenReturn(null);
         listenReplicatorTask.updateListenReplicatorSlaves();
     }
 
@@ -248,20 +244,6 @@ public class ListenReplicatorTaskTest extends MockTest {
         verify(delayMonitorServer, atMost(4)).stop();
         verify(delayMonitorServer, atMost(4)).dispose();
 
-    }
-
-    @Test
-    public void testPollDetectReplicators() throws Exception {
-        Replicator replicator = new Replicator();
-        replicator.setIp("127.0.0.1");
-        replicator.setApplierPort(8080);
-        Mockito.when(moduleCommunicationService.getActiveReplicator(Mockito.anyString(), Mockito.eq("dbcluster3.mha3dc2"))).thenReturn(replicator);
-        verify(delayMonitorServer, atMost(4)).initialize();
-        verify(delayMonitorServer, atMost(4)).start();
-        verify(delayMonitorServer, atMost(4)).stop();
-        verify(delayMonitorServer, atMost(4)).dispose();
-
-        listenReplicatorTask.pollDetectReplicators();
     }
 
     @Test

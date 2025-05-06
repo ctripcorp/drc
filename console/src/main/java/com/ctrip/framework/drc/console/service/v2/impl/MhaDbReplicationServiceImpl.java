@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
@@ -524,6 +525,22 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    @Override
+    public List<ApplierReplicationView> query(List<Long> mhaDbReplicationIds) throws SQLException {
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryByIds(mhaDbReplicationIds);
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = convert(mhaDbReplicationTbls);
+        return mhaDbReplicationDtos.stream().map(source -> {
+            ApplierReplicationView target = new ApplierReplicationView();
+            target.setSrcMhaName(source.getSrc().getMhaName());
+            target.setSrcDcName(source.getSrc().getDcName());
+            target.setDstMhaName(source.getDst().getMhaName());
+            target.setDstDcName(source.getDst().getDcName());
+            target.setDbName(source.getSrc().getDbName());
+            target.setRelatedId(source.getId());
+            return target;
+        }).collect(Collectors.toList());
     }
 
     /**

@@ -135,8 +135,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_PANEL_URL = "console.panel.url";
     private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
     private static String DRC_ADMIN_TOKEN = "drc.admin.token";
-    private static String SUPPORT_KAFKA_SWITCH = "support.kafka.switch";
-    private static String CONSOLE_REPLICATOR_MONITOR_SWITCH = "console.replicator.monitor.switch";
 
     private static final String CONFLICT_OPTIMIZE_SWITCH = "conflict.optimize.switch";
     private static final String IGNORE_CONFLICT_TYPES = "ignore.conflict.types";
@@ -605,14 +603,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getDrcAdminToken() {
         return getProperty(DRC_ADMIN_TOKEN,"");
-    }
-
-    public boolean getSupportKafkaSwitch() {
-        return getBooleanProperty(SUPPORT_KAFKA_SWITCH, false);
-    }
-
-    public boolean getConsoleReplicatorMonitorSwitch() {
-        return getBooleanProperty(CONSOLE_REPLICATOR_MONITOR_SWITCH, false);
     }
 
     public boolean getConflictOptimizeSwitch() {

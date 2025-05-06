@@ -76,6 +76,13 @@ public class RouteTbl implements DalPojo {
     private Integer deleted;
 
     /**
+     * globalActive
+     */
+    @Column(name = "global_active")
+    @Type(value = Types.TINYINT)
+    private Integer globalActive;
+
+    /**
      * create time
      */
     @Column(name = "create_time")
@@ -105,7 +112,16 @@ public class RouteTbl implements DalPojo {
         routeTbl.setOptionalProxyIds(relayProxyIds);
         routeTbl.setDstProxyIds(dstProxyIds);
         routeTbl.setTag(tag);
+        routeTbl.setGlobalActive(0);
         return routeTbl;
+    }
+
+    public Integer getGlobalActive() {
+        return globalActive;
+    }
+
+    public void setGlobalActive(Integer globalActive) {
+        this.globalActive = globalActive;
     }
 
     public Long getId() {
@@ -194,6 +210,16 @@ public class RouteTbl implements DalPojo {
 
     public void setOptionalProxyIds(String optionalProxyIds) {
         this.optionalProxyIds = optionalProxyIds;
+    }
+
+    public boolean equalRoute(RouteTbl other) {
+        return routeOrgId.equals(other.routeOrgId)
+                && srcDcId.equals(other.srcDcId)
+                && dstDcId.equals(other.dstDcId)
+                && srcProxyIds.equals(other.srcProxyIds)
+                && dstProxyIds.equals(other.dstProxyIds)
+                && optionalProxyIds.equals(other.optionalProxyIds)
+                && tag.equals(other.tag);
     }
 
 }

@@ -3,32 +3,35 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
+import com.ctrip.framework.drc.console.dto.RouteDto;
+import com.ctrip.framework.drc.console.dto.RouteMappingDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.param.MhaDbReplicationRouteDto;
+import com.ctrip.framework.drc.console.param.MhaRouteMappingDto;
+import com.ctrip.framework.drc.console.param.RouteQueryParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.resource.ProxyService;
+import com.ctrip.framework.drc.console.service.v2.resource.RouteService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.core.utils.EncryptUtils;
-import java.util.List;
-import java.util.Objects;
-import javax.validation.groups.Default;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by dengquanliang
@@ -47,6 +50,12 @@ public class MetaControllerV2 {
 
     @Autowired
     private MhaDbReplicationService mhaDbReplicationService;
+
+    @Autowired
+    private ProxyService proxyService;
+
+    @Autowired
+    private RouteService routeService;
     
     private HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
     
@@ -277,4 +286,216 @@ public class MetaControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @PostMapping("proxy")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> inputProxy(@RequestParam String dc, @RequestParam String ip) {
+        try {
+            proxyService.inputProxy(dc, ip);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("proxy/uris")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<String>> getProxyUris(@RequestParam String dc, @RequestParam boolean src) {
+        try {
+            return ApiResult.getSuccessInstance(proxyService.getProxyUris(dc, src));
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping("proxy/uris/relay")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<String>> getRelayProxyUris() {
+        try {
+            return ApiResult.getSuccessInstance(proxyService.getRelayProxyUris());
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping("route")
+    @SuppressWarnings("unchecked")
+    public ApiResult<RouteDto> getProxyRoute(@RequestParam long routeId) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRoute(routeId));
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @DeleteMapping("route")
+    @SuppressWarnings("unchecked")
+    public ApiResult<RouteDto> deleteRoute(@RequestParam long routeId) {
+        try {
+            routeService.deleteRoute(routeId);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @PostMapping("route")
+    @SuppressWarnings("unchecked")
+    public ApiResult<RouteDto> submitRoute(@RequestBody RouteDto routeDto) {
+        try {
+            routeService.submitRoute(routeDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @PostMapping("activeRoute")
+    @SuppressWarnings("unchecked")
+    public ApiResult<RouteDto> activeRoute(@RequestParam long routeId) {
+        try {
+            routeService.activeRoute(routeId);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @PostMapping("deactivateRoute")
+    @SuppressWarnings("unchecked")
+    public ApiResult<RouteDto> deactivateRoute(@RequestParam long routeId) {
+        try {
+            routeService.deactivateRoute(routeId);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "routes")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<RouteDto>> getRoutes(RouteQueryParam param) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRoutes(param));
+        } catch (Throwable t) {
+            logger.error("getRoutes error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "optionalRoutes")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<RouteDto>> getRoutesByRegion(@RequestParam String srcDcName, @RequestParam String dstDcName) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRoutesByRegion(srcDcName, dstDcName));
+        } catch (Throwable t) {
+            logger.error("getRoutesByRegion error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "optionalRoutes/dstDc")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<RouteDto>> getRoutesByDstDc(@RequestParam String dstDcName) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRoutesByDstRegion(dstDcName));
+        } catch (Throwable t) {
+            logger.error("getRoutesByDstDc error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @PostMapping(value = "routeMappings")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> submitMhaDbReplicationRoutes(@RequestBody MhaDbReplicationRouteDto routeDto) {
+        try {
+            routeService.submitMhaDbReplicationRoutes(routeDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            logger.error("submitMhaDbReplicationRoutes error", t);
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @PostMapping(value = "routeMappings/mha")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> submitMhaRoutes(@RequestBody MhaRouteMappingDto routeDto) {
+        try {
+            routeService.submitMhaRoutes(routeDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            logger.error("submitMhaRoutes error", t);
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @DeleteMapping(value = "routeMappings")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> deleteMhaDbReplicationRoutes(@RequestBody MhaDbReplicationRouteDto routeDto) {
+        try {
+            routeService.deleteMhaDbReplicationRoutes(routeDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            logger.error("deleteMhaDbReplicationRoutes error", t);
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @DeleteMapping(value = "routeMappings/mha")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> deleteMhaRoutes(@RequestBody MhaDbReplicationRouteDto routeDto) {
+        try {
+            routeService.deleteMhaRoutes(routeDto);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable t) {
+            logger.error("deleteMhaRoutes error", t);
+            return ApiResult.getFailInstance(false, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "routeMappings")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<RouteMappingDto>> getRouteMappings(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRouteMappings(srcMhaName, dstMhaName));
+        } catch (Throwable t) {
+            logger.error("getRouteMappings error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "routeMappings/mha")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<RouteMappingDto>> getRouteMappings(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRouteMappings(mhaName));
+        } catch (Throwable t) {
+            logger.error("getRouteMappings error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "routeMapping/dbs")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<ApplierReplicationView>> getRelatedDbs(@RequestParam long routeId) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRelatedDbs(routeId));
+        } catch (Throwable t) {
+            logger.error("getRelatedDbs error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+    @GetMapping(value = "routeMapping/mhas")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<ApplierReplicationView>> getRelatedMhas(@RequestParam long routeId) {
+        try {
+            return ApiResult.getSuccessInstance(routeService.getRelatedMhas(routeId));
+        } catch (Throwable t) {
+            logger.error("getRelatedMhas error", t);
+            return ApiResult.getFailInstance(null, t.getMessage());
+        }
+    }
+
+
 }

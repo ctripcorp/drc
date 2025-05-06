@@ -11,13 +11,11 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPoo
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
-import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
-import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.entity.Route;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -91,8 +89,6 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
     @Autowired
-    private ModuleCommunicationServiceImpl moduleCommunicationService;
-    @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private PeriodicalUpdateDbTask periodicalUpdateDbTask;
@@ -146,12 +142,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 if ((SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorSwitch()))) {
                     logger.info("[[monitor=delaylisten]] is Leader, going to listen all replicator");
                     updateListenReplicators();
-                    if (consoleConfig.getConsoleReplicatorMonitorSwitch()) {
-                        pollDetectReplicatorsV2();
-                    } else {
-                        pollDetectReplicators();
-                    }
-
+                    pollDetectReplicatorsV2();
                     updateListenReplicatorSlaves();
                 } else {
                     logger.warn("[[monitor=delaylisten]] is Leader, but listen all replicator switch is off");
@@ -384,25 +375,6 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         return config;
     }
 
-    private void filterMasterReplicator(Map<String, List<ReplicatorWrapper>> allReplicators) {
-        for (Entry<String, List<ReplicatorWrapper>> entry : allReplicators.entrySet()) {
-            String dbClusterId = entry.getKey();
-            List<ReplicatorWrapper> rWrappers = entry.getValue();
-            ReplicatorWrapper rWrapper = rWrappers.get(0);
-            String dcName = rWrapper.getDcName();
-            logger.info("request CM for real master R for {} in {}", dbClusterId, dcName);
-            Replicator activeReplicator = moduleCommunicationService.getActiveReplicator(dcName, dbClusterId);
-            if (null != activeReplicator) {
-                rWrappers.removeIf(current -> current.getIp().equalsIgnoreCase(activeReplicator.getIp()) && current.getPort() == activeReplicator.getApplierPort());
-                updateMasterReplicatorIfChange(rWrapper.mhaName, activeReplicator.getIp());
-            } else {
-                logger.info("no master R find when request CM for {} in {},", dbClusterId, dcName);
-                rWrappers.removeIf(current -> current.getReplicator().isMaster());
-            }
-        }
-
-    }
-
     @VisibleForTesting
     protected void filterMasterReplicatorV2(Map<String, List<ReplicatorWrapper>> allReplicators) {
         List<ReplicatorWrapper> allReplicatorWrappers = Lists.newArrayList();
@@ -471,34 +443,11 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     }
 
     @VisibleForTesting
-    protected void pollDetectReplicators() {
-        for (String id : delayMonitorServerMap.keySet()) {
-            StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(id);
-            DelayMonitorSlaveConfig config = delayMonitorServer.getConfig();
-            logger.info("pollDetectReplicators cluster: {}", id);
-            Replicator activeReplicator = moduleCommunicationService.getActiveReplicator(config.getDestDc(), id);
-            if (null != activeReplicator) {
-                String ip = activeReplicator.getIp();
-                int applierPort = activeReplicator.getApplierPort();
-                logger.info("pollDetectReplicators cluster: {}, replicator: {}", id, ip + ":" + applierPort);
-                switchListenReplicator(id, ip, applierPort);
-            } else {
-                logger.warn("pollDetectReplicators fail, cluster: {}", id);
-            }
-        }
-    }
-
-    @VisibleForTesting
     protected void updateListenReplicatorSlaves() throws SQLException {
         Map<String, ReplicatorWrapper> theNewestSlaveReplicatorWrappers = Maps.newConcurrentMap();
 
         Map<String, List<ReplicatorWrapper>> allReplicatorsInLocalRegion = cacheMetaService.getAllReplicatorsInLocalRegion();
-        if (consoleConfig.getConsoleReplicatorMonitorSwitch()) {
-            filterMasterReplicatorV2(allReplicatorsInLocalRegion);
-        } else {
-            filterMasterReplicator(allReplicatorsInLocalRegion);
-        }
-
+        filterMasterReplicatorV2(allReplicatorsInLocalRegion);
         for (List<ReplicatorWrapper> replicatorWrappers : allReplicatorsInLocalRegion.values()) {
             for (ReplicatorWrapper rWrapper : replicatorWrappers) {
                 theNewestSlaveReplicatorWrappers.put(rWrapper.getIp() + ":" + rWrapper.getPort(), rWrapper);

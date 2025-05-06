@@ -71,7 +71,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {
-            replicators.putAll(getReplicatorsSrcDcRelated(mhaNamesToBeMonitored,dcInLocalRegion));
+            replicators.putAll(getReplicatorsSrcDcRelated(mhaNamesToBeMonitored, dcInLocalRegion, dcsInLocalRegion));
         }
         return replicators;
     }
@@ -377,7 +377,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         return null;
     }
 
-    private Map<String, ReplicatorWrapper> getReplicatorsSrcDcRelated(List<String> mhaNamesToBeMonitored, String srcDc) {
+    private Map<String, ReplicatorWrapper> getReplicatorsSrcDcRelated(List<String> mhaNamesToBeMonitored, String srcDc, Set<String> dcsInLocalRegion) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         Map<String, Dc> dcs = metaProviderV2.getDrc().getDcs();
         HashSet<String> mhasRelated = Sets.newHashSet(mhaNamesToBeMonitored);
@@ -392,11 +392,16 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                             break;
                         }
                         // get Routes
-                        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
                         List<Route> routes = Lists.newArrayList();
-                        for (String dcInLocalRegion : dcsInLocalRegion) {
-                            routes.addAll(RouteUtils.filterRoutes(dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)));
+                        List<DbClusterRoute> dbClusterRoutes = dbCluster.getDbClusterRoutes().stream().filter(e -> dcsInLocalRegion.contains(e.getSrcDc()) && e.getTag().equals(Route.TAG_CONSOLE)).collect(Collectors.toList());
+                        if (!CollectionUtils.isEmpty(dbClusterRoutes)) {
+                            routes.addAll(transferRoutes(dbClusterRoutes));
+                        } else {
+                            for (String dcInLocalRegion : dcsInLocalRegion) {
+                                routes.addAll(RouteUtils.filterRoutes(dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)));
+                            }
                         }
+
                         replicators.put(
                                 dbCluster.getId(),
                                 new ReplicatorWrapper(
@@ -415,6 +420,22 @@ public class CacheMetaServiceImpl implements CacheMetaService {
             }
         }
         return replicators;
+    }
+
+    private List<Route> transferRoutes(List<DbClusterRoute> dbClusterRoutes) {
+        return dbClusterRoutes.stream().map(dbClusterRoute -> {
+            Route route = new Route();
+            route.setId(dbClusterRoute.getId());
+            route.setRouteInfo(dbClusterRoute.getRouteInfo());
+            route.setTag(dbClusterRoute.getTag());
+            route.setOrgId(dbClusterRoute.getOrgId());
+            route.setSrcDc(dbClusterRoute.getSrcDc());
+            route.setDstDc(dbClusterRoute.getDstDc());
+            route.setSrcRegion(dbClusterRoute.getSrcRegion());
+            route.setDstRegion(dbClusterRoute.getDstRegion());
+
+            return route;
+        }).collect(Collectors.toList());
     }
 
     private Map<String,List<ReplicatorWrapper>> getAllReplicatorInDc(String dcInRegion) {

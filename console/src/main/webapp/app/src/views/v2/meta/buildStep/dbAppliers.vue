@@ -9,7 +9,7 @@
         }
       }">首页
       </BreadcrumbItem>
-      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications"></BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/drcV2',query :{
           step: 3,
@@ -32,13 +32,14 @@
             }})==>{{ initInfo.dstMhaName }}({{ initInfo.dstDc }})</span>
         </Col>
       </Row>
-      <Row  style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec; display: flex; justify-content: flex-start; align-items: center;">
-        <Col style="display: flex; margin: 5px;" >
+      <Row
+        style="margin-top: 20px; background: #fdfdff; border: 1px solid #e8eaec; display: flex; justify-content: flex-start; align-items: center;">
+        <Col style="display: flex; margin: 5px;">
           <Button :loading="dataLoading" style="text-align: right" type="default"
                   v-if="!submitted" @click="preBatchUpdate()"> 批量修改
           </Button>
         </Col>
-        <Col style="display: flex; margin: 5px;" >
+        <Col style="display: flex; margin: 5px;">
           <Button icon="md-arrow-up" :loading="dataLoading" style="text-align: right" type="primary"
                   v-if="!submitted" @click="preSubmit()">提交
           </Button>
@@ -48,40 +49,62 @@
                   v-if="!submitted" @click="preSwitchAppliers()"> 一键自动切换
           </Button>
         </Col>
+        <Col style="display: flex; margin: 5px;">
+          <Dropdown :transfer="true" placement="bottom-start" type="primary">
+            <Button type="default" icon="ios-hammer">
+              操作
+              <Icon type="ios-arrow-down"></Icon>
+            </Button>
+            <template #list>
+              <DropdownMenu>
+                <DropdownItem>
+                  <Button v-if="!submitted" @click="preUpdateRoute()"> meta路由规则
+                  </Button>
+                </DropdownItem>
+                <DropdownItem>
+                  <Button v-if="!submitted" @click="preUpdateMhaRoute()"> console路由规则
+                  </Button>
+                </DropdownItem>
+              </DropdownMenu>
+            </template>
+          </Dropdown>
+        </Col>
       </Row>
 
       <Table style="margin-top: 0px" stripe :columns="columns" :data="tableData" :loading="dataLoading" border
              ref="multipleTable"
              @on-selection-change="changeSelection">
-                    <template #applier="{row, index}">
-                      <Select v-if="showSelectOptionComponent" :key="applierShowRefreshCounter" :transfer="true" v-model="tableData[index].ips" multiple style="width: 300px"
-                              placeholder="选择源集群Applier">
-                        <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
-                            item.az
-                          }}
-                          {{getRole(item.ip, currentInstances.get(tableData[index].dbName))}}
-                        </Option>
-                      </Select>
-                      <Button v-if="showSelectOptionComponent" :loading="applierDataLoading[index]" type="success" size="small" style="margin-left: 10px"
-                              @click="autoConfigApplier(row, index)">自动录入
-                      </Button>
-                      <span v-if="!showSelectOptionComponent"> {{ tableData[index].ips.join(', ') }}</span>
-                    </template>
+        <template #applier="{row, index}">
+          <Select v-if="showSelectOptionComponent" :key="applierShowRefreshCounter" :transfer="true"
+                  v-model="tableData[index].ips" multiple style="width: 300px"
+                  placeholder="选择源集群Applier">
+            <Option v-for="item in applierResourceList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{
+                item.az
+              }}
+              {{ getRole(item.ip, currentInstances.get(tableData[index].dbName)) }}
+            </Option>
+          </Select>
+          <Button v-if="showSelectOptionComponent" :loading="applierDataLoading[index]" type="success" size="small"
+                  style="margin-left: 10px"
+                  @click="autoConfigApplier(row, index)">自动录入
+          </Button>
+          <span v-if="!showSelectOptionComponent"> {{ tableData[index].ips.join(', ') }}</span>
+        </template>
 
-                    <template #gtidInit="{row, index}">
-                      <Input v-model="tableData[index].gtidInit" style="width: 80%" :border="false"
-                             placeholder="请输入binlog拉取位点"/>
-                    </template>
-                    <template #concurrency="{row, index}">
-                      <InputNumber :max="150" :min="1" v-model="tableData[index].concurrency" style="width: 90%"
-                             placeholder=""/>
-                    </template>
+        <template #gtidInit="{row, index}">
+          <Input v-model="tableData[index].gtidInit" style="width: 80%" :border="false"
+                 placeholder="请输入binlog拉取位点"/>
+        </template>
+        <template #concurrency="{row, index}">
+          <InputNumber :max="150" :min="1" v-model="tableData[index].concurrency" style="width: 90%"
+                       placeholder=""/>
+        </template>
       </Table>
       <Modal
-          v-model="batchUpdateModal"
-          title="请设置 Applier"
-          width="1200px"
-          @on-ok="batchUpdateAppliers">
+        v-model="batchUpdateModal"
+        title="请设置 Applier"
+        width="1200px"
+        @on-ok="batchUpdateAppliers">
         <div :style="{padding: '1px 1px',height: '100%'}">
           <Form label-position="left" :label-width="100">
             <FormItem label="Applier">
@@ -100,7 +123,7 @@
 
           <p>
             <span>共 </span><span
-              style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{
+            style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{
               this.updateData.length
             }}</span>
             <span> 行数据</span>
@@ -109,6 +132,93 @@
             <Table style="margin-top: 20px" stripe :columns="updateColumns" :data="updateData" border>
             </Table>
           </template>
+        </div>
+      </Modal>
+      <Modal
+        v-model="mhaRouteModal"
+        title="console路由规则配置"
+        width="1600px"
+        :closable="false"
+        :footer-hide="true">
+        <div :style="{padding: '1px 1px',height: '100%'}">
+          <p>
+            <span style="margin-top: 10px;color:#464c5b;font-weight:600">{{ initInfo.dstMhaName }}({{ initInfo.dstDc }})</span>
+          </p>
+          <br>
+          <p>
+            <span style="margin-top: 20px;color:#464c5b;font-weight:600">当前关联路由规则</span>
+          </p>
+          <template>
+            <Table style="margin-top: 0;margin-bottom: 20px" stripe :columns="mhaRouteColumns" :data="mhaRoutes" border>
+            </Table>
+          </template>
+          <br>
+          <p>
+            <span style="margin-top: 20px;color:#464c5b;font-weight:600">勾选路由规则</span>
+          </p>
+          <template>
+            <Table style="margin-top: 0" stripe :columns="mhaRouteColumns1" :data="routeData"
+                   @on-selection-change="changeMhaRouteSelection" border>
+            </Table>
+          </template>
+          <Row
+            style="margin-top: 20px; background: #fdfdff;  display: flex; justify-content: flex-start; align-items: center;">
+            <Col style="display: flex; margin: 5px;">
+              <Button :loading="submitMhaRouteLoading" style="margin-left: 1px; text-align: right"
+                      @click="clearMhaRouteModal()"> 取消
+              </Button>
+            </Col>
+            <Col style="display: flex; margin: 5px;">
+              <Button :loading="submitMhaRouteLoading" style="margin-left: 1px; text-align: right" type="primary"
+                      @click="submitMhaRoute()"> 提交
+              </Button>
+            </Col>
+          </Row>
+        </div>
+      </Modal>
+      <Modal
+        v-model="routeModal"
+        title="meta路由规则配置"
+        width="1600px"
+        :closable="false"
+        :footer-hide="true">
+        <div :style="{padding: '1px 1px',height: '100%'}">
+          <p>
+            <span
+              style="margin-top: 10px;color:#464c5b;font-weight:600">{{ initInfo.srcMhaName }}({{
+                initInfo.srcDc
+              }})==>{{ initInfo.dstMhaName }}({{ initInfo.dstDc }})</span>
+          </p>
+          <template>
+            <Table style="margin-top: 20px;margin-bottom: 20px" stripe :columns="routeColumns" :data="routeData"
+                   @on-row-click="handleRowClick" border>
+            </Table>
+          </template>
+          <p>
+            <span style="margin-top: 20px">共 </span><span
+            style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{
+              this.mhaDbData.length
+            }}</span>
+            <span> 行数据</span>
+          </p>
+          <template>
+            <Table style="margin-top: 0" stripe :columns="mhaDbColumns" :data="mhaDbData"
+                   @on-selection-change="changeDbRouteSelection" border>
+            </Table>
+          </template>
+          <Row
+            style="margin-top: 20px; background: #fdfdff;  display: flex; justify-content: flex-start; align-items: center;">
+            <Col style="display: flex; margin: 5px;">
+              <Button :loading="submitLoading" style="margin-left: 1px; text-align: right"
+                      @click="clearRouteModal()"> 取消
+              </Button>
+            </Col>
+            <Col style="display: flex; margin: 5px;">
+              <Button :loading="submitLoading" style="margin-left: 1px; text-align: right" type="primary"
+                      @click="submitRoute()"> 提交
+              </Button>
+            </Col>
+          </Row>
         </div>
       </Modal>
 
@@ -125,6 +235,7 @@ export default {
   name: 'tables',
   data () {
     return {
+      selectedRow: null,
       initInfo: {
         srcMhaName: '',
         srcMhaId: 0,
@@ -140,6 +251,12 @@ export default {
       submitted: false,
       applierResourceList: [],
       batchUpdateModal: false,
+      routeModal: false,
+      routeModalLoading: false,
+      mhaRouteModal: false,
+      mhaRouteModalLoading: false,
+      submitMhaRouteLoading: false,
+      submitLoading: false,
       rollbackModal: false,
       gtidCheck: {
         mhaApplied: '',
@@ -255,6 +372,146 @@ export default {
           }
         }
       ],
+      mhaRouteColumns1: [
+        {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
+        {
+          title: 'BU',
+          key: 'routeOrgName',
+          width: 80
+        },
+        {
+          title: 'Console源端机房',
+          key: 'srcDcName'
+        },
+        {
+          title: 'Replicator目标端机房',
+          key: 'dstDcName'
+        },
+        {
+          title: '源端Proxy',
+          key: 'srcProxyUris'
+        },
+        {
+          title: '目标Proxy',
+          key: 'dstProxyUris'
+        },
+        {
+          title: '中继Proxy',
+          key: 'relayProxyUris'
+        }
+      ],
+      mhaRouteColumns: [
+        {
+          title: 'BU',
+          key: 'routeOrgName',
+          width: 80
+        },
+        {
+          title: 'Console源端机房',
+          key: 'srcDcName'
+        },
+        {
+          title: 'Replicator目标端机房',
+          key: 'dstDcName'
+        },
+        {
+          title: '源端Proxy',
+          key: 'srcProxyUris'
+        },
+        {
+          title: '目标Proxy',
+          key: 'dstProxyUris'
+        },
+        {
+          title: '中继Proxy',
+          key: 'relayProxyUris'
+        }
+      ],
+      routeColumns: [
+        {
+          title: '选择',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            return h('Radio', {
+              props: {
+                value: this.selectedRow === params.row // 绑定选中状态
+              },
+              on: {
+                'on-change': () => {
+                  this.selectedRow = params.row // 更新选中行
+                }
+              }
+            })
+          }
+        },
+        {
+          title: 'BU',
+          key: 'routeOrgName',
+          width: 80
+        },
+        {
+          title: 'Applier源端机房',
+          key: 'srcDcName'
+        },
+        {
+          title: 'Replicator目标端机房',
+          key: 'dstDcName'
+        },
+        {
+          title: '源端Proxy',
+          key: 'srcProxyUris'
+        },
+        {
+          title: '目标Proxy',
+          key: 'dstProxyUris'
+        },
+        {
+          title: '中继Proxy',
+          key: 'relayProxyUris'
+        }
+      ],
+      mhaDbColumns: [
+        {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
+        {
+          title: '库名',
+          key: 'dbName',
+          width: 200
+        },
+        {
+          title: 'BU',
+          key: 'routeOrgName',
+          width: 80
+        },
+        {
+          title: 'Applier源端机房',
+          key: 'srcDcName'
+        },
+        {
+          title: 'Replicator目标端机房',
+          key: 'dstDcName'
+        },
+        {
+          title: '源端Proxy',
+          key: 'srcProxyUris'
+        },
+        {
+          title: '目标Proxy',
+          key: 'dstProxyUris'
+        },
+        {
+          title: '中继Proxy',
+          key: 'relayProxyUris'
+        }
+      ],
       dbGtidColumns: [
         {
           title: '库名',
@@ -280,6 +537,11 @@ export default {
         }
       ],
       updateData: [],
+      mhaDbData: [],
+      routeData: [],
+      multiDbRouteData: [],
+      multiMhaRoutes: [],
+      mhaRoutes: [],
       propertiesJson: {},
       tableData: [],
       dbApplierDtos: [],
@@ -291,6 +553,149 @@ export default {
     }
   },
   methods: {
+    changeMhaRouteSelection (val) {
+      this.multiMhaRoutes = val
+      console.log(this.multiMhaRoutes)
+    },
+    changeDbRouteSelection (val) {
+      this.multiDbRouteData = val
+      console.log(this.multiDbRouteData)
+    },
+    clearMhaRouteModal () {
+      this.multiMhaRoutes = []
+      this.mhaRoutes = []
+      this.routeData = []
+      this.mhaRouteModal = false
+    },
+    clearRouteModal () {
+      this.selectedRow = null
+      this.multiDbRouteData = []
+      this.routeData = []
+      this.mhaDbData = []
+      this.routeModal = false
+    },
+    handleRowClick (row) {
+      if (this.selectedRow != null && this.selectedRow.id === row.id) {
+        this.selectedRow = null
+      } else {
+        this.selectedRow = row
+      }
+    },
+    submitMhaRoute () {
+      if (this.multiMhaRoutes.length === 0) {
+        alert('请选择路由规则!')
+        return
+      }
+      const routeIds = []
+      this.multiMhaRoutes.forEach(e => routeIds.push(e.id))
+      const params = {
+        routeIds: routeIds,
+        mhaName: this.initInfo.dstMhaName
+      }
+      this.submitMhaRouteLoading = true
+      this.axios.post('/api/drc/v2/meta/routeMappings/mha', params)
+        .then(res => {
+          if (res.data.status === 1) {
+            this.$Message.error('配置路由规则失败: ' + res.data.message)
+          } else {
+            this.$Message.success('配置路由规则成功')
+          }
+        })
+        .catch(message => {
+          this.$Message.error('配置路由规则失败: ' + message)
+        })
+        .finally(() => {
+          this.getMhaRouteMappings()
+          this.submitMhaRouteLoading = false
+          this.multiMhaRoutes = []
+        })
+    },
+    submitRoute () {
+      if (this.selectedRow === null) {
+        alert('请选择路由规则!')
+        return
+      }
+      if (this.multiDbRouteData.length === 0) {
+        alert('请选择db!')
+        return
+      }
+      const mhaDbReplicationIds = []
+      this.multiDbRouteData.forEach(e => mhaDbReplicationIds.push(e.mhaDbReplicationId))
+      const params = {
+        mhaDbReplicationIds: mhaDbReplicationIds,
+        routeId: this.selectedRow.id
+      }
+      this.submitLoading = true
+      this.axios.post('/api/drc/v2/meta/routeMappings', params)
+        .then(res => {
+          if (res.data.status === 1) {
+            this.$Message.error('配置路由规则失败: ' + res.data.message)
+          } else {
+            this.$Message.success('配置路由规则成功')
+          }
+        })
+        .catch(message => {
+          this.$Message.error('配置路由规则失败: ' + message)
+        })
+        .finally(() => {
+          this.getRouteMappings()
+          this.submitLoading = false
+          this.multiDbRouteData = []
+        })
+    },
+    preUpdateRoute () {
+      this.routeModal = true
+      this.getRouteMappings()
+      this.getRoutes()
+      this.multiDbRouteData = []
+      this.selectedRow = null
+    },
+    preUpdateMhaRoute () {
+      this.mhaRouteModal = true
+      this.getMhaRouteMappings()
+      this.getMhaRoutes()
+      this.multiMhaRoutes = []
+    },
+    getRoutes () {
+      this.axios.get('/api/drc/v2/meta/optionalRoutes?srcDcName=' + this.initInfo.dstDc + '&dstDcName=' + this.initInfo.srcDc)
+        .then(res => {
+          if (res.data.status === 0) {
+            this.routeData = res.data.data
+          } else {
+            this.$Message.error('获取路由规则失败')
+          }
+        })
+    },
+    getMhaRoutes () {
+      this.axios.get('/api/drc/v2/meta/optionalRoutes/dstDc?dstDcName=' + this.initInfo.dstDc)
+        .then(res => {
+          if (res.data.status === 0) {
+            this.routeData = res.data.data
+          } else {
+            this.$Message.error('获取路由规则失败')
+          }
+        })
+    },
+    getRouteMappings () {
+      this.axios.get('/api/drc/v2/meta/routeMappings?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
+        .then(res => {
+          if (res.data.status === 0) {
+            this.mhaDbData = res.data.data
+          } else {
+            this.$Message.error('获取db复制链路失败')
+          }
+        })
+    },
+    getMhaRouteMappings () {
+      this.axios.get('/api/drc/v2/meta/routeMappings/mha?mhaName=' + this.initInfo.dstMhaName)
+        .then(res => {
+          if (res.data.status === 0) {
+            this.mhaRoutes = res.data.data
+          } else {
+            this.$Message.error('获取mha关联路由规则失败')
+          }
+        })
+    },
     getSwitchParams () {
       return [{
         srcMhaName: this.initInfo.srcMhaName,

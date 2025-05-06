@@ -14,29 +14,12 @@
                   <Option v-for="item in drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
                 </Select>
               </FormItem>
-              <FormItem label="协议" prop="protocol" style="width: 600px">
-                <Select v-model="proxyResource.protocol" filterable allow-create style="width: 200px" placeholder="请选择或输入Proxy协议" @on-change="protocolSelected" @on-create="handleCreateProtocol">
-                  <Option v-for="item in protocolList" :value="item" :key="item">{{ item }}</Option>
-                </Select>
-              </FormItem>
               <FormItem label="IP"  prop="ip" style="width: 450px">
                 <Input v-model="proxyResource.ip" placeholder="请输入Proxy IP"/>
               </FormItem>
-              <FormItem label="端口" prop="port" style="width: 600px">
-                <Select v-model="proxyResource.port" disabled style="width: 200px" placeholder="请选择协议" @on-create="handleCreatePort">
-                  <Option v-for="item in portList" :value="item" :key="item">{{ item }}</Option>
-                </Select>
-              </FormItem>
               <FormItem>
-                <Button @click="handleReset()">重置</Button><br><br>
-                <Button type="primary" @click="reviewInputResource ()">录入</Button>
+                <Button type="primary" @click="inputResource ()">录入</Button>
               </FormItem>
-              <Modal
-                v-model="proxyResource.reviewModal"
-                title="录入确认"
-                @on-ok="inputResource">
-                确认将资源{{ this.proxyResource.protocol }}://{{ this.proxyResource.ip }}:{{ this.proxyResource.port }}录入{{ this.proxyResource.dc }}吗？
-              </Modal>
               <Modal
                 v-model="proxyResource.resultModal"
                 title="录入结果">
@@ -57,53 +40,28 @@ export default {
     return {
       proxyResource: {
         dc: '',
-        protocol: '',
-        ip: '',
-        port: '',
-        reviewModal: false
+        ip: ''
       },
       ruleproxyResource: {
         dc: [
           { required: true, message: '机房不能为空', trigger: 'blur' }
         ],
-        protocol: [
-          { required: true, message: '协议不能为空', trigger: 'blur' }
-        ],
         ip: [
           { required: true, message: 'IP不能为空', trigger: 'blur' }
-        ],
-        port: [
-          { required: true, message: '端口不能为空', trigger: 'blur' }
         ]
 
       },
-      protocolList: ['PROXY', 'PROXYTLS'],
-      portList: ['80', '443'],
-      protocolToPort: new Map([
-        ['PROXY', '80'],
-        ['PROXYTLS', '443']
-      ]),
       drcZoneList: this.constant.dcList,
       result: ''
     }
   },
   methods: {
-    reviewInputResource () {
-      console.log('review input: add Proxy %s://%s:%s in %s', this.proxyResource.protocol, this.proxyResource.ip, this.proxyResource.port, this.proxyResource.dc)
-      this.proxyResource.reviewModal = true
-    },
     inputResource () {
       const that = this
       console.log('do input: dc: %s, protocol: %s, ip: %s, port: %s', this.proxyResource.dc, this.proxyResource.protocol, this.proxyResource.ip, this.proxyResource.port)
-      this.axios.post('/api/drc/v1/meta/proxy', {
-        dc: this.proxyResource.dc,
-        protocol: this.proxyResource.protocol,
-        ip: this.proxyResource.ip,
-        port: this.proxyResource.port
-      }).then(response => {
+      this.axios.post('/api/drc/v2/meta/proxy?dc=' + this.proxyResource.dc + '&ip=' + this.proxyResource.ip).then(response => {
         console.log('result: %s', response.data)
         that.result = response.data.data
-        that.proxyResource.reviewModal = false
         that.proxyResource.resultModal = true
       })
     },
@@ -115,28 +73,11 @@ export default {
       })
       console.log(this.drcZoneList)
     },
-    protocolSelected (val) {
-      console.log('protocolSelected: ' + val)
-      this.proxyResource.port = this.protocolToPort.get(this.proxyResource.protocol)
-    },
-    handleCreateProtocol (val) {
-      console.log('customize add protocol: ' + val)
-      this.protocolList.push(val)
-      console.log(this.protocolList)
-    },
-    handleCreatePort (val) {
-      console.log('customize add port: ' + val)
-      this.portList.push(val)
-      console.log(this.portList)
-    },
-    handleReset () {
-      console.log('reset input: add Proxy %s://%s:%s in %s', this.proxyResource.protocol, this.proxyResource.ip, this.proxyResource.port, this.proxyResource.dc)
-      this.proxyResource.dc = ''
-      this.proxyResource.protocol = ''
-      this.proxyResource.ip = ''
-      this.proxyResource.port = ''
-      this.result = ''
-      console.log('reset input result: add Proxy (%s)://(%s):(%s) in (%s)', this.proxyResource.protocol, this.proxyResource.ip, this.proxyResource.port, this.proxyResource.dc)
+    getBus () {
+      this.axios.get('/api/drc/v2/meta/bus/all')
+        .then(response => {
+          this.bus = response.data.data
+        })
     }
   },
   created () {

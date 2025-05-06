@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -54,4 +55,6 @@ public interface MhaDbReplicationService {
     List<MhaDbReplicationDto> queryByDbNames(List<String> dbNames, ReplicationTypeEnum typeEnum);
 
     List<MhaDbReplicationDto> queryByDbNamesAndMhaNames(List<String> dbNames, List<String> relateMhas, ReplicationTypeEnum typeEnum);
+
+    List<ApplierReplicationView> query(List<Long> mhaDbReplicationIds) throws SQLException;
 }

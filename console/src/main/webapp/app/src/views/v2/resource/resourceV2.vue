@@ -925,7 +925,7 @@ export default {
     toDbMessenger (row) {},
     toMhaReplication (row) {
       const detail = this.$router.resolve({
-        path: '/v2/mhaReplications',
+        path: '/v2/mhaDbReplications',
         query: {
           srcMhaName: row.srcMhaName,
           dstMhaName: row.dstMhaName,
@@ -948,9 +948,9 @@ export default {
     },
     toMhaReplicationByR (row) {
       const detail = this.$router.resolve({
-        path: '/v2/mhaReplications',
+        path: '/v2/mhaDbReplications',
         query: {
-          mhaName: row.mhaName,
+          relatedMhaName: row.mhaName,
           preciseSearchMode: false
         }
       })

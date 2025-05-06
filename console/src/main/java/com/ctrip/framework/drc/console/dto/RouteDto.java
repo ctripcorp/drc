@@ -26,19 +26,27 @@ public class RouteDto {
     
     private Integer deleted;
 
-    public RouteDto() {
+    private int globalActive;
+
+    private Long relatedNum;
+
+    public Long getRelatedNum() {
+        return relatedNum;
     }
 
-    public RouteDto(Long id, String routeOrgName, String srcDcName, String dstDcName, List<String> srcProxyUris, List<String> relayProxyUris, List<String> dstProxyUris, String tag,Integer deleted) {
-        this.id = id;
-        this.routeOrgName = routeOrgName;
-        this.srcDcName = srcDcName;
-        this.dstDcName = dstDcName;
-        this.srcProxyUris = srcProxyUris;
-        this.relayProxyUris = relayProxyUris;
-        this.dstProxyUris = dstProxyUris;
-        this.tag = tag;
-        this.deleted = deleted;
+    public void setRelatedNum(Long relatedNum) {
+        this.relatedNum = relatedNum;
+    }
+
+    public int getGlobalActive() {
+        return globalActive;
+    }
+
+    public void setGlobalActive(int globalActive) {
+        this.globalActive = globalActive;
+    }
+
+    public RouteDto() {
     }
 
     public Long getId() {

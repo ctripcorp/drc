@@ -1,21 +1,13 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME_REGEX;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
-
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.Db;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dbs;
-import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.manager.utils.SpringUtils;
+import com.ctrip.xpipe.api.proxy.ProxyProtocol;
 import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.ctrip.xpipe.proxy.ProxyEndpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -26,8 +18,8 @@ import org.springframework.context.ApplicationContext;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.entity.IRoute.ROUTE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
 
 /**
  * Created by mingdongli
@@ -112,9 +104,15 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                 config.setNameFilter(nameFilter);
 
                 config.setNameMapping(applier.getNameMapping());
-                Route route = getRoute(dbCluster.getId(), applier.getTargetIdc());
+                if (StringUtils.isEmpty(applier.getRouteInfo())) {
+                    Route route = getRoute(dbCluster.getId(), applier.getTargetIdc());
+                    config.setRouteInfo(route == null ? "" : (route.routeProtocol() + " " + ProxyEndpoint.PROXY_SCHEME.TCP.name()));
+                } else {
+                    logger.info("{} get routeInfo from applier: {}, {}", dbCluster.getId(), applier.getIp(), applier.getRouteInfo());
+                    config.setRouteInfo(getRoute(applier.getRouteInfo()));
+                }
+
                 config.setProperties(applier.getProperties());
-                config.setRouteInfo(route == null ? "" : (route.routeProtocol() + " " + ProxyEndpoint.PROXY_SCHEME.TCP.name()));
                 targetIdc = applier.getTargetIdc();
                 targetName = applier.getTargetName();
                 replicatorMhaName = applier.getTargetMhaName();
@@ -174,6 +172,13 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
             return null;
         }
     }
+
+    @VisibleForTesting
+    protected String getRoute(String routeInfo) {
+        String routeProtocol = String.format("%s %s %s", ProxyProtocol.KEY_WORD, ROUTE, routeInfo.trim());
+        return routeProtocol + " " + ProxyEndpoint.PROXY_SCHEME.TCP.name();
+    }
+
 
     @VisibleForTesting
     public void setCurrentMetaManager(CurrentMetaManager currentMetaManager) {
