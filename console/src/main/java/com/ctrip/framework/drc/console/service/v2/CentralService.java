@@ -28,6 +28,8 @@ public interface CentralService {
 
     Boolean updateMasterReplicatorIfChange(MhaReplicatorEntity requestBody)  throws SQLException;
 
+    Boolean batchUpdateMasterReplicatorIfChange(MhaReplicatorEntity requestBody)  throws SQLException;
+
     List<DcTbl> queryAllDcTbl() throws SQLException;
 
     List<MhaTblV2> queryAllMhaTblV2() throws SQLException;

@@ -12,6 +12,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import qunar.tc.qmq.*;
 import qunar.tc.qmq.consumer.MessageConsumerProvider;
 
@@ -79,7 +80,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             return false;
         }
         listenerHolder.stopListen();
-        receiveTimeMap.clear();
+        initMhas();
         return true;
     }
 
@@ -89,12 +90,18 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             return false;
         }
         listenerHolder.resumeListen();
+        initMhas();
         return true;
     }
 
     @Override
     public void mhasRefresh(Map<String, String> mha2Dc) {
         logger.info("[QmqDelayMessageConsumer] mhasRefresh: {}", mha2Dc);
+        if (CollectionUtils.isEmpty(mha2Dc)) {
+            initMhas();
+            return;
+        }
+
         Set<String> mhas = Sets.newHashSet(mha2Dc.keySet());
         Set<String> deleteMhas = Sets.newHashSet(mhasRelated);
         deleteMhas.removeAll(mhas);
@@ -110,6 +117,12 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         }
         this.mhasRelated = mhas;
         this.mha2Dc = mha2Dc;
+    }
+
+    private void initMhas() {
+        this.mhasRelated = Sets.newHashSet();
+        this.mha2Dc.clear();
+        this.receiveTimeMap.clear();
     }
 
     @Override

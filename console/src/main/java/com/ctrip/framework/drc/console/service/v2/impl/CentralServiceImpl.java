@@ -24,6 +24,7 @@ import com.ctrip.platform.dal.dao.KeyHolder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -154,6 +156,47 @@ public class CentralServiceImpl implements CentralService {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/replicator/batch", httpType = HttpRequestEnum.POST, forwardType = ForwardTypeEnum.TO_META_DB)
+    public Boolean batchUpdateMasterReplicatorIfChange(MhaReplicatorEntity requestBody) throws SQLException {
+        List<ReplicatorTbl> toUpdateReplicators = Lists.newArrayList();
+        Map<String, String> mhaName2ReplicatorIps = requestBody.getMhaName2ReplicatorIps();
+
+        Triple<Map<String, List<ReplicatorTbl>>, Map<String, String>, Map<Long, String>> triple = getIpAndReplicatorMap(Lists.newArrayList(requestBody.getMhaName2ReplicatorIps().keySet()));
+
+        Map<String, List<ReplicatorTbl>> mhaNames2Replicators = triple.getLeft();
+        Map<Long, String> resourceId2Ips = triple.getRight();
+        Map<String, String> mhaName2MasterReplicatorIps = triple.getMiddle();
+
+        for (Map.Entry<String, String> entry : mhaName2ReplicatorIps.entrySet()) {
+            String mhaName = entry.getKey();
+            String newIp = entry.getValue();
+            String masterIp = mhaName2MasterReplicatorIps.get(mhaName);
+            if (!StringUtils.isEmpty(masterIp) && masterIp.equals(newIp)) {
+                continue;
+            }
+            logger.info("update replicator master, mhaName: {}, newIp: {}", mhaName, newIp);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.master", String.format("%s:%s", mhaName, newIp));
+
+            List<ReplicatorTbl> replicatorTbls = mhaNames2Replicators.get(mhaName);
+            for (ReplicatorTbl replicatorTbl : replicatorTbls) {
+                String ip = resourceId2Ips.get(replicatorTbl.getResourceId());
+                if (ip.equals(newIp)) {
+                    replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
+                } else {
+                    replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
+                }
+                toUpdateReplicators.add(replicatorTbl);
+            }
+
+        }
+
+        if (toUpdateReplicators.size() > 0) {
+            replicatorTblDao.batchUpdate(toUpdateReplicators);
+        }
+        return true;
+    }
+
+    @Override
     @PossibleRemote(path = "/api/drc/v2/centralService/allDcTbl", forwardType = ForwardTypeEnum.TO_META_DB, responseType = DcTblListResponse.class)
     public List<DcTbl> queryAllDcTbl() throws SQLException {
         return dcTblDao.queryAllExist();
@@ -199,6 +242,38 @@ public class CentralServiceImpl implements CentralService {
             }
         }
         return ip2Replicator;
+    }
+
+    private Triple<Map<String, List<ReplicatorTbl>>, Map<String, String>, Map<Long, String>> getIpAndReplicatorMap(List<String> mhaNames) throws SQLException {
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist().stream().filter(e -> mhaNames.contains(e.getMhaName())).collect(Collectors.toList());
+        List<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAllExist().stream().filter(e -> mhaIds.contains(e.getMhaId())).collect(Collectors.toList());
+        List<Long> replicatorGroupIds = replicatorGroupTbls.stream().map(ReplicatorGroupTbl::getId).collect(Collectors.toList());
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllExist().stream().filter(e -> replicatorGroupIds.contains(e.getRelicatorGroupId())).collect(Collectors.toList());
+        Set<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toSet());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist().stream().filter(e -> resourceIds.contains(e.getId())).collect(Collectors.toList());
+
+        Map<String, Long> mhaName2Ids = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, MhaTblV2::getId));
+        Map<Long, Long> mhaId2ReplicatorGroupIds = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, ReplicatorGroupTbl::getId));
+        Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+        Map<Long, String> resourceId2Ips = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
+        Map<String, String> mhaName2MasterReplicatorIps = Maps.newHashMap();
+        Map<String, List<ReplicatorTbl>> mhaNames2Replicators = Maps.newHashMap();
+
+        for (Map.Entry<String, Long> entry : mhaName2Ids.entrySet()) {
+            String mhaName = entry.getKey();
+            long mhaId = entry.getValue();
+            List<ReplicatorTbl> replicators = replicatorMap.get(mhaId2ReplicatorGroupIds.get(mhaId));
+            mhaNames2Replicators.put(mhaName, replicators);
+
+            for (ReplicatorTbl replicator : replicators) {
+                if (replicator.getMaster().equals(BooleanEnum.TRUE.getCode())) {
+                    mhaName2MasterReplicatorIps.put(mhaName, resourceId2Ips.get(replicator.getResourceId()));
+                }
+            }
+        }
+
+        return Triple.of(mhaNames2Replicators, mhaName2MasterReplicatorIps, resourceId2Ips);
     }
 
 

@@ -79,7 +79,7 @@ public class SwitchServiceImplTest {
         Mockito.doNothing().when(listenReplicatorTask).switchListenReplicator(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt());
         switchService.switchListenReplicator(clusterConfigDto);
         Thread.sleep(1000);
-        verify(listenReplicatorTask, times(1)).switchListenReplicator(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt());
+        verify(listenReplicatorTask, times(1)).batchSwitchListenReplicator(Mockito.anyMap());
         verify(broadCast, times(1)).broadcastWithRetry(Mockito.anyString(), Mockito.any(RequestMethod.class), Mockito.anyString(), Mockito.anyInt());
     }
 
