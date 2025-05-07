@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.resource.condition;
 
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMPassHandler;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

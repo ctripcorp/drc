@@ -11,6 +11,7 @@ import java.util.Objects;
 public class MhaReplicationDto {
     private MhaDto srcMha;
     private MhaDto dstMha;
+    private MhaApplierDto mhaApplierDto;
     private List<MhaDbReplicationDto> mhaDbReplications;
 
     public MhaDto getSrcMha() {
@@ -36,6 +37,14 @@ public class MhaReplicationDto {
 
     public void setMhaDbReplications(List<MhaDbReplicationDto> mhaDbReplications) {
         this.mhaDbReplications = mhaDbReplications;
+    }
+
+    public MhaApplierDto getMhaApplierDto() {
+        return mhaApplierDto;
+    }
+
+    public void setMhaApplierDto(MhaApplierDto mhaApplierDto) {
+        this.mhaApplierDto = mhaApplierDto;
     }
 
     @Override
