@@ -1,5 +1,10 @@
 package com.ctrip.framework.drc.core.meta;
 
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.List;
+
 /**
  * @ClassName MqConfig
  * @Author haodongPan
@@ -29,22 +34,42 @@ public class MqConfig {
     private String orderKey;
     // qmq send message delayTime, unit:second
     private long delayTime;
-    
+    // send message for target subenv
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String subenv;
+    //EventType value: I, U, D
+    private List<String> excludeFilterTypes;
+    private List<String> filterFields;
+    private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     @Override
     public String toString() {
         return "MqConfig{" +
-                "mqType='" + mqType + '\'' +
-                ", table='" + table + '\'' +
+                "table='" + table + '\'' +
                 ", topic='" + topic + '\'' +
+                ", processor='" + processor + '\'' +
+                ", mqType='" + mqType + '\'' +
                 ", serialization='" + serialization + '\'' +
                 ", persistent=" + persistent +
                 ", persistentDb='" + persistentDb + '\'' +
                 ", order=" + order +
                 ", orderKey='" + orderKey + '\'' +
                 ", delayTime=" + delayTime +
-                ", processor='" + processor + '\'' +
+                ", subenv='" + subenv + '\'' +
+                ", excludeFilterTypes=" + excludeFilterTypes +
+                ", filterFields=" + filterFields +
+                ", sendOnlyUpdated=" + sendOnlyUpdated +
+                ", excludeColumn=" + excludeColumn +
                 '}';
+    }
+
+    public List<String> getExcludeFilterTypes() {
+        return excludeFilterTypes;
+    }
+
+    public void setExcludeFilterTypes(List<String> excludeFilterTypes) {
+        this.excludeFilterTypes = excludeFilterTypes;
     }
 
     public String getMqType() {
@@ -125,5 +150,41 @@ public class MqConfig {
 
     public void setProcessor(String processor) {
         this.processor = processor;
+    }
+
+    public String getSubenv() {
+        return subenv;
+    }
+
+    public void setSubenv(String subenv) {
+        this.subenv = subenv;
+    }
+
+    public String toJson() {
+        return JsonUtils.toJson(this);
+    }
+
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
+        this.sendOnlyUpdated = sendOnlyUpdated;
+    }
+
+    public boolean isExcludeColumn() {
+        return excludeColumn;
+    }
+
+    public void setExcludeColumn(boolean excludeColumn) {
+        this.excludeColumn = excludeColumn;
     }
 }

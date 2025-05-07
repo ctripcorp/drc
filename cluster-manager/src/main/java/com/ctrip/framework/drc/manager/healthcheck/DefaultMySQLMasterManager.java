@@ -174,7 +174,13 @@ public class DefaultMySQLMasterManager extends AbstractCurrentMetaObserver imple
 
         Db currentDb = getMaster(current);
         Db futureDb = getMaster(future);
-        if (futureDb != null && !futureDb.equals(currentDb)) {
+
+        Dbs currentDbs = current.getDbs();
+        Dbs futureDbs = future.getDbs();
+        if (!currentDbs.equalsWithUserAndPassword(futureDbs)) {
+            return Pair.from(true, futureDb);
+        }
+        if (futureDb != null && !futureDb.equalsWithIpPort(currentDb)) {
             return Pair.from(true, futureDb);
         }
         return Pair.from(false, null);
@@ -194,4 +200,5 @@ public class DefaultMySQLMasterManager extends AbstractCurrentMetaObserver imple
         }
         return null;
     }
+
 }

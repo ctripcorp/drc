@@ -29,6 +29,7 @@ public class LoadEventActivityTest extends MockTest {
         super.initMocks();
         loadEventActivity = new LoadEventActivity();
         loadEventActivity.executor = executor;
+        loadEventActivity.applyConcurrency = 100;
         loadEventActivity.initialize();
         loadEventActivity.start();
     }
@@ -46,4 +47,11 @@ public class LoadEventActivityTest extends MockTest {
         Assert.assertEquals(count, 8);  // thread size
     }
 
+    @Test
+    public void testGetLoadConcurrency() {
+        Assert.assertEquals(2, LoadEventActivity.getLoadConcurrency(1));
+        Assert.assertEquals(2, LoadEventActivity.getLoadConcurrency(10));
+        Assert.assertEquals(8, LoadEventActivity.getLoadConcurrency(100));
+        Assert.assertEquals(8, LoadEventActivity.getLoadConcurrency(150));
+    }
 }

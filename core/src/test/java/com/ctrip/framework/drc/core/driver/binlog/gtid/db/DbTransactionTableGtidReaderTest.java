@@ -23,8 +23,8 @@ public class DbTransactionTableGtidReaderTest {
     public void testGetDbGtidSetByUuid() throws Exception {
         ResultSet resultSet = Mockito.mock(ResultSet.class);
         Mockito.when(resultSet.next()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
-        Mockito.when(resultSet.getLong(1)).thenReturn(79700001L).thenReturn(79731247L);
-        Mockito.when(resultSet.getString(2)).thenReturn("5e54ab78-5854-11ee-9136-fa163e6063c9:1-79728308").thenReturn(null).thenReturn(null);
+        Mockito.when(resultSet.getLong(1)).thenReturn(-1L).thenReturn(79700001L).thenReturn(79731247L);
+        Mockito.when(resultSet.getString(2)).thenReturn("5e54ab78-5854-11ee-9136-fa163e6063c9:1-79728308");
 
         Statement statement = Mockito.mock(Statement.class);
         Mockito.when(statement.executeQuery("select `gno`, `gtidset` from `drcmonitordb`.`tx_db1` where `server_uuid` = \"5e54ab78-5854-11ee-9136-fa163e6063c9\";")).thenReturn(resultSet);

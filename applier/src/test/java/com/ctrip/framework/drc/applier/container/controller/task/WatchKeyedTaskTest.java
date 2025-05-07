@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.applier.container.controller.task;
 
-import com.ctrip.framework.drc.applier.activity.monitor.WatchActivity.LastLWM;
+import com.ctrip.framework.drc.fetcher.activity.monitor.BaseWatchActivity.LastLWM;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
-import com.ctrip.framework.drc.applier.server.ApplierServer;
+import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Assert;
@@ -25,7 +25,7 @@ public class WatchKeyedTaskTest {
         LastLWM lastLWM = new LastLWM(1, 1, 1);
         lastLWMHashMap.put("applier_key",lastLWM);
 
-        ApplierServer mockServer = Mockito.mock(ApplierServer.class);
+        FetcherServer mockServer = Mockito.mock(FetcherServer.class);
         Mockito.when(mockServer.getLWM()).thenReturn(1L);
         Mockito.when(mockServer.getProgress()).thenReturn(1L);
         Mockito.when(mockServer.getStatus()).thenReturn(SystemStatus.RUNNABLE);

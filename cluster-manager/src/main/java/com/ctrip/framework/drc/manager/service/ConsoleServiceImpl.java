@@ -3,8 +3,10 @@ package com.ctrip.framework.drc.manager.service;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.http.AsyncHttpClientFactory;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
@@ -12,6 +14,10 @@ import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.tuple.Pair;
+import org.asynchttpclient.AsyncHttpClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -27,15 +33,27 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGG
  */
 @Order(3)
 @Component
-public class ConsoleServiceImpl extends AbstractService implements StateChangeHandler {
+public class ConsoleServiceImpl extends AbstractService implements StateChangeHandler, DisposableBean {
 
     @Autowired
     private DataCenterService dataCenterService;
 
     @Autowired
     private ClusterManagerConfig clusterManagerConfig;
-    
+
+    @Autowired
+    private MysqlConsoleNotifier mysqlConsoleNotifier;
+
+    @Autowired
+    private ReplicatorConsoleNotifier replicatorConsoleNotifier;
+
+    @Autowired
+    private MessengerConsoleNotifier messengerConsoleNotifier;
+
+    protected Logger logger = LoggerFactory.getLogger(getClass());
     private HeraldService heraldService = ServicesUtil.getHeraldService();
+
+    private AsyncHttpClient asyncHttpConsoleNotifier = AsyncHttpClientFactory.create(DEFAULT_CONNECT_TIMEOUT, DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT, 0, 100, 1000);
 
     @Override
     public void replicatorActiveElected(String clusterId, Replicator replicator) {
@@ -43,25 +61,27 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
             STATE_LOGGER.info("[{}][replicatorActiveElected][none replicator survive, do nothing]", getClass().getSimpleName());
             return;
         }
-        STATE_LOGGER.info("[replicatorActiveElected] for {}:{}", clusterId, replicator);
-        Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
-        for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
-            if (!dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
-                String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/replicators/master/";
-                try {
-                    String ipAndPort = replicator.getIp() + ":" + replicator.getApplierPort();
-                    restTemplate.put(url, ipAndPort, clusterId);
-                    STATE_LOGGER.info("[replicatorActiveElected] notify {}, {}", url, clusterId);
-                } catch (Throwable t) {
-                    logger.error("[replicatorActiveElected] error for {}", url, t);
-                }
-            }
-        }
+        STATE_LOGGER.info("[replicatorMasterChanged] notify to console: {}, {}", clusterId, replicator);
+        String ipAndPort = replicator.getIp() + ":" + replicator.getApplierPort();
+        replicatorConsoleNotifier.notifyMasterChanged(clusterId, ipAndPort);
+    }
+
+
+    @Override
+    public void mysqlMasterChanged(String clusterId, Endpoint master) {
+        STATE_LOGGER.info("[mysqlMasterChanged] notify to console: {}, {}", clusterId, master);
+        String ipAndPort = master.getHost() + ":" + master.getPort();
+        mysqlConsoleNotifier.notifyMasterChanged(clusterId, ipAndPort);
     }
 
     @Override
     public void messengerActiveElected(String clusterId, Messenger messenger) {
+        if (messenger.getApplyMode() != ApplyMode.kafka.getType()) {
+            return;
+        }
+        STATE_LOGGER.info("[messengerMasterChanged] notify to console: {}, {}", clusterId, messenger);
 
+        messengerConsoleNotifier.notifyMasterChanged(clusterId, messenger.getIp());
     }
 
     @Override
@@ -72,27 +92,13 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
     public void applierActiveElected(String clusterId, Applier applier) {
     }
 
-    @Override
-    public void mysqlMasterChanged(String clusterId, Endpoint master) {
-        String ipAndPort = master.getHost() + ":" + master.getPort();
-        STATE_LOGGER.info("[mysqlMasterChanged] for {}:{}", clusterId, master);
-        Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
-        for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
-            String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/dbs/master/";
-            if (dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
-                restTemplate.put(url, ipAndPort, clusterId);
-                STATE_LOGGER.info("[mysqlMasterChanged] notify {}, {}", url, clusterId);
-                break;
-            }
-        }
-    }
 
     public String getDbClusters(String dcId) {
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         String region = dataCenterService.getRegion(dcId);
         RegionInfo regionInfo = consoleRegionInfos.get(region);
         if (null != regionInfo) {
-            String url  = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v2/meta/data/dcs/%s?refresh=true", dcId);
+            String url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v2/meta/data/dcs/%s?refresh=true", dcId);
             if (clusterManagerConfig.requestWithHeraldToken()) {
                 url += "&heraldToken=" + heraldService.getLocalHeraldToken();
             }
@@ -113,4 +119,10 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         }
         return null;
     }
+
+    @Override
+    public void destroy() throws Exception {
+        asyncHttpConsoleNotifier.close();
+    }
+
 }

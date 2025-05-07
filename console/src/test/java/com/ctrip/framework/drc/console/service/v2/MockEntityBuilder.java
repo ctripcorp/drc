@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
-import com.ctrip.framework.drc.console.param.v2.security.Account;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.google.common.collect.Lists;
 
@@ -258,14 +257,6 @@ public class MockEntityBuilder {
         return res;
     }
 
-    public static ApplierGroupTblV2 buildApplierGroupTbl(Long pk,MhaReplicationTbl mhaReplicationTbl) {
-        ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
-        applierGroupTbl.setId(pk);
-        applierGroupTbl.setMhaReplicationId(mhaReplicationTbl.getId());
-        applierGroupTbl.setDeleted(0);
-        return applierGroupTbl;
-    }
-
     public static MessengerGroupTbl buildMessengerGroupTbl(Long pk, Long mhaId) {
         MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
         messengerGroupTbl.setId(pk);
@@ -288,6 +279,17 @@ public class MockEntityBuilder {
         mhaDbReplicationTbl.setDeleted(0);
         return mhaDbReplicationTbl;
         
+    }
+
+    public static MhaDbReplicationTbl buildMhaDbReplicationTbl(Long pk, MhaDbMappingTbl srcMapping, MhaDbMappingTbl destMapping, Integer type) {
+        MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+        mhaDbReplicationTbl.setId(pk);
+        mhaDbReplicationTbl.setSrcMhaDbMappingId(srcMapping.getId());
+        mhaDbReplicationTbl.setDstMhaDbMappingId(destMapping.getId());
+        mhaDbReplicationTbl.setReplicationType(type);
+        mhaDbReplicationTbl.setDeleted(0);
+        return mhaDbReplicationTbl;
+
     }
 
     public static ApplierGroupTblV3 buildDbApplierGroup(long pk, Long mhdDbReplicationId) {

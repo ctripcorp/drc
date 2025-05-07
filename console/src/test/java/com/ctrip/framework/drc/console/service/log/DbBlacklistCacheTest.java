@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -27,7 +29,8 @@ public class DbBlacklistCacheTest {
     @InjectMocks
     private DbBlacklistCache dbBlacklistCache;
     @Mock
-    private ConflictLogService conflictLogService;
+    private ConflictDbBlackListTblDao conflictDbBlackListTblDao;
+
     @Mock
     private SSOService ssoService;
     @Mock
@@ -41,6 +44,7 @@ public class DbBlacklistCacheTest {
     @Test
     public void testGetDbBlacklistInCache() throws Exception {
         Mockito.when(defaultConsoleConfig.getCenterRegionDcs()).thenReturn(Lists.newArrayList("shaxy", "sharb"));
+        Mockito.when(defaultConsoleConfig.isCenterRegion()).thenReturn(true);
 
         AppNode appNode = new AppNode();
         appNode.setIp("ip1");
@@ -53,14 +57,14 @@ public class DbBlacklistCacheTest {
         ArrayList<AppNode> appNodes = Lists.newArrayList(appNode, appNode1);
         Mockito.when(ssoService.getAppNodes()).thenReturn(appNodes);
 
-        Mockito.when(conflictLogService.queryBlackList()).thenReturn(Lists.newArrayList(new AviatorRegexFilter("test")));
+        Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(Lists.newArrayList(getConflictDbBlackListTbl("test")));
         dbBlacklistCache.afterPropertiesSet();
 
         List<AviatorRegexFilter> res = dbBlacklistCache.getDbBlacklistInCache();
 //        System.out.println(res);
         Assert.assertEquals(res.get(0).toString(), new AviatorRegexFilter("test").toString());
 
-        Mockito.when(conflictLogService.queryBlackList()).thenReturn(Lists.newArrayList(new AviatorRegexFilter("test1")));
+        Mockito.when(conflictDbBlackListTblDao.queryAllExist()).thenReturn(Lists.newArrayList(getConflictDbBlackListTbl("test1")));
         try (MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn(ApiResult.getSuccessInstance(true));
             dbBlacklistCache.refresh(true);
@@ -79,5 +83,11 @@ public class DbBlacklistCacheTest {
         }
 
 
+    }
+
+    private static ConflictDbBlackListTbl getConflictDbBlackListTbl(String dbFilter) {
+        ConflictDbBlackListTbl conflictDbBlackListTbl = new ConflictDbBlackListTbl();
+        conflictDbBlackListTbl.setDbFilter(dbFilter);
+        return conflictDbBlackListTbl;
     }
 }

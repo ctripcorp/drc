@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid;
 
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -33,6 +35,9 @@ public class Gtid {
         this.transactionId = Long.parseLong(split[1]);
     }
 
+    public static Gtid from(GtidLogEvent event) {
+        return new Gtid(event.getServerUUID().toString(), event.getId());
+    }
 
     public boolean isContainedWithin(GtidSet gtidSet) {
         if (gtidSet == null) {

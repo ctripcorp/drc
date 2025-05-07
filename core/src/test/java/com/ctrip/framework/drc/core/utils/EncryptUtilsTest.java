@@ -17,7 +17,10 @@ public class EncryptUtilsTest {
     public void generateRawToken() throws Exception {
         String rawToken = EncryptUtils.encryptAES_ECB("token", "appid");
     }
-    
-    
-    
+
+//    @Test
+//    public void decrypt() throws Exception{
+//        String token = EncryptUtils.decryptAES_ECB("token", "100023928");
+//        System.out.println(token);
+//    }
 }

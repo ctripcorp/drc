@@ -13,24 +13,8 @@ const dcList = [
     label: '上海日版'
   },
   {
-    value: 'shajq',
-    label: '上海金桥'
-  },
-  {
-    value: 'shafq',
-    label: '上海福泉'
-  },
-  {
-    value: 'shajz',
-    label: '上海金钟'
-  },
-  {
     value: 'ntgxh',
     label: 'ntgxh'
-  },
-  {
-    value: 'ntgxy',
-    label: 'ntgxy'
   },
   {
     value: 'fraaws',
@@ -39,14 +23,6 @@ const dcList = [
   {
     value: 'shali',
     label: '上海阿里'
-  },
-  {
-    value: 'sinibuaws',
-    label: 'IBU-VPC'
-  },
-  {
-    value: 'sinibualiyun',
-    label: 'IBU-VPC(aliyun)'
   },
   {
     value: 'sinaws',
@@ -62,9 +38,12 @@ const tagList = [
   'FLT',
   'HTL',
   'OI',
-  'TEST',
-  'TRAVIX'
+  'TRAVIX',
+  'FNC',
+  'PCI',
+  'TEST'
 ]
+const routeTags = ['meta', 'console']
 const azList = [
   'SHARB',
   'SHAXY',
@@ -81,11 +60,25 @@ const azList = [
   'SGP-ALI-B',
   'SGP-ALI-C'
 ]
+const replicationType = {
+  DB_TO_DB: 0,
+  DB_TO_MQ: 1,
+  DB_TO_KAFKA: 2
+}
+const mqTypeToReplicationType = new Map([
+  ['qmq', 1],
+  ['kafka', 2]
+])
+const mqTypeList = [...mqTypeToReplicationType.keys()]
 export default {
   name: 'constant',
   dcList,
   tagList,
-  azList
+  azList,
+  mqTypeList,
+  replicationType,
+  mqTypeToReplicationType,
+  routeTags
 }
 </script>
 

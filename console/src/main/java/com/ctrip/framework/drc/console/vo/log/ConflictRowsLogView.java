@@ -11,6 +11,7 @@ public class ConflictRowsLogView {
     private String tableName;
     private String handleTime;
     private Integer rowResult;
+    private String rowResultDetail;
     private String srcRegion;
     private String dstRegion;
     private String rawSql;
@@ -148,5 +149,13 @@ public class ConflictRowsLogView {
 
     public void setBrief(Integer brief) {
         this.brief = brief;
+    }
+
+    public String getRowResultDetail() {
+        return rowResultDetail;
+    }
+
+    public void setRowResultDetail(String rowResultDetail) {
+        this.rowResultDetail = rowResultDetail;
     }
 }

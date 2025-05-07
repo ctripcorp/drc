@@ -21,9 +21,10 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION
  */
 public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
 
-    private ListeningExecutorService zoneInfoExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("DbClusterHeartbeatTask-Zone"));
+    private static final ListeningExecutorService zoneInfoExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("DbClusterHeartbeatTask-Zone"));
 
     private static final int CONNECTION_TIMEOUT_DELTA = 500;
+    private static final int DB_CLUSTER_PING_TIMEOUT = CONNECTION_TIMEOUT + CONNECTION_TIMEOUT_DELTA;
 
     private DbCluster dbCluster;
 
@@ -63,8 +64,9 @@ public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
         }, MoreExecutors.directExecutor());
 
         try {
-            boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT + CONNECTION_TIMEOUT_DELTA, TimeUnit.MILLISECONDS);
+            boolean queryResult = countDownLatch.await(DB_CLUSTER_PING_TIMEOUT, TimeUnit.MILLISECONDS);
             if (!queryResult) {
+                queries.forEach(e -> e.cancel(true));
                 logger.error("[Timeout] for countDownLatch querying {}", dbCluster.getName());
             }
         } catch (InterruptedException e) {

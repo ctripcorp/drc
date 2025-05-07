@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.cluster.*;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.api.observer.Observable;
+import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.command.AbstractCommand;
 import com.ctrip.xpipe.spring.AbstractSpringConfigContext;
 import com.ctrip.xpipe.zk.ZkClient;
@@ -18,12 +21,13 @@ import javax.annotation.Resource;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author limingdong
  * @create 2020/4/19
  */
-public class DefaultCurrentClusterServer extends AbstractClusterServer implements CurrentClusterServer, TopElement {
+public class DefaultCurrentClusterServer extends AbstractClusterServer implements CurrentClusterServer, TopElement, Observer {
 
     @Autowired
     private ZkClient zkClient;
@@ -32,10 +36,13 @@ public class DefaultCurrentClusterServer extends AbstractClusterServer implement
     protected ClusterManagerConfig config;
 
     @Autowired
-    private SlotManager slotManager;
+    protected SlotManager slotManager;
 
     @Autowired
     private ClusterManagerLeaderElector clusterManagerLeaderElector;
+
+    @Autowired
+    private ClusterServerStateManager clusterServerStateManager;
 
     private String currentServerId;
 
@@ -58,6 +65,7 @@ public class DefaultCurrentClusterServer extends AbstractClusterServer implement
 
         setServerId(currentServerId);
         setClusterServerInfo(new ClusterServerInfo(config.getClusterServerIp(), config.getClusterServerPort()));
+        clusterServerStateManager.initialize();
     }
 
     @Override
@@ -73,6 +81,8 @@ public class DefaultCurrentClusterServer extends AbstractClusterServer implement
 
         persistentNode = new PersistentNode(zkClient.get(), CreateMode.EPHEMERAL, false, serverPath, Codec.DEFAULT.encodeAsBytes(getClusterInfo()));
         persistentNode.start();
+        clusterServerStateManager.start();
+        clusterServerStateManager.addObserver(this);
     }
 
     @Override
@@ -85,6 +95,25 @@ public class DefaultCurrentClusterServer extends AbstractClusterServer implement
         persistentNode.close();
     }
 
+    @Override
+    protected synchronized void updateClusterState(ServerStateEnum stateEnum) {
+        // persist state, so leader can perceive server state when reconnect
+        super.updateClusterState(stateEnum);
+        try {
+            persistentNode.waitForInitialCreate(1, TimeUnit.SECONDS);
+            persistentNode.setData(Codec.DEFAULT.encodeAsBytes(getClusterInfo()));
+        } catch (Exception e) {
+            ClusterServerInfo currData = Codec.DEFAULT.decode(persistentNode.getData(), ClusterServerInfo.class);
+            logger.warn("[updateClusterState] persistentNode setData. stateEnum: {}, currData: {}", stateEnum, currData, e);
+        }
+    }
+
+    @Override
+    public void update(Object args, Observable observable) {
+        if (args instanceof ServerStateEnum) {
+            updateClusterState((ServerStateEnum) args);
+        }
+    }
 
     @Override
     protected void doDispose() throws Exception {

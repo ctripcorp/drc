@@ -28,7 +28,8 @@ public class RateLimitAspect {
 
     private final RateLimiter rateLimiter = RateLimiter.create(10.0);
 
-    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.RateLimit)")
+    @Pointcut("within(com.ctrip.framework.drc.console.controller..*) && " +
+            "@annotation(com.ctrip.framework.drc.console.aop.RateLimit)")
     public void pointcut() {
     }
 

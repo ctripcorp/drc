@@ -26,7 +26,7 @@
                   </Select>
                 </Col>
                 <Col span="4">
-                  <Select filterable clearable v-model="queryParam.tag" placeholder="tag" @on-change="getResources">
+                  <Select filterable clearable allow-create v-model="queryParam.tag" placeholder="tag" @on-change="getResources" @on-create="handleAddTag">
                     <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </Col>
@@ -106,8 +106,8 @@
         </Modal>
         <Modal
           v-model="migrateApplierInfo.modal"
-          title="applier实例迁移"
-          footer-hide="true"
+          :title="migrateApplierInfo.oldIpInfo.type === 1 ? 'applier实例迁移' : 'messenger实例迁移' "
+          :footer-hide=true
           width="900px" :scrollable="true" :draggable="true">
           <Row :gutter=10>
             <Col span="4">
@@ -127,7 +127,7 @@
                   {{ item }}
                 </Option>
               </Select>
-              <Button type="primary" style="margin-left: 100px" :loading="migrateApplierInfo.loading2" @click="migrateAllApplier">全部实例迁移</Button>
+              <Button type="primary" style="margin-left: 100px" :loading="migrateApplierInfo.loading2" @click="migrateAllApplierOrMessenger">全部实例迁移</Button>
             </FormItem>
             <FormItem>
               <Table stripe border :columns="migrateApplierInfo.columns" :data="aDataWithPage" ref="multipleTable" @on-selection-change="changeSelectionA">
@@ -146,7 +146,7 @@
               </div>
             </FormItem>
             <FormItem>
-              <Button type="primary" :loading="migrateApplierInfo.loading" @click="migrateApplier">迁移</Button>
+              <Button type="primary" :loading="migrateApplierInfo.loading" @click="migrateApplierOrMessenger">迁移</Button>
               <Button type="success" style="margin-left: 100px" @click="refreshMigrateApplier">刷新</Button>
             </FormItem>
           </Form>
@@ -154,7 +154,7 @@
         <Modal
           v-model="migrateReplicatorInfo.modal"
           title="replicator实例迁移"
-          footer-hide="true"
+          :footer-hide=true
           width="900px" :scrollable="true" :draggable="true">
           <Row :gutter=10>
             <Col span="4">
@@ -246,6 +246,10 @@ export default {
                 text = 'A'
                 type = 'success'
                 break
+              case 7:
+                text = 'M'
+                type = 'warning'
+                break
               default:
                 text = '无'
                 disabled = true
@@ -328,6 +332,10 @@ export default {
         {
           name: 'Applier',
           val: 1
+        },
+        {
+          name: 'Messenger',
+          val: 7
         }
       ],
       activeList: [
@@ -362,7 +370,7 @@ export default {
           {
             title: '类型',
             key: 'type',
-            width: 150,
+            width: 200,
             render: (h, params) => {
               const row = params.row
               let text = 'none'
@@ -390,6 +398,7 @@ export default {
                   disabled = true
                   break
               }
+              text = `${text} (${row.mqType})`
               return h('Button', {
                 props: {
                   type: type,
@@ -490,7 +499,8 @@ export default {
           ip: '',
           tag: '',
           az: '',
-          resourceId: null
+          resourceId: null,
+          type: null
         },
         migrateDataList: [],
         tableData: [],
@@ -515,7 +525,7 @@ export default {
           {
             title: '类型',
             key: 'type',
-            width: 150,
+            width: 200,
             render: (h, params) => {
               const row = params.row
               let text = 'none'
@@ -531,7 +541,7 @@ export default {
                   type = 'success'
                   break
                 case 3:
-                  text = 'Messenger'
+                  text = `Messenger (${row.mqType})`
                   type = 'warning'
                   break
                 case 4:
@@ -714,7 +724,7 @@ export default {
       this.migrateReplicatorInfo.migrateMhaList = val
       console.log(this.migrateReplicatorInfo.migrateMhaList)
     },
-    migrateAllApplier () {
+    migrateAllApplierOrMessenger () {
       const newIp = this.migrateApplierInfo.newIp
       if (newIp === null || newIp === '') {
         this.$Message.warning('请选择目标ip')
@@ -727,17 +737,29 @@ export default {
       }
       const oldIp = this.migrateApplierInfo.oldIpInfo.ip
       this.migrateApplierInfo.loading2 = true
-      this.axios.post('/api/drc/v2/resource/migrate/applier?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
-        if (res.data.status === 0) {
-          this.migrateApplierInfo.tableData = res.data.data
-          this.$Message.success('共迁移' + res.data.data + '个实例')
-        } else {
-          this.$Message.error('迁移失败' + res.data.message)
-        }
-      })
+      const type = this.migrateApplierInfo.oldIpInfo.type
+      if (type === 1) {
+        this.axios.post('/api/drc/v2/resource/migrate/applier?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      } else if (type === 7) {
+        this.axios.post('/api/drc/v2/resource/migrate/messenger?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      }
       this.migrateApplierInfo.loading2 = false
     },
-    migrateApplier () {
+    migrateApplierOrMessenger () {
       const multiData = this.migrateApplierInfo.migrateDataList
       if (multiData === undefined || multiData === null || multiData.length === 0) {
         this.$Message.warning('请勾选！')
@@ -762,14 +784,26 @@ export default {
         applierResourceDtos: migrateApplierInfos
       }
       this.migrateApplierInfo.loading = true
-      this.axios.post('/api/drc/v2/resource/partialMigrate/applier', params).then(res => {
-        if (res.data.status === 0) {
-          this.migrateApplierInfo.tableData = res.data.data
-          this.$Message.success('共迁移' + res.data.data + '个实例')
-        } else {
-          this.$Message.error('迁移失败' + res.data.message)
-        }
-      })
+      if (this.migrateApplierInfo.oldIpInfo.type === 1) {
+        this.axios.post('/api/drc/v2/resource/partialMigrate/applier', params).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      } else {
+        this.axios.post('/api/drc/v2/resource/partialMigrate/messenger', params).then(res => {
+          if (res.data.status === 0) {
+            this.migrateApplierInfo.tableData = res.data.data
+            this.$Message.success('共迁移' + res.data.data + '个实例')
+          } else {
+            this.$Message.error('迁移失败' + res.data.message)
+          }
+        })
+      }
+
       this.migrateApplierInfo.loading = false
     },
     migrateReplicator () {
@@ -831,6 +865,8 @@ export default {
         this.showMigrateReplicator(row)
       } else if (row.type === 1) {
         this.showMigrateApplier(row)
+      } else if (row.type === 7) {
+        this.showMigrateApplier(row)
       }
     },
     showMigrateApplier (row) {
@@ -838,7 +874,8 @@ export default {
         ip: row.ip,
         tag: row.tag,
         az: row.az,
-        resourceId: row.resourceId
+        resourceId: row.resourceId,
+        type: row.type
       }
       this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
         if (res.data.status === 0) {
@@ -879,7 +916,8 @@ export default {
       const detail = this.$router.resolve({
         path: '/v2/messengersV2',
         query: {
-          mhaName: row.srcMhaName
+          mhaName: row.srcMhaName,
+          mqType: row.mqType
         }
       })
       window.open(detail.href, '_blank')
@@ -887,7 +925,7 @@ export default {
     toDbMessenger (row) {},
     toMhaReplication (row) {
       const detail = this.$router.resolve({
-        path: '/v2/mhaReplications',
+        path: '/v2/mhaDbReplications',
         query: {
           srcMhaName: row.srcMhaName,
           dstMhaName: row.dstMhaName,
@@ -910,9 +948,9 @@ export default {
     },
     toMhaReplicationByR (row) {
       const detail = this.$router.resolve({
-        path: '/v2/mhaReplications',
+        path: '/v2/mhaDbReplications',
         query: {
-          mhaName: row.mhaName,
+          relatedMhaName: row.mhaName,
           preciseSearchMode: false
         }
       })
@@ -922,6 +960,8 @@ export default {
       if (row.type === 0) {
         this.getRelatedMha(row)
       } else if (row.type === 1) {
+        this.getRelatedMhaReplication(row)
+      } else if (row.type === 7) {
         this.getRelatedMhaReplication(row)
       }
     },
@@ -1010,6 +1050,9 @@ export default {
           that.dataLoading = false
         })
     },
+    handleAddTag (val) {
+      this.constant.tagList.push(val)
+    },
     handleChangeSize (val) {
       this.size = val
       this.$nextTick(() => {
@@ -1071,7 +1114,7 @@ export default {
         } else {
           this.$Message.warning('停用失败')
         }
-        // this.getResources()
+        this.getResources()
       })
     },
     activeResource (resourceId) {
@@ -1081,7 +1124,7 @@ export default {
         } else {
           this.$Message.warning('启用失败')
         }
-        // this.getResources()
+        this.getResources()
       })
     },
     flattenObj (ob) {

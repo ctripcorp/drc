@@ -1,8 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
@@ -21,17 +18,17 @@ import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.sql.Timestamp;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
 /**
  * @author shenhaibo
@@ -96,14 +93,8 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
 
     private void refreshMhaTblMap() {
         try {
-            Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
-            String localDcName = dataCenterService.getDc();
-            if (localConfigCloudDc.contains(localDcName)) {
-                mhaName2IdMap.putAll(consoleConfig.getLocalConfigMhasMap());
-            } else {
-                for (String dc : dcsInRegion) {
-                    refreshMhaTblByDc(dc);
-                }
+            for (String dc : dcsInRegion) {
+                refreshMhaTblByDc(dc);
             }
         } catch (Exception e) {
             logger.error("[[task=updateDelayTable]] error in refreshMhaTblMap",e);

@@ -130,7 +130,7 @@
           <Col span="2" style="display: flex;float: left;margin: 5px" >
             <Dropdown placement="bottom-start">
               <Button type="default" icon="ios-hammer">
-                新建配置
+                操作
                 <Icon type="ios-arrow-down"></Icon>
               </Button>
                 <template #list>
@@ -141,14 +141,31 @@
                 </template>
               </Dropdown>
           </Col>
+          <Col span="2" style="display: flex;float: left;margin: 5px" >
+            <Dropdown placement="bottom-start">
+              <Button type="default" icon="ios-list-box-outline">
+                查询
+                <Icon type="ios-arrow-down"></Icon>
+              </Button>
+              <template #list>
+                <DropdownMenu >
+                  <DropdownItem @click.native="() => {$router.push({path: '/v2/mhaReplications'})}">MHA 复制链路</DropdownItem>
+                  <DropdownItem @click.native="() => {$router.push({path: '/mha'})}">MHA 集群</DropdownItem>
+                </DropdownMenu>
+              </template>
+            </Dropdown>
+          </Col>
         </Row>
-        <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
+        <Table :loading="dataLoading" stripe border :columns="columns" :resizable="true" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row }" slot="action">
             <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.src.mhaName,row.dst.mhaName,false)">
               查看
             </Button>
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToMhaDbReplicationDetails(row)">
               编辑
+            </Button>
+            <Button type="default" size="small" style="margin-right: 5px" @click="goToMhaReplicationDetails(row)">
+              跳转MHA
             </Button>
           </template>
         </Table>
@@ -157,8 +174,8 @@
             :transfer="true"
             :total="total"
             :current.sync="current"
-            :page-size-opts="[10,20,50,100]"
-            :page-size="10"
+            :page-size-opts="[20,50,100,200,1000]"
+            :page-size="20"
             show-total
             show-sizer
             show-elevator
@@ -257,8 +274,9 @@ export default {
         {
           title: '延迟',
           key: 'drcStatus',
-          width: 100,
           align: 'center',
+          width: 150,
+          resizable: true,
           renderHeader: (h, params) => {
             return h('span', [
               h('span', '延迟'),
@@ -283,7 +301,7 @@ export default {
             let color, text
             if (row.drcStatus === true) {
               if (row.delay != null) {
-                text = prettyMilliseconds(row.delay, { compact: true })
+                text = prettyMilliseconds(row.delay, { compact: false })
                 if (row.delay > 10000) {
                   color = 'warning'
                 } else {
@@ -307,6 +325,8 @@ export default {
         {
           title: 'DB 名',
           key: 'srcDbName',
+          width: 250,
+          resizable: true,
           render: (h, params) => {
             return h('p', params.row.src.dbName)
           }
@@ -315,58 +335,54 @@ export default {
           title: '业务部门',
           key: 'buText',
           width: 150,
+          resizable: true,
           render: (h, params) => {
             return h('span', params.row.src.buName)
           }
         },
         {
-          title: '同步方向',
-          key: 'replicationText',
+          title: '源集群',
+          key: 'srcMhaName',
+          width: 250,
+          resizable: true,
           render: (h, params) => {
-            const row = params.row
-            const color = 'blue'
-            const text = `${row.src.regionName} -> ${row.dst.regionName}`
-            return h('Tag', {
-              props: {
-                color: color
-              }
-            }, text)
+            return h('div', [
+              params.row.src.mhaName + ' ',
+              h('Tag', {
+                props: {
+                  color: 'blue'
+                }
+              }, params.row.src.regionName)
+            ])
           }
         },
         {
-          title: '所属集群',
-          key: 'replicationText',
+          title: '目标集群',
+          key: 'dstMhaName',
+          width: 250,
+          resizable: true,
           render: (h, params) => {
-            const row = params.row
-            const text = `${row.src.mhaName} -> ${row.dst.mhaName}`
-            return h('Button', {
-              props: {
-                type: 'default',
-                size: 'small',
-                icon: 'ios-build'
-              },
-              style: {
-                marginRight: '5px'
-              },
-              on: {
-                click: () => {
-                  this.goToMhaReplicationDetails(row)
+            return h('div', [
+              params.row.dst.mhaName + ' ',
+              h('Tag', {
+                props: {
+                  color: 'blue'
                 }
-              }
-            }, text)
+              }, params.row.dst.regionName)
+            ])
           }
         },
         {
           title: '操作',
           slot: 'action',
-          width: 150,
+          width: 300,
           align: 'center'
         }
       ],
       // page
       total: 0,
       current: 1,
-      size: 10,
+      size: 20,
       // query param
       srcMhaDb: {
         mhaName: this.$route.query.srcMhaName,
@@ -516,18 +532,17 @@ export default {
         })
     },
     getDelay () {
-      const param = {
-        replicationIds: this.replications
-          .filter(item => item.drcStatus === true)
-          .map(item => item.id)
-          .join(',')
-      }
-      if (param.replicationIds.length === 0) {
+      const replicationIds = this.replications
+        .filter(item => item.drcStatus === true)
+        .map(item => item.id)
+      if (replicationIds.length === 0) {
         console.log('skip delay search')
         return
       }
       this.delayDataLoading = true
-      this.axios.get('/api/drc/v2/replication/db/delay', { params: param })
+      this.axios.post('/api/drc/v2/replication/db/delay', {
+        replicationIds: replicationIds
+      })
         .then(response => {
           const delays = response.data.data
           const emptyResult = delays == null || !Array.isArray(delays) || delays.length === 0

@@ -1,17 +1,26 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.dto.v3.DbReplicationDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.OpenApiService;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MultiKey;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.api.DbTableDrcRegionInfo;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
+import com.ctrip.framework.drc.console.vo.api.RegionInfo;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -23,12 +32,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_DOT_REGEX;
 
 /**
  * @ClassName OpenApiServiceImpl
@@ -43,6 +51,10 @@ public class OpenApiServiceImpl implements OpenApiService {
 
     @Autowired
     private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private MhaDbReplicationService mhaDbReplicationService;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
 
     @Override
     public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
@@ -116,6 +128,9 @@ public class OpenApiServiceImpl implements OpenApiService {
                                     res.add(drcDbInfo);
                                 }
                             }
+                            if (dbInfoMap.isEmpty()) {
+                                continue;
+                            }
 
                             processProperties(applier, dbInfoMap, destMha);
                         } else {
@@ -132,6 +147,42 @@ public class OpenApiServiceImpl implements OpenApiService {
             }
         }
         return res;
+    }
+
+
+    @Override
+    public DbTableDrcRegionInfo getDbTableDrcRegionInfos(String db, String table) {
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList(db), ReplicationTypeEnum.DB_TO_DB);
+        return new DbTableDrcRegionInfo(db, table, filterAndConvert(mhaDbReplicationDtos, db, table));
+    }
+
+    @VisibleForTesting
+    protected List<RegionInfo> filterAndConvert(List<MhaDbReplicationDto> mhaDbReplicationDtos, String db, String table) {
+        List<MhaDbReplicationDto> replicationDtos = new ArrayList<>();
+
+        for (MhaDbReplicationDto e : mhaDbReplicationDtos) {
+            // 1. check drcStatus
+            if (!Boolean.TRUE.equals(e.getDrcStatus())) {
+                continue;
+            }
+
+            // 2. check logicTable (no need to check table existence)
+            boolean hasMatchingTable = false;
+            for (DbReplicationDto replicationDto : e.getDbReplicationDtos()) {
+                String logicTable = replicationDto.getLogicTableConfig().getLogicTable();
+                if (new AviatorRegexFilter(logicTable).filter(table)) {
+                    hasMatchingTable = true;
+                    break; // any match
+                }
+            }
+            if (!hasMatchingTable) {
+                continue;
+            }
+
+            replicationDtos.add(e);
+        }
+
+        return replicationDtos.stream().map(e -> new RegionInfo(e.getSrc().getRegionName(), e.getDst().getRegionName())).distinct().toList();
     }
 
     private void processProperties(Applier applier, Map<String, DrcDbInfo> dbInfoMap, String destMha) {

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.mq;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -14,10 +15,6 @@ public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     public void initConsumer(String subject, String consumerGroup, Set<String> dcs) {}
 
     @Override
-    public void mhasRefresh(Set<String> mhas) {
-    }
-
-    @Override
     public boolean stopListen() {
         return false;
     }
@@ -25,6 +22,21 @@ public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     @Override
     public boolean resumeListen() {
         return false;
+    }
+
+    @Override
+    public void mhasRefresh(Map<String, String> mhas2Dc) {
+
+    }
+
+    @Override
+    public Map<String, Long> getMhaDelay() {
+        return Map.of();
+    }
+
+    @Override
+    public void refreshMhaDelayFromOtherDc(Map<String, Long> receiveTimeMap) {
+
     }
 
     @Override

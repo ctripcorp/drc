@@ -4,6 +4,8 @@ package com.ctrip.framework.drc.console.vo.display.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.core.mq.MqType;
 
+import java.util.List;
+
 public class MqConfigVo {
 
     /**
@@ -51,6 +53,22 @@ public class MqConfigVo {
     private long delayTime;
 
     private Long datachangeLasttime;
+
+    private List<String> excludeFilterTypes;
+
+    private List<String> filterFields;
+
+    private boolean sendOnlyUpdated;
+
+    private boolean excludeColumn;
+
+    public List<String> getExcludeFilterTypes() {
+        return excludeFilterTypes;
+    }
+
+    public void setExcludeFilterTypes(List<String> excludeFilterTypes) {
+        this.excludeFilterTypes = excludeFilterTypes;
+    }
 
     public long getDbReplicationId() {
         return dbReplicationId;
@@ -130,5 +148,29 @@ public class MqConfigVo {
 
     public void setDatachangeLasttime(Long datachangeLasttime) {
         this.datachangeLasttime = datachangeLasttime;
+    }
+
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public void setSendOnlyUpdated(boolean sendOnlyUpdated) {
+        this.sendOnlyUpdated = sendOnlyUpdated;
+    }
+
+    public boolean isExcludeColumn() {
+        return excludeColumn;
+    }
+
+    public void setExcludeColumn(boolean excludeColumn) {
+        this.excludeColumn = excludeColumn;
     }
 }

@@ -33,4 +33,8 @@ public class MySqlEndpoint extends DefaultEndPoint implements Endpoint {
     public boolean equals(Object obj) {
         return super.equals(obj);
     }
+
+    public boolean equalsWithUserAndPassword(MySqlEndpoint mySqlEndpoint) {
+        return equals(mySqlEndpoint) && this.getUser().equals(mySqlEndpoint.getUser()) && this.getPassword().equals(mySqlEndpoint.getPassword());
+    }
 }

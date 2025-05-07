@@ -9,7 +9,7 @@
         {{ alertInfo.title }}
         <template #desc>{{ alertInfo.message }}</template>
       </Alert>
-      <div v-if="replicationType === meta.replicationType.DB_TO_DB">
+      <div v-if="replicationType === meta.replicationTypeEnum.DB_TO_DB">
         <Col span="12">
           <Row style="margin-right: 20px">
             <Divider>1. 选择同步方向</Divider>
@@ -71,7 +71,7 @@
           </Row>
         </Col>
       </div>
-      <div v-if="replicationType === meta.replicationType.DB_TO_MQ">
+      <div v-if="[meta.replicationTypeEnum.DB_TO_MQ, meta.replicationTypeEnum.DB_TO_KAFKA].includes(replicationType)">
         <Col span="12">
           <Row style="margin-right: 20px">
             <Divider>1. 选择消息投递Region</Divider>
@@ -139,10 +139,7 @@ export default {
       meta: {
         regionOptions: [],
         existReplicationRegionOptions: [],
-        replicationType: {
-          DB_TO_DB: 0,
-          DB_TO_MQ: 1
-        }
+        replicationTypeEnum: this.constant.replicationType
       },
       alertInfo: {
         show: false,
@@ -318,10 +315,11 @@ export default {
       this.alertInfo.successShow = false
       this.dataLoading = true
       let scene
-      if (this.replicationType === this.meta.replicationType.DB_TO_MQ) {
-        scene = 'mhaDbReplicationForMq'
-      } else {
+      console.log(this.meta.replicationTypeEnum)
+      if (this.replicationType === this.meta.replicationTypeEnum.DB_TO_DB) {
         scene = 'mhaDbReplication'
+      } else {
+        scene = 'mhaDbReplicationForMq'
       }
       await this.axios.post('/api/drc/v2/autoconfig/' + scene + '/create', params)
         .then(response => {

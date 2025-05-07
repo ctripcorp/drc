@@ -58,6 +58,15 @@ public class DbTransactionTableGtidReader implements GtidReader {
         });
     }
 
+
+    /*
+     * tx_xx table structure
+     * | id 	| server_uuid                          	| gno       	| gtidset                                          	|
+     * |----	|--------------------------------------	|-----------	|--------------------------------------------------	|
+     * | -1 	| 806ba835-3cd0-11ef-be08-fa163e3b758b 	| -1        	| 806ba835-3cd0-11ef-be08-fa163e3b758b:2-162411202 	|
+     * | 0  	| 806ba835-3cd0-11ef-be08-fa163e3b758b 	| 162300000 	| null                                             	|
+     * | 1  	| 806ba835-3cd0-11ef-be08-fa163e3b758b 	| 162300001 	| null                                             	|
+     */
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public GtidSet getGtidSetByUuid(Connection connection, String uuid) throws SQLException {
         GtidSet specificGtidSet = new GtidSet("");
@@ -66,11 +75,12 @@ public class DbTransactionTableGtidReader implements GtidReader {
              ResultSet resultSet = statement.executeQuery(sql)) {
 
             while (resultSet.next()) {
-                String gtidSet = resultSet.getString(2);
-                if (gtidSet != null) {
+                long gno = resultSet.getLong(1);
+                if (gno == -1L) {
+                    String gtidSet = resultSet.getString(2);
                     specificGtidSet = specificGtidSet.union(new GtidSet(gtidSet));
                 } else {
-                    specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
+                    specificGtidSet.add(uuid, gno);
                 }
             }
         }

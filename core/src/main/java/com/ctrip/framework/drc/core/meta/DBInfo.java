@@ -60,12 +60,11 @@ public class DBInfo extends InstanceInfo {
         if (!super.equals(o)) return false;
         DBInfo dbInfo = (DBInfo) o;
         return Objects.equals(username, dbInfo.username) &&
-                Objects.equals(password, dbInfo.password) &&
-                Objects.equals(uuid, dbInfo.uuid);
+                Objects.equals(password, dbInfo.password);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), username, password, uuid);
+        return Objects.hash(super.hashCode(), username, password);
     }
 }

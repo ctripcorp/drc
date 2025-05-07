@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.binlog.BinlogSender;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.SchemaFilter;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
@@ -62,8 +63,21 @@ public class LocalBinlogSender extends AbstractLifecycle implements BinlogSender
     }
 
     @Override
+    public void updatePosition(BinlogPosition binlogPosition) {
+    }
+
+    @Override
+    public void refreshInExcludedGroup(OutboundLogEventContext scannerContext) {
+    }
+
+    @Override
     public boolean concernTable(String tableName) {
         return aviatorFilter.filter(tableName);
+    }
+
+    @Override
+    public BinlogPosition getBinlogPosition() {
+        return null;
     }
 
     @Override

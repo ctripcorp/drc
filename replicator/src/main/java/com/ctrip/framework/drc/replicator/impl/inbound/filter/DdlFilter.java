@@ -11,12 +11,15 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
+import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -50,6 +53,8 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     public static final String DEFAULT_CHARACTER_SET_SERVER = "utf8mb4";
 
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS `%s`.`%s`";
+    public static final String RENAME_TABLE = "RENAME TABLE `%s`.`%s` TO `%s`.`%s`";
+    private static final String DRC_REPLICATOR_DDL_EXCLUDE_EVENT_TYPE = "DRC.replicator.ddl.exclude";
 
     private SchemaManager schemaManager;
 
@@ -99,102 +104,193 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     }
 
     private boolean doParseQueryEvent(String queryString, String schemaName, String charset, String gtid) {
-        List<DdlResult> results = DdlParser.parse(queryString, schemaName);
+        List<DdlResult> allResults = DdlParser.parse(queryString, schemaName);
+        List<DdlResult> results = this.filterDdlResult(queryString, allResults);
         if (results.isEmpty()) {
             return false;
+        }
+        queryString = this.updateQueryStringIfNeeded(queryString, charset, results);
+        Pair<Boolean, Boolean> pair = this.filterAndProcessExcludedDb(queryString, gtid, results);
+        if (Boolean.TRUE.equals(pair.getKey())) {
+            return Boolean.TRUE.equals(pair.getValue());
         }
 
         DdlResult ddlResult = results.get(0);
         QueryType type = ddlResult.getType();
+
+        // rename: target schema name
+        // other: schema name
         schemaName = ddlResult.getSchemaName();
         String schemaInBinlog = ddlResult.getOriSchemaName() != null ? ddlResult.getOriSchemaName() : schemaName;
-
-        String tableCharset = ddlResult.getTableCharset();
-        if (QueryType.CREATE == type && tableCharset == null && !DEFAULT_CHARACTER_SET_SERVER.equalsIgnoreCase(charset)) {  //not set and serverCollation != DEFAULT_CHARACTER_SET_SERVER
-            String previousQueryString = queryString;
-            queryString = DdlParser.appendTableCharset(queryString, charset);
-            logger.info("[Create] table sql transfer from {} to {}", previousQueryString, queryString);
+        String tableName = ddlResult.getTableName();
+        ApplyResult applyResult = schemaManager.apply(schemaInBinlog, tableName, queryString, type, gtid);
+        if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
+            DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
+            return false;
         }
+        if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
+            DDL_LOGGER.info("[Skip] ddl for one of blank {}.{} with query {}", schemaName, tableName, queryString);
+            return false;
+        }
+        queryString = applyResult.getDdl();
+        schemaManager.persistDdl(schemaInBinlog, tableName, queryString);
+        schemaManager.refresh(getRelatedTables(results));
+        DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
 
-        boolean isDml = (type == QueryType.INSERT || type == QueryType.UPDATE || type == QueryType.DELETE || type == QueryType.TRUNCATE);
-
-        if (!isDml) {
-            if (StringUtils.isNotBlank(schemaName) && EXCLUDED_DB.contains(schemaName.toLowerCase())) {
-                DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
-                String originTableName = ddlResult.getOriTableName();
-                if (type == QueryType.RENAME && StringUtils.isNotBlank(schemaInBinlog)
-                        && !EXCLUDED_DB.contains(schemaInBinlog.toLowerCase())
-                        && mayGhostOps(originTableName)) {
-                    String dropQuery = String.format(DROP_TABLE, schemaInBinlog, originTableName);
-                    DDL_LOGGER.info("[Apply] {} for excluded db from ddl {}", dropQuery, queryString);
-                    schemaManager.apply(schemaInBinlog, originTableName, dropQuery, QueryType.ERASE, gtid);
-                    schemaManager.refresh(getRelatedTables(results));
-                }
+        // persistColumnInfo
+        if (mayGhostOps(tableName)) {
+            // deal with ghost
+            if (type != QueryType.RENAME || results.size() != 2) {
                 return false;
             }
-            String tableName = ddlResult.getTableName();
-            ApplyResult applyResult = schemaManager.apply(schemaInBinlog, tableName, queryString, type, gtid);
-            if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
-                DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
+            String tableNameOne = ddlResult.getTableName();
+            String originTableNameTwo = results.get(1).getOriTableName();
+            if (!DDLPredication.mayGhostRename(tableNameOne, originTableNameTwo)) {
                 return false;
             }
-            queryString = applyResult.getDdl();
-            schemaManager.persistDdl(schemaInBinlog, tableName, queryString);
-            schemaManager.refresh(getRelatedTables(results));
-            DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
-
-            if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
-                DDL_LOGGER.info("[Skip] ddl for one of blank {}.{} with query {}", schemaName, tableName, queryString);
-                return false;
+            schemaName = results.get(1).getSchemaName();
+            if (StringUtils.isNotBlank(schemaName)) {
+                schemaName = schemaName.toLowerCase();
             }
-
-            //deal with ghost
-            if (mayGhostOps(tableName)) {
-                if (type == QueryType.RENAME && results.size() == 2) {
-                    String tableNameOne = ddlResult.getTableName();
-                    String originTableNameTwo = results.get(1).getOriTableName();
-                    if (DDLPredication.mayGhostRename(tableNameOne, originTableNameTwo)) {
-                        schemaName = results.get(1).getSchemaName();
-                        if (StringUtils.isNotBlank(schemaName)) {
-                            schemaName = schemaName.toLowerCase();
-                        }
-                        tableName = results.get(1).getTableName();
-                        doPersistColumnInfo(schemaName, tableName, queryString);
-                        DDL_LOGGER.info("[Rename] detected for {}.{} to go to persist drc table map and ddl event", schemaName, tableName);
-                        return true;
-                    }
-
-                }
-                return false;
-            } else {
-                // fix ddl: use drc1; rename table test1 to drc2.test1;
-                String persistSchemaName = schemaName;
-                String toSchemaName = ddlResult.getSchemaName();
-                if (type == QueryType.RENAME && results.size() == 1 && StringUtils.isNotBlank(toSchemaName)) {
-                    persistSchemaName = toSchemaName;
-                }
-                doPersistColumnInfo(persistSchemaName, tableName, queryString);
-            }
-
+            tableName = results.get(1).getTableName();
+            doPersistColumnInfo(schemaName, tableName, queryString);
+            DDL_LOGGER.info("[Rename] detected for {}.{} to go to persist drc table map and ddl event", schemaName, tableName);
             return true;
         } else {
-            if(type == QueryType.TRUNCATE) {
-                String tableName = ddlResult.getTableName();
-                DDL_LOGGER.info("[Truncate] detected for {}.{}", schemaName, tableName);
-                monitorManager.onDdlEvent(schemaName, tableName, queryString, type);
+            // fix ddl: use drc1; rename table test1 to drc2.test1;
+            String persistSchemaName = schemaName;
+            if (type == QueryType.RENAME && results.size() == 1 && StringUtils.isNotBlank(ddlResult.getSchemaName())) {
+                persistSchemaName = ddlResult.getSchemaName();
             }
+            doPersistColumnInfo(persistSchemaName, tableName, queryString);
+            return true;
+        }
+    }
+
+    /**
+     *
+     * <table style="border:1px solid">
+     * <caption>Parse and apply excluded db ddl</caption>
+     *  <thead style="border:1px solid">
+     *  <tr>
+     *    <th scope="col" > Origin ddl</th>
+     *    <th scope="col" > Convert to</th>
+     *  </tr>
+     *  </thead>
+     *  <tbody>
+     *  <tr  style="border:1px solid">
+     *    <td>rename table drc1.ddl_test_table to configdb.xxx</td>
+     *    <td>DROP TABLE IF EXISTS `drc1`.`ddl_test_table`</td>
+     *  </tr>
+     *  <tr>
+     *    <td rowspan="2">rename table drc1.ddl_test_table to configdb.xxx, drc1._mytmp_ddl_test_table to drc1.ddl_test_table</td>
+     *    <td>DROP TABLE IF EXISTS `drc1`.`ddl_test_table`</td>
+     *  </tr>
+     *  <tr>
+     *    <td>RENAME TABLE `drc1`.`_mytmp_ddl_test_table` TO `drc1`.`ddl_test_table`</td>
+     *  </tr>
+     *  </tbody>
+     * </table>
+     * @return processExcludedDB, persistAnyTableMap
+     **/
+    private Pair<Boolean, Boolean> filterAndProcessExcludedDb(String queryString, String gtid, List<DdlResult> results) {
+        boolean processExcludedDB = false;
+        boolean persistAnyTableMap = false;
+
+        List<DdlResult> excludedDbDdls = results.stream()
+                .filter(e -> StringUtils.isNotBlank(e.getSchemaName()))
+                .filter(e -> EXCLUDED_DB.contains(e.getSchemaName().toLowerCase()))
+                .collect(Collectors.toList());
+        if (excludedDbDdls.isEmpty()) {
+            return Pair.of(processExcludedDB, persistAnyTableMap);
         }
 
-        return false;
+        // 1. need process excluded db ddl
+        processExcludedDB = true;
+        // 2. rename xxx_db.table to configdb.xxx -> drop table xxx_db.table
+        for (DdlResult ddlResult : excludedDbDdls) {
+            String originTableName = ddlResult.getOriTableName();
+            if (ddlResult.getType() != QueryType.RENAME) {
+                DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", ddlResult.getSchemaName(), queryString);
+                continue;
+            }
+            String targetSchema = ddlResult.getOriSchemaName() != null ? ddlResult.getOriSchemaName() : ddlResult.getSchemaName();
+            if (StringUtils.isBlank(targetSchema) || EXCLUDED_DB.contains(targetSchema.toLowerCase())) {
+                continue;
+            }
+            String dropQuery = String.format(DROP_TABLE, targetSchema, originTableName);
+            DDL_LOGGER.info("[Apply] {} for excluded db from ddl {}", dropQuery, queryString);
+            schemaManager.apply(targetSchema, originTableName, dropQuery, QueryType.ERASE, gtid);
+            schemaManager.persistDdl(targetSchema, originTableName, dropQuery);
+            DefaultEventMonitorHolder.getInstance().logEvent(DRC_REPLICATOR_DDL_EXCLUDE_EVENT_TYPE, "drop");
+        }
+        schemaManager.refresh(getRelatedTables(excludedDbDdls));
+        results.removeAll(excludedDbDdls);
+        if (results.isEmpty()) {
+            return Pair.of(processExcludedDB, persistAnyTableMap);
+        }
+
+        // for a single ddl event, only rename has multiple ddl to execute
+        if (!results.stream().allMatch(e -> e.getType() == QueryType.RENAME)) {
+            DDL_LOGGER.warn("[Apply][Skip][NOT RENAME] for excluded db from ddl {}", queryString);
+            DefaultEventMonitorHolder.getInstance().logEvent(DRC_REPLICATOR_DDL_EXCLUDE_EVENT_TYPE, "fail:not rename");
+            return Pair.of(processExcludedDB, persistAnyTableMap);
+        }
+        // 3. apply rename
+        for (DdlResult result : results) {
+            String targetSchema = result.getSchemaName();
+            String targetTableName = result.getTableName();
+            String oriTableName = result.getOriTableName();
+            String renameQuery = String.format(RENAME_TABLE, result.getOriSchemaName(), oriTableName, targetSchema, targetTableName);
+            DDL_LOGGER.info("[Apply] {} for excluded db from ddl {}", renameQuery, queryString);
+
+            schemaManager.apply(targetSchema, targetTableName, renameQuery, QueryType.RENAME, gtid);
+            schemaManager.persistDdl(targetSchema, targetTableName, renameQuery);
+            schemaManager.refresh(getRelatedTables(Lists.newArrayList(result)));
+            doPersistColumnInfo(targetSchema, targetTableName, renameQuery);
+            persistAnyTableMap = true;
+            DefaultEventMonitorHolder.getInstance().logEvent(DRC_REPLICATOR_DDL_EXCLUDE_EVENT_TYPE, "rename");
+        }
+
+        return Pair.of(processExcludedDB, persistAnyTableMap);
+
+    }
+
+    private String updateQueryStringIfNeeded(String queryString, String charset, List<DdlResult> results) {
+        if (results.size() == 1) {
+            DdlResult ddlResult = results.get(0);
+            if (QueryType.CREATE == ddlResult.getType() && ddlResult.getTableCharset() == null && !DEFAULT_CHARACTER_SET_SERVER.equalsIgnoreCase(charset)) {  //not set and serverCollation != DEFAULT_CHARACTER_SET_SERVER
+                String previousQueryString = queryString;
+                queryString = DdlParser.appendTableCharset(queryString, charset);
+                logger.info("[Create] table sql transfer from {} to {}", previousQueryString, queryString);
+            }
+        }
+        return queryString;
+    }
+
+    private List<DdlResult> filterDdlResult(String queryString, List<DdlResult> results) {
+        return results.stream().filter(ddlResult -> {
+            if (!ddlResult.getType().isDmlOrTruncate()) {
+                return true;
+            }
+            // dml or truncate, should skip
+            QueryType type = ddlResult.getType();
+            if (type == QueryType.TRUNCATE) {
+                String tableName = ddlResult.getTableName();
+                DDL_LOGGER.info("[Truncate] detected for {}.{}", ddlResult.getSchemaName(), tableName);
+                monitorManager.onDdlEvent(ddlResult.getSchemaName(), tableName, queryString, type);
+            }
+            return false;
+        }).collect(Collectors.toList());
     }
 
     public boolean parseQueryEvent(QueryLogEvent event, String gtid) {
         String queryString = event.getQuery();
-        if (StringUtils.startsWithIgnoreCase(queryString, BEGIN)      ||
-                StringUtils.startsWithIgnoreCase(queryString, COMMIT)     ||
-                StringUtils.startsWithIgnoreCase(queryString, XA_COMMIT)  ||
-                StringUtils.startsWithIgnoreCase(queryString, XA_ROLLBACK)||
-                StringUtils.endsWithIgnoreCase(queryString, XA_START)     ||
+        if (StringUtils.startsWithIgnoreCase(queryString, BEGIN) ||
+                StringUtils.startsWithIgnoreCase(queryString, COMMIT) ||
+                StringUtils.startsWithIgnoreCase(queryString, XA_COMMIT) ||
+                StringUtils.startsWithIgnoreCase(queryString, XA_ROLLBACK) ||
+                StringUtils.endsWithIgnoreCase(queryString, XA_START) ||
                 StringUtils.endsWithIgnoreCase(queryString, XA_END)) {
             return false;
         } else {
@@ -208,7 +304,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         }
     }
 
-    private String getServerCollation(int serverCollation){
+    private String getServerCollation(int serverCollation) {
         String charset = CharsetConversion.getCharset(serverCollation);
         if (charset == null) {
             return DEFAULT_CHARACTER_SET_SERVER;
@@ -236,6 +332,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 )
                 .filter(e -> !StringUtils.isEmpty(e.getDbName()) && !StringUtils.isEmpty(e.getTableName()))
                 .map(e -> new TableId(e.getDbName().toLowerCase(), e.getTableName().toLowerCase()))
+                .filter(e -> !EXCLUDED_DB.contains(e.getDbName()))
                 .distinct()
                 .collect(Collectors.toList());
     }

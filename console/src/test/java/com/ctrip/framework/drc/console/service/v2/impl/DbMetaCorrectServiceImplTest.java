@@ -19,17 +19,14 @@ import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.sql.SQLException;
-import java.util.List;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
+
+import java.sql.SQLException;
+import java.util.List;
 
 public class DbMetaCorrectServiceImplTest {
 
@@ -55,27 +52,6 @@ public class DbMetaCorrectServiceImplTest {
         Mockito.when(accountService.getAccount(Mockito.any(MhaTblV2.class), Mockito.any(DrcAccountTypeEnum.class))).thenReturn(new Account("user", "password"));
     }
 
-    @Test
-    public void testUpdateMasterReplicatorIfChange() throws SQLException {
-        MhaTblV2 mhaTblV2 = MockEntityBuilder.buildMhaTblV2();
-        ReplicatorGroupTbl rGroupTbl = MockEntityBuilder.buildReplicatorGroupTbl();
-        List<ReplicatorTbl> replicatorTbls = MockEntityBuilder.buildReplicatorTbls();
-        ResourceTbl resourceTbl1 = MockEntityBuilder.buildResourceTbl();
-        resourceTbl1.setIp("ip1");
-        ResourceTbl resourceTbl2 = MockEntityBuilder.buildResourceTbl();
-        resourceTbl2.setIp("ip2");
-        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"))).thenReturn(mhaTblV2);
-        Mockito.when(rGroupTblDao.queryByMhaId(Mockito.eq(1L))).thenReturn(rGroupTbl);
-        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(),Mockito.anyInt())).thenReturn(replicatorTbls);
-        Mockito.when(resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl1);
-        Mockito.when(resourceTblDao.queryByPk(Mockito.eq(2L))).thenReturn(resourceTbl2);
-        Mockito.when(replicatorTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[] {1,1});
-
-        boolean b = dbMetaCorrectService.updateMasterReplicatorIfChange("mha", "ip2");
-        boolean b1 = dbMetaCorrectService.updateMasterReplicatorIfChange("mha", "ip2");
-        Assert.assertTrue(b);
-        Assert.assertFalse(b1);
-    }
 
     @Test
     public void testMhaInstancesChange() throws Exception {
@@ -232,6 +208,22 @@ public class DbMetaCorrectServiceImplTest {
         Assert.assertEquals(0,apiResult.getData());
         apiResult = dbMetaCorrectService.mhaMasterDbChange("mha", "ip1", 1);
         Assert.assertEquals(2,apiResult.getData());
+    }
+
+    @Test
+    public void testBatchMhaMasterDbChange() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(MockEntityBuilder.buildMhaTblV2()));
+        Mockito.when(machineTblDao.queryByMhaIds(Mockito.anyList())).thenReturn(MockEntityBuilder.buildMachineTbls());
+        Mockito.when(machineTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        MhaInstanceGroupDto mhaInstanceGroupDto = new MhaInstanceGroupDto();
+        mhaInstanceGroupDto.setMhaName("mha");
+        MhaInstanceGroupDto.MySQLInstance master = new MhaInstanceGroupDto.MySQLInstance();
+        master.setIp("ip");
+        master.setPort(1);
+        mhaInstanceGroupDto.setMaster(master);
+
+        dbMetaCorrectService.batchMhaMasterDbChange(Lists.newArrayList(mhaInstanceGroupDto));
     }
 
     @Test

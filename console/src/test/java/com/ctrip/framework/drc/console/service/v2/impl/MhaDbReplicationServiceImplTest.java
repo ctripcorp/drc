@@ -7,11 +7,14 @@ import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.xpipe.tuple.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.assertj.core.util.Lists;
@@ -19,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 
@@ -28,7 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.ctrip.framework.drc.console.service.v2.impl.MessengerServiceV2ImplTest.VPC_MHA_NAME;
+import static com.ctrip.framework.drc.core.meta.ReplicationTypeEnum.DB_TO_DB;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -39,13 +43,18 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
         super.setUp();
+    }
+
+    @Test(expected = ConsoleException.class)
+    public void testOfflineMhaDbReplicationHasApplieres() throws SQLException {
+        mhaDbReplicationService.offlineMhaDbReplication("mha1","mha2");
+        verify(mhaDbReplicationTblDao,times(1)).batchUpdate(anyList());
     }
 
     @Test
     public void testOfflineMhaDbReplication() throws SQLException {
-        mhaDbReplicationService.offlineMhaDbReplication("mha1","mha2");
+        mhaDbReplicationService.offlineMhaDbReplication("mha2","mha1");
         verify(mhaDbReplicationTblDao,times(1)).batchUpdate(anyList());
     }
 
@@ -75,11 +84,13 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         Assert.assertEquals("mha2", replicationDtos.get(0).getDst().getMhaName());
         Assert.assertFalse(StringUtils.isBlank(replicationDtos.get(0).getDst().getDbName()));
         Assert.assertNotNull(replicationDtos.get(0).getDst().getMhaDbMappingId());
+        Assert.assertTrue(replicationDtos.stream().anyMatch(e->Boolean.TRUE.equals(e.getDrcStatus())));
     }
+    MqType mqType = MqType.qmq;
 
     @Test
     public void testQueryMqReplication() {
-        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha("mha1", null);
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha("mha1", null, mqType);
         Assert.assertEquals(1, replicationDtos.size());
         Assert.assertEquals("mha1", replicationDtos.get(0).getSrc().getMhaName());
         Assert.assertTrue(StringUtils.isNotBlank(replicationDtos.get(0).getDbReplicationDtos().get(0).getLogicTableConfig().getDstLogicTable()));
@@ -89,7 +100,7 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
     @Test
     public void testQueryByDcName() {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDcName("shaoy", null);
-        Assert.assertTrue(replicationDtos.stream().anyMatch(e -> ReplicationTypeEnum.DB_TO_DB.getType().equals(e.getReplicationType()) && Boolean.TRUE.equals(e.getDrcStatus())));
+        Assert.assertTrue(replicationDtos.stream().anyMatch(e -> DB_TO_DB.getType().equals(e.getReplicationType()) && Boolean.TRUE.equals(e.getDrcStatus())));
         Assert.assertTrue(replicationDtos.stream().anyMatch(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType()) && Boolean.TRUE.equals(e.getDrcStatus())));
         Assert.assertTrue(replicationDtos.stream().anyMatch(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType()) && !Boolean.TRUE.equals(e.getDrcStatus())));
         replicationDtos.forEach(System.out::println);
@@ -133,8 +144,15 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
 
     @Test
     public void testQueryByDbNames(){
-        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList("db1", "db2"), ReplicationTypeEnum.DB_TO_DB);
-        Assert.assertEquals(2, replicationDtos.size());
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNames(Lists.newArrayList("db1", "db2"), DB_TO_DB);
+        Assert.assertEquals(3, replicationDtos.size());
+        System.out.println(replicationDtos);
+    }
+
+    @Test
+    public void testQueryByDbNames2(){
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByDbNamesAndMhaNames(Lists.newArrayList("db1", "db2"), Lists.newArrayList("mha1"), DB_TO_DB);
+        Assert.assertEquals(3, replicationDtos.size());
         System.out.println(replicationDtos);
     }
 
@@ -211,6 +229,23 @@ public class MhaDbReplicationServiceImplTest extends CommonDataInit {
         when(mysqlServiceV2.getDbDelayUpdateTime(eq("mha1"), eq("mha2"), anyList())).thenReturn(getTimeMap("db1", 100L));
         List<MhaDbDelayInfoDto> replicationDelays = mhaDbReplicationService.getReplicationDelays(longs);
         Assert.assertEquals((long) 20L, (long) replicationDelays.get(0).getDelay());
+    }
+
+    @Test
+    public void testQuery2() throws SQLException {
+        Mockito.when(mhaDbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbReplicationTbls());
+        List<ApplierReplicationView> res = mhaDbReplicationService.query(Lists.newArrayList(1L));
+        Assert.assertEquals(1, res.size());
+    }
+
+    private List<MhaDbReplicationTbl> getMhaDbReplicationTbls() {
+        MhaDbReplicationTbl mhaDbReplicationTbl = new MhaDbReplicationTbl();
+        mhaDbReplicationTbl.setId(1L);
+        mhaDbReplicationTbl.setSrcMhaDbMappingId(1L);
+        mhaDbReplicationTbl.setDstMhaDbMappingId(2L);
+        mhaDbReplicationTbl.setReplicationType(DB_TO_DB.getType());
+
+        return Lists.newArrayList(mhaDbReplicationTbl);
     }
 
     private static HashMap<String, Long> getTimeMap(String db, Long time) {

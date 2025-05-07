@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.xpipe.tuple.Pair;
@@ -44,9 +46,16 @@ public class ReplicatorCheckerTest {
     @Mock
     private DefaultClusterManagers clusterServers;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
+    @Mock
+    private BatchInfoInquirer batchInfoInquirer;
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
     }
 
     @Test
@@ -62,7 +71,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.2", REPLICATOR_PORT, false, "127.0.2.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
@@ -77,7 +86,7 @@ public class ReplicatorCheckerTest {
 
         ArrayList<ReplicatorInfoDto> instanceList = Lists.newArrayList();
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(3)).registerReplicator(any(), any());
@@ -92,7 +101,7 @@ public class ReplicatorCheckerTest {
         when(clusterManagerConfig.getPeriodCorrectSwitch()).thenReturn(false);
         ArrayList<ReplicatorInfoDto> instanceList = Lists.newArrayList();
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
@@ -114,7 +123,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.2", REPLICATOR_PORT, false, "127.0.2.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.1.3");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenAnswer(e -> {
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenAnswer(e -> {
             List<Instance> replicators = e.getArgument(0, List.class);
             Set<String> ips = replicators.stream().map(Instance::getIp).collect(Collectors.toSet());
             return Pair.from(validIps.stream().filter(ips::contains).collect(Collectors.toList()), instanceList.stream().filter(applier -> ips.contains(applier.getIp())).collect(Collectors.toList()));
@@ -144,7 +153,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.1", REPLICATOR_PORT, true, DB_2_IP)
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
@@ -164,7 +173,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.1", REPLICATOR_PORT, true, DB_2_IP)
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
@@ -185,7 +194,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.2", REPLICATOR_PORT, true, DB_2_IP)
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(1)).addReplicator(any(), any());
@@ -202,7 +211,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.2", REPLICATOR_PORT, true, DB_2_IP)
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
 
         ReplicatorInstanceManager.ReplicatorChecker checker = replicatorInstanceManager.getChecker();
         checker.run();
@@ -226,7 +235,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.2", REPLICATOR_PORT, false, "127.0.2.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(1)).addReplicator(any(), any());
@@ -249,7 +258,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.3", REPLICATOR_PORT, false, "127.0.2.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.2.3");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());
@@ -268,7 +277,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto("mha1_dc2_dalcluster.mha1_dc2", "127.0.2.1", REPLICATOR_PORT, true, DB_2_IP)
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, times(0)).addReplicator(any(), any());
@@ -290,7 +299,7 @@ public class ReplicatorCheckerTest {
                 getReplicatorInfoDto(String.join(".", "other.thter", "other_mha", "db1"), "127.0.2.2", REPLICATOR_PORT, false, "127.0.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getReplicatorInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeReplicator(any(), any());
         verify(instanceStateController, never()).addReplicator(any(), any());

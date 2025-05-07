@@ -1,19 +1,24 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 
 public class DbMqCreateDto {
-
+    protected String dalclusterName;
     protected List<String> dbNames;
     protected String srcRegionName;
     protected LogicTableConfig logicTableConfig;
     protected MqConfigDto mqConfig;
+    private boolean notPermitSameTableMqConfig;
 
     public void validAndTrim() {
+        if (StringUtils.isBlank(dalclusterName)) {
+            throw new IllegalArgumentException("dalclusterName should not be blank!");
+        }
         if (logicTableConfig == null || StringUtils.isBlank(logicTableConfig.getLogicTable())) {
             throw new IllegalArgumentException("table should not be blank!");
         }
@@ -30,22 +35,35 @@ public class DbMqCreateDto {
         if (StringUtils.isBlank(mqConfig.getBu())) {
             throw new IllegalArgumentException("mqConfig.getBu should not be blank!");
         }
-        if (!StringUtils.equals("qmq", mqConfig.getMqType())) {
-            throw new IllegalArgumentException("mqConfig.getMqType() should be qmq!");
+        String mqType = mqConfig.getMqType();
+        if (MqType.parse(mqType) == null) {
+            throw new IllegalArgumentException("mqConfig.mqType not valid: " + mqType);
         }
         if (!StringUtils.equals("json", mqConfig.getSerialization())) {
             throw new IllegalArgumentException("mqConfig.getSerialization should be json!");
         }
-        if (mqConfig.isOrder()) {
-            if (StringUtils.isBlank(mqConfig.getOrderKey())) {
-                throw new IllegalArgumentException("mqConfig.getOrderKey should not be blank!");
-            }
+        if (mqConfig.isOrder() && mqConfig.getOrderKey() != null) {
             mqConfig.setOrderKey(mqConfig.getOrderKey().trim());
+        }
+
+        if (!CollectionUtils.isEmpty(mqConfig.getFilterFields())) {
+            List<String> lowerCaseString = mqConfig.getFilterFields().stream()
+                    .map(String::toLowerCase).toList();
+            mqConfig.setFilterFields(lowerCaseString);
         }
 
         srcRegionName = srcRegionName.trim();
         logicTableConfig.setLogicTable(logicTableConfig.getLogicTable().trim());
         logicTableConfig.setDstLogicTable(logicTableConfig.getDstLogicTable().trim());
+        this.mqConfig.setTopic(logicTableConfig.getDstLogicTable());
+    }
+
+    public String getDalclusterName() {
+        return dalclusterName;
+    }
+
+    public void setDalclusterName(String dalClusterName) {
+        this.dalclusterName = dalClusterName;
     }
 
     public List<String> getDbNames() {
@@ -78,5 +96,13 @@ public class DbMqCreateDto {
 
     public void setMqConfig(MqConfigDto mqConfig) {
         this.mqConfig = mqConfig;
+    }
+
+    public boolean isNotPermitSameTableMqConfig() {
+        return notPermitSameTableMqConfig;
+    }
+
+    public void setNotPermitSameTableMqConfig(boolean notPermitSameTableMqConfig) {
+        this.notPermitSameTableMqConfig = notPermitSameTableMqConfig;
     }
 }

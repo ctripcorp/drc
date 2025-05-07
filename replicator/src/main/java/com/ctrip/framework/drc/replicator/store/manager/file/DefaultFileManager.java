@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
@@ -17,7 +18,6 @@ import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
-import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
@@ -79,7 +79,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      */
     public static long BINLOG_SIZE_LIMIT = 1024 * 1024 * 512;
 
-    public static long BINLOG_PURGE_SCALE_OUT = 200;
+    public static long BINLOG_PURGE_SCALE_OUT = 80;
 
     private File logDir;
 
@@ -154,20 +154,44 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
             indicesEventManager.setEverSeeDdl(true);
         }
-        boolean isOverflowed = context.getEventSize() >= EventTransactionCache.bufferSize;
+        boolean isOverflowed = context.isInBigTransaction();
         checkIndices(false, isOverflowed || this.inBigTransaction);
 
         int totalSize = 0;
 
+        List<ByteBuffer> byteBuffers = new ArrayList<>();
         for (ByteBuf byteBuf : byteBufs) {
-            if (byteBuf instanceof CompositeByteBuf) {
-                byteBuf.readerIndex(0);
-                byteBuf = Unpooled.wrappedBuffer(byteBuf);
+            List<ByteBuf> buffers = new ArrayList<>();
+            if (byteBuf instanceof CompositeByteBuf compositeByteBuf) {
+                buffers.addAll(compositeByteBuf.decompose(0, compositeByteBuf.readableBytes()));
+            } else {
+                buffers.add(byteBuf);
             }
-            int endIndex = byteBuf.writerIndex();
-            ByteBuffer byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
-            logChannel.write(byteBuffer);
-            totalSize += endIndex;
+            for (ByteBuf buffer : buffers) {
+                int endIndex = buffer.writerIndex();
+                buffer.readerIndex(0);
+                byteBuffers.add(buffer.internalNioBuffer(0, endIndex));
+                totalSize += endIndex;
+            }
+        }
+
+        ByteBuffer[] byteBufferArray = byteBuffers.toArray(new ByteBuffer[0]);
+        long totalWritten = 0;
+        int writeCount = 0;
+        while (totalWritten < totalSize) {
+            writeCount++;
+            long start = System.nanoTime();
+            long written = logChannel.write(byteBufferArray);
+            if (written <= 0) {
+                logger.warn("[logChannel] write return {} for {} of file {}. Total: {}/{}", written, registryKey, logFileWrite.getName(), totalWritten, totalSize);
+                break;
+            }
+            totalWritten += written;
+            long costMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            if (costMillis > 100 || writeCount > 1) {
+                logger.debug("[logChannel] write {}/{} for {} of file {}, cost: {} ms", totalWritten, totalSize,
+                        registryKey, logFileWrite.getName(), costMillis);
+            }
         }
 
         logFileSize.addAndGet(totalSize);
@@ -241,7 +265,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     @Override
     public File getNextLogFile(File current) {
-        long fileNum = FileUtil.getFileNumFromName(current.getName(), LOG_FILE_PREFIX);
+        long fileNum = getFileNum(current);
         fileNum++;
         String fileName = String.format(LOG_FILE_FORMAT, LOG_FILE_PREFIX, fileNum);
         File nextFile = new File(logDir, fileName);
@@ -252,7 +276,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     public GtidSet getPreviousGtids(File current) {
         return doGetGtids(current, false);
     }
-    
+
 
     @Override
     public boolean gtidExecuted(File currentFile, GtidSet executedGtid) {
@@ -597,7 +621,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     private void writeFormatDescriptionLogEvent() {
         try {
             logger.info("[Write] format description log event");
-            ByteBuf byteBuf = getFormatDescriptionLogEvent();
+            ByteBuf byteBuf = getFormatDescriptionLogEvent(registryKey);
             logFileSize.addAndGet(byteBuf.writerIndex());
             logChannel.write(byteBuf.nioBuffer(0, byteBuf.writerIndex()));
             byteBuf.release();
@@ -844,13 +868,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     public void purge() {
         try {
             List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
-            if (files == null || files.size() < BINLOG_PURGE_SCALE_OUT) {
-                logger.info("[Purge] return for not reaching limit {}", BINLOG_PURGE_SCALE_OUT);
+            long binlogPurgeScaleOut = DynamicConfig.getInstance().getBinlogScaleOutNum(registryKey, BINLOG_PURGE_SCALE_OUT);
+            if (files == null || files.size() < binlogPurgeScaleOut) {
+                logger.info("[Purge] return for not reaching limit {}", binlogPurgeScaleOut);
                 return;
             }
             List<File> toBePurged = Lists.newArrayList();
             for (int i = 0; i < files.size(); ++i) {
-                if (i < BINLOG_PURGE_SCALE_OUT) {
+                if (i < binlogPurgeScaleOut) {
                     continue;
                 }
                 toBePurged.add(files.get(i));
@@ -858,7 +883,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             for (int i = toBePurged.size() - 1; i >= 0; i--) {
                 logger.info("[Purge] file {} for {} to be start", toBePurged.get(i).getName(), registryKey);
                 boolean deleted = toBePurged.get(i).delete();
-                logger.info("[Purge] file {} for {} reaching maxFileSize {} with result {}", toBePurged.get(i).getName(), registryKey, BINLOG_PURGE_SCALE_OUT, deleted);
+                logger.info("[Purge] file {} for {} reaching maxFileSize {} with result {}", toBePurged.get(i).getName(), registryKey, binlogPurgeScaleOut, deleted);
                 Thread.sleep(20);
             }
 
@@ -879,6 +904,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         gtidManager.updatePurgedGtids(purgedGtid);
         logger.info("[Purged] gtid updated to {}", purgedGtid);
         return true;
+    }
+
+    public static long getFileNum(File file) {
+        return FileUtil.getFileNumFromName(file.getName(), LOG_FILE_PREFIX);
+    }
+
+    public static long getFileNum(String fileName) {
+        return FileUtil.getFileNumFromName(fileName, LOG_FILE_PREFIX);
     }
 
     public static List<String> getReplicators(String dir) {

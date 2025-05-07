@@ -39,17 +39,16 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import java.util.concurrent.ExecutionException;
-import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -63,6 +62,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -125,6 +125,18 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final String EMPTY_SQL = "EMPTY_SQL";
     private static final String CELL_CLASS_TYPE = "cell-class-type";
     private static final String CELL_CLASS_NAME = "cellClassName";
+    private static final String IGNORE_CONFLICT_TYPES = "ignoreConflictType";
+
+    private final LoadingCache<String, Set<String>> ignoreConflictTypesCache = CacheBuilder.newBuilder()
+            .maximumSize(1)
+            .expireAfterAccess(30, TimeUnit.SECONDS)
+            .build(new CacheLoader<>() {
+                @Override
+                public Set<String> load(String key) {
+                    return consoleConfig.getIgnoreConflictTypes();
+                }
+            });
+
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -373,12 +385,31 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
     }
 
-    private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
+    @VisibleForTesting
+    protected List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
         trxLogs.stream().forEach(trxLog -> {
             List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream()
                     .filter(cflLog -> !isInBlackListWithCache(cflLog.getDb(), cflLog.getTable()))
+                    .filter(cflLog -> {
+                        if (consoleConfig.getConflictOptimizeSwitch()) {
+                            String confilctDetail = cflLog.getConflictDetail();
+                            Set<String> ignoreList;
+                            try {
+                                ignoreList = ignoreConflictTypesCache.get(IGNORE_CONFLICT_TYPES);
+                            } catch (ExecutionException e) {
+                                logger.error("[filterTransactionLogs] get ignoreConflictTypesCache fail");
+                                ignoreList = Sets.newHashSet();;
+                            }
+                            if (confilctDetail != null && ignoreList.contains(confilctDetail)) {
+                                return false;
+                            }
+                            return true;
+                        }
+                        return true;
+                    })
                     .collect(Collectors.toList());
             trxLog.setCflLogs(cflLogs);
+            trxLog.setCflRowsNum((long) cflLogs.size());
         });
         return trxLogs.stream().filter(trxLog -> !CollectionUtils.isEmpty(trxLog.getCflLogs())).collect(Collectors.toList());
     }
@@ -412,7 +443,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllCflLog().getLeft()) {
+        if (!iamService.canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");
@@ -1206,6 +1237,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setHandleSqlResult(source.getHandleSqlRes());
             target.setDstRowRecord(source.getDstRecord());
             target.setRowResult(source.getRowRes());
+            target.setRowResultDetail(source.getConflictDetail());
             target.setHandleTime(trxLog.getHandleTime());
             target.setRowId(source.getRowId());
             target.setSrcRegion(srcRegion);
@@ -1409,19 +1441,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             columnsFieldMap.put(dbReplicationId, columnsFields);
         }
         return Pair.of(dbReplicationViews, columnsFieldMap);
-    }
-
-    @Override
-    public List<AviatorRegexFilter> queryBlackList() throws SQLException {
-        if (!consoleConfig.isCenterRegion()) {
-            return new ArrayList<>();
-        }
-        List<AviatorRegexFilter> blackList = new ArrayList<>();
-        List<ConflictDbBlackListTbl> blackListTbls = conflictDbBlackListTblDao.queryAllExist();
-        for (ConflictDbBlackListTbl blackListTbl : blackListTbls) {
-            blackList.add(new AviatorRegexFilter(blackListTbl.getDbFilter()));
-        }
-        return blackList;
     }
 
     private class ColumnsFilterAndIndexColumn {

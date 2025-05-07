@@ -2,11 +2,12 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/messengersV2">Messenger 集群</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/messengersV2">Messenger 同步</BreadcrumbItem>
       <BreadcrumbItem :to="{
           path: 'buildMessengerV2',query :{
           step: 3,
-          mhaName: drc.mhaName
+          mhaName: drc.mhaName,
+          mqType: drc.mqType
         }
       }">Messenger 配置
       </BreadcrumbItem>
@@ -95,6 +96,11 @@
                   </Col>
                 </Row>
               </FormItem>
+              <FormItem label="exclude类型">
+                <Select v-model="mqConfig.excludeFilterTypes" filterable  multiple style="width: 200px" placeholder="选择过滤类型">
+                  <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
+                </Select>
+              </FormItem>
               <!--             <FormItem v-if="mqConfig.mqType === 'kafka'" label="序列化">-->
               <!--               <Select v-model="mqConfig.serialization" style="width: 200px" placeholder="序列化类型">-->
               <!--                 <Option value="json">json</Option>-->
@@ -116,15 +122,15 @@
                 <Col span="16">
                   <FormItem v-if="mqConfig.order" label="字段">
                     <Select v-model="mqConfig.orderKey" filterable allow-create @on-create="handleCreateColumn"
-                            style="width: 200px" placeholder="选择有序相关字段">
+                            style="width: 200px" placeholder="为空表示按主键投递" clearable>
                       <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                     </Select>
                   </FormItem>
                 </Col>
               </Row>
-              <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
-              <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
-              <!--             </FormItem>-->
+              <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">
+                <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>
+              </FormItem>
               <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
               <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
               <!--                       placeholder="存在冲突配置，需要输入业务名（小写英文）区分"/>-->
@@ -162,6 +168,11 @@
               <FormItem label="MQ主题">
                 <Input v-model="mqConfig.topic" style="width:350px" placeholder="请输入自定义Topic"/>
               </FormItem>
+              <FormItem label="exclude类型">
+                <Select v-model="mqConfig.excludeFilterTypes" filterable  multiple style="width: 200px" placeholder="选择过滤类型" :disabled="display.filterReadOnly">
+                  <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
+                </Select>
+              </FormItem>
               <!--             <FormItem v-if="mqConfig.mqType === 'kafka'" label="序列化">-->
               <!--               <Select v-model="mqConfig.serialization" style="width: 200px" placeholder="序列化类型">-->
               <!--                 <Option value="json">json</Option>-->
@@ -181,17 +192,46 @@
                   </FormItem>
                 </Col>
                 <Col span="20">
-                  <FormItem v-if="mqConfig.order" label="字段">
+                  <FormItem v-if="mqConfig.order" label="有序投递字段">
                     <Select v-model="mqConfig.orderKey" filterable allow-create @on-create="handleCreateColumn"
-                            style="width: 200px" placeholder="选择有序相关字段">
+                            style="width: 200px" placeholder="为空表示按主键投递">
                       <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                     </Select>
                   </FormItem>
                 </Col>
               </Row>
-              <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
-              <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
-              <!--             </FormItem>-->
+              <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递(s)">
+                <Input v-model="mqConfig.delayTime" style="width:200px" :disabled="display.filterReadOnly" placeholder="qmq延迟投递时间,单位:秒"/>
+              </FormItem>
+              <FormItem label="消息包括字段">
+                <template v-if="display.filterReadOnly">
+                  <Row>
+                    <div v-if="selectColumns != null && selectColumns.length > 0">
+                      <div v-for="(item, index) in selectColumns" :key="index" class="array-item">
+                        {{ item }}
+                      </div>
+                    </div>
+                    <div v-else class="array-item">
+                      <tag color="blue">全部列</tag>
+                    </div>
+                  </Row>
+                </template>
+                <template v-else>
+                  <Select v-model="mqConfig.filterFields" filterable multiple
+                          style="width: 200px" placeholder="为空表示全部投递">
+                    <Option v-for="item in selectColumns" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                  <Button @click="refreshOptions" style="margin-left: 10px;">刷新</Button>
+                </template>
+              </FormItem>
+              <Row>
+                <FormItem label="仅在字段有更新时投递">
+                  <Checkbox v-model="mqConfig.sendOnlyUpdated"  :disabled="display.filterReadOnly"></Checkbox>
+                </FormItem>
+                <FormItem label="是否仅排除所选字段">
+                  <Checkbox v-model="mqConfig.excludeColumn"  :disabled="display.filterReadOnly"></Checkbox>
+                </FormItem>
+              </Row>
               <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
               <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
               <!--                       placeholder="存在冲突，请输入业务名作为唯一标识（小写英文）"/>-->
@@ -238,12 +278,14 @@ export default {
       customSize: 10,
       drc: {
         mhaName: this.$route.query.mhaName,
+        mqType: this.$route.query.mqType,
         messengerGroupId: 0
       },
       display: {
         mqConfigModal: false,
         normalTopicForm: false,
-        showOnly: false
+        showOnly: false,
+        filterReadOnly: false
       },
       mqConfig: {
         id: 0,
@@ -258,7 +300,11 @@ export default {
         delayTime: 0,
         processor: '',
         refreshCache: false,
-        tag: ''
+        tag: '',
+        excludeFilterTypes: [],
+        filterFields: [],
+        sendOnlyUpdated: false,
+        excludeColumn: false
       },
       checkDbTableLoading: false,
       submitConfigDataLoading: false,
@@ -355,11 +401,18 @@ export default {
         },
         {
           title: '有序相关字段',
-          key: 'orderKey'
+          key: 'orderKey',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.order ? (row.orderKey ? row.orderKey : '主键') : ''
+            return h('span', text)
+          }
         },
         {
-          title: '序列化',
-          key: 'serialization'
+          title: '过滤类型',
+          key: 'excludeFilterTypes',
+          width: 50
         },
         {
           title: '持久化消息',
@@ -373,6 +426,43 @@ export default {
                 color: color
               }
             }, text)
+          }
+        },
+        {
+          title: '延迟投递(s)',
+          key: 'delayTime',
+          width: 50,
+          render: (h, params) => {
+            const time = params.row.delayTime
+            return time === 0 ? h('span', '') : h('span', time)
+          }
+        },
+        {
+          title: '仅更新时投递',
+          key: 'sendOnlyUpdated',
+          width: 50,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.sendOnlyUpdated ? '✓' : ''
+            return h('span', text)
+          }
+        },
+        {
+          title: '投递方式',
+          key: 'excludeColumn',
+          width: 70,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.excludeColumn ? '排除' : '包括'
+            return h('span', text)
+          }
+        },
+        {
+          title: '投递字段',
+          key: 'filterFields',
+          render: (h, params) => {
+            const value = params.row.filterFields !== null ? params.row.filterFields.join(',') : '全部'
+            return h('span', value)
           }
         },
         {
@@ -414,7 +504,22 @@ export default {
       dataLoading: false,
       // qmqURL/api/producer/getBusFromQmq
       buForChosen: [],
-      columnsForChose: []
+      columnsForChose: [],
+      selectColumns: [],
+      excludeFilterTypesForChose: [
+        {
+          value: 'D',
+          label: 'DELETE'
+        },
+        {
+          value: 'U',
+          label: 'UPDATE'
+        },
+        {
+          value: 'I',
+          label: 'INSERT'
+        }
+      ]
     }
   },
   methods: {
@@ -423,21 +528,32 @@ export default {
       this.check()
       this.columnsForChose = []
       this.columnsForChose.push(row.orderKey)
+      this.selectColumns = []
+      if (row.filterFields != null) {
+        this.selectColumns.push(row.filterFields)
+      }
       this.display.showOnly = true
       this.display.mqConfigModal = true
+      this.display.filterReadOnly = true
     },
     goToUpdateConfig (row, index) {
       this.mqInitConfigInitFormRow(row, index)
       this.check()
       this.columnsForChose = []
       this.columnsForChose.push(row.orderKey)
+      this.selectColumns = []
+      if (row.filterFields != null) {
+        this.selectColumns.push(row.filterFields)
+      }
       this.display.showOnly = false
       this.display.mqConfigModal = true
+      this.display.filterReadOnly = true
     },
     deleteConfig (row, index) {
       this.dataLoading = true
       const reqBody = {
         mhaName: this.drc.mhaName,
+        mqType: this.drc.mqType,
         dbReplicationIdList: [row.dbReplicationId]
       }
       console.log(reqBody)
@@ -462,7 +578,8 @@ export default {
       this.display = {
         showOnly: false,
         normalTopicForm: false,
-        mqConfigModal: true
+        mqConfigModal: true,
+        filterReadOnly: false
       }
     },
     mqConfigInit () {
@@ -479,7 +596,11 @@ export default {
         delayTime: 0,
         processor: '',
         refreshCache: false,
-        tag: ''
+        tag: '',
+        excludeFilterTypes: [],
+        filterFields: [],
+        sendOnlyUpdated: false,
+        excludeColumn: false
       }
       this.topic = {
         bu: '',
@@ -503,7 +624,11 @@ export default {
         delayTime: row.delayTime,
         processor: row.processor,
         refreshCache: false,
-        tag: row.tag == null ? '' : row.tag
+        tag: row.tag == null ? '' : row.tag,
+        excludeFilterTypes: row.excludeFilterTypes,
+        filterFields: row.filterFields,
+        sendOnlyUpdated: row.sendOnlyUpdated,
+        excludeColumn: row.excludeColumn
       }
       const topicInfo = row.topic.split('.')
       const tableInfo = row.table.split('\\.')
@@ -523,6 +648,35 @@ export default {
     },
     cancelSubmit () {
       this.display.mqConfigModal = false
+    },
+    refreshOptions () {
+      this.selectColumns = []
+      if (this.topic.db == null || this.topic.db === '' || this.topic.table == null || this.topic.table === '') {
+        this.$Message.warning('查询公共字段失败：库名、表名不能为空')
+        return
+      }
+      console.log('/api/drc/v2/mysql/commonColumns?' +
+        '&mhaName=' + this.drc.mhaName +
+        '&namespace=' + this.topic.db +
+        '&name=' + this.topic.table)
+      this.axios.get('/api/drc/v2/mysql/commonColumns?' +
+        '&mhaName=' + this.drc.mhaName +
+        '&namespace=' + this.topic.db +
+        '&name=' + this.topic.table)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询公共列名失败，请手动添加！' + response.data.data)
+            this.selectColumns = []
+          } else {
+            console.log(response.data.data)
+            this.selectColumns = response.data.data
+            if (this.selectColumns.length === 0) {
+              alert('查询无公共字段！')
+            } else {
+              alert('查询成功')
+            }
+          }
+        })
     },
     getCommonColumns () {
       this.columnsForChose = []
@@ -552,6 +706,10 @@ export default {
         })
     },
     doSubmitAfterCheck: async function (dto) {
+      dto.excludeFilterTypes = this.mqConfig.excludeFilterTypes
+      dto.filterFields = this.mqConfig.filterFields
+      dto.sendOnlyUpdated = this.mqConfig.sendOnlyUpdated
+      dto.excludeColumn = this.mqConfig.excludeColumn
       this.$Message.loading('步骤二：提交中')
       await this.axios.post('/api/drc/v2/messenger/submitConfig', dto).then(response => {
         if (response.data.status === 1) {
@@ -564,6 +722,7 @@ export default {
       })
     },
     checkAndSubmit: function (dto) {
+      console.log(dto)
       // check mqConfig before submit
       this.$Message.loading('步骤一：检查中...')
       this.submitConfigDataLoading = true
@@ -608,11 +767,6 @@ export default {
         alert('table 不能为空！')
         return
       }
-      if (this.mqConfig.order && (
-        this.mqConfig.orderKey == null || this.mqConfig.orderKey === '')) {
-        alert('有序topic 相关字段不能为空')
-        return
-      }
       if (this.display.normalTopicForm) {
         if (this.tableData.length !== 1) {
           alert('标准topic 只能对应一张表,目前匹配表数量：' + this.tableData.length)
@@ -634,7 +788,7 @@ export default {
       const dto = {
         dbReplicationId: this.mqConfig.dbReplicationId,
         bu: this.topic.bu,
-        mqType: this.mqConfig.mqType,
+        mqType: this.drc.mqType,
         table: this.mqConfig.table,
         topic: this.mqConfig.topic,
         serialization: this.mqConfig.serialization,
@@ -646,15 +800,20 @@ export default {
         processor: this.mqConfig.processor === '' ? null : this.processor,
         messengerGroupId: this.drc.messengerGroupId,
         mhaName: this.drc.mhaName,
-        tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag
+        tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag,
+        excludeFilterTypes: this.mqConfig.excludeFilterTypes == null ? null : this.mqConfig.excludeFilterTypes.join(','),
+        filterFields: this.mqConfig.filterFields == null ? null : this.mqConfig.filterFields.join(','),
+        sendOnlyUpdated: this.mqConfig.sendOnlyUpdated,
+        excludeColumn: this.mqConfig.excludeColumn
       }
       this.tagInfo.conflictVos = []
+      // const reqParam = this.flattenObj(dto)
       this.checkAndSubmit(dto)
     },
     getMqConfigs () {
       this.dataLoading = true
       this.axios.get('/api/drc/v2/messenger/queryConfigs', {
-        params: { mhaName: this.drc.mhaName }
+        params: { mhaName: this.drc.mhaName, mqType: this.drc.mqType }
       }).then(response => {
         if (response.data.status === 1) {
           this.$Message.error('查询 messenger 配置失败: ' + response.data.message)
@@ -662,6 +821,7 @@ export default {
         }
         this.$Message.success('查询成功')
         this.mqConfigsData = response.data.data
+        console.log(this.mqConfigsData)
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
@@ -771,6 +931,20 @@ export default {
             this.columnsForChose.push(val)
           }
         })
+    },
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
     },
     handleChangeSize (val) {
       this.size = val

@@ -1,13 +1,13 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 
 /**
  * @Author limingdong
@@ -17,7 +17,6 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
 
     private String lastTrxSchema = null;
     private String lastTableName = null;
-
 
     @Override
     public boolean doFilter(ITransactionEvent transactionEvent) {
@@ -35,7 +34,8 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
 
         for (int i = 2; i < logEvents.size(); i++) {
             LogEvent logEvent = logEvents.get(i);
-            if (table_map_log_event == logEvent.getLogEventType()) {
+            LogEventType logEventType = logEvent.getLogEventType();
+            if (table_map_log_event == logEventType || drc_table_map_log_event == logEventType) {
                 TableMapLogEvent tableMapLogEvent = logEvent instanceof TableMapLogEvent
                         ? (TableMapLogEvent) logEvent
                         : ((TransactionTableMarkedTableMapLogEvent) logEvent).getDelegate();
@@ -44,6 +44,7 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
             }
             nextTransactionStartPosition += logEvent.getLogEventHeader().getEventSize();
         }
+
 
         //non-ddl, non-bigTrx
         if (transactionEvent.canSkipParseTransaction()) {
@@ -56,7 +57,8 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
             }
         }
 
-        firstLogEvent.encode(lastTrxSchema, lastTableName, logEvents.size(),
+        int rowsEventCount = (int) logEvents.stream().map(LogEvent::getLogEventType).filter(LogEventUtils::isRowsEvent).count();
+        firstLogEvent.encode(lastTrxSchema, lastTableName, logEvents.size(), rowsEventCount,
                 nextTransactionStartPosition + secondLogEvent.getLogEventHeader().getEventSize());
 
         if (xid_log_event == lastLogEvent.getLogEventType()) {

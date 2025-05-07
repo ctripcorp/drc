@@ -1,11 +1,16 @@
 package com.ctrip.framework.drc.console.service.v2.resource;
 
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.vo.v2.*;
-import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
+
 
 /**
  * Created by dengquanliang
@@ -34,14 +39,14 @@ public interface ResourceService {
      */
     List<ResourceView> getResourceViewByIp(String ip) throws Exception;
 
-    List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
+    List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws SQLException;
 
     List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException;
 
 
-    List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type) throws Exception;
+    List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type, String subType) throws Exception;
 
-    List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception;
+    List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type, String subType) throws Exception;
     
     List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
     List<ResourceView> autoConfigureMhaDbResource(DbResourceSelectParam param) throws SQLException;
@@ -60,10 +65,21 @@ public interface ResourceService {
 
     int partialMigrateApplier(ApplierMigrateParam param) throws Exception;
 
+    int partialMigrateMessenger(ApplierMigrateParam param) throws Exception;
+
     int migrateSlaveReplicator(String newIp, String oldIp) throws Exception;
 
     void migrateResource(ResourceMigrateParam param) throws Exception;
 
     ResourceSameAzView checkResourceAz() throws Exception;
 
+    MhaAzView getAllInstanceAzInfo() throws Exception;
+
+    List<ApplierInfoDto> getMasterAppliersInRegion(String region, List<String> ips);
+
+    List<MessengerInfoDto> getMasterMessengersInRegion(String region, List<String> ips);
+
+    List<ReplicatorInfoDto> getMasterReplicatorsInRegion(String region, List<String> ips);
+
+    Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() throws Exception;
 }

@@ -26,12 +26,13 @@ import com.ctrip.xpipe.spring.AbstractSpringConfigContext;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -297,12 +298,21 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public Set<Instance> getAllApplierOrMessengerInstances() {
+    public Set<Instance> getAllMessengerInstances() {
+        Set<Instance> set = new HashSet<>();
+        for (String clusterId : regionCache.getClusters()) {
+            DbCluster cluster = regionCache.getCluster(clusterId);
+            cluster.getMessengers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
+        }
+        return set;
+    }
+
+    @Override
+    public Set<Instance> getAllApplierInstances() {
         Set<Instance> set = new HashSet<>();
         for (String clusterId : regionCache.getClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
             cluster.getAppliers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
-            cluster.getMessengers().stream().map(e -> SimpleInstance.from(e.getIp(), e.getPort())).forEach(set::add);
         }
         return set;
     }
@@ -322,7 +332,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         Map<String, Map<String, List<Applier>>> map = new HashMap<>();
         for (String clusterId : allClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
-            List<Applier> applierList = (List<Applier>) MetaClone.clone(((Serializable) cluster.getAppliers()));
+            List<Applier> applierList = MetaClone.cloneList(cluster.getAppliers());
             Map<String, List<Applier>> appliersGroupByBackupRegistryKey = applierList.stream().collect(Collectors.groupingBy(NameUtils::getApplierBackupRegisterKey));
             for (Map.Entry<String, List<Applier>> entry : appliersGroupByBackupRegistryKey.entrySet()) {
                 String backupKey = entry.getKey();
@@ -340,7 +350,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         Map<String, Map<String, List<Messenger>>> map = new HashMap<>();
         for (String clusterId : allClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
-            List<Messenger> messengerList = (List<Messenger>) MetaClone.clone(((Serializable) cluster.getMessengers()));
+            List<Messenger> messengerList = MetaClone.cloneList(cluster.getMessengers());
             Map<String, List<Messenger>> messengersGroupByDbName = messengerList.stream().collect(Collectors.groupingBy(NameUtils::getMessengerDbName));
             for (Map.Entry<String, List<Messenger>> entry : messengersGroupByDbName.entrySet()) {
                 String dbName = entry.getKey();
@@ -359,7 +369,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         Map<String, List<Replicator>> map = new HashMap<>();
         for (String clusterId : allClusters()) {
             DbCluster cluster = regionCache.getCluster(clusterId);
-            List<Replicator> replicatorList = (List<Replicator>) MetaClone.clone(((Serializable) cluster.getReplicators()));
+            List<Replicator> replicatorList = MetaClone.cloneList(cluster.getReplicators());
             Replicator activeReplicator = currentMeta.getActiveReplicator(clusterId);
             setMaster(replicatorList, activeReplicator);
             map.put(clusterId, replicatorList);
@@ -467,7 +477,9 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
     @Override
     public void update(Object args, Observable observable) {
-
+        if (args instanceof MetaRefreshDone) {
+            return;
+        }
         if(args instanceof DcComparator) {
 
             dcMetaChange((DcComparator) args);
@@ -514,18 +526,23 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     protected void routeChanges() {
         for(String clusterId : allClusters()) {
             DbCluster clusterMeta = regionCache.getCluster(clusterId);
-            List<Pair<String, String>> upstreamDcClusterIdList = getUpstreamDcClusterIdList(clusterMeta);
-            for(Pair<String, String> upstreamDcClusterId : upstreamDcClusterIdList) {
-                if(randomRoute(clusterId, upstreamDcClusterId.getKey()) != null) {
-                    refreshApplierMaster(clusterMeta, upstreamDcClusterId.getValue());
+            Map<String, Set<String>> upstreamDcClusterIds = getUpstreamDcClusterIds(clusterMeta);
+            for (Map.Entry<String, Set<String>> upstreamDcClusterId : upstreamDcClusterIds.entrySet()) {
+                String targetIdc = upstreamDcClusterId.getKey();
+                Set<String> upstreamClusterIds = upstreamDcClusterId.getValue();
+                if (randomRoute(clusterId, targetIdc) == null) {
+                    continue;
+                }
+                for (String upstreamClusterId : upstreamClusterIds) {
+                    refreshApplierMaster(clusterMeta, upstreamClusterId);
                 }
             }
         }
     }
 
     @VisibleForTesting
-    protected List<Pair<String, String>> getUpstreamDcClusterIdList(DbCluster clusterMeta) {
-        List<Pair<String, String>> upstreamDcClusterIdList = Lists.newArrayList();
+    protected Map<String, Set<String>> getUpstreamDcClusterIds(DbCluster clusterMeta) {
+        Map<String, Set<String>> upstreamDcClusterIdMap = Maps.newHashMap();
         List<Applier> applierList = clusterMeta.getAppliers();
 
         for (Applier applier : applierList) {
@@ -533,11 +550,16 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
             String targetName = applier.getTargetName();
             String targetIdc = applier.getTargetIdc();
             if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                upstreamDcClusterIdList.add(new Pair<>(targetIdc, RegistryKey.from(targetName, targetMhaName)));
+                String upstreamClusterId = RegistryKey.from(targetName, targetMhaName);
+                if (upstreamDcClusterIdMap.containsKey(targetIdc)) {
+                    upstreamDcClusterIdMap.get(targetIdc).add(upstreamClusterId);
+                } else {
+                    upstreamDcClusterIdMap.put(targetIdc, Sets.newHashSet(upstreamClusterId));
+                }
             }
         }
 
-        return upstreamDcClusterIdList;
+        return upstreamDcClusterIdMap;
     }
 
     @VisibleForTesting

@@ -34,11 +34,11 @@ public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
             final ResultSet readOnlyResultSet = statement.executeQuery(IS_READ_ONLY_COMMAND);
             String isReadOnly = "";
             if (readOnlyResultSet.next()) {
-                isReadOnly = readOnlyResultSet.getString("Value");
+                isReadOnly = readOnlyResultSet.getString(1);
             }
 
-            // read_only = OFF,那么此节点即为Master
-            boolean isMaster = "OFF".equalsIgnoreCase(isReadOnly);
+            // read_only = 0,那么此节点即为Master
+            boolean isMaster = "0".equalsIgnoreCase(isReadOnly);
 
             readOnlyResultSet.close();
             statement.close();
@@ -51,8 +51,9 @@ public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
             return true;
         }  catch (SQLException e) {
             dataSourceManager.clearDataSource(endpoint);
-            logger.error("query master of {}:{} error and clear from dataSourceManager", endpoint.getHost(), endpoint.getPort(), e);
-            return e.getMessage() != null && e.getMessage().contains(ACCESS_DENIED);
+            String message = e.getMessage();
+            logger.error("query master of {}:{} error and clear from dataSourceManager. exception: {}", endpoint.getHost(), endpoint.getPort(), message);
+            return message != null && message.contains(ACCESS_DENIED);
         } catch (Exception e) {
             logger.error("query master of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
             return false;

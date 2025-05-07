@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.console.service.v2.resource.ProxyService;
 import com.ctrip.framework.drc.console.service.v2.resource.RouteService;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,21 +45,6 @@ public class MetaControllerTest extends AbstractControllerTest {
         MockitoAnnotations.initMocks(this);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
-    
-
-    @Test
-    public void testDeleteProxyRoute() throws Exception {
-        Mockito.doReturn(ApiResult.getSuccessInstance(true)).when(routeService).deleteRoute(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),Mockito.anyString());
-        MvcResult mvcResult = doNormalDelete("/api/drc/v1/meta/routes/proxy?routeOrgName=testBu&srcDcName=testSrc&dstDcName=testDst&tag=meta");
-        assertNormalResponse(mvcResult);
-    }
-
-    @Test
-    public void testGetProxyRoutes() throws Exception {
-        Mockito.doReturn(Lists.newArrayList()).when(routeService).getRoutes(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),Mockito.anyString(),Mockito.any());
-        MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/routes?routeOrgName=testBu&srcDcName=testSrc&dstDcName=testDst&tag=meta&deleted=0");
-        assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_SUCCESS);
-    }
 
     @Test
     public void testInputDc() throws Exception {
@@ -77,13 +61,6 @@ public class MetaControllerTest extends AbstractControllerTest {
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/meta/orgs/testOrg").accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
-        assertNormalResponse(mvcResult);
-    }
-
-    @Test
-    public void testInputProxy() throws Exception {
-        Mockito.doReturn(ApiResult.getSuccessInstance(true)).when(proxyService).inputProxy(any());
-        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/proxy", new ProxyDto());
         assertNormalResponse(mvcResult);
     }
 
@@ -107,11 +84,11 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetAllProxyUris() throws Throwable {
-        Mockito.doReturn(Arrays.asList("ip1", "ip2")).when(proxyService).getAllProxyUris();
+        Mockito.doReturn(Arrays.asList("ip1", "ip2")).when(proxyService).getRelayProxyUris();
         MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/proxy/uris");
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_SUCCESS);
 
-        Mockito.doThrow(new Exception()).when(proxyService).getAllProxyUris();
+        Mockito.doThrow(new Exception()).when(proxyService).getRelayProxyUris();
         mvcResult = doNormalGet("/api/drc/v1/meta/proxy/uris");
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
     }

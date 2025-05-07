@@ -31,6 +31,14 @@
                    @on-blur="refreshTopicBu"
             />
           </FormItem>
+          <FormItem label="exclude类型">
+            <Select v-model="formItem.excludeFilterTypes" filterable  multiple style="width: 200px" placeholder="选择过滤类型" :disabled="filterReadOnly">
+              <Option v-for="item in excludeFilterTypesForChose" :value="item.value" :key="item.value" >{{ item.label }}</Option>
+            </Select>
+          </FormItem>
+          <FormItem v-if="mqType === 'qmq'" label="延迟投递(s)">
+            <Input v-model="formItem.delayTime"  style="width:200px" :disabled="filterReadOnly" placeholder="qmq延迟投递时间,单位:秒"/>
+          </FormItem>
           <FormItem label="有序消息">
             <i-switch v-model="formItem.switch.order" size="large">
               <template #open>
@@ -51,10 +59,67 @@
             </template>
             <FormItem label="字段">
               <Select v-model="formItem.orderKey" filterable allow-create @on-create="handleCreateColumn"
-                      style="width: 200px" placeholder="选择有序相关字段">
+                      style="width: 200px" placeholder="不选表示按主键投递" clearable>
                 <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </FormItem>
+          </Card>
+          <FormItem label="消息包括字段">
+            <template v-if="filterReadOnly">
+              <div v-if="formItem.filterFields != null && formItem.filterFields.length > 0">
+                {{ formItem.filterFields.join(', ') }}
+              </div>
+              <div v-else class="array-item">
+                <tag color="blue">全部列</tag>
+              </div>
+            </template>
+            <template v-else>
+              <i-switch v-model="formItem.switch.fields" size="large">
+                <template #open>
+                  <span>On</span>
+                </template>
+                <template #close>
+                  <span>Off</span>
+                </template>
+              </i-switch>
+            </template>
+          </FormItem>
+          <template v-if="filterReadOnly">
+            <FormItem label="仅在字段有更新时投递">
+              <div>
+                <span v-if="formItem.sendOnlyUpdated">是</span>
+                <span v-else>否</span>
+              </div>
+            </FormItem>
+            <FormItem label="投递方式">
+              <div>
+                <span v-if="formItem.excludeColumn">排除所选字段</span>
+                <span v-else>包含所选字段</span>
+              </div>
+            </FormItem>
+          </template>
+          <Card v-if="formItem.switch.fields" style="margin-left: 100px">
+            <template #title>
+              <Icon type="md-settings"/>
+              消息包括字段
+              <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading2"
+                      @click="() => getCommonColumns('fields')" style="margin-left: 50px">获取公共字段
+              </Button>
+            </template>
+            <FormItem label="字段">
+              <Select v-model="formItem.filterFields" filterable multiple
+                      style="width: 200px" placeholder="不选表示消息包括全部字段" clearable>
+                <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
+              </Select>
+            </FormItem>
+            <Row>
+              <FormItem label="仅在字段有更新时投递">
+                <Checkbox v-model="formItem.sendOnlyUpdated"  :disabled="filterReadOnly"></Checkbox>
+              </FormItem>
+              <FormItem label="是否仅排除所选字段">
+                <Checkbox v-model="formItem.excludeColumn"  :disabled="filterReadOnly"></Checkbox>
+              </FormItem>
+            </Row>
           </Card>
         </Form>
       </Col>
@@ -70,8 +135,8 @@
     </Row>
     <Divider></Divider>
     <Button :type="buttonTypeMap.get(formAction)" @click="submitAll" style="margin-left: 50px"
-            :loading="dataLoading || commonColumnLoading">{{
-        buttonTextMap.get(formAction)
+            :loading="dataLoading || commonColumnLoading || commonColumnLoading2">{{
+        buttonTextMap.get(formAction) + ': ' + mqType
       }}
     </Button>
   </div>
@@ -91,10 +156,13 @@ export default {
   name: 'dbMqConfig',
   props: {
     configData: {},
+    mqType: String,
     srcRegion: String,
     dstRegion: String,
+    dalclusterName: String,
     dbNames: Array,
-    formAction: String
+    formAction: String,
+    filterReadOnly: Boolean
   },
   emits: ['finished'],
   data () {
@@ -112,13 +180,18 @@ export default {
         tableName: null,
         topic: null,
         orderKey: null,
+        excludeFilterTypes: [],
+        filterFields: [],
+        sendOnlyUpdated: false,
+        excludeColumn: false,
         switch: {
           order: false
         },
         constants: {
           columnsForChose: [],
           buForChosen: []
-        }
+        },
+        delayTime: 0
       },
       checkTableDataList: [],
       table: {
@@ -239,7 +312,22 @@ export default {
       ]),
       dataLoading: false,
       successSubmit: false,
-      commonColumnLoading: false
+      commonColumnLoading: false,
+      commonColumnLoading2: false,
+      excludeFilterTypesForChose: [
+        {
+          value: 'D',
+          label: 'DELETE'
+        },
+        {
+          value: 'U',
+          label: 'UPDATE'
+        },
+        {
+          value: 'I',
+          label: 'INSERT'
+        }
+      ]
     }
   },
   methods: {
@@ -263,6 +351,7 @@ export default {
     },
     getEditParams: function () {
       const param = {}
+      param.dalclusterName = this.dalclusterName
       param.dbReplicationIds = this.meta.dbReplicationIds
       param.dbNames = this.dbNames
       param.srcRegionName = this.srcRegion
@@ -274,21 +363,28 @@ export default {
       param.originLogicTableConfig = this.meta.originLogicTableConfig
       param.mqConfig = {
         bu: this.formItem.bu,
-        mqType: 'qmq',
-        // table: this.mqConfig.table,
-        // topic: this.mqConfig.topic,
+        mqType: this.mqType,
         serialization: 'json',
         persistent: false,
         order: this.formItem.switch.order,
-        orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey
+        orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey,
+        excludeFilterTypes: this.formItem.excludeFilterTypes,
+        delayTime: this.formItem.delayTime,
+        filterFields: this.formItem.filterFields,
+        sendOnlyUpdated: this.formItem.sendOnlyUpdated,
+        excludeColumn: this.formItem.excludeColumn
       }
       console.log(param)
       return param
     },
-    async getCommonColumns () {
+    async getCommonColumns (method) {
       const params = this.getParams()
       this.formItem.constants.columnsForChose = []
-      this.commonColumnLoading = true
+      if (method === 'fields') {
+        this.commonColumnLoading2 = true
+      } else {
+        this.commonColumnLoading = true
+      }
       await this.axios.get('/api/drc/v2/autoconfig/commonColumns', {
         params: this.flattenObj(params)
       }).then(response => {
@@ -301,7 +397,11 @@ export default {
       }).catch(message => {
         this.$Message.error('查询公共列名异常: ' + message)
       }).finally(() => {
-        this.commonColumnLoading = false
+        if (method === 'fields') {
+          this.commonColumnLoading2 = false
+        } else {
+          this.commonColumnLoading = false
+        }
       })
     },
     handleCreateColumn (val) {
@@ -345,6 +445,11 @@ export default {
         this.formItem.topic = this.configData.config.dstLogicTable
         this.formItem.orderKey = this.configData.orderKey
         this.formItem.switch.order = this.configData.order
+        this.formItem.excludeFilterTypes = this.configData.excludeFilterTypes
+        this.formItem.delayTime = this.configData.delayTime
+        this.formItem.filterFields = this.configData.filterFields
+        this.formItem.sendOnlyUpdated = this.configData.sendOnlyUpdated
+        this.formItem.excludeColumn = this.configData.excludeColumn
         this.refreshTopicBu()
         this.getCommonColumns()
         this.meta.dbReplicationIds = this.configData.dbReplicationIds

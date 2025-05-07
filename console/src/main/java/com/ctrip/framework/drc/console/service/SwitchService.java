@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service;
 
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;
+import com.ctrip.framework.drc.core.server.config.console.dto.ClusterConfigDto;
 
 /**
  * @author shenhaibo
@@ -9,7 +8,9 @@ import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;
  * date: 2020-03-05
  */
 public interface SwitchService {
-    ApiResult switchUpdateDb(String cluster, DbEndpointDto dbEndpointDto);
+    void switchUpdateDb(ClusterConfigDto clusterConfigDto) throws Exception;
 
-    void switchListenReplicator(String clusterId, String endpoint);
+    void switchListenReplicator(ClusterConfigDto clusterConfigDto);
+
+    void switchListenMessenger(ClusterConfigDto clusterConfigDto);
 }

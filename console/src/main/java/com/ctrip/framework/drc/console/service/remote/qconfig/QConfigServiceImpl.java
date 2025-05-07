@@ -17,24 +17,22 @@ import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRe
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.foundation.Foundation;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonObject;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName QConfigServiceImpl
@@ -104,7 +102,11 @@ public class QConfigServiceImpl implements QConfigService {
             if (fileDetailResponse.isExist()) {
                 FileDetailData fileDetailData = fileDetailResponse.getData();
                 Map<String, String> originalConfig = string2config(fileDetailData.getData());
-                Map<String, String> configContext = processAddOrUpdateConfig(topic,tag, matchTables,originalConfig);
+                List<TableSchemaName> tablesNeedChange = filterTablesWithAnotherMqInQConfig(originalConfig, matchTables, topic);
+                if (CollectionUtils.isEmpty(tablesNeedChange)) {
+                    continue;
+                }
+                Map<String, String> configContext = processAddOrUpdateConfig(topic,tag, tablesNeedChange,originalConfig);
                 int version = fileDetailResponse.getData().getEditVersion();
                 List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
                 BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv,
@@ -137,6 +139,72 @@ public class QConfigServiceImpl implements QConfigService {
     }
 
     @Override
+    public boolean reWriteDalClusterMqConfig(String dcName, String dalClusterName, Map<String, String> configContext) {
+        Set<String> dcsInSameRegion = domainConfig.getIDCsInSameRegion(dcName);
+        boolean batchActionFlag = true;
+        for (String affectedDc : dcsInSameRegion) {
+            String localEnv = getLocalEnv();
+            String fileSubEnv = getFileSubEnv(affectedDc);
+            String fileName = dalClusterName + PROPERTIES_SUFFIX;
+
+            boolean success = createOrUpdateFile(configContext, fileName, localEnv, fileSubEnv);
+            if (!success) {
+                batchActionFlag = false;
+            }
+        }
+        return batchActionFlag;
+    }
+
+    private boolean createOrUpdateFile(Map<String, String> configContext, String fileName, String localEnv, String fileSubEnv) {
+        // query current config
+        logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] delete todo, fileName:{}", fileName);
+        FileDetailResponse fileDetailResponse = queryFileDetail(fileName, localEnv, fileSubEnv, BINLOG_TOPIC_REGISTRY);
+        if (!fileDetailResponse.isExist()) {
+            // create
+            CreateFileRequestBody requestBody = transformRequest(fileName, configContext, localEnv, fileSubEnv);
+            CreateFileResponse response = createFile(requestBody);
+            if (response.getStatus() == 0) {
+                // success
+                logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] create success,fileName:{}", fileName);
+            } else {
+                logger.error("[[tag=BINLOG_TOPIC_REGISTRY]] create fail, fileName:{}, response:{}", fileName, response);
+                return false;
+            }
+        } else {
+            // update
+            int version = fileDetailResponse.getData().getEditVersion();
+            FileDetailData fileDetailData = fileDetailResponse.getData();
+            processRemovedTopic(configContext, string2config(fileDetailData.getData()));
+
+            // put result
+            List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
+            BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
+            if (batchUpdateResponse.getStatus() == 0) {
+                // success
+                logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] update success,fileName:{}", fileName);
+            } else {
+                // fail
+                logger.error("[[tag=BINLOG_TOPIC_REGISTRY]] update fail,fileName:{}", fileName);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void processRemovedTopic(Map<String, String> configContext, Map<String, String> originalConfig) {
+        Set<String> originTopics = originalConfig.entrySet().stream()
+                .filter(e -> e.getKey().endsWith("." + STATUS) && e.getValue().equals(ON))
+                .map(e -> e.getKey().substring(0, e.getKey().length() - STATUS.length() - 1))
+                .collect(Collectors.toSet());
+        for (String originTopic : originTopics) {
+            if (!configContext.containsKey(originTopic + "." + STATUS)) {
+                // topic removed
+                processRemoveAllConfig(originTopic, configContext);
+            }
+        }
+    }
+
+    @Override
     public boolean updateDalClusterMqConfig(String dcName, String topic, String dalClusterName, List<TableSchemaName> matchTables) {
         Set<String> dcsInSameRegion = domainConfig.getIDCsInSameRegion(dcName);
         boolean batchActionFlag = true;
@@ -153,10 +221,17 @@ public class QConfigServiceImpl implements QConfigService {
                 continue;
             }
 
+            FileDetailData fileDetailData = fileDetailResponse.getData();
+            Map<String, String> originalConfig = string2config(fileDetailData.getData());
+            if (!originalConfig.containsKey(topic + "." + STATUS)) {
+                continue;
+            }
+            List<TableSchemaName> tablesNeedChange = filterTablesWithAnotherMqInQConfig(originalConfig, matchTables, topic);
+
             int version = fileDetailResponse.getData().getEditVersion();
 
             // put result
-            Map<String, String> configContext = convertToContext(topic, matchTables);
+            Map<String, String> configContext = convertToContext(topic, tablesNeedChange);
             List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
             BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
 
@@ -243,9 +318,13 @@ public class QConfigServiceImpl implements QConfigService {
 
     private Map<String, String> processRemoveAllConfig(String topic) {
         Map<String, String> config = Maps.newLinkedHashMap();
-        config.put(topic + "." + STATUS,OFF);
-        config.put(topic + "." + DBNAME,"");
-        config.put(topic + "." + TABLENAME,"");
+        return processRemoveAllConfig(topic, config);
+    }
+
+    private static Map<String, String> processRemoveAllConfig(String topic, Map<String, String> config) {
+        config.put(topic + "." + STATUS, OFF);
+        config.put(topic + "." + DBNAME, "");
+        config.put(topic + "." + TABLENAME, "");
         return config;
     }
 
@@ -279,9 +358,9 @@ public class QConfigServiceImpl implements QConfigService {
         return requestBody;
     }
 
-    
-    
-    private String config2String(Map<String,String> context) {
+
+
+    public static String config2String(Map<String,String> context) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : context.entrySet()) {
             sb.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
@@ -289,7 +368,7 @@ public class QConfigServiceImpl implements QConfigService {
         return sb.toString();
     }
 
-    private  Map<String,String> string2config(String context) {
+    public static Map<String,String> string2config(String context) {
         Map<String,String>  res = Maps.newLinkedHashMap();
         if (StringUtils.isBlank(context)) {
             return res;
@@ -301,7 +380,7 @@ public class QConfigServiceImpl implements QConfigService {
             if (kv.length != 2) {
                 res.put(kv[0],"");
             } else {
-                res.put(kv[0],kv[1]);  
+                res.put(kv[0],kv[1]);
             }
         }
         return res;
@@ -472,6 +551,49 @@ public class QConfigServiceImpl implements QConfigService {
         } else {
             return subEnv;
         }
+    }
+
+    @VisibleForTesting
+    protected List<TableSchemaName> filterTablesWithAnotherMqInQConfig(Map<String, String> originalConfig, List<TableSchemaName> matchTables, String topic) {
+        Map<String, String> db2Key = originalConfig.entrySet().stream()
+                .filter(entry -> entry.getKey().endsWith("." + DBNAME))
+                .flatMap(entry -> {
+                    String key = entry.getKey();
+                    String[] dbs = entry.getValue().split(",");
+                    return Arrays.stream(dbs).map(db -> Map.entry(db.trim(), key));
+                })
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existing, replacement) -> existing
+                ));
+
+        String targetTopicKey = topic + "." + STATUS;
+        List<TableSchemaName> tables = Lists.newArrayList();
+        for (TableSchemaName name : matchTables) {
+            String dbName = name.getSchema();
+            if (!db2Key.containsKey(dbName)) {
+                tables.add(name);
+                continue;
+            }
+
+            String topicDbNameKey = db2Key.get(dbName);
+            String topicTableNameKey = topicDbNameKey.substring(0, topicDbNameKey.length() - DBNAME.length()) + TABLENAME;
+            String topicStatusKey = topicDbNameKey.substring(0, topicDbNameKey.length() - DBNAME.length()) + STATUS;
+
+            if (OFF.equalsIgnoreCase(originalConfig.get(topicStatusKey)) || topicStatusKey.equalsIgnoreCase(targetTopicKey)) {
+                tables.add(name);
+                continue;
+            }
+
+            String tblStr = originalConfig.get(topicTableNameKey);
+            Set<String> tblsInQConfig = Sets.newHashSet(tblStr.split(","));
+            if (!tblsInQConfig.contains(name.getName())) {
+                tables.add(name);
+            }
+        }
+
+        return tables;
     }
     
 }

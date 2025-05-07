@@ -20,7 +20,6 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.google.common.collect.Sets;
-import java.util.Set;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.assertj.core.util.Lists;
 import org.junit.After;
@@ -38,12 +37,14 @@ import org.unidal.tuple.Triple;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -69,9 +70,9 @@ public class PeriodicalUpdateDbTaskTest {
     @Mock private CentralService centralService;
 
     @Mock private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
-    
+
     @Mock private CacheMetaService cacheMetaService;
-    
+
 
 
 
@@ -145,7 +146,6 @@ public class PeriodicalUpdateDbTaskTest {
         MockitoAnnotations.openMocks(this);
         task.setLocalDcName(DC1);
         when(dataCenterService.getDc()).thenReturn(DC1);
-        when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet("dc-readMhaFromConfig"));
         when(consoleConfig.getRegion()).thenReturn("sha");
         when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
         when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList(DC1)));
@@ -231,13 +231,13 @@ public class PeriodicalUpdateDbTaskTest {
         mock.put(new MetaKey(null, null, null, "mha_db_1_src"), null);
         task.setMasterMySQLEndpointMap(mock);
 
-        Map<String, List<String>> map = new HashMap<>();
-        map.put("mha_db_1_src", Lists.newArrayList("mha_db_1_dst"));
+        Map<String, Set<String>> map = new HashMap<>();
+        map.put("mha_db_1_src", Sets.newHashSet("mha_db_1_dst"));
         when(periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(eq("dstMha"))).thenReturn(map);
         Set<String> test = task.getMhaInLocalRegionRelatedByDstMha("dstMha");
         Assert.assertEquals(2, test.size());
         Assert.assertFalse(test.contains("mha_db_1_src"));
-        
+
         // test getSrcMhasShouldMonitor
         when(cacheMetaService.getSrcMhasHasReplication(eq("dstMha"))).thenReturn(Sets.newHashSet("mha1","mha2","mha_db_1_src","mha3InOtherDc"));
         test = task.getSrcMhasShouldMonitor("dstMha");
@@ -245,7 +245,7 @@ public class PeriodicalUpdateDbTaskTest {
 
         task.setMasterMySQLEndpointMap(origin);
     }
-    
+
 
     private void createDb() throws InterruptedException {
         try {

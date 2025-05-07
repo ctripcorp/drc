@@ -1,16 +1,17 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.EventReader;
+import com.ctrip.framework.drc.core.server.common.SizeNotEnoughException;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
@@ -24,12 +25,17 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,25 +57,25 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGE
  * @Author limingdong
  * @create 2022/4/22
  */
-public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFilterChainFactory.OutboundFilterChainContext, OutboundLogEventContext> {
+public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFilterChainFactory.OutboundFilterChainContext, OldOutboundLogEventContext> {
 
     @Override
-    public Filter<OutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
-        MonitorFilter monitorFilter = new MonitorFilter(context);
+    public Filter<OldOutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
+        OldMonitorFilter monitorFilter = new OldMonitorFilter(context);
 
         OldLocalSendFilter sendFilter = new OldLocalSendFilter(context);
         monitorFilter.setSuccessor(sendFilter);
 
-        ReadFilter readFilter = new ReadFilter(context.getRegisterKey());
+        OldReadFilter readFilter = new OldReadFilter(context.getRegisterKey());
         sendFilter.setSuccessor(readFilter);
 
-        IndexFilter indexFilter = new IndexFilter(context.getExcludedSet());
+        OldIndexFilter indexFilter = new OldIndexFilter(context.getExcludedSet());
         readFilter.setSuccessor(indexFilter);
 
         OldSkipFilter skipFilter = new OldSkipFilter(context);
         indexFilter.setSuccessor(skipFilter);
 
-        TypeFilter consumeTypeFilter = new TypeFilter(context.getConsumeType());
+        OldTypeFilter consumeTypeFilter = new OldTypeFilter(context.getConsumeType());
         skipFilter.setSuccessor(consumeTypeFilter);
 
         if (ConsumeType.Replicator != context.getConsumeType()) {
@@ -80,7 +86,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             schemaFilter.setSuccessor(tableNameFilter);
 
             if (context.shouldExtract()) {
-                ExtractFilter extractFilter = new ExtractFilter(context);
+                OldExtractFilter extractFilter = new OldExtractFilter(context);
                 tableNameFilter.setSuccessor(extractFilter);
             }
         }
@@ -88,23 +94,200 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         return monitorFilter;
     }
 
+
+    public class OldTypeFilter extends AbstractLogEventFilter<OldOutboundLogEventContext> {
+
+        private ConsumeType consumeType;
+
+        public OldTypeFilter(ConsumeType consumeType) {
+            this.consumeType = consumeType;
+        }
+
+        @Override
+        public boolean doFilter(OldOutboundLogEventContext value) {
+            switch (consumeType) {
+                case Applier:
+                case Messenger:
+                    filterApplier(value);
+                    break;
+                default:
+            }
+
+            return doNext(value, value.isSkipEvent());
+        }
+
+        private void filterApplier(OldOutboundLogEventContext value) {
+            if (LogEventUtils.isApplierIgnored(value.getEventType())) {
+                value.setSkipEvent(true);
+            }
+        }
+    }
+
+
+    public class OldMonitorFilter extends AbstractPostLogEventFilter<OldOutboundLogEventContext> {
+
+        private OutboundMonitorReport outboundMonitorReport;
+
+        private String registerKey;
+
+        private ConsumeType consumeType;
+
+        private String srcRegion;
+
+        private String dstRegion;
+
+        private long transactionSize;
+
+        private long tableMapSize;
+
+        private String dbName;
+
+        public OldMonitorFilter(OutFilterChainContext context) {
+            this.outboundMonitorReport = context.getOutboundMonitorReport();
+            this.registerKey = context.getRegisterKey();
+            this.consumeType = context.getConsumeType();
+            this.srcRegion = context.getSrcRegion();
+            this.dstRegion = context.getDstRegion();
+        }
+
+        @Override
+        public boolean doFilter(OldOutboundLogEventContext value) {
+            boolean skipEvent = doNext(value, value.isSkipEvent());
+
+            if (skipEvent) {
+                return true;
+            }
+
+            LogEventType eventType = value.getEventType();
+            boolean trafficCountChange = DynamicConfig.getInstance().getTrafficCountChangeSwitch();
+
+            //TODO: for test, can remove
+            if (ConsumeType.Replicator == consumeType) {
+                outboundMonitorReport.addSize(value.getEventSize());
+            }
+
+            if (gtid_log_event == eventType) {
+                transactionSize = value.getEventSize();
+                outboundMonitorReport.addOutboundGtid(registerKey, value.getGtid());
+                outboundMonitorReport.addOneCount();
+            } else if (table_map_log_event == eventType) {
+                tableMapSize = value.getEventSize();
+                if (!trafficCountChange) {
+                    transactionSize += value.getEventSize();
+                }
+                if (ConsumeType.Replicator == consumeType) {
+                    dbName = registerKey;
+                } else {
+                    dbName = ((TableMapLogEvent) value.getLogEvent()).getSchemaName();
+                }
+            } else if (LogEventUtils.isRowsEvent(eventType)) {
+                if (trafficCountChange) {
+                    transactionSize += value.getEventSize() + tableMapSize;
+                } else {
+                    transactionSize += value.getEventSize();
+                }
+                tableMapSize = 0;
+            } else if (xid_log_event == eventType) {
+                transactionSize += value.getEventSize();
+                outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(dbName, srcRegion, dstRegion, consumeType.name()), transactionSize);
+                clear();
+            }
+
+            return false;
+        }
+
+        private void clear() {
+            transactionSize = 0;
+            tableMapSize = 0;
+            dbName = StringUtils.EMPTY;
+        }
+    }
+    private static class OldReadFilter extends AbstractLogEventFilter<OldOutboundLogEventContext> {
+
+        private ByteBuffer headBuffer = ByteBuffer.allocateDirect(eventHeaderLengthVersionGt1);
+
+        private ByteBuf headByteBuf = Unpooled.wrappedBuffer(headBuffer);
+
+        private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer(2);
+
+        private String registerKey;
+
+        public OldReadFilter(String registerKey) {
+            this.registerKey = registerKey;
+            this.compositeByteBuf.addComponent(true, headByteBuf);
+        }
+
+        @Override
+        public boolean doFilter(OldOutboundLogEventContext value) {
+            FileChannel fileChannel = value.getFileChannel();
+
+            // if read header fail, restore position
+            boolean readHeaderComplete = EventReader.readHeader(fileChannel, headBuffer, headByteBuf);
+            if (!readHeaderComplete) {
+                this.restore(value, fileChannel);
+                return doNext(value, value.isSkipEvent());
+            }
+
+            value.setCompositeByteBuf(compositeByteBuf);
+
+            LogEventType eventType = LogEventUtils.parseNextLogEventType(headByteBuf);
+            value.setEventType(eventType);
+
+            long eventSize = LogEventUtils.parseNextLogEventSize(headByteBuf);
+            value.setEventSize(eventSize);
+
+            // if event not complete yet, restore position
+            if (!checkEventSize(value)) {
+                this.restore(value, fileChannel);
+            }
+            return doNext(value, value.isSkipEvent());
+        }
+
+        private void restore(OldOutboundLogEventContext value, FileChannel fileChannel) {
+            try {
+                fileChannel.position(value.getFileChannelPos());
+                value.setCause(new SizeNotEnoughException("check event size error"));
+                value.setSkipEvent(true);
+            } catch (IOException e) {
+                logger.error("check event size error:", e);
+                value.setCause(e);
+                value.setSkipEvent(true);
+            }
+        }
+
+        private boolean checkEventSize(OldOutboundLogEventContext value) {
+            if (value.getFileChannelPos() + value.getEventSize() > value.getFileChannelSize()) {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.size", registerKey);
+                logger.warn("check event size false, size: {}", value.getEventSize());
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public void release() {
+            EventReader.releaseByteBuf(compositeByteBuf);
+            logger.info("read filter release compositeByteBuf for: {}", registerKey);
+        }
+    }
     public static class OldLocalSendFilter extends OldSendFilter implements LocalHistoryForTest {
 
         public final String name;
-
+        private final ConsumeType consumeType;
 
         private static final Map<String, List<OutboundLogEventContext>> historyMap = new ConcurrentHashMap<>();
 
         public OldLocalSendFilter(OutboundFilterChainContext context) {
             super(context);
             this.name = context.getRegisterKey();
+            this.consumeType = context.getConsumeType();
             if (!historyMap.containsKey(name)) {
                 historyMap.put(name, new ArrayList<>());
             }
         }
 
         @Override
-        protected void doSend(OutboundLogEventContext value) {
+        protected void doSend(OldOutboundLogEventContext value) {
             super.doSend(value);
             historyMap.get(name).add(clone(value));
         }
@@ -119,16 +302,27 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             return name;
         }
 
-        private OutboundLogEventContext clone(OutboundLogEventContext value) {
+        @Override
+        public ConsumeType getConsumeType() {
+            return consumeType;
+        }
+
+        @Override
+        public void clearHistory() {
+            historyMap.clear();
+        }
+
+        private OutboundLogEventContext clone(OldOutboundLogEventContext value) {
             OutboundLogEventContext clone = new OutboundLogEventContext();
             clone.setEventType(value.eventType);
             clone.setRewrite(value.isRewrite());
             clone.setLogEvent(value.logEvent);
             clone.setCause(value.getCause());
             clone.setSkipEvent(value.isSkipEvent());
-            clone.setNoRewrite(value.isNoRewrite());
             clone.setGtid(value.getGtid());
             clone.setEverSeeGtid(value.isEverSeeGtid());
+            clone.setFileSeq(value.getBinlogPosition().getFileSeq());
+            clone.setFileChannelPosAfterRead(value.getBinlogPosition().getPosition());
             return clone;
         }
 
@@ -140,7 +334,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
      * <p>
      * Created by jixinwang on 2023/10/11
      */
-    public static class OldTableNameFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
+    public static class OldTableNameFilter extends AbstractLogEventFilter<OldOutboundLogEventContext> {
 
         private Map<Long, TableMapLogEvent> skipRowsRelatedTableMap = Maps.newHashMap();
 
@@ -156,11 +350,13 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         }
 
         @Override
-        public boolean doFilter(OutboundLogEventContext value) {
+        public boolean doFilter(OldOutboundLogEventContext value) {
             LogEventType eventType = value.getEventType();
 
             if (table_map_log_event == eventType) {
                 filterTableMapEvent(value);
+            } else if(drc_table_map_log_event == eventType){
+                filterDrcTableMapEvent(value);
             } else if (LogEventUtils.isRowsEvent(eventType)) {
                 filterRowsEvent(value);
             } else if (xid_log_event == value.getEventType()) {
@@ -172,7 +368,15 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             return doNext(value, value.isSkipEvent());
         }
 
-        private void filterTableMapEvent(OutboundLogEventContext value) {
+        private void filterDrcTableMapEvent(OldOutboundLogEventContext value) {
+            TableMapLogEvent tableMapLogEvent = value.readTableMapEvent();
+            if (shouldSkipTableMapEvent(tableMapLogEvent.getSchemaNameDotTableName())) {
+                value.setSkipEvent(true);
+                GTID_LOGGER.debug("[Skip] drc table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
+            }
+        }
+
+        private void filterTableMapEvent(OldOutboundLogEventContext value) {
             Map<Long, TableMapLogEvent> rowsRelatedTableMap = value.getRowsRelatedTableMap();
 
             if (isFirstRowsRelatedTableMapEvent()) {
@@ -203,7 +407,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             return rowsRelatedTableMap.size() == 1;
         }
 
-        private void filterRowsEvent(OutboundLogEventContext value) {
+        private void filterRowsEvent(OldOutboundLogEventContext value) {
             Map<Long, TableMapLogEvent> rowsRelatedTableMap = value.getRowsRelatedTableMap();
             if (skipRowsRelatedTableMap.isEmpty()) {
                 return;
@@ -228,7 +432,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
     /**
      * Created by jixinwang on 2023/11/20
      */
-    public static class OldSchemaFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
+    public static class OldSchemaFilter extends AbstractLogEventFilter<OldOutboundLogEventContext> {
 
         private String registerKey;
 
@@ -242,7 +446,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         }
 
         @Override
-        public boolean doFilter(OutboundLogEventContext value) {
+        public boolean doFilter(OldOutboundLogEventContext value) {
             if (drc_filter_log_event == value.getEventType()) {
                 FilterLogEvent filterLogEvent = value.readFilterEvent();
                 value.setLogEvent(filterLogEvent);
@@ -268,14 +472,14 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
                 String[] schemaAndTable = schemaDotTableName.split("\\\\.");
                 if (schemaAndTable.length > 1) {
                     schemas.add(schemaAndTable[0].toLowerCase());
-                    logger.info("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable[0]);
+                    logger.debug("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable[0]);
                     continue;
                 }
 
                 String[] schemaAndTable2 = schemaDotTableName.split("\\.");
                 if (schemaAndTable2.length > 1) {
                     schemas.add(schemaAndTable2[0].toLowerCase());
-                    logger.info("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable2[0]);
+                    logger.debug("[SCHEMA][ADD] for {}, schema {}", registerKey, schemaAndTable2[0]);
                 }
             }
         }
@@ -290,7 +494,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
      * @Author limingdong
      * @create 2022/4/22
      */
-    public static class OldSendFilter extends AbstractPostLogEventFilter<OutboundLogEventContext> {
+    public static class OldSendFilter extends AbstractPostLogEventFilter<OldOutboundLogEventContext> {
 
         private Channel channel;
 
@@ -299,7 +503,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         }
 
         @Override
-        public boolean doFilter(OutboundLogEventContext value) {
+        public boolean doFilter(OldOutboundLogEventContext value) {
             boolean skipEvent = doNext(value, value.isSkipEvent());
 
             if (value.getCause() != null) {
@@ -326,7 +530,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             return false;
         }
 
-        protected void doSend(OutboundLogEventContext value) {
+        protected void doSend(OldOutboundLogEventContext value) {
             if (value.isRewrite()) {
                 sendRewriteEvent(value);
             } else {
@@ -334,7 +538,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             }
         }
 
-        private void sendRewriteEvent(OutboundLogEventContext value) {
+        private void sendRewriteEvent(OldOutboundLogEventContext value) {
             value.getLogEvent().write(byteBufs -> {
                 for (ByteBuf byteBuf : byteBufs) {
                     byteBuf.readerIndex(0);
@@ -350,10 +554,87 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         }
     }
 
+
+
+
+    /**
+     * Created by jixinwang on 2023/10/11
+     */
+    public static class OldIndexFilter extends AbstractLogEventFilter<OldOutboundLogEventContext> {
+
+        private GtidSet excludedSet;
+
+        public OldIndexFilter(GtidSet excludedSet) {
+            this.excludedSet = excludedSet;
+        }
+
+        @Override
+        public boolean doFilter(OldOutboundLogEventContext value) {
+
+            if (LogEventUtils.isIndexEvent(value.getEventType())) { //first file and skip to first previous gtid event
+                if (!value.isEverSeeGtid()) {
+                    try {
+                        trySkip(value);
+                    } catch (IOException e) {
+                        value.setCause(e);
+                    }
+                }
+                value.setSkipEvent(true);
+            }
+
+            return doNext(value, value.isSkipEvent());
+        }
+
+        private void trySkip(OldOutboundLogEventContext value) throws IOException {
+            FileChannel fileChannel = value.getFileChannel();
+            DrcIndexLogEvent indexLogEvent = value.readIndexLogEvent();
+            long currentPosition = fileChannel.position();
+
+            List<Long> indices = indexLogEvent.getIndices();
+            if (indices.size() > 1) {
+                GtidSet firstGtidSet = readPreviousGtids(fileChannel, indices.get(0));
+                for (int i = 1; i < indices.size(); ++i) {
+                    if (indices.get(i).equals(indices.get(i - 1))) {
+                        restorePosition(fileChannel, indices.get(i - 1), currentPosition);
+                        break;
+                    }
+                    GtidSet secondGtidSet = readPreviousGtids(fileChannel, indices.get(i));
+                    GtidSet stepGtidSet = secondGtidSet.subtract(firstGtidSet);
+                    if (stepGtidSet.isContainedWithin(excludedSet)) {
+                        logger.info("[GtidSet] update from {} to {}", firstGtidSet, secondGtidSet);
+                        firstGtidSet = secondGtidSet;
+                    } else {  // restore to last position
+                        restorePosition(fileChannel, indices.get(i - 1), currentPosition);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void restorePosition(FileChannel fileChannel, long restorePosition, long currentPosition) throws IOException {
+            logger.info("restorePosition is {} and currentPosition is {}", restorePosition, currentPosition);
+            restorePosition = Math.max(restorePosition, currentPosition);
+            fileChannel.position(restorePosition);
+            logger.info("[restorePosition] set to {} finally", restorePosition);
+        }
+
+        private GtidSet readPreviousGtids(FileChannel fileChannel, long position) throws IOException {
+            PreviousGtidsLogEvent previousGtidsLogEvent = new PreviousGtidsLogEvent();
+            try {
+                fileChannel.position(position);
+                logger.info("[Update] position of fileChannel to {}", position);
+                EventReader.readEvent(fileChannel, previousGtidsLogEvent);
+                return previousGtidsLogEvent.getGtidSet();
+            } finally {
+                previousGtidsLogEvent.release();
+            }
+        }
+    }
+
     /**
      * Created by jixinwang on 2023/10/12
      */
-    public static class OldSkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
+    public static class OldSkipFilter extends AbstractLogEventFilter<OldOutboundLogEventContext> {
 
         private Frequency frequencySend = new Frequency("FRE GTID SEND");
 
@@ -380,7 +661,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         }
 
         @Override
-        public boolean doFilter(OutboundLogEventContext value) {
+        public boolean doFilter(OldOutboundLogEventContext value) {
             LogEventType eventType = value.getEventType();
 
             if (LogEventUtils.isGtidLogEvent(eventType)) {
@@ -399,7 +680,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             return doNext(value, value.isSkipEvent());
         }
 
-        private void handleGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
+        private void handleGtidEvent(OldOutboundLogEventContext value, LogEventType eventType) {
             value.setEverSeeGtid(true);
             GtidLogEvent gtidLogEvent = value.readGtidEvent();
             value.setLogEvent(gtidLogEvent);
@@ -408,7 +689,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
             inExcludeGroup = skipEvent(excludedSet, eventType, gtidLogEvent.getGtid());
             if (inExcludeGroup) {
-                GTID_LOGGER.info("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", previousGtid, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
+                GTID_LOGGER.debug("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", previousGtid, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
                 value.setSkipEvent(true);
                 long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
@@ -425,14 +706,14 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             }
         }
 
-        private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
+        private void handleNonGtidEvent(OldOutboundLogEventContext value, LogEventType eventType) {
             if (inExcludeGroup && !LogEventUtils.isSlaveConcerned(eventType)) {
                 value.skipPosition(value.getEventSize() - eventHeaderLengthVersionGt1);
                 value.setSkipEvent(true);
 
                 //skip all transaction, clear in_exclude_group
                 if (xid_log_event == eventType) {
-                    GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
+                    GTID_LOGGER.debug("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
                     inExcludeGroup = false;
                 }
             }

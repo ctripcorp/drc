@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba.response;
 
 
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 
 public class MemberInfo {
     private String status;
@@ -107,4 +108,11 @@ public class MemberInfo {
         return ip_business;
     }
 
+    public static MachineDto toMachineDto(MemberInfo memberInfo) {
+        return new MachineDto(
+            memberInfo.getDns_port(),
+            memberInfo.getService_ip(),
+            memberInfo.getRole().toLowerCase().contains("master")
+        );
+    }
 }

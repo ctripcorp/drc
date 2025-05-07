@@ -15,12 +15,15 @@
     </Button>
     <Modal v-model="editModal.open" width="1200px" :footer-hide="true" :title="actionTitle">
       <db-mq-config ref="dbReplicationConfigComponent" @finished="finishConfig"
-                             v-if="editModal.open"
-                             :config-data="selectedRow"
-                             :src-region="srcRegion"
-                             :dst-region="srcRegion"
-                             :db-names="dbNames"
-                             :form-action="action"
+                    v-if="editModal.open"
+                    :dalcluster-name="dalclusterName"
+                    :mq-type="mqType"
+                    :config-data="selectedRow"
+                    :src-region="srcRegion"
+                    :dst-region="srcRegion"
+                    :db-names="dbNames"
+                    :form-action="action"
+                    :filter-read-only="filterReadOnly"
       />
     </Modal>
   </div>
@@ -33,6 +36,8 @@ export default {
   name: 'mqTables',
   components: { DbMqConfig },
   props: {
+    dalclusterName: String,
+    mqType: String,
     dbName: String,
     dbNames: Array,
     srcRegion: String,
@@ -53,6 +58,7 @@ export default {
       editModal: {
         open: false
       },
+      filterReadOnly: false,
       columns: [
         {
           title: '序号',
@@ -94,7 +100,7 @@ export default {
           width: 100,
           render: (h, params) => {
             const row = params.row
-            const color = 'blue'
+            const color = row.order ? 'orange' : 'blue'
             const text = row.order ? '有序' : '无序'
             return h('Tag', {
               props: {
@@ -105,13 +111,76 @@ export default {
         },
         {
           title: '有序相关字段',
-          key: 'orderKey'
+          key: 'orderKey',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.order ? (row.orderKey ? row.orderKey : '主键') : ''
+            return h('span', text)
+          }
+        },
+        {
+          title: '过滤类型',
+          width: 70,
+          key: 'excludeFilterTypes',
+          render: (h, params) => {
+            const excludeFilterTypes = params.row.excludeFilterTypes
+            const formattedString = excludeFilterTypes.join(', ')
+            return h('span', formattedString)
+          }
+        },
+        {
+          title: '延迟投递(s)',
+          width: 50,
+          key: 'delayTime',
+          render: (h, params) => {
+            const time = params.row.delayTime === 0 ? '' : params.row.delayTime
+            return h('span', time)
+          }
+        },
+        {
+          title: '仅更新时投递',
+          key: 'sendOnlyUpdated',
+          width: 50,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.sendOnlyUpdated ? '✓' : ''
+            return h('span', text)
+          }
+        },
+        {
+          title: '投递方式',
+          key: 'excludeColumn',
+          width: 70,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.excludeColumn ? '排除' : '包括'
+            return h('span', text)
+          }
+        },
+        {
+          title: '投递字段',
+          key: 'filterFields',
+          width: 100,
+          render: (h, params) => {
+            const value = params.row.filterFields !== null ? params.row.filterFields.join(',') : '全部'
+            return h('span', value)
+          }
         },
         {
           title: '操作',
           slot: 'action',
-          align: 'center',
-          fixed: 'right'
+          align: 'center'
+        },
+        {
+          title: '修改时间',
+          key: 'filterFields',
+          render: (h, params) => {
+            const timestamp = params.row.datachangeLasttime
+            const date = new Date(timestamp)
+            const formattedDate = date.toLocaleString() // 使用本地时间格式
+            return h('span', formattedDate)
+          }
         }
       ]
     }
@@ -121,11 +190,13 @@ export default {
       this.selectedRow = null
       this.action = DbMqConfig.FORM_ACTION_OPTION.CREATE
       this.editModal.open = true
+      this.filterReadOnly = false
     },
     async goToUpdateConfig (row, index) {
       this.selectedRow = row
       this.action = DbMqConfig.FORM_ACTION_OPTION.EDIT
       this.editModal.open = true
+      this.filterReadOnly = true
     },
     async goToDeleteConfig (row, index) {
       this.selectedRow = row
@@ -140,7 +211,7 @@ export default {
   },
   computed: {
     actionTitle () {
-      return this.actionTitleMap.get(this.action)
+      return this.actionTitleMap.get(this.action) + ': ' + this.mqType
     }
   },
   created () {

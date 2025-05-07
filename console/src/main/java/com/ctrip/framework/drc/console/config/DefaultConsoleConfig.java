@@ -28,7 +28,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
     public static String KEY_DC_INFOS = "drc.dcinfos";
-    public static final String SWITCH_META_ROLL_BACK = "switch.meta.roll.back";
     public static final String SWITCH_CM_REGION_URL = "switch.cm.region.url";
     public static final String SWITCH_ON = "on";
     public static final String SWITCH_OFF = "off";
@@ -38,8 +37,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public static String DBA_DC_INFOS = "dba.dcinfos";
 
     public static String CONSOLE_DC_INFOS = "drc.console.dcinfos";
-
-    public static String VALIDATION_DC_INFOS = "drc.validation.dcinfos";
 
     public static String CONSOLE_DC_ENDPOINT_INFOS = "drc.console.dcinfos.endpoint";
 
@@ -70,8 +67,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private String defaultConsoleDcInfos = "{}";
 
-    private String defaultValidationDcInfos = "{}";
-
     private String defaultMhaDalClusterInfos = "{}";
 
     private String DEFAULT_MAPPING_INFOS = "{}";
@@ -79,36 +74,18 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String PUBLIC_CLOUD_DC = "drc.public.cloud.dc";
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
     private static String PUBLIC_CLOUD_REGION = "drc.public.cloud.region";
-    private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sin,ali";
+    private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sgp,ali";
     private static String CENTER_REGION = "console.center.region";
     private static String DEFAULT_CENTER_REGION = "sha";
     private static String DRC_CENTER_IDC = "drc.center.idc";
-
-    private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
-    private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
-    private static String LOCAL_CONFIG_MONITOR_MHAS = "local.config.monitor.mhas";
-    private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
-    private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
-    private static String DEFAULT_LOCAL_CONFIG_MHAS_MAP = "{}";
     
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
 
-    private static final String UPDATE_REPLICATOR_MASTER_SWITCH = "update.replicator.master.switch";
-    
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
-    private static String VPC_MHA = "vpc.mha";
 
-    private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
-    private static int DEFAULT_META_COMPARE_PARALLEL = 10;
-    private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
-    private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
-    private static String META_COMPARE_SWITCH = "meta.compare.switch";
-    private static String META_GENERATOR_V5_SWITCH = "meta.generator.v5.switch";
-    private static String META_DB_APPLIER_CONFIG_SWITCH = "meta.db.applier.config.switch";
-    private static String META_DB_APPLIER_CONFIG_SWITCH_KEY = META_DB_APPLIER_CONFIG_SWITCH + ".%s";
     private static String META_REALTIME_SWITCH = "meta.realtime";
 
     private static final String CONFLICT_LOG_RECORD_SWITCH = "conflict.log.record.switch";
@@ -117,11 +94,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONFLICT_LOG_QUERY_TIME_INTERVAL = "conflict.log.query.time.interval";
     private static String TABLE_STRUCTURE_CHECK_SWITCH = "table.structure.check.switch";
     private static String DB_REPLICATION_CONSISTENCY_CHECK_SWITCH = "db.replication.consistency.check.switch";
-
-
+    private static String RESOURCE_AZ_CHECK_SWITCH = "resource.az.check.switch";
+    private static String SYNC_OFFLINED_MHA_SWITCH = "sync.offlined.mha.switch";
+    private static String MHA_SYNC_STATUS_CHECK_SWITCH = "mha.sync.status.check.switch";
+    private static String INSTANCE_AZ_CHECK_SWITCH = "instance.az.check.switch";
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
-    
+
     private static final String DRC_ACCESS_TOKEN_KEY = "drc.access.token.key";
     private static final String OPERATION_LOG_SWITCH = "operation.log.switch";
 
@@ -143,6 +122,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public static String HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
     private static final String ACCOUNT_FROM_METE_SWITCH = "account.from.meta.switch";
     private static final String DBA_API_PWD_CHANGE_URL = "dba.api.pwd.change.url";
+    private static final String ALLOW_AMBIGUOUS_MHA_SWITCH = "allow.ambiguous.mha.switch";
 
 
     private static final String SGP_MESSENGER_GTID_INIT = "sgp.messenger.gtid.init";
@@ -150,7 +130,28 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String BATCH_OFFLINE_ALLOW_REGION = "meta.batch.offline.allow.region";
     private static String DEFAULT_BATCH_OFFLINE_ALLOW_REGION = "sin";
     private static final String ACCOUNT_REALTIME_SWITCH = "account.realtime.switch";
+    private static final String MYSQL_API_V2_SWITCH = "mysql.api.v2.switch";
 
+    private static String CONSOLE_PANEL_URL = "console.panel.url";
+    private static String CONSOLE_MQ_PANEL_URL = "console.mq.panel.url";
+    private static String DRC_ADMIN_TOKEN = "drc.admin.token";
+
+    private static final String CONFLICT_OPTIMIZE_SWITCH = "conflict.optimize.switch";
+    private static final String IGNORE_CONFLICT_TYPES = "ignore.conflict.types";
+
+    private static String KEY_REGION_CKAFKA_MAPPING = "drc.region.ckafka.region.mapping";
+    private static String DEFAULT_KEY_REGION_CKAFKA_MAPPING = "{}";
+
+    private static String DBA_QUERY_DB_OWNER_URL = "dba.get.db.owner.url";
+    private static String DEFAULT_DBA_QUERY_DB_OWNER_URL = "http://osg.ops.ctripcorp.com/api/get_general_db_owner";
+
+    private static class ConfigHolder {
+        public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
+    }
+
+    public static DefaultConsoleConfig getInstance() {
+        return DefaultConsoleConfig.ConfigHolder.INSTANCE;
+    }
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -207,20 +208,20 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         return  regionsInfo.get(region);
     }
-    
+
     public boolean isCenterRegion() {
         return getCenterRegion().equals(getRegion());
     }
-    
+
     public String getCenterRegionUrl() {
         Map<String, String> consoleRegionUrls = getConsoleRegionUrls();
         return consoleRegionUrls.get(getCenterRegion());
     }
-    
+
     public String getCenterRegion() {
         return getProperty(CENTER_REGION,DEFAULT_CENTER_REGION);
     }
-    
+
     public String getRegionForDc(String dcName) {
         Map<String, Set<String>> region2dcsMapping = getRegion2dcsMapping();
         for (Map.Entry<String, Set<String>> entry : region2dcsMapping.entrySet()) {
@@ -230,7 +231,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         throw new IllegalArgumentException("can not find region with dcName: " + dcName);
     }
-    
+
     public int getConflictMhaRecordSearchTime() {
         return getIntProperty(CONFLICT_RECORD_SEARCH_TIME,DEFAULT_CONFLICT_RECORD_SEARCH_TIME);
     }
@@ -280,14 +281,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         return consoleDcInfos;
     }
-    
 
-    public Map<String, String> getConsoleDcEndpointInfos() {
-        if(consoleDcEndpointInfos.size() == 0) {
-            consoleDcEndpointInfos = getConsoleDcEndpointMapping();
-        }
-        return consoleDcEndpointInfos;
-    }
 
     public void setDefaultDcInfos(String defaultDcInfos) {
         this.defaultDcInfos = defaultDcInfos;
@@ -352,25 +346,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
 
         logger.debug("[getDbaDcInofs]{}", result);
-        return result;
-    }
-
-    public String getValidationDomain(String dc) {
-        Map<String, String> validationDcInfos = getValidationDcInfoMapping();
-        return validationDcInfos.get(dc);
-    }
-
-    private Map<String, String> getValidationDcInfoMapping() {
-        String dcInfoStr = getProperty(VALIDATION_DC_INFOS, defaultValidationDcInfos);
-        logger.info("validation dcInfos {}={}", VALIDATION_DC_INFOS, dcInfoStr);
-        Map<String, String> validationDcInfos = JsonCodec.INSTANCE.decode(dcInfoStr, new GenericTypeReference<Map<String, String>>() {});
-
-        Map<String, String> result = Maps.newConcurrentMap();
-        for(Map.Entry<String, String> entry : validationDcInfos.entrySet()){
-            result.put(entry.getKey(), entry.getValue().toLowerCase());
-        }
-
-        logger.debug("[getValidationDcInfoMapping]{}", result);
         return result;
     }
 
@@ -451,38 +426,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         logger.info("public cloud dc: {}", publicCloudDc);
         return Sets.newHashSet(publicCloudDc.split(","));
     }
-    
+
     public Set<String> getPublicCloudRegion() {
         String publicCloudRegion = getProperty(PUBLIC_CLOUD_REGION,DEFAULT_PUBLIC_CLOUD_REGION);
         logger.info("public cloud region: {}", publicCloudRegion);
         return Sets.newHashSet(publicCloudRegion.toLowerCase().split(","));
-    }
-
-    public Set<String> getLocalConfigCloudDc() {
-        String localConfigCloudDc = getProperty(LOCAL_CONFIG_CLOUD_DC, DEFAULT_LOCAL_CONFIG_CLOUD_DC);
-        logger.info("localConfigCloudDc: {}", localConfigCloudDc);
-        return Sets.newHashSet(localConfigCloudDc.split(","));
-    }
-
-    public List<String> getLocalDcMhaNamesToBeMonitored() {
-        String localDcMhaNamesToBeMonitored = getProperty(LOCAL_CONFIG_MONITOR_MHAS, DEFAULT_LOCAL_CONFIG_MONITOR_MHAS);
-        logger.info("localDcMhaNamesToBeMonitored: {}", localDcMhaNamesToBeMonitored);
-        if (null == localDcMhaNamesToBeMonitored || StringUtils.isBlank(localDcMhaNamesToBeMonitored)) {
-            return null;
-        }
-        return Lists.newArrayList(localDcMhaNamesToBeMonitored.split(","));
-    }
-
-    public Map<String, Long> getLocalConfigMhasMap() {
-        HashMap<String, Long> mhasIdNameMap = Maps.newHashMap();
-        String mhaNameIdMapString = getProperty(LOCAL_CONFIG_MHAS_MAP, DEFAULT_LOCAL_CONFIG_MHAS_MAP);
-        logger.info("mhaNameIdMapString: {}", mhaNameIdMapString);
-        Map<String, String> decode = JsonCodec.INSTANCE.decode(mhaNameIdMapString, new GenericTypeReference<Map<String, String>>() {});
-        for (Map.Entry<String,String> entry : decode.entrySet()) {
-            mhasIdNameMap.put(entry.getKey(),Long.valueOf(entry.getValue()));
-        }
-        return mhasIdNameMap;
-
     }
 
     public Map<String, String> getDbaDc2DrcDcMap() {
@@ -491,61 +439,19 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return JsonCodec.INSTANCE.decode(dbaDc2DrcDcMapString, new GenericTypeReference<Map<String, String>>() {});
     }
 
-    public List<String> getVpcMhaNames() {
-        String vpcMhaStr = getProperty(VPC_MHA);
-        if (StringUtils.isBlank(vpcMhaStr)) {
-            return new ArrayList<>();
-        }
-        return Lists.newArrayList(vpcMhaStr.split(","));
-    }
-
     public String getSwitchCmRegionUrl() {
         return getProperty(SWITCH_CM_REGION_URL,DEFAULT_SWITCH_CM_REGION_URL);
-    }
-
-    public String getSwitchMetaRollBack() {
-        return getProperty(SWITCH_META_ROLL_BACK,SWITCH_OFF);
-    }
-
-    public String getUpdateReplicatorSwitch() {
-        return getProperty(UPDATE_REPLICATOR_MASTER_SWITCH,SWITCH_OFF);
     }
 
     public int getAvailablePortSize() {
         return getIntProperty(AVAILABLE_PORT_SIZE,DEFAULT_AVAILABLE_PORT_SIZE);
     }
 
-    public int getMetaCompareParallel() {
-        return getIntProperty(META_COMPARE_PARALLEL,DEFAULT_META_COMPARE_PARALLEL);
-    }
-
-    public boolean getCostTimeTraceSwitch() {
-        return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
-    }
-
-    public String getDrcDoubleWriteSwitch() {
-        return getProperty(DRC_DOUBLE_WRITE_SWITCH, SWITCH_OFF);
-    }
 
     public String getNewDrcConfigSwitch() {
         return getProperty(NEW_DRC_CONFIG_SWITCH, SWITCH_OFF);
     }
 
-    public String getMetaCompareSwitch() {
-        return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
-    }
-
-    public boolean getMetaGeneratorV5Switch() {
-        return getBooleanProperty(META_GENERATOR_V5_SWITCH, false);
-    }
-
-    public boolean getDbApplierConfigureSwitch(String mha) {
-        String value = getProperty(String.format(META_DB_APPLIER_CONFIG_SWITCH_KEY, mha));
-        if (StringUtils.isBlank(value)) {
-            return getBooleanProperty(META_DB_APPLIER_CONFIG_SWITCH, false);
-        }
-        return Boolean.parseBoolean(value);
-    }
 
     public String getMetaRealtimeSwitch() {
         return getProperty(META_REALTIME_SWITCH, SWITCH_OFF);
@@ -574,7 +480,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public long getReplicatorMaxSize() {
         return getLongProperty(REPLICATOR_MAX_SIZE, DEFAULT_REPLICATOR_SIZE);
     }
-    
+
     public boolean getCflBlackListAutoAddSwitch() {
         return getBooleanProperty(CFL_BLACK_LIST_AUTO_ADD_SWITCH, false);
     }
@@ -594,27 +500,43 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getDbReplicationConsistencyCheckSwitch() {
         return getBooleanProperty(DB_REPLICATION_CONSISTENCY_CHECK_SWITCH, true);
     }
-    
+
+    public boolean getResourceAzCheckSwitch() {
+        return getBooleanProperty(RESOURCE_AZ_CHECK_SWITCH, true);
+    }
+
+    public boolean getSyncOfflinedMhaSwitch() {
+        return getBooleanProperty(SYNC_OFFLINED_MHA_SWITCH, true);
+    }
+
+    public boolean getMhaSyncStatusCheckSwitch() {
+        return getBooleanProperty(MHA_SYNC_STATUS_CHECK_SWITCH, true);
+    }
+
+    public boolean getInstancesAzCheckSwitch() {
+        return getBooleanProperty(INSTANCE_AZ_CHECK_SWITCH, true);
+    }
+
     public String getDefaultReadAccountKmsToken() {
         return getProperty(DEFAULT_READ_ACCOUNT_KMS_TOKEN);
     }
-    
+
     public String getDefaultWriteAccountKmsToken() {
         return getProperty(DEFAULT_WRITE_ACCOUNT_KMS_TOKEN);
     }
-    
+
     public String getDefaultMonitorAccountKmsToken() {
         return getProperty(DEFAULT_MONITOR_ACCOUNT_KMS_TOKEN);
     }
-    
+
     public String getKMSAccessToken(String suffix) {
         return getProperty(KMS_ACCESS_TOKEN_PREFIX + suffix,null);
     }
-    
+
     public boolean getAccountKmsTokenSwitch() {
         return getBooleanProperty(ACCOUNT_KMS_TOKEN_SWITCH, false);
     }
-    
+
     public Set<String> getAccountKmsTokenMhaGray() {
         String property = getProperty(ACCOUNT_KMS_TOKEN_MHA_GRAY, "");
         if (StringUtils.isBlank(property)) {
@@ -661,5 +583,47 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getAccountRealTimeSwitch() {
         return getBooleanProperty(ACCOUNT_REALTIME_SWITCH, false);
+    }
+    public boolean getMySQLApiV2Switch() {
+        return getBooleanProperty(MYSQL_API_V2_SWITCH, false);
+    }
+
+
+    public boolean getAllowAmbiguousMhaSwitch() {
+        return getBooleanProperty(ALLOW_AMBIGUOUS_MHA_SWITCH, false);
+    }
+
+    public String getConsolePanelUrl() {
+        return getProperty(CONSOLE_PANEL_URL);
+    }
+
+    public String getConsoleMqPanelUrl() {
+        return getProperty(CONSOLE_MQ_PANEL_URL);
+    }
+
+    public String getDrcAdminToken() {
+        return getProperty(DRC_ADMIN_TOKEN,"");
+    }
+
+    public boolean getConflictOptimizeSwitch() {
+        return getBooleanProperty(CONFLICT_OPTIMIZE_SWITCH, false);
+    }
+
+    public Set<String> getIgnoreConflictTypes() { //todo set
+        String ignoreStr = getProperty(IGNORE_CONFLICT_TYPES, "");
+        if (StringUtils.isBlank(ignoreStr)) {
+            return Sets.newHashSet();
+        }
+        return Sets.newHashSet(ignoreStr.split(","));
+    }
+
+    public Map<String, String> getDrcCkafkaRegionMapping() {
+        String mappingStr = getProperty(KEY_REGION_CKAFKA_MAPPING, DEFAULT_KEY_REGION_CKAFKA_MAPPING);
+        return JsonCodec.INSTANCE.decode(mappingStr, new GenericTypeReference<Map<String, String>>() {
+        });
+    }
+
+    public String getDbaDbOwnerUrl() {
+        return getProperty(DBA_QUERY_DB_OWNER_URL, DEFAULT_DBA_QUERY_DB_OWNER_URL);
     }
 }

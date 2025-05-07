@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.resource.context;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 
 /**
@@ -7,9 +8,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
  */
 public interface MqPosition {
 
-    void add(String gtid);
+    void add(Gtid gtid);
 
     void union(GtidSet gtidSet);
 
-    String get();
 }

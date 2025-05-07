@@ -85,6 +85,10 @@ export default {
           {
             value: 'A',
             label: 'Applier'
+          },
+          {
+            value: 'M',
+            label: 'Messenger'
           }
         ]
       },

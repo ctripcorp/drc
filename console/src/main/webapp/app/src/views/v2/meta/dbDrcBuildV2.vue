@@ -2,7 +2,8 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/dbDrcBuildV2">DB粒度 DRC 同步</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
+      <BreadcrumbItem >DRC-DB 配置</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content"
              :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
@@ -18,9 +19,7 @@
                 @on-change="selectDb"
                 :remote-method="getExistDb"
                 :loading="dataLoading">
-                <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">
-                  {{ option.dbName }}
-                </Option>
+                <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">{{option.dbName}}</Option>
               </Select>
             </FormItem>
             <FormItem label="同步方向" :required=true>

@@ -1,12 +1,5 @@
 package com.ctrip.framework.drc.console.monitor;
 
-import static com.ctrip.framework.drc.console.monitor.MockTest.times;
-import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
@@ -22,15 +15,17 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Sets;
-import java.sql.SQLException;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.unidal.tuple.Triple;
+
+import java.sql.SQLException;
+
+import static com.ctrip.framework.drc.console.monitor.MockTest.times;
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * @ClassName UuidMonitorTest
@@ -81,6 +76,7 @@ public class UuidMonitorTest {
         Mockito.doNothing().when(currentMetaManager).addObserver(uuidMonitor);
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getUuidMonitorSwitch();
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getUuidCorrectSwitch();
+        Mockito.doReturn(true).when(monitorTableSourceProvider).getUuidCorrectMhaSwitch(Mockito.any());
         Mockito.doNothing().when(reporter).resetReportCounter(Mockito.any(), Mockito.anyLong(), eq(UUID_ERROR_NUM_MEASUREMENT));
         
     }

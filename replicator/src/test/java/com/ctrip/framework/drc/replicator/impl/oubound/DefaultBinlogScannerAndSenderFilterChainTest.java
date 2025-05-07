@@ -119,11 +119,11 @@ public class DefaultBinlogScannerAndSenderFilterChainTest extends AbstractRowsFi
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof IndexFilter);
         filter = filter.getSuccessor();
-        Assert.assertTrue(filter instanceof SkipFilter);
-        filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TypeFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof SchemaFilter);
+        filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof SkipFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof ScannerTableNameFilter);
         filter = filter.getSuccessor();
@@ -148,9 +148,9 @@ public class DefaultBinlogScannerAndSenderFilterChainTest extends AbstractRowsFi
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof SendFilter);
         filter = filter.getSuccessor();
-        Assert.assertTrue(filter instanceof SkipFilter);
-        filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof SchemaFilter);
+        filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof SkipFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TableNameFilter);
         filter = filter.getSuccessor();

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.container.controller.task;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.fetcher.container.controller.task.BaseRegisterKeyedTask;
 
 /**
  * @ClassName ApplierRegisterKeyedTask
@@ -10,7 +11,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
  * @Date 2024/1/2 17:45
  * @Version: $
  */
-public class RegisterKeyedTask extends ApplierKeyedTask {
+public class RegisterKeyedTask extends BaseRegisterKeyedTask {
 
     public RegisterKeyedTask(String registryKey, ApplierConfigDto applierConfig, ApplierServerContainer serverContainer) {
         super(registryKey, applierConfig, serverContainer);
@@ -20,7 +21,7 @@ public class RegisterKeyedTask extends ApplierKeyedTask {
     protected void doExecute() {
         try {
             logger.info("[Register] applier instance for {} with {}", registryKey, applierConfig);
-            serverContainer.registerServer(registryKey);
+            super.doExecute();
             future().setSuccess();
         } catch (Throwable t) {
             logger.error("Register] error in applier instance for {} with {}", registryKey, t);

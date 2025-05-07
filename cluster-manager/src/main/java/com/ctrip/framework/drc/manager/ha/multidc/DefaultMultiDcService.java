@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.manager.ha.multidc;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
+import com.ctrip.framework.drc.manager.ha.cluster.impl.ClusterServerStateManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
@@ -30,6 +32,9 @@ public class DefaultMultiDcService implements MultiDcService {
     @Autowired
     public DataCenterService dataCenter;
 
+    @Autowired
+    private ClusterServerStateManager clusterServerStateManager;
+
     @Override
     public Replicator getActiveReplicator(String dcName, String clusterId) {
 
@@ -50,6 +55,13 @@ public class DefaultMultiDcService implements MultiDcService {
         RegionInfo regionInfo = config.getCmRegionInfos().get(region);
         if(regionInfo == null){
             logger.error("[getActiveReplicator][region info null]{}:{}", region, dcName);
+            return null;
+        }
+
+        // check state. if not alive, should not attempt to get replicator from remote
+        ServerStateEnum serverState = clusterServerStateManager.getServerState();
+        if (serverState.notAlive()) {
+            logger.info("[getActiveReplicator] for {}, state is not alive: {}", clusterId, serverState);
             return null;
         }
 

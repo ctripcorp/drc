@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.foundation.Env;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -120,6 +121,10 @@ public class DalServiceImpl implements DalService {
     public Map<String, MhaInstanceGroupDto> getMhaList(Env env) throws Exception {
         String dalServicePrefix = domainConfig.getDalServicePrefix();
         JsonNode resultNode = dbClusterApiServiceImpl.getMhaList(dalServicePrefix);
+        return jsonNode2MhaInstanceGroupMap(resultNode);
+    }
+
+    private Map<String, MhaInstanceGroupDto> jsonNode2MhaInstanceGroupMap(JsonNode resultNode) throws JsonProcessingException {
         Map<String, MhaInstanceGroupDto> mhaInstancesMap = new HashMap<>();
         for(JsonNode mhaInstanceGroupNode : resultNode) {
             String mhaName = mhaInstanceGroupNode.get("mhaName").asText();
@@ -127,6 +132,20 @@ public class DalServiceImpl implements DalService {
             mhaInstancesMap.put(mhaName, mhaInstanceGroupDto);
         }
         return mhaInstancesMap;
+    }
+
+    @Override
+    public Map<String, MhaInstanceGroupDto> getMhaListAli(Env env) throws Exception {
+        String dalServicePrefix = domainConfig.getDalServicePrefix();
+        JsonNode resultNode = dbClusterApiServiceImpl.getMhaListAli(dalServicePrefix);
+        return jsonNode2MhaInstanceGroupMap(resultNode);
+    }
+
+    @Override
+    public Map<String, MhaInstanceGroupDto> getMhaListAws(Env env) throws Exception {
+        String dalServicePrefix = domainConfig.getDalServicePrefix();
+        JsonNode resultNode = dbClusterApiServiceImpl.getMhaListAws(dalServicePrefix);
+        return jsonNode2MhaInstanceGroupMap(resultNode);
     }
 
     @Override

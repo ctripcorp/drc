@@ -1,9 +1,8 @@
 <template>
   <base-component>
-<!--    todo by yongnian test-->
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/messengersV2">Messenger 集群</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/messengersV2">Messenger 同步</BreadcrumbItem>
       <BreadcrumbItem :to="{
           path: '/v2/buildMessengerV2',query :{
           step: 3,
@@ -57,7 +56,8 @@ export default {
   data () {
     return {
       initInfo: {
-        mhaName: this.$route.query.mhaName
+        mhaName: this.$route.query.mhaName,
+        mqType: this.$route.query.mqType
       },
       dataLoading: false,
       submitted: false,
@@ -136,6 +136,7 @@ export default {
     submitDbAppliers () {
       const params = {
         mhaName: this.initInfo.mhaName,
+        mqType: this.initInfo.mqType,
         dbApplierDtos: this.tableData
       }
       this.dataLoading = true
@@ -171,7 +172,8 @@ export default {
       this.dataLoading = true
       this.axios.get('/api/drc/v2/config/mha/dbMessenger', {
         params: {
-          mhaName: this.initInfo.mhaName
+          mhaName: this.initInfo.mhaName,
+          mqType: this.initInfo.mqType
         }
       }
       ).then(response => {

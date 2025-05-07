@@ -134,6 +134,12 @@ public class AbstractClusterServers<T extends ClusterServer> extends AbstractLif
                 String serverIdStr = getServerIdFromPath(childData.getPath(), serverBasePath);
                 byte[] data = childData.getData();
                 ClusterServerInfo info = Codec.DEFAULT.decode(data, ClusterServerInfo.class);
+                if (info.getStateEnum().notAlive()) {
+                    // To avoid deprecated cached data causing problem after server's reconnecting to zk
+                    // make sure to notify **only** after meta info is refreshed (i.e. server is really alive)
+                    logger.warn("[childrenChanged][{}][skipDead]{}{}", currentServerId(), serverIdStr, info);
+                    continue;
+                }
 
                 logger.debug("[childrenChanged][{}]{},{}", currentServerId(), serverIdStr, info);
                 currentServers.add(serverIdStr);

@@ -1,13 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.dao.DbTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
@@ -21,7 +15,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
@@ -30,11 +24,12 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.console.utils.StreamUtils;
+import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
-import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -46,6 +41,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -76,13 +72,11 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
-    @Autowired
-    private ApplierTblV2Dao applierTblV2Dao;
-    @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
     private ReplicatorTblDao replicatorTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
@@ -240,7 +234,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         for (DbReplicationTbl dbReplicationTbl : dbReplication) {
             MhaDbMappingTbl srcMapping = mappingTblMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
             MhaDbMappingTbl dstMapping = mappingTblMap.get(dbReplicationTbl.getDstMhaDbMappingId());
-            // todo by yongnian: 2023/8/23 优化点
             String key = srcMapping.getMhaId() + "-" + dstMapping.getMhaId();
             MhaReplicationDto dto = mhaReplicationMap.get(key);
             if (dto == null) {
@@ -336,12 +329,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         if (!CollectionUtils.isEmpty(dbReplicationTbls)) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "DbReplications not empty!" );
         }
-        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationId, BooleanEnum.FALSE.getCode());
-        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(),BooleanEnum.FALSE.getCode());
-        if (!CollectionUtils.isEmpty(applierTblV2s)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
-                    srcMha.getMhaName() + "==>" + dstMha.getMhaName() + ":Applier not empty!" );
-        }
 
         // delete mha db replications as well
         mhaDbReplicationService.offlineMhaDbReplication(srcMha.getMhaName(), dstMha.getMhaName());
@@ -354,10 +341,13 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     }
 
     private void offlineMhaIfNeed(MhaTblV2 mha) throws SQLException {
-        MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaId(mha.getId(), BooleanEnum.FALSE.getCode());
-        if (messengerGroup != null) { // mha has messenger
-            return;
+        for (MqType mqType : MqType.values()) {
+            MessengerGroupTbl messengerGroup = messengerGroupTblDao.queryByMhaIdAndMqType(mha.getId(), mqType, BooleanEnum.FALSE.getCode());
+            if (messengerGroup != null) { // mha has messenger
+                return;
+            }
         }
+
         ReplicatorGroupTbl mhaRGroup = replicatorGroupTblDao.queryByMhaId(mha.getId());
         List<ReplicatorTbl> mhaReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(mhaRGroup.getId()), BooleanEnum.FALSE.getCode());
         List<MhaReplicationTbl> mhaReplications = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mha.getId()));
@@ -402,67 +392,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         return map;
     }
 
-    @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public Pair<Integer,List<String>> synApplierGtidInfoFromQConfig(String configText, boolean update) {
-        try {
-            Map<String, String> keyValueMap = this.parseConfigFileGtidContent(configText);
-
-            Map<MhaReplicationDto, String> replicationToGtidMap = new HashMap<>();
-            for (Map.Entry<String, String> entry : keyValueMap.entrySet()) {
-                String[] split = entry.getKey().split("\\.");
-                String srcMha = split[2];
-                String dstMha = split[1];
-                replicationToGtidMap.put(MhaReplicationDto.from(srcMha, dstMha), entry.getValue());
-            }
-
-            List<ApplierGroupTblV2> applierGroupUpdateList = Lists.newArrayList();
-            List<String> illegalMessages = Lists.newArrayList();
-
-            for (Map.Entry<MhaReplicationDto, String> entry : replicationToGtidMap.entrySet()) {
-                MhaReplicationDto replicationDto = entry.getKey();
-                String qConfigGtid = entry.getValue();
-                String targetGtid = qConfigGtid;
-                String srcName = replicationDto.getSrcMha().getName();
-                String dstName = replicationDto.getDstMha().getName();
-                String replication = srcName + "->" + dstName;
-
-                MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcName, BooleanEnum.FALSE.getCode());
-                MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryByMhaName(dstName, BooleanEnum.FALSE.getCode());
-                if (srcMhaTbl == null || dstMhaTbl == null) {
-                    illegalMessages.add(String.format("%s: mha not exit", replication));
-                    continue;
-                }
-                MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), dstMhaTbl.getId());
-                if (mhaReplicationTbl == null) {
-                    illegalMessages.add(String.format("%s: mha replication not exist", replication));
-                    continue;
-                }
-                ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-                if (applierGroupTblV2 == null) {
-                    illegalMessages.add(String.format("%s: applierGroup not exist", replication));
-                    continue;
-                }
-                if (!StringUtils.isEmpty(applierGroupTblV2.getGtidInit())) {
-                    targetGtid = new GtidSet(applierGroupTblV2.getGtidInit()).union(new GtidSet(qConfigGtid)).toString();
-                    if (targetGtid.equals(applierGroupTblV2.getGtidInit())) {
-                        continue;
-                    }
-                    illegalMessages.add(String.format("%s: going to update gitd. origin:%s, target:%S", replication, applierGroupTblV2.getGtidInit(), targetGtid));
-                }
-                logger.info("update gitd: {} {}->{} (qconfig gtid:{})", replication, applierGroupTblV2.getGtidInit(), targetGtid, qConfigGtid);
-                applierGroupTblV2.setGtidInit(targetGtid);
-                applierGroupUpdateList.add(applierGroupTblV2);
-            }
-            if (update) {
-                int[] ints = applierGroupTblV2Dao.batchUpdate(applierGroupUpdateList);
-                return Pair.of(Arrays.stream(ints).sum(), illegalMessages);
-            }
-            return Pair.of(applierGroupUpdateList.size(), illegalMessages);
-        } catch (SQLException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
-        }
-    }
 
     @Override
     public List<MhaReplicationTbl> queryAllHasActiveMhaDbReplications(){
@@ -490,5 +419,109 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION);
         }
     }
+
+    @Override
+    public MhaSyncView mhaSyncCount() throws SQLException {
+        MhaSyncView view = new MhaSyncView();
+        Set<Long> mhaSyncIdSet = Sets.newHashSet();
+        Set<String> dbNameSet = Sets.newHashSet();
+        Set<String> dbSyncSet = Sets.newHashSet();
+        Set<String> dalClusterSet = Sets.newHashSet();
+        Set<String> dbMessengerSet = Sets.newHashSet();
+        Set<String> dbOtterSet = Sets.newHashSet();
+
+        List<ApplierTblV3> applierTblV3s = applierTblV3Dao.queryAllExist();
+        List<Long> applierGroupIds = applierTblV3s.stream().map(ApplierTblV3::getApplierGroupId).distinct().collect(Collectors.toList());
+        List<ApplierGroupTblV3> applierGroupTblV3s = applierGroupTblV3Dao.queryAllExist();
+        List<Long> applierGroupMhaDbRepList = applierGroupTblV3s.stream()
+                .filter(e -> applierGroupIds.contains(e.getId()))
+                .map(ApplierGroupTblV3::getMhaDbReplicationId).distinct().collect(Collectors.toList());
+
+
+        //db_replication_tbl
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryAllExist();
+
+        //mha_db_mapping_tbl
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+        Map<Long,MhaDbMappingTbl> MhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, e -> e));
+
+        //mha_replication_tbl
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAllExist();
+        Map<Long,Map<Long,MhaReplicationTbl>> mhaReplicationMap = mhaReplicationTbls.stream()
+                .collect(Collectors.groupingBy(MhaReplicationTbl::getSrcMhaId,
+                        Collectors.toMap(MhaReplicationTbl::getDstMhaId, e -> e)));
+        //mha_db_replication_tbl
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryAllExist();
+        Map<MultiKey,MhaDbReplicationTbl> mhaDbReplicationMap = mhaDbReplicationTbls.stream()
+                .collect(Collectors.toMap(StreamUtils::getKey, e -> e));
+
+
+        //db_tbl
+        List<DbTbl> dbTbls = dbTblDao.queryAllExist();
+        Map<Long,DbTbl> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, e -> e));
+
+        //mha_tbl_v2
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        Map<Long,MhaTblV2> mhaTblMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
+
+        //messenger_tbl
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllExist();
+        List<Long> messengerGroupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
+
+        //messenger_group_tbl
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAllExist();
+        List<Long> messengerGroupMhaIdList = messengerGroupTbls.stream()
+                .filter(e -> messengerGroupIds.contains(e.getId()))
+                .map(MessengerGroupTbl::getMhaId).distinct().collect(Collectors.toList());
+
+        for (DbReplicationTbl dbRepliTbl : dbReplicationTbls) {
+            try {
+                if (dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())) {
+                    MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
+                    MhaDbMappingTbl dstMapping = MhaDbMappingMap.get(dbRepliTbl.getDstMhaDbMappingId());
+                    MhaReplicationTbl mhaRepli = mhaReplicationMap.get(srcMapping.getMhaId()).get(dstMapping.getMhaId());
+                    MhaDbReplicationTbl mhaDbRepli = mhaDbReplicationMap.get(new MultiKey(srcMapping.getId(), dstMapping.getId(), ReplicationTypeEnum.DB_TO_DB.getType()));
+                    if ((mhaRepli.getDrcStatus().equals(1) && mhaRepli.getDeleted().equals(BooleanEnum.FALSE.getCode())) || applierGroupMhaDbRepList.contains(mhaDbRepli.getId())) {
+                        mhaSyncIdSet.add(mhaRepli.getId());
+                        DbTbl srcDb = dbMap.get(srcMapping.getDbId());
+                        dbNameSet.add(srcDb.getDbName());
+                        dbSyncSet.add(dbRepliTbl.getSrcMhaDbMappingId() + ">" + dbRepliTbl.getDstMhaDbMappingId());
+                        if (srcDb.getDbName().contains("shard")) {
+                            dalClusterSet.add(srcDb.getDbName().substring(0, srcDb.getDbName().indexOf("shard")) + "shardbasedb");
+                        } else {
+                            dalClusterSet.add(srcDb.getDbName());
+                        }
+                    }
+
+                } else if (dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType()) ||
+                        dbRepliTbl.getReplicationType().equals(ReplicationTypeEnum.DB_TO_KAFKA.getType())) {
+                    MhaDbMappingTbl srcMapping = MhaDbMappingMap.get(dbRepliTbl.getSrcMhaDbMappingId());
+                    DbTbl srcDb = dbMap.get(srcMapping.getDbId());
+                    MhaTblV2 mhaTbl = mhaTblMap.get(srcMapping.getMhaId());
+                    if (mhaTbl != null && messengerGroupMhaIdList.contains(mhaTbl.getId())) {
+                        dbMessengerSet.add(srcDb.getDbName());
+                        if ( (dbRepliTbl.getDstLogicTableName().contains("otter") || !dbRepliTbl.getDstLogicTableName().endsWith(".binlog")) && !dbRepliTbl.getDatachangeLasttime().before(Timestamp.valueOf("2024-06-10 00:00:00.000"))) {
+                            dbOtterSet.add(srcDb.getDbName());
+                        }
+                    }
+
+                }
+
+
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_SYNC_COUNT, e);
+            }
+        }
+
+        view.setMhaSyncIds(mhaSyncIdSet);
+        view.setDbNameSet(dbNameSet);
+        view.setDbSyncSet(dbSyncSet);
+        view.setDalClusterSet(dalClusterSet);
+        view.setDbMessengerSet(dbMessengerSet);
+        view.setDbOtterSet(dbOtterSet);
+
+        return view;
+    }
+
 
 }

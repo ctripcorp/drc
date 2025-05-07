@@ -38,7 +38,8 @@ public class UuidQueryTask extends AbstractQueryTask<String> {
                 }
             }
         } catch (Exception e) {
-            logger.error("query uuid of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
+            dataSourceManager.clearDataSource(endpoint);
+            logger.error("query uuid of {}:{} error and clear from dataSourceManager", endpoint.getHost(), endpoint.getPort(), e);
         }
         return StringUtils.EMPTY;
     }

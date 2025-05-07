@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
@@ -18,6 +19,10 @@ public interface DrcAutoBuildService {
     List<TableCheckVo> preCheckMysqlTables(DrcAutoBuildReq req);
 
     List<DrcAutoBuildParam> getDrcBuildParam(DrcAutoBuildReq req);
+
+    List<MySqlUtils.TableSchemaName> getMatchTable(DrcAutoBuildReq req);
+
+    List<MySqlUtils.TableSchemaName> getMatchTable(List<DrcAutoBuildParam> drcBuildParam);
 
     List<String> getRegionOptions(DrcAutoBuildReq req);
     List<String> getCommonColumn(DrcAutoBuildReq req);

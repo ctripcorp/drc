@@ -17,6 +17,7 @@ public interface TransactionData<T extends BaseTransactionContext> extends Trace
         WHATEVER_ROLLBACK,
         DEADLOCK,
         COMMUNICATION_FAILURE,
+        CONNECTION_VALIDATE_MASTER_FAILURE,
         LOAD,
         UNKNOWN,
         BATCH_ERROR,

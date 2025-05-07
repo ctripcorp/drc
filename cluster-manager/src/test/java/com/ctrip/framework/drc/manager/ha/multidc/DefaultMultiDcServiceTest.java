@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.manager.ha.multidc;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
+import com.ctrip.framework.drc.manager.ha.cluster.impl.ClusterServerStateManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
@@ -38,10 +40,14 @@ public class DefaultMultiDcServiceTest extends AbstractDbClusterTest {
 
     @Mock
     private ClusterManagerMultiDcService clusterManagerMultiDcService;
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
     }
 
     @Test

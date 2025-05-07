@@ -102,7 +102,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
                     Applier applier = getApplier(clusterId, zookeeperValue.getIp(), zookeeperValue.getPort(), targetMha, targetDB);
                     if (applier != null) {
                         survivalAppliers.add(applier);
-                        logger.info("[Survive] applier {} {}:{}", clusterId, zookeeperValue.getIp(), zookeeperValue.getPort());
+                        logger.info("[Survive] applier {} {} {}:{}", clusterId, registryKey, zookeeperValue.getIp(), zookeeperValue.getPort());
                     } else {
                         // exist in zk but not in memory, should remove
                         redundantAppliers.add(new Applier()

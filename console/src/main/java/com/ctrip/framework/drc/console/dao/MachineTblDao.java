@@ -39,6 +39,12 @@ public class MachineTblDao extends AbstractDao<MachineTbl> {
         return client.query(builder, new DalHints());
     }
 
+    public List<MachineTbl> queryByMhaIds(List<Long> mhaIds) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().in("mha_id", mhaIds, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
     public int[] batchLogicalDelete(List<MachineTbl> deleteMachines) throws SQLException{
         return this.batchUpdate(deleteMachines);
     }

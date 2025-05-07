@@ -302,4 +302,8 @@ public class ConfigService extends AbstractConfigBean {
     public int getScannerTestShardNum() {
         return getIntProperty(KEY_SCANNER_TEST_SHARD_NUM, 50);
     }
+
+    public boolean getOldGtidSqlSwitch() {
+        return getBooleanProperty("old.gtid.sql.switch", false);
+    }
 }

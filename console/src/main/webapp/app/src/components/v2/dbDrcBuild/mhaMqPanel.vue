@@ -9,7 +9,8 @@
           <Button icon="ios-open-outline" @click="openModal(index)" style="margin-bottom: 10px"> 打开详情</Button>
           <mha-db-mq-panel :mha-mq-dtos="mhaMqDto"/>
               <Modal v-model="openDetailModal[index]" width="1500px" :footer-hide="true">
-                <drc-config ref="dbReplicationConfigComponent" v-if="openDetailModal[index]"
+                <drc-mq-config ref="dbReplicationConfigComponent" v-if="openDetailModal[index]"
+                              :mq-type="mhaMqDto.mhaMessengerDto.mqType"
                               :mha-name="mhaMqDto.srcMha.name"
                               :dc="mhaMqDto.srcMha.dcName"
                 />
@@ -18,20 +19,21 @@
       </Panel>
     </Collapse>
     <br/>
-    <Button type="primary" @click="goToSwitchAppliers" icon="md-sync">
+    <Button type="primary" @click="goToSwitchMessengers" icon="md-sync">
       切换Messenger生效配置
     </Button>
+    <br/>
   </div>
 </template>
 
 <script>
 
 import MhaDbMqPanel from '@/components/v2/dbDrcBuild/mhaDbMqPanel.vue'
-import DrcConfig from '@/components/v2/mhaMessengers/drcConfig.vue'
+import DrcMqConfig from '@/components/v2/mhaMessengers/drcMqConfig.vue'
 
 export default {
   name: 'mhaMqPanel',
-  components: { DrcConfig, MhaDbMqPanel },
+  components: { DrcMqConfig, MhaDbMqPanel },
   props: {
     mhaMqDtos: Array
   },
@@ -45,9 +47,10 @@ export default {
   },
   methods: {
     openModal (index) {
+      console.log(this.mhaMqDtos)
       this.$set(this.openDetailModal, index, true)
     },
-    goToSwitchAppliers () {
+    goToSwitchMessengers () {
       this.$Modal.confirm({
         title: '切换Messenger',
         content: '<p>请确认</p>',
@@ -84,6 +87,7 @@ export default {
       return this.mhaMqDtos.map((item) => {
         return {
           srcMhaName: item.srcMha.name,
+          mqType: item.mhaMessengerDto.mqType,
           dbNames: item.mhaDbReplications.map((mhaDbReplication) => {
             return mhaDbReplication.src.dbName
           })

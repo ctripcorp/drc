@@ -26,11 +26,15 @@ public interface GlobalConfig {
 
     String APPLIER_REGISTER_PATH = "/applier/instances";
 
+    String MESSENGER_REGISTER_PATH = "/applier/instances"; //TODO srx change with cm and zk
+
     String MANAGER_REGISTER_PATH = "/manager/instances";
 
     String REPLICATOR_UUIDS_PATH = "/replicator/config/uuids";
 
     String APPLIER_POSITIONS_PATH = "/applier/config/positions";
+
+    String MESSENGER_POSITIONS_PATH = "/applier/config/positions"; //TODO srx change with cm and zk
 
     String BU = "BBZ";
 

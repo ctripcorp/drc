@@ -111,27 +111,51 @@ public class DdlParserTest {
         DdlResult result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
 
         queryString = "alter table test_db.test_table drop index emp_name";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
 
         queryString = "alter table  test_db.`test_table` drop index emp_name;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
 
         queryString = "alter table test_db.test_table drop index emp_name , add index emp_name(id)";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
         Assert.assertEquals(QueryType.DINDEX, result.getType());
+        Assert.assertEquals("test_db", result.getSchemaName());
 
         result = DdlParser.parse(queryString, "test_db").get(1);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
         Assert.assertEquals(QueryType.CINDEX, result.getType());
+        Assert.assertEquals("test_db", result.getSchemaName());
+
+        // test schemaName
+        queryString = "alter table  test_db.`test_table` drop index emp_name;";
+        result = DdlParser.parse(queryString, "test_db3").get(0);
+        Assert.assertNotNull(result);
+        Assert.assertEquals("test_table", result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
+
+        queryString = "alter table  `test_table` drop index emp_name;";
+        result = DdlParser.parse(queryString, "test_db3").get(0);
+        Assert.assertNotNull(result);
+        Assert.assertEquals("test_table", result.getTableName());
+        Assert.assertEquals("test_db3", result.getSchemaName());
+
+        queryString = "alter table  test_db.`test_table` drop index emp_name;";
+        result = DdlParser.parse(queryString, null).get(0);
+        Assert.assertNotNull(result);
+        Assert.assertEquals("test_table", result.getTableName());
+        Assert.assertEquals("test_db", result.getSchemaName());
     }
 
     @Test

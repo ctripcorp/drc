@@ -5,10 +5,20 @@
       <BreadcrumbItem to="/v2/dbMqBuildV2">DB粒度 Mq</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content"
-             :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
+             :style="{padding: '10px', background: '#ffffff', margin: '50px -250px 111px 185px', zIndex: '1'}">
       <Row :gutter=10 align="middle">
         <Col span="18">
           <Form :model="formItem" :label-width="100" style="margin-right: 20px;margin-top: 10px">
+            <FormItem label="消息类型" :required=true>
+              <Select v-model="meta.mqType"
+                      @on-change="selectDb"
+                      placeholder="mqType">
+                <Option v-for="item in mqTypeList" :value="item" :key="item">{{
+                    item
+                  }}
+                </Option>
+              </Select>
+            </FormItem>
             <FormItem label="数据库" :required=true>
               <Select
                 v-model="meta.dbName"
@@ -18,9 +28,7 @@
                 @on-change="selectDb"
                 :remote-method="getExistDb"
                 :loading="dataLoading">
-                <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">
-                  {{ option.dbName }}
-                </Option>
+                <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">{{ option.dbName }}</Option>
               </Select>
             </FormItem>
             <FormItem label="同步方向" :required=true>
@@ -34,15 +42,15 @@
               </RadioGroup>
               <Button type="primary" icon="md-add" ghost @click="goToCreateReplication">新增</Button>
               <Modal v-model="createModal.open" width="1200px" :footer-hide="true" title="创建同步">
-                <mha-preview v-if="createModal.open" :db-name="meta.dbName" :replication-type=1 @updated="selectDb"
+                <mha-preview v-if="createModal.open" :db-name="meta.dbName" :replication-type="replicationType" @updated="selectDb"
                              :exist-replication-region-options="meta.existReplicationRegionOptions"></mha-preview>
               </Modal>
             </FormItem>
             <Divider orientation="left">消息投递配置</Divider>
             <Card style="width:100%">
-              <mq-tables :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
-                      :src-region="meta.srcRegionName" :dst-region="meta.dstRegionName" :db-name="meta.dbName"
-                      :db-names="drcConfig.dbNames" @updated="getDrcConfig"
+              <mq-tables :dalcluster-name="drcConfig.dalclusterName" :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
+                         :src-region="meta.srcRegionName" :dst-region="meta.dstRegionName" :db-name="meta.dbName"
+                         :db-names="drcConfig.dbNames" :mq-type="meta.mqType" @updated="getDrcConfig"
               />
             </Card>
             <Divider orientation="left">DB</Divider>
@@ -68,6 +76,7 @@ export default {
       createModal: {
         open: false
       },
+      mqTypeList: this.constant.mqTypeList,
       dataLoading: false,
       configDataLoading: false,
       selectedExistReplication: this.$route.query.srcRegionName,
@@ -77,6 +86,7 @@ export default {
       },
       drcConfig: {},
       meta: {
+        mqType: this.$route.query.mqType,
         dbName: this.$route.query.dbName,
         srcRegionName: this.$route.query.srcRegionName,
         dstRegionName: this.$route.query.dstRegionName,
@@ -84,7 +94,8 @@ export default {
         regionOptions: [],
         dbOptions: [],
         existReplicationRegionOptions: []
-      }
+      },
+      mqTypeToReplicationType: this.constant.mqTypeToReplicationType
     }
   },
   methods: {
@@ -93,6 +104,7 @@ export default {
       param.dbName = this.meta.dbName
       param.srcRegionName = this.meta.srcRegionName
       param.dstRegionName = this.meta.dstRegionName
+      param.mqType = this.meta.mqType
       return param
     },
     async getExistDb (dbName) {
@@ -141,6 +153,7 @@ export default {
       await this.axios.get('/api/drc/v2/autoconfig/getDbMqConfig', {
         params: {
           dbName: params.dbName,
+          mqType: params.mqType,
           srcRegionName: params.srcRegionName
         }
       })
@@ -148,6 +161,7 @@ export default {
           const data = response.data.data
           const success = data && response.data.status === 0
           if (success) {
+            console.log('getDrcConfig', data)
             this.drcConfig = data
             this.$Message.success('查询DRC配置成功 ')
           } else {
@@ -173,7 +187,8 @@ export default {
       const params = this.getParams()
       await that.axios.get('/api/drc/v2/autoconfig/getExistDbMqConfigDcOption', {
         params: {
-          dbName: params.dbName
+          dbName: params.dbName,
+          mqType: params.mqType
         }
       })
         .then(response => {
@@ -203,6 +218,7 @@ export default {
     resetPath () {
       this.$router.replace({
         query: {
+          mqType: this.meta.mqType,
           dbName: this.meta.dbName,
           srcRegionName: this.meta.srcRegionName,
           dstRegionName: this.meta.dstRegionName,
@@ -227,7 +243,16 @@ export default {
       return result
     }
   },
-  computed: {},
+  computed: {
+    replicationType () {
+      const type = this.mqTypeToReplicationType.get(this.meta.mqType)
+      console.log(this.meta.mqType, 'replicationType ', type)
+      if (type === undefined) {
+        return 1
+      }
+      return type
+    }
+  },
   created () {
     // this.getRegions()
     this.axios.get('/api/drc/v2/permission/meta/mhaReplication/modify').then((response) => {

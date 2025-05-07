@@ -32,8 +32,4 @@ public class ConsoleExceptionUtils {
     public static ConsoleException of (Throwable e) {
         return new ConsoleException(e);
     }
-
-    public static ConsoleException of (Throwable e) {
-        return new ConsoleException(e);
-    }
 }

@@ -19,7 +19,6 @@ import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.pool.ObjectPoolException;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Created by mingdongli

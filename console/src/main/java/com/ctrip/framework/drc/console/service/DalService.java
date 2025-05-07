@@ -31,5 +31,9 @@ public interface DalService {
 
     Map<String, MhaInstanceGroupDto> getMhaList(Env env) throws Exception;
 
+    Map<String, MhaInstanceGroupDto> getMhaListAli(Env env) throws Exception;
+
+    Map<String, MhaInstanceGroupDto> getMhaListAws(Env env) throws Exception;
+
     String getDc(String mha, Env env) throws Exception;
 }

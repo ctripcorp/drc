@@ -1,12 +1,10 @@
 package com.ctrip.framework.drc.console.vo.display.v2;
 
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.ArrayList;
 
 /**
  * @author: yongnian

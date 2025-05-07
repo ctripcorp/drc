@@ -38,6 +38,9 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_PERIOD_META_CORRECT = "period.meta.consistency.correct";
     public static String KEY_HERALD_TOKEN_REQUEST_SWITCH = "herald.token.request.switch";
 
+    public static String KEY_CONSOLE_BATCH_NOTIFY_SIZE = "console.batch.notify.size";
+    public static String KEY_CM_BATCH_NOTIFY_CONSOLE_SWITCH = "cm.batch.notify.console.switch";
+
 
 
     public static String KEY_SERVER_ID = "clustermanager.id";
@@ -66,6 +69,18 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
         compositeConfig.addConfig(new DefaultPropertyConfig());
         serverConfig = compositeConfig;
     }
+
+
+    @Override
+    public int getConsoleBatchNotifySize() {
+        return getIntProperty(KEY_CONSOLE_BATCH_NOTIFY_SIZE, 10);
+    }
+
+    @Override
+    public boolean getCmBatchNotifyConsoleSwitch() {
+        return getBooleanProperty(KEY_CM_BATCH_NOTIFY_CONSOLE_SWITCH, true);
+    }
+
 
     @Override
     public String getConsoleAddress() {

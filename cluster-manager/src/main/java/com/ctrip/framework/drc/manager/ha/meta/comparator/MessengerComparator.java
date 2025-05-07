@@ -50,7 +50,8 @@ public class MessengerComparator extends AbstractMetaComparator<Messenger, Messe
             Messenger messenger2Equal = null;
             for (Messenger messenger2 : all2) {
                 if (messenger1.equalsWithIpPort(messenger2)
-                        && ObjectUtils.equals(messenger1.getIncludedDbs(), messenger2.getIncludedDbs())) {
+                        && ObjectUtils.equals(messenger1.getIncludedDbs(), messenger2.getIncludedDbs())
+                        && ObjectUtils.equals(messenger1.getApplyMode(), messenger2.getApplyMode())) {
                     messenger2Equal = messenger2;
                     break;
                 }

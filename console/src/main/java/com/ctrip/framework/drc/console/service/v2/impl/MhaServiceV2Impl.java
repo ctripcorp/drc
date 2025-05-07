@@ -4,18 +4,27 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.*;
-import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v3.*;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueView;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DrcAccountTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.param.mysql.DrcMessengerGtidTblCreateReq;
 import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
@@ -24,17 +33,20 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -44,6 +56,8 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +66,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -103,11 +122,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     @Autowired
     private ApplierGroupTblV3Dao applierGroupTblV3Dao;
     @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
-    @Autowired
     private ApplierTblV3Dao applierTblV3Dao;
-    @Autowired
-    private ApplierTblV2Dao applierTblV2Dao;
     @Autowired
     private MessengerGroupTblV3Dao messengerGroupTblV3Dao;
     @Autowired
@@ -116,7 +131,13 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
 
+    private static final int COLUMN_DEFAULT_VALUE_MIN_LENGTH = 251;
+    private static final int COLUMN_DEFAULT_VALUE_MAX_LENGTH = 255;
+
+    private final ListeningExecutorService executeService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("mhaExecuteService"));
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -260,8 +281,18 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             }
             List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
             List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-            Map<Long, String> resourceIdToIpMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
-            return replicatorTbls.stream().map(e -> new ReplicatorInfoDto(resourceIdToIpMap.get(e.getResourceId()), e.getGtidInit())).collect(Collectors.toList());
+            Map<Long, ResourceTbl> resourceIdMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity()));
+            
+            return replicatorTbls.stream().map(r -> new ReplicatorInfoDto(
+                    r.getId(),
+                    r.getGtidInit(),
+                    r.getMaster().equals(BooleanEnum.TRUE.getCode()),
+                    resourceIdMap.get(r.getResourceId()).getIp(),
+                    resourceIdMap.get(r.getResourceId()).getTag(),
+                    resourceIdMap.get(r.getResourceId()).getAz()
+                    )
+            ).collect(Collectors.toList());
+            
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
@@ -275,8 +306,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             return new ArrayList<>();
         }
 
-        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode()) {
-            logger.info("resource type: {} can only be replicator or applier", type);
+        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+            logger.info("resource type: {} can only be replicator, applier or messenger", type);
             return new ArrayList<>();
         }
         DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
@@ -397,20 +428,24 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    public List<String> getMhaMessengers(String mhaName) {
+    public MhaMessengerDto getMhaMessengers(String mhaName, MqType mqType) {
         try {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
             if (mhaTblV2 == null) {
                 logger.info("mha: {} not exist", mhaName);
-                return Collections.emptyList();
+                return new MhaMessengerDto();
             }
-            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaTblV2.getId(), mqType, BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
-
+            Timestamp latestTimestamp = messengerTbls.stream()
+                    .map(MessengerTbl::getDatachangeLasttime)
+                    .filter(Objects::nonNull)
+                    .max(Timestamp::compareTo)
+                    .orElse(null);
             List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
             List<ResourceTbl> resourceTbl = resourceTblDao.queryByIds(resourceIds);
             List<String> ips = resourceTbl.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-            return ips;
+            return new MhaMessengerDto(ips, messengerGroupTbl.getMqType(), messengerGroupTbl.getGtidExecuted(), latestTimestamp);
         } catch (SQLException e) {
             logger.error("getMhaAvailableMessengerResource exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -444,10 +479,20 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    public void updateMhaTag(String mhaName, String tag) throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public int updateMhaTag(List<String> mhaNames, String tag) throws Exception {
+        int count = 0;
+        for (String mhaName : mhaNames) {
+            count += updateMhaTag(mhaName, tag);
+        }
+        return count;
+    }
+
+    @Override
+    public int updateMhaTag(String mhaName, String tag) throws Exception {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
         mhaTblV2.setTag(tag);
-        mhaTblV2Dao.update(mhaTblV2);
+        return mhaTblV2Dao.update(mhaTblV2);
     }
 
     @Override
@@ -475,10 +520,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     public Map<String, Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception {
         String trafficFromHickWall = domainConfig.getTrafficFromHickWall();
         String opsAccessToken = domainConfig.getOpsAccessToken();
-        if (EnvUtils.fat()) {
-            trafficFromHickWall = domainConfig.getTrafficFromHickWallFat();
-            opsAccessToken = domainConfig.getOpsAccessTokenFat();
-        }
         List<HickWallMhaReplicationDelayEntity> mhaReplicationDelay = opsApiServiceImpl.getMhaReplicationDelay(
                 trafficFromHickWall, opsAccessToken);
         return mhaReplicationDelay.stream().filter(entity -> mhas.contains(entity.getSrcMha()))
@@ -533,7 +574,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         Set<Long> configRelatedMappingIds = dbReplicationTbls.stream().flatMap(e -> {
             if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType())) {
                 return Stream.of(e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId());
-            } else if (e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType())) {
+            } else if (ReplicationTypeEnum.getByType(e.getReplicationType()).isMqType()) {
                 return Stream.of(e.getSrcMhaDbMappingId());
             } else {
                 return Stream.empty();
@@ -570,7 +611,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                     .map(DbCluster::getMhaName)
                     .filter(mhaName -> !drcRelatedMha.contains(mhaName))
                     .collect(Collectors.toList());
-            dcToMhaMap.put(dc.getRegion(), mhasWithReplicatorButNoDrc);
+            dcToMhaMap.computeIfAbsent(dc.getRegion(), (key) -> Lists.newArrayList())
+                    .addAll(mhasWithReplicatorButNoDrc);
         }
         return dcToMhaMap;
     }
@@ -641,31 +683,23 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
         List<MhaReplicationTbl> mhaReplicationTblsToDelete = mhaReplicationTblDao.queryByRelatedMhaId(mhaIds);
         if (!CollectionUtils.isEmpty(mhaReplicationTblsToDelete)) {
-            List<Long> mhaReplicationIds = mhaReplicationTblsToDelete.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList());
-            // applier
-            List<ApplierGroupTblV2> applierGroupTblV2sToDelete = applierGroupTblV2Dao.queryByMhaReplicationIds(mhaReplicationIds);
-            List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupIds(applierGroupTblV2sToDelete.stream().map(ApplierGroupTblV2::getId).collect(Collectors.toList()), BooleanEnum.FALSE.getCode());
-            if (!CollectionUtils.isEmpty(applierTblV2s)) {
-                List<Long> groupIds = applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList());
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha applier still exist for group:  " + groupIds);
-            }
             // update
             mhaReplicationTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             mhaReplicationTblDao.batchUpdate(mhaReplicationTblsToDelete);
-            applierGroupTblV2sToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            applierGroupTblV2Dao.batchUpdate(applierGroupTblV2sToDelete);
         }
         // messenger
-        List<MessengerGroupTbl> messengerGroupTblsToDelete = messengerGroupTblDao.queryByMhaIds(mhaIds, BooleanEnum.FALSE.getCode());
-        if (!CollectionUtils.isEmpty(messengerGroupTblsToDelete)) {
-            List<Long> messengerGroupTblIds = messengerGroupTblsToDelete.stream().map(MessengerGroupTbl::getId).collect(Collectors.toList());
-            List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(messengerGroupTblIds);
-            if (!CollectionUtils.isEmpty(messengerTbls)) {
-                List<Long> groupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger still exist for group:  " + groupIds);
+        for (MqType mqType : MqType.values()) {
+            List<MessengerGroupTbl> messengerGroupTblsToDelete = messengerGroupTblDao.queryByMhaIdsAndMqType(mhaIds, mqType, BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(messengerGroupTblsToDelete)) {
+                List<Long> messengerGroupTblIds = messengerGroupTblsToDelete.stream().map(MessengerGroupTbl::getId).collect(Collectors.toList());
+                List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(messengerGroupTblIds);
+                if (!CollectionUtils.isEmpty(messengerTbls)) {
+                    List<Long> groupIds = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).distinct().collect(Collectors.toList());
+                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger still exist for group:  " + groupIds);
+                }
+                messengerGroupTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+                messengerGroupTblDao.batchUpdate(messengerGroupTblsToDelete);
             }
-            messengerGroupTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            messengerGroupTblDao.batchUpdate(messengerGroupTblsToDelete);
         }
     }
 
@@ -692,14 +726,19 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db applier still exist for group:  " + groupIds);
         }
         // mha db messenger
-        List<Long> mhaDbReplicationMessengerIds = mhaDbReplicationTblsToDelete.stream().filter(e -> ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType())).map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
-        List<MessengerGroupTblV3> messengerGroupTblsV3ToDelete = messengerGroupTblV3Dao.queryByMhaDbReplicationIds(mhaDbReplicationMessengerIds);
-        List<Long> messengerGroupTblV3Ids = messengerGroupTblsV3ToDelete.stream().map(MessengerGroupTblV3::getId).collect(Collectors.toList());
-        List<MessengerTblV3> messengerTblsV3 = messengerTblV3Dao.queryByGroupIds(messengerGroupTblV3Ids);
-        if (!CollectionUtils.isEmpty(messengerTblsV3)) {
-            List<Long> groupIds = messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList());
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db messenger still exist for group:  " + groupIds);
+        List<MessengerGroupTblV3> messengerGroupTblsV3ToDelete = Lists.newArrayList();
+        for (MqType mqType : MqType.values()) {
+            List<Long> mhaDbReplicationMessengerIds = mhaDbReplicationTblsToDelete.stream().filter(e -> mqType.getReplicationType().getType().equals(e.getReplicationType())).map(MhaDbReplicationTbl::getId).collect(Collectors.toList());
+            List<MessengerGroupTblV3> messengerGroupTblsV3 = messengerGroupTblV3Dao.queryByMhaDbReplicationIdsAndMqType(mhaDbReplicationMessengerIds, mqType);
+            List<Long> messengerGroupTblV3Ids = messengerGroupTblsV3.stream().map(MessengerGroupTblV3::getId).collect(Collectors.toList());
+            List<MessengerTblV3> messengerTblsV3 = messengerTblV3Dao.queryByGroupIds(messengerGroupTblV3Ids);
+            if (!CollectionUtils.isEmpty(messengerTblsV3)) {
+                List<Long> groupIds = messengerTblsV3.stream().map(MessengerTblV3::getMessengerGroupId).distinct().collect(Collectors.toList());
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha db messenger still exist for group:  " + groupIds);
+            }
+            messengerGroupTblsV3ToDelete.addAll(messengerGroupTblsV3);
         }
+
 
         // update
         mhaDbReplicationTblsToDelete.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
@@ -808,5 +847,128 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
         return machineTbls.stream().filter(machineTbl -> machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode()))
                 .findFirst().orElse(null);
+    }
+
+    @Override
+    public MhaColumnDefaultValueDto findColumnDefaultValueLengthGt251(String mha) {
+        List<MySqlUtils.ColumnDefault> columnDefaultList = mysqlServiceV2.getMhaColumnDefaultValue(mha);
+        if (CollectionUtils.isEmpty(columnDefaultList)) {
+            return new MhaColumnDefaultValueDto(mha);
+        }
+
+        List<MySqlUtils.ColumnDefault> columnDefaults= columnDefaultList.stream().filter(e -> filterLength(e.getColumnDefault())).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(columnDefaults)) {
+            return null;
+        }
+
+        Map<String, List<MySqlUtils.ColumnDefault>> columnDefaultMap = columnDefaults.stream().collect(Collectors.groupingBy(MySqlUtils.ColumnDefault::getFullTableName));
+
+        List<MhaColumnDefaultValueDto.TableColumnDto> tableColumns = columnDefaultMap.entrySet().stream().map(entry -> {
+            List<MhaColumnDefaultValueDto.ColumnDto> columns = entry.getValue().stream().map(columnDefault -> {
+                MhaColumnDefaultValueDto.ColumnDto columnDto = new MhaColumnDefaultValueDto.ColumnDto(columnDefault.getColumnName(), columnDefault.getColumnDefault(), StringUtils.length(columnDefault.getColumnDefault()));
+                return columnDto;
+            }).collect(Collectors.toList());
+
+            MhaColumnDefaultValueDto.TableColumnDto tableColumnDto = new MhaColumnDefaultValueDto.TableColumnDto(entry.getKey(), columns);
+            return tableColumnDto;
+        }).collect(Collectors.toList());
+
+        return new MhaColumnDefaultValueDto(mha, tableColumns);
+    }
+
+    private boolean filterLength(String value) {
+        return StringUtils.length(value) >= COLUMN_DEFAULT_VALUE_MIN_LENGTH && StringUtils.length(value) <= COLUMN_DEFAULT_VALUE_MAX_LENGTH;
+    }
+
+    @Override
+    public MhaColumnDefaultValueView findColumnDefaultValueLengthGt251(List<String> mhas) {
+        List<Callable<MhaColumnDefaultValueDto>> list = Lists.newArrayList();
+        List<MhaColumnDefaultValueDto> results = Lists.newArrayList();
+        List<String> errorMhas = Lists.newArrayList();
+        for (String mha : mhas) {
+            list.add(() -> findColumnDefaultValueLengthGt251(mha));
+        }
+        try {
+            List<Future<MhaColumnDefaultValueDto>> futures = executeService.invokeAll(list, 60, TimeUnit.SECONDS);
+            for (Future<MhaColumnDefaultValueDto> future : futures) {
+                MhaColumnDefaultValueDto result = future.get();
+                if (result != null) {
+                    if (result.isQuerySuccess()) {
+                        results.add(result);
+                    } else {
+                        errorMhas.add(result.getMhaName());
+                    }
+
+                }
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw ConsoleExceptionUtils.message("findColumnDefaultValueLengthGt251 timeout");
+        }
+        return new MhaColumnDefaultValueView(results, errorMhas);
+    }
+
+    @Override
+    public MhaColumnDefaultValueView findAllColumnDefaultValueLengthGt251(int batch) throws SQLException {
+        List<MhaColumnDefaultValueDto> results = Lists.newArrayList();
+        List<String> errorMhas = Lists.newArrayList();
+        List<String> mhas = mhaTblV2Dao.queryAllExist().stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
+        if (batch == 0) {
+            return findColumnDefaultValueLengthGt251(mhas);
+        }
+
+        List<List<String>> mhaPartitions = Lists.partition(mhas, batch);
+        List<Callable<MhaColumnDefaultValueView>> list = Lists.newArrayList();
+        for (List<String> partition : mhaPartitions) {
+            list.add(() -> findColumnDefaultValueLengthGt251(partition));
+        }
+
+        try {
+            List<Future<MhaColumnDefaultValueView>> futures = executeService.invokeAll(list, 60, TimeUnit.SECONDS);
+            for (Future<MhaColumnDefaultValueView> future : futures) {
+                MhaColumnDefaultValueView result = future.get();
+                results.addAll(result.getMhaColumns());
+                errorMhas.addAll(result.getErrorMhas());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw ConsoleExceptionUtils.message("findColumnDefaultValueLengthGt251 timeout");
+        }
+        return new MhaColumnDefaultValueView(results, errorMhas);
+
+    }
+
+    @Override
+    public boolean createDrcMessengerGtidTbl() throws Exception {
+        List<Long> mhaIds = messengerGroupTblDao.queryAllExist().stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
+        List<String> mhaNames = mhaTblV2Dao.queryAllExist().stream().filter(e -> mhaIds.contains(e.getId())).map(MhaTblV2::getMhaName).collect(Collectors.toList());
+
+        List<Callable<Pair<String, Boolean>>> list = Lists.newArrayList();
+        for (String mha : mhaNames) {
+            list.add(() -> createDrcMessengerGtidTbl(mha));
+        }
+
+        List<String> errorMhas = new ArrayList<>();
+        try {
+            List<Future<Pair<String, Boolean>>> futures = executeService.invokeAll(list, 60, TimeUnit.SECONDS);
+            for (Future<Pair<String, Boolean>> future : futures) {
+                Pair<String, Boolean> res = future.get();
+                if (!res.getValue()) {
+                    errorMhas.add(res.getKey());
+                }
+            }
+        } catch (Exception e) {
+            throw ConsoleExceptionUtils.message("createDrcMessengerGtidTbl timeout: " + e);
+        }
+
+        if (!CollectionUtils.isEmpty(errorMhas)) {
+            throw ConsoleExceptionUtils.message("errorMhas: " + errorMhas);
+        }
+
+        return true;
+    }
+
+    private Pair<String, Boolean> createDrcMessengerGtidTbl(String mha) {
+        DrcMessengerGtidTblCreateReq req = new DrcMessengerGtidTblCreateReq(mha);
+        Boolean res = mysqlServiceV2.createDrcMessengerGtidTbl(req);
+        return Pair.of(mha, res);
     }
 }

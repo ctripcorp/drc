@@ -29,6 +29,7 @@ public class TripHeraldServiceImpl implements HeraldService {
     // key: heraldToken-ip
     private final Set<String> keyAuthorized = new ConcurrentHashSet<>();
     private final Set<String> appIdsAuthorized = Sets.newHashSet("100023928","100025243");
+    private final int CONNECTION_TIMEOUT = 2000;
     
     private final Logger logger = LoggerFactory.getLogger(TripHeraldServiceImpl.class);
     private DynamicConfig dynamicConfig = DynamicConfig.getInstance();
@@ -73,7 +74,8 @@ public class TripHeraldServiceImpl implements HeraldService {
 
         String serviceUrl = dynamicConfig.getHeraldServerUrl();
         String authToken = dynamicConfig.getHeraldAuthToken();
-        ReviewClient client = new ReviewClient(serviceUrl, authToken); 
+        ReviewClient client = new ReviewClient(serviceUrl, authToken);
+        client.setConnectTimeout(CONNECTION_TIMEOUT);
         try {
             TokenPayload tokenPayload = client.reviewTokenPayload(heraldToken, srcIp);
             boolean validateResult = srcIp.equals(tokenPayload.IP) && appIdsAuthorized.contains(tokenPayload.AppID);

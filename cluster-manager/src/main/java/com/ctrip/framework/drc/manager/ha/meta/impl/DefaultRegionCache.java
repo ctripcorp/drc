@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.config.SourceProvider;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
+import com.ctrip.framework.drc.core.concurrent.AllSuccessFuture;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.observer.AbstractLifecycleObservable;
@@ -15,7 +16,11 @@ import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 /**
@@ -72,6 +77,12 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
             logger.error("refresh cluster:{} error, cluster doesn't in current region:{}",clusterId, currentRegion);
             throw new IllegalArgumentException(String.format("change cluster:%s error, cluster doesn't in current region:%s", clusterId, currentRegion));
         });
+    }
+
+    @Override
+    public Future<Boolean> triggerRefreshAll() {
+        List<Future<Boolean>> dcFutures = dcCaches.stream().map(DefaultDcCache::triggerRefreshAll).collect(Collectors.toList());
+        return new AllSuccessFuture(dcFutures);
     }
 
     @Override

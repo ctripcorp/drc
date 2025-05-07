@@ -9,9 +9,10 @@ import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
+import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
@@ -20,10 +21,11 @@ import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,7 +34,10 @@ import org.mockito.*;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
@@ -48,27 +53,25 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     MhaServiceV2Impl mhaServiceV2;
     @Mock
     MhaDbReplicationServiceImpl mhaDbReplicationService;
+    @Mock
+    DbaApiService dbaApiService;
+    @Mock
+    IAMService iamService;
+
+    MqType mqType = MqType.qmq;
 
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
-        when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList(VPC_MHA_NAME));
-        when(qConfigService.updateDalClusterMqConfig(anyString(),any(),any(),anyList())).thenReturn(true);
-        when(qConfigService.removeDalClusterMqConfigIfNecessary(anyString(),any(),any(),any(),anyList(),anyList())).thenReturn(true);
-        when(qConfigService.addOrUpdateDalClusterMqConfig(anyString(),any(),any(),any(),anyList())).thenReturn(true);
+        when(qConfigService.updateDalClusterMqConfig(anyString(), any(), any(), anyList())).thenReturn(true);
+        when(qConfigService.removeDalClusterMqConfigIfNecessary(anyString(), any(), any(), any(), anyList(), anyList())).thenReturn(true);
+        when(qConfigService.addOrUpdateDalClusterMqConfig(anyString(), any(), any(), any(), anyList())).thenReturn(true);
+        when(defaultConsoleConfig.getConsoleMqPanelUrl()).thenReturn("");
         doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
         super.setUp();
     }
 
 
-    @Test
-    public void testGetAllMessengerMhaTbls() throws Exception {
-        List<MhaTblV2> result = messengerServiceV2Impl.getAllMessengerMhaTbls();
-        Assert.assertEquals(result.size(), 3);
-        List<Long> ids = result.stream().map(MhaTblV2::getId).collect(Collectors.toList());
-        Assert.assertTrue(ids.contains(1L));
-        Assert.assertTrue(ids.contains(2L));
-    }
     @Test
     public void testQueryMessengerMhaTbls() throws Exception {
         MessengerQueryDto queryDto = new MessengerQueryDto();
@@ -77,8 +80,8 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         mhaTblV2.setId(1L);
 
         // query all
-        List<MhaTblV2> result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
-        List<Long> ids = result.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+        List<MessengerVo> result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
+        List<Long> ids = result.stream().map(MessengerVo::getMhaId).collect(Collectors.toList());
         Assert.assertTrue(ids.contains(1L));
         Assert.assertTrue(ids.contains(2L));
 
@@ -90,7 +93,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         map.put(1L, mhaTblV2);
         when(mhaServiceV2.query(any())).thenReturn(map);
         result = messengerServiceV2Impl.getMessengerMhaTbls(queryDto);
-        Assert.assertTrue(result.stream().anyMatch(e-> e.getId() == 1L));
+        Assert.assertTrue(result.stream().anyMatch(e -> e.getMhaId() == 1L));
 
         // query by bu
         queryDto = new MessengerQueryDto();
@@ -105,18 +108,19 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         Assert.assertFalse(result.isEmpty());
 
     }
+
     @Test
     public void testQueryMhaMessengerConfigs() throws Exception {
-        List<MqConfigVo> mq1 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha1");
+        List<MqConfigVo> mq1 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha1", MqType.DEFAULT);
         Assert.assertNotEquals(0, mq1.size());
         System.out.println(mq1);
         System.out.println(JSON.toJSONString(mq1));
         Assert.assertTrue(mq1.stream().allMatch(e -> e.getTopic().equals("bbz.mha1.binlog")));
         Assert.assertTrue(mq1.stream().allMatch(e -> Lists.newArrayList("db1\\.(table1|table2)", "db2\\.(table1|table2)", "db1\\.(table3|table4)", "db3\\.(table1|table2)").contains(e.getTable())));
 
-        List<MqConfigVo> mq2 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha2");
+        List<MqConfigVo> mq2 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha2", MqType.DEFAULT);
         Assert.assertEquals(2, mq2.size());
-        List<MqConfigVo> mq3 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha3");
+        List<MqConfigVo> mq3 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha3", MqType.DEFAULT);
         Assert.assertEquals(0, mq3.size());
     }
 
@@ -143,30 +147,30 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
 
     @Test(expected = ConsoleException.class)
     public void testDeleteDbReplicationForMqMhaNotExist() throws Exception {
-        messengerServiceV2Impl.deleteDbReplicationForMq("mhaNameNotExist", List.of(Long.valueOf(1)));
+        messengerServiceV2Impl.deleteDbReplicationForMq("mhaNameNotExist", mqType, List.of(Long.valueOf(1)));
     }
 
     @Test(expected = ConsoleException.class)
     public void testDeleteDbReplicationForMqDbReplicationsNotExist() throws Exception {
-        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", List.of(99999999L));
+        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", mqType, List.of(99999999L));
     }
 
 
     @Test(expected = ConsoleException.class)
     public void testDeleteDbReplicationForMqDbReplicationsNotMatch() throws Exception {
-        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", List.of(1L, 4L));
+        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", mqType, List.of(1L, 4L));
     }
 
     @Test(expected = ConsoleException.class)
     public void testDeleteDbReplicationForMqDbReplicationsMqDBType() throws Exception {
-        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", List.of(5L));
+        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", mqType, List.of(5L));
     }
 
     @Test
     public void testDeleteDbReplicationForMqNoVpcMha() throws Exception {
 
         try {
-            messengerServiceV2Impl.deleteDbReplicationForMq(VPC_MHA_NAME, List.of(Long.valueOf(1)));
+            messengerServiceV2Impl.deleteDbReplicationForMq(VPC_MHA_NAME, mqType, List.of(Long.valueOf(1)));
             throw new Exception("should throw exception before it");
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains(ReadableErrorDefEnum.DELETE_TBL_CHECK_FAIL_EXCEPTION.getMessage()));
@@ -177,12 +181,12 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     @Test
     public void testDeleteDbReplicationForMqDbReplications() throws SQLException {
         List<Long> dbReplicationIds = List.of(1L, 2L);
-        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", dbReplicationIds);
+        messengerServiceV2Impl.deleteDbReplicationForMq("mha1", mqType, dbReplicationIds);
         verify(dbReplicationTblDao).queryByIds(anyList());
         verify(mhaTblV2Dao).queryByMhaName(any(), anyInt());
         verify(mhaDbMappingTblDao).queryByIds(anyList());
         verify(dbReplicationFilterMappingTblDao).queryByDbReplicationIds(any());
-        verify(mhaDbReplicationService,times(1)).offlineMhaDbReplication(anyList());
+        verify(mhaDbReplicationService, times(1)).offlineMhaDbReplication(anyList());
     }
 
 
@@ -200,8 +204,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setTable("db1\\.(table1|table2)");
         MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(2, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // partial conflict
@@ -214,8 +217,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setTable("db1\\.(table1|table999)");
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(1, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // test no table
@@ -249,6 +251,25 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
 
 
     @Test
+    public void testCheckMqConfigForSameDbSameTopic() {
+        MqConfigDto dto = new MqConfigDto();
+        // all conflict
+        List<MySqlUtils.TableSchemaName> ret1 = Lists.newArrayList(
+                new MySqlUtils.TableSchemaName("db1", "table1"),
+                new MySqlUtils.TableSchemaName("db1", "table2")
+        );
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret1);
+        dto.setMhaName("mha1");
+        dto.setTable("db1\\.(table1|table2)");
+        dto.setTopic("bbz.mha1.binlog");
+        dto.setDbReplicationId(3L);
+        MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
+        System.out.println(JSON.toJSONString(result));
+        Assert.assertFalse(result.getAllowSubmit());
+        Assert.assertEquals(2, result.getConflictTables().size());
+    }
+
+    @Test
     public void testCheckMqConfigForUpdate() {
         MqConfigDto dto = new MqConfigDto();
         // all conflict
@@ -262,8 +283,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setDbReplicationId(3L);
         MqConfigCheckVo result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(2, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // partial conflict
@@ -277,8 +297,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setDbReplicationId(1L);
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
-        Assert.assertFalse(result.getAllowSubmit());
-        Assert.assertEquals(1, result.getConflictTables().size());
+        Assert.assertTrue(result.getAllowSubmit());
 
 
         // no conflict: different db
@@ -338,18 +357,18 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
 
     @Test
     public void testGetMessengerGtidExecuted() throws Exception {
-        String result = messengerServiceV2Impl.getMessengerGtidExecuted("mha1");
+        String result = messengerServiceV2Impl.getMessengerGtidExecuted("mha1", mqType);
         Assert.assertEquals("gtid1", result);
     }
 
     @Test(expected = ConsoleException.class)
     public void testGetMessengerGtidExecutedException1() {
-        messengerServiceV2Impl.getMessengerGtidExecuted("mhaNotExist");
+        messengerServiceV2Impl.getMessengerGtidExecuted("mhaNotExist", mqType);
     }
 
     @Test(expected = ConsoleException.class)
     public void testGetMessengerGtidExecutedException2() {
-        messengerServiceV2Impl.getMessengerGtidExecuted(null);
+        messengerServiceV2Impl.getMessengerGtidExecuted(null, mqType);
     }
 
 
@@ -457,13 +476,13 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     @Test(expected = ConsoleException.class)
     public void testRemoveMessengerGroupException() throws Exception {
         // forbidden operation ( should remove inner mq configs first)
-        messengerServiceV2Impl.removeMessengerGroup("mha1");
+        messengerServiceV2Impl.removeMessengerGroup("mha1", mqType);
     }
 
     @Test
     public void testRemoveMessengerGroup() throws Exception {
 
-        messengerServiceV2Impl.removeMessengerGroup("mha3");
+        messengerServiceV2Impl.removeMessengerGroup("mha3", mqType);
         verify(messengerTblDao, times(1)).batchUpdate(anyList());
         verify(messengerGroupTblDao, times(1)).update(any(MessengerGroupTbl.class));
     }
@@ -486,7 +505,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         dto.setaGtidExecuted("testAGtidExecuted");
 
 
-        when(metaInfoService.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+        when(metaInfoService.getDrcMessengerConfig(anyString(), eq(mqType))).thenReturn(new Drc());
         drcBuildServiceV2.buildMessengerDrc(dto);
 
         verify(replicatorTblDao, times(1)).batchInsert(any());
@@ -537,10 +556,9 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         list.add(MhaMessengerDto.from("mha1"));
         list.add(MhaMessengerDto.from("mha2"));
 
-        List<HickWallMessengerDelayEntity> delays = this.getDelays();
-        Map<String, HickWallMessengerDelayEntity> map = delays.stream().collect(Collectors.toMap(HickWallMessengerDelayEntity::getMha, e -> e));
-        when(opsApiServiceImpl.getMessengerDelayFromHickWall(any(), any(), anyList())).thenReturn(delays);
-        List<MhaDelayInfoDto> delay = messengerServiceV2Impl.getMhaMessengerDelays(list);
+        Map<String, HickWallMessengerDelayEntity> map = this.getDelays();
+        when(opsApiServiceImpl.getMessengerDelayFromHickWall(any(), any(), anyList(), any())).thenReturn(map);
+        List<MhaDelayInfoDto> delay = messengerServiceV2Impl.getMhaMessengerDelays(list, mqType);
 
         for (MhaDelayInfoDto infoDTO : delay) {
             String srcMha = infoDTO.getSrcMha();
@@ -552,8 +570,9 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         System.out.println(delay);
     }
 
-    private List<HickWallMessengerDelayEntity> getDelays() {
+    private Map<String, HickWallMessengerDelayEntity> getDelays() {
         String json = "[{\"metric\":{\"mhaName\":\"mha1\"},\"values\":[[1693216955,\"132.358004355\"],[1693217015,\"131.2824921131\"]]},{\"metric\":{\"mhaName\":\"mha2\"},\"values\":[[1693216955,\"132.358004355\"],[1693217015,\"131.2824921131\"]]}]";
-        return JsonUtils.fromJsonToList(json, HickWallMessengerDelayEntity.class);
+        return HickWallMessengerDelayEntity.parseJson(json, MqType.DEFAULT);
     }
+
 }

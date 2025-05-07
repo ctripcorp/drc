@@ -47,12 +47,12 @@ public class SchemaFilterTest {
         value.setFileChannel(fileChannel);
         value.setEventType(drc_filter_log_event);
         FilterLogEvent filterLogEvent = new FilterLogEvent();
-        filterLogEvent.encode("drc1", 1);
+        filterLogEvent.encode("drc1", FilterLogEvent.UNKNOWN, 10, 10, 1);
         value.setLogEvent(filterLogEvent);
         schemaFilter.doFilter(value);
         Mockito.verify(fileChannel, times(0)).position();
 
-        filterLogEvent.encode("drc3", 1);
+        filterLogEvent.encode("drc3", FilterLogEvent.UNKNOWN, 10, 10, 1);
         schemaFilter.doFilter(value);
         Mockito.verify(fileChannel, times(1)).position(anyLong());
     }

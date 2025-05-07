@@ -6,6 +6,7 @@ import com.ctrip.xpipe.api.observer.Observable;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 /**
  * @Author limingdong
@@ -30,4 +31,6 @@ public interface DcCache extends Observable {
     void clusterDeleted(String registryKey);
 
     void refresh(String clusterId);
+
+    Future<Boolean> triggerRefreshAll();
 }

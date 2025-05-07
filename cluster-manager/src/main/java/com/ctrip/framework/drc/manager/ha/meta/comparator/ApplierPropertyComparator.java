@@ -19,8 +19,7 @@ public class ApplierPropertyComparator extends AbstractMetaComparator<Applier, A
 
     @Override
     public void compare() {
-        if (!Objects.equals(current.getNameFilter(), future.getNameFilter())
-        || !Objects.equals(current.getProperties(), future.getProperties())) {
+        if (!Objects.equals(current.getRouteInfo(), future.getRouteInfo())) {
             added.add(future);
         }
     }

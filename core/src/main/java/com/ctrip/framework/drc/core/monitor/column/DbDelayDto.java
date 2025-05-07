@@ -61,6 +61,7 @@ public class DbDelayDto {
 
     public static class DelayInfo {
         private static final Map<String, DelayInfo> FLYWEIGHT_CACHE = new ConcurrentHashMap<>();
+        private static final Map<DelayInfo, String> FLYWEIGHT_CACHE_INFO_TO_JSON = new ConcurrentHashMap<>();
         // dc
         private String d;
         // region
@@ -84,7 +85,7 @@ public class DbDelayDto {
         }
 
         public String toJson() {
-            return Codec.DEFAULT.encode(this);
+            return FLYWEIGHT_CACHE_INFO_TO_JSON.computeIfAbsent(this, Codec.DEFAULT::encode);
         }
 
         @Override

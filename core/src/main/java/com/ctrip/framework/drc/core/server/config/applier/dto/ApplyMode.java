@@ -15,6 +15,7 @@ public enum ApplyMode {
     mq(2, "mq", Messenger),
     db_transaction_table(3, "db_transaction_table", Applier),
     db_mq(4, "db_mq", Messenger),
+    kafka(5, "kafka", Messenger),
     ;
 
     public static ApplyMode getApplyMode(final int type) {
@@ -44,11 +45,11 @@ public enum ApplyMode {
         return consumeType;
     }
 
-    public void setConsumeType(ConsumeType consumeType) {
-        this.consumeType = consumeType;
+    public boolean isDbGranular() {
+        return this == db_transaction_table || this == db_mq;
     }
 
-    private int type;
-    private String name;
-    private ConsumeType consumeType;
+    private final int type;
+    private final String name;
+    private final ConsumeType consumeType;
 }

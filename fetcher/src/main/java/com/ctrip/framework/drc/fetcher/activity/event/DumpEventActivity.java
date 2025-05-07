@@ -8,8 +8,8 @@ import com.ctrip.framework.drc.core.exception.dump.BinlogDumpGtidException;
 import com.ctrip.framework.drc.core.exception.dump.EventConvertException;
 import com.ctrip.framework.drc.core.monitor.log.Accumulation;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.applier.dto.FetcherConfigDto;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
 import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
@@ -117,7 +117,7 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
         server.start();
     }
 
-    public void changeProperties(ApplierConfigDto config) throws Exception {
+    public void changeProperties(FetcherConfigDto config) throws Exception {
         this.config.setNameFilter(config.getNameFilter());
         this.config.setProperties(config.getProperties());
         server.closeChannel();

@@ -42,7 +42,7 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         // if read header fail, restore position
         boolean readHeaderComplete = EventReader.readHeader(fileChannel, headBuffer, headByteBuf);
         if (!readHeaderComplete) {
-            this.restore(value, fileChannel);
+            this.restore(value);
             return doNext(value, value.isSkipEvent());
         }
 
@@ -56,14 +56,14 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
         // if event not complete yet, restore position
         if (!checkEventSize(value)) {
-            this.restore(value, fileChannel);
+            this.restore(value);
         }
         return doNext(value, value.isSkipEvent());
     }
 
-    private void restore(OutboundLogEventContext value, FileChannel fileChannel) {
+    private void restore(OutboundLogEventContext value) {
         try {
-            fileChannel.position(value.getFileChannelPos());
+            value.rePositionFileChannel(value.getFileChannelPos());
             value.setCause(new SizeNotEnoughException("check event size error"));
             value.setSkipEvent(true);
         } catch (IOException e) {

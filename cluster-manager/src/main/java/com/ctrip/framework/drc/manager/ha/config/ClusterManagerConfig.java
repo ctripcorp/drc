@@ -57,4 +57,10 @@ public interface ClusterManagerConfig extends ZkConfig {
     boolean getPeriodCorrectSwitch();
 
     boolean requestWithHeraldToken();
+
+
+    int getConsoleBatchNotifySize();
+
+
+    boolean getCmBatchNotifyConsoleSwitch();
 }

@@ -103,8 +103,7 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
                 String backupRegistryKey = NameUtils.getApplierBackupRegisterKey(modified);
                 Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupRegistryKey);
                 if (modified.equalsWithIpPort(activeApplier) && ObjectUtils.equals(modified.getIncludedDbs(), activeApplier.getIncludedDbs())) {
-                    activeApplier.setNameFilter(modified.getNameFilter());
-                    activeApplier.setProperties(modified.getProperties());
+                    activeApplier.setRouteInfo(modified.getRouteInfo());
                     logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupRegistryKey, activeApplier);
                     instanceStateController.applierPropertyChange(clusterId, activeApplier);
                 }
@@ -121,12 +120,12 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
     protected class ApplierChecker extends InstancePeriodicallyChecker<Applier, ApplierInfoDto> {
         @Override
         protected Pair<List<String>, List<ApplierInfoDto>> fetchInstanceInfo(List<Instance> instances) {
-            return instanceStateController.getApplierInfo(instances);
+            return batchInfoInquirer.getApplierInfo(instances);
         }
 
         @Override
         protected List<Instance> getAllMeta() {
-            return Lists.newArrayList(currentMetaManager.getAllApplierOrMessengerInstances());
+            return Lists.newArrayList(currentMetaManager.getAllApplierInstances());
         }
 
         @Override

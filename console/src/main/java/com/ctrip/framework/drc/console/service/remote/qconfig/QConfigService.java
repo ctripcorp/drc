@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.remote.qconfig;
 
 import com.ctrip.framework.drc.console.utils.MySqlUtils.TableSchemaName;
 import java.util.List;
+import java.util.Map;
 
 public interface QConfigService {
 
@@ -14,5 +15,8 @@ public interface QConfigService {
             List<TableSchemaName> matchTables, List<String> otherTablesByTopic);
 
     boolean updateDalClusterMqConfig(String dcName, String topic, String dalClusterName, List<TableSchemaName> matchTables);
+
+    boolean reWriteDalClusterMqConfig(String dcName, String dalClusterName, Map<String, String> configContext);
+
 
 }

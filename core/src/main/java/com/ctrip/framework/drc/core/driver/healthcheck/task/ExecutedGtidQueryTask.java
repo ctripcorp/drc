@@ -42,7 +42,7 @@ public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
     protected String getExecutedGtid(Endpoint endpoint) {
         try {
             return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.composite.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
-                DataSource dataSource = dataSourceManager.getDataSource(endpoint);
+                DataSource dataSource = dataSourceManager.getDataSource(endpoint, true);
                 try (Connection connection = dataSource.getConnection()){
                     return gtidReader.getExecutedGtids(connection);
                 } catch (Exception e) {

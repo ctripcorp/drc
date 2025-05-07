@@ -96,7 +96,7 @@ public class PartialBigTransactionContextResourceTest extends AbstractPartialTra
     }
 
     @Override
-    protected PartialTransactionContextResource getBatchPreparedStatementExecutor(TransactionContextResource parent) {
+    protected PartialTransactionContextResource getBatchPreparedStatementExecutor(ApplierTransactionContextResource parent) {
         return new PartialBigTransactionContextResource(parent);
     }
 

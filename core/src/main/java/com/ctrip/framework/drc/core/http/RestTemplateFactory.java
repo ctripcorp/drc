@@ -46,8 +46,13 @@ public class RestTemplateFactory {
     public static String trustPass = "drcdrc";
     public static Integer SSL_PORT = 8081;
 
-    public static RestOperations createRestTemplateWithSSLContext(int maxConnPerRoute, int maxConnTotal,
-            int connectTimeout, int soTimeout, int retryTimes, RetryPolicyFactory retryPolicyFactory){
+    public static RestOperations createRestTemplateWithSSLContext(
+            int maxConnPerRoute, 
+            int maxConnTotal,
+            int connectTimeout,
+            int soTimeout, 
+            int retryTimes, 
+            RetryPolicyFactory retryPolicyFactory){
      
         RestOperations restTemplateProxy = null;
         try (InputStream trustStream = RestTemplateFactory.class.getClassLoader().getResourceAsStream(trustPath)){

@@ -14,11 +14,11 @@ public class SenderSchemaFilter extends SchemaFilter {
 
     @Override
     protected void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset) {
-        inExcludeGroup = true;
+        value.setInSchemaExcludeGroup(true);
     }
 
     @Override
-    protected boolean concern(String schema, int eventCount) {
+    protected boolean concern(String schema, int eventCount, boolean noRowsEvent) {
         return sender.concernSchema(schema);
     }
 

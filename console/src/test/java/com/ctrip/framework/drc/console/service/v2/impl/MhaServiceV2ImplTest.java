@@ -13,11 +13,11 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -115,6 +116,9 @@ public class MhaServiceV2ImplTest {
 
     @Mock
     private MetaProviderV2 metaProviderV2;
+
+    @Mock
+    private MysqlServiceV2 mysqlServiceV2;
 
 
     @Before
@@ -275,20 +279,20 @@ public class MhaServiceV2ImplTest {
         List<MessengerTbl> messengerTbls = JSON.parseArray("[{\"id\":1,\"messengerGroupId\":1,\"resourceId\":1,\"port\":8080,\"deleted\":0,\"createTime\":\"2028-11-02 21:41:45\",\"datachangeLasttime\":\"2015-04-01 03:25:43\"},{\"id\":2,\"messengerGroupId\":1,\"resourceId\":2,\"port\":8080,\"deleted\":0,\"createTime\":\"2028-11-02 21:41:45\",\"datachangeLasttime\":\"2015-04-01 03:25:43\"}]", MessengerTbl.class);
         when(messengerTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(messengerTbls);
         MessengerGroupTbl messengerGroupTbl = JSON.parseObject("{\"id\":1,\"mhaId\":1,\"replicatorGroupId\":1,\"deleted\":0,\"gtidExecuted\":\"gtid1\",\"datachangeLasttime\":\"2023-08-13 00:00:00\"}", MessengerGroupTbl.class);
-        when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
+        when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(),Mockito.any(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
         List<ResourceTbl> resourceTbls = JSON.parseArray("[{\"id\":1,\"type\":0,\"ip\":\"1.113.60.1\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"},{\"id\":2,\"type\":0,\"ip\":\"1.113.60.2\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"}]", ResourceTbl.class);
         when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(resourceTbls);
 
-        List<String> mha1 = mhaServiceV2.getMhaMessengers(mhaName);
+        MhaMessengerDto mhaMessengers = mhaServiceV2.getMhaMessengers(mhaName, MqType.qmq);
 
-        Assert.assertEquals(2, mha1.size());
+        Assert.assertEquals(2, mhaMessengers.getIps().size());
     }
 
     @Test
     public void testGetMhaReplicatorSlaveDelay() throws Exception {
         if (EnvUtils.fat()) {
-            when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://localhost:8080");
-            when(domainConfig.getOpsAccessTokenFat()).thenReturn("token1");
+            when(domainConfig.getTrafficFromHickWall()).thenReturn("http://localhost:8080");
+            when(domainConfig.getOpsAccessToken()).thenReturn("token1");
         } else {
             when(domainConfig.getTrafficFromHickWall()).thenReturn("http://localhost:8080");
             when(domainConfig.getOpsAccessToken()).thenReturn("token1");
@@ -553,5 +557,31 @@ public class MhaServiceV2ImplTest {
 
         MachineTbl masterNode = mhaServiceV2.getMasterNode(1L);
         Assert.assertEquals(2L, masterNode.getId().longValue());
+    }
+
+    @Test
+    public void testCreateDrcMessengerGtidTbl() throws Exception {
+        MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
+        messengerGroupTbl.setMhaId(1L);
+
+        MhaTblV2 mha1 = new MhaTblV2();
+        mha1.setId(1L);
+        mha1.setMhaName("mha1");
+        MhaTblV2 mha2 = new MhaTblV2();
+        mha2.setId(2L);
+        mha2.setMhaName("mha2");
+
+        Mockito.when(messengerGroupTblDao.queryAllExist()).thenReturn(Lists.newArrayList(messengerGroupTbl));
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(Lists.newArrayList(mha1, mha2));
+
+        Mockito.when(mysqlServiceV2.createDrcMessengerGtidTbl(Mockito.any())).thenReturn(true);
+
+        boolean res = mhaServiceV2.createDrcMessengerGtidTbl();
+        Thread.sleep(100);
+
+        Mockito.verify(mysqlServiceV2, Mockito.times(1)).createDrcMessengerGtidTbl(Mockito.any());
+        Assert.assertTrue(res);
+
+
     }
 }

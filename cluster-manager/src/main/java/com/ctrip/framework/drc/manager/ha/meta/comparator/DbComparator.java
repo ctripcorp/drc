@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.meta.comparator;
 
 import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dbs;
 import com.ctrip.framework.drc.core.meta.comparator.AbstractMetaComparator;
 import com.ctrip.xpipe.tuple.Pair;
 
@@ -24,8 +25,8 @@ public class DbComparator extends AbstractMetaComparator<Db, DbChange> {
 
     @Override
     public void compare() {
-        List<Db> currentAll =  current.getDbs().getDbs();
-        List<Db> futureAll =  future.getDbs().getDbs();
+        List<Db> currentAll = current.getDbs().getDbs();
+        List<Db> futureAll = future.getDbs().getDbs();
 
 
         Pair<List<Db>, List<Pair<Db, Db>>> subResult = sub(futureAll, currentAll);
@@ -45,18 +46,18 @@ public class DbComparator extends AbstractMetaComparator<Db, DbChange> {
         List<Db> subResult = new LinkedList<>();
         List<Pair<Db, Db>> intersectResult = new LinkedList<>();
 
-        for(Db Db1 : all1){
+        for (Db Db1 : all1) {
 
             Db Db2Equal = null;
-            for(Db Db2 : all2){
-                if(Db1.equalsWithIpPort(Db2)){
+            for (Db Db2 : all2) {
+                if (Db1.equalsWithIpPort(Db2)) {
                     Db2Equal = Db2;
                     break;
                 }
             }
-            if(Db2Equal == null){
+            if (Db2Equal == null) {
                 subResult.add(Db1);
-            }else{
+            } else {
                 intersectResult.add(new Pair<>(Db1, Db2Equal));
             }
         }
@@ -64,11 +65,15 @@ public class DbComparator extends AbstractMetaComparator<Db, DbChange> {
     }
 
     private void compareConfigConfig(List<Pair<Db, Db>> allModified) {
+        Dbs currentDbs = current.getDbs();
+        Dbs futureDbs = future.getDbs();
+        boolean equalsWithUserAndPassword = currentDbs.equalsWithUserAndPassword(futureDbs);
 
-        for(Pair<Db, Db> pair : allModified){
+        for (Pair<Db, Db> pair : allModified) {
             Db current = pair.getValue();
             Db future = pair.getKey();
-            if(current.equals(future)){
+
+            if (equalsWithUserAndPassword && current.equalsWithIpPort(future) && current.getMaster() == future.getMaster()) {
                 continue;
             }
             InstanceComparator instanceComparator = new InstanceComparator(current, future);

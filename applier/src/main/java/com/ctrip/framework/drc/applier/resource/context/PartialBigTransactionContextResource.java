@@ -33,7 +33,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
 
     private BatchPreparedStatementExecutor preparedStatementExecutor;
 
-    public PartialBigTransactionContextResource(TransactionContextResource parent) {
+    public PartialBigTransactionContextResource(ApplierTransactionContextResource parent) {
         super(parent, false);
         this.preparedStatementExecutor = (BatchPreparedStatementExecutor) parent.executor;
     }

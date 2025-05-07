@@ -2,9 +2,12 @@ package com.ctrip.framework.drc.console.dao.v3;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -34,6 +37,21 @@ public class ApplierGroupTblV3Dao extends AbstractDao<ApplierGroupTblV3> {
         return queryList(sqlBuilder);
     }
 
+    public ApplierGroupTblV3 queryByMhaDbReplicationId(long mhaDbReplicationId, int deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(MHA_DB_REPLICATION_ID, mhaDbReplicationId, Types.BIGINT)
+                .and().equal(DELETED, deleted, Types.TINYINT);
+        return queryOne(sqlBuilder);
+    }
+
+    public ApplierGroupTblV3 queryByMhaDbReplicationId(long mhaDbReplicationId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(MHA_DB_REPLICATION_ID, mhaDbReplicationId, Types.BIGINT)
+                .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return queryOne(sqlBuilder);
+    }
+
+
 
     public void batchInsertWithReturnId(List<ApplierGroupTblV3> applierGroupTblV3s) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
@@ -48,5 +66,25 @@ public class ApplierGroupTblV3Dao extends AbstractDao<ApplierGroupTblV3> {
     @Override
     public int[] batchUpdate(List<ApplierGroupTblV3> daoPojos) throws SQLException {
         return super.batchUpdate(new DalHints().updateNullField(GTID_INIT, CONCURRENCY), daoPojos);
+    }
+
+    public Long insertOrReCover(Long mhaDbReplicationId, String gtidInit) throws SQLException {
+        if (mhaDbReplicationId == null) {
+            throw new IllegalArgumentException("insertOrReCover ApplierGroupTblV3, mhaDbReplicationId is null");
+        }
+        ApplierGroupTblV3 aGroup = queryByMhaDbReplicationId(mhaDbReplicationId);
+        if (aGroup != null) {
+            if (aGroup.getDeleted() == 1) {
+                aGroup.setDeleted(0);
+                aGroup.setGtidInit(StringUtils.isBlank(gtidInit) ? aGroup.getGtidInit() : gtidInit);
+                update(aGroup);
+            }
+            return aGroup.getId();
+        } else {
+            ApplierGroupTblV3 newGroup = new ApplierGroupTblV3();
+            newGroup.setMhaDbReplicationId(mhaDbReplicationId);
+            newGroup.setGtidInit(StringUtils.isBlank(gtidInit) ? null : gtidInit);
+            return insertWithReturnId(newGroup);
+        }
     }
 }

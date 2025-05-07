@@ -10,12 +10,6 @@ import org.apache.commons.lang3.tuple.Pair;
  * @Version: $
  */
 public class BlankIAMServiceImpl implements IAMService {
-    
-
-    @Override
-    public Pair<Boolean, String> canQueryAllCflLog() {
-        return null;
-    }
 
     @Override
     public Pair<Boolean, String> checkPermission(List<String> permissionCodes, String eid) {
@@ -36,4 +30,7 @@ public class BlankIAMServiceImpl implements IAMService {
     public int getOrder() {
         return 1;
     }
+
+    @Override
+    public Pair<Boolean, String> canQueryAllDbReplication() { return null; }
 }

@@ -5,9 +5,11 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v3.MhaDbReplicationTbl;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -23,7 +25,7 @@ public interface MhaDbReplicationService {
 
     List<MhaDbReplicationTbl> queryBySrcMha(String srcMhaName) throws SQLException;
 
-    List<MhaDbReplicationDto> queryMqByMha(String srcMhaName, List<String> dbNames);
+    List<MhaDbReplicationDto> queryMqByMha(String srcMhaName, List<String> dbNames, MqType mqType);
 
     List<MhaDbReplicationDto> queryByDcName(String srcDcName, ReplicationTypeEnum typeEnum);
 
@@ -34,13 +36,15 @@ public interface MhaDbReplicationService {
 
     void maintainMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
     void maintainMhaDbReplication(String srcMhaName, String dstMhaName, List<String> dbNames) throws SQLException;
-    void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames) throws SQLException;
-    void offlineMhaDbReplication(String mhaName, String mhaName1);
+    void maintainMhaDbReplicationForMq(String srcMhaName, List<String> dbNames, ReplicationTypeEnum replicationTypeEnum) throws SQLException;
+    void offlineMhaDbReplication(String srcMhaName, String dstMhaName);
 
     /**
      * after delete dbReplicationTbls
      */
-    void offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
+    List<MhaDbReplicationTbl> offlineMhaDbReplication(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
+
+    void offlineMhaDbReplicationAndApplierV3(List<DbReplicationTbl> dbReplicationTbls) throws SQLException;
 
     boolean isDbReplicationExist(Long mhaId,List<String> dbs) throws SQLException;
 
@@ -49,4 +53,8 @@ public interface MhaDbReplicationService {
     List<MhaDbDelayInfoDto> getReplicationDelays(List<Long> replicationIds);
 
     List<MhaDbReplicationDto> queryByDbNames(List<String> dbNames, ReplicationTypeEnum typeEnum);
+
+    List<MhaDbReplicationDto> queryByDbNamesAndMhaNames(List<String> dbNames, List<String> relateMhas, ReplicationTypeEnum typeEnum);
+
+    List<ApplierReplicationView> query(List<Long> mhaDbReplicationIds) throws SQLException;
 }

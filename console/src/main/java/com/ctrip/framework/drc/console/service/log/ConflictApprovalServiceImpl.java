@@ -26,7 +26,6 @@ import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiRespon
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -129,7 +128,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllCflLog().getLeft()) {
+        if (!iamService.canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");
@@ -202,7 +201,6 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     @Override
-    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
     public void createConflictApproval(ConflictApprovalCreateParam param) throws Exception {
         List<ConflictHandleSqlDto> handleSqlDtos = param.getHandleSqlDtos();
         if (CollectionUtils.isEmpty(handleSqlDtos)) {

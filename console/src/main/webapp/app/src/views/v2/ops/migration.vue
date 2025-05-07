@@ -149,7 +149,37 @@ export default {
         ])
       }
     }
-
+    function renderDbDelay () {
+      return (h, params) => {
+        const delay = params.row.mhaDbDelayInfoDto.delay
+        let color
+        let text
+        const extraInfo = ''
+        if (delay != null && delay < 10000) {
+          color = 'blue'
+          text = prettyMilliseconds(delay)
+        } else {
+          color = 'volcano'
+          if (delay) {
+            text = prettyMilliseconds(delay)
+          } else {
+            text = '查询失败'
+          }
+        }
+        return h('div', [
+          h('Tag', {
+            props: {
+              color: color
+            }
+          }, text),
+          h('div', {
+            style: {
+              'white-space': 'pre-wrap'
+            }
+          }, extraInfo)
+        ])
+      }
+    }
     return {
       detailColumn: [
         {
@@ -159,8 +189,8 @@ export default {
           align: 'center',
           render: (h, params) => {
             const row = params.row
-            const color = row.status === 1 ? 'blue' : 'volcano'
-            const text = row.status === 1 ? '已接入' : '未接入'
+            const color = row.mhaDbReplicationDto.drcStatus ? 'blue' : 'volcano'
+            const text = row.mhaDbReplicationDto.drcStatus ? '已接入' : '未接入'
             return h('Tag', {
               props: {
                 color: color
@@ -173,7 +203,7 @@ export default {
           width: 150,
           key: 'id',
           render: (h, params) => {
-            return h('p', params.row.srcMha.name)
+            return h('p', params.row.mhaDbReplicationDto.src.mhaName)
           }
         },
         {
@@ -181,19 +211,19 @@ export default {
           width: 150,
           key: 'id',
           render: (h, params) => {
-            return h('p', params.row.dstMha.name)
+            return h('p', params.row.mhaDbReplicationDto.dst.mhaName)
           }
         },
         {
           title: 'delay',
           key: 'delay',
-          render: renderDelay()
+          render: renderDbDelay()
         },
         {
-          title: 'dbs',
-          key: 'dbs',
+          title: 'dbName',
+          key: 'dbName',
           render: (h, params) => {
-            return h('p', params.row.dbs.join(','))
+            return h('p', params.row.mhaDbReplicationDto.src.dbName)
           }
         }
       ],
@@ -220,6 +250,15 @@ export default {
           key: 'id',
           render: (h, params) => {
             return h('p', params.row.srcMha.name)
+          }
+        },
+        {
+          title: '投递类型',
+          key: 'mqType',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            return h('p', params.row.mqType)
           }
         },
         {
@@ -436,15 +475,10 @@ export default {
         this.getMigrationTasks()
       })
     },
-    getMhaReplicationDetail: function (row) {
+    getMhaDbReplicationDetail: function (row) {
       this.replicationDetail.mhaReplicationDataLoading = true
       this.replicationDetail.data = []
-      this.axios.get('/api/drc/v2/replication/relatedReplicationDelay', {
-        params: {
-          mhas: [row.oldMha, row.newMha].join(','),
-          dbs: row.dbs.join(',')
-        }
-      }).then(response => {
+      this.axios.get('/api/drc/v2/migration/mhaDbReplicationDelay?taskId=' + row.id).then(response => {
         if (response.data.status === 1) {
           this.$Message.warning('查询异常: ' + response.data.message)
           return
@@ -459,31 +493,57 @@ export default {
       }).finally(() => {
       })
     },
-    getMhaMessengerDetail: function (row) {
-      this.replicationDetail.messengerDataLoading = true
-      this.replicationDetail.messengerData = []
-      this.axios.get('/api/drc/v2/messenger/delay', {
-        params: {
-          mhas: [row.oldMha, row.newMha].join(','),
-          dbs: row.dbs.join(',')
-        }
-      }).then(response => {
-        if (response.data.status === 1) {
-          this.$Message.warning('查询异常: ' + response.data.message)
+    getMhaMessengerDetail: async function (row) {
+      try {
+        this.replicationDetail.messengerDataLoading = true
+        this.replicationDetail.messengerData = []
+        const requestQmq = await this.axios.post('/api/drc/v2/messenger/delay', { // todo by yongnian
+          mhas: [row.oldMha, row.newMha],
+          dbs: row.dbs,
+          mqType: 'qmq'
+        })
+        const requestKafka = await this.axios.post('/api/drc/v2/messenger/delay', { // todo by yongnian
+          mhas: [row.oldMha, row.newMha],
+          dbs: row.dbs,
+          mqType: 'kafka'
+        })
+        const [responseQmq, responseKafka] = await Promise.all([requestQmq, requestKafka])
+        if (responseQmq.data.status === 1) {
+          this.$Message.warning('qmq延迟查询异常: ' + responseQmq.data.message)
           return
         }
-        this.replicationDetail.messengerData = response.data.data
+        if (responseKafka.data.status === 1) {
+          this.$Message.warning('kafka延迟查询异常: ' + responseKafka.data.message)
+          return
+        }
+        this.replicationDetail.messengerData = responseQmq.data.data.concat(responseKafka.data.data)
         console.log(this.replicationDetail.messengerData)
         this.replicationDetail.messengerDataLoading = false
-      }).catch(message => {
-        this.$Message.error('查询异常: ' + message)
-      }).finally(() => {
-      })
+        console.log(this.replicationDetail.messengerData)
+      } catch (error) {
+        this.$Message.error('查询异常: ' + error)
+      }
+      // this.axios.post('/api/drc/v2/messenger/delay', { // todo by yongnian
+      //   mhas: [row.oldMha, row.newMha],
+      //   dbs: row.dbs,
+      //   mqType: 'qmq'
+      // }).then(response => {
+      //   if (response.data.status === 1) {
+      //     this.$Message.warning('查询异常: ' + response.data.message)
+      //     return
+      //   }
+      //   this.replicationDetail.messengerData = response.data.data
+      //   console.log(this.replicationDetail.messengerData)
+      //   this.replicationDetail.messengerDataLoading = false
+      // }).catch(message => {
+      //   this.$Message.error('查询异常: ' + message)
+      // }).finally(() => {
+      // })
     },
     getDetail (row, index) {
       this.replicationDetail.show = true
       this.replicationDetail.row = row
-      this.getMhaReplicationDetail(row)
+      this.getMhaDbReplicationDetail(row)
       this.getMhaMessengerDetail(row)
     },
     getHistoryLog (row, index) {

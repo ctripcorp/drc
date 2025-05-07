@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dto.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,6 +14,7 @@ public class MhaMessengerDto {
     private Set<String> dbs;
     private MhaDelayInfoDto delayInfoDto;
     private Integer status;
+    private String mqType;
 
     public Integer getStatus() {
         return status;
@@ -54,11 +56,20 @@ public class MhaMessengerDto {
         this.delayInfoDto = delayInfoDto;
     }
 
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
+    }
+
     public static MhaMessengerDto from(MhaTblV2 mhaTblV2, MessengerGroupTbl messengerGroupTbl) {
         MhaMessengerDto dto = new MhaMessengerDto();
         dto.srcMha = MhaDto.from(mhaTblV2);
         dto.messengerGroupId = messengerGroupTbl.getId();
         dto.dbs = new HashSet<>();
+        dto.mqType = messengerGroupTbl.getMqType();
         return dto;
     }
 
@@ -69,6 +80,7 @@ public class MhaMessengerDto {
         srcMha.setName(srcMhaName);
         dto.setSrcMha(srcMha);
         dto.setDbs(new HashSet<>());
+        dto.setMqType(MqType.DEFAULT.name());
         return dto;
     }
 

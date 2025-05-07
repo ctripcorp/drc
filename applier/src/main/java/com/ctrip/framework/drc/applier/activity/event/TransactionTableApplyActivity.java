@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
+import com.ctrip.framework.drc.fetcher.event.transaction.ApplyTransaction;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTable;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
-import com.ctrip.framework.drc.applier.event.transaction.Transaction;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,24 +19,24 @@ public class TransactionTableApplyActivity extends ApplyActivity {
     public TransactionTable transactionTable;
 
     @Override
-    protected Transaction onSuccess(Transaction transaction) throws InterruptedException {
+    protected ApplyTransaction onSuccess(ApplyTransaction transaction) throws InterruptedException {
         transactionTable.commit(batch.fetchGtid());
         return super.onSuccess(transaction);
     }
 
     @Override
-    protected Transaction onDeadLock(Transaction transaction) throws InterruptedException {
+    protected ApplyTransaction onDeadLock(ApplyTransaction transaction) throws InterruptedException {
         logger.info("deadlock gtid is: {} for: {}", batch.fetchGtid(), registryKey);
         transactionTable.rollback(batch.fetchGtid());
         return super.onDeadLock(transaction);
     }
 
     @Override
-    protected boolean handleEmptyTransaction(Transaction transaction) throws InterruptedException {
+    protected boolean handleEmptyTransaction(ApplyTransaction transaction) throws InterruptedException {
         if (transaction.isEmptyTransaction()) {
             transaction.reset();
             ApplierGtidEvent event = (ApplierGtidEvent) transaction.next();
-            transactionTable.recordToMemory(event.getGtid());
+            transactionTable.recordToMemory(Gtid.from(event));
             loggerTE.info("({}) record empty transaction to memory", event.getGtid());
             return true;
         }

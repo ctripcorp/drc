@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.resource.context;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.DbTransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.GtidReader;
@@ -10,6 +11,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
@@ -29,6 +31,7 @@ public class NetworkContextResourceTest {
     public void setUp() throws Exception {
         networkContextResource.initialGtidExecuted = initialGtidExecuted;
         networkContextResource.registryKey = registryKey;
+        MockitoAnnotations.openMocks(this);
     }
 
     @After
@@ -39,7 +42,7 @@ public class NetworkContextResourceTest {
     public void testEmptyGtidSet() throws Exception {
         networkContextResource.initialize();
         GtidSet gtidSet = networkContextResource.fetchGtidSet();
-        Assert.assertEquals(gtidSet, new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:1-377"));
+        Assert.assertEquals(gtidSet, new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:6-377"));
     }
 
     @Test
@@ -47,7 +50,7 @@ public class NetworkContextResourceTest {
         networkContextResource.initialGtidExecuted = "a33ded23-6960-11eb-a8e0-fa163e02998c:1-58";
         networkContextResource.initialize();
         GtidSet gtidSet = networkContextResource.fetchGtidSet();
-        Assert.assertEquals(gtidSet, new GtidSet("712c708a-2fa6-11eb-b7e5-98039ba92412:1-6,a33ded23-6960-11eb-a8e0-fa163e02998c:1-58"));
+        Assert.assertEquals(gtidSet, new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-58"));
     }
 
     @Test
@@ -76,6 +79,18 @@ public class NetworkContextResourceTest {
         Assert.assertTrue(executedGtidReaders.stream().anyMatch(e -> e instanceof TransactionTableGtidReader));
     }
 
+    @Test
+    public void testQueryMessengerPositionFromDb() throws Exception {
+        NetworkContextResource networkContextResource1 = new NetworkContextResource();
+        networkContextResource1.initialGtidExecuted = "a33ded23-6960-11eb-a8e0-fa163e02998c:1-58";
+        networkContextResource1.applyMode = ApplyMode.kafka.getType();
+        networkContextResource1.initialize();
+        GtidSet gtidSet = networkContextResource1.fetchGtidSet();
+        Assert.assertEquals(gtidSet, new GtidSet(""));
+        Assert.assertTrue(networkContextResource1.emptyPositionFromDb);
+    }
+
+
     @Test(expected = Exception.class)
     public void testQueryFromDbException() {
         NetworkContextResource networkContextResource1 = new NetworkContextResource();
@@ -88,5 +103,19 @@ public class NetworkContextResourceTest {
         protected GtidSet queryPositionFromDb() {
             return new GtidSet(StringUtils.EMPTY);
         }
+    }
+
+    class TestMqPositionResource implements MqPosition {
+
+        @Override
+        public void add(Gtid gtid) {
+
+        }
+
+        @Override
+        public void union(GtidSet gtidSet) {
+
+        }
+
     }
 }

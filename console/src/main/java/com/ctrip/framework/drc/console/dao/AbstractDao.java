@@ -1,12 +1,10 @@
 package com.ctrip.framework.drc.console.dao;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
-import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
-import com.ctrip.platform.dal.dao.base.DalTableOperations;
 import com.ctrip.platform.dal.dao.base.SQLResultSpec;
-import com.ctrip.platform.dal.dao.client.DalOperationsFactory;
 import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.util.CollectionUtils;
@@ -15,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by jixinwang on 2020/6/22
@@ -22,14 +21,19 @@ import java.util.List;
 public class AbstractDao<T> {
 
     private static final boolean ASC = true;
-    protected final DalTableDao<T> client;
-    protected final DalTableOperations<T> dalTableOperations;
+    protected final BaseDalTableDao<T> client;
 
     protected static final String ID = "id";
 
     public AbstractDao(Class<T> clazz) throws SQLException {
-        this.client = new DalTableDao<>(new DalDefaultJpaParser<>(clazz));
-        this.dalTableOperations = DalOperationsFactory.getDalTableOperations(clazz);
+        DefaultConsoleConfig config = DefaultConsoleConfig.getInstance();
+        String region = config.getRegion();
+        Set<String> publicCloudRegion = config.getPublicCloudRegion();
+        if (publicCloudRegion.contains(region)) {
+            this.client = new OverseaDalTableDao<>(clazz);
+            return;
+        }
+        this.client = new BaseDalTableDao<>(new DalDefaultJpaParser<>(clazz));
     }
 
     public SelectSqlBuilder initSqlBuilder() throws SQLException {
@@ -208,13 +212,13 @@ public class AbstractDao<T> {
     }
 
 
-    public List<T> queryAllExist() throws SQLException {
+    public final List<T> queryAllExist() throws SQLException {
         SelectSqlBuilder builder = initSqlBuilder();
         return client.query(builder, new DalHints());
     }
 
     public List<T> queryBySQL(String sql) throws SQLException {
-        return dalTableOperations.query(sql, new DalHints());
+        return client.query(sql, new DalHints());
     }
 
     /**

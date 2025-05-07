@@ -19,7 +19,9 @@ public enum ModuleEnum {
 
     VALIDATION(5, "V", 100030428L),
 
-    PROXY(6, "P", 100013684L);
+    PROXY(6, "P", 100013684L),
+
+    MESSENGER(7, "M", 100059182L);
 
     private int code;
 

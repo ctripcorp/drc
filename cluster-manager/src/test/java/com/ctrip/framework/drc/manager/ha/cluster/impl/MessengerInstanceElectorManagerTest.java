@@ -47,6 +47,9 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
     @Mock
     private InstanceActiveElectAlgorithmManager instanceActiveElectAlgorithmManager;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
 
     @Before
     public void setUp() throws Exception {
@@ -110,23 +113,38 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
     public void testGetMessenger() {
         String clusterId = "clusterId";
         DbCluster dbCluster = new DbCluster(clusterId)
-                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs("db1"))
-                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs("db1"));
+                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs("db1").setApplyMode(ApplyMode.mq.getType()))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs("db1").setApplyMode(ApplyMode.mq.getType()));
         when(regionCache.getCluster(clusterId)).thenReturn(dbCluster);
 
-        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null));
-        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db2"));
-        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1"));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null, ApplyMode.mq));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db2", ApplyMode.mq));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1", ApplyMode.mq));
 
 
         dbCluster = new DbCluster(clusterId)
-                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs(null))
-                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs(null));
+                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs(null).setApplyMode(ApplyMode.mq.getType()))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs(null).setApplyMode(ApplyMode.mq.getType()));
         when(regionCache.getCluster(clusterId)).thenReturn(dbCluster);
 
-        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1"));
-        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_3", 8080, null));
-        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1", ApplyMode.mq));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_3", 8080, null, ApplyMode.mq));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null, ApplyMode.mq));
 
+
+        dbCluster = new DbCluster(clusterId)
+                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs(null).setApplyMode(ApplyMode.mq.getType()))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_2").setPort(8080).setIncludedDbs(null).setApplyMode(ApplyMode.mq.getType()))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_1").setPort(8080).setIncludedDbs(null).setApplyMode(ApplyMode.kafka.getType()))
+                .addMessenger(new Messenger().setIp("db_messenger_ip_3").setPort(8080).setIncludedDbs(null).setApplyMode(ApplyMode.kafka.getType()));
+        when(regionCache.getCluster(clusterId)).thenReturn(dbCluster);
+
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1", ApplyMode.mq));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_3", 8080, null, ApplyMode.mq));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null, ApplyMode.mq));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, "db1", ApplyMode.kafka));
+        Assert.assertNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_2", 8080, null, ApplyMode.kafka));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_1", 8080, null, ApplyMode.kafka));
+        Assert.assertNotNull(messengerInstanceElectorManager.getMessenger(clusterId, "db_messenger_ip_3", 8080, null, ApplyMode.kafka));
     }
 }

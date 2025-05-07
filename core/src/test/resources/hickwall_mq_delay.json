@@ -1,0 +1,151 @@
+[
+  {
+    "metric": {
+      "__name__": "fx.drc.messenger.delay_mean",
+      "appid": "100023928",
+      "dc": "ntgxh",
+      "env": "FAT",
+      "groupId": "1000052217",
+      "hostname": "FAT00911129",
+      "idc": "NTGXH",
+      "ip": "10.118.235.12",
+      "mhaName": "fat-bbz",
+      "~db": "APM-FX"
+    },
+    "values": [
+      [
+        1736756278,
+        "593.6449413764"
+      ],
+      [
+        1736756308,
+        "593.6449413764"
+      ]
+    ]
+  },
+  {
+    "metric": {
+      "__name__": "fx.drc.messenger.delay_mean",
+      "appid": "100023928",
+      "dc": "ntgxh",
+      "env": "FAT",
+      "groupId": "1000052217",
+      "hostname": "FAT00911119",
+      "idc": "NTGXH",
+      "ip": "10.118.255.12",
+      "mhaName": "fat-bbz",
+      "mqType": "qmq",
+      "~db": "APM-FX"
+    },
+    "values": [
+      [
+        1736756278,
+        "596.6449413764"
+      ],
+      [
+        1736756308,
+        "596.6449413764"
+      ]
+    ]
+  },
+  {
+    "metric": {
+      "__name__": "fx.drc.messenger.delay_mean",
+      "appid": "100023928",
+      "dc": "ntgxh",
+      "env": "FAT",
+      "groupId": "1000052217",
+      "hostname": "FAT00911396",
+      "idc": "NTGXH",
+      "ip": "10.119.115.236",
+      "mhaName": "fat-bbz",
+      "mqType": "qmq",
+      "~db": "APM-FX"
+    },
+    "values": [
+      [
+        1736756278,
+        "594.020133693"
+      ],
+      [
+        1736756308,
+        "594.020133693"
+      ]
+    ]
+  },
+  {
+    "metric": {
+      "__name__": "fx.drc.messenger.delay_mean",
+      "appid": "100023928",
+      "dc": "ntgxh",
+      "env": "FAT",
+      "groupId": "1000052217",
+      "hostname": "FAT00911119",
+      "idc": "NTGXH",
+      "ip": "10.118.255.12",
+      "mhaName": "fat-flt",
+      "mqType": "qmq",
+      "~db": "APM-FX"
+    },
+    "values": [
+      [
+        1736756278,
+        "24.679429620272"
+      ],
+      [
+        1736756308,
+        "24.679429620272"
+      ]
+    ]
+  },
+  {
+    "metric": {
+      "__name__": "fx.drc.messenger.delay_mean",
+      "appid": "100023928",
+      "dc": "ntgxh",
+      "env": "FAT",
+      "groupId": "1000052217",
+      "hostname": "FAT00911119",
+      "idc": "NTGXH",
+      "ip": "10.118.255.12",
+      "mhaName": "fat-htl2",
+      "mqType": "qmq",
+      "~db": "APM-FX"
+    },
+    "values": [
+      [
+        1736756278,
+        "595.2388650573"
+      ],
+      [
+        1736756308,
+        "595.2388650573"
+      ]
+    ]
+  },
+  {
+    "metric": {
+      "__name__": "fx.drc.messenger.delay_mean",
+      "appid": "100023928",
+      "dc": "ntgxh",
+      "env": "FAT",
+      "groupId": "1000052217",
+      "hostname": "FAT00911119",
+      "idc": "NTGXH",
+      "ip": "10.118.255.12",
+      "mhaName": "fat-bbz",
+      "mqType": "kafka",
+      "~db": "APM-FX"
+    },
+    "values": [
+      [
+        1736756278,
+        "1596.6449413764"
+      ],
+      [
+        1736756308,
+        "1599.6449413764"
+      ]
+    ]
+  }
+]

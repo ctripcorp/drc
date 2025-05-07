@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.server;
 
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
+import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,15 +16,15 @@ import static org.mockito.Mockito.mock;
  */
 public class ApplierWatcherTest {
 
-    private ApplierServer mockServer() throws Throwable {
-        ApplierServer server = mock(ApplierServer.class);
+    private FetcherServer mockServer() throws Throwable {
+        FetcherServer server = mock(FetcherServer.class);
         doReturn(100L).when(server).getLWM();
         return server;
     }
 
     @Test
     public void simple() throws Throwable {
-        ConcurrentHashMap<String, ApplierServer> servers = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, FetcherServer> servers = new ConcurrentHashMap<>();
         servers.put("1", mockServer());
         ApplierWatcher watcher = new ApplierWatcher(mock(ApplierServerContainer.class), servers);
         watcher.initialize();

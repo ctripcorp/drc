@@ -7,7 +7,9 @@ import java.util.List;
  */
 public interface Producer {
 
-    void send(List<EventData> eventDatas);
+    String getTopic();
+
+    boolean send(List<EventData> eventDatas, EventType eventType);
 
     void destroy();
 }

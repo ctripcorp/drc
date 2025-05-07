@@ -44,7 +44,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
     @Test
     public void addTransaction() throws Exception {
 
-        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         eventTransactionCache.setBufferSize(bufferSize);
         eventTransactionCache.initialize();
         eventTransactionCache.start();
@@ -63,9 +63,32 @@ public class EventTransactionCacheTest extends AbstractEventTest {
     }
 
     @Test
+    public void addBigRowTransaction() throws Exception {
+
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
+        eventTransactionCache.setBufferSize(bufferSize);
+        eventTransactionCache.initialize();
+        eventTransactionCache.start();
+        final int transactionSize = 4;
+
+        for (int i = 0; i < transactionSize * loop; i++) {
+            eventTransactionCache.add(getGtidLogEvent());
+            for (int j = 0; j < 6; j++) {
+                eventTransactionCache.add(getTableMapLogEvent());
+                eventTransactionCache.add(getMockSizeUpdateRowsEvent(1024 * 1024 * 100L));
+            }
+            eventTransactionCache.add(getXidLogEvent());
+        }
+
+        verify(ioCache, times(transactionSize * loop * 2)).write(any(Collection.class), any(TransactionContext.class));
+        eventTransactionCache.stop();
+        eventTransactionCache.dispose();
+    }
+
+    @Test
     public void addWithoutXid() throws Exception {
         final int transactionSize = 3;
-        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         eventTransactionCache.setBufferSize(bufferSize);
         eventTransactionCache.initialize();
         eventTransactionCache.start();
@@ -87,7 +110,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
     @Test
     public void addDrcGtidLogEvent() throws Exception {
         final int transactionSize = 1;
-        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         eventTransactionCache.setBufferSize(bufferSize);
         eventTransactionCache.initialize();
         eventTransactionCache.start();
@@ -105,7 +128,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
     @Test
     public void addMixedDrcGtidLogEvent() throws Exception {
         final int transactionSize = 4;
-        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         eventTransactionCache.setBufferSize(bufferSize);
         eventTransactionCache.initialize();
         eventTransactionCache.start();
@@ -129,7 +152,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
     @Test
     public void testDdl() throws Exception {
         final int transactionSize = 4;
-        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         eventTransactionCache.setBufferSize(bufferSize);
         eventTransactionCache.initialize();
         eventTransactionCache.start();
@@ -149,7 +172,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
 
     @Test
     public void testConvertToDrcGtidLogEvent() {
-        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         TransactionEvent transaction = new TransactionEvent();
         transaction.addLogEvent(getGtidLogEvent());
         transaction.addLogEvent(getDrcTableMapLogEvent());
@@ -202,6 +225,17 @@ public class EventTransactionCacheTest extends AbstractEventTest {
         ByteBuf byteBuf = getMinimalRowsEventByteBuf();
         try {
             return new UpdateRowsEvent().read(byteBuf);
+        } finally {
+            byteBuf.release();
+        }
+    }
+
+    private UpdateRowsEvent getMockSizeUpdateRowsEvent(long eventSize) {
+        ByteBuf byteBuf = getMinimalRowsEventByteBuf();
+        try {
+            UpdateRowsEvent read = new UpdateRowsEvent().read(byteBuf);
+            read.getLogEventHeader().setEventSize(eventSize);
+            return read;
         } finally {
             byteBuf.release();
         }

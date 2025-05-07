@@ -11,5 +11,6 @@ public class ConsoleConfig {
     public static final int DEFAULT_REPLICATOR_PORT = 8080;
     public static final int DEFAULT_REPLICATOR_APPLIER_PORT = 8383;
     public static final int DEFAULT_APPLIER_PORT = 8080;
+    public static final int DEFAULT_MESSENGER_PORT = 8080;
     public static final int ADD_REMOVE_PAIR_SIZE = 2;
 }

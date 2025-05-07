@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.server;
 import com.ctrip.framework.drc.applier.activity.monitor.WatchActivity;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
+import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.framework.drc.fetcher.system.AbstractLink;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ApplierWatcher extends AbstractLink {
 
-    public ApplierWatcher(ApplierServerContainer container, ConcurrentHashMap<String, ? extends ApplierServer> servers) throws Exception {
+    public ApplierWatcher(ApplierServerContainer container, ConcurrentHashMap<String, ? extends FetcherServer> servers) throws Exception {
         setConfig(new WatcherConfig(container, servers), WatcherConfig.class);
         setName("ApplierWatcher");
 
@@ -23,16 +24,16 @@ public class ApplierWatcher extends AbstractLink {
 
     public static class WatcherConfig {
 
-        private ConcurrentHashMap<String, ? extends ApplierServer> servers;
+        private ConcurrentHashMap<String, ? extends FetcherServer> servers;
 
         private ApplierServerContainer container;
 
-        public WatcherConfig(ApplierServerContainer container, ConcurrentHashMap<String, ? extends ApplierServer> servers) {
+        public WatcherConfig(ApplierServerContainer container, ConcurrentHashMap<String, ? extends FetcherServer> servers) {
             this.container = container;
             this.servers = servers;
         }
 
-        public ConcurrentHashMap<String, ? extends ApplierServer> getServers() {
+        public ConcurrentHashMap<String, ? extends FetcherServer> getServers() {
             return servers;
         }
 

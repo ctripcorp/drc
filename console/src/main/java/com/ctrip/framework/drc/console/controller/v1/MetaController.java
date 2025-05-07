@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v1;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.ProxyDto;
-import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.service.v2.resource.ProxyService;
 import com.ctrip.framework.drc.console.service.v2.resource.RouteService;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * @author shenhaibo
@@ -28,31 +26,8 @@ public class MetaController {
     @Autowired
     private ProxyService proxyService;
 
-    @DeleteMapping(value = "routes/proxy")
-    public ApiResult deleteProxyRoute(@RequestParam(value = "routeOrgName") String routeOrgName,
-                                      @RequestParam(value = "srcDcName") String srcDcName,
-                                      @RequestParam(value = "dstDcName") String dstDcName,
-                                      @RequestParam(value = "tag") String tag) {
-        logger.info("[meta] delete proxy route for {}-{},{}->{}", routeOrgName, tag, srcDcName, dstDcName);
-        return routeService.deleteRoute(routeOrgName, srcDcName, dstDcName, tag);
-    }
-
-    @GetMapping(value = "routes")
-    public ApiResult getProxyRoutes(@RequestParam(value = "routeOrgName", required = false) String routeOrgName,
-                                    @RequestParam(value = "srcDcName", required = false) String srcDcName,
-                                    @RequestParam(value = "dstDcName", required = false) String dstDcName,
-                                    @RequestParam(value = "tag", required = false) String tag,
-                                    @RequestParam(value = "deleted", required = true) Integer deleted) {
-        logger.info("[meta] get proxy routes for {}-{},{}->{},{}", routeOrgName, tag, srcDcName, dstDcName, deleted);
-        List<RouteDto> routeDtoList = routeService.getRoutes(routeOrgName, srcDcName, dstDcName, tag, deleted);
-        return ApiResult.getSuccessInstance(routeDtoList);
-    }
-
-    @PostMapping(value = "routes")
-    public ApiResult submitProxyRouteConfig(@RequestBody RouteDto routeDto) {
-        logger.info("[meta] submit proxy route config for {}", routeDto);
-        return ApiResult.getSuccessInstance(routeService.submitProxyRouteConfig(routeDto));
-    }
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @PostMapping("dcs/{dc}")
     public ApiResult inputDc(@PathVariable String dc) {
@@ -64,12 +39,6 @@ public class MetaController {
     public ApiResult inputBu(@PathVariable String org) {
         logger.info("[meta] input bu {}", org);
         return proxyService.inputBu(org);
-    }
-
-    @PostMapping("proxy")
-    public ApiResult inputProxy(@RequestBody ProxyDto proxyDto) {
-        logger.info("[meta] load proxy: {}", proxyDto);
-        return proxyService.inputProxy(proxyDto);
     }
 
     @DeleteMapping("proxy")
@@ -92,7 +61,16 @@ public class MetaController {
     public ApiResult getAllProxyUris() {
         logger.info("[meta] get all proxy uris");
         try {
-            return ApiResult.getSuccessInstance(proxyService.getAllProxyUris());
+            return ApiResult.getSuccessInstance(proxyService.getRelayProxyUris());
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(t);
+        }
+    }
+
+    @GetMapping("panelUrl")
+    public ApiResult getPanelUrl() {
+        try {
+            return ApiResult.getSuccessInstance(defaultConsoleConfig.getConsolePanelUrl());
         } catch (Throwable t) {
             return ApiResult.getFailInstance(t);
         }

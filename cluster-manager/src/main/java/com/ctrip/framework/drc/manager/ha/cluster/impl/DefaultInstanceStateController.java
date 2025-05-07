@@ -1,22 +1,18 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.http.AsyncHttpClientFactory;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
-import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
-import com.ctrip.framework.drc.manager.healthcheck.inquirer.ApplierInfoInquirer;
-import com.ctrip.framework.drc.manager.healthcheck.inquirer.ReplicatorInfoInquirer;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifier;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifier;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifier;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
-import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.ObjectUtils;
@@ -25,13 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGGER;
 
 /**
  * dbcluster combined with copy from dcMetaCache and currentMetaManager
@@ -53,6 +44,12 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     @Override
     protected void doInitialize() throws Exception {
         super.doInitialize();
+    }
+    
+    @Override
+    protected void doStop() throws Exception {
+        super.doStop();
+        AsyncHttpClientFactory.closeAll();
     }
 
     /**
@@ -105,84 +102,6 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         STATE_LOGGER.info("[registerApplier] for {},{}", registryKey, body);
         applierNotifier.notifyRegister(registryKey, body);
         return body;
-    }
-
-    public Pair<List<String>, List<ApplierInfoDto>> getApplierInfoInner(List<? extends Instance> appliers) {
-        List<Pair<String, Integer>> applierIpAndPorts = appliers.stream().map(applier -> Pair.from(applier.getIp(), applier.getPort())).distinct().collect(Collectors.toList());
-        ApplierInfoInquirer infoInquirer = ApplierInfoInquirer.getInstance();
-        List<Future<List<ApplierInfoDto>>> futures = Lists.newArrayList();
-        for (Pair<String, Integer> pair : applierIpAndPorts) {
-            futures.add(infoInquirer.query(pair.getKey() + ":" + pair.getValue()));
-        }
-        List<ApplierInfoDto> applierInfoDtos = Lists.newArrayList();
-        List<String> validIps = Lists.newArrayList();
-        for (int i = 0; i < futures.size(); i++) {
-            Future<List<ApplierInfoDto>> future = futures.get(i);
-            Pair<String, Integer> pair = applierIpAndPorts.get(i);
-            String ip = pair.getKey();
-            Integer port = pair.getValue();
-            try {
-                List<ApplierInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
-                infoDtos.forEach(e -> {
-                    e.setIp(ip);
-                    e.setPort(port);
-                });
-                applierInfoDtos.addAll(infoDtos);
-                validIps.add(ip);
-                EventMonitor.DEFAULT.logEvent("drc.cm.inquiry.applier.success", ip + ":" + port);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                future.cancel(true);
-                QUERY_INFO_LOGGER.error("get applier fail, skip for: {}", pair.getKey() + ":" + pair.getValue());
-                EventMonitor.DEFAULT.logEvent("drc.cm.inquiry.applier.fail", ip + ":" + port);
-            }
-        }
-        return Pair.from(validIps, applierInfoDtos);
-    }
-
-    @Override
-    public Pair<List<String>, List<ApplierInfoDto>> getMessengerInfo(List<? extends Instance> messengers) {
-        Pair<List<String>, List<ApplierInfoDto>> applierInfoInner = getApplierInfoInner(messengers);
-        applierInfoInner.getValue().removeIf(e -> !e.getRegistryKey().contains(DRC_MQ));
-        return applierInfoInner;
-    }
-
-    @Override
-    public Pair<List<String>, List<ApplierInfoDto>> getApplierInfo(List<? extends Instance> appliers) {
-        Pair<List<String>, List<ApplierInfoDto>> applierInfoInner = getApplierInfoInner(appliers);
-        applierInfoInner.getValue().removeIf(e -> e.getRegistryKey().contains(DRC_MQ));
-        return applierInfoInner;
-    }
-
-    @Override
-    public Pair<List<String>, List<ReplicatorInfoDto>> getReplicatorInfo(List<? extends Instance> replicators) {
-        List<Pair<String, Integer>> applierIpAndPorts = replicators.stream().map(applier -> Pair.from(applier.getIp(), applier.getPort())).distinct().collect(Collectors.toList());
-        ReplicatorInfoInquirer infoInquirer = ReplicatorInfoInquirer.getInstance();
-        List<Future<List<ReplicatorInfoDto>>> futures = Lists.newArrayList();
-        for (Pair<String, Integer> pair : applierIpAndPorts) {
-            futures.add(infoInquirer.query(pair.getKey() + ":" + pair.getValue()));
-        }
-        List<ReplicatorInfoDto> replicatorInfoDtos = Lists.newArrayList();
-        List<String> validIps = Lists.newArrayList();
-        for (int i = 0; i < futures.size(); i++) {
-            Future<List<ReplicatorInfoDto>> future = futures.get(i);
-            Pair<String, Integer> pair = applierIpAndPorts.get(i);
-            String ip = pair.getKey();
-            Integer port = pair.getValue();
-            try {
-                List<ReplicatorInfoDto> infoDtos = future.get(1000, TimeUnit.MILLISECONDS);
-                infoDtos.forEach(e -> {
-                    e.setIp(ip);
-                    e.setPort(port);
-                });
-                replicatorInfoDtos.addAll(infoDtos);
-                validIps.add(ip);
-                EventMonitor.DEFAULT.logEvent("drc.cm.inquiry.replicator.success", ip + ":" + port);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                QUERY_INFO_LOGGER.error("get replicator fail, skip for: {}", pair.getKey() + ":" + pair.getValue());
-                EventMonitor.DEFAULT.logEvent("drc.cm.inquiry.replicator.fail", ip + ":" + port);
-            }
-        }
-        return Pair.from(validIps, replicatorInfoDtos);
     }
 
     /**
@@ -342,15 +261,16 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     /**
-     * notify replicator and applier to pull binlog from new mysql master
+     * notify replicator、applier、messenger to pull binlog from new mysql master
      * @param clusterId
      * @param mysqlMaster
      * @param activeApplier
+     * @param activeMessenger
      * @param replicator
      * @return
      */
     @Override
-    public List<DbCluster> mysqlMasterChanged(String clusterId, Endpoint mysqlMaster, List<Applier> activeApplier, Replicator replicator) {
+    public List<DbCluster> mysqlMasterChanged(String clusterId, Endpoint mysqlMaster, List<Applier> activeApplier, List<Messenger> activeMessenger, Replicator replicator) {
         List<DbCluster> res = Lists.newArrayList();
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         for (Applier applier : activeApplier) {
@@ -363,6 +283,20 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
 
             String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
             applierNotifier.notify(registryKey, dbCluster);
+            res.add(dbCluster);
+        }
+
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        for (Messenger messenger : activeMessenger) {
+            DbCluster dbCluster = getDbClusterWithRefreshMessenger(clusterId, messenger, mysqlMaster);
+            List<Replicator> replicators = dbCluster.getReplicators();
+            if (replicators == null || replicators.isEmpty()) {
+                STATE_LOGGER.warn("[Empty][mysqlMasterChanged] messenger replicators and do nothing for {}", clusterId);
+                continue;
+            }
+
+            String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
+            messengerNotifier.notify(registryKey, dbCluster);
             res.add(dbCluster);
         }
 
@@ -428,6 +362,14 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             setMySQL(clone, mysqlMaster);
         }
 
+        return clone;
+    }
+
+    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger, Endpoint mysqlMaster) {
+        DbCluster clone = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        if (mysqlMaster != null) {
+            setMySQL(clone, mysqlMaster);
+        }
         return clone;
     }
 

@@ -6,12 +6,20 @@ import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
+import com.ctrip.framework.drc.service.config.TripServiceDynamicConfig;
 import com.google.common.collect.Lists;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import qunar.tc.qmq.Message;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
 import static com.ctrip.framework.drc.core.mq.EventType.UPDATE;
@@ -24,9 +32,24 @@ public class QmqProducerTest {
 
     private String schema = "testdb";
     private String table = "table";
+    MockedStatic<TripServiceDynamicConfig> theMock;
+
+    @Before
+    public void setUp() throws Exception {
+        TripServiceDynamicConfig mockConfig = Mockito.mock(TripServiceDynamicConfig.class);
+        Mockito.when(mockConfig.isSubenvEnable()).thenReturn(false);
+        theMock = Mockito.mockStatic(TripServiceDynamicConfig.class);
+        theMock.when(() -> TripServiceDynamicConfig.getInstance()).thenReturn(mockConfig);
+
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        theMock.close();
+    }
 
     @Test
-    public void generateMessage() {
+    public void generateMessage()  {
         MqConfig config = new MqConfig();
         config.setTopic("drc.test.topic");
         config.setOrder(true);
@@ -95,5 +118,156 @@ public class QmqProducerTest {
         Assert.assertEquals(false, afterName.getBoolean("isNull"));
         Assert.assertEquals(false, afterName.getBoolean("isKey"));
         Assert.assertEquals(true, afterName.getBoolean("isUpdated"));
+
+
+    }
+
+    @Test
+    public void testGenerateMessageSendByPks()  {
+        MqConfig config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        QmqProducer producer = new QmqProducer(config);
+
+        EventData data = new EventData();
+        data.setSchemaName(schema);
+        data.setTableName(table);
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", "1", false, true, true);
+        EventColumn beforeColumn1 = new EventColumn("name", "Mike", false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", "1", false, true, true);
+        EventColumn afterColumn1 = new EventColumn("name", "Joe", false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        Message message = producer.generateMessage(data);
+        Assert.assertEquals("testdb.table_1", message.getOrderKey());
+
+        beforeColumns = Lists.newArrayList();
+        beforeColumn0 = new EventColumn("id", "1", false, true, true);
+        beforeColumn1 = new EventColumn("name", "Mike", false, true, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        afterColumns = Lists.newArrayList();
+        afterColumn0 = new EventColumn("id", "1", false, true, true);
+        afterColumn1 = new EventColumn("name", "Joe", false, true, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        message = producer.generateMessage(data);
+        Assert.assertEquals("testdb.table_1_Joe", message.getOrderKey());
+
+        beforeColumns = Lists.newArrayList();
+        beforeColumn0 = new EventColumn("id", "1", false, false, true);
+        beforeColumn1 = new EventColumn("name", "Mike", false, false, true);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        data.setBeforeColumns(beforeColumns);
+
+        afterColumns = Lists.newArrayList();
+        afterColumn0 = new EventColumn("id", "1", false, false, true);
+        afterColumn1 = new EventColumn("name", "Joe", false, false, true);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        data.setAfterColumns(afterColumns);
+
+        message = producer.generateMessage(data);
+        Assert.assertEquals("testdb.table", message.getOrderKey());
+
+    }
+
+
+
+    @Test
+    public void testTransferDataChange() {
+        EventData data = new EventData();
+        data.setSchemaName("schema");
+        data.setTableName("table");
+        data.setDcTag(NON_LOCAL);
+        data.setEventType(UPDATE);
+        List<EventColumn> beforeColumns = Lists.newArrayList();
+        EventColumn beforeColumn0 = new EventColumn("id", "1", true, true, false);
+        EventColumn beforeColumn1 = new EventColumn("name", null, false, false, true);
+        EventColumn beforeColumn2 = new EventColumn("name2", "aaa", false, false, false);
+        EventColumn beforeColumn3 = new EventColumn("name3", "", false, false, false);
+        beforeColumns.add(beforeColumn0);
+        beforeColumns.add(beforeColumn1);
+        beforeColumns.add(beforeColumn2);
+        beforeColumns.add(beforeColumn3);
+        data.setBeforeColumns(beforeColumns);
+
+        List<EventColumn> afterColumns = Lists.newArrayList();
+        EventColumn afterColumn0 = new EventColumn("id", "1", true, true, false);
+        EventColumn afterColumn1 = new EventColumn("name", null, false, false, true);
+        EventColumn afterColumn2 = new EventColumn("name2", "sss", false, false, false);
+        EventColumn afterColumn3 = new EventColumn("name3", "", false, false, false);
+        afterColumns.add(afterColumn0);
+        afterColumns.add(afterColumn1);
+        afterColumns.add(afterColumn2);
+        afterColumns.add(afterColumn3);
+        data.setAfterColumns(afterColumns);
+
+        MqConfig config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        config.setFilterFields(Lists.newArrayList("id","name"));
+        config.setSendOnlyUpdated(true);
+        QmqProducer producer = new QmqProducer(config);
+
+        Set<String> fs= Optional.ofNullable(config.getFilterFields()).orElse(Lists.newArrayList())
+                .stream().map(String::toLowerCase).collect(Collectors.toSet());
+
+        DataChangeVo vo = producer.transferDataChange(data, fs, false);
+
+        Assert.assertEquals(vo.getAfterColumnList().size(),2);
+        Assert.assertEquals(vo.getAfterColumnList().size(),2);
+
+        Message pair = producer.generateMessage(data);
+        Assert.assertNotNull(pair);
+
+        config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        config.setFilterFields(Lists.newArrayList("name2"));
+        config.setSendOnlyUpdated(true);
+        producer = new QmqProducer(config);
+        fs= Optional.ofNullable(config.getFilterFields()).orElse(Lists.newArrayList())
+                .stream().map(String::toLowerCase).collect(Collectors.toSet());
+        vo = producer.transferDataChange(data, fs, false);
+
+        Assert.assertEquals(vo.getAfterColumnList().size(),1);
+        Assert.assertEquals(vo.getAfterColumnList().size(),1);
+        pair = producer.generateMessage(data);
+        Assert.assertNull(pair);
+
+        config = new MqConfig();
+        config.setTopic("drc.test.topic");
+        config.setOrder(true);
+        config.setOrderKey(null);
+        config.setFilterFields(null);
+        config.setSendOnlyUpdated(true);
+        producer = new QmqProducer(config);
+        fs= Optional.ofNullable(config.getFilterFields()).orElse(Lists.newArrayList())
+                .stream().map(String::toLowerCase).collect(Collectors.toSet());
+        vo = producer.transferDataChange(data, fs, false);
+        Assert.assertEquals(vo.getAfterColumnList().size(),4);
+        Assert.assertEquals(vo.getAfterColumnList().size(),4);
+        pair = producer.generateMessage(data);
+        Assert.assertNotNull(pair);
+
     }
 }

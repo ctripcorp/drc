@@ -16,8 +16,10 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -203,7 +205,7 @@ public class DbDrcBuildControllerV2 {
     public ApiResult<List<DbMqConfigInfoDto>> getExistDbMqConfigDcOption(DrcAutoBuildReq req) {
         logger.info("[meta] getDbDrcConfig, req: {}", req);
         try {
-            return ApiResult.getSuccessInstance(dbDrcBuildService.getExistDbMqConfigDcOption(req.getDbName()));
+            return ApiResult.getSuccessInstance(dbDrcBuildService.getExistDbMqConfigDcOption(req.getDbName(), MqType.valueOf(req.getMqType())));
         } catch (Throwable e) {
             logger.error("[meta] getDbDrcConfig, req {}", req, e);
             return ApiResult.getFailInstance(null, e.getMessage());
@@ -229,7 +231,7 @@ public class DbDrcBuildControllerV2 {
     public ApiResult<DbMqConfigInfoDto> getDbMQConfig(DrcAutoBuildReq req) {
         logger.info("[meta] getDbMQConfig, req: {}", req);
         try {
-            DbMqConfigInfoDto dbMqConfig = dbDrcBuildService.getDbMqConfig(req.getDbName(), req.getSrcRegionName());
+            DbMqConfigInfoDto dbMqConfig = dbDrcBuildService.getDbMqConfig(req.getDbName(), req.getSrcRegionName(), req.getMqTypeEnum());
             return ApiResult.getSuccessInstance(dbMqConfig);
         } catch (Throwable e) {
             logger.error("[meta] getDbMQConfig, req {}", req, e);
@@ -252,7 +254,7 @@ public class DbDrcBuildControllerV2 {
 
     @PostMapping("switchMessengers")
     @SuppressWarnings("unchecked")
-    public ApiResult<Boolean> switchMessengers(@RequestBody List<DbApplierSwitchReqDto> reqDtos) {
+    public ApiResult<Boolean> switchMessengers(@RequestBody List<MessengerSwitchReqDto> reqDtos) {
         logger.info("[meta] autoBuildReq, req {}", reqDtos);
         try {
             dbDrcBuildService.switchMessengers(reqDtos);
@@ -395,6 +397,26 @@ public class DbDrcBuildControllerV2 {
             return ApiResult.getSuccessInstance(true);
         } catch (Throwable e) {
             logger.error("[meta] createMhaDbReplicationForMq, req {}", createDto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    /**
+     * for other users
+     */
+    @PostMapping("autoCreateMq")
+    @SuppressWarnings("unchecked")
+    @LogRecord(type = OperateTypeEnum.AUTO_MQ_API, attr = OperateAttrEnum.ADD, operator = "AutoConfig",
+            success = "createMqMeta with MqAutoCreateRequestDto:{#createDto.toString()}")
+    public ApiResult<MqMetaCreateResultView> autoCreateMq(@RequestBody MqAutoCreateRequestDto createDto) {
+        try {
+            MqMetaCreateResultView resultMessage = dbDrcBuildService.autoCreateMq(createDto);
+            if (resultMessage.getContainTables() == 0) {
+                return ApiResult.getSuccessInstance(resultMessage, "this config already existed in DRC");
+            }
+            return ApiResult.getSuccessInstance(resultMessage);
+        } catch (Throwable e) {
+            logger.error("[meta] createMqBinlogMessage, req {}", createDto, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

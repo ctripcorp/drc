@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.enums.SqlResultEnum;
-import com.ctrip.framework.drc.console.param.mysql.DbFilterReq;
-import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
-import com.ctrip.framework.drc.console.param.mysql.MysqlWriteEntity;
-import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
+import com.ctrip.framework.drc.console.param.mysql.*;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
@@ -19,11 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -183,14 +178,13 @@ public class MysqlController {
 
     @GetMapping("db/lastUpdateTime")
     @SuppressWarnings("unchecked")
-    public ApiResult<Map<String, Long>> getMhaDbLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha, @RequestParam String dbNames) {
+    public ApiResult<Map<String, Long>> getMhaDbLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha, @RequestParam List<String> dbNames) {
         logger.info("getMhaLastUpdateTime: {} for {}, {}", srcMha, mha, dbNames);
-        List<String> dbNameList = parseListString(dbNames);
         try {
-            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha) || CollectionUtils.isEmpty(dbNameList)) {
+            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha) || CollectionUtils.isEmpty(dbNames)) {
                 return ApiResult.getFailInstance(null, "mha name or dbNames should not be blank!");
             }
-            Map<String, Long> timeMap = mysqlServiceV2.getDbDelayUpdateTime(srcMha.trim(), mha.trim(), dbNameList);
+            Map<String, Long> timeMap = mysqlServiceV2.getDbDelayUpdateTime(srcMha.trim(), mha.trim(), dbNames);
             return ApiResult.getSuccessInstance(timeMap);
         } catch (Throwable e) {
             logger.error(String.format("getMhaDelay error: %s for %s (%s)", srcMha, mha, dbNames), e);
@@ -198,10 +192,6 @@ public class MysqlController {
         }
     }
 
-    // "[db1, db2]" -> "db1, db2" -> ["db1"," db2"] ->  ["db1","db2"]
-    private static List<String> parseListString(String listStr) {
-        return Arrays.stream(listStr.substring(1, listStr.length() - 1).split(",")).map(String::trim).collect(Collectors.toList());
-    }
 
     @GetMapping("currentTime")
     @SuppressWarnings("unchecked")
@@ -252,6 +242,19 @@ public class MysqlController {
             return ApiResult.getSuccessInstance(createResult);
         } catch (Exception e) {
             logger.error("createDrcMonitorDbTable, mha: " + requestBody, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @PostMapping("createDrcMessengerGtidTbl")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> createDrcMessengerGtidTbl(@RequestBody DrcMessengerGtidTblCreateReq requestBody) {
+        try {
+            logger.info("createDrcMessengerGtidTbl, req: {}", requestBody);
+            Boolean createResult = mysqlServiceV2.createDrcMessengerGtidTbl(requestBody);
+            return ApiResult.getSuccessInstance(createResult);
+        } catch (Exception e) {
+            logger.error("createDrcMessengerGtidTbl, mha: {}.", requestBody, e);
             return ApiResult.getFailInstance(null);
         }
     }
@@ -307,6 +310,17 @@ public class MysqlController {
             return ApiResult.getSuccessInstance(mysqlServiceV2.queryAccountPrivileges(mha,account,pwd));
         } catch (Exception e) {
             logger.error("getAccountPrivileges fail, mha: {}", mha, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("columnDefault")
+    public ApiResult getMhaColumnDefaultValue(@RequestParam String mha) {
+        try {
+            logger.info("getMhaColumnDefaultValue, mha: {}", mha);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getMhaColumnDefaultValue(mha));
+        } catch (Exception e) {
+            logger.error("getMhaColumnDefaultValue fail, mha: {}", mha, e);
             return ApiResult.getFailInstance(null);
         }
     }

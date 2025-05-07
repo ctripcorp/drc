@@ -2,9 +2,12 @@ package com.ctrip.framework.drc.core;
 
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
+import com.ctrip.framework.drc.core.concurrent.AllSuccessFutureTest;
+import com.ctrip.framework.drc.core.concurrent.AtomicBooleanArrayTest;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutorTest;
 import com.ctrip.framework.drc.core.config.DynamicConfigTest;
 import com.ctrip.framework.drc.core.config.RegionConfigTest;
+import com.ctrip.framework.drc.core.driver.binlog.SetTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
@@ -25,6 +28,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactoryTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.AuthenticateResultHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.HandshakeInitializationHandlerTest;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPointTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ConnectGeneratorTest;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacketTest;
 import com.ctrip.framework.drc.core.driver.command.packet.client.*;
@@ -32,6 +36,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCo
 import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
+import com.ctrip.framework.drc.core.driver.util.ByteHelperTest;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
 import com.ctrip.framework.drc.core.http.PageReqTest;
 import com.ctrip.framework.drc.core.http.PageResultTest;
@@ -55,12 +60,16 @@ import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDtoTest;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerConfigDtoTest;
 import com.ctrip.framework.drc.core.server.config.cm.dto.SchemasHistoryDeltaDtoTest;
 import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
+import com.ctrip.framework.drc.core.server.utils.MetaCloneTest;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirerTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCountTest;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntityTest;
 import com.ctrip.framework.drc.core.utils.EncryptUtilsTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
@@ -177,6 +186,7 @@ import org.junit.runners.Suite;
 
         //config package
         ApplierConfigDtoTest.class,
+        MessengerConfigDtoTest.class,
         SchemasHistoryDeltaDtoTest.class,
         RegionConfigTest.class,
         DynamicConfigTest.class,
@@ -280,6 +290,7 @@ import org.junit.runners.Suite;
 
         // write row filed with json type
         BinaryJsonTest.class,
+        SetTypeTest.class,
 
         //mq
         MessengerPropertiesTest.class,
@@ -288,9 +299,20 @@ import org.junit.runners.Suite;
         AbstractResourceManagerTest.class,
 
         DrcKeyedOneThreadTaskExecutorTest.class,
+        AllSuccessFutureTest.class,
+        AtomicBooleanArrayTest.class,
+        KeyedEndPointTest.class,
         
         //entity json parse
-        HickWallConflictCountTest.class
+        HickWallConflictCountTest.class,
+        HickWallMessengerDelayEntityTest.class,
+
+        //service
+        BatchInfoInquirerTest.class,
+
+        MetaCloneTest.class,
+
+        ByteHelperTest.class
 })
 public class AllTests {
     /**

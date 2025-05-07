@@ -6,8 +6,8 @@ import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 
 /**
  * Created by jixinwang on 2022/11/1
@@ -125,15 +123,15 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
         }
     }
 
-    protected class MessengerChecker extends InstancePeriodicallyChecker<Messenger, ApplierInfoDto> {
+    protected class MessengerChecker extends InstancePeriodicallyChecker<Messenger, MessengerInfoDto> {
         @Override
-        protected Pair<List<String>, List<ApplierInfoDto>> fetchInstanceInfo(List<Instance> instances) {
-            return instanceStateController.getMessengerInfo(instances);
+        protected Pair<List<String>, List<MessengerInfoDto>> fetchInstanceInfo(List<Instance> instances) {
+            return batchInfoInquirer.getMessengerInfo(instances);
         }
 
         @Override
         protected List<Instance> getAllMeta() {
-            return Lists.newArrayList(currentMetaManager.getAllApplierOrMessengerInstances());
+            return Lists.newArrayList(currentMetaManager.getAllMessengerInstances());
         }
 
         @Override
@@ -164,7 +162,7 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
         @Override
         protected void removeRedundantInstance(String registryKey, String clusterId, Instance messenger) {
             String targetDB = NameUtils.getMessengerDbName(registryKey);
-            ApplyMode applyMode = DRC_MQ.equals(targetDB) ? ApplyMode.mq : ApplyMode.db_mq;
+            ApplyMode applyMode = NameUtils.getMessengerApplyMode(registryKey);
 
             Messenger messengerToRemove = new Messenger().setIp(messenger.getIp()).setPort(messenger.getPort()).setMaster(messenger.getMaster())
                     .setIncludedDbs(targetDB).setApplyMode(applyMode.getType());

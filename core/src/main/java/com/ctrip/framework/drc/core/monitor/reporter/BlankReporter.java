@@ -154,4 +154,9 @@ public class BlankReporter implements Reporter {
     public int getOrder() {
         return 1;
     }
+
+    @Override
+    public void reportResetTimer(Map<String, String> tags, long delay, String measurement) {
+
+    }
 }

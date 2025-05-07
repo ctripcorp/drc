@@ -13,6 +13,7 @@ public class ApplierReplicationView {
     private String dbName;
     //applierId, dbApplierId, messengerId
     private Long relatedId;
+    private String mqType;
 
     public Long getRelatedId() {
         return relatedId;
@@ -68,5 +69,13 @@ public class ApplierReplicationView {
 
     public void setDbName(String dbName) {
         this.dbName = dbName;
+    }
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
     }
 }

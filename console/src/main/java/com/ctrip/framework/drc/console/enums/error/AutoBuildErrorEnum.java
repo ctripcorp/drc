@@ -21,6 +21,7 @@ public enum AutoBuildErrorEnum implements IErrorDef {
      */
     MQ_CONFIG_CHECK_FAIL("MQ_CONFIG_CHECK_FAIL", "pre check mq config fail"),
     CONFIGURE_MESSENGER_MHA_FAIL("CONFIGURE_MESSENGER_MHA_FAIL", "configure messenger mha fail"),
+    DUPLICATE_MQ_CONFIGURATION("DUPLICATE_MQ_CONFIGURATION", "duplicate mq table-topic configuration found"),
     ;
 
 

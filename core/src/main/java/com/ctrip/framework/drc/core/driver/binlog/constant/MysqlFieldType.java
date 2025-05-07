@@ -155,7 +155,7 @@ public enum MysqlFieldType {
     mysql_type_set(248) {
         @Override
         public String[] getLiterals() {
-            return new String[]{};
+            return new String[]{"set"};
         }
     },
     mysql_type_tiny_blob(249) {
@@ -333,12 +333,21 @@ public enum MysqlFieldType {
                 || mysql_type_time2.type == type;
     }
 
+
+    public static boolean isEnumOrSetType(final int type) {
+        return mysql_type_enum.type == type || mysql_type_set.type == type;
+    }
+
     public static boolean isDecimalType(final String literal) {
         return "decimal".equalsIgnoreCase(literal);
     }
 
     public static boolean isEnumType(final String literal) {
         return "enum".equalsIgnoreCase(literal);
+    }
+
+    public static boolean isSetType(final String literal) {
+        return "set".equalsIgnoreCase(literal);
     }
 
 

@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
@@ -33,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.springframework.util.CollectionUtils;
@@ -40,7 +40,6 @@ import org.springframework.util.CollectionUtils;
 import java.util.*;
 
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 public class DrcAutoBuildServiceImplTest {
@@ -54,8 +53,6 @@ public class DrcAutoBuildServiceImplTest {
     MhaReplicationTblDao mhaReplicationTblDao;
     @Mock
     ReplicatorGroupTblDao replicatorGroupTblDao;
-    @Mock
-    ApplierGroupTblV2Dao applierGroupTblDao;
     @Mock
     MysqlServiceV2 mysqlServiceV2;
     @Mock
@@ -280,7 +277,7 @@ public class DrcAutoBuildServiceImplTest {
         req.setTag(null);
         drcAutoBuildServiceImpl.autoBuildDrc(req);
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void testAutoBuildNoTag() throws Exception {
         DrcAutoBuildReq req = getDrcAutoBuildReqForSingleDb();
@@ -354,14 +351,16 @@ public class DrcAutoBuildServiceImplTest {
             return mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId) && Objects.equals(e.getDeleted(), deleted)).findFirst().orElse(null);
         });
         when(mysqlServiceV2.getMhaExecutedGtid(any())).thenReturn("26ddaa00-4d3f-11ee-bd11-06cc389a9314:1-11286566");
-
         drcAutoBuildServiceImpl.autoBuildDrc(req);
         verify(drcBuildService, times(1)).buildMhaAndReplication(any());
         verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
         verify(drcBuildService, times(1)).autoConfigReplicatorsWithGtid(any(), any());
-        verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), any());
+
+        verify(dbDrcBuildService, times(1)).autoConfigDbAppliers(any(), any(), any(), any(),Mockito.anyBoolean());
+
+
     }
 
 
@@ -406,5 +405,5 @@ public class DrcAutoBuildServiceImplTest {
 
         return req;
     }
-    
+
 }

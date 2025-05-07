@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
@@ -20,6 +21,20 @@ public class TableCreateTask extends BatchTask {
     public TableCreateTask(List<String> sqls, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         super(inMemoryEndpoint, inMemoryDataSource);
         this.sqls.addAll(sqls);
+    }
+
+    @Override
+    protected void executeBatch(Statement statement) throws SQLException {
+        try {
+            super.executeBatch(statement);
+        } catch (SQLException e) {
+            if (DynamicConfig.getInstance().getSkipUnsupportedTableSwitch()) {
+                DDL_LOGGER.warn("[TableCreateTask] [problemSchemaSkip] {} ", statement, e);
+            } else {
+                DDL_LOGGER.error("[TableCreateTask] [problemSchema] {} ", statement, e);
+                throw e;
+            }
+        }
     }
 
     @Override

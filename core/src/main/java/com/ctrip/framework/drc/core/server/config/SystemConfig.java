@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.core.server.config;
 
-import static com.ctrip.framework.drc.core.http.RestTemplateFactory.SSL_PORT;
-
 import com.ctrip.framework.drc.core.server.utils.IpUtils;
 import com.ctrip.xpipe.utils.OsUtils;
 import org.slf4j.Logger;
@@ -24,6 +22,8 @@ public class SystemConfig {
     public static final String KEY_REPLICATOR_PATH ="drc.replicator.data.log";
 
     public static final String APPLIER_PATH = OPT_PATH + DATA_PATH + "/applier/";
+
+    public static final String MESSENGER_PATH = OPT_PATH + DATA_PATH + "/applier/"; //TODO srx change with cm and zk
 
     public static final String VALIDATION_PATH = OPT_PATH + DATA_PATH + "/validation/";
 
@@ -92,6 +92,7 @@ public class SystemConfig {
     public static final String MESSENGER_DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
 
     public static final String DRC_MQ = "_drc_mq";
+    public static final String DRC_KAFKA = "_drc_kafka";
 
     public static final String EVENT_LOG = "com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionMonitorFilter";
 

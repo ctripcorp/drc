@@ -18,8 +18,9 @@
           dstDc: this.commonInfo.dstDc,
           order: this.commonInfo.order
         }
-      }">DRC配置V2
+      }">DRC-MHA 配置
       </BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaDbReplications">DB 复制链路</BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/dbTables',query :{
           srcMhaName: this.commonInfo.srcMhaName,
