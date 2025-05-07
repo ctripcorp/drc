@@ -3,8 +3,10 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
+import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Repository;
@@ -150,5 +152,50 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         // e.g: (src_mha_db_mapping_id, dst_mha_db_mapping_id, replication_type) IN ((13119, 13126, 0), (13161, 13189, 0));
         List<String> list = samples.stream().map(e -> String.format("(%d,%d,%d)", e.getSrcMhaDbMappingId(), e.getDstMhaDbMappingId(), e.getReplicationType())).collect(Collectors.toList());
         return String.format("(%s, %s, %s) in (%s) and deleted = 0", SRC_MHA_DB_MAPPING_ID, DST_MHA_DB_MAPPING_ID, REPLICATION_TYPE, String.join(",", list));
+    }
+
+    public List<DbReplicationTbl> queryByPage(MqReplicationQuery query) throws SQLException  {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder().atPage(query.getPageIndex(), query.getPageSize());
+        this.buildQueryCondition(sqlBuilder, query);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public int count(MqReplicationQuery query) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder().selectCount();
+        this.buildQueryCondition(sqlBuilder, query);
+        return client.count(sqlBuilder, new DalHints()).intValue();
+    }
+
+    private void buildQueryCondition(SelectSqlBuilder sqlBuilder, MqReplicationQuery query) throws SQLException {
+        sqlBuilder.and()
+                .equal(REPLICATION_TYPE, query.getReplicationType(), Types.TINYINT);
+
+        sqlBuilder.and()
+                .inNullable(SRC_MHA_DB_MAPPING_ID, query.getSrcMhaDbMappingIdList(), Types.BIGINT);
+
+        if (query.isQueryOtter()){
+            sqlBuilder.and().leftBracket()
+                    .like(DST_LOGIC_TABLE_NAME, "otter", MatchPattern.CONTAINS,Types.VARCHAR).or()
+                    .not().like(DST_LOGIC_TABLE_NAME, ".binlog", MatchPattern.END_WITH, Types.VARCHAR)
+                    .rightBracket();
+        }
+
+        if (!CollectionUtils.isEmpty(query.getSrcTableLikePatterns())) {
+            sqlBuilder.and().leftBracket();
+            for (String srcTableLikePattern : query.getSrcTableLikePatterns()) {
+                sqlBuilder.or()
+                        .likeNullable(SRC_LOGIC_TABLE_NAME, srcTableLikePattern, MatchPattern.CONTAINS, Types.VARCHAR);
+            }
+            sqlBuilder.rightBracket();
+        }
+
+        if (!CollectionUtils.isEmpty(query.getTopicLikePatterns())) {
+            sqlBuilder.and().leftBracket();
+            for (String topicLikePattern : query.getTopicLikePatterns()) {
+                sqlBuilder.or()
+                        .likeNullable(DST_LOGIC_TABLE_NAME, topicLikePattern, MatchPattern.CONTAINS, Types.VARCHAR);
+            }
+            sqlBuilder.rightBracket();
+        }
     }
 }

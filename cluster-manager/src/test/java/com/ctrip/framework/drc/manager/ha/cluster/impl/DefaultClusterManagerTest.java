@@ -47,6 +47,10 @@ public class DefaultClusterManagerTest extends AbstractDbClusterTest {
     @Mock
     private ForwardInfo forwardInfo;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
+
     private Executor executors = Executors.newFixedThreadPool(1);
 
     private String server_id = String.valueOf(SERVER_ID) + new Random().nextInt();

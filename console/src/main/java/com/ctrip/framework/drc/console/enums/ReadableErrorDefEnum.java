@@ -22,6 +22,9 @@ public enum ReadableErrorDefEnum implements IErrorDef {
 
     QUERY_MHA_DELAY_FAIL("QUERY_MHA_DELAY_FAIL", "query delay fail"),
 
+    QUERY_MHA_SYNC_COUNT("QUERY_MHA_SYNC_COUNT", "query mah sync count fail"),
+
+    QUERY_MQ_REPLICATION_FAIL("QUERY_MQ_REPLICATION_FAIL", "query mq replications fail"),
 
     /**
      * common dao exception
@@ -37,11 +40,13 @@ public enum ReadableErrorDefEnum implements IErrorDef {
      * delete datasource exception
      */
     DELETE_TBL_EXCEPTION("DELETE_TBL_EXCEPTION", "delete exception, please contact devops"),
+    INSERT_TBL_EXCEPTION("INSERT_TBL_EXCEPTION", "insert exception, please contact devops"),
 
 
     DRC_TABLE_NOT_MATCH_BETWEEN_SRC_AND_DST("DRC_TABLE_NOT_MATCH","tables in src and dst not match"),
     DRC_TABLE_EMPTY("DRC_TABLE_EMPTY","table not found"),
 
+    MHA_DB_REPLICATION_DELETE_NOT_ALLOW_FOR_EXIST_APPLIER("MHA_DB_REPLICATION_DELETE_NOT_ALLOW_FOR_EXIST_APPLIER", "delete mha db replication not allow with existing applier/messenger"),
 
     TIMEOUT_EXCEPTION("TIMEOUT_EXCEPTION", "timeout"),
 

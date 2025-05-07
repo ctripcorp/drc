@@ -22,4 +22,33 @@ public class DynamicConfigTest {
         switchRes = dynamicConfig.getDisableSnapshotCacheSwitch();
         Assert.assertTrue(switchRes);
     }
+
+    @Test
+    public void getScaleOut() {
+        long registryKey = dynamicConfig.getBinlogScaleOutNum("unit_test_scaleout", 80);
+        Assert.assertEquals(200, registryKey);
+        registryKey = dynamicConfig.getBinlogScaleOutNum("unit_test_scaleout2", 80);
+        Assert.assertEquals(43, registryKey);
+
+        registryKey = dynamicConfig.getBinlogScaleOutNum("unit_test_scaleout3", 80);
+        Assert.assertEquals(1, registryKey);
+
+
+        // use default
+        registryKey = dynamicConfig.getBinlogScaleOutNum("not_defined_registry_key", 80);
+        Assert.assertEquals(80, registryKey);
+
+
+        registryKey = dynamicConfig.getBinlogScaleOutNum("not_defined_registry_key", -1);
+        Assert.assertEquals(1, registryKey);
+    }
+
+    @Test
+    public void getFormatDescriptionEventV2Switch() {
+        // switch off
+        Assert.assertFalse(dynamicConfig.getFormatDescriptionV2Switch("xxxx_not_exist_dasugh91"));
+        // true
+        Assert.assertFalse(dynamicConfig.getFormatDescriptionV2Switch("unit_test_mha_false"));
+        Assert.assertTrue(dynamicConfig.getFormatDescriptionV2Switch("unit_test_mha_true"));
+    }
 }

@@ -1,12 +1,13 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerConfigDto;
+import com.ctrip.xpipe.api.monitor.EventMonitor;
+import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 
@@ -41,13 +42,26 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
 
     @Override
     protected Object getBody(String ipAndPort, DbCluster dbCluster, boolean register) {
-        ApplierConfigDto config = new ApplierConfigDto();
+        MessengerConfigDto config = new MessengerConfigDto();
         config.setMhaName(dbCluster.getMhaName());
-        config.setApplyMode(ApplyMode.mq.getType());
         config.cluster = dbCluster.getName();
 
         config.target = new DBInfo();
+        Dbs dbs = dbCluster.getDbs();
+        List<Db> dbList = dbs.getDbs();
+        for (Db db : dbList) {
+            if (db.isMaster()) {
+                config.target.ip = db.getIp();
+                config.target.port = db.getPort();
+                config.target.uuid = db.getUuid();
+                break;
+            }
+        }
+        config.target.username = dbs.getWriteUser();
+        config.target.password = dbs.getWritePassword();
+        config.target.cluster = dbCluster.getName();
         config.target.mhaName = dbCluster.getMhaName();
+        config.target.idc = System.getProperty(DefaultFoundationService.DATA_CENTER_KEY, "unknown");
 
         config.replicator = new InstanceInfo();
 
@@ -68,7 +82,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
             config.replicator.port = replicator.getApplierPort();
         }
 
-        config.replicator.mhaName = DRC_MQ;
+        config.replicator.mhaName = getMessengerRegistryKeySuffix(dbCluster);
 
         for (Messenger messenger : dbCluster.getMessengers()) {
             if (ipAndPort.equals(getInstancesNotifyIpPort(messenger))) {
@@ -93,6 +107,16 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
         }
 
         return config;
+    }
+
+    public String getMessengerRegistryKeySuffix(DbCluster dbCluster) {
+        List<ApplyMode> applyModes = dbCluster.getMessengers().stream().map(e -> ApplyMode.getApplyMode(e.getApplyMode())).distinct().collect(Collectors.toList());
+        if (applyModes.size() != 1) {
+            EventMonitor.DEFAULT.logEvent("drc.cm.messenger.notify.mixedMode", dbCluster.getMhaName());
+            logger.error("illegal operation: notify messengers with different apply mode: {}", dbCluster);
+            throw new RuntimeException("illegal operation: notify messengers with different apply mode: " + dbCluster.getMhaName());
+        }
+        return MqType.parseByApplyMode(applyModes.get(0)).getRegistryKeySuffix();
     }
 
     @Override

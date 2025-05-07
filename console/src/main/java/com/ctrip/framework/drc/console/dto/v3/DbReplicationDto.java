@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import java.sql.Timestamp;
+
 public class DbReplicationDto {
     private Long dbReplicationId;
     private LogicTableConfig logicTableConfig;
+    private Timestamp datachangeLasttime;
 
 
     public Long getDbReplicationId() {
@@ -24,5 +27,19 @@ public class DbReplicationDto {
     public DbReplicationDto(Long dbReplicationId, LogicTableConfig config) {
         this.dbReplicationId = dbReplicationId;
         this.logicTableConfig = config;
+    }
+
+    public DbReplicationDto(Long dbReplicationId, LogicTableConfig config, Timestamp datachangeLasttime) {
+        this.dbReplicationId = dbReplicationId;
+        this.logicTableConfig = config;
+        this.datachangeLasttime = datachangeLasttime;
+    }
+
+    public Timestamp getDatachangeLasttime() {
+        return datachangeLasttime;
+    }
+
+    public void setDatachangeLasttime(Timestamp datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
     }
 }

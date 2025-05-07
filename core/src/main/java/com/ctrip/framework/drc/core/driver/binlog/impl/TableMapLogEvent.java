@@ -26,6 +26,7 @@ import java.util.stream.IntStream;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_table_map_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent.long63MaxPlusOne;
 import static com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent.long64Max;
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.LOG_EVENT_IGNORABLE_F;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -607,7 +608,78 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
                         .replace("enum('", "").replace("')", "")
                         .split("','");
                 this.meta = enums.length < 256 ? 1 : 2;
+                this.columnDefault = getEnumColumnDefault(enums, columnDefault);
+            } else if (MysqlFieldType.isSetType(dataTypeLiteral)) {
+                final String[] sets = columnType
+                        .replace("set('", "").replace("')", "")
+                        .split("','");
+                // maximum members is 64
+                int length = sets.length;
+                if (length <= 8) {
+                    this.meta = 1;
+                } else if (length <= 16) {
+                    this.meta = 2;
+                } else if (length <= 24) {
+                    this.meta = 3;
+                } else if (length <= 32) {
+                    this.meta = 4;
+                } else {
+                    this.meta = 8;
+                }
+                this.columnDefault = getSetColumnDefault(sets, meta, columnDefault);
             }
+        }
+
+        public String getEnumColumnDefault(String[] enums, String columnDefault) {
+            if (columnDefault == null) {
+                return null;
+            }
+            List<String> enumValues = Lists.newArrayList(enums);
+            return String.valueOf(enumValues.indexOf(columnDefault) + 1);
+        }
+
+        public String getSetColumnDefault(String[] sets, int meta, String columnDefault) {
+            if (columnDefault == null) {
+                return null;
+            }
+            int[] binaryArray;
+            switch (meta) {
+                case 1:
+                    binaryArray = new int[8];
+                    break;
+                case 2:
+                    binaryArray = new int[16];
+                    break;
+                case 3:
+                    binaryArray = new int[24];
+                    break;
+                case 4:
+                    binaryArray = new int[32];
+                    break;
+                case 8:
+                    binaryArray = new int[64];
+                    break;
+                default:
+                    throw new RuntimeException("unexpect set type meta: " + meta);
+            }
+            String[] defaultValues = columnDefault.split(",");
+            List<String> setValues = Lists.newArrayList(sets);
+            for (String defaultValue : defaultValues) {
+                binaryArray[setValues.indexOf(defaultValue)] = 1;
+            }
+            long defaultLong = 0L;
+            int length = binaryArray.length;
+            long base = 1L;
+            for (int i = 0; i < length - 1; i++) {
+                defaultLong += base * binaryArray[i];
+                base *= 2;
+            }
+            if (length < 64 || binaryArray[length - 1] == 0) {
+                defaultLong += base * binaryArray[length - 1];
+                return String.valueOf(defaultLong);
+            }
+            BigDecimal decimalValue = new BigDecimal(defaultLong);
+            return decimalValue.add(long63MaxPlusOne).toString();
         }
 
         public int getType() {
@@ -823,15 +895,9 @@ public class TableMapLogEvent extends AbstractLogEvent implements LogEventMerger
                 case mysql_type_datetime2:
                 case mysql_type_time2:
                 case mysql_type_year:
+                case mysql_type_enum:
+                case mysql_type_set:
                     return columnDefault;
-                case mysql_type_enum: {
-                    if (this.meta < 256) {
-                        return Short.parseShort(columnDefault);
-                    } else {
-                        return Integer.parseInt(columnDefault);
-                    }
-                }
-
             }
             return columnDefault;
         }

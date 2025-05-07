@@ -9,25 +9,24 @@ import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
-import com.ctrip.framework.drc.console.dao.entity.v3.ApplierGroupTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.MessengerGroupTblV3;
-import com.ctrip.framework.drc.console.dao.entity.v3.MessengerTblV3;
+import com.ctrip.framework.drc.console.dao.entity.v3.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dao.v3.ApplierGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.ApplierTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
-import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
+import com.ctrip.framework.drc.console.enums.DlockEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.service.NotifyCmService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
@@ -37,40 +36,54 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DalclusterUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
-import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.MqConfig;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.ckafka.KafkaApiService;
+import com.ctrip.framework.drc.core.service.ckafka.KafkaTopicCreateVo;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.dianping.cat.Cat;
+import com.dianping.cat.message.Transaction;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.validation.constraints.NotNull;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
+@Lazy
 public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger autoConfigLogger = LoggerFactory.getLogger("autoConfig");
 
     @Autowired
     private MetaInfoServiceV2 metaInfoService;
@@ -95,8 +108,6 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblV2Dao;
-    @Autowired
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Autowired
     private ResourceService resourceService;
@@ -119,14 +130,22 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     @Autowired
     private MessengerServiceV2 messengerServiceV2;
     @Autowired
+    private MessengerBatchConfigService messengerBatchConfigService;
+    @Autowired
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Autowired
+    private NotifyCmService notifyCmService;
+    @Autowired
+    private DLockService dLockService;
 
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
 
     private final DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
+
+    private final KafkaApiService kafkaApiService = ApiContainer.getKafkaApiServiceImpl();
 
     @Override
     public List<DbApplierDto> getMhaDbAppliers(String srcMhaName, String dstMhaName) {
@@ -173,20 +192,20 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     }
 
     @Override
-    public List<DbApplierDto> getMhaDbMessengers(String mhaName) {
-        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha(mhaName, null);
-        setMhaDbMessengers(replicationDtos);
+    public List<DbApplierDto> getMhaDbMessengers(String mhaName, MqType mqType) {
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha(mhaName, null, mqType);
+        setMhaDbMessengers(replicationDtos, mqType);
         return replicationDtos.stream().map(MhaDbReplicationDto::getDbApplierDto).collect(Collectors.toList());
     }
 
 
     @Override
-    public void setMhaDbMessengers(List<MhaDbReplicationDto> replicationDtos) {
+    public void setMhaDbMessengers(List<MhaDbReplicationDto> replicationDtos, MqType mqType) {
         try {
             List<Long> ids = replicationDtos.stream().map(MhaDbReplicationDto::getId).collect(Collectors.toList());
 
             // mq replications -> messenger
-            List<MessengerGroupTblV3> messengerGroupTblV3s = messengerGroupTblV3Dao.queryByMhaDbReplicationIds(ids);
+            List<MessengerGroupTblV3> messengerGroupTblV3s = messengerGroupTblV3Dao.queryByMhaDbReplicationIdsAndMqType(ids, mqType);
             Map<Long, MessengerGroupTblV3> groupMap = messengerGroupTblV3s.stream().collect(Collectors.toMap(MessengerGroupTblV3::getMhaDbReplicationId, e -> e));
 
             List<MessengerTblV3> messengerTblV3s = messengerTblV3Dao.queryByGroupIds(messengerGroupTblV3s.stream().map(MessengerGroupTblV3::getId).collect(Collectors.toList()));
@@ -213,15 +232,10 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
-    @Override
-    public boolean isDbApplierConfigurable(String mhaName) {
-        return consoleConfig.getDbApplierConfigureSwitch(mhaName);
-    }
-
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public String buildDbApplier(DrcBuildParam param) throws Exception {
+    public void buildDbApplier(DrcBuildParam param) throws Exception {
         DrcBuildBaseParam srcBuildParam = param.getSrcBuildParam();
         DrcBuildBaseParam dstBuildParam = param.getDstBuildParam();
         String srcMhaName = srcBuildParam.getMhaName();
@@ -237,95 +251,43 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         // config db applier
         if (!CollectionUtils.isEmpty(dstDbAppliers)) {
             // src -> dst
-            if (!this.isDbApplierConfigurable(dstMhaName)) {
-                throw new ConsoleException("mha " + dstMhaName + " is not allowed to configure db appliers");
-            }
             this.checkDbAppliers(dstDbAppliers);
             List<MhaDbReplicationDto> srcToDstMhaDbReplicationDtos = mhaDbReplicationService.queryByMha(srcMhaName, dstMhaName, dstDbAppliers.stream().map(DbApplierDto::getDbName).collect(Collectors.toList()));
             this.configureDbAppliers(srcToDstMhaDbReplicationDtos, dstDbAppliers);
         }
 
-        if (!StringUtils.isBlank(dstBuildParam.getApplierInitGtid())) {
-            ApplierGroupTblV2 applierGroupTblV2 = this.getApplierGroupTblV2(srcMha, dstMha);
-            applierGroupTblV2.setGtidInit(dstBuildParam.getApplierInitGtid());
-            applierGroupTblV2Dao.update(applierGroupTblV2);
+        // sync mha replication status
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId(), BooleanEnum.FALSE.getCode());
+        if (mhaReplicationTbl != null) {
+            BooleanEnum drcStatus = getMhaReplicationStatus(srcMhaName, dstMhaName, dstDbAppliers);
+            mhaReplicationTbl.setDrcStatus(drcStatus.getCode());
+            mhaReplicationTblDao.update(mhaReplicationTbl);
         }
 
         // refresh
-        Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
-        String drcString = XmlUtils.formatXML(drc.toString());
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
             logger.error("metaProvider scheduledTask error", e);
         }
-        return drcString;
     }
 
-    @Override
-    public String getDbDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName) {
-        try {
-            Map<String, GtidSet> dbGtidMap = this.getDbDrcExecutedGtid(srcMhaName, dstMhaName);
-            return GtidSet.getIntersection(Lists.newArrayList(dbGtidMap.values())).getGtidFirstInterval().toString();
-        } catch (SQLException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION);
+    private BooleanEnum getMhaReplicationStatus(String srcMhaName, String dstMhaName, List<DbApplierDto> mhaDbAppliers) throws Exception {
+        // judge by input
+        boolean dbDrcStatus = getDbDrcStatus(mhaDbAppliers.stream());
+        if (dbDrcStatus) {
+            return BooleanEnum.TRUE;
         }
+        // rest mha db appliers
+        mhaDbAppliers = getMhaDbAppliers(srcMhaName, dstMhaName);
+        dbDrcStatus = getDbDrcStatus(mhaDbAppliers.stream());
+        return dbDrcStatus ? BooleanEnum.TRUE : BooleanEnum.FALSE;
     }
 
-    @Override
-    public String getMhaDrcExecutedGtidTruncate(String srcMhaName, String dstMhaName) {
-        try {
-            GtidSet gtidSet = this.getMhaDrcExecutedGtid(srcMhaName, dstMhaName);
-            return gtidSet.getGtidFirstInterval().toString();
-        } catch (SQLException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION);
-        }
+    private static boolean getDbDrcStatus(Stream<DbApplierDto> mhaDbAppliers) {
+        return mhaDbAppliers.anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
     }
 
-
-    @Override
-    public GtidSet getMhaDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException {
-        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
-
-        ApplierGroupTblV2 applierGroupTblV2 = this.getApplierGroupTblV2(srcMha, dstMha);
-
-        String appliedGtid = mysqlServiceV2.getMhaAppliedGtid(dstMha.getMhaName());
-        if (appliedGtid == null) {
-            throw ConsoleExceptionUtils.message("query mha applied gtid fail");
-        }
-        GtidSet mhaAppliedGtid = new GtidSet(appliedGtid);
-        return mhaAppliedGtid.union(new GtidSet(applierGroupTblV2.getGtidInit()));
-    }
-
-    @Override
-    public Map<String, GtidSet> getDbDrcExecutedGtid(String srcMhaName, String dstMhaName) throws SQLException {
-        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
-
-        // db applier gtid init
-        Map<String, String> mhaDbAppliedGtid = mysqlServiceV2.getMhaDbAppliedGtid(dstMha.getMhaName());
-        if (mhaDbAppliedGtid == null) {
-            throw ConsoleExceptionUtils.message("query db applied gtid fail");
-        }
-
-        // db applier gtid apply
-        List<DbApplierDto> mhaDbAppliers = this.getMhaDbAppliers(srcMha.getMhaName(), dstMha.getMhaName());
-        Map<String, GtidSet> gtidInitMap = mhaDbAppliers.stream()
-                .filter(e -> !StringUtils.isEmpty(e.getGtidInit()))
-                .collect(Collectors.toMap(DbApplierDto::getDbName, e -> new GtidSet(e.getGtidInit())));
-
-        // union all for each db
-        Set<String> dbNames = Sets.newHashSet();
-        dbNames.addAll(gtidInitMap.keySet());
-        Map<String, GtidSet> map = Maps.newHashMap();
-        for (String dbName : dbNames) {
-            GtidSet appliedGtid = new GtidSet(mhaDbAppliedGtid.get(dbName));
-            GtidSet initGtid = gtidInitMap.get(dbName);
-            map.put(dbName, appliedGtid.union(initGtid));
-        }
-        return map;
-    }
 
     private void configureDbAppliers(List<MhaDbReplicationDto> mhaDbReplicationDtos, List<DbApplierDto> dbApplierDtos) throws SQLException {
         // 0. check dbReplication exist;
@@ -438,24 +400,21 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message("empty config");
         }
 
-        if (!this.isDbApplierConfigurable(mhaName)) {
-            throw new ConsoleException("mha " + mhaName + " is not allowed to configure db messengers");
-        }
         this.checkDbAppliers(dbApplierDtos);
         List<String> dbNames = dbApplierDtos.stream().map(DbApplierDto::getDbName).collect(Collectors.toList());
-        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha(mhaName, dbNames);
+        List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryMqByMha(mhaName, dbNames, param.getMqTypeEnum());
 
         this.checkExistDbReplication(replicationDtos, dbApplierDtos);
 
 
         // upsert messenger group
-        List<MessengerGroupTblV3> groupTblV3List = this.configureMessengerGroups(dbApplierDtos, replicationDtos);
+        List<MessengerGroupTblV3> groupTblV3List = this.configureMessengerGroups(dbApplierDtos, replicationDtos, param.getMqTypeEnum());
         // configure messengers
         this.configureMessengers(dbApplierDtos, replicationDtos, groupTblV3List);
 
 
         // refresh
-        Drc drc = metaInfoService.getDrcMessengerConfig(mhaName);
+        Drc drc = metaInfoService.getDrcMessengerConfig(mhaName, param.getMqTypeEnum());
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
@@ -477,73 +436,140 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }
 
             List<DbApplierDto> mhaDbAppliers = this.getMhaDbAppliers(srcMhaName, dstMhaName);
-            boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            boolean newDrc = !getDbDrcStatus(mhaDbAppliers.stream());
 
-            if (dbApplyMode) {
-                this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), null);
-            } else {
-                drcBuildServiceV2.autoConfigAppliers(srcMha, dstMha, null);
-            }
-
+            String gtidInit = this.getGtidInit(newDrc, srcMha);
+            this.autoConfigDbAppliers(srcMhaName, dstMhaName, reqDto.getDbNames(), gtidInit, reqDto.isSwitchOnly());
         }
+    }
+
+    private String getGtidInit(boolean newDrc, MhaTblV2 srcMha) {
+        String gtidInit = null;
+        if (newDrc) {
+            gtidInit = mysqlServiceV2.getMhaExecutedGtid(srcMha.getMhaName());
+            if (StringUtils.isBlank(gtidInit)) {
+                throw ConsoleExceptionUtils.message("fail to query realtime gtid for mha: " + srcMha.getMhaName());
+            }
+        }
+        return gtidInit;
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void switchMessengers(List<DbApplierSwitchReqDto> reqDtos) throws Exception {
-        for (DbApplierSwitchReqDto reqDto : reqDtos) {
+    public void switchMessengers(List<MessengerSwitchReqDto> reqDtos) throws Exception {
+        for (MessengerSwitchReqDto reqDto : reqDtos) {
             String mhaName = reqDto.getSrcMhaName();
+            MqType mqType = reqDto.getMqTypeEnum();
+
             MhaTblV2 srcMha = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
             if (srcMha == null) {
                 throw ConsoleExceptionUtils.message("mha not exist: " + mhaName);
             }
 
-            List<DbApplierDto> mhaDbMessengers = this.getMhaDbMessengers(mhaName);
-            boolean dbApplyMode = mhaDbMessengers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+            List<DbApplierDto> mhaDbMessengers = this.getMhaDbMessengers(mhaName, mqType);
+            boolean dbApplyMode = getDbDrcStatus(mhaDbMessengers.stream());
 
             if (dbApplyMode) {
                 throw new IllegalArgumentException("db messenger not support yet");
             }
-            String messengerGtidExecuted = messengerServiceV2.getMessengerGtidExecuted(mhaName);
+            String messengerGtidExecuted = messengerServiceV2.getMessengerGtidExecuted(mhaName, mqType);
             if (StringUtils.isBlank(messengerGtidExecuted)) {
-                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(srcMha);
+                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(srcMha, mqType, reqDto.isSwitchOnly());
             } else {
-                drcBuildServiceV2.autoConfigMessenger(srcMha, null);
+                drcBuildServiceV2.autoConfigMessenger(srcMha, null, mqType, reqDto.isSwitchOnly());
             }
         }
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid) throws Exception {
+    public void autoConfigDbAppliers(MhaDbReplicationTbl mhaDbReplication, ApplierGroupTblV3 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String dbExecutedGtid, Integer concurrency, boolean switchOnly) throws SQLException {
+        List<ApplierTblV3> existAppliers = applierTblV3Dao.queryByApplierGroupId(applierGroup.getId(), BooleanEnum.FALSE.getCode());
+        if (switchOnly && CollectionUtils.isEmpty(existAppliers)) {
+            logger.info("[[mha={}, mhaDbReplication={}]] appliers not exist,do nothing when switchOnly", destMhaTbl.getMhaName(), mhaDbReplication.getId());
+            return;
+        }
+        // applier group gtid
+        if (!StringUtils.isBlank(dbExecutedGtid)) {
+            applierGroup.setGtidInit(dbExecutedGtid);
+            applierGroup.setConcurrency(concurrency);
+            applierGroupTblV3Dao.update(applierGroup);
+            logger.info("[[mha={}, mhaDbReplication={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaDbReplication.getId(), dbExecutedGtid);
+        }
+        // mha replication
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), destMhaTbl.getId());
+        if (mhaReplicationTbl.getDrcStatus() == 0) {
+            mhaReplicationTbl.setDrcStatus(1);
+            mhaReplicationTblDao.update(mhaReplicationTbl);
+            logger.info("[[mha={}]] autoConfigAppliers update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
+        }
+
+        // appliers
+        List<Long> inUseResourceId = existAppliers.stream().map(ApplierTblV3::getResourceId).collect(Collectors.toList());
+        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+
+        ResourceSelectParam selectParam = new ResourceSelectParam();
+        selectParam.setType(ModuleEnum.APPLIER.getCode());
+        selectParam.setMhaName(destMhaTbl.getMhaName());
+        selectParam.setSelectedIps(inUseIps);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            logger.error("[[mha={}, mhaDbReplication={}]] autoConfigAppliers failed", destMhaTbl.getMhaName(), mhaDbReplication.getId());
+            throw new ConsoleException("autoConfigAppliers failed!");
+        }
+        // insert new appliers
+        List<ApplierTblV3> insertAppliers = resourceViews.stream()
+                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
+                .map(e -> buildApplierTblV3(applierGroup, e))
+                .collect(Collectors.toList());
+
+        // delete old appliers
+        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+        List<ApplierTblV3> deleteAppliers = existAppliers.stream()
+                .filter(e -> !newResourceId.contains(e.getResourceId()))
+                .collect(Collectors.toList());
+        deleteAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        applierTblV3Dao.batchInsert(insertAppliers);
+        applierTblV3Dao.batchUpdate(deleteAppliers);
+        logger.info("[[mha={}, mhaDbReplication={}]] autoConfigAppliers success", destMhaTbl.getMhaName(), mhaDbReplication.getId());
+    }
+
+    private static ApplierTblV3 buildApplierTblV3(ApplierGroupTblV3 applierGroup, ResourceView resourceView) {
+        ApplierTblV3 applierTbl = new ApplierTblV3();
+        applierTbl.setApplierGroupId(applierGroup.getId());
+        applierTbl.setResourceId(resourceView.getResourceId());
+        applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+        applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+        applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return applierTbl;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void autoConfigDbAppliers(String srcMha, String dstMha, List<String> dbNames, String initGtid, boolean switchOnly) throws Exception {
         List<MhaDbReplicationDto> replicationDtos = mhaDbReplicationService.queryByMha(srcMha, dstMha, dbNames);
         this.setMhaDbAppliers(replicationDtos);
 
         List<ResourceView> mhaDbAvailableResource = resourceService.getMhaDbAvailableResource(dstMha, ModuleEnum.APPLIER.getCode());
 
         List<DbApplierDto> newDbAppliers = Lists.newArrayList();
+
         for (MhaDbReplicationDto replicationDto : replicationDtos) {
             String dbName = replicationDto.getSrc().getDbName();
             DbApplierDto dbApplierDto = replicationDto.getDbApplierDto();
-            // gtid
-            String newGtid;
-            if (StringUtils.isEmpty(initGtid)) {
-                if ((dbApplierDto == null || StringUtils.isEmpty(dbApplierDto.getGtidInit()))) {
-                    throw ConsoleExceptionUtils.message("init gtid required for db: " + dbName);
-                }
-                newGtid = dbApplierDto.getGtidInit();
-            } else {
-                if (dbApplierDto != null && !StringUtils.isEmpty(dbApplierDto.getGtidInit())) {
-                    throw ConsoleExceptionUtils.message("already has init gtid, could not reset gtid for db: " + dbName);
-                }
-                newGtid = initGtid;
+            if (switchOnly && (dbApplierDto == null || CollectionUtils.isEmpty(dbApplierDto.getIps()))) {
+                continue;
             }
+            // gtid
+            String newGtid = getInitGtid(initGtid, dbApplierDto, dbName);
             // ips
             List<String> inUseIps = dbApplierDto == null || CollectionUtils.isEmpty(dbApplierDto.getIps()) ? Collections.emptyList() : dbApplierDto.getIps();
             List<ResourceView> resourceViews = resourceService.handOffResource(inUseIps, mhaDbAvailableResource);
             List<String> newIps = resourceViews.stream().map(ResourceView::getIp).collect(Collectors.toList());
 
-            newDbAppliers.add(new DbApplierDto(newIps, newGtid, dbName));
+            Integer concurrency = Optional.ofNullable(dbApplierDto).map(DbApplierDto::getConcurrency).orElse(null);
+            newDbAppliers.add(new DbApplierDto(newIps, newGtid.trim(), dbName, concurrency));
         }
         DrcBuildParam drcBuildParam = new DrcBuildParam();
         DrcBuildBaseParam srcBuildParam = new DrcBuildBaseParam();
@@ -557,16 +583,41 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         logger.info("autoConfigDbAppliers success: {}->{} ({});\ninitGtid: {}", srcMha, dstMha, dbNames, initGtid);
     }
 
+    private String getInitGtid(String givenGtid, DbApplierDto dbApplierDto, String dbName) {
+        if (dbApplierDto != null && !StringUtils.isBlank(dbApplierDto.getGtidInit())) {
+            return dbApplierDto.getGtidInit();
+        }
+
+        if (StringUtils.isBlank(givenGtid)) {
+            throw ConsoleExceptionUtils.message("init gtid required for db: " + dbName);
+        }
+
+        return givenGtid;
+
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void autoConfigDbAppliersWithRealTimeGtid(MhaDbReplicationTbl mhaDbReplication, ApplierGroupTblV3 applierGroup,
+                                                     MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, Integer concurrency) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
+            throw new ConsoleException("getMhaExecutedGtid failed!");
+        }
+        this.autoConfigDbAppliers(mhaDbReplication, applierGroup, srcMhaTbl, destMhaTbl, mhaExecutedGtid, concurrency, false);
+    }
+
     @Override
     public List<DbDrcConfigInfoDto> getExistDbReplicationDirections(String dbName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
+        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName).getDbNames();
         return this.getExistDbReplicationDirections(dbNames);
     }
 
     @Override
-    public List<DbMqConfigInfoDto> getExistDbMqConfigDcOption(String dbName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
-        List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, ReplicationTypeEnum.DB_TO_MQ);
+    public List<DbMqConfigInfoDto> getExistDbMqConfigDcOption(String dbName, MqType mqType) {
+        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName).getDbNames();
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, mqType.getReplicationType());
         return mhaDbReplicationDtos.stream()
                 .map(e -> new DbMqConfigInfoDto(e.getSrc().getRegionName()))
                 .distinct().collect(Collectors.toList());
@@ -581,14 +632,14 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     public DbDrcConfigInfoDto getDbDrcConfig(String dbName, String srcRegionName, String dstRegionName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
+        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName).getDbNames();
         return getDbDrcConfig(dbNames, srcRegionName, dstRegionName);
     }
 
     @Override
-    public DbMqConfigInfoDto getDbMqConfig(String dbName, String srcRegionName) {
-        List<String> dbNames = this.getDbNamesWithinSameDalCluster(dbName);
-        return getDbMqConfig(dbNames, srcRegionName);
+    public DbMqConfigInfoDto getDbMqConfig(String dbName, String srcRegionName, MqType mqType) {
+        ShardDatabaseInfoDto infoDto = this.getDbNamesWithinSameDalCluster(dbName);
+        return getDbMqConfig(infoDto.getDalClusterName(), infoDto.getDbNames(), srcRegionName, mqType);
     }
 
     private DbDrcConfigInfoDto getDbDrcConfig(List<String> dbNames, String srcRegionName, String dstRegionName) {
@@ -619,10 +670,6 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             if (isAdmin()) {
                 // drc resource info detail
                 setMhaDbAppliers(list);
-                boolean dbApplyMode = list.stream().map(MhaDbReplicationDto::getDbApplierDto).anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
-                if (!dbApplyMode) {
-                    setMhaAppliers(mhaReplicationDto);
-                }
                 mhaReplicationDto.getSrcMha().setReplicatorInfoDtos(mhaServiceV2.getMhaReplicatorsV2(mhaReplicationDto.getSrcMha().getName()));
             }
         }
@@ -633,18 +680,20 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         return dbDrcConfigInfoDto;
     }
 
-    private DbMqConfigInfoDto getDbMqConfig(List<String> dbNames, String srcRegionName) {
+    public DbMqConfigInfoDto getDbMqConfig(String dalclusterName, List<String> dbNames, String srcRegionName, MqType mqType) {
         try {
-            List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, ReplicationTypeEnum.DB_TO_MQ)
+            List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, mqType.getReplicationType())
                     .stream().filter(e -> e.getSrc().getRegionName().equals(srcRegionName)).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(mhaDbReplicationDtos)) {
                 throw ConsoleExceptionUtils.message("drc mq config empty");
             }
 
             // 1. logic table config consistency check
-            long count = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().count();
+            List<Set<LogicTableConfig>> distinctConfig = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(
+                    e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().collect(Collectors.toList());
+            long count = distinctConfig.size();
             if (count > 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT);
+                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT, JsonUtils.toJson(distinctConfig));
             }
 
             // 2. group by mha
@@ -660,10 +709,10 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 mhaMqDto.setMhaDbReplications(list);
                 // drc resource info detail
                 mhaMqDto.getSrcMha().setReplicatorInfoDtos(mhaServiceV2.getMhaReplicatorsV2(mhaMqDto.getSrcMha().getName()));
-                setMhaDbMessengers(list);
-                boolean dbApplyMode = list.stream().map(MhaDbReplicationDto::getDbApplierDto).anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
+                setMhaDbMessengers(list, mqType);
+                boolean dbApplyMode = getDbDrcStatus(list.stream().map(MhaDbReplicationDto::getDbApplierDto));
                 if (!dbApplyMode) {
-                    setMhaMessengers(mhaMqDto);
+                    setMhaMessengers(mhaMqDto, mqType);
                 }
             }
             DbMqConfigInfoDto dbDrcConfigInfoDto = new DbMqConfigInfoDto(srcRegionName);
@@ -679,7 +728,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             ));
 
             List<MqLogicTableSummaryDto> mqLogicTableSummaryDtos = logicTableSummaryDtos.stream().map(e -> {
-                MqLogicTableSummaryDto mqLogicTableSummaryDto = new MqLogicTableSummaryDto(e.getDbReplicationIds(), e.getConfig());
+                MqLogicTableSummaryDto mqLogicTableSummaryDto = new MqLogicTableSummaryDto(e.getDbReplicationIds(), e.getConfig(), e.getDatachangeLasttime());
 
                 Long messengerFilterId = mqLogicTableSummaryDto.getConfig().getMessengerFilterId();
                 MqConfig mqConfig = idToMqConfig.get(messengerFilterId);
@@ -688,37 +737,30 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 mqLogicTableSummaryDto.setOrder(mqConfig.isOrder());
                 mqLogicTableSummaryDto.setOrderKey(mqConfig.getOrderKey());
                 mqLogicTableSummaryDto.setPersistent(mqConfig.isPersistent());
+                mqLogicTableSummaryDto.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
+                mqLogicTableSummaryDto.setDelayTime(mqConfig.getDelayTime());
+                mqLogicTableSummaryDto.setFilterFields(mqConfig.getFilterFields());
+                mqLogicTableSummaryDto.setSendOnlyUpdated(mqConfig.isSendOnlyUpdated());
+                mqLogicTableSummaryDto.setExcludeColumn(mqConfig.isExcludeColumn());
                 return mqLogicTableSummaryDto;
             }).collect(Collectors.toList());
+            mqLogicTableSummaryDtos.sort(
+                    Comparator.comparing(MqLogicTableSummaryDto::getDatachangeLasttime, Comparator.nullsLast(Comparator.naturalOrder()))
+            );
             dbDrcConfigInfoDto.setLogicTableSummaryDtos(mqLogicTableSummaryDtos);
             dbDrcConfigInfoDto.setDbNames(dbNames);
+            dbDrcConfigInfoDto.setDalclusterName(dalclusterName);
             return dbDrcConfigInfoDto;
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
 
-    private void setMhaAppliers(MhaReplicationDto mhaReplicationDto) {
-        try {
-            String srcMhaName = mhaReplicationDto.getSrcMha().getName();
-            String dstMhaName = mhaReplicationDto.getDstMha().getName();
-            List<String> ips = drcBuildServiceV2.getMhaAppliers(srcMhaName, dstMhaName);
-            String applierGtid = drcBuildServiceV2.getApplierGtid(srcMhaName, dstMhaName);
-            mhaReplicationDto.setMhaApplierDto(new MhaApplierDto(ips, applierGtid));
-        } catch (Exception e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
-    }
 
-    private void setMhaMessengers(MhaMqDto mhaReplicationDto) {
-        try {
-            String srcMhaName = mhaReplicationDto.getSrcMha().getName();
-            List<String> ips = mhaServiceV2.getMhaMessengers(srcMhaName);
-            String applierGtid = messengerServiceV2.getMessengerGtidExecuted(srcMhaName);
-            mhaReplicationDto.setMhaMessengerDto(new MhaApplierDto(ips, applierGtid));
-        } catch (Exception e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
+    private void setMhaMessengers(MhaMqDto mhaReplicationDto, MqType mqType) {
+        String srcMhaName = mhaReplicationDto.getSrcMha().getName();
+        MhaMessengerDto mhaMessengerDto = mhaServiceV2.getMhaMessengers(srcMhaName, mqType);
+        mhaReplicationDto.setMhaMessengerDto(mhaMessengerDto);
     }
 
     @Override
@@ -811,22 +853,56 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
+    /**
+     * buildMha and prepareMha should not be done in a transaction
+     */
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
     public void createMhaDbReplicationForMq(MhaDbReplicationCreateDto createDto) throws Exception {
         createDto.validAndTrimForCreateReq();
+        List<DrcAutoBuildParam> drcBuildParam = buildMha(createDto);
+        prepareMha(createDto, drcBuildParam);
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
+    protected void prepareMha(MhaDbReplicationCreateDto createDto, List<DrcAutoBuildParam> drcBuildParam) throws SQLException {
+        Integer replicationType = createDto.getReplicationType();
+        ReplicationTypeEnum replicationTypeEnum = ReplicationTypeEnum.getByType(replicationType);
+
+        for (DrcAutoBuildParam param : drcBuildParam) {
+            MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
+            try {
+
+                // 4. mha db replication
+                mhaDbReplicationService.maintainMhaDbReplicationForMq(param.getSrcMhaName(), Lists.newArrayList(param.getDbName()), replicationTypeEnum);
+
+                // 5. replicator
+                replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
+                drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.CONFIGURE_MESSENGER_MHA_FAIL, "mha: " + srcMhaTbl.getMhaName(), e);
+            }
+        }
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
+    protected List<DrcAutoBuildParam> buildMha(MhaDbReplicationCreateDto createDto) throws Exception {
+        Integer replicationType = createDto.getReplicationType();
+        ReplicationTypeEnum replicationTypeEnum = ReplicationTypeEnum.getByType(replicationType);
+        MqType mqType = MqType.parseByReplicationType(replicationTypeEnum);
+
         DrcAutoBuildReq req = new DrcAutoBuildReq();
         req.setDbName(createDto.getDbName());
         req.setMode(DrcAutoBuildReq.BuildMode.DAL_CLUSTER_NAME.getValue());
         req.setSrcRegionName(createDto.getSrcRegionName());
         req.setDstRegionName(createDto.getDstRegionName());
         req.setTblsFilterDetail(new DrcAutoBuildReq.TblsFilterDetail());
-        req.setReplicationType(ReplicationTypeEnum.DB_TO_MQ.getType());
+        req.setReplicationType(replicationType);
+        req.setMqType(mqType.name());
 
         List<DrcAutoBuildParam> drcBuildParam = drcAutoBuildService.getDrcBuildParam(req);
         List<String> dbNames = drcBuildParam.stream().flatMap(e -> e.getDbName().stream()).collect(Collectors.toList());
         // check existence
-        List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, ReplicationTypeEnum.DB_TO_MQ)
+        List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, replicationTypeEnum)
                 .stream().filter(e -> e.getSrc().getRegionName().equals(createDto.getSrcRegionName()))
                 .collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(mhaDbReplicationDtos)) {
@@ -853,6 +929,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             mhaBuildParam.setDc(param.getSrcDcName());
             mhaBuildParam.setBuName(param.getBuName());
             mhaBuildParam.setMachineDto(param.getSrcMachines());
+            mhaBuildParam.setMqType(mqType.name());
             drcBuildServiceV2.buildMessengerMha(mhaBuildParam);
 
             MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
@@ -861,21 +938,14 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             if (srcMhaTbl == null) {
                 throw ConsoleExceptionUtils.message("init mha fail");
             }
-
             try {
                 // 3. sync mha db info
                 drcBuildServiceV2.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
-
-                // 4. mha db replication
-                mhaDbReplicationService.maintainMhaDbReplicationForMq(param.getSrcMhaName(), Lists.newArrayList(param.getDbName()));
-
-                // 5. replicator
-                replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
-                drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(srcMhaTbl);
             } catch (Exception e) {
                 throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.CONFIGURE_MESSENGER_MHA_FAIL, "mha: " + srcMhaTbl.getMhaName(), e);
             }
         }
+        return drcBuildParam;
     }
 
     @Override
@@ -948,39 +1018,30 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void createDbMqReplication(DbMqCreateDto createDto) throws Exception {
+    public void createDbMqReplication(DbMqCreateDto createDto) {
         createDto.validAndTrim();
-        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(createDto.getDbNames(), createDto.getSrcRegionName());
-        List<MhaMqDto> mhaMqDtos = dbMqConfig.getMhaMqDtos();
-        String logicTable = createDto.getLogicTableConfig().getLogicTable();
-        String topic = createDto.getLogicTableConfig().getDstLogicTable();
-        MqConfigDto mqConfig = createDto.getMqConfig();
-        mqConfig.setTopic(topic);
-
-        for (MhaMqDto mhaMqDto : mhaMqDtos) {
-            String fullName = mhaMqDto.getMhaDbReplications().stream().map(e -> e.getSrc().getDbName()).collect(Collectors.joining("|"));
-            fullName = String.format("(%s)\\.%s", fullName, logicTable);
-            mqConfig.setMhaName(mhaMqDto.getSrcMha().getName());
-            mqConfig.setTable(fullName);
-            this.preCheckMqConfig(mqConfig);
-            messengerServiceV2.processAddMqConfig(mqConfig);
-        }
+        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(createDto.getDalclusterName(), createDto.getDbNames(), createDto.getSrcRegionName(), createDto.getMqConfig().getMqTypeEnum());
+        messengerBatchConfigService.processCreateMqConfig(createDto, dbMqConfig);
+        // refresh registry
+        this.refreshRegistryConfig(createDto);
     }
 
-    private void preCheckMqConfig(MqConfigDto mqConfig) {
-        MqConfigCheckVo mqConfigCheckVo = messengerServiceV2.checkMqConfig(mqConfig);
-        if (!Boolean.TRUE.equals(mqConfigCheckVo.getAllowSubmit())) {
-            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.MQ_CONFIG_CHECK_FAIL, JsonUtils.toJson(mqConfigCheckVo.getConflictTables()));
+    private void refreshRegistryConfig(DbMqCreateDto createDto) {
+        if (createDto.getMqConfig().getMqTypeEnum().notSupportDalClient()) {
+            return;
         }
+        DbMqConfigInfoDto dbMqConfig;
+        dbMqConfig = this.getDbMqConfig(createDto.getDalclusterName(), createDto.getDbNames(), createDto.getSrcRegionName(), createDto.getMqConfig().getMqTypeEnum());
+        messengerBatchConfigService.refreshRegistryConfig(dbMqConfig);
     }
 
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
-    public void editDbMqReplication(DbMqEditDto editDto) throws Exception {
+    public void editDbMqReplication(DbMqEditDto editDto) {
         editDto.validAndTrim();
+        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDalclusterName(), editDto.getDbNames(), editDto.getSrcRegionName(), editDto.getMqConfig().getMqTypeEnum());
         // check original config not modified
-        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDbNames(), editDto.getSrcRegionName());
         List<MqLogicTableSummaryDto> logicTableSummaryDtos = dbMqConfig.getLogicTableSummaryDtos();
         Set<Long> requestEditIdSet = Sets.newHashSet(editDto.getDbReplicationIds());
         List<LogicTableSummaryDto> summaryDtos = logicTableSummaryDtos.stream().filter(e -> Sets.newHashSet(e.getDbReplicationIds()).equals(requestEditIdSet)).collect(Collectors.toList());
@@ -988,35 +1049,16 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
         }
 
-        List<MhaMqDto> mhaMqDtos = dbMqConfig.getMhaMqDtos();
-        String logicTable = editDto.getLogicTableConfig().getLogicTable();
-        String topic = editDto.getLogicTableConfig().getDstLogicTable();
-        MqConfigDto mqConfig = editDto.getMqConfig();
-        mqConfig.setTopic(topic);
-
-        for (MhaMqDto mhaMqDto : mhaMqDtos) {
-            List<LogicTableSummaryDto> oldSummaryDtos = LogicTableSummaryDto.from(mhaMqDto.getMhaDbReplications());
-            List<LogicTableSummaryDto> updateTarget = oldSummaryDtos.stream().filter(e -> e.getConfig().equals(editDto.getOriginLogicTableConfig())).collect(Collectors.toList());
-            if (CollectionUtils.isEmpty(updateTarget) || updateTarget.size() != 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
-            }
-            List<Long> dbReplicationIds = updateTarget.get(0).getDbReplicationIds();
-            String fullName = mhaMqDto.getMhaDbReplications().stream().map(e -> e.getSrc().getDbName()).collect(Collectors.joining("|"));
-            fullName = String.format("(%s)\\.%s", fullName, logicTable);
-            mqConfig.setMhaName(mhaMqDto.getSrcMha().getName());
-            mqConfig.setTable(fullName);
-            mqConfig.setDbReplicationIds(dbReplicationIds);
-            this.preCheckMqConfig(mqConfig);
-            messengerServiceV2.processUpdateMqConfig(mqConfig);
-        }
+        messengerBatchConfigService.processUpdateMqConfig(editDto, dbMqConfig);
+        this.refreshRegistryConfig(editDto);
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDbMqReplication(DbMqEditDto editDto) throws Exception {
+    public void deleteDbMqReplication(DbMqEditDto editDto) {
         editDto.validAndTrim();
+        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDalclusterName(), editDto.getDbNames(), editDto.getSrcRegionName(), editDto.getMqConfig().getMqTypeEnum());
         // check original config not modified
-        DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDbNames(), editDto.getSrcRegionName());
         List<MqLogicTableSummaryDto> logicTableSummaryDtos = dbMqConfig.getLogicTableSummaryDtos();
         Set<Long> requestEditIdSet = Sets.newHashSet(editDto.getDbReplicationIds());
         List<LogicTableSummaryDto> summaryDtos = logicTableSummaryDtos.stream().filter(e -> Sets.newHashSet(e.getDbReplicationIds()).equals(requestEditIdSet)).collect(Collectors.toList());
@@ -1024,22 +1066,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
         }
 
-        List<MhaMqDto> mhaMqDtos = dbMqConfig.getMhaMqDtos();
-
-        for (MhaMqDto mhaMqDto : mhaMqDtos) {
-            List<LogicTableSummaryDto> oldSummaryDtos = LogicTableSummaryDto.from(mhaMqDto.getMhaDbReplications());
-            List<LogicTableSummaryDto> deleteTarget = oldSummaryDtos.stream().filter(e -> e.getConfig().equals(editDto.getOriginLogicTableConfig())).collect(Collectors.toList());
-            if (CollectionUtils.isEmpty(deleteTarget) || deleteTarget.size() != 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.ORIGINAL_DB_REPLICATION_CONFIG_NOT_EXIST);
-            }
-
-
-            MqConfigDeleteRequestDto mqConfigDeleteRequestDto = new MqConfigDeleteRequestDto();
-            mqConfigDeleteRequestDto.setMhaName(mhaMqDto.getSrcMha().getName());
-            mqConfigDeleteRequestDto.setDbReplicationIdList(deleteTarget.get(0).getDbReplicationIds());
-            messengerServiceV2.processDeleteMqConfig(mqConfigDeleteRequestDto);
-        }
-
+        messengerBatchConfigService.processDeleteMqConfig(editDto, dbMqConfig);
+        this.refreshRegistryConfig(editDto);
     }
 
     @Override
@@ -1086,9 +1114,10 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         return true;
     }
 
-    private List<String> getDbNamesWithinSameDalCluster(String dbName) {
+    private ShardDatabaseInfoDto getDbNamesWithinSameDalCluster(String dbName) {
         String dalClusterName = getDalclusterName(dbName);
-        return getDbNamesByDalClusterName(dalClusterName);
+        List<String> dbNamesByDalClusterName = getDbNamesByDalClusterName(dalClusterName);
+        return new ShardDatabaseInfoDto(dalClusterName, dbNamesByDalClusterName);
 
     }
 
@@ -1110,9 +1139,19 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
+    private final LoadingCache<String, String> cache = CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .build(new CacheLoader<>() {
+                @Override
+                public String load(@NotNull String dbName) {
+                    return getDalClusterName(dbName);
+                }
+            });
+
     private String getDalclusterName(String dbName) {
         try {
-            return dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbName);
+            cache.getUnchecked(dbName);
         } catch (Exception e) {
             if (EnvUtils.pro()) {
                 throw e;
@@ -1123,6 +1162,10 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         logger.info("get dalcluster from dba api fail. DbName: {}, Assume dalclusterName: {}  ", dbName, dalClusterName);
         return dalClusterName;
 
+    }
+
+    private String getDalClusterName(String dbName) {
+        return dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), dbName);
     }
 
     private void checkExistDbReplication(List<MhaDbReplicationDto> mhaDbReplicationDtos, List<DbApplierDto> dbApplierDtos) {
@@ -1139,29 +1182,18 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         }
     }
 
-    private List<MessengerGroupTblV3> configureMessengerGroups(List<DbApplierDto> dbApplierDtos, List<MhaDbReplicationDto> replicationDtos) throws SQLException {
+    private List<MessengerGroupTblV3> configureMessengerGroups(List<DbApplierDto> dbApplierDtos, List<MhaDbReplicationDto> replicationDtos, MqType mqType) throws SQLException {
         Map<String, DbApplierDto> applierMap = dbApplierDtos.stream().collect(Collectors.toMap(DbApplierDto::getDbName, e -> e));
         List<MessengerGroupTblV3> groupTblV3List = replicationDtos.stream().map(e -> {
             MessengerGroupTblV3 messengerGroupTblV3 = new MessengerGroupTblV3();
             messengerGroupTblV3.setMhaDbReplicationId(e.getId());
             messengerGroupTblV3.setGtidExecuted(applierMap.get(e.getSrc().getDbName()).getGtidInit());
+            messengerGroupTblV3.setMqType(mqType.name());
             messengerGroupTblV3.setDeleted(0);
             return messengerGroupTblV3;
         }).collect(Collectors.toList());
-        messengerGroupTblV3Dao.upsert(groupTblV3List);
+        messengerGroupTblV3Dao.upsert(groupTblV3List, mqType);
         return groupTblV3List;
-    }
-
-    private ApplierGroupTblV2 getApplierGroupTblV2(MhaTblV2 srcMha, MhaTblV2 dstMha) throws SQLException {
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
-        if (mhaReplicationTbl == null) {
-            throw ConsoleExceptionUtils.message("mha replication not exist");
-        }
-        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-        if (applierGroupTblV2 == null) {
-            throw ConsoleExceptionUtils.message("mha applier group not exist");
-        }
-        return applierGroupTblV2;
     }
 
     private void configureMessengers(List<DbApplierDto> dbApplierDtos, List<MhaDbReplicationDto> replicationDtos, List<MessengerGroupTblV3> groupTblV3List) throws SQLException {
@@ -1256,4 +1288,142 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
         return Pair.of(addIps, deleteIps);
     }
+
+
+    @Override
+    public MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto createDto) throws Exception {
+        autoConfigLogger.info("[[tag=autoconfig]] start autoCreateMq: {}", createDto.toString());
+        Transaction transaction = Cat.newTransaction("DRC.autocreate.mq", createDto.getDbName());
+        transaction.addProperty("createDto", createDto.toString());
+        try {
+            createDto.check();
+            checkKafkaTopic(createDto);
+
+            MqAutoCreateDto dto = createDto.deriveMqAutoCreateDto();
+            checkRegionAndCreateMhaDbReplicationForMq(dto);
+            MqMetaCreateResultView view = createMqConfigAndSwitchMessenger(dto);
+            autoConfigLogger.info("[[tag=autoconfig]] autoCreateMq success: {}", view);
+            return view;
+        } catch (Exception e) {
+            autoConfigLogger.error("[[tag=autoconfig]] autoCreateMq error", e);
+            String duplicateMessage = e.getMessage();
+            if (duplicateMessage.startsWith(AutoBuildErrorEnum.DUPLICATE_MQ_CONFIGURATION.getMessage())) {
+                try {
+                    String duplicateTable = duplicateMessage.split("\\|")[1].split(":")[0].split("\\.")[1];
+                    String duplicateTopic = duplicateMessage.split("\\|")[1].split(":")[1];
+                    if (createDto.getTable().equals(duplicateTable) && createDto.getTopic().equals(duplicateTopic)) {
+                        MqMetaCreateResultView view = createDto.deriveMqAutoCreateDto().deriveMqMetaCreateResultView();
+                        view.setContainTables(0);
+                        autoConfigLogger.info("[[tag=autoconfig]] autoCreateMq success: {}", view);
+                        return view;
+                    }
+                } catch (Exception e1) {
+                    autoConfigLogger.error("[[tag=autoconfig]] extract message error", e);
+                }
+            }
+
+            transaction.setStatus(e);
+            throw e;
+        } finally {
+            transaction.complete();
+        }
+    }
+
+    /**
+     * should not have @DalTransactional here
+     */
+    @VisibleForTesting
+    protected void checkRegionAndCreateMhaDbReplicationForMq(MqAutoCreateDto dto) throws Exception {
+        MqType mqType = MqType.valueOf(dto.getMqConfig().getMqType());
+        DrcAutoBuildReq queryRegionDto = dto.deriveDrcAutoBuildReq(DrcAutoBuildReq.BuildMode.DAL_CLUSTER_NAME);
+        List<String> availableRegions = drcAutoBuildService.getRegionOptions(queryRegionDto);
+        if (!availableRegions.contains(dto.getSrcRegionName())) {
+            throw ConsoleExceptionUtils.message(String.format("wrong region (%s only in %s)", dto.getDbName(), availableRegions));
+        }
+        String correctDbName = queryRegionDto.getDalClusterName().replaceFirst("_dalcluster$", "");
+        if (!correctDbName.equals(dto.getDbName())) {
+            throw ConsoleExceptionUtils.message(String.format("need to be shard db like: %s", correctDbName));
+        }
+        dto.setDalclusterName(queryRegionDto.getDalClusterName());
+
+        List<DbMqConfigInfoDto> dbMqConfigInfoDtos = this.getExistDbMqConfigDcOption(dto.getDbName(), mqType);
+        Set<String> existRegion = dbMqConfigInfoDtos.stream().map(DbMqConfigInfoDto::getSrcRegionName).collect(Collectors.toSet());
+        if (!existRegion.contains(dto.getSrcRegionName())) {
+            MhaDbReplicationCreateDto createDto = dto.deriveMhaDbReplicationCreateDto();
+            this.createMhaDbReplicationForMq(createDto);
+        }
+    }
+
+    @VisibleForTesting
+    @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
+    protected MqMetaCreateResultView createMqConfigAndSwitchMessenger(MqAutoCreateDto dto) throws Exception {
+        MqType mqType = MqType.valueOf(dto.getMqConfig().getMqType());
+
+        DbMqConfigInfoDto dbMqConfigInfoDto = this.getDbMqConfig(dto.getDbName(), dto.getSrcRegionName(), mqType);
+        dto.setDbNames(dbMqConfigInfoDto.getDbNames());
+        MqMetaCreateResultView view = dto.deriveMqMetaCreateResultView();
+
+        try {
+            DrcAutoBuildReq queryTableDto = dto.deriveDrcAutoBuildReq(DrcAutoBuildReq.BuildMode.MULTI_DB_NAME);
+            List<TableCheckVo> tables = drcAutoBuildService.preCheckMysqlTables(queryTableDto);
+            view.setContainTables(tables.size());
+        } catch (ConsoleException e) {
+            throw ConsoleExceptionUtils.message("no tables found in db or other error in finding tables");
+        }
+
+        dto.setNotPermitSameTableMqConfig(true);
+
+        List<String> mhaNames = dbMqConfigInfoDto.getMhaMqDtos().stream().map(MhaMqDto::getSrcMha).map(MhaDto::getName).toList();
+
+        try {
+            dLockService.tryLocks(mhaNames, DlockEnum.AUTOCONFIG);
+            Thread.sleep(5000);
+            this.createDbMqReplication(dto);
+            List<MessengerSwitchReqDto> switchReqDtos = dbMqConfigInfoDto.getMhaMqDtos().stream()
+                    .map(mhaMqDto -> {
+                        MessengerSwitchReqDto switchReqDto = new MessengerSwitchReqDto();
+                        switchReqDto.setSrcMhaName(mhaMqDto.getSrcMha().getName());
+                        switchReqDto.setMqType(mqType.name());
+                        return switchReqDto;
+                    }).toList();
+            switchMessengers(switchReqDtos);
+            // push to cm
+            List<String> relatedMhaName = dbMqConfigInfoDto.getMhaMqDtos().stream()
+                    .map(MhaMqDto::getSrcMha).map(MhaDto::getName).toList();
+            notifyCmService.pushConfigToCM(relatedMhaName, DlockEnum.AUTOCONFIG, HttpRequestEnum.PUT);
+
+        } catch (Exception e) {
+            logger.error("autoCreateMq failed", e);
+            throw e;
+        } finally {
+            dLockService.unlockLocks(mhaNames, DlockEnum.AUTOCONFIG);
+        }
+
+        return view;
+    }
+
+    @VisibleForTesting
+    protected void checkKafkaTopic(MqAutoCreateRequestDto dto) {
+        if (MqType.kafka == MqType.valueOf(dto.getMqType())) {
+            String accessToken = domainConfig.getOpsAccessToken();
+            String ckafkaRegion = consoleConfig.getDrcCkafkaRegionMapping().get(dto.getRegion());
+            if (StringUtils.isEmpty(ckafkaRegion)) {
+                throw ConsoleExceptionUtils.message("empty ckafkaRegion");
+            }
+            String dbOwner = dbaApiService.getDbOwner(dto.getDbName());
+            if (StringUtils.isEmpty(dbOwner)) {
+                throw ConsoleExceptionUtils.message("error in check db owner");
+            }
+            try {
+                boolean checkResult = kafkaApiService.prepareTopic(accessToken, new KafkaTopicCreateVo(dto.getTopic(), dto.getKafkaCluster(),
+                        dbOwner, dto.getBu(), dto.getPartitions(), dto.getMaxMessageMB(), ckafkaRegion));
+                if (!checkResult) {
+                    throw ConsoleExceptionUtils.message("kafka topic check fail");
+                }
+            } catch (Exception e) {
+                throw ConsoleExceptionUtils.message("error in check kafka topic");
+            }
+        }
+    }
+
 }

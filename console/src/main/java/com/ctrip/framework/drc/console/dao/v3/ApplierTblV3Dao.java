@@ -50,4 +50,5 @@ public class ApplierTblV3Dao extends AbstractDao<ApplierTblV3> {
                 .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return queryList(sqlBuilder);
     }
+
 }

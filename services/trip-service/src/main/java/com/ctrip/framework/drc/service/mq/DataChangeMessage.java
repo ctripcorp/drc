@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.service.mq;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 import java.util.List;
 
 /**
@@ -9,16 +11,23 @@ import java.util.List;
  * @Version: $
  */
 public class DataChangeMessage {
-    
+    @JSONField(ordinal = 1)
     private OrderKeyInfo orderKeyInfo;
+    @JSONField(ordinal = 5)
     private String eventType;
+    @JSONField(ordinal = 6)
     private String schemaName;
+    @JSONField(ordinal = 9)
     private String tableName;
-    private String drcSendTime;
+    @JSONField(ordinal = 7)
+    private Long drcSendTime;
+    @JSONField(ordinal = 2)
     private long otterParseTime;
+    @JSONField(ordinal = 3)
     private long otterSendTime;
-    
+    @JSONField(ordinal = 4)
     private List<ColumnData> beforeColumnList;
+    @JSONField(ordinal = 8)
     private List<ColumnData> afterColumnList;
 
     public OrderKeyInfo getOrderKeyInfo() {
@@ -53,11 +62,11 @@ public class DataChangeMessage {
         this.tableName = tableName;
     }
 
-    public String getDrcSendTime() {
+    public Long getDrcSendTime() {
         return drcSendTime;
     }
 
-    public void setDrcSendTime(String drcSendTime) {
+    public void setDrcSendTime(Long drcSendTime) {
         this.drcSendTime = drcSendTime;
     }
 
@@ -94,7 +103,7 @@ public class DataChangeMessage {
     }
 
     public static final class OrderKeyInfo {
-        
+        @JSONField(name = "pks")
         private List<String> pk;
         private String schemaName;
         private String tableName;
@@ -125,12 +134,24 @@ public class DataChangeMessage {
     }
     
     public static final class ColumnData {
-        
+        @JSONField(name = "isNull",ordinal = 1)
         private boolean isNull;
+        @JSONField(ordinal = 2)
         private String name;
+        @JSONField(name = "isKey",ordinal = 3)
         private boolean isKey;
+        @JSONField(name = "isUpdated",ordinal = 4)
         private boolean isUpdated;
+        @JSONField(ordinal = 5)
         private String value;
+
+        public ColumnData(String var1, String var2, Boolean var3, Boolean var4, Boolean var5) {
+            this.name = var1;
+            this.value = var2;
+            this.isUpdated = var3;
+            this.isKey = var4;
+            this.isNull = var5;
+        }
 
         public boolean isNull() {
             return isNull;

@@ -13,6 +13,7 @@ public class MessengerMhaBuildParam {
     private String dc;
     private String buName;
     private String tag;
+    private String mqType;
     List<MachineDto> machineDto;
 
     @Override
@@ -22,8 +23,17 @@ public class MessengerMhaBuildParam {
                 ", dc='" + dc + '\'' +
                 ", buName='" + buName + '\'' +
                 ", tag='" + tag + '\'' +
+                ", mqType='" + mqType + '\'' +
                 ", machineDto=" + machineDto +
                 '}';
+    }
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
     }
 
     public List<MachineDto> getMachineDto() {

@@ -100,7 +100,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     @Override
     public void dispose() throws Exception {
-        // todo by yongnian: 2024/4/11 repeat close, ok?
         for (Map.Entry<ApplierKey, NettyClient> applierKey : applierKeys.entrySet()) {
             try {
                 applierKey.getValue().channel().close();

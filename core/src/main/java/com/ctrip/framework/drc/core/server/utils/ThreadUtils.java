@@ -16,6 +16,10 @@ public class ThreadUtils {
 
     private static final int QUEUE_SIZE = 128;
 
+    public static ExecutorService newThreadExecutor(int corePoolSize, int maximumPoolSize, int queueSize, String processName, RejectedExecutionHandler handler) {
+        return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<>(queueSize), newThreadFactory(processName), handler);
+    }
+
     public static ExecutorService newThreadExecutor(int corePoolSize, int maximumPoolSize, int queueSize, String processName) {
         return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue(queueSize), newThreadFactory(processName), new ThreadUtils.RejectedExecutionHandlerImpl());
     }

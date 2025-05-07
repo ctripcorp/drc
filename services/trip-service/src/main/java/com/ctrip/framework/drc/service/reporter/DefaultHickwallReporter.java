@@ -12,6 +12,7 @@ import com.ctrip.ops.hickwall.HickwallUDPReporter;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import io.dropwizard.metrics5.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.annotation.Validated;
@@ -99,7 +100,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     @Override
     public boolean removeRegister(String measurement) {
         metrics.removeMatching(
-                (name, metric) -> name.getKey().equalsIgnoreCase(measurement) 
+                (name, metric) -> name.getKey().equalsIgnoreCase(measurement)
         );
         return true;
     }
@@ -120,7 +121,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
                 (name, metric) ->  {
                     if (name.getKey().equalsIgnoreCase(measurement)) {
                         for (Map.Entry<String, String> entry : tagKvs.entrySet()) {
-                            if (!name.getTags().get(entry.getKey()).equalsIgnoreCase(entry.getValue())) {
+                            if (!StringUtils.equalsIgnoreCase(name.getTags().get(entry.getKey()), entry.getValue())) {
                                 return false;
                             }
                         }
@@ -185,7 +186,9 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     public void reportHistogram(Map<String, String> tags, Long value, String measurement) {
         MetricName metricName = getMetricName(tags, measurement);
-        final Histogram histogram = metrics.histogram(metricName);
+        final Histogram histogram = metrics.histogram(metricName, () ->
+                new Histogram(new ExponentiallyDecayingReservoir(300, 0.07))
+        );
         histogram.update(value);
     }
 
@@ -333,17 +336,14 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         reportResetCounter(entity.getTags(), count, ALTER_TABLE_MEASUREMENT);
     }
 
-    private MetricName getMetricName(Map<String, String> tags, String measurement) {
-        final MetricWrapper metricWrapper = new MetricWrapper(tags, measurement);
-        MetricName metricName;
-        if (null == (metricName = metricMapper.get(metricWrapper))) {
-            metricName = MetricName.build(measurement).tagged(tags);
-            if (UNKNOWN_ENV == ENV) {
-                metricName = metricName.tagged(APP_ID_TAG, APP_ID_PROPERTY);
-            }
-            metricMapper.put(metricWrapper, metricName);
-        }
-        return metricName;
+    protected MetricName getMetricName(Map<String, String> tags, String measurement) {
+        return MetricName.build(measurement).tagged(tags);
     }
 
+    @Override
+    public void reportResetTimer(Map<String, String> tags, long delay, String measurement) {
+        MetricName metricName = getMetricName(tags, measurement);
+        final ResetTimer resetTimer = metrics.resetTimer(metricName);
+        resetTimer.update(delay, TimeUnit.MILLISECONDS);
+    }
 }

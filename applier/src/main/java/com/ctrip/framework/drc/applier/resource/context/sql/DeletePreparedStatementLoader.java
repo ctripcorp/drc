@@ -22,7 +22,7 @@ public interface DeletePreparedStatementLoader extends PreparedStatementLoader {
         String prepareDelete =
                 new DeleteBuilder(fetchTableKey().toString(), columnNames, bitmapOfIdentifier)
                         .prepareWithComment(comment);
-        java.sql.PreparedStatement statement = getConnection().prepareStatement(prepareDelete);
+        PreparedStatement statement = getConnection().prepareStatement(prepareDelete);
         int i = 0;
         for (Object o : identifier) {
             setValue(statement, ++i, o);

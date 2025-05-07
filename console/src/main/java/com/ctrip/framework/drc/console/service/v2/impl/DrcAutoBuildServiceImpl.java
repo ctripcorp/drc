@@ -1,21 +1,16 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
-import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.DrcApplyModeEnum;
-import com.ctrip.framework.drc.console.enums.DrcStatusEnum;
-import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
@@ -25,24 +20,22 @@ import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.assistant.MysqlConfigCheckAssistant;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
-import com.ctrip.framework.drc.console.service.v2.DrcAutoBuildService;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaPreCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
-import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -56,6 +49,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -65,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
+@Lazy
 public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -77,8 +72,6 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
-    @Autowired
-    private ApplierGroupTblV2Dao applierGroupTblDao;
     @Autowired
     private RegionTblDao regionTblDao;
     @Autowired
@@ -105,7 +98,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final List<String> IBU_REGIONS = Lists.newArrayList("sinibuaws", "sinibualiyun");
-    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "drcCheckMysqlConfig"));
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(32, "drcCheckMysqlConfig"));
     @Autowired
     private DbDrcBuildService dbDrcBuildService;
     @Autowired
@@ -163,6 +156,33 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             }
             return matchTable;
         } catch (Throwable e) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.PRE_CHECK_MYSQL_TABLE_INFO_FAIL,e);
+        }
+    }
+
+    @Override
+    public List<MySqlUtils.TableSchemaName> getMatchTable(DrcAutoBuildReq req) {
+        List<DrcAutoBuildParam> drcBuildParam = this.getDrcBuildParam(req);
+
+        return getMatchTable(drcBuildParam);
+    }
+
+    @Override
+    public List<MySqlUtils.TableSchemaName> getMatchTable(List<DrcAutoBuildParam> drcBuildParam) {
+        List<MySqlUtils.TableSchemaName> matchTable = Lists.newArrayList();
+        List<ListenableFuture<List<MySqlUtils.TableSchemaName>>> futures = Lists.newArrayList();
+        for (DrcAutoBuildParam param : drcBuildParam) {
+            String nameFilter = param.getDbNameFilter() + "\\." + param.getTableFilter();
+            String mhaName = param.getSrcMhaName();
+            ListenableFuture<List<MySqlUtils.TableSchemaName>> future = executorService.submit(() -> mysqlServiceV2.getMatchTable(mhaName, nameFilter));
+            futures.add(future);
+        }
+        try {
+            for (ListenableFuture<List<MySqlUtils.TableSchemaName>> future : futures) {
+                matchTable.addAll(future.get(60, TimeUnit.SECONDS));
+            }
+            return matchTable;
+        } catch (Throwable e) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.PRE_CHECK_MYSQL_TABLE_INFO_FAIL);
         }
     }
@@ -178,6 +198,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         List<DrcAutoBuildParam> drcBuildParam = this.getDrcBuildParam(req);
         HashSet<String> commonColumns = Sets.newHashSet();
 
+        List<ListenableFuture<Set<String>>> futures = Lists.newArrayList();
+
         for (DrcAutoBuildParam param : drcBuildParam) {
             String srcMhaName = param.getSrcMhaName();
             String dbNameFilter = param.getDbNameFilter();
@@ -185,18 +207,25 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             if (StringUtils.isBlank(srcMhaName) || StringUtils.isBlank(dbNameFilter) || StringUtils.isBlank(tableFilter)) {
                 throw ConsoleExceptionUtils.message("get common column error, invalid param: " + param);
             }
-            Set<String> columns = mysqlServiceV2.getCommonColumnIn(srcMhaName, dbNameFilter, tableFilter);
-            if (commonColumns.isEmpty()) {
-                commonColumns.addAll(columns);
-            } else {
-                commonColumns.retainAll(columns);
-            }
-            if (commonColumns.isEmpty()) {
-                break;
-            }
+            ListenableFuture<Set<String>> future = executorService.submit(() -> mysqlServiceV2.getCommonColumnIn(srcMhaName, dbNameFilter, tableFilter));
+            futures.add(future);
         }
-
-        return Lists.newArrayList(commonColumns);
+        try {
+            for (ListenableFuture<Set<String>> future : futures) {
+                Set<String> columns = future.get(60, TimeUnit.SECONDS);
+                if (commonColumns.isEmpty()) {
+                    commonColumns.addAll(columns);
+                } else {
+                    commonColumns.retainAll(columns);
+                }
+                if (commonColumns.isEmpty()) {
+                    break;
+                }
+            }
+            return Lists.newArrayList(commonColumns);
+        } catch (Throwable e) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.PRE_CHECK_MYSQL_TABLE_INFO_FAIL);
+        }
     }
 
     @VisibleForTesting
@@ -221,7 +250,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
                 throw new IllegalArgumentException("db names is required!");
             }
             String[] split = dbNames.split(",");
-            list = Arrays.stream(split)
+            list = Arrays.stream(split).parallel()
                     .map(String::trim).distinct()
                     .map(dbName -> new DbClusterInfoDto(dbName, getClusterInfoDtosByDbName(dbName)))
                     .collect(Collectors.toList());
@@ -615,12 +644,12 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             sb.append("db: ").append(previewDto.getDbName());
             if (CollectionUtils.isEmpty(previewDto.getSrcOptionalMha())) {
                 sb.append("no mha options: src region: ").append(previewDto.getSrcRegionName());
-            } else if (previewDto.getSrcOptionalMha().size() > 2) {
+            } else if (previewDto.getSrcOptionalMha().size() >= 2) {
                 sb.append("multi options: src mha: ").append(previewDto.getSrcOptionalMha()).append(" in region ").append(previewDto.getSrcRegionName());
             }
             if (CollectionUtils.isEmpty(previewDto.getDstOptionalMha())) {
                 sb.append("no mha options: dst region: ").append(previewDto.getDstRegionName());
-            } else if (previewDto.getDstOptionalMha().size() > 2) {
+            } else if (previewDto.getDstOptionalMha().size() >= 2) {
                 sb.append("multi options: dst mha: ").append(previewDto.getDstOptionalMha()).append(" in region ").append(previewDto.getDstRegionName());
             }
         }
@@ -644,11 +673,11 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
         MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMhaTbl = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
-        
+
         drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(srcMhaTbl, param.getSrcMachines());
         drcBuildService.syncMhaDbInfoFromDbaApiIfNeeded(dstMhaTbl, param.getDstMachines());
     }
-    
+
     public void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
         // 1.(if needed) build mha, mha replication
         DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(
@@ -709,18 +738,11 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
                 .filter(param.getDbName()::contains)
                 .collect(Collectors.toList());
 
-        boolean dbApplyMode = mhaDbAppliers.stream().anyMatch(e -> !CollectionUtils.isEmpty(e.getIps()));
-        boolean drcConfigEmpty;
-        boolean drcOff;
-        if (dbApplyMode) {
-            if (dbApplyingDbNames.size() != 0 && dbApplyingDbNames.size() != param.getDbName().size()) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_APPLIERS_NOT_CONSISTENT);
-            }
-            drcConfigEmpty = existDbReplication.stream().noneMatch(e -> param.getDbName().contains(e.getDbName()));
-            drcOff = dbApplyingDbNames.size() == 0;
-        } else {
-            drcConfigEmpty = CollectionUtils.isEmpty(existDbReplication);
-            drcOff = !BooleanEnum.TRUE.getCode().equals(srcToDstMhaReplication.getDrcStatus());
+        boolean drcConfigEmpty = existDbReplication.stream().noneMatch(e -> param.getDbName().contains(e.getDbName()));
+        boolean drcOff = dbApplyingDbNames.isEmpty();
+
+        if (!drcOff && dbApplyingDbNames.size() != param.getDbName().size()) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_APPLIERS_NOT_CONSISTENT);
         }
         if (drcOff && !drcConfigEmpty) {
             throw ConsoleExceptionUtils.message("drc has db replication but is stopped. could not auto build.");
@@ -746,12 +768,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
         // 5. auto config appliers
         String applierGtid = newDrc ? gtidInit : null;
-        if (dbApplyMode) {
-            dbDrcBuildService.autoConfigDbAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), Lists.newArrayList(param.getDbName()), applierGtid);
-        } else {
-            applierGroupTblDao.insertOrReCover(srcToDstMhaReplication.getId(), null);
-            drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, applierGtid);
-        }
+        dbDrcBuildService.autoConfigDbAppliers(srcMhaTbl.getMhaName(), dstMhaTbl.getMhaName(), Lists.newArrayList(param.getDbName()), applierGtid, false);
 
         // 6. end
         logger.info("build success: {}", param);

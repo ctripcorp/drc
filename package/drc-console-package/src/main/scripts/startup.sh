@@ -86,6 +86,26 @@ function getCurrentRealPath(){
     dir="$( cd -P "$( dirname "$source" )" && pwd )"
     echo $dir
 }
+function checkAndCreateStatusFile() {
+    local FILE_PATH="$1"
+    if [ ! -f "$FILE_PATH" ]; then
+        # not exist, create it
+        echo "on" > "$FILE_PATH"
+        echo "File $FILE_PATH created and set to 'on'."
+    else
+        local CONTENT=$(cat "$FILE_PATH")
+        if [ "$CONTENT" == "on" ]; then
+            echo "File $FILE_PATH exists and content is 'on'. No changes made."
+        else
+            echo "on" > "$FILE_PATH"
+            echo "File $FILE_PATH content was not 'on'. It has been updated to 'on'."
+        fi
+    fi
+}
+
+# check webapp.status & server.status
+checkAndCreateStatusFile "/opt/status/webapp.status"
+checkAndCreateStatusFile "/opt/status/server.status"
 
 #VARS
 FULL_DIR=`getCurrentRealPath`
@@ -140,7 +160,9 @@ STARTUP_LOG=$LOG_DIR"/startup.logger"
 ARCH=`uname -r`
 #set the jdk to 11/17 version
 if [[ -z "$JAVA_HOME" ]]; then
-    if [[ "$ARCH" == *"aarch64" && -d /usr/java/jdk17/ ]]; then
+    if [[ -d /usr/java/jdk21/ ]]; then
+      export JAVA_HOME=/usr/java/jdk21
+    elif [[ "$ARCH" == *"aarch64" && -d /usr/java/jdk17/ ]]; then
       export JAVA_HOME=/usr/java/jdk17
     elif [[ -d /usr/java/jdk11/ ]]; then
       export JAVA_HOME=/usr/java/jdk11
@@ -193,7 +215,11 @@ then
 fi
 
 declare -i counter=0
-declare -i max_counter=16 # 16*5=80s
+if [ "$ENV" != "PRO" ]; then
+    declare -i max_counter=24 # 24*5=120s
+else
+    declare -i max_counter=60 # 60*5=300s
+fi
 declare -i total_time=0
 
 printf "Waiting for server startup" >> $STARTUP_LOG

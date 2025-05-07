@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.binlog;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -9,6 +8,7 @@ import com.ctrip.framework.drc.core.server.common.SizeNotEnoughException;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.replicator.impl.oubound.ReplicatorException;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,17 +33,17 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final AbstractBinlogScannerManager manager;
+    private final String registryKey;
     protected List<BinlogSender> senders;
     protected final ConsumeType consumeType;
-    protected final GtidSet excludedSet;
+    protected GtidSet excludedSet;
     protected String consumeName;
     protected final OutboundLogEventContext outboundContext = new OutboundLogEventContext();
 
     @Override
-    public GtidSet getFilteredGtidSet() {
-        return excludedSet.filterGtid(getUUids());
+    public GtidSet getGtidSet() {
+        return excludedSet;
     }
-
     public AbstractBinlogScanner(AbstractBinlogScannerManager manager, List<BinlogSender> binlogSenders) {
         validateSenders(binlogSenders);
         this.manager = manager;
@@ -52,6 +52,7 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
         List<GtidSet> sendersGtid = senders.stream().map(BinlogSender::getGtidSet).collect(Collectors.toList());
         this.excludedSet = GtidSet.getIntersection(sendersGtid);
         this.consumeType = getConsumeType(binlogSenders);
+        this.registryKey = manager.getRegistryKey();
     }
 
     private static void validateSenders(List<BinlogSender> binlogSenders) {
@@ -62,11 +63,6 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
             Objects.requireNonNull(binlogSender);
             Objects.requireNonNull(binlogSender.getConsumeType());
         }
-    }
-
-    @Override
-    public boolean canMerge() {
-        return consumeType != ConsumeType.Replicator && this.senders.size() < DynamicConfig.getInstance().getMaxSenderNumPerScanner();
     }
 
     private ConsumeType getConsumeType(List<BinlogSender> binlogSenders) {
@@ -85,12 +81,12 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
             return;
         }
         this.senders.addAll(another.getSenders());
+        this.excludedSet = excludedSet.getIntersection(another.getGtidSet());
     }
 
-    @Override
-    public String getCurrentSendingFileName() {
-        return "unknown";
-    }
+
+
+
 
     @Override
     public void splitConcernSenders(String schema) {
@@ -110,10 +106,7 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
         return excludedSet.getUUIDs();
     }
 
-    @Override
-    public GtidSet getGtidSet() {
-        return excludedSet;
-    }
+
 
     @Override
     public List<BinlogSender> getSenders() {
@@ -204,13 +197,16 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     public void notifySenders(OutboundLogEventContext context) throws Exception {
         if (!this.isConcern(context)) {
+            final BinlogPosition binlogPosition = context.getBinlogPosition();
+            senders.forEach(sender -> sender.updatePosition(binlogPosition));
+            manager.tryMergeScanner(this, "notifySendersSkip");
             return;
         }
         this.preSend(context);
         for (BinlogSender sender : senders) {
             sender.send(context);
         }
-        this.postSend(context);
+        manager.tryMergeScanner(this, "notifySenders");
     }
 
     protected void preSend(OutboundLogEventContext context) {
@@ -248,17 +244,6 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
         }
     }
 
-    private void postSend(OutboundLogEventContext context) {
-        if (isTransactionEnd(context)) {
-            tryMerge();
-        }
-    }
-
-    private void tryMerge() {
-        if (this.canMerge()) {
-            manager.tryMergeScanner(this);
-        }
-    }
 
     private boolean isTransactionEnd(OutboundLogEventContext value) {
         return value.getEventType() == LogEventType.xid_log_event;
@@ -274,6 +259,10 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     protected abstract void readFilePosition(OutboundLogEventContext context) throws IOException;
 
+    @Override
+    public boolean canNotMerge() {
+        return false;
+    }
 
     @Override
     public int compareTo(BinlogScanner another) {
@@ -282,7 +271,7 @@ public abstract class AbstractBinlogScanner extends AbstractLifecycle implements
 
     @Override
     public String toString() {
-        return String.format("[consumeName]: %s, [senders]: %s, [excludedGtid]: %s.", consumeName, senders, excludedSet);
+        return String.format("[consumeName]: %s, [senders]: %s, [binlogPos]: %s.", consumeName, senders, getBinlogPosition());
     }
 
     @Override

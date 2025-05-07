@@ -52,11 +52,8 @@ public class OpenService {
 
     @VisibleForTesting
     protected JsonArray getDbArray(Map<String, Object> body) throws Exception {
-//        JsonObject requestBody = new JsonObject();
-//        requestBody.addProperty("access_token", domainConfig.getCmsAccessToken());
-//        requestBody.add("request_body", body);
         Map<String, Object> requestBody = Maps.newLinkedHashMap();
-        requestBody.put("access_token", domainConfig.getCmsAccessToken());
+        requestBody.put("access_token", domainConfig.getOpsAccessToken());
         requestBody.put("request_body", body);
         String response = HttpUtils.post(domainConfig.getCmsGetDbInfoUrl(),requestBody,String.class);
         JsonObject jsonObject = gson.fromJson(response, JsonObject.class);
@@ -64,11 +61,8 @@ public class OpenService {
     }
 
     public void refreshBuInfoMap(Map<Long, String> buId2BuCodeMap) throws Exception {
-//        JsonObject requestBody = new JsonObject();
-//        requestBody.addProperty("access_token", domainConfig.getCmsAccessToken());
-//        requestBody.add("request_body", null);
         Map<String, Object> requestBody = Maps.newLinkedHashMap();
-        requestBody.put("access_token", domainConfig.getCmsAccessToken());
+        requestBody.put("access_token", domainConfig.getOpsAccessToken());
         requestBody.put("request_body", null);
         String response = HttpUtils.post(domainConfig.getCmsGetBuInfoUrl(),requestBody,String.class);
         JsonObject jsonObject = gson.fromJson(response, JsonObject.class);

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.service.console.service;
 
 import com.ctrip.framework.ckafka.client.KafkaClientFactory;
+import com.ctrip.framework.drc.core.http.DynamicConfig;
 import com.ctrip.framework.drc.core.service.statistics.traffic.CatTrafficMetric;
 import com.ctrip.framework.drc.core.service.statistics.traffic.KafKaTrafficMetric;
 import com.ctrip.framework.drc.core.service.statistics.traffic.RelationCostMetric;
@@ -8,6 +9,7 @@ import com.ctrip.framework.drc.core.service.statistics.traffic.TrafficStatistics
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.dianping.cat.Cat;
 import com.dianping.cat.message.Transaction;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -27,6 +29,8 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
     private static final String KPI_TYPE = "DRC.Traffic";
 
     private final Logger trafficLogger = LoggerFactory.getLogger("TRAFFIC");
+
+    private DynamicConfig dynamicConfig = DynamicConfig.getInstance();
 
     private Producer<String, String> producer;
 
@@ -55,6 +59,9 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
         properties.put(ProducerConfig.LINGER_MS_CONFIG, "200");
         properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "30000");
         properties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "15000");
+        if (StringUtils.isNotEmpty(dynamicConfig.getKafkaBootStrapServers())) {
+            properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, dynamicConfig.getKafkaBootStrapServers());
+        }
         return properties;
     }
 

@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
+import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -62,12 +65,12 @@ public class CentralServiceController {
             return ApiResult.getFailInstance(null, "getMhaDbReplications fail");
         }
     }
-    
+
     @GetMapping("uuid")
-    public ApiResult getUuidInMetaDb(@RequestParam String mhaName,@RequestParam String ip,@RequestParam Integer port) {
+    public ApiResult getUuidInMetaDb(@RequestParam String mhaName, @RequestParam String ip, @RequestParam Integer port) {
         try {
             logger.info("[[tag=centralService]] getUuidInMetaDb");
-            String uuid = centralService.getUuidInMetaDb(mhaName,ip,port);
+            String uuid = centralService.getUuidInMetaDb(mhaName, ip, port);
             return ApiResult.getSuccessInstance(uuid);
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getUuidInMetaDb fail, mhaName: {}, ip: {}, port: {}", mhaName, ip, port, e);
@@ -90,12 +93,82 @@ public class CentralServiceController {
     @GetMapping("mhaAccounts")
     public ApiResult getMhaAccounts(@RequestParam String mhaName) {
         try {
-            logger.info("getMhaAccounts,mha:{}",mhaName);
+            logger.info("getMhaAccounts,mha:{}", mhaName);
             return ApiResult.getSuccessInstance(centralService.getMhaAccounts(mhaName));
         } catch (Throwable e) {
-            logger.info("getMhaAccounts fail,mha:{}",mhaName);
+            logger.info("getMhaAccounts fail,mha:{}", mhaName);
             return ApiResult.getFailInstance(null, "getMhaAccounts fail" + mhaName);
         }
     }
-    
+
+    @PostMapping("replicator")
+    public ApiResult updateMasterReplicatorIfChange(@RequestBody MhaReplicatorEntity requestBody) {
+        try {
+            logger.info("[updateMasterReplicatorIfChange] requestBody: {}", requestBody);
+            return ApiResult.getSuccessInstance(centralService.updateMasterReplicatorIfChange(requestBody));
+        } catch (Throwable e) {
+            logger.info("updateMasterReplicatorIfChange fail,requestBody:{}, {}", requestBody);
+            return ApiResult.getFailInstance(null, "updateMasterReplicatorIfChange fail: " + requestBody);
+        }
+    }
+
+    @PostMapping("replicator/batch")
+    public ApiResult batchUpdateMasterReplicatorIfChange(@RequestBody MhaReplicatorEntity requestBody) {
+        try {
+            logger.info("[updateMasterReplicatorIfChange] requestBody: {}", requestBody);
+            return ApiResult.getSuccessInstance(centralService.batchUpdateMasterReplicatorIfChange(requestBody));
+        } catch (Throwable e) {
+            logger.info("updateMasterReplicatorIfChange fail,requestBody:{}, {}", requestBody);
+            return ApiResult.getFailInstance(null, "updateMasterReplicatorIfChange fail: " + requestBody);
+        }
+    }
+
+    @GetMapping("allDcTbl")
+    public ApiResult queryAllDcTbl() {
+        try {
+            logger.info("[[tag=centralService]] queryAllDcTbl");
+            List<DcTbl> dcTbls = centralService.queryAllDcTbl();
+            return ApiResult.getSuccessInstance(dcTbls);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] queryAllDcTbl fail");
+            return ApiResult.getFailInstance(null, "queryAllDcTbl fail");
+        }
+    }
+
+    @GetMapping("allMhaTbl")
+    public ApiResult queryAllMhaTblV2() {
+        try {
+            logger.info("[[tag=centralService]] queryAllMhaTblV2");
+            List<MhaTblV2> mhaTblV2s = centralService.queryAllMhaTblV2();
+            return ApiResult.getSuccessInstance(mhaTblV2s);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] queryAllMhaTblV2 fail");
+            return ApiResult.getFailInstance(null, "queryAllMhaTblV2 fail");
+        }
+    }
+
+    @GetMapping("allResourceTbl")
+    public ApiResult queryAllResourceTbl() {
+        try {
+            logger.info("[[tag=centralService]] queryAllResourceTbl");
+            List<ResourceTbl> resourceTbls = centralService.queryAllResourceTbl();
+            return ApiResult.getSuccessInstance(resourceTbls);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] queryAllResourceTbl fail");
+            return ApiResult.getFailInstance(null, "queryAllResourceTbl fail");
+        }
+    }
+
+    @GetMapping("dcName")
+    public ApiResult getDcName(@RequestParam String mhaName) {
+        try {
+            logger.info("[[tag=centralService]] getDcName");
+            String dcName = centralService.getDcName(mhaName);
+            return ApiResult.getSuccessInstance(dcName);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getDcName fail");
+            return ApiResult.getFailInstance(null, "getDcName fail");
+        }
+    }
+
 }

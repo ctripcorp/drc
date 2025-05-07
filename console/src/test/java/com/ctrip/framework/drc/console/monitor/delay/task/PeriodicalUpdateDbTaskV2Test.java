@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.console.monitor.delay.task;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -19,8 +19,8 @@ import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.when;
@@ -45,7 +45,6 @@ public class PeriodicalUpdateDbTaskV2Test {
     public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet("ntgxh"));
-        when(consoleConfig.getDbApplierConfigureSwitch(anyString())).thenReturn(true);
         MhaDbReplicationDto dto = new MhaDbReplicationDto();
         dto.setSrc(new MhaDbDto(1L,"mha_db_1_src","db1"));
         dto.setDst(new MhaDbDto(1L,"mha_db_1_dst","db1"));
@@ -57,10 +56,10 @@ public class PeriodicalUpdateDbTaskV2Test {
 
     @Test
     public void test() {
-        Map<String, List<String>> mhaDb1Dst = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("some_mha");
+        Map<String, Set<String>> mhaDb1Dst = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("some_mha");
         Assert.assertTrue(mhaDb1Dst.isEmpty());
 
-        Map<String, List<String>> mhaDb2 = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("mha_db_1_dst");
+        Map<String, Set<String>> mhaDb2 = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha("mha_db_1_dst");
         Assert.assertFalse(mhaDb2.isEmpty());
     }
 }

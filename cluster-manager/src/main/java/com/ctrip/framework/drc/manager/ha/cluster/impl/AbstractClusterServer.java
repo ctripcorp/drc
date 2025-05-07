@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterServerInfo;
 import com.ctrip.xpipe.observer.AbstractLifecycleObservable;
@@ -69,6 +70,10 @@ public abstract class AbstractClusterServer extends AbstractLifecycleObservable 
     @Override
     public ClusterServerInfo getClusterInfo() {
         return this.clusterServerInfo;
+    }
+
+    protected synchronized void updateClusterState(ServerStateEnum stateEnum) {
+        this.clusterServerInfo.setState(stateEnum);
     }
 
     @Override

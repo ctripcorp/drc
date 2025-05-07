@@ -7,6 +7,16 @@ import com.ctrip.framework.drc.core.server.config.InfoDto;
 public class ReplicatorInfoDto extends InfoDto {
     private String upstreamMasterIp;
 
+    private int applierPort;
+
+    public int getApplierPort() {
+        return applierPort;
+    }
+
+    public void setApplierPort(int applierPort) {
+        this.applierPort = applierPort;
+    }
+
     public String getUpstreamMasterIp() {
         return upstreamMasterIp;
     }

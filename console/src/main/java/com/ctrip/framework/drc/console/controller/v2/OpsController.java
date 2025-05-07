@@ -9,6 +9,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.v2.GtidCompensateParam;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -35,6 +36,8 @@ public class OpsController {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private MhaServiceV2 mhaServiceV2;
 
     @GetMapping("migrate/sgp/rowsFilter")
     public ApiResult getRowsFilterIdsShouldMigrateToSGP(@RequestParam String srcRegion) {
@@ -58,15 +61,7 @@ public class OpsController {
         }
     }
 
-    @PostMapping("gtid/gapCompensate")
-    public ApiResult gapCompensate(@RequestBody GtidCompensateParam gtidCompensateParam) {
-        try {
-            return  ApiResult.getSuccessInstance(drcBuildServiceV2.compensateGtidGap(gtidCompensateParam));
-        } catch (Exception e) {
-            logger.error("gapCompensate error", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
+
 
     @PostMapping("account/passwordToken")
     public ApiResult initMhaPasswordToken(@RequestBody List<String> mhas) {
@@ -98,5 +93,54 @@ public class OpsController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+    
+
+    @PostMapping("bu/isolation/mha")
+    public ApiResult updateMhaTag(@RequestBody List<String> mhas, @RequestParam String tag) {
+        try {
+            logger.info("changeMhasTag mhas:{}, tag:{}", mhas, tag);
+            return ApiResult.getSuccessInstance(mhaServiceV2.updateMhaTag(mhas, tag));
+        } catch (Exception e) {
+            logger.error("isolateMha error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    
+
+    @PostMapping("bu/isolation/replicator")
+    public ApiResult isolateReplicator(
+            @RequestBody List<String> mhas, 
+            @RequestParam boolean master, 
+            @RequestParam String tag, 
+            @RequestParam(required = false,defaultValue = "") String gtid //only for special case
+    ) {
+        try {
+            return ApiResult.getSuccessInstance(drcBuildServiceV2.isolationMigrateReplicator(mhas, master, tag, gtid));
+        } catch (Exception e) {
+            logger.error("isolateReplicator error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("bu/isolation/applier")
+    public ApiResult isolateApplier(@RequestBody List<String> mhas,@RequestParam String tag) {
+        try {
+            return ApiResult.getSuccessInstance(drcBuildServiceV2.isolationMigrateApplier(mhas, tag));
+        } catch (Exception e) {
+            logger.error("isolateApplier error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("bu/isolation/status")
+    public ApiResult checkStatus(@RequestBody List<String> mhas,@RequestParam String tag) {
+        try {
+            return ApiResult.getSuccessInstance(drcBuildServiceV2.checkIsoMigrateStatus(mhas, tag));
+        } catch (Exception e) {
+            logger.error("isolateApplier error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    
 
 }

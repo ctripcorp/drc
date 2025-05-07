@@ -5,18 +5,19 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.DisposableFeature;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,8 @@ public class MhaControllerV2 {
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
     @GetMapping("replicator")
     public ApiResult<List<String>> getMhaReplicators(@RequestParam String mhaName) {
@@ -147,9 +150,11 @@ public class MhaControllerV2 {
     }
 
     @GetMapping("messenger")
-    public ApiResult<List<String>> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName) {
+    public ApiResult<MhaMessengerDto> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName,
+                                                       @RequestParam(name = "mqType") String mqType
+    ) {
         try {
-            return ApiResult.getSuccessInstance(mhaServiceV2.getMhaMessengers(mhaName));
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMhaMessengers(mhaName, MqType.parse(mqType)));
         } catch (Throwable e) {
             logger.error("getMhaMessengers for {} exception ", mhaName, e);
             return ApiResult.getFailInstance(null, e.getMessage());
@@ -187,19 +192,8 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
-    @PostMapping("membersSync")
-    public ApiResult syncMhaMembersInfo(@RequestParam String mhaName) {
-        logger.info("[meta] syncMhaMembersInfo for  {}", mhaName);
-        try {
-            drcBuildServiceV2.syncMhaInfoFormDbaApi(mhaName);
-            return ApiResult.getSuccessInstance(null,"syncMhaMembersInfo success!");
-        } catch (Exception e) {
-            logger.error("[meta] syncMhaMembersInfo for {}", mhaName, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-    
+
+
     @GetMapping("shouldOffline")
     public ApiResult getMhasShouldOffline() {
         try {
@@ -209,7 +203,7 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
     @DeleteMapping("mhaName")
     public ApiResult deleteMhasShuoldOffline(@RequestBody List<String> mhas) {
         try {
@@ -221,6 +215,7 @@ public class MhaControllerV2 {
     }
 
     @GetMapping("shouldOfflineV2")
+    @DisposableFeature
     public ApiResult getMhasShouldOfflineV2(@RequestParam(required = true) Boolean checkDbReplication) {
         try {
             return ApiResult.getSuccessInstance(mhaServiceV2.getMhasWithoutDrcReplication(checkDbReplication));
@@ -230,6 +225,7 @@ public class MhaControllerV2 {
         }
     }
     @DeleteMapping("mhaWithoutDrcReplication")
+    @DisposableFeature
     public ApiResult deleteReplicators(@RequestBody List<String> mhas) {
         try {
             if (CollectionUtils.isEmpty(mhas)) {
@@ -241,7 +237,8 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
+
     @GetMapping("machine/shouldOffline")
     public ApiResult getMachineShouldOffline() {
         try {
@@ -251,7 +248,7 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
     @DeleteMapping("machine/offline")
     public ApiResult deleteMachineShouldOffline(@RequestBody List<Long> machineIds) {
         try {
@@ -273,5 +270,45 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-    
+
+    @GetMapping("columnDefault")
+    public ApiResult findColumnDefaultValueLengthGt251(@RequestParam String mha) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.findColumnDefaultValueLengthGt251(mha));
+        } catch (Exception e) {
+            logger.error("findColumnDefaultValueLengthGt251 error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("columnDefault/list")
+    public ApiResult findColumnDefaultValueLengthGt251(@RequestBody List<String> mhas) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.findColumnDefaultValueLengthGt251(mhas));
+        } catch (Exception e) {
+            logger.error("findColumnDefaultValueLengthGt251 error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("columnDefault/listAll")
+    public ApiResult findAllColumnDefaultValueLengthGt251(@RequestParam int batch) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.findAllColumnDefaultValueLengthGt251(batch));
+        } catch (Exception e) {
+            logger.error("findAllColumnDefaultValueLengthGt251 error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @PostMapping("createDrcMessengerGtidTbl")
+    public ApiResult createDrcMessengerGtidTbl() {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.createDrcMessengerGtidTbl());
+        } catch (Exception e) {
+            logger.error("createDrcMessengerGtidTbl error", e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
 }

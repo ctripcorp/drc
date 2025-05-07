@@ -1,10 +1,11 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
-import com.ctrip.framework.drc.applier.event.ApplierDrcTableMapEvent;
-import com.ctrip.framework.drc.applier.event.ApplierTableMapEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcTableMapEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierTableMapEvent;
 import com.ctrip.framework.drc.applier.event.ApplierWriteRowsEvent;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTable;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
@@ -15,7 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
+import static com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 /**
  * Created by jixinwang on 2022/2/9
@@ -37,7 +38,7 @@ public class TransactionTableApplierDumpEventActivityTest {
         NetworkContextResource networkContextResource = new NetworkContextResource();
         networkContextResource.initialize();
         dumpEventActivity.setContext(networkContextResource);
-        dumpEventActivity.updateContextGtidSet("45c8023b-888d-11ec-9f82-b8cef68a4636:4733");
+        dumpEventActivity.updateContextGtidSet(new Gtid("45c8023b-888d-11ec-9f82-b8cef68a4636:4733"));
         GtidSet gtidSet = networkContextResource.fetchGtidSet();
         Assert.assertEquals("45c8023b-888d-11ec-9f82-b8cef68a4636:4733", gtidSet.toString());
     }

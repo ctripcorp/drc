@@ -40,6 +40,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorComma
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.HeartBeatCommandHandler;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheck;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -49,7 +50,6 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -100,8 +100,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         int applyMode = mySQLSlaveConfig.getApplyMode();
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         InboundFilterChainContext transactionContext = new InboundFilterChainContext.Builder().applyMode(applyMode).build();
-        transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext))
-                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
+        transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext), clusterName)
+                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext), clusterName);
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
@@ -219,7 +219,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
         replicatorInfoDto.setMaster(instanceStatus == InstanceStatus.ACTIVE);
         replicatorInfoDto.setIp(this.replicatorConfig.getMySQLMasterConfig().getIp());
-        replicatorInfoDto.setPort(this.replicatorConfig.getApplierPort());
+        replicatorInfoDto.setPort(null);
+        replicatorInfoDto.setApplierPort(this.replicatorConfig.getApplierPort());
         replicatorInfoDto.setUpstreamMasterIp(this.replicatorConfig.getMySQLSlaveConfig().getEndpoint().getHost());
         return replicatorInfoDto;
     }
@@ -239,20 +240,16 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         // scanner info
         Map<ConsumeType, List<BinlogScanner>> senderSizeByType = scannerManager.getScanners().stream().collect(Collectors.groupingBy(BinlogScanner::getConsumeType));
         for (Map.Entry<ConsumeType, List<BinlogScanner>> entry : senderSizeByType.entrySet()) {
-            ConsumeType consumeType = entry.getKey();
             List<BinlogScanner> scanners = entry.getValue();
             for (BinlogScanner scanner : scanners) {
                 ReplicatorDetailInfoDto.ScannerDto scannerDto = new ReplicatorDetailInfoDto.ScannerDto();
-                GtidSet scannerFilteredGtidSet = scanner.getFilteredGtidSet();
-                scannerDto.setGtid(scannerFilteredGtidSet.toString());
+                BinlogPosition binlogPosition = scanner.getBinlogPosition();
+                scannerDto.setBinlogPosition(binlogPosition.toString());
                 scannerDto.setConsumeType(scanner.getConsumeType().name());
                 scannerDto.setCurrentFile(scanner.getCurrentSendingFileName());
-                Set<String> uuiDs = scannerFilteredGtidSet.getUUIDs();
                 List<ReplicatorDetailInfoDto.SenderDto> senders = scanner.getSenders().stream().map(sender -> {
                     ReplicatorDetailInfoDto.SenderDto senderDto = new ReplicatorDetailInfoDto.SenderDto(sender.getApplierName());
-                    GtidSet gtidSet = sender.getGtidSet().filterGtid(uuiDs);
-                    senderDto.setGtid(gtidSet.toString());
-                    senderDto.setGtidGap(gtidSet.subtract(scannerFilteredGtidSet).toString());
+                    senderDto.setBinlogPosition(sender.getBinlogPosition().toString());
                     return senderDto;
                 }).collect(Collectors.toList());
                 scannerDto.setSenders(senders);

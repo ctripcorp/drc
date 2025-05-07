@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.event;
 
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
@@ -37,6 +38,11 @@ public class MockTransactionContext implements BaseTransactionContext {
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
+
+    }
+
+    @Override
+    public void setLogEventHeader(LogEventHeader logEventHeader) {
 
     }
 

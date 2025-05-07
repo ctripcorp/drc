@@ -11,12 +11,7 @@ import com.ctrip.framework.drc.applier.container.controller.task.WatchKeyedTaskT
 import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTest;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTestWithMockedEvents;
-import com.ctrip.framework.drc.applier.mq.MqPositionResourceTest;
 import com.ctrip.framework.drc.applier.resource.TransactionTableResourceTest;
-import com.ctrip.framework.drc.applier.resource.condition.LWMResourceInnerBucketTest;
-import com.ctrip.framework.drc.applier.resource.condition.LWMResourceInnerChartTest;
-import com.ctrip.framework.drc.applier.resource.condition.LWMResourceTest;
-import com.ctrip.framework.drc.applier.resource.condition.ProgressResourceTest;
 import com.ctrip.framework.drc.applier.resource.context.*;
 import com.ctrip.framework.drc.applier.resource.context.savepoint.DefaultSavepointExecutorTest;
 import com.ctrip.framework.drc.applier.resource.context.sql.*;
@@ -42,7 +37,6 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         //config
-        ProgressResourceTest.class,
         ApplierPooledConnectorTest.class,
 
         LocalApplierServerTest.class,
@@ -60,17 +54,11 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         ApplierDeleteRowsEventTest.class,
         ApplierXidEventTest.class,
 
-
-        //Resource
-        //Condition
-        LWMResourceInnerBucketTest.class,
-        LWMResourceInnerChartTest.class,
-        LWMResourceTest.class,
         //Context
         GtidContextTest.class,
         StatementExecutorResultTest.class,
         //Those who needs MySQL instance.
-        TransactionContextResourceTest.class,
+        ApplierTransactionContextResourceTest.class,
         BatchTransactionContextResourceTest.class,
         DefaultSavepointExecutorTest.class,
         BatchPreparedStatementExecutorTest.class,
@@ -105,9 +93,6 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         TransactionTableApplierDumpEventActivityTest.class,
         ReportConflictActivityTest.class,
 
-        //mq
-        MqPositionResourceTest.class,
-        MqTransactionContextResourceTest.class
 })
 public class AllTests {
 

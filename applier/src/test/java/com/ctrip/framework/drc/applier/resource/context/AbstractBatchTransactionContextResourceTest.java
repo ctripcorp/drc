@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
+import com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -51,7 +52,7 @@ public abstract class AbstractBatchTransactionContextResourceTest extends Abstra
     }
 
     @Override
-    protected TransactionContextResource getBatchPreparedStatementExecutor(TransactionContextResource parent) {
+    protected TransactionContextResource getBatchPreparedStatementExecutor(ApplierTransactionContextResource parent) {
         return parent;
     }
 }

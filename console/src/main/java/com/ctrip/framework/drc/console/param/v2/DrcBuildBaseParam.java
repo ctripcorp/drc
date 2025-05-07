@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2;
 
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.util.List;
 
@@ -11,17 +12,18 @@ import java.util.List;
 public class DrcBuildBaseParam {
     private String mhaName;
     private List<String> replicatorIps;
-    private List<String> applierIps;
-    private List<DbApplierDto> dbApplierDtos;
     private String replicatorInitGtid;
-    private String applierInitGtid;
+    private List<DbApplierDto> dbApplierDtos;
 
-    public DrcBuildBaseParam(String mhaName, List<String> replicatorIps, List<String> applierIps, String replicatorInitGtid, String applierInitGtid) {
+    /**
+     * only need for mq config
+     */
+    private String mqType;
+
+    public DrcBuildBaseParam(String mhaName, List<String> replicatorIps, String replicatorInitGtid) {
         this.mhaName = mhaName;
         this.replicatorIps = replicatorIps;
-        this.applierIps = applierIps;
         this.replicatorInitGtid = replicatorInitGtid;
-        this.applierInitGtid = applierInitGtid;
     }
 
     public DrcBuildBaseParam() {
@@ -51,13 +53,6 @@ public class DrcBuildBaseParam {
         this.replicatorIps = replicatorIps;
     }
 
-    public List<String> getApplierIps() {
-        return applierIps;
-    }
-
-    public void setApplierIps(List<String> applierIps) {
-        this.applierIps = applierIps;
-    }
 
     public String getReplicatorInitGtid() {
         return replicatorInitGtid;
@@ -67,12 +62,16 @@ public class DrcBuildBaseParam {
         this.replicatorInitGtid = replicatorInitGtid;
     }
 
-    public String getApplierInitGtid() {
-        return applierInitGtid;
+    public String getMqType() {
+        return mqType;
     }
 
-    public void setApplierInitGtid(String applierInitGtid) {
-        this.applierInitGtid = applierInitGtid;
+    public MqType getMqTypeEnum() {
+        return MqType.valueOf(mqType);
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
     }
 
     @Override
@@ -80,10 +79,9 @@ public class DrcBuildBaseParam {
         return "DrcBuildBaseParam{" +
                 "mhaName='" + mhaName + '\'' +
                 ", replicatorIps=" + replicatorIps +
-                ", applierIps=" + applierIps +
-                ", dbApplierDtos=" + dbApplierDtos +
                 ", replicatorInitGtid='" + replicatorInitGtid + '\'' +
-                ", applierInitGtid='" + applierInitGtid + '\'' +
+                ", dbApplierDtos=" + dbApplierDtos +
+                ", mqType='" + mqType + '\'' +
                 '}';
     }
 }

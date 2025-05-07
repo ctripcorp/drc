@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dao.log.entity;
 
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
 import com.ctrip.platform.dal.dao.annotation.Database;
 import com.ctrip.platform.dal.dao.annotation.Type;
 
@@ -86,6 +87,14 @@ public class ConflictRowsLogTbl {
     @Column(name = "row_result")
     @Type(value = Types.TINYINT)
     private Integer rowResult;
+
+    /**
+     * 事务处理结果详情
+     * @see ConflictDetail
+     */
+    @Column(name = "row_result_detail")
+    @Type(value = Types.VARCHAR)
+    private String rowResultDetail;
     
     /**
      *  是否结果: 0-brief 1-brief[row_sql is empty]
@@ -286,5 +295,13 @@ public class ConflictRowsLogTbl {
 
     public void setBrief(Integer brief) {
         this.brief = brief;
+    }
+
+    public void setRowResultDetail(String rowResultDetail) {
+        this.rowResultDetail = rowResultDetail;
+    }
+
+    public String getRowResultDetail() {
+        return rowResultDetail;
     }
 }

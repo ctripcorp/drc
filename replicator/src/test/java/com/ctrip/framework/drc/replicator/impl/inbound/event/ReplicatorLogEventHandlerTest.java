@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
-import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE_V2;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.PersistPostFilter.FAKE_SERVER_PARAM;
@@ -116,7 +116,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         filePersistenceEventStore.initialize();
         filePersistenceEventStore.start();
 
-        transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain);
+        transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain, "ut_test");
         transactionCache.initialize();
         transactionCache.start();
 
@@ -154,7 +154,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + FILTER_LOG_EVENT_SIZE * 3);
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + 3 * ((GTID_ZISE + 4) + XID_ZISE) + FILTER_LOG_EVENT_SIZE * 3);
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
     }
@@ -168,7 +168,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + FILTER_LOG_EVENT_SIZE * 3);
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + 3 * ((GTID_ZISE + 4) + XID_ZISE) + FILTER_LOG_EVENT_SIZE * 3);
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
     }
@@ -193,8 +193,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 6 * FILTER_LOG_EVENT_SIZE); // 3 * drc_gtid_log_event + 3 * (gtid_log_event + xid) + 6 * filter_log_event
-//        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * (GTID_ZISE + 4)); // 3 * drc_gtid_log_event + 3 * (gtid_log_event + xid)
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 6 * FILTER_LOG_EVENT_SIZE); // 3 * drc_gtid_log_event + 3 * (gtid_log_event + xid) + 6 * filter_log_event
+//        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * (GTID_ZISE + 4)); // 3 * drc_gtid_log_event + 3 * (gtid_log_event + xid)
 
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
@@ -209,8 +209,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        int filterLogEventSize = FILTER_LOG_EVENT_SIZE + (19 + 1 + "configdbs".length() + 4 + 1 + "unitest".length() + 4);
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + TABLE_MAP_EVENT_SIZE + 2 * ((GTID_ZISE + 4) + XID_ZISE) + filterLogEventSize);
+        int filterLogEventSize = FILTER_LOG_EVENT_SIZE + (19 + 1 + "configdbs".length() + 4 + 1 + "unitest".length() + 4 + 4);
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + TABLE_MAP_EVENT_SIZE + 2 * ((GTID_ZISE + 4) + XID_ZISE) + filterLogEventSize);
 
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
@@ -231,7 +231,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         int FAKE_XID_SIZE = (int) fakeXidLogEvent.getLogEventHeader().getEventSize();
         logger.info("[Fake Xid] size is {}, [Xid] size is {}, [Gtid] size is {}", FAKE_XID_SIZE, XID_ZISE, GTID_ZISE);
 
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + 3 * (GTID_ZISE + 4)/*transaction offset (+4)*/ + XID_ZISE + FAKE_XID_SIZE + FILTER_LOG_EVENT_SIZE * 3);
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + 3 * (GTID_ZISE + 4)/*transaction offset (+4)*/ + XID_ZISE + FAKE_XID_SIZE + FILTER_LOG_EVENT_SIZE * 3);
 
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);

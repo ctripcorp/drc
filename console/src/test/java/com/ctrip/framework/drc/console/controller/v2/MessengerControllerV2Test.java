@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.entity.BuTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -13,6 +11,7 @@ import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,55 +34,35 @@ public class MessengerControllerV2Test {
     @Mock
     DefaultConsoleConfig defaultConsoleConfig;
 
+    MqType mqType = MqType.DEFAULT;
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         when(defaultConsoleConfig.getNewDrcConfigSwitch()).thenReturn(DefaultConsoleConfig.SWITCH_ON);
     }
 
-    @Test
-    public void testGetAllMessengerVos() throws Exception {
-        long buId = 1L;
-        MhaTblV2 mhaTblV2 = new MhaTblV2();
-        mhaTblV2.setBuId(buId);
-        mhaTblV2.setMonitorSwitch(0);
-        when(messengerService.getAllMessengerMhaTbls()).thenReturn(List.of(mhaTblV2));
-        BuTbl e1 = new BuTbl();
-        e1.setId(buId);
-        e1.setBuName("bbz");
-        when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(List.of(e1));
-
-        ApiResult<List<MessengerVo>> result = messengerControllerV2.getAllMessengerVos();
-        MessengerVo data = result.getData().get(0);
-        Assert.assertEquals(data.getMhaName(), mhaTblV2.getMhaName());
-        Assert.assertEquals(data.getBu(), e1.getBuName());
-    }
 
     @Test
     public void testQueryAllMessengerVos() throws Exception {
-        long buId = 1L;
-        MhaTblV2 mhaTblV2 = new MhaTblV2();
-        mhaTblV2.setBuId(buId);
-        mhaTblV2.setMonitorSwitch(0);
-        when(messengerService.getMessengerMhaTbls(any())).thenReturn(List.of(mhaTblV2));
-        BuTbl e1 = new BuTbl();
-        e1.setId(buId);
-        e1.setBuName("bbz");
-        when(metaInfoServiceV2.queryAllBuWithCache()).thenReturn(List.of(e1));
+        MessengerVo messengerVo = new MessengerVo();
+        messengerVo.setBu("bbz");
+        messengerVo.setMhaName(null);
+        when(messengerService.getMessengerMhaTbls(any())).thenReturn(List.of(messengerVo));
 
         MessengerQueryDto queryDto = new MessengerQueryDto();
+        queryDto.setMqType(MqType.DEFAULT.name());
         ApiResult<List<MessengerVo>> result = messengerControllerV2.queryMessengerVos(queryDto);
         MessengerVo data = result.getData().get(0);
-        Assert.assertEquals(data.getMhaName(), mhaTblV2.getMhaName());
-        Assert.assertEquals(data.getBu(), e1.getBuName());
+        Assert.assertEquals(data.getMhaName(), messengerVo.getMhaName());
+        Assert.assertEquals(data.getBu(), messengerVo.getBu());
     }
 
     @Test
     public void testGetAllMqConfigsByMhaName() throws Exception {
         List<MqConfigVo> value = List.of(new MqConfigVo());
-        when(messengerService.queryMhaMessengerConfigs(anyString())).thenReturn(value);
+        when(messengerService.queryMhaMessengerConfigs(anyString(), eq(MqType.DEFAULT))).thenReturn(value);
 
-        ApiResult<List<MqConfigVo>> result = messengerControllerV2.getAllMqConfigsByMhaName("mhaName");
+        ApiResult<List<MqConfigVo>> result = messengerControllerV2.getAllMqConfigsByMhaName("mhaName", MqType.qmq.name());
         Assert.assertEquals(value, result.getData());
     }
 
@@ -106,6 +85,7 @@ public class MessengerControllerV2Test {
         MqConfigDto dto = new MqConfigDto();
         dto.setMhaName("testMha");
         dto.setTable("testDb\\.(testTable)");
+        dto.setMqType(MqType.DEFAULT.name());
         ApiResult<MqConfigCheckVo> result = messengerControllerV2.checkMqConfig(dto);
         Assert.assertEquals(res, result.getData());
     }
@@ -132,22 +112,15 @@ public class MessengerControllerV2Test {
         MqConfigDeleteRequestDto requestDto = new MqConfigDeleteRequestDto();
         requestDto.setMhaName("testMha");
         requestDto.setDbReplicationIdList(Lists.newArrayList(1L));
+        requestDto.setMqType(MqType.DEFAULT.name());
         ApiResult<Void> result = messengerControllerV2.deleteMqConfig(requestDto);
         verify(messengerService, times(1)).processDeleteMqConfig(any());
     }
 
     @Test
-    public void testGetMessengerExecutedGtid() throws Exception {
-        String gtid = "getMessengerGtidExecutedResponse";
-        when(messengerService.getMessengerGtidExecuted(anyString())).thenReturn(gtid);
-
-        ApiResult result = messengerControllerV2.getMessengerExecutedGtid("mhaName");
-        Assert.assertEquals(gtid, result.getData());
-    }
-
-    @Test
     public void testDeleteMha() {
-        ApiResult<Boolean> result = messengerControllerV2.removeMessengerGroupInMha("mhaName");
+        ApiResult<Boolean> result = messengerControllerV2.removeMessengerGroupInMha("mhaName", mqType.name());
         Assert.assertEquals((Integer) ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus());
     }
+
 }

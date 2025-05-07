@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.vo.display.v2.DelayInfoVo;
+import com.ctrip.framework.drc.console.vo.request.MhaDbDelayQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -11,10 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -43,9 +41,11 @@ public class MhaDbReplicationController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    @GetMapping("delay")
+
+    @PostMapping("delay")
     @SuppressWarnings("unchecked")
-    public ApiResult<DelayInfoVo> getMhaReplicationDelay(@RequestParam(name = "replicationIds") List<Long> replicationIds) {
+    public ApiResult<DelayInfoVo> getMhaReplicationDelay(@RequestBody MhaDbDelayQueryDto mhaDbDelayQueryDto) {
+        List<Long> replicationIds = mhaDbDelayQueryDto.getReplicationIds();
         try {
             if (CollectionUtils.isEmpty(replicationIds)) {
                 return ApiResult.getSuccessInstance(Collections.emptyList());

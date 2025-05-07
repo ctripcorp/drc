@@ -78,7 +78,7 @@ public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServe
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline p = ch.pipeline();
-                        p.addLast(new LoggingHandler(LogLevel.DEBUG));
+//                        p.addLast(new LoggingHandler(LogLevel.DEBUG));
                         p.addLast(new UnpackDecoder());
                         p.addLast(new ChunkedWriteHandler());
                         p.addLast(new IdleStateHandler(MASTER_HEARTBEAT_PERIOD_SECONDS, MASTER_HEARTBEAT_PERIOD_SECONDS, 0));

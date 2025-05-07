@@ -1,17 +1,12 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
-import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
-import com.ctrip.framework.drc.manager.healthcheck.inquirer.ApplierInfoInquirer;
-import com.ctrip.framework.drc.manager.healthcheck.inquirer.ReplicatorInfoInquirer;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.tuple.Pair;
 import org.apache.commons.lang3.StringUtils;
@@ -22,10 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestOperations;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -376,14 +367,27 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setApplyMode(ApplyMode.transaction_table.getType());
         List<Applier> appliers = Lists.newArrayList(applier);
 
+        Messenger messenger = new Messenger();
+        messenger.setIp(LOCAL_IP);
+        messenger.setPort(backupPort);
+        messenger.setApplyMode(ApplyMode.kafka.getType());
+        messenger.setMaster(true);
+        List<Messenger> messengers = Lists.newArrayList(messenger);
+
+        Replicator replicator = new Replicator();
+        replicator.setMaster(true);
+        replicator.setIp("127.0.0.2");
+        replicator.setApplierPort(8082);
+
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
 
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
+        when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(replicator);
         when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
-        List<DbCluster> body = instanceStateController.mysqlMasterChanged(CLUSTER_ID, mysqlMaster, appliers, newReplicator);
+        List<DbCluster> body = instanceStateController.mysqlMasterChanged(CLUSTER_ID, mysqlMaster, appliers, messengers, newReplicator);
 
-        Assert.assertEquals(body.size(), appliers.size() + 1);
+        Assert.assertEquals(body.size(), appliers.size() + messengers.size() + 1);
         DbCluster applierDbCluster = body.get(0);
 
         Assert.assertNotEquals(applierDbCluster.getReplicators(), dbCluster.getReplicators()); //
@@ -397,7 +401,19 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         Assert.assertEquals(masterDb.getIp(), mysqlMaster.getHost());
         Assert.assertEquals(masterDb.getPort().intValue(), mysqlMaster.getPort());
 
-        DbCluster replicatorDbCluster = body.get(1);
+
+        DbCluster messengerDbCluster = body.get(1);
+        Replicator messengerReplicator = messengerDbCluster.getReplicators().get(0);
+        Assert.assertEquals(messengerDbCluster.getReplicators().size(), 1);
+        Assert.assertEquals(messengerReplicator.getIp(), replicator.getIp());
+        Assert.assertEquals(messengerReplicator.getApplierPort(), replicator.getApplierPort());
+        Assert.assertEquals(messengerReplicator.getMaster(), true);
+
+        Db messengerMasterDb = applierDbCluster.getDbs().getDbs().get(0);
+        Assert.assertEquals(messengerMasterDb.getIp(), mysqlMaster.getHost());
+        Assert.assertEquals(messengerMasterDb.getPort().intValue(), mysqlMaster.getPort());
+
+        DbCluster replicatorDbCluster = body.get(2);
         Assert.assertNotEquals(replicatorDbCluster.getReplicators(), dbCluster.getReplicators()); //
         replicators = replicatorDbCluster.getReplicators();
         Assert.assertEquals(replicators.size(), 1);
@@ -419,50 +435,5 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
     public void testRemoveMessenger() throws InterruptedException {
         instanceStateController.removeMessenger(CLUSTER_ID, newMessenger, false);
         Thread.sleep(50);
-    }
-
-    @Test
-    public void testGetApplierInfo(){
-        List<Applier> appliers = Lists.newArrayList(
-                new Applier().setIp("127.0.0.1").setPort(8080)
-        );
-        ApplierInfoInquirer instance = ApplierInfoInquirer.getInstance();
-        RestOperations mock = mock(RestOperations.class);
-        ApplierInfoDto dto = new ApplierInfoDto();
-        dto.setIp("127.0.0.1");
-        dto.setRegistryKey("test.test");
-        dto.setPort(8080);
-        dto.setReplicatorIp("127.1.0.1");
-        ApiResult<List<ApplierInfoDto>> objectApiResult = ApiResult.getSuccessInstance(Lists.newArrayList(dto));
-        ResponseEntity value = new ResponseEntity(objectApiResult, HttpStatus.ACCEPTED);
-        when(mock.exchange(anyString(),any(),any(HttpEntity.class),any(Class.class))).thenReturn(value);
-        instance.setRestTemplate(mock);
-
-        Pair<List<String>, List<ApplierInfoDto>> applierInfo = instanceStateController.getApplierInfoInner(appliers);
-        System.out.println(applierInfo);
-        Assert.assertEquals(1,applierInfo.getKey().size());
-    }
-
-
-    @Test
-    public void testGetReplicatorInfo(){
-        List<Applier> appliers = Lists.newArrayList(
-                new Applier().setIp("127.0.0.1").setPort(8080)
-        );
-        ReplicatorInfoInquirer instance = ReplicatorInfoInquirer.getInstance();
-        RestOperations mock = mock(RestOperations.class);
-        ReplicatorInfoDto dto = new ReplicatorInfoDto();
-        dto.setIp("127.0.0.1");
-        dto.setRegistryKey("test.test");
-        dto.setPort(8080);
-        dto.setUpstreamMasterIp("127.1.0.1");
-        ApiResult<List<ReplicatorInfoDto>> objectApiResult = ApiResult.getSuccessInstance(Lists.newArrayList(dto));
-        ResponseEntity value = new ResponseEntity(objectApiResult, HttpStatus.ACCEPTED);
-        when(mock.exchange(anyString(),any(),any(HttpEntity.class),any(Class.class))).thenReturn(value);
-        instance.setRestTemplate(mock);
-
-        Pair<List<String>, List<ReplicatorInfoDto>> replicatorInfo = instanceStateController.getReplicatorInfo(appliers);
-        System.out.println(replicatorInfo);
-        Assert.assertEquals(1,replicatorInfo.getKey().size());
     }
 }

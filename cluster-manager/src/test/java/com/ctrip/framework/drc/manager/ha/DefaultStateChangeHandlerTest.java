@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -129,8 +130,14 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
         newApplier.setMaster(false);
         List<Applier> applierList = Lists.newArrayList(newApplier);
         when(currentMetaManager.getActiveAppliers(CLUSTER_ID)).thenReturn(applierList);
+
+        newMessenger.setMaster(false);
+        newMessenger.setApplyMode(ApplyMode.kafka.getType());
+        List<Messenger> messengerList = Lists.newArrayList(newMessenger);
+        when(currentMetaManager.getActiveMessengers(CLUSTER_ID)).thenReturn(messengerList);
+
         stateChangeHandler.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
-        verify(instanceStateController, times(0)).mysqlMasterChanged(CLUSTER_ID, mysqlMaster, applierList, newReplicator);
+        verify(instanceStateController, times(0)).mysqlMasterChanged(CLUSTER_ID, mysqlMaster, applierList, messengerList, newReplicator);
 
         newApplier.setMaster(true);
         applierList = Lists.newArrayList(newApplier);
@@ -138,7 +145,10 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
         newReplicator.setMaster(true);
         when(currentMetaManager.getActiveReplicator(CLUSTER_ID)).thenReturn(newReplicator);
         stateChangeHandler.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
-        verify(instanceStateController, times(1)).mysqlMasterChanged(CLUSTER_ID, mysqlMaster, applierList, newReplicator);
+        verify(instanceStateController, times(0)).mysqlMasterChanged(CLUSTER_ID, mysqlMaster, applierList, messengerList, newReplicator);
 
+        newMessenger.setMaster(true);
+        stateChangeHandler.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
+        verify(instanceStateController, times(1)).mysqlMasterChanged(CLUSTER_ID, mysqlMaster, applierList, messengerList, newReplicator);
     }
 }

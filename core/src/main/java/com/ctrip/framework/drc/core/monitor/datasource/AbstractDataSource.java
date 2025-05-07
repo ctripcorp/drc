@@ -15,7 +15,6 @@ public abstract class AbstractDataSource {
         poolProperties.setDriverClassName("com.mysql.jdbc.Driver");
 
         poolProperties.setValidationQuery("SELECT 1");
-        poolProperties.setValidationQueryTimeout(1);
         poolProperties.setTestWhileIdle(false);
         poolProperties.setTestOnBorrow(true);
         poolProperties.setTestOnReturn(false);

@@ -35,6 +35,14 @@ public class ResourceView implements Comparable<ResourceView> {
         return instanceNum;
     }
 
+    public synchronized void addInstanceNum(){
+        this.instanceNum += 1;
+    }
+
+    public synchronized void declineInstanceNum() {
+        this.instanceNum = Math.max(0, instanceNum - 1);
+    }
+
     public void setInstanceNum(Long instanceNum) {
         this.instanceNum = instanceNum;
     }

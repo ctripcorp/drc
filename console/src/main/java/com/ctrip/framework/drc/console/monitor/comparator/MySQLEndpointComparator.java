@@ -37,7 +37,7 @@ public class MySQLEndpointComparator extends AbstractMetaComparator<MetaKey, MyS
                 modified.add(new MySQLMetaComparator(metaKey));
                 continue;
             }
-            if(!currentMySqlEndpoint.equals(futureMySqlEndpoint)) {
+            if(!currentMySqlEndpoint.equalsWithUserAndPassword(futureMySqlEndpoint)) {
                 modified.add(new MySQLMetaComparator(metaKey));
             }
         }

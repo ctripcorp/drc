@@ -73,9 +73,6 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
-    private static final String DRC_DELAY_EXCEPTION_MESUREMENT = "fx.drc.delay.exception";
-    private static final String FX_DRC_DB_DELAY_EXCEPTION_MEASUREMENT = "fx.drc.db.delay.exception";
-
     private Map<String, UnidirectionalEntity> entityMap = Maps.newConcurrentMap();
     private Map<String, Map<String, UnidirectionalEntity>> entityV2Map = Maps.newConcurrentMap();
 
@@ -85,7 +82,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private Map<String, Long> receiveTimeMap = Maps.newConcurrentMap();
     private Map<String, Map<String, Long>> receiveTimeMapV2 = Maps.newConcurrentMap();
 
-    private static final long TOLERANCE_TIME = 5 * 60000L;
+    private static final long TOLERANCE_TIME = 3 * 60000L;
 
     private static final long SLOW_THRESHOLD = 100L;
 
@@ -281,40 +278,30 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         }
 
         UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaString, dbName);
-        if (delay < delayExceptionTime) {
-            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, FX_DRC_DB_DELAY_MEASUREMENT);
-            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, 0L, FX_DRC_DB_DELAY_EXCEPTION_MEASUREMENT);
-            if (delay <= DynamicConfig.getInstance().getLogDelayDetailThresholdMillis()) {
-                return;
-            }
-            if (null != gtid) {
-                dbLogger.info("[[" +
-                                "monitor=delay_v2,db={},direction={}({}):{}({})," +
-                                "cluster={}," +
-                                "replicator={}:{}," +
-                                "measurement={},slow={},"
-                                + "role={}]]" +
-                                "\n[Report Delay] {}ms" +
-                                "\nGTID: {}" +
-                                "\ndelay = currentTime({}) - datachange_lasttime({})" +
-                                "[or commitTime]",
-                        dbName, mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
-                        config.getCluster(),
-                        config.getEndpoint().getHost(), config.getEndpoint().getPort(),
-                        FX_DRC_DB_DELAY_MEASUREMENT, delay > SLOW_THRESHOLD,
-                        isReplicatorMaster,
-                        delay, gtid,
-                        formatter.format(rTime), delayString);
-            } else {
-                dbLogger.info("[[monitor=delay_v2,db={},direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", dbName, mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
-            }
+        DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, FX_DRC_DB_DELAY_MEASUREMENT);
+        if (delay <= DynamicConfig.getInstance().getLogDelayDetailThresholdMillis()) {
+            return;
+        }
+        if (null != gtid) {
+            dbLogger.info("[[" +
+                            "monitor=delay_v2,db={},direction={}({}):{}({})," +
+                            "cluster={}," +
+                            "replicator={}:{}," +
+                            "measurement={},slow={},"
+                            + "role={}]]" +
+                            "\n[Report Delay] {}ms" +
+                            "\nGTID: {}" +
+                            "\ndelay = currentTime({}) - datachange_lasttime({})" +
+                            "[or commitTime]",
+                    dbName, mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
+                    config.getCluster(),
+                    config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                    FX_DRC_DB_DELAY_MEASUREMENT, delay > SLOW_THRESHOLD,
+                    isReplicatorMaster,
+                    delay, gtid,
+                    formatter.format(rTime), delayString);
         } else {
-            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, FX_DRC_DB_DELAY_EXCEPTION_MEASUREMENT);
-            if (null != gtid) {
-                dbLogger.info("[[monitor=delay_v2,db={},direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay Exception] {}ms\nGTID: {}\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", dbName, mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, gtid, formatter.format(rTime), delayString);
-            } else {
-                dbLogger.info("[[monitor=delay_v2,db={},direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay Exception] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", dbName, mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
-            }
+            dbLogger.info("[[monitor=delay_v2,db={},direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", dbName, mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
         }
     }
 
@@ -383,7 +370,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         mhasShouldMonitor = periodicalUpdateDbTask.getSrcMhasShouldMonitor(config.getDestMha());
                     } else {
                         boolean mhaMonitorEnabled = periodicalUpdateDbTask.isMhaMonitorEnabled(config.getMha());
-                        mhasShouldMonitor = mhaMonitorEnabled? Sets.newHashSet(config.getMha()) : Sets.newHashSet();
+                        mhasShouldMonitor = mhaMonitorEnabled ? Sets.newHashSet(config.getMha()) : Sets.newHashSet();
                     }
 
                     Iterator<Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
@@ -395,7 +382,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                             tags.put("destMha", config.getDestMha());
                             tags.put("srcMha", srcMha);
                             iterator.remove();
-                            DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(),tags);
+                            DefaultReporterHolder.getInstance().removeRegister(config.getMeasurement(), tags);
                             continue;
                         }
                         Long receiveTime = entry.getValue();
@@ -432,11 +419,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             try {
                 SimpleDateFormat formatter = dateFormatThreadLocal.get();
                 long curTime = System.currentTimeMillis();
-                Map<String, List<String>> relatedMhaDb = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(config.getDestMha());
+                Map<String, Set<String>> relatedMhaDb = periodicalUpdateDbTaskV2.getMhaDbRelatedByDestMha(config.getDestMha());
                 for (Iterator<Entry<String, Map<String, Long>>> mhaIterator = receiveTimeMapV2.entrySet().iterator(); mhaIterator.hasNext(); ) {
                     Entry<String, Map<String, Long>> entry = mhaIterator.next();
                     String mhaName = entry.getKey();
-                    List<String> relatedDbs = relatedMhaDb.get(mhaName);
+                    Set<String> relatedDbs = relatedMhaDb.get(mhaName);
 
                     if (CollectionUtils.isEmpty(relatedDbs)) {
                         if (isReplicatorMaster) {
@@ -587,40 +574,30 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             }
 
             UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaString);
-            if (delay < delayExceptionTime) {
-                DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, config.getMeasurement());
-                DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, 0L, DRC_DELAY_EXCEPTION_MESUREMENT);
-                if (delay <= DynamicConfig.getInstance().getLogDelayDetailThresholdMillis()) {
-                    return;
-                }
-                if (null != gtid) {
-                    logger.info("[[" +
-                                    "monitor=delay,direction={}({}):{}({})," +
-                                    "cluster={}," +
-                                    "replicator={}:{}," +
-                                    "measurement={},slow={},"
-                                    + "role={}]]" +
-                                    "\n[Report Delay] {}ms" +
-                                    "\nGTID: {}" +
-                                    "\ndelay = currentTime({}) - datachange_lasttime({})" +
-                                    "[or commitTime]",
-                            mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
-                            config.getCluster(),
-                            config.getEndpoint().getHost(), config.getEndpoint().getPort(),
-                            config.getMeasurement(), delay > SLOW_THRESHOLD,
-                            isReplicatorMaster,
-                            delay, gtid,
-                            formatter.format(rTime), delayString);
-                } else {
-                    logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
-                }
+            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, config.getMeasurement());
+            if (delay <= DynamicConfig.getInstance().getLogDelayDetailThresholdMillis()) {
+                return;
+            }
+            if (null != gtid) {
+                logger.info("[[" +
+                                "monitor=delay,direction={}({}):{}({})," +
+                                "cluster={}," +
+                                "replicator={}:{}," +
+                                "measurement={},slow={},"
+                                + "role={}]]" +
+                                "\n[Report Delay] {}ms" +
+                                "\nGTID: {}" +
+                                "\ndelay = currentTime({}) - datachange_lasttime({})" +
+                                "[or commitTime]",
+                        mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
+                        config.getCluster(),
+                        config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                        config.getMeasurement(), delay > SLOW_THRESHOLD,
+                        isReplicatorMaster,
+                        delay, gtid,
+                        formatter.format(rTime), delayString);
             } else {
-                DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, DRC_DELAY_EXCEPTION_MESUREMENT);
-                if (null != gtid) {
-                    logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay Exception] {}ms\nGTID: {}\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, gtid, formatter.format(rTime), delayString);
-                } else {
-                    logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay Exception] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
-                }
+                logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
             }
         } catch (ParseException e) {
             log("Parse " + delayString + " exception, ", ERROR, e);

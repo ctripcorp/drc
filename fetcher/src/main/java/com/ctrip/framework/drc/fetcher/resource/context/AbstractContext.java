@@ -2,7 +2,8 @@ package com.ctrip.framework.drc.fetcher.resource.context;
 
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 
-import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @Author Slight
@@ -10,7 +11,7 @@ import java.util.HashMap;
  */
 public abstract class AbstractContext extends AbstractResource implements Context.Simple {
 
-    protected HashMap<String, Object> keyValues = new HashMap<>();
+    protected Map<String, Object> keyValues = new ConcurrentHashMap<>();
 
     @Override
     public void update(String key, Object value) {
@@ -28,10 +29,10 @@ public abstract class AbstractContext extends AbstractResource implements Contex
 
     @Override
     protected void doInitialize() throws Exception {
-        keyValues = new HashMap<>();
+        keyValues = new ConcurrentHashMap<>();
     }
 
-    public HashMap<String, Object> getKeyValues() {
+    public Map<String, Object> getKeyValues() {
         return keyValues;
     }
 }

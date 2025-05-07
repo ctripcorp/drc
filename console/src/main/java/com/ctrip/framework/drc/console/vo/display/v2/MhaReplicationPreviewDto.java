@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.console.vo.display.v2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.DrcApplyModeEnum;
 import com.ctrip.framework.drc.console.enums.DrcStatusEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 
 import java.util.List;
 

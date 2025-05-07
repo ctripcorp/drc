@@ -6,27 +6,19 @@
     </Alert>
     <Row>
       <i-col span="12">
-        <Form ref="drc1" :model="srcBuildParam" :rules="ruleDrc" :label-width="250"
+        <Form ref="drc1" :model="srcBuildParam" :rules="ruleDrc" :label-width="200"
               style="float: left; margin-top: 50px">
           <FormItem label="源集群名" prop="srcMhaName" style="width: 600px">
             <Input v-model="srcBuildParam.mhaName" @input="changeSrcMha" placeholder="请输入源集群名"/>
           </FormItem>
           <FormItem label="选择Replicator" prop="replicator">
-            <Select v-model="srcBuildParam.replicatorIps" multiple style="width: 250px" placeholder="选择源集群Replicator">
-              <Option v-for="item in replicatorList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az
-                }}
+            <Select v-model="srcBuildParam.replicatorIps" multiple style="width: 300px" :key="replicatorInstanceInfo.src" placeholder="选择源集群Replicator">
+              <Option v-for="item in replicatorList.src" :value="item.ip" :key="item.ip">{{ item.ip }} — {{ item.az }}
+                {{getRole(item.ip, replicatorInstanceInfo.src)}}
               </Option>
             </Select>
             &nbsp;
             <Button type="success" @click="autoConfigSrcReplicator">自动录入</Button>
-          </FormItem>
-          <FormItem v-if="showMhaApplierConfig(true)" label="选择Applier" prop="applier">
-            <Select v-model="srcBuildParam.applierIps" multiple style="width: 250px" placeholder="选择源集群Applier">
-              <Option v-for="item in applierList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
-              </Option>
-            </Select>
-            &nbsp;
-            <Button type="success" @click="autoConfigSrcApplier">自动录入</Button>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
             <Input v-model="srcBuildParam.replicatorInitGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
@@ -44,39 +36,28 @@
               </Col>
             </Row>
           </FormItem>
-          <FormItem v-if="showMhaApplierConfig(true)" label="初始同步位点A" style="width: 600px">
-            <Input v-model="srcBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>
-          </FormItem>
           <FormItem label="同步配置" style="width: 600px">
             <Button type="primary" ghost @click="getSrcDbReplications">同步表管理</Button>
           </FormItem>
-          <FormItem v-if="showDbMhaApplierConfig(true)" label="DB Applier 配置"  style="width: 600px">
+          <FormItem label="DB Applier 配置"  style="width: 600px">
             <Button type="primary" ghost @click="getSrcDbApplierReplications">Db Applier 管理</Button>
           </FormItem>
         </Form>
       </i-col>
       <i-col span="12">
-        <Form ref="drc1" :model="dstBuildParam" :rules="ruleDrc" :label-width="250"
+        <Form ref="drc1" :model="dstBuildParam" :rules="ruleDrc" :label-width="200"
               style="float: left; margin-top: 50px">
           <FormItem label="目标集群名" prop="dstMhaName" style="width: 600px">
             <Input v-model="dstBuildParam.mhaName" @input="changeDstMha" placeholder="请输入目标集群名"/>
           </FormItem>
           <FormItem label="选择Replicator" prop="replicator">
-            <Select v-model="dstBuildParam.replicatorIps" multiple style="width: 250px" placeholder="选择目标集群Replicator">
-              <Option v-for="item in replicatorList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az
-                }}
+            <Select v-model="dstBuildParam.replicatorIps" multiple style="width: 300px" :key="replicatorInstanceInfo.dst" placeholder="选择目标集群Replicator">
+              <Option v-for="item in replicatorList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} — {{ item.az }}
+                {{getRole(item.ip, replicatorInstanceInfo.dst)}}
               </Option>
             </Select>
             &nbsp;
             <Button type="success" @click="autoConfigDstReplicator">自动录入</Button>
-          </FormItem>
-          <FormItem v-if="showMhaApplierConfig(false)" label="选择Applier" prop="applier">
-            <Select v-model="dstBuildParam.applierIps" multiple style="width: 250px" placeholder="选择目标集群Applier">
-              <Option v-for="item in applierList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
-              </Option>
-            </Select>
-            &nbsp;
-            <Button type="success" @click="autoConfigDstApplier">自动录入</Button>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
             <Input v-model="dstBuildParam.replicatorInitGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
@@ -94,13 +75,10 @@
               </Col>
             </Row>
           </FormItem>
-          <FormItem v-if="showMhaApplierConfig(false)" label="初始同步位点A" style="width: 600px">
-            <Input v-model="dstBuildParam.applierInitGtid" placeholder="请输入DRC同步起始位点"/>
-          </FormItem>
           <FormItem label="同步配置" style="width: 600px">
             <Button type="primary" ghost @click="getDstDbReplications">同步表管理</Button>
           </FormItem>
-          <FormItem v-if="showDbMhaApplierConfig(false)" label="DB Applier 配置" style="width: 600px">
+          <FormItem label="DB Applier 配置" style="width: 600px">
             <Button type="primary" ghost @click="getDstDbApplierReplications">Db Applier 管理</Button>
           </FormItem>
         </Form>
@@ -126,16 +104,8 @@
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.replicatorIps"
                        readonly/>
               </FormItem>
-              <FormItem label="源集群端Applier">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.applierIps"
-                       readonly/>
-              </FormItem>
               <FormItem label="源集群端R位点">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.replicatorInitGtid"
-                       readonly/>
-              </FormItem>
-              <FormItem label="源集群端A位点">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.applierInitGtid"
                        readonly/>
               </FormItem>
             </Form>
@@ -149,16 +119,8 @@
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.replicatorIps"
                        readonly/>
               </FormItem>
-              <FormItem label="目标集群端Applier">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.applierIps"
-                       readonly/>
-              </FormItem>
               <FormItem label="目标集群端R位点">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.replicatorInitGtid"
-                       readonly/>
-              </FormItem>
-              <FormItem label="目标集群端A位点">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.applierInitGtid"
                        readonly/>
               </FormItem>
             </Form>
@@ -224,31 +186,25 @@ export default {
         src: [],
         dst: []
       },
-      applierList: {
-        src: [],
-        dst: []
-      },
       srcBuildParam: {
         mhaName: this.srcMhaName,
         replicatorIps: [],
-        applierIps: [],
-        replicatorInitGtid: '',
-        applierInitGtid: ''
+        replicatorInitGtid: ''
       },
       srcBuildData: {
-        dbApplierDtos: [],
-        dbApplierSwitch: false
+        dbApplierDtos: []
       },
       dstBuildParam: {
         mhaName: this.dstMhaName,
         replicatorIps: [],
-        applierIps: [],
-        replicatorInitGtid: '',
-        applierInitGtid: ''
+        replicatorInitGtid: ''
+      },
+      replicatorInstanceInfo: {
+        src: [],
+        dst: []
       },
       dstBuildData: {
-        dbApplierDtos: [],
-        dbApplierSwitch: false
+        dbApplierDtos: []
       },
       gtidCheck: {
         modal: false,
@@ -314,14 +270,6 @@ export default {
         response.data.data.forEach(ip => this.srcBuildParam.replicatorIps.push(ip.ip))
       })
     },
-    autoConfigSrcApplier () {
-      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.srcBuildParam.mhaName + '&type=1' + '&selectedIps=' + this.srcBuildParam.applierIps)
-        .then(response => {
-          console.log(response.data)
-          this.srcBuildParam.applierIps = []
-          response.data.data.forEach(ip => this.srcBuildParam.applierIps.push(ip.ip))
-        })
-    },
     autoConfigDstReplicator () {
       this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.dstBuildParam.mhaName + '&type=0' + '&selectedIps=' + this.dstBuildParam.replicatorIps)
         .then(response => {
@@ -330,24 +278,11 @@ export default {
           response.data.data.forEach(ip => this.dstBuildParam.replicatorIps.push(ip.ip))
         })
     },
-    autoConfigDstApplier () {
-      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.dstBuildParam.mhaName + '&type=1' + '&selectedIps=' + this.dstBuildParam.applierIps)
-        .then(response => {
-          console.log(response.data)
-          this.dstBuildParam.applierIps = []
-          response.data.data.forEach(ip => this.dstBuildParam.applierIps.push(ip.ip))
-        })
-    },
     getSrcMhaResources () {
       this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.srcBuildParam.mhaName + '&type=0')
         .then(response => {
           console.log(response.data)
           this.replicatorList.src = response.data.data
-        })
-      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.srcBuildParam.mhaName + '&type=1')
-        .then(response => {
-          console.log(response.data)
-          this.applierList.src = response.data.data
         })
     },
     getDstMhaResources () {
@@ -356,17 +291,12 @@ export default {
           console.log(response.data)
           this.replicatorList.dst = response.data.data
         })
-      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.dstBuildParam.mhaName + '&type=1')
-        .then(response => {
-          console.log(response.data)
-          this.applierList.dst = response.data.data
-          // response.data.data.forEach(ip => this.applierList.src.push(ip))
-        })
     },
     getSrcMhaReplicatorsInUse () {
       this.axios.get('/api/drc/v2/mha/replicator?mhaName=' + this.srcBuildParam.mhaName)
         .then(response => {
           this.srcBuildParam.replicatorIps = response.data.data
+          this.getReplicatorInstances(true)
         })
     },
     getDstMhaReplicatorsInUse () {
@@ -374,30 +304,21 @@ export default {
         .then(response => {
           console.log(response.data)
           this.dstBuildParam.replicatorIps = response.data.data
+          this.getReplicatorInstances(false)
         })
     },
-    getSrcMhaAppliersInUse () {
-      this.axios.get('/api/drc/v2/config/mha/applier?srcMhaName=' + this.dstBuildParam.mhaName + '&dstMhaName=' + this.srcBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.srcBuildParam.applierIps = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/applierGtid?srcMhaName=' + this.dstBuildParam.mhaName + '&dstMhaName=' + this.srcBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.srcBuildParam.applierInitGtid = response.data.data
-        })
-    },
-    getDstMhaAppliersInUse () {
-      this.axios.get('/api/drc/v2/config/mha/applier?srcMhaName=' + this.srcBuildParam.mhaName + '&dstMhaName=' + this.dstBuildParam.mhaName)
-        .then(response => {
-          this.dstBuildParam.applierIps = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/applierGtid?srcMhaName=' + this.srcBuildParam.mhaName + '&dstMhaName=' + this.dstBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.dstBuildParam.applierInitGtid = response.data.data
-        })
+    getReplicatorInstances (isSrc) {
+      const param = isSrc ? this.srcBuildParam : this.dstBuildParam
+      this.axios.get('/api/drc/v2/remote/resource/replicatorInstances', {
+        params: {
+          mhaName: param.mhaName,
+          ips: param.replicatorIps.join(',')
+        }
+      }).then(response => {
+        const instances = response.data.data
+        console.log('replicator instance: ', instances)
+        isSrc ? this.replicatorInstanceInfo.src = instances : this.replicatorInstanceInfo.dst = instances
+      })
     },
     getMhaDbAppliersInUse () {
       this.axios.get('/api/drc/v2/config/mha/dbApplier?srcMhaName=' + this.dstBuildParam.mhaName + '&dstMhaName=' + this.srcBuildParam.mhaName)
@@ -409,16 +330,6 @@ export default {
         .then(response => {
           console.log(response.data)
           this.dstBuildData.dbApplierDtos = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/dbApplier/switch?mhaName=' + this.srcBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.srcBuildData.dbApplierSwitch = response.data.data
-        })
-      this.axios.get('/api/drc/v2/config/mha/dbApplier/switch?mhaName=' + this.dstBuildParam.mhaName)
-        .then(response => {
-          console.log(response.data)
-          this.dstBuildData.dbApplierSwitch = response.data.data
         })
     },
     querySrcMhaMachineGtid () {
@@ -469,6 +380,17 @@ export default {
           }
         })
     },
+    getRole (ip, currentInstances) {
+      if (!currentInstances || currentInstances.length === 0) {
+        return ''
+      }
+      for (const instance of currentInstances) {
+        if (instance.ip === ip) {
+          return ' — ' + (instance.master ? 'Master' : 'Slave')
+        }
+      }
+      return ''
+    },
     queryDstMhaGtidCheckRes () {
       if (this.dstBuildParam.replicatorInitGtid == null || this.dstBuildParam.replicatorInitGtid === '') {
         alert('位点为空！')
@@ -507,8 +429,6 @@ export default {
       this.$emit('srcMhaNameChanged', this.srcBuildParam.mhaName)
       this.getSrcMhaResources()
       this.getSrcMhaReplicatorsInUse()
-      this.getSrcMhaAppliersInUse()
-      this.getDstMhaAppliersInUse()
       this.getMhaDbAppliersInUse()
       this.getSrcDc()
     },
@@ -516,8 +436,6 @@ export default {
       this.$emit('dstMhaNameChanged', this.dstBuildParam.mhaName)
       this.getDstMhaResources()
       this.getDstMhaReplicatorsInUse()
-      this.getDstMhaAppliersInUse()
-      this.getSrcMhaAppliersInUse()
       this.getMhaDbAppliersInUse()
       this.getDstDc()
     },
@@ -617,26 +535,9 @@ export default {
       }
       return false
     },
-    showMhaApplierConfig (isSrc) {
-      // return true
-      if (isSrc) {
-        return !this.hasAppliers(this.srcBuildData.dbApplierDtos)
-      } else {
-        return !this.hasAppliers(this.dstBuildData.dbApplierDtos)
-      }
-    },
-    showDbMhaApplierConfig (isSrc) {
-      if (isSrc) {
-        return this.srcBuildData.dbApplierSwitch || this.hasAppliers(this.srcBuildData.dbApplierDtos)
-      } else {
-        return this.dstBuildData.dbApplierSwitch || this.hasAppliers(this.dstBuildData.dbApplierDtos)
-      }
-    },
     refresh () {
       this.getSrcMhaReplicatorsInUse()
       this.getDstMhaReplicatorsInUse()
-      this.getSrcMhaAppliersInUse()
-      this.getDstMhaAppliersInUse()
       this.getMhaDbAppliersInUse()
       this.getSrcDc()
       this.getDstDc()

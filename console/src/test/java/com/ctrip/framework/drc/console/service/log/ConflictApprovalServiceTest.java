@@ -87,7 +87,7 @@ public class ConflictApprovalServiceTest {
         Mockito.when(domainConfig.getApprovalDetailUrl()).thenReturn("detail url");
 
         // case 1: can not query all db , dbsCanQuery is empty
-        Mockito.when(iamService.canQueryAllCflLog()).thenReturn(Pair.of(false, null));
+        Mockito.when(iamService.canQueryAllDbReplication()).thenReturn(Pair.of(false, null));
         Mockito.when(dbaApiService.getDBsWithQueryPermission()).thenReturn(null);
         List<ConflictApprovalView> results = null;
         try {

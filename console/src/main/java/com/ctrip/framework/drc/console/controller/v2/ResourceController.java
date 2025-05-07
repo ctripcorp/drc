@@ -5,9 +5,15 @@ import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
-import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.MhaView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,9 +56,9 @@ public class ResourceController {
     }
 
     @GetMapping("mha/all")
-    public ApiResult<List<ResourceView>> getMhaAvailableResource(@RequestParam String mhaName, @RequestParam int type) {
+    public ApiResult<List<ResourceView>> getMhaAvailableResource(@RequestParam String mhaName, @RequestParam int type, @RequestParam(required = false) String subType) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResourceWithUse(mhaName, type));
+            return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResourceWithUse(mhaName, type, subType));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
@@ -70,7 +76,7 @@ public class ResourceController {
     @GetMapping("db/all")
     public ApiResult<List<ResourceView>> getMhaDbAvailableResource(DbResourceSelectParam param) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.getMhaDbAvailableResourceWithUse(param.getSrcMhaName(), param.getDstMhaName(), param.getType()));
+            return ApiResult.getSuccessInstance(resourceService.getMhaDbAvailableResourceWithUse(param.getSrcMhaName(), param.getDstMhaName(), param.getType(), param.getSubType()));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
@@ -201,6 +207,18 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("partialMigrate/messenger")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
+            success = "partialMigrateMessenger with param {#param.toString()}")
+    public ApiResult<Integer> partialMigrateMessenger(@RequestBody ApplierMigrateParam param) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.partialMigrateMessenger(param));
+        } catch (Exception e) {
+            logger.error("partialMigrateApplier fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
     @PostMapping("migrate/slaveReplicator")
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
             success = "migrateSlaveReplicator with newIp {#newIp}, oldIp {#oldIp}")
@@ -225,6 +243,18 @@ public class ResourceController {
         }
     }
 
+    @PostMapping("migrate/messenger")
+    @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
+            success = "migrateMessenger with newIp {#newIp}, oldIp {#oldIp}")
+    public ApiResult<Integer> migrateMessenger(@RequestParam String newIp, @RequestParam String oldIp) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.MESSENGER.getCode()));
+        } catch (Exception e) {
+            logger.error("migrateMessenger fail, ", e);
+            return ApiResult.getFailInstance(0, e.getMessage());
+        }
+    }
+
     @PostMapping("batchMigrate/applier")
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
             success = "batchMigrateApplier with param {#param.toString()}")
@@ -245,6 +275,49 @@ public class ResourceController {
             return ApiResult.getSuccessInstance(resourceService.checkResourceAz());
         } catch (Exception e) {
             logger.error("checkResourceAz fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getAllInstanceAzInfo")
+    public ApiResult<ResourceSameAzView> getAllInstanceAz() {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.getAllInstanceAzInfo());
+        } catch (Exception e) {
+            logger.error("getInstanceAz fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getAppliersInRegion")
+    public ApiResult<List<ApplierInfoDto>> getAppliersInRegion(@RequestParam String region, @RequestParam List<String> ips) {
+        try {
+            List<ApplierInfoDto> res = resourceService.getMasterAppliersInRegion(region, ips);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getAppliersInRegion, region={}, fail", region, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getMessengersInRegion")
+    public ApiResult<List<MessengerInfoDto>> getMessengersInRegion(@RequestParam String region, @RequestParam List<String> ips) {
+        try {
+            List<MessengerInfoDto> res = resourceService.getMasterMessengersInRegion(region, ips);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getMessengersInRegion, region={}, fail", region, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("getReplicatorsInRegion")
+    public ApiResult<List<ReplicatorInfoDto>> getReplicatorsInRegion(@RequestParam String region, @RequestParam List<String> ips) {
+        try {
+            List<ReplicatorInfoDto> res = resourceService.getMasterReplicatorsInRegion(region, ips);
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getReplicatorsInRegion, region={}, fail", region, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

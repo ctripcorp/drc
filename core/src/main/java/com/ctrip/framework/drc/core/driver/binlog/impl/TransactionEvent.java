@@ -6,14 +6,11 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.util.ReferenceCounted;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.TRANSACTION_BUFFER_SIZE;
 
 /**
  * @Author limingdong
@@ -23,16 +20,20 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     private List<LogEvent> logEvents = Lists.newArrayList();
 
-    //extra 1 for FilterLogEvent
-    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer((TRANSACTION_BUFFER_SIZE + 1) * 2);
-
-    private List<ByteBuf> eventByteBufs = new ArrayList<>();
+    private final List<ByteBuf> eventByteBufs = Lists.newArrayList();
 
     private boolean isDdl = false;
 
-    private int eventSize = 0;
+    private boolean inBigTransaction = false;
 
     private boolean canSkipParseTransaction = false;
+
+    public TransactionEvent() {
+    }
+
+    public TransactionEvent(boolean inBigTransaction) {
+        this.inBigTransaction = inBigTransaction;
+    }
 
     public void addLogEvent(LogEvent logEvent) {
         logEvents.add(logEvent);
@@ -59,25 +60,23 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
             if (payload != null && headerBuf != null) {
                 headerBuf.readerIndex(0);
                 payload.readerIndex(0);
-                compositeByteBuf.addComponent(true, headerBuf);
-                compositeByteBuf.addComponent(true, payload);
-                eventSize++;
+                eventByteBufs.add(headerBuf);
+                eventByteBufs.add(payload);
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
         }
 
-        eventByteBufs.add(compositeByteBuf);
-        ioCache.write(eventByteBufs, new TransactionContext(isDdl, eventSize));
+        ioCache.write(eventByteBufs, new TransactionContext(isDdl, inBigTransaction));
     }
 
     @Override
     public void release() {
         try {
-            compositeByteBuf.release();
             isDdl = false;
-            eventSize = 0;
+            inBigTransaction = false;
             logEvents.clear();
+            eventByteBufs.forEach(ReferenceCounted::release);
         } catch (Exception e) {
             EVENT_LOGGER.error("released compositeByteBuf error", e);
         }

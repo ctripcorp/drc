@@ -31,7 +31,7 @@ public class IAMServiceImpl implements IAMService,ConfigChangeListener {
     private IAMFacadeServiceClient iamSoaService = IAMFacadeServiceClient.getInstance();
     private static final String CONFIG_FILE_NAME = "iamfilter.properties";
     private static final String IAM_FILTER_SWITCH = "iam.filter.switch";
-    private static final String QUERY_ALL_CFL_PERMISSION_CODE = "query.all.cfl.permission.code";
+    private static final String QUERY_ALL_DB_PERMISSION_CODE = "query.all.db.permission.code";
     private QConfig qConfig;
     private Set<String> apiPrefixSet;
     private  final Logger logger = LoggerFactory.getLogger(IAMFilter.class);
@@ -51,8 +51,8 @@ public class IAMServiceImpl implements IAMService,ConfigChangeListener {
     }
 
     @Override
-    public Pair<Boolean, String> canQueryAllCflLog() {
-        String permissionCode = qConfig.get(QUERY_ALL_CFL_PERMISSION_CODE, "");
+    public Pair<Boolean,String> canQueryAllDbReplication() {
+        String permissionCode = qConfig.get(QUERY_ALL_DB_PERMISSION_CODE, "");
         return checkPermission(Lists.newArrayList(permissionCode), CtripSSOTools.getEid());
     }
 

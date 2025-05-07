@@ -19,8 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @Author limingdong
@@ -35,6 +38,7 @@ public abstract class AbstractResourceManager implements Releasable {
     private static int RESTART_DELAY_TIME = 5;
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(getClass().getSimpleName());
+    private final Map<String, ReentrantLock> cachedLocks = new ConcurrentHashMap<>();
 
     @Autowired
     private DrcZkConfig drcZkConfig;
@@ -45,7 +49,17 @@ public abstract class AbstractResourceManager implements Releasable {
     @Value("${server.port}")
     public String port = "8080";
 
-    public synchronized LeaderElector getLeaderElector(String registryKey) {
+    public LeaderElector getLeaderElector(String registryKey) {
+        Lock lock = cachedLocks.computeIfAbsent(registryKey, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            return getElector(registryKey);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private LeaderElector getElector(String registryKey) {
         LeaderElector leaderElector = zkLeaderElectors.get(registryKey);
         if (leaderElector == null) {
             String serverPath = drcZkConfig.getRegisterPath() + "/" + registryKey;

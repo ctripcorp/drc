@@ -7,7 +7,9 @@ import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.manager.config.DataCenterServiceTest;
 import com.ctrip.framework.drc.manager.config.DbClusterSourceProviderTest;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnumTest;
 import com.ctrip.framework.drc.manager.ha.DefaultStateChangeHandlerTest;
+import com.ctrip.framework.drc.manager.ha.cluster.ClusterServerInfoTest;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.*;
 import com.ctrip.framework.drc.manager.ha.cluster.task.*;
 import com.ctrip.framework.drc.manager.ha.config.DefaultClusterManagerConfigTest;
@@ -26,6 +28,9 @@ import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifierTes
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.tracker.HeartBeatTrackerImplTest;
 import com.ctrip.framework.drc.manager.service.ConsoleServiceImplTest;
+import com.ctrip.framework.drc.manager.service.MessengerConsoleNotifierTest;
+import com.ctrip.framework.drc.manager.service.MysqlConsoleNotifierTest;
+import com.ctrip.framework.drc.manager.service.ReplicatorConsoleNotifierTest;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -113,7 +118,16 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         MessengerComparatorTest.class,
         ApplierInstanceManagerTest.class,
         ApplierInstanceElectorManagerTest.class,
-        ReplicatorCheckerTest.class
+        ReplicatorCheckerTest.class,
+        MysqlConsoleNotifierTest.class,
+        ReplicatorConsoleNotifierTest.class,
+        MessengerConsoleNotifierTest.class,
+        DefaultCurrentClusterServerTest.class,
+        ClusterServerStateManagerTest.class,
+
+        // dto
+        ClusterServerInfoTest.class,
+        ServerStateEnumTest.class
 })
 public class AllTests {
 

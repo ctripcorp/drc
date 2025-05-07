@@ -5,7 +5,9 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.service.inquirer.BatchInfoInquirer;
 import com.ctrip.framework.drc.core.utils.NameUtils;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -18,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,10 +48,18 @@ public class ApplierInstanceManagerTest {
     @Mock
     private DefaultClusterManagers clusterServers;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
+    @Mock
+    BatchInfoInquirer batchInfoInquirer;
+
+
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
     }
 
     @Test
@@ -74,7 +83,7 @@ public class ApplierInstanceManagerTest {
         future.setDbs(dbs);
         future.setId(clusterId);
         Applier applier2 = new Applier();
-        applier2.setProperties("test_property");
+        applier2.setRouteInfo("routeInfo");
         applier2.setIp("127.0.0.1");
         applier2.setPort(8080);
         applier2.setApplyMode(ApplyMode.transaction_table.getType());
@@ -105,7 +114,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -121,7 +130,7 @@ public class ApplierInstanceManagerTest {
 
         ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList();
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -137,7 +146,7 @@ public class ApplierInstanceManagerTest {
 
         ArrayList<ApplierInfoDto> instanceList = Lists.newArrayList();
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -159,7 +168,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1"), "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, times(1)).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -185,7 +194,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
@@ -211,7 +220,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
@@ -237,7 +246,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -258,12 +267,12 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.1.3");
-        when(instanceStateController.getApplierInfo(anyList())).thenAnswer(e -> {
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenAnswer(e -> {
             List<Instance> appliers = e.getArgument(0, List.class);
             Set<String> ips = appliers.stream().map(applier -> applier.getIp()).collect(Collectors.toSet());
             return Pair.from(validIps.stream().filter(ips::contains).collect(Collectors.toList()), instanceList.stream().filter(applier -> ips.contains(applier.getIp())).collect(Collectors.toList()));
         });
-        when(currentMetaManager.getAllApplierOrMessengerInstances()).thenReturn(Sets.newHashSet(
+        when(currentMetaManager.getAllApplierInstances()).thenReturn(Sets.newHashSet(
                 SimpleInstance.from("127.0.1.1", 8080),
                 SimpleInstance.from("127.0.1.2", 8080),
                 SimpleInstance.from("127.0.1.3", 8080),
@@ -288,7 +297,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -308,7 +317,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.3");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -329,7 +338,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
@@ -346,7 +355,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
 
         ApplierInstanceManager.ApplierChecker checker = applierInstanceManager.getChecker();
         checker.run();
@@ -369,7 +378,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).addApplier(any(), any());
@@ -391,7 +400,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.3", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2", "127.0.2.3");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, times(1)).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());
@@ -410,7 +419,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "mha1_dc2_dalcluster.mha1_dc2", "mha1_dc1", "db1"), "127.0.2.1", 8080, true, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, times(1)).registerApplier(eq("mha1_dc2_dalcluster.mha1_dc2"), any());
@@ -431,7 +440,7 @@ public class ApplierInstanceManagerTest {
                 getApplierInfoDto(String.join(".", "other.thter", "other_mha", "db1"), "127.0.2.2", 8080, false, "10.1.1.1")
         );
         List<String> validIps = Lists.newArrayList("127.0.1.1", "127.0.1.2", "127.0.2.1", "127.0.2.2");
-        when(instanceStateController.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
+        when(batchInfoInquirer.getApplierInfo(anyList())).thenReturn(Pair.from(validIps, instanceList));
         checker.run();
         verify(instanceStateController, never()).removeApplier(any(), any(), anyBoolean());
         verify(instanceStateController, never()).addApplier(any(), any());

@@ -39,9 +39,9 @@ public class HttpUtils {
     protected static int DEFAULT_MAX_TOTAL = Integer.parseInt(System.getProperty("max-per-route", "10000"));
     protected static int DEFAULT_RETRY_TIMES = Integer.parseInt(System.getProperty("retry-times", "1"));
     protected static int DEFAULT_CONNECT_TIMEOUT = Integer.parseInt(System.getProperty("connect-timeout", "1000"));
-    public static int DEFAULT_SO_TIMEOUT = Integer.parseInt(System.getProperty("so-timeout", "60000"));
-    public static int DEFAULT_RETRY_INTERVAL_MILLI = Integer
-            .parseInt(System.getProperty("metaserver.retryIntervalMilli", "5"));
+    public static int DEFAULT_SO_TIMEOUT = Integer.parseInt(System.getProperty("so-timeout", "10000"));
+    public static int DEFAULT_RETRY_INTERVAL_MILLI = Integer.parseInt(System.getProperty("metaserver.retryIntervalMilli", "1000"));
+    public static final String GZIP = "gzip";
 
     private static void init() {
         if(null == restTemplate) {
@@ -101,6 +101,15 @@ public class HttpUtils {
         httpHeaders.setAccept(Lists.newArrayList(MediaType.ALL));
         HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(httpHeaders);
         return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
+    }
+
+    public static <T> T getAcceptAllEncoding(String url, Class<T> responseType) {
+        init();
+        HttpHeaders httpHeaders = defaultHttpHeaders();
+        httpHeaders.setAccept(Lists.newArrayList(MediaType.ALL));
+        httpHeaders.set(HttpHeaders.ACCEPT_ENCODING, GZIP);
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(httpHeaders);
+        return restTemplate.exchange(url, HttpMethod.GET, requestWithHeader, responseType).getBody();
     }
     
     

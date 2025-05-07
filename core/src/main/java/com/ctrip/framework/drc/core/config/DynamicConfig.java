@@ -14,8 +14,9 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String CONCURRENCY = "scheme.clone.task.concurrency.%s";
     private static final String SNAPSHOT_CONCURRENCY = "scheme.snapshot.task.concurrency.%s";
     private static final String SCANNER_SENDER_NUM_MAX = "binlog.scanner.sender.max";
+    private static final String SCANNER_SENDER_NUM_MAX_KEY = SCANNER_SENDER_NUM_MAX+".%s";
     private static final String SCANNER_NUM_MAX = "binlog.scanner.max";
-    private static final String SCANNER_MERGE_GTID_GAP_MAX = "binlog.scanner.merge.gtid.gap.max";
+    private static final String SCANNER_MERGE_BINLOG_GAP_MAX = "binlog.scanner.merge.binlog.gap.max";
     private static final String SCANNER_MERGE_PERIOD_MILLI = "binlog.scanner.merge.period";
     private static final String SCANNER_SPLIT_EVENT_THRESHOLD = "binlog.scanner.split.event.threshold";
     private static final String CONSOLE_LOG_DELAY_THRESHOLD = "console.log.delay.threshold";
@@ -35,13 +36,26 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String RECEIVE_CHECK_SWITCH = "receive.check.switch";
     private static final String SCHEMA_MANAGER_CACHE_DISABLE_SWITCH = "schema.manager.snapshot.cache.disable.switch";
     private static final String REPLICATOR_SKIP_UNSUPPORTED_SCHEMA = "replicator.skip.unsupported.schema";
+    private static final String REPLICATOR_SCALE_OUT_KEY = "replicator.scale.out.%s";
+
+    private static final String REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH = "replicator.rbinlog.format.description.v2.switch";
+    private static final String REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH_KEY = REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH + ".%s";
 
 
     private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
 
     private static final String CM_NOTIFY_THREAD = "cm.notify.thread";
+    private static final String INFO_INQUIRY_THREAD = "info.inquiry.thread";
     private static final String CM_NOTIFY_HTTPS_SWITCH = "cm.notify.https.switch";
-    
+    private static final String CM_NOTIFY_ASYNC_SWITCH = "cm.notify.async.switch";
+
+    private static final String OLD_QTID_SQL_SWITCH = "old.gtid.sql.switch";
+
+    private static final String KAFKA_DELAY_MONITOR_SUBJECT = "kafka.delay.monitor.subject";
+    private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
+
+    // 100MB
+    public static final int DEFAULT_MERGE_GAP_MAX = 100 * 1024 * 1024;
 
     private DynamicConfig() {}
 
@@ -57,6 +71,10 @@ public class DynamicConfig extends AbstractConfigBean {
         return getIntProperty(CONSOLE_LOG_DELAY_THRESHOLD, 500);
     }
 
+    public boolean getCMNotifyAsyncSwitch() {
+        return getBooleanProperty(CM_NOTIFY_ASYNC_SWITCH, false);
+    }
+
     private static class ConfigHolder {
         public static final DynamicConfig INSTANCE = new DynamicConfig();
     }
@@ -69,16 +87,24 @@ public class DynamicConfig extends AbstractConfigBean {
         return getIntProperty(String.format(CONCURRENCY, key), MAX_ACTIVE);
     }
 
-    public int getMaxSenderNumPerScanner() {
-        return getIntProperty(SCANNER_SENDER_NUM_MAX, 30);
+    public long getBinlogScaleOutNum(String registryKey, long defaultValue) {
+        Long longProperty = getLongProperty(String.format(REPLICATOR_SCALE_OUT_KEY, registryKey), defaultValue);
+        // must be positive
+        return Math.max(1L, longProperty);
+    }
+
+
+    public int getMaxSenderNumPerScanner(String key) {
+        int defaultNum = getIntProperty(SCANNER_SENDER_NUM_MAX, 20);
+        return getIntProperty(String.format(SCANNER_SENDER_NUM_MAX_KEY, key), defaultNum);
     }
 
     public int getMaxScannerNumPerMha() {
         return getIntProperty(SCANNER_NUM_MAX, 100);
     }
 
-    public int getMaxGtidGapForMergeScanner() {
-        return getIntProperty(SCANNER_MERGE_GTID_GAP_MAX, 10000);
+    public int getMaxBinlogPositionGapForMergeScanner() {
+        return getIntProperty(SCANNER_MERGE_BINLOG_GAP_MAX, DEFAULT_MERGE_GAP_MAX);
     }
 
     public int getSnapshotTaskConcurrency() {
@@ -137,8 +163,25 @@ public class DynamicConfig extends AbstractConfigBean {
         return getIntProperty(CM_NOTIFY_THREAD, 50);
     }
 
+    public int getInfoInquiryThread() {
+        return getIntProperty(INFO_INQUIRY_THREAD, 50);
+    }
+
     public boolean getCMNotifyHttpsSwitch() {
         return getBooleanProperty(CM_NOTIFY_HTTPS_SWITCH, false);
     }
-    
+
+
+    public boolean getFormatDescriptionV2Switch(String key) {
+        String value = getProperty(String.format(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH_KEY, key));
+        if (!StringUtils.isEmpty(value)) {
+            return Boolean.parseBoolean(value);
+        }
+        return getBooleanProperty(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH, true);
+    }
+
+    public String getKafkaDelaySubject() {
+        return getProperty(KAFKA_DELAY_MONITOR_SUBJECT, DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+    }
+
 }

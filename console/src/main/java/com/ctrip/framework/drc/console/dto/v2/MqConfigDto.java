@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.dto.v2;
 
+import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
@@ -23,6 +25,11 @@ public class MqConfigDto implements Serializable {
     private long delayTime;
     private String processor;
     private long messengerGroupId;
+    //EventType value: I, U, D
+    private List<String> excludeFilterTypes;
+    private List<String> filterFields;
+    private boolean sendOnlyUpdated;
+    private boolean excludeColumn;
 
     public void validCheckRequest() {
         if (StringUtils.isBlank(mhaName)) {
@@ -30,6 +37,9 @@ public class MqConfigDto implements Serializable {
         }
         if (StringUtils.isBlank(table)) {
             throw new IllegalArgumentException("please input table!");
+        }
+        if(MqType.parse(mqType) == null) {
+            throw new IllegalArgumentException("mqType is invalid! mqType: " + mqType);
         }
     }
 
@@ -80,6 +90,9 @@ public class MqConfigDto implements Serializable {
 
     public String getMqType() {
         return mqType;
+    }
+    public MqType getMqTypeEnum(){
+        return MqType.parseOrDefault(mqType);
     }
 
     public void setMqType(String mqType) {
@@ -166,6 +179,30 @@ public class MqConfigDto implements Serializable {
         this.messengerGroupId = messengerGroupId;
     }
 
+    public List<String> getExcludeFilterTypes() {
+        return excludeFilterTypes;
+    }
+
+    public void setExcludeFilterTypes(List<String> excludeFilterTypes) {
+        this.excludeFilterTypes = excludeFilterTypes;
+    }
+
+    public List<String> getFilterFields() {
+        return filterFields;
+    }
+
+    public void setFilterFields(List<String> filterFields) {
+        this.filterFields = filterFields;
+    }
+
+    public boolean isSendOnlyUpdated() {
+        return sendOnlyUpdated;
+    }
+
+    public boolean isExcludeColumn() {
+        return excludeColumn;
+    }
+
     @Override
     public String toString() {
         return "MqConfigDto{" +
@@ -183,6 +220,35 @@ public class MqConfigDto implements Serializable {
                 ", delayTime=" + delayTime +
                 ", processor='" + processor + '\'' +
                 ", messengerGroupId=" + messengerGroupId +
+                ", excludeFilterTypes=" + excludeFilterTypes +
+                ", filterFields=" + filterFields +
+                ", sendOnlyUpdated=" + sendOnlyUpdated +
+                ", excludeColumn=" + excludeColumn +
                 '}';
     }
+
+
+    public MqConfig build() {
+        MqConfig mqConfig = new MqConfig();
+        mqConfig.setMqType(this.getMqType());
+        mqConfig.setSerialization(this.getSerialization());
+        mqConfig.setOrder(this.isOrder());
+        if (this.isOrder()) {
+            mqConfig.setOrderKey(this.getOrderKey());
+        }
+        mqConfig.setPersistent(this.isPersistent());
+        mqConfig.setPersistentDb(this.getPersistentDb());
+        mqConfig.setDelayTime(this.getDelayTime());
+        if (!CollectionUtils.isEmpty(this.getExcludeFilterTypes())) {
+            mqConfig.setExcludeFilterTypes(this.getExcludeFilterTypes());
+        }
+        if (!CollectionUtils.isEmpty(this.getFilterFields())) {
+            mqConfig.setFilterFields(this.getFilterFields());
+        }
+        mqConfig.setSendOnlyUpdated(this.isSendOnlyUpdated());
+        mqConfig.setExcludeColumn(this.isExcludeColumn());
+
+        return mqConfig;
+    }
+
 }

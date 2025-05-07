@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ProxyTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +18,9 @@ import java.util.List;
 public class ProxyTblDao extends AbstractDao<ProxyTbl> {
 
     private static final String URI = "uri";
+    private static final String DC_ID = "dc_id";
+    private static final String DATACHANGE_LASTTIME = "datachange_lasttime";
+    private static final boolean DESCENDING = false;
 
     public ProxyTblDao() throws SQLException {
         super(ProxyTbl.class);
@@ -27,6 +31,22 @@ public class ProxyTblDao extends AbstractDao<ProxyTbl> {
         sample.setDcId(dcId);
         sample.setDeleted(deleted);
         return this.queryBy(sample);
+    }
+
+    public List<ProxyTbl> queryByDcId(Long dcId, String prefix, String suffix) throws SQLException {
+        SelectSqlBuilder builder = initSqlBuilder();
+        builder.and().equal(DC_ID, dcId, Types.BIGINT)
+                .and().like(URI, prefix, MatchPattern.BEGIN_WITH, Types.VARCHAR)
+                .and().like(URI, suffix, MatchPattern.END_WITH, Types.VARCHAR);
+        builder.orderBy(DATACHANGE_LASTTIME, DESCENDING);
+        return queryList(builder);
+    }
+
+    public List<ProxyTbl> queryByPrefix(String prefix, String suffix) throws SQLException {
+        SelectSqlBuilder builder = initSqlBuilder();
+        builder.and().like(URI, prefix, MatchPattern.BEGIN_WITH, Types.VARCHAR)
+                .and().like(URI, suffix, MatchPattern.END_WITH, Types.VARCHAR);
+        return queryList(builder);
     }
 
     public ProxyTbl queryByUri(String uri) throws SQLException {

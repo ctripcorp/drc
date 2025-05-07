@@ -9,11 +9,11 @@ import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStateme
  * @Author limingdong
  * @create 2021/2/1
  */
-public class PartialTransactionContextResource extends TransactionContextResource implements Batchable {
+public class PartialTransactionContextResource extends ApplierTransactionContextResource implements Batchable {
 
-    private TransactionContextResource parent;
+    private ApplierTransactionContextResource parent;
 
-    public PartialTransactionContextResource(TransactionContextResource parent, boolean superBatch) {
+    public PartialTransactionContextResource(ApplierTransactionContextResource parent, boolean superBatch) {
         this.parent = parent;
         if (superBatch) {
             this.executor = parent.executor;

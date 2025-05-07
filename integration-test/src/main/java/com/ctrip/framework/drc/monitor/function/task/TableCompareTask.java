@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.monitor.function.task;
 
 
-import com.ctrip.framework.drc.applier.resource.context.TransactionContextResource;
+import com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;

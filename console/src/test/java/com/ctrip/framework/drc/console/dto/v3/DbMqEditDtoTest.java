@@ -25,6 +25,7 @@ public class DbMqEditDtoTest {
         originLogicTableConfig.setLogicTable("originTable");
         originLogicTableConfig.setDstLogicTable("bbz.test.binlog");
         dbMqCreateDto.setOriginLogicTableConfig(originLogicTableConfig);
+        dbMqCreateDto.setDalclusterName("test_dalcluster");
         dbMqCreateDto.setDbNames(Lists.newArrayList("db1"));
         dbMqCreateDto.setSrcRegionName("test");
         LogicTableConfig logicTableConfig = new LogicTableConfig();

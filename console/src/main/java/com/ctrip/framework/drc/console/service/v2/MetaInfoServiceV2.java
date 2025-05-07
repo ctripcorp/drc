@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.param.v2.DbQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.mq.MqType;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -33,7 +34,7 @@ public interface MetaInfoServiceV2 {
     Drc getDrcReplicationConfig(Long replicationId);
     Drc getDrcReplicationConfig(String srcMhaName, String dstMhaName);
 
-    Drc getDrcMessengerConfig(String mhaName);
+    Drc getDrcMessengerConfig(String mhaName, MqType mqType);
 
     Drc getDrcMhaConfig(String mhaName) throws Exception;
 

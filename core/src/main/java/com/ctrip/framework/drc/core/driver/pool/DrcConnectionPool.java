@@ -104,8 +104,8 @@ public class DrcConnectionPool extends ConnectionPool {
             try (Statement statement = conn.createStatement()) {
                 if (statement != null) {
                     statement.execute(String.format("set session wait_timeout = %d", sessionWaitTimeout));
-                    try (ResultSet rs = statement.executeQuery("show session variables like 'wait_timeout'")) {
-                        if (rs.next() && sessionWaitTimeout == rs.getInt(2)) {
+                    try (ResultSet rs = statement.executeQuery("select @@wait_timeout;")) {
+                        if (rs.next() && sessionWaitTimeout == rs.getInt(1)) {
                             logger.info("set sessionWaitTimeout to {}s succeeded: {}", sessionWaitTimeout, getName());
                         } else {
                             logger.warn("check sessionWaitTimeout failed for {}", getName());

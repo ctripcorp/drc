@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
-import com.ctrip.framework.drc.console.dao.entity.BuTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
@@ -14,20 +12,18 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MessengerDelayQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MessengerQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.apache.commons.lang.StringUtils;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,26 +38,13 @@ public class MessengerControllerV2 {
     @Autowired
     MetaInfoServiceV2 metaInfoServiceV2;
 
-    @GetMapping("all")
-    @SuppressWarnings("unchecked")
-    public ApiResult<List<MessengerVo>> getAllMessengerVos() {
-        try {
-            List<MhaTblV2> messengerMhaTbls = messengerService.getAllMessengerMhaTbls();
-            List<MessengerVo> messengerVoList = getMessengerVos(messengerMhaTbls);
-            return ApiResult.getSuccessInstance(messengerVoList);
-        } catch (Throwable e) {
-            logger.error("getAllMessengerVos exception", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("query")
     @SuppressWarnings("unchecked")
     public ApiResult<List<MessengerVo>> queryMessengerVos(MessengerQueryDto queryDto) {
         logger.info("[meta] MessengerQueryDto :{}", queryDto.toString());
         try {
-            List<MhaTblV2> messengerMhaTbls = messengerService.getMessengerMhaTbls(queryDto);
-            List<MessengerVo> messengerVoList = getMessengerVos(messengerMhaTbls);
+            queryDto.validate();
+            List<MessengerVo> messengerVoList = messengerService.getMessengerMhaTbls(queryDto);
             return ApiResult.getSuccessInstance(messengerVoList);
         } catch (Throwable e) {
             logger.error("queryMessengerVos exception", e);
@@ -69,31 +52,16 @@ public class MessengerControllerV2 {
         }
     }
 
-    private List<MessengerVo> getMessengerVos(List<MhaTblV2> messengerMhaTbls) {
-        List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
-        Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
 
-        // convert
-        return messengerMhaTbls.stream().map(mhaDto -> {
-            MessengerVo messengerVo = new MessengerVo();
-            messengerVo.setMhaName(mhaDto.getMhaName());
-            BuTbl buTbl = buMap.get(mhaDto.getBuId());
-            if (buTbl != null) {
-                messengerVo.setBu(buTbl.getBuName());
-            }
-            messengerVo.setMonitorSwitch(mhaDto.getMonitorSwitch());
-            return messengerVo;
-        }).collect(Collectors.toList());
-    }
 
     @DeleteMapping("deleteMha")
     @SuppressWarnings("unchecked")
     @LogRecord(type = OperateTypeEnum.MESSENGER_REPLICATION, attr = OperateAttrEnum.DELETE,
             success = "removeMessengerGroupInMha with mhaName: {#mhaName}")
-    public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName) {
+    public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName, @RequestParam String mqType) {
         try {
             logger.info("removeMessengerGroupInMha in mha:{}", mhaName);
-            messengerService.removeMessengerGroup(mhaName);
+            messengerService.removeMessengerGroup(mhaName, MqType.parse(mqType));
             return ApiResult.getSuccessInstance(true);
         } catch (Throwable e) {
             logger.error("removeMessengerGroupInMha in mha:" + mhaName, e);
@@ -103,9 +71,11 @@ public class MessengerControllerV2 {
 
     @GetMapping("queryConfigs")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MqConfigVo>> getAllMqConfigsByMhaName(@RequestParam(name = "mhaName") String mhaName) {
+    public ApiResult<List<MqConfigVo>> getAllMqConfigsByMhaName(@RequestParam(name = "mhaName") String mhaName,
+                                                                @RequestParam(name = "mqType") String mqType
+    ) {
         try {
-            List<MqConfigVo> res = messengerService.queryMhaMessengerConfigs(mhaName);
+            List<MqConfigVo> res = messengerService.queryMhaMessengerConfigs(mhaName, MqType.parse(mqType));
             return ApiResult.getSuccessInstance(res);
         } catch (Throwable e) {
             logger.error("getAllMqConfigsByMhaName exception", e);
@@ -166,13 +136,10 @@ public class MessengerControllerV2 {
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {
         logger.info("deleteMqConfig: {}", requestDto);
         try {
-            if (requestDto == null || CollectionUtils.isEmpty(requestDto.getDbReplicationIdList())
-                    || StringUtils.isBlank(requestDto.getMhaName())) {
+            if (requestDto == null) {
                 return ApiResult.getFailInstance("invalid empty input");
             }
-            if (requestDto.getDbReplicationIdList().size() != 1) {
-                return ApiResult.getFailInstance("batch delete not supported");
-            }
+            requestDto.validate();
             messengerService.processDeleteMqConfig(requestDto);
             return ApiResult.getSuccessInstance(null);
         } catch (Throwable e) {
@@ -181,27 +148,25 @@ public class MessengerControllerV2 {
         }
     }
 
-    @GetMapping("initGtid")
-    public ApiResult getMessengerExecutedGtid(@RequestParam(value = "mhaName") String mhaName) {
-        logger.info("[[tag=messenger]] getMessengerExecutedGtid for mha: {} ", mhaName);
-        try {
-            return ApiResult.getSuccessInstance(messengerService.getMessengerGtidExecuted(mhaName));
-        } catch (Exception e) {
-            logger.error("[[tag=messenger]] fail in getMessengerExecutedGtid for mha: {} ", mhaName, e);
-            return ApiResult.getSuccessInstance(null);
-        }
-    }
-
-    @GetMapping("delay")
+    @PostMapping("delay")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestParam(name = "mhas") List<String> mhas,
-                                                                           @RequestParam(name = "dbs") List<String> dbs) {
-        if (CollectionUtils.isEmpty(mhas) || CollectionUtils.isEmpty(dbs)) {
+    public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestBody MessengerDelayQueryDto queryDto) {
+        List<String> mhas = queryDto.getMhas();
+        List<String> dbs = queryDto.getDbs();
+        MqType mqType = queryDto.getMqTypeEnum();
+        if (CollectionUtils.isEmpty(mhas)) {
             return ApiResult.getSuccessInstance(Collections.emptyList());
         }
         try {
-            List<MhaMessengerDto> res = messengerService.getRelatedMhaMessenger(mhas, dbs);
-            List<MhaDelayInfoDto> mhaReplicationDelays = messengerService.getMhaMessengerDelays(res);
+            List<MhaMessengerDto> res;
+            List<MhaDelayInfoDto> mhaReplicationDelays;
+            if (queryDto.getNoNeedDbAndSrcTime()) {
+                res = mhas.stream().map(MhaMessengerDto::from).collect(Collectors.toList());
+                mhaReplicationDelays = messengerService.getMhaMessengerDelaysWithoutSrcTime(res, mqType);
+            } else {
+                res = messengerService.getRelatedMhaMessenger(mhas, dbs, mqType);
+                mhaReplicationDelays = messengerService.getMhaMessengerDelays(res, mqType);
+            }
             Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(Objects::nonNull).collect(Collectors.toMap(
                             MhaDelayInfoDto::getSrcMha,
                             Function.identity()
@@ -218,4 +183,6 @@ public class MessengerControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+
 }

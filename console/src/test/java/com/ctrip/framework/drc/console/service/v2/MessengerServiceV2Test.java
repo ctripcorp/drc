@@ -10,13 +10,12 @@ import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MessengerFilterTbl;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MessengerFilterTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.impl.MessengerServiceV2Impl;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.MqConfig;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -30,6 +29,8 @@ import org.mockito.MockitoAnnotations;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -57,6 +58,10 @@ public class MessengerServiceV2Test {
     private DbTblDao dbTblDao;
     @Mock
     private MessengerFilterTblDao messengerFilterTblDao;
+    @Mock
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Mock
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
     @Before
     public void setUp(){
@@ -67,7 +72,7 @@ public class MessengerServiceV2Test {
     public void testGenerateMessengers() throws SQLException {
         MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
         messengerGroupTbl.setId(0L);
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(),Mockito.any(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
         Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(new ArrayList<>());
 
         DbReplicationTbl dbReplicationTbl = new DbReplicationTbl();
@@ -86,7 +91,7 @@ public class MessengerServiceV2Test {
         Mockito.when(messengerTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(Lists.newArrayList(messengerTbl));
         Mockito.when(resourceTblDao.queryByPk(Mockito.anyLong())).thenReturn(new ResourceTbl());
 
-        List<Messenger> result = messengerService.generateMessengers(0L);
+        List<Messenger> result = messengerService.generateMessengers(0L, MqType.DEFAULT);
         Assert.assertEquals(result.size(), 1);
     }
 
@@ -96,5 +101,7 @@ public class MessengerServiceV2Test {
         tbl.setMessengerFilterId(1L);
         return Lists.newArrayList(tbl);
     }
+
+
 
 }

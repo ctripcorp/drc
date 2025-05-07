@@ -1,14 +1,13 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
@@ -16,15 +15,22 @@ import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.service.ckafka.BlankKafkaApiServiceImpl;
+import com.ctrip.framework.drc.core.service.ckafka.KafkaApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -32,8 +38,8 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -57,10 +63,26 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Mock
     private MessengerServiceV2Impl messengerServiceV2;
+    MqType mqType = MqType.qmq;
+
+    @Mock
+    private MessengerBatchConfigService messengerBatchConfigService;
+
+    KafkaApiService kafkaApiService = Mockito.mock(BlankKafkaApiServiceImpl.class);
+    MockedStatic<ApiContainer> theMock;
+
+    @After
+    public void tearDown() throws Exception {
+        theMock.close();
+    }
 
     @Before
     public void setUp() throws IOException, SQLException {
         MockitoAnnotations.openMocks(this);
+
+        theMock = Mockito.mockStatic(ApiContainer.class);
+        theMock.when(() -> ApiContainer.getKafkaApiServiceImpl()).thenReturn(kafkaApiService);
+
         MhaDbReplicationDto dto1 = new MhaDbReplicationDto();
         String srcMha = "mha1";
         String dstMha = "mha2";
@@ -172,8 +194,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dto4.setDbReplicationDtos(Lists.newArrayList(new DbReplicationDto(1001L, config)));
         dto4.setReplicationType(1);
 
-        when(mhaDbReplicationService.queryMqByMha(eq(srcMha), any())).thenReturn(Lists.newArrayList(dto3, dto4));
-        when(defaultConsoleConfig.getDbApplierConfigureSwitch(anyString())).thenReturn(true);
+        when(mhaDbReplicationService.queryMqByMha(eq(srcMha), any(), any())).thenReturn(Lists.newArrayList(dto3, dto4));
         when(metaInfoService.getDrcReplicationConfig(anyString(), anyString())).thenReturn(new Drc());
         String json2 = "[{\"clusterList\":[{\"clusterName\":\"mha1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.1\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.2\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db1\"},{\"clusterList\":[{\"clusterName\":\"mha2\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"master\",\"ipBusiness\":\"11.11.11.3\"},{\"instancePort\":55111,\"instanceZoneId\":\"NTGXH\",\"role\":\"slave\",\"ipBusiness\":\"11.11.11.4\"}],\"env\":\"fat\",\"zoneId\":\"NTGXH\"},{\"clusterName\":\"sin1\",\"nodes\":[{\"instancePort\":55111,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"sin.rds.amazonaws.com\"}],\"env\":\"fat\",\"zoneId\":\"sin-aws\"}],\"dbName\":\"db2\"}]";
         List<DbClusterInfoDto> list = JsonUtils.fromJsonToList(json2, DbClusterInfoDto.class);
@@ -200,15 +221,10 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     @Test
     public void testGetMessenger() throws Exception {
         String srcMha = "mha1";
-        List<DbApplierDto> dbAppliers = dbDrcBuildService.getMhaDbMessengers(srcMha);
+        List<DbApplierDto> dbAppliers = dbDrcBuildService.getMhaDbMessengers(srcMha, mqType);
         Assert.assertFalse(CollectionUtils.isEmpty(dbAppliers));
         Assert.assertFalse(CollectionUtils.isEmpty(dbAppliers.get(0).getIps()));
         Assert.assertFalse(StringUtils.isEmpty(dbAppliers.get(0).getGtidInit()));
-    }
-
-    @Test
-    public void testConfigurable() {
-        Assert.assertTrue(dbDrcBuildService.isDbApplierConfigurable("mha"));
     }
 
     @Test
@@ -219,7 +235,6 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         srcBuildParam.setMhaName("mha1");
         drcBuildParam.setSrcBuildParam(srcBuildParam);
         DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
-        dstBuildParam.setApplierInitGtid("a:123");
         dstBuildParam.setMhaName("mha2");
         dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList("2.113.60.2"), "gtidInit1", "db2")));
         drcBuildParam.setDstBuildParam(dstBuildParam);
@@ -231,9 +246,27 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(applierGroupTblV3Dao, times(1)).batchInsertWithReturnId(anyList());
         verify(applierGroupTblV3Dao, times(1)).batchUpdate(anyList());
 
-        verify(applierTblV2Dao, never()).insert(anyList());
-        verify(applierGroupTblV2Dao, times(1)).update(any(ApplierGroupTblV2.class));
-        verify(applierGroupTblV2Dao, never()).insertOrReCover(any(), anyString());
+    }
+
+    @Test
+    public void testBuildAppliersEmpty() throws Exception {
+
+        DrcBuildParam drcBuildParam = new DrcBuildParam();
+        DrcBuildBaseParam srcBuildParam = new DrcBuildBaseParam();
+        srcBuildParam.setMhaName("mha1");
+        drcBuildParam.setSrcBuildParam(srcBuildParam);
+        DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
+        dstBuildParam.setMhaName("mha2");
+        dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList(), "gtidInit1", "db2")));
+        drcBuildParam.setDstBuildParam(dstBuildParam);
+        dbDrcBuildService.buildDbApplier(drcBuildParam);
+
+        verify(applierTblV3Dao, times(1)).batchInsert(anyList());
+        verify(applierTblV3Dao, times(1)).batchUpdate(anyList());
+
+        verify(applierGroupTblV3Dao, times(1)).batchInsertWithReturnId(anyList());
+        verify(applierGroupTblV3Dao, times(1)).batchUpdate(anyList());
+
     }
 
 
@@ -243,34 +276,17 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         DrcBuildBaseParam dstBuildParam = new DrcBuildBaseParam();
         dstBuildParam.setMhaName("mha1");
         dstBuildParam.setDbApplierDtos(Lists.newArrayList(new DbApplierDto(Lists.newArrayList("ip1", "ip2"), "gtidInit1", "db1"), new DbApplierDto(Lists.newArrayList("ip1"), "gtidInit2", "db2")));
-        when(metaInfoService.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+        dstBuildParam.setMqType("qmq");
+        when(metaInfoService.getDrcMessengerConfig(anyString(), any())).thenReturn(new Drc());
         dbDrcBuildService.buildDbMessenger(dstBuildParam);
 
         verify(messengerTblV3Dao, times(1)).batchInsert(anyList());
         verify(messengerTblV3Dao, times(1)).batchUpdate(anyList());
 
-        verify(messengerGroupTblV3Dao, times(1)).upsert(anyList());
+        verify(messengerGroupTblV3Dao, times(1)).upsert(anyList(), any());
 
         verify(messengerTblDao, never()).insert(anyList());
-        verify(messengerGroupTblDao, never()).upsertIfNotExist(any(), any(), any());
-    }
-
-    @Test
-    public void testGetMhaInitGtidWhenRollbackFromDbApply() throws SQLException {
-        HashMap<String, String> map = Maps.newHashMap();
-        map.put("db1", "a:1-150,abc:1-100");
-        map.put("db2", "abc:1-10");
-        when(mysqlServiceV2.getMhaDbAppliedGtid(anyString())).thenReturn(map);
-        String gtid = dbDrcBuildService.getDbDrcExecutedGtidTruncate("mha1", "mha2");
-        Assert.assertEquals("a:1-110,abc:1-10", gtid);
-    }
-
-    @Test
-    public void testGetDbAppliersInitGtid() throws SQLException {
-        HashMap<String, String> map = Maps.newHashMap();
-        when(mysqlServiceV2.getMhaAppliedGtid(anyString())).thenReturn("a:1-150,b:1-20");
-        String gtid = dbDrcBuildService.getMhaDrcExecutedGtidTruncate("mha1", "mha2");
-        Assert.assertEquals("a:1-150,b:1-20", gtid);
+        verify(messengerGroupTblDao, never()).upsertIfNotExist(any(), any(), any(), any());
     }
 
 
@@ -278,7 +294,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     public void testAutoConfigDbAppliers() throws Exception {
         when(resourceService.getMhaDbAvailableResource("mha2", ModuleEnum.APPLIER.getCode())).thenReturn(getResourceView());
         when(resourceService.handOffResource(anyList(), anyList())).thenReturn(getResourceView());
-        dbDrcBuildService.autoConfigDbAppliers("mha1", "mha2", Lists.newArrayList("db1"), null);
+        dbDrcBuildService.autoConfigDbAppliers("mha1", "mha2", Lists.newArrayList("db1"), null, true);
     }
 
 
@@ -330,7 +346,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         verify(drcBuildServiceV2, times(1)).buildMessengerMha(any());
         verify(drcBuildServiceV2, times(1)).syncMhaDbInfoFromDbaApiIfNeeded(any(), any());
         verify(drcBuildServiceV2, times(1)).autoConfigReplicatorsWithRealTimeGtid(any());
-        verify(mhaDbReplicationService, times(1)).maintainMhaDbReplicationForMq(any(), any());
+        verify(mhaDbReplicationService, times(1)).maintainMhaDbReplicationForMq(any(), any(), eq(ReplicationTypeEnum.DB_TO_MQ));
     }
 
     @Test
@@ -376,31 +392,23 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
     public void testCreateDbMqReplication() throws Exception {
         DbMqCreateDto dbReplicationCreateDto = getDbMqCreateDto();
         dbDrcBuildService.createDbMqReplication(dbReplicationCreateDto);
-        verify(messengerServiceV2, times(1)).processAddMqConfig(any());
+        verify(messengerBatchConfigService, times(1)).processCreateMqConfig(any(), any());
     }
 
     @Test
     public void testEditDbMqReplication() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         dbDrcBuildService.editDbMqReplication(editDto);
-        verify(messengerServiceV2, times(1)).processUpdateMqConfig(any());
+        verify(messengerBatchConfigService, times(1)).processUpdateMqConfig(any(), any());
     }
 
     @Test
     public void testDeleteDbMqReplication() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         dbDrcBuildService.deleteDbMqReplication(editDto);
-        verify(messengerServiceV2, times(1)).processDeleteMqConfig(any());
+        verify(messengerBatchConfigService, times(1)).processDeleteMqConfig(any(), any());
     }
 
-
-    @Test(expected = ConsoleException.class)
-    public void testDeleteDbMqReplicationInvalidReq() throws Exception {
-        DbMqEditDto editDto = getDbMqEditDto();
-        editDto.getOriginLogicTableConfig().setMessengerFilterId(null);
-        dbDrcBuildService.deleteDbMqReplication(editDto);
-        verify(messengerServiceV2, times(1)).processDeleteMqConfig(any());
-    }
 
     @Test
     public void testSwitchAppliers() throws Exception {
@@ -416,31 +424,33 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         req2.setSrcMhaName("mha2");
         req2.setDstMhaName("mha1");
         reqDtos.add(req2);
+        when(mysqlServiceV2.getMhaExecutedGtid(anyString())).thenReturn("abc:123");
 
         dbDrcBuildService.switchAppliers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).autoConfigAppliers(any(), any(), any());
         verify(applierTblV3Dao, times(1)).batchInsert(any());
     }
 
     @Test
     public void testSwitchMessengers() throws Exception {
-        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
-        DbApplierSwitchReqDto req2 = new DbApplierSwitchReqDto();
+        List<MessengerSwitchReqDto> reqDtos = new ArrayList<>();
+        MessengerSwitchReqDto req2 = new MessengerSwitchReqDto();
         req2.setDbNames(Lists.newArrayList("aadb1"));
         req2.setSrcMhaName("mha2");
+        req2.setMqType("qmq");
         reqDtos.add(req2);
 
         dbDrcBuildService.switchMessengers(reqDtos);
-        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any());
+        verify(drcBuildServiceV2, times(1)).autoConfigMessengersWithRealTimeGtid(any(MhaTblV2.class), any(), anyBoolean());
     }
 
 
     @Test(expected = IllegalArgumentException.class)
     public void testSwitchMessengersDbMessengerNotSupport() throws Exception {
-        List<DbApplierSwitchReqDto> reqDtos = new ArrayList<>();
-        DbApplierSwitchReqDto req1 = new DbApplierSwitchReqDto();
+        List<MessengerSwitchReqDto> reqDtos = new ArrayList<>();
+        MessengerSwitchReqDto req1 = new MessengerSwitchReqDto();
         req1.setDbNames(Lists.newArrayList("db1"));
         req1.setSrcMhaName("mha1");
+        req1.setMqType("qmq");
         reqDtos.add(req1);
 
 
@@ -468,6 +478,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
 
     private static DbMqCreateDto getDbMqCreateDto() {
         DbMqCreateDto create = new DbMqCreateDto();
+        create.setDalclusterName("test_dalcluster");
         LogicTableConfig logicTableConfig = new LogicTableConfig();
         logicTableConfig.setLogicTable("new table");
         logicTableConfig.setDstLogicTable("bbz.test.binlog");
@@ -487,6 +498,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
 
     private static DbMqEditDto getDbMqEditDto() {
         DbMqEditDto editDto = new DbMqEditDto();
+        editDto.setDalclusterName("test_dalcluster");
         LogicTableConfig logicTableConfig = new LogicTableConfig();
         logicTableConfig.setLogicTable("new table");
         logicTableConfig.setDstLogicTable("bbz.test.binlog");
@@ -506,7 +518,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         mqConfig.setSerialization("json");
         editDto.setMqConfig(mqConfig);
 
-        editDto.setDbReplicationIds(Lists.newArrayList(1005L,1006L));
+        editDto.setDbReplicationIds(Lists.newArrayList(1005L, 1006L));
         return editDto;
     }
 
@@ -530,5 +542,113 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         ResourceView v2 = new ResourceView();
         v2.setIp("2.113.60.2");
         return Lists.newArrayList(v1, v2);
+    }
+
+    @Test
+    public void testCheckKafkaTopic() throws Exception {
+        MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("empty params"));
+        }
+        dto.setDbName("db");
+        dto.setMqType("qmq");
+        dto.setTable("table");
+        dto.setTopic("topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("wrong qmq topic "));
+        }
+
+        dto.setTopic("bu.topic");
+        dto.check();
+        dbDrcBuildService.checkKafkaTopic(dto);
+
+        dto.setDbName("db");
+        dto.setMqType("mqtype");
+        dto.setTable("table");
+        dto.setTopic("topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("No enum"));
+        }
+
+        dto.setDbName("db");
+        dto.setMqType("kafka");
+        dto.setTable("table");
+        dto.setTopic("topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("empty param kafkaCluster"));
+        }
+
+        dto.setKafkaCluster("kafkaCluster");
+        dto.setOrder(false);
+        dto.setOrderKey("orderkey");
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("wrong order or orderKey"));
+        }
+
+        dto.setOrder(true);
+        Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("opstoken");
+        Mockito.when(defaultConsoleConfig.getDrcCkafkaRegionMapping()).thenReturn(Maps.newHashMap());
+        Mockito.when(kafkaApiService.checkTopicProducePermission(Mockito.anyString(), Mockito.any())).thenReturn(false);
+        Mockito.when(dbaApiService.getDbOwner(Mockito.anyString())).thenReturn("owner");
+        Map<String, String> mapping = Maps.newHashMap();
+        mapping.put("region", "cregion");
+        Mockito.when(defaultConsoleConfig.getDrcCkafkaRegionMapping()).thenReturn(mapping);
+        try {
+            dto.check();
+            dbDrcBuildService.checkKafkaTopic(dto);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().startsWith("error in check kafka topic"));
+        }
+    }
+
+    @Test(expected = ConsoleException.class)
+    public void testAutoCreateMq() throws Exception {
+        MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
+        dto.setDbName("db");
+        dto.setMqType("qmq");
+        dto.setTable("table");
+        dto.setTopic("bu.topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+
+        Mockito.when(drcAutoBuildService.getRegionOptions(Mockito.any())).thenReturn(List.of("region"));
+        dbDrcBuildService.autoCreateMq(dto);
+    }
+
+    @Test(expected = ConsoleException.class)
+    public void testCreateMqConfigAndSwitchMessenger() throws Exception {
+        Mockito.when(dbaApiService.getDatabaseClusterInfoList(Mockito.eq("db_dalcluster"))).thenReturn(List.of(new DbClusterInfoDto("db", Lists.newArrayList())));
+        MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
+        dto.setDbName("db");
+        dto.setMqType("qmq");
+        dto.setTable("table");
+        dto.setTopic("bu.topic");
+        dto.setBu("bu");
+        dto.setRegion("region");
+        MqAutoCreateDto autoCreateDto = dto.deriveMqAutoCreateDto();
+        autoCreateDto.setDalclusterName("db_dalcluster");
+        autoCreateDto.setDbNames(Lists.newArrayList("db"));
+        dbDrcBuildService.createMqConfigAndSwitchMessenger(autoCreateDto);
     }
 }

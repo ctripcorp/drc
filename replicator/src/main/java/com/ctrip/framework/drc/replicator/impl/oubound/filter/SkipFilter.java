@@ -12,10 +12,7 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.context.FilterChainContext;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Objects;
-
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_gtid_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isDrcGtidLogEvent;
 import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isOriginGtidLogEvent;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
@@ -27,27 +24,25 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
 
     private Frequency frequencySend = new Frequency("FRE GTID SEND");
 
-    private final GtidSet excludedSet;
-
     private ConsumeType consumeType;
 
     protected String previousGtid = StringUtils.EMPTY;
 
-    protected boolean inExcludeGroup = false;
-
     private String registerKey;
 
     public SkipFilter(FilterChainContext context) {
-        this.excludedSet = Objects.requireNonNullElseGet(context.getExcludedSet(), () -> new GtidSet(StringUtils.EMPTY));
         this.consumeType = context.getConsumeType();
         this.registerKey = context.getRegisterKey();
     }
 
-    protected abstract void channelHandleEvent(LogEventType eventType);
+    protected abstract void channelHandleEvent(OutboundLogEventContext value, LogEventType eventType);
 
     protected abstract void skipTransaction(OutboundLogEventContext value, long nextTransactionOffset);
 
     protected abstract void skipEvent(OutboundLogEventContext value);
+
+    protected abstract GtidSet getExcludedGtidSet();
+
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
@@ -59,7 +54,7 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
             handleNonGtidEvent(value, eventType);
         }
 
-        channelHandleEvent(eventType);
+        channelHandleEvent(value, eventType);
 
         return doNext(value, value.isSkipEvent());
     }
@@ -71,9 +66,9 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
         value.setGtid(gtidLogEvent.getGtid());
         previousGtid = value.getGtid();
 
-        Gtid gtid = new Gtid(gtidLogEvent.getServerUUID().toString(), gtidLogEvent.getId());
-        inExcludeGroup = skipEvent(excludedSet, eventType, gtid);
-        if (inExcludeGroup) {
+        Gtid gtid = Gtid.from(gtidLogEvent);
+        this.skipEvent(value, eventType, gtid);
+        if (value.isInGtidExcludeGroup()) {
             GTID_LOGGER.debug("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", value.getGtid(), gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
             value.setSkipEvent(true);
@@ -81,36 +76,30 @@ public abstract class SkipFilter extends AbstractLogEventFilter<OutboundLogEvent
             if (nextTransactionOffset > 0) {
                 skipTransaction(value, nextTransactionOffset);
             }
-            return;
-        } else {
-            synchronized (excludedSet) {
-                excludedSet.addAndFillGap(gtid.getUuid(), gtid.getTransactionId());
-            }
-        }
-
-        if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
-            value.setSkipEvent(true);
-            inExcludeGroup = true;
         }
     }
 
     private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
-        if (inExcludeGroup && !LogEventUtils.isSlaveConcerned(eventType)) {
+        if (value.isInGtidExcludeGroup() && !LogEventUtils.isSlaveConcerned(eventType)) {
             skipEvent(value);
             value.setSkipEvent(true);
             //skip all transaction, clear in_exclude_group
             if (xid_log_event == eventType) {
                 GTID_LOGGER.debug("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
-                inExcludeGroup = false;
+                value.setInGtidExcludeGroup(false);
             }
         }
     }
 
-    private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, Gtid gtid) {
-        if (LogEventUtils.isGtidLogEvent(eventType)) {
-            return gtid.isContainedWithin(excludedSet);
+    private void skipEvent(OutboundLogEventContext value, LogEventType eventType, Gtid gtid) {
+        if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
+            value.setInGtidExcludeGroup(true);
+            return;
         }
-        return inExcludeGroup;
+        if (LogEventUtils.isGtidLogEvent(eventType)) {
+            GtidSet excludedSet = this.getExcludedGtidSet();
+            value.setInGtidExcludeGroup(gtid.isContainedWithin(excludedSet));
+        }
     }
 
     protected void logGtid(String gtidForLog, LogEventType eventType) {

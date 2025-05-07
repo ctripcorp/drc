@@ -2,11 +2,15 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueDto;
+import com.ctrip.framework.drc.console.dto.MhaColumnDefaultValueView;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.v3.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v3.ReplicatorInfoDto;
 import com.ctrip.framework.drc.console.param.v2.MhaQueryParam;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.sql.SQLException;
@@ -26,7 +30,7 @@ public interface MhaServiceV2 {
     List<MhaTblV2> queryRelatedMhaByDbName(List<String> dbNames) throws SQLException;
     List<String> getMhaReplicators(String mhaName) throws Exception;
     List<ReplicatorInfoDto> getMhaReplicatorsV2(String mhaName);
-    List<String> getMhaMessengers(String mhaName);
+    MhaMessengerDto getMhaMessengers(String mhaName, MqType mqType);
 
     List<String> getMhaAvailableResource(String mhaName, int type) throws Exception;
     String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception;
@@ -34,7 +38,9 @@ public interface MhaServiceV2 {
 
     DrcBuildPreCheckVo preCheckBeReplicatorIps(String mhaName, List<String> replicatorIps) throws Exception;
 
-    void updateMhaTag(String mhaName, String tag) throws Exception;
+    int updateMhaTag(String mhaName, String tag) throws Exception;
+    
+    int updateMhaTag(List<String> mhaNames, String tag) throws Exception;
 
     String getMhaDc(String mhaName) throws Exception;
     
@@ -63,4 +69,14 @@ public interface MhaServiceV2 {
     List<MhaTblV2> queryMhas(MhaQueryParam param) throws Exception;
     
     MachineTbl getMasterNode(Long mhaId) throws SQLException;
+
+    MhaColumnDefaultValueDto findColumnDefaultValueLengthGt251(String mha);
+
+    MhaColumnDefaultValueView findColumnDefaultValueLengthGt251(List<String> mhas);
+
+    MhaColumnDefaultValueView findAllColumnDefaultValueLengthGt251(int batch) throws SQLException;
+
+    boolean createDrcMessengerGtidTbl() throws Exception;
+
+
 }

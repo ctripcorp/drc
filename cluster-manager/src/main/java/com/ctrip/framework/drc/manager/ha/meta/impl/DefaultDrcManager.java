@@ -78,7 +78,7 @@ public class DefaultDrcManager extends AbstractMetaManager implements DrcManager
         if( dcMeta == null ){
             return null;
         }
-        return clone(new LinkedList<>(dcMeta.getClusterManagers()));
+        return cloneList(new LinkedList<>(dcMeta.getClusterManagers()));
     }
 
     @Override

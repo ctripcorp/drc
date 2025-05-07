@@ -9,6 +9,8 @@ public class DbResourceSelectParam {
     private int type;
     private List<String> selectedIps;
 
+    private String subType;
+
     public DbResourceSelectParam() {
     }
 
@@ -17,6 +19,14 @@ public class DbResourceSelectParam {
         this.dstMhaName = dstMhaName;
         this.type = type;
         this.selectedIps = selectedIps;
+    }
+
+    public String getSubType() {
+        return subType;
+    }
+
+    public void setSubType(String subType) {
+        this.subType = subType;
     }
 
     public String getDstMhaName() {

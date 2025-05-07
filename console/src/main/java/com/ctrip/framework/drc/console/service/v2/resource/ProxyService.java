@@ -13,14 +13,17 @@ public interface ProxyService {
 
     List<String> getProxyUris(String dc) throws Exception;
 
-    List<String> getAllProxyUris() throws Exception;
+    List<String> getProxyUris(String dc, boolean src) throws Exception;
 
-    ApiResult inputProxy(ProxyDto proxyDto);
+
+    List<String> getRelayProxyUris() throws Exception;
 
     ApiResult deleteProxy(ProxyDto proxyDto);
 
     ApiResult inputDc(String dc);
 
     ApiResult inputBu(String bu);
+
+    void inputProxy(String dc, String ip) throws Exception;
 
 }

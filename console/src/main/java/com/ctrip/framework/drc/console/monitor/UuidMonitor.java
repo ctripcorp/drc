@@ -20,9 +20,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,6 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Order(2)
 @Component
-@DependsOn("dbClusterSourceProvider")
 public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
     
     private Reporter reporter = DefaultReporterHolder.getInstance();
@@ -118,10 +117,10 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
             }
             List<String> uuidsFromMetaDB = StringUtils.isBlank(uuidStringFromDB)? Lists.newArrayList() : Lists.newArrayList(uuidStringFromDB.split(","));
             boolean uuidCorrect = uuidsFromMetaDB.contains(uuidFromCommand);
-            reporter.resetReportCounter(entityTags, uuidCorrect? 0L : 1L, UUID_ERROR_NUM_MEASUREMENT);
             if (!uuidCorrect) {
+                reporter.reportResetCounter(entityTags, 1L, UUID_ERROR_NUM_MEASUREMENT);
                 logger.info("[[monitor=UUIDMonitor]] mysql {}:{},RealUUID:{},ErrorUUID:{}", ip,port,uuidFromCommand, uuidStringFromDB);
-                if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUuidCorrectSwitch())) {
+                if (monitorTableSourceProvider.getUuidCorrectMhaSwitch(metaKey.getMhaName())) {
                     autoCorrect(ip, port, uuidsFromMetaDB, uuidFromCommand);
                 }
             }

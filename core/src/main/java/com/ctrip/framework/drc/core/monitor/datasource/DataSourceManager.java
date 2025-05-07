@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.core.monitor.datasource;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.AccountEndpoint;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import org.apache.tomcat.jdbc.pool.DataSource;
@@ -27,6 +28,7 @@ public class DataSourceManager extends AbstractDataSource {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final int MAX_ACTIVE = 50;
+    public static final int DB_MAX_ACTIVE = 5;
     private Map<Endpoint, Lock> cachedLocks = new ConcurrentHashMap<>();
     private Map<Endpoint, Lock> writeCachedLocks = new ConcurrentHashMap<>();
     private Map<Endpoint, Lock> accValidateCachedLocks = new ConcurrentHashMap<>();
@@ -48,6 +50,11 @@ public class DataSourceManager extends AbstractDataSource {
 
     public DataSource getDataSource(Endpoint endpoint) {
         return this.getDataSource(endpoint, null);
+    }
+
+    public DataSource getDataSource(Endpoint endpoint, boolean ignoreExceptionOnPreLoad) {
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint, ignoreExceptionOnPreLoad);
+        return this.getDataSource(endpoint, poolProperties);
     }
 
     public DataSource getDataSource(Endpoint endpoint, PoolProperties poolProperties) {
@@ -99,7 +106,7 @@ public class DataSourceManager extends AbstractDataSource {
 
         poolProperties.setUsername(endpoint.getUser());
         poolProperties.setPassword(endpoint.getPassword());
-        poolProperties.setMaxActive(MAX_ACTIVE);
+        poolProperties.setMaxActive(getMaxActive(endpoint));
         poolProperties.setMaxIdle(2);
         poolProperties.setMinIdle(1);
         poolProperties.setInitialSize(1);
@@ -112,6 +119,23 @@ public class DataSourceManager extends AbstractDataSource {
         poolProperties.setValidationInterval(30000);
 
         return poolProperties;
+    }
+
+    public static PoolProperties getDefaultPoolProperties(Endpoint endpoint, boolean ignoreExceptionOnPreLoad) {
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
+        poolProperties.setIgnoreExceptionOnPreLoad(ignoreExceptionOnPreLoad);
+        return poolProperties;
+    }
+
+    protected static int getMaxActive(Endpoint endpoint) {
+        if (endpoint instanceof KeyedEndPoint) {
+            String registryKey = ((KeyedEndPoint) endpoint).getKey();
+            boolean isDbRegistryKey = RegistryKey.getTargetDB(registryKey) != null;
+            if (isDbRegistryKey) {
+                return DB_MAX_ACTIVE;
+            }
+        }
+        return MAX_ACTIVE;
     }
 
     public void clearDataSource(Endpoint endpoint) {

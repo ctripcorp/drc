@@ -160,7 +160,6 @@ public class ConflictRowsLogQueryParam {
         return "ConflictRowsLogQueryParam{" +
                 "conflictTrxLogId=" + conflictTrxLogId +
                 ", gtid='" + gtid + '\'' +
-                ", dbsWithPermission=" + dbsWithPermission +
                 ", admin=" + admin +
                 ", dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +

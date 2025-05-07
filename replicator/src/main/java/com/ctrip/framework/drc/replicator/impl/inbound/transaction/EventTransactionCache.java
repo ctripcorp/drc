@@ -3,10 +3,10 @@ package com.ctrip.framework.drc.replicator.impl.inbound.transaction;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
-import com.ctrip.framework.drc.core.driver.binlog.impl.FilterLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionEvent;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.xpipe.api.observer.Observer;
@@ -31,6 +31,9 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
     public static int bufferSize = TRANSACTION_BUFFER_SIZE;
 
+    // 512 MB
+    public static long MAX_TRANSACTION_SIZE = 1024 * 1024 * 512L;
+
     private int indexMask;
 
     private LogEvent[] entries;
@@ -38,6 +41,8 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
     private AtomicLong putSequence = new AtomicLong(INIT_SEQUENCE);
 
     private AtomicLong flushSequence = new AtomicLong(INIT_SEQUENCE);
+
+    private long currentTransactionSize = 0;
 
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
@@ -47,9 +52,12 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
     private Filter<ITransactionEvent> filterChain;
 
-    public EventTransactionCache(IoCache ioCache, Filter<ITransactionEvent> filterChain) {
+    private final String registryKey;
+
+    public EventTransactionCache(IoCache ioCache, Filter<ITransactionEvent> filterChain, String registryKey) {
         this.ioCache = ioCache;
         this.filterChain = filterChain;
+        this.registryKey = registryKey;
     }
 
     protected void doInitialize() {
@@ -105,19 +113,39 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
         putSequence.set(INIT_SEQUENCE);
         flushSequence.set(INIT_SEQUENCE);
+        currentTransactionSize = 0;
     }
 
     private void put(LogEvent data) {
-        if (checkFreeSlotAt(putSequence.get() + 1)) {
+        if (checkNotInBigTransaction()) {
             long current = putSequence.get();
             long next = current + 1;
 
             entries[getIndex(next)] = data;
+            currentTransactionSize += data.getLogEventHeader().getEventSize();
             putSequence.set(next);
         } else {
             flush();
             put(data);
         }
+    }
+
+    private boolean checkNotInBigTransaction() {
+        return checkFreeSlotAt(putSequence.get() + 1) && checkTransactionSize();
+    }
+
+    private boolean checkTransactionSize() {
+        if (currentTransactionSize == 0) {
+            // first event, pass
+            return true;
+        }
+        boolean pass = MAX_TRANSACTION_SIZE >= currentTransactionSize;
+        if (!pass) {
+            logger.warn("checkTransactionSize fail, currentTransactionSize: {}, eventNum: {}", currentTransactionSize,
+                    this.putSequence.get() - this.flushSequence.get());
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.inbound.transaction.big.size", registryKey);
+        }
+        return pass;
     }
 
     @VisibleForTesting
@@ -127,7 +155,8 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         long end = this.putSequence.get();
 
         if (start <= end) {
-            TransactionEvent transaction = getTransactionEvent();
+            boolean inBigTransaction = !this.checkNotInBigTransaction();
+            TransactionEvent transaction = getTransactionEvent(inBigTransaction);
             transaction.addFilterLogEvent();
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
@@ -137,6 +166,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
                 transaction.write(ioCache);
                 notifyExecutedGtid();
                 flushSequence.set(end);
+                currentTransactionSize = 0;
             } finally {
                 transaction.release();
             }
@@ -199,7 +229,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         }
     }
 
-    protected TransactionEvent getTransactionEvent() {
-        return new TransactionEvent();
+    protected TransactionEvent getTransactionEvent(boolean inBigTransaction) {
+        return new TransactionEvent(inBigTransaction);
     }
 }

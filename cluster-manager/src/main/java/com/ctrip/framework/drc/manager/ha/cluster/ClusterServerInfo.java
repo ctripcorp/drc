@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.manager.ha.cluster;
 
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.xpipe.api.codec.Codec;
-import com.ctrip.xpipe.utils.ObjectUtils;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.Objects;
 
 /**
  * @Author limingdong
@@ -10,23 +13,29 @@ import com.ctrip.xpipe.utils.ObjectUtils;
 public class ClusterServerInfo {
     private String ip;
     private int port;
+    /**
+     * @see ServerStateEnum
+     */
+    private int state;
 
-    public ClusterServerInfo(){
+    public ClusterServerInfo() {
 
     }
 
-    public ClusterServerInfo(String ip, int port){
+    public ClusterServerInfo(String ip, int port) {
+        this(ip, port, ServerStateEnum.NORMAL);
+    }
+
+    public ClusterServerInfo(String ip, int port, ServerStateEnum stateEnum) {
         this.ip = ip;
         this.port = port;
+        this.state = stateEnum.getCode();
     }
 
     public String getIp() {
         return ip;
     }
 
-    public void setIp(String ip) {
-        this.ip = ip;
-    }
 
     public int getPort() {
         return port;
@@ -37,25 +46,30 @@ public class ClusterServerInfo {
         this.port = port;
     }
 
+    public int getState() {
+        return state;
+    }
+
+    public void setState(ServerStateEnum state) {
+        this.state = state.getCode();
+    }
+
+    @JsonIgnore
+    public ServerStateEnum getStateEnum() {
+        return ServerStateEnum.parseCode(state);
+    }
+
     @Override
-    public boolean equals(Object obj) {
-
-        if(!(obj instanceof ClusterServerInfo)){
-            return false;
-        }
-
-        ClusterServerInfo other = (ClusterServerInfo) obj;
-        return ObjectUtils.equals(ip, other.ip) && ObjectUtils.equals(port, other.port);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ClusterServerInfo)) return false;
+        ClusterServerInfo that = (ClusterServerInfo) o;
+        return port == that.port && state == that.state && Objects.equals(ip, that.ip);
     }
 
     @Override
     public int hashCode() {
-
-        int hash = 0;
-
-        hash = hash * 31 + (ip == null ? 0 : ip.hashCode());
-        hash = hash * 31 + (port);
-        return hash;
+        return Objects.hash(ip, port, state);
     }
 
     @Override

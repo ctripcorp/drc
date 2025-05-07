@@ -1,8 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import static com.ctrip.framework.drc.console.config.ConsoleConfig.SHOULD_AFFECTED_ROWS;
-import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
-
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
@@ -27,17 +24,23 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.config.ConsoleConfig.SHOULD_AFFECTED_ROWS;
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 
 /**
  * @ClassName DbMetaCorrectServiceImpl
@@ -66,40 +69,6 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
 
-
-    @Override
-    public boolean updateMasterReplicatorIfChange(String mhaName, String newIp) throws SQLException{
-        Map<String, ReplicatorTbl> replicators = getIpReplicatorMap(mhaName);
-        List<ReplicatorTbl> rTblsToBeUpdated = Lists.newArrayList();
-        for (Entry<String, ReplicatorTbl> entry : replicators.entrySet()) {
-            String ip = entry.getKey();
-            ReplicatorTbl replicatorTbl = entry.getValue();
-            if (newIp.equalsIgnoreCase(ip) && BooleanEnum.FALSE.getCode().equals(replicatorTbl.getMaster())) {
-                replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
-                rTblsToBeUpdated.add(replicatorTbl);
-            }
-            if (!newIp.equalsIgnoreCase(ip) && BooleanEnum.TRUE.getCode().equals(replicatorTbl.getMaster())) {
-                replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
-                rTblsToBeUpdated.add(replicatorTbl);
-            }
-        }
-        if (rTblsToBeUpdated.size() > 0) {
-            try {
-                int[] ints = replicatorTblDao.batchUpdate(rTblsToBeUpdated);
-                String updateRes = StringUtils.join(ints, ",");
-                logger.info("update replicator master,result:{}",updateRes);
-                DefaultEventMonitorHolder.getInstance()
-                        .logEvent("DRC.replicator.master", String.format("mha:%s,%s",mhaName, newIp));
-                return true;
-            } catch (SQLException e) {
-                logger.error("Fail update master replicator({}), ", newIp, e);
-            }
-        } else {
-            logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
-        }
-        return false;
-    }
-    
     @Override
     public void mhaInstancesChange(MhaInstanceGroupDto mhaInstanceGroupDto, MhaTblV2 mhaTblV2) throws Exception {
         String mhaName = mhaInstanceGroupDto.getMhaName();
@@ -186,7 +155,39 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
             return ApiResult.getInstance(0, ResultCode.HANDLE_FAIL.getCode(), "Fail update master instance as " + t);
         }
     }
-    
+
+    @Override
+    public void batchMhaMasterDbChange(List<MhaInstanceGroupDto> mhaInstanceGroupDtos) throws Exception {
+        List<String> mhaNames = mhaInstanceGroupDtos.stream().map(MhaInstanceGroupDto::getMhaName).collect(Collectors.toList());
+        logger.info("mhaMasterDbChange mhaName: {}", mhaNames);
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(mhaNames, BooleanEnum.FALSE.getCode());
+        List<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+
+        Map<String, MhaInstanceGroupDto> mhaDtoMap = mhaInstanceGroupDtos.stream().collect(Collectors.toMap(MhaInstanceGroupDto::getMhaName, Function.identity()));
+        Map<Long, String> mhaIdToName = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaIds(mhaIds);
+        Map<Long, List<MachineTbl>> machineMap = machineTbls.stream().collect(Collectors.groupingBy(MachineTbl::getMhaId));
+
+        for (Map.Entry<Long, List<MachineTbl>> entry : machineMap.entrySet()) {
+            long mhaId = entry.getKey();
+            List<MachineTbl> machines = entry.getValue();
+
+            MhaInstanceGroupDto mhaInstanceGroupDto = mhaDtoMap.get(mhaIdToName.get(mhaId));
+            String masterIp = mhaInstanceGroupDto.getMaster().getIp();
+            int masterPort = mhaInstanceGroupDto.getMaster().getPort();
+            for (MachineTbl machineTbl : machines) {
+                if (machineTbl.getIp().equalsIgnoreCase(masterIp) && machineTbl.getPort() == masterPort) {
+                    machineTbl.setMaster(BooleanEnum.TRUE.getCode());
+                } else {
+                    machineTbl.setMaster(BooleanEnum.FALSE.getCode());
+                }
+            }
+        }
+
+        machineTblDao.update(machineTbls);
+    }
+
     @VisibleForTesting
     protected List<MachineTbl> checkMachinesInUse(Long mhaId, String mhaName, String ip, int port) throws SQLException {
         List<MachineTbl> machineTblToBeUpdated = Lists.newArrayList();

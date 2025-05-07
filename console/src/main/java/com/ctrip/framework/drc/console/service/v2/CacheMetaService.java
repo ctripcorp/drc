@@ -16,6 +16,8 @@ public interface CacheMetaService {
 
     Map<String, ReplicatorWrapper> getMasterReplicatorsToBeMonitored(List<String> mhaNamesToBeMonitored);
 
+    Map<String, Set<String>> getDc2ReplicatorIps(List<String> clusterIds);
+
     Map<String, Set<String>> getMha2UuidsMap(Set<String> dcNames);
 
     Map<String, Map<String, Set<String>>> getMhaDbUuidsMap(Set<String> dcNames, Drc drc);

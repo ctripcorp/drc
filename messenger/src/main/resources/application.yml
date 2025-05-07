@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: bbz-drc-messenger-application
+  profiles:
+    active: local
+
+
+server:
+  port: 9000
+

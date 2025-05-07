@@ -1,12 +1,11 @@
 package com.ctrip.framework.drc.applier.event;
 
-import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.context.DecryptedTransactionContextResource;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
-import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 

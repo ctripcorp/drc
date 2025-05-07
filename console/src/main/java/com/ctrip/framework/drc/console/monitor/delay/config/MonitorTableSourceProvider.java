@@ -8,7 +8,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -33,13 +32,11 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DELAY_MONITOR_UPDATEDB_SWITCH = "delay.monitor.updatedb.switch";
     private static final String DELAY_MONITOR_UPDATEDB_V2_SWITCH = "delay.monitor.updatedb.v2.switch";
 
-    private static final String BTDHS_MONITOR_SWITCH = "btdhs.monitor.switch";
     private static final String MYSQL_CONFIGS_MONITOR_SWITCH = "mysql.configs.monitor.switch";
 
     private static final String UUID_MONITOR_SWITCH = "uuid.monitor.switch";
     private static final String UUID_CORRECT_SWITCH = "uuid.correct.switch";
-
-    private static final String DATACHANGE_LAST_TIME_MONITOR_SWITCH = "datachange.last.time.monitor.switch";
+    private static final String UUID_CORRECT_MHA_SWITCH = "uuid.correct.mha.switch.%s";
 
     private static final String DRC_DELAY_MONITOR_SWITCH = "drc.delay.monitor.switch";
 
@@ -64,17 +61,11 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String INCREMENT_ID_MONITOR_WHITELIST = "increment.id.monitor.whitelist";
 
     private static final String TABLE_CONSISTENCY_MONITOR_SWITCH = "table.consistency.monitor.switch";
-    private static final String TABLE_CONSISTENCY_MONITOR_PERIOD = "table.consistency.monitor.period";
-    private static final int DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD = 600;
+
 
     private static final String SWITCH_DRC_TASK_SYNC_MHA = "switch.drc.task.syncmha";
     private static final String SWITCH_SYNC_MHA_UPDATEALL = "switch.syncmha.updateall";
     private static final String DEFAULT_SWITCH_SYNC_MHA_UPDATEALL = "off";
-
-    private static final String SWITCH_SALVE_MACHINE_OFFLINE_SYNC = "switch.slaveMachineOffline.sync";
-    private static final String DEFAULT_SWITCH_SALVE_MACHINE_OFFLINE_SYNC = "off";
-
-    private static final String SWITCH_DRC_TASK_SYNC_TABLE_CONFIG = "switch.drc.task.sync.tableconfig";
 
     private static final String UPDATE_CLUSTER_TABLE_SWITCH = "update.cluster.tbl.switch";
 
@@ -84,33 +75,13 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String DEFAULT_MYSQL_MONITOR_SWITCH = "on";
 
-    private static final String BEACON_REGISTER_SWITCH = "beacon.register.switch";
-
-    private static final String BEACON_REGISTER_MYSQL_SWITCH = "beacon.register.mysql.switch";
-
-    private static final String BEACON_REGISTER_DELAY_SWITCH = "beacon.register.delay.switch";
-
-    private static final String DEFAULT_BEACON_REGISTER_SWITCH = "off";
-
     private static final String MHA_DALCLUSTER_INFO_SWITCH = "mha.dalcluster.info.switch";
 
     public static final String DEFAULT_MHA_DALCLUSTER_INFO_SWITCH = "qconfig";
 
-    private static final String UPDATE_CONSISTENCY_META_SWITCH = "update.consistency.meta.switch";
-
     public static final String DRC_DB_CLUSTER = "drc.dbclusters.meta";
 
     public static final String DEFAULT_DRC_DB_CLUSTER = "";
-
-    public static final String BEACON_FILTER_OUT_MHA_MYSQL = "beacon.filter.out.mha.mysql";
-
-    public static final String BEACON_FILTER_OUT_MHA_DELAY = "beacon.filter.out.mha.delay";
-
-    public static final String BEACON_FILTER_OUT_CLUSTER = "beacon.filter.out.cluster";
-
-    public static final String MONITOR_FILTER_OUT_MHA_MULTI_SIDE = "filter.out.monitor.multi.side";
-
-    public static final String DEFAULT_FILTER_OUT = "";
 
     public static final String ALLOW_FAILOVER_SWITCH = "allow.failover.switch";
 
@@ -124,27 +95,13 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public static final String DEFAULT_DAL_SERVICE_TIMEOUT = "3000";
 
-    public static final String CONFLICT_LOG_CLEAR_SWITCH = "conflict.log.clear.switch";
-
-    public static final String DEFAULT_CONFLICT_LOG_CLEAR_SWITCH = "off";
-
-    public static final String CONFLICT_LOG_RESERVE_DAY = "conflict.log.reserve.day";
-
-    public static final String DEFAULT_CONFLICT_LOG_RESERVE_DAY = "30";
-
     public static final String CONFLICT_BLACK_LIST = "conflict.black.list";
 
     public static final String DEFAULT_CONFLICT_BLACK_LIST = "";
 
     public static final String DATA_CONSISTENT_MONITOR_SWITCH = "data.consistent.monitor.switch";
 
-    public static final String GENERAL_DATA_CONSISTENT_MONITOR_SWITCH = "general.data.consistent.monitor.switch";
-
     public static final String TRUNCATE_CONSISTENT_MONITOR_SWITCH = "truncate.consistent.monitor.switch";
-
-    public static final String CLEAN_TABLE_DEVIATION = "clean.table.deviation";
-
-    public static final int DEFAULT_CLEAN_TABLE_DEVIATION = 24;
 
     public static final String READ_USER_KEY = "drc.readuser";
     public static final String READ_PASSWORD_KEY = "drc.readpassword";
@@ -166,7 +123,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public static final int DEFAULT_DATA_CONSISTENCY_CHECK_TIME_INTERVAL_SECOND = 30;
 
     public static final String LISTEN_REPLICATOR_SWITCH = "listen.replicator.switch";
-    public static final String LISTEN_REPLICATOR_MONITOR_SWITCH = "listen.replicator.monitor.switch";
+
 
     public static final String UNIT_VERIFICATION_MANAGER_SWITCH = "unit.verification.manager.switch";
     public static final String UID_SOURCE = "uid.source";
@@ -174,16 +131,12 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public static final String SOURCE_QCONFIG = "qconfig";
     public static final String UNIT_RESULT_HICKWALL = "unit.result.hickwall";
 
-    private static final String INIT_DELAY_MONITOR_RECORD_SWITCH = "init.delay.monitor.record.switch";
-
-    private static final String DELETE_REDUNDANT_DELAY_MONITOR_RECORD_SWITCH = "delete.redundant.delay.monitor.record.switch";
 
     private static final String UPDATE_MONITOR_META_INFO_SWITCH = "update.monitor.meta.info.switch";
 
     private static final String DIFF_COUNT_LIMIT = "fullDataCheck.diffCount.limit";
     private static int DEFAULT_DIFF_COUNT_LIMIT = 100;
 
-    private static final String APPLY_MODE_MIGRATE_SWITCH = "apply.mode.migrate.switch";
     private static final String DRC_META_XML_UPDATE_SWITCH = "drc.meta.xml.update.switch";
 
     private static final String SYNC_DB_INFO_SWITCH = "sync.db.info.switch";
@@ -194,14 +147,18 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
 
     private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
+    private static final String MQ_DELAY_FORWARD_SWITCH = "mq.delay.forward.switch";
+    private static final String KAFKA_DELAY_MONITOR_SWITCH = "kafka.delay.monitor.switch";
     private static final String MQ_DELAY_MONITOR_SUBJECT = "mq.delay.monitor.subject";
+    private static final String KAFKA_DELAY_MONITOR_SUBJECT = "kafka.delay.monitor.subject";
     private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
     private static final String MQ_DELAY_MONITOR_CONSUMER_GROUP = "mq.delay.monitor.consumer.group";
     private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
+    private static final String KAFKA_DELAY_MONITOR_CONSUMER_GROUP = "kafka.delay.monitor.consumer.group";
+    private static final String DEFAULT_KAFKA_DELAY_MONITOR_CONSUMER_GROUP = "100023928default-consumer-group";
 
     private static final String RELATION_COST_APPS = "relation.cost.apps";
     private static final String PARENT_RELATION_GROUPS = "parent.relation.groups";
-
 
 
     public String getDrcMetaXmlUpdateSwitch() {
@@ -209,11 +166,19 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
 
     public String getMqDelaySubject() {
-        return getProperty(MQ_DELAY_MONITOR_SUBJECT,DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+        return getProperty(MQ_DELAY_MONITOR_SUBJECT, DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+    }
+
+    public String getKafkaDelaySubject() {
+        return getProperty(KAFKA_DELAY_MONITOR_SUBJECT, DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
     }
 
     public String getMqDelayConsumerGroup() {
-        return getProperty(MQ_DELAY_MONITOR_CONSUMER_GROUP,DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP);
+        return getProperty(MQ_DELAY_MONITOR_CONSUMER_GROUP, DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP);
+    }
+
+    public String getKafkaDelayConsumerGroup() {
+        return getProperty(KAFKA_DELAY_MONITOR_CONSUMER_GROUP, DEFAULT_KAFKA_DELAY_MONITOR_CONSUMER_GROUP);
     }
 
 
@@ -249,6 +214,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public String getMonitorUserVal() {
         return getProperty(MONITOR_USER_KEY);
     }
+
     @Deprecated
     public String getMonitorPasswordVal() {
         return getProperty(MONITOR_PASSWORD_KEY);
@@ -277,12 +243,9 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return SWITCH_STATUS_ON.equals(getProperty(DELAY_MONITOR_UPDATEDB_V2_SWITCH, SWITCH_STATUS_OFF));
     }
 
-    public String getBtdhsMonitorSwitch() {
-        return getProperty(BTDHS_MONITOR_SWITCH, SWITCH_STATUS_ON);
-    }
-    
+
     public String getMysqlConfigsMonitorSwitch() {
-        return getProperty(MYSQL_CONFIGS_MONITOR_SWITCH,SWITCH_STATUS_ON);
+        return getProperty(MYSQL_CONFIGS_MONITOR_SWITCH, SWITCH_STATUS_ON);
     }
 
     public String getUuidMonitorSwitch() {
@@ -293,9 +256,13 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(UUID_CORRECT_SWITCH, SWITCH_STATUS_OFF);
     }
 
-    public String getDatachangeLastTimeMonitorSwitch() {
-        return getProperty(DATACHANGE_LAST_TIME_MONITOR_SWITCH, SWITCH_STATUS_ON);
+    public boolean getUuidCorrectMhaSwitch(String mhaName) {
+        if (getUuidCorrectSwitch().equals(SWITCH_STATUS_ON)) {
+            return true;
+        }
+        return getBooleanProperty(String.format(UUID_CORRECT_MHA_SWITCH, mhaName), false);
     }
+
 
     public String getDelayMonitorSwitch(String measurement) {
         if (measurement.equalsIgnoreCase(DRC_DELAY_MESUREMENT)) {
@@ -339,9 +306,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(TABLE_CONSISTENCY_MONITOR_SWITCH, SWITCH_STATUS_OFF);
     }
 
-    public int getTableConsistencyMonitorPeriod() {
-        return getIntProperty(TABLE_CONSISTENCY_MONITOR_PERIOD, DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD);
-    }
 
     public String getSyncMhaSwitch() {
         return getProperty(SWITCH_DRC_TASK_SYNC_MHA, SWITCH_STATUS_OFF);
@@ -349,10 +313,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getSwitchSyncMhaUpdateAll() {
         return getProperty(SWITCH_SYNC_MHA_UPDATEALL, DEFAULT_SWITCH_SYNC_MHA_UPDATEALL);
-    }
-
-    public String getSyncTableConfigSwitch() {
-        return getProperty(SWITCH_DRC_TASK_SYNC_TABLE_CONFIG, SWITCH_STATUS_OFF);
     }
 
     public String getUpdateClusterTblSwitch() {
@@ -363,18 +323,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(MYSQL_MONITOR_SWITCH, DEFAULT_MYSQL_MONITOR_SWITCH);
     }
 
-    public String getBeaconRegisterSwitch() {
-        return getProperty(BEACON_REGISTER_SWITCH, SWITCH_STATUS_OFF);
-    }
-
-    public String getBeaconRegisterMySqlSwitch() {
-        return getProperty(BEACON_REGISTER_MYSQL_SWITCH, DEFAULT_BEACON_REGISTER_SWITCH);
-    }
-
-    public String getBeaconRegisterDelaySwitch() {
-        return getProperty(BEACON_REGISTER_DELAY_SWITCH, DEFAULT_BEACON_REGISTER_SWITCH);
-    }
-
     public String getMhaDalclusterInfoSwitch() {
         return getProperty(MHA_DALCLUSTER_INFO_SWITCH, DEFAULT_MHA_DALCLUSTER_INFO_SWITCH);
     }
@@ -383,37 +331,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(DRC_DB_CLUSTER, DEFAULT_DRC_DB_CLUSTER);
     }
 
-    public String[] getBeaconFilterOutMhaForMysql() {
-        String mhaString = getProperty(BEACON_FILTER_OUT_MHA_MYSQL, DEFAULT_FILTER_OUT);
-        if (mhaString.isEmpty()) {
-            return ArrayUtils.EMPTY_STRING_ARRAY;
-        }
-        return mhaString.split(",");
-    }
-
-    public String[] getBeaconFilterOutMhaForDelay() {
-        String mhaString = getProperty(BEACON_FILTER_OUT_MHA_DELAY, DEFAULT_FILTER_OUT);
-        if (mhaString.isEmpty()) {
-            return ArrayUtils.EMPTY_STRING_ARRAY;
-        }
-        return mhaString.split(",");
-    }
-
-    public String[] getBeaconFilterOutCluster() {
-        String clusterString = getProperty(BEACON_FILTER_OUT_CLUSTER, DEFAULT_FILTER_OUT);
-        if (clusterString.isEmpty()) {
-            return ArrayUtils.EMPTY_STRING_ARRAY;
-        }
-        return clusterString.split(",");
-    }
-
-    public String[] getFilterOutMhasForMultiSideMonitor() {
-        String mhaString = getProperty(MONITOR_FILTER_OUT_MHA_MULTI_SIDE, DEFAULT_FILTER_OUT);
-        if (mhaString.isEmpty()) {
-            return ArrayUtils.EMPTY_STRING_ARRAY;
-        }
-        return mhaString.split(",");
-    }
 
     public String getAllowFailoverSwitch() {
         return getProperty(ALLOW_FAILOVER_SWITCH, SWITCH_STATUS_OFF);
@@ -427,14 +344,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return Integer.parseInt(getProperty(DAL_SERVICE_TIMEOUT, DEFAULT_DAL_SERVICE_TIMEOUT));
     }
 
-    public String getConflictLogClearSwitch() {
-        return getProperty(CONFLICT_LOG_CLEAR_SWITCH, DEFAULT_CONFLICT_LOG_CLEAR_SWITCH);
-    }
-
-    public int getConflictLogReserveDay() {
-        return Integer.parseInt(getProperty(CONFLICT_LOG_RESERVE_DAY, DEFAULT_CONFLICT_LOG_RESERVE_DAY));
-    }
-
     public Set<String> getConflictBlackList() {
         return string2Set(getProperty(CONFLICT_BLACK_LIST, DEFAULT_CONFLICT_BLACK_LIST));
     }
@@ -443,26 +352,9 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(DATA_CONSISTENT_MONITOR_SWITCH, SWITCH_STATUS_OFF);
     }
 
-    public String getGeneralDataConsistentMonitorSwitch() {
-        return getProperty(GENERAL_DATA_CONSISTENT_MONITOR_SWITCH, SWITCH_STATUS_ON);
-    }
 
     public String getTruncateConsistentMonitorSwitch() {
         return getProperty(TRUNCATE_CONSISTENT_MONITOR_SWITCH, SWITCH_STATUS_OFF);
-    }
-
-    public String getUpdateConsistencyMetaSwitch() {
-        return getProperty(UPDATE_CONSISTENCY_META_SWITCH, SWITCH_STATUS_OFF);
-    }
-
-    public int getCleanTableDeviation() {
-        String deviationStr = getProperty(CLEAN_TABLE_DEVIATION);
-        try {
-            return Integer.parseInt(deviationStr);
-        } catch (NumberFormatException e) {
-            logger.error("error parse {}, ", deviationStr, e);
-        }
-        return DEFAULT_CLEAN_TABLE_DEVIATION;
     }
 
     public int getDataConsistencyCheckMaxPage() {
@@ -485,10 +377,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(LISTEN_REPLICATOR_SWITCH, SWITCH_STATUS_ON);
     }
 
-    public String getListenReplicatorMonitorSwitch() {
-        return getProperty(LISTEN_REPLICATOR_MONITOR_SWITCH, SWITCH_STATUS_ON);
-    }
-
     public String getUnitVericationManagerSwitch() {
         return getProperty(UNIT_VERIFICATION_MANAGER_SWITCH, SWITCH_STATUS_OFF);
     }
@@ -509,28 +397,12 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(SWITCH_CACHE_ALL_CLUSTER_NAME, SWITCH_STATUS_OFF);
     }
 
-    public String getInitDelayMonitorRecordSwitch() {
-        return getProperty(INIT_DELAY_MONITOR_RECORD_SWITCH, SWITCH_STATUS_OFF);
-    }
-
-    public String getDeleteRedundantDelayMonitorRecordSwitch() {
-        return getProperty(DELETE_REDUNDANT_DELAY_MONITOR_RECORD_SWITCH, SWITCH_STATUS_OFF);
-    }
-
     public String getUpdateMonitorMetaInfoSwitch() {
         return getProperty(UPDATE_MONITOR_META_INFO_SWITCH, SWITCH_STATUS_ON);
     }
 
-    public String getSlaveMachineOfflineSyncSwitch() {
-        return getProperty(SWITCH_SALVE_MACHINE_OFFLINE_SYNC, DEFAULT_SWITCH_SALVE_MACHINE_OFFLINE_SYNC);
-    }
-
     public int getDiffCountLimit() {
         return getIntProperty(DIFF_COUNT_LIMIT, DEFAULT_DIFF_COUNT_LIMIT);
-    }
-
-    public String getApplyModeMigrateSwitch() {
-        return getProperty(APPLY_MODE_MIGRATE_SWITCH, SWITCH_STATUS_OFF);
     }
 
     public String getSyncDbInfoSwitch() {
@@ -576,6 +448,14 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
 
     public String getMqDelayMonitorSwitch() {
-        return getProperty(MQ_DELAY_MONITOR_SWITCH,SWITCH_STATUS_ON);
+        return getProperty(MQ_DELAY_MONITOR_SWITCH, SWITCH_STATUS_ON);
+    }
+
+    public String getKafkaDelayMonitorSwitch() {
+        return getProperty(KAFKA_DELAY_MONITOR_SWITCH, SWITCH_STATUS_ON);
+    }
+
+    public String getMqDelayForwardSwitch() {
+        return getProperty(MQ_DELAY_FORWARD_SWITCH, SWITCH_STATUS_OFF);
     }
 }

@@ -108,7 +108,7 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         if (param.getType() != null && param.getType() > -1) {
             sqlBuilder.and().equal(TYPE, param.getType(), Types.TINYINT);
         } else {
-            sqlBuilder.and().in(TYPE, Lists.newArrayList(ModuleEnum.APPLIER.getCode(), ModuleEnum.REPLICATOR.getCode()), Types.TINYINT);
+            sqlBuilder.and().in(TYPE, Lists.newArrayList(ModuleEnum.APPLIER.getCode(), ModuleEnum.REPLICATOR.getCode(), ModuleEnum.MESSENGER.getCode()), Types.TINYINT);
         }
         if (StringUtils.isNotBlank(param.getTag())) {
             sqlBuilder.and().equal(TAG, param.getTag(), Types.VARCHAR);

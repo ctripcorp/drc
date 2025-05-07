@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.alibaba.arthas.deps.org.slf4j.Logger;
 import com.alibaba.arthas.deps.org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -14,6 +15,7 @@ import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import org.junit.Assert;
 import org.junit.Before;
@@ -62,7 +64,11 @@ public class MetaControllerV2Test {
     @Mock
     private HeraldService heraldService;
     
-    
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
+
+    MqType mqType = MqType.qmq;
+
 
     @Before
     public void setUp() {
@@ -142,13 +148,12 @@ public class MetaControllerV2Test {
         ApiResult<String> result = controller.queryMhaReplicationDetailConfig("mha1", "mha2");
         verify(metaInfoServiceV2, times(1)).getDrcReplicationConfig(anyString(),anyString());
     }
-
     @Test
     public void testQueryMhaMessengerDetailConfig() throws Exception {
-        when(metaInfoServiceV2.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+        when(metaInfoServiceV2.getDrcMessengerConfig(anyString(), eq(mqType))).thenReturn(new Drc());
 
-        ApiResult<String> result = controller.queryMhaMessengerDetailConfig("mhaName");
-        verify(metaInfoServiceV2, times(1)).getDrcMessengerConfig(anyString());
+        ApiResult<String> result = controller.queryMhaMessengerDetailConfig("mhaName", mqType.name());
+        verify(metaInfoServiceV2, times(1)).getDrcMessengerConfig(anyString(), eq(mqType));
     }
 
 
@@ -156,7 +161,8 @@ public class MetaControllerV2Test {
     public void testGetAllMetaData() throws Exception {
         String test = "test123";
         Mockito.when(metaProviderV2.getDrcString()).thenReturn(test);
-        String result = controller.getAllMetaData("false","heraldToken");
+        Mockito.when(consoleConfig.getDrcAdminToken()).thenReturn("adminToken");
+        String result = controller.getAllMetaData("false","fLrRyHzu/bpuCr4byp3pyQ==","heraldToken");
         verify(metaProviderV2, never()).getRealtimeDrc();
         verify(metaProviderV2, never()).getDrc();
         verify(metaProviderV2, never()).getRealtimeDrcString();
@@ -168,7 +174,7 @@ public class MetaControllerV2Test {
     @Test
     public void testGetAllMetaDataNull() throws Exception {
         Mockito.when(metaProviderV2.getDrcString()).thenReturn(null);
-        String result = controller.getAllMetaData("false","heraldToken");
+        String result = controller.getAllMetaData("false","","heraldToken");
         verify(metaProviderV2, never()).getRealtimeDrc();
         verify(metaProviderV2, never()).getDrc();
         verify(metaProviderV2, never()).getRealtimeDrcString();
@@ -179,7 +185,7 @@ public class MetaControllerV2Test {
     @Test
     public void testGetAllMetaDataException() throws Exception {
         Mockito.when(metaProviderV2.getDrcString()).thenThrow(ConsoleException.class);
-        String result = controller.getAllMetaData("false","heraldToken");
+        String result = controller.getAllMetaData("false","","heraldToken");
         verify(metaProviderV2, never()).getRealtimeDrc();
         verify(metaProviderV2, never()).getDrc();
         verify(metaProviderV2, never()).getRealtimeDrcString();

@@ -5,8 +5,8 @@ import static org.junit.Assert.assertEquals;
 import com.ctrip.framework.drc.applier.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableRepeatedUpdateException;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTable;
+import com.ctrip.framework.drc.fetcher.resource.position.TransactionTableRepeatedUpdateException;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -120,7 +121,7 @@ public class BatchTransactionContextResourceTest {
 
     @Test
     public void testConflict() throws Exception {
-        TransactionContextResource context = getTransactionContextResource();
+        ApplierTransactionContextResource context = getTransactionContextResource();
         context.RECORD_SIZE = 4;
         doConflict(context);
         assertResult(context, 4,4,0,4);
@@ -129,7 +130,7 @@ public class BatchTransactionContextResourceTest {
 
     @Test
     public void testLimitedSizeConflict() throws Exception {
-        TransactionContextResource context = getTransactionContextResource();
+        ApplierTransactionContextResource context = getTransactionContextResource();
         context.RECORD_SIZE = 3;
         doConflict(context);
         assertResult(context, 4,4,0,3);
@@ -160,7 +161,7 @@ public class BatchTransactionContextResourceTest {
 
     @Test
     public void testLimitedSizeConflictWithRollback() throws Exception {
-        TransactionContextResource context = getTransactionContextResource();
+        ApplierTransactionContextResource context = getTransactionContextResource();
         context.RECORD_SIZE = 3;
         doConflictWithRollback(context);
         assertResult(context, 4,4,4,3);
@@ -173,7 +174,7 @@ public class BatchTransactionContextResourceTest {
      */
     @Test
     public void testMinimalUpdateOfNoParameter() throws Exception {
-        TransactionContextResource context = getTransactionContextResource();
+        ApplierTransactionContextResource context = getTransactionContextResource();
         context.dataSource = this.dataSource;
         Mockito.when(dataSource.getConnection()).thenReturn(connection);
         Mockito.when(connection.prepareStatement(Mockito.contains("DRC UPDATE 0"))).thenReturn(preparedStatement);
@@ -206,7 +207,7 @@ public class BatchTransactionContextResourceTest {
      */
     @Test
     public void testMinimalDeleteOfNoParameter() throws Exception {
-        TransactionContextResource context = getTransactionContextResource();
+        ApplierTransactionContextResource context = getTransactionContextResource();
         context.dataSource = this.dataSource;
         Mockito.when(dataSource.getConnection()).thenReturn(connection);
         Mockito.when(connection.prepareStatement(Mockito.contains("DRC DELETE 0"))).thenReturn(preparedStatement);
@@ -229,14 +230,14 @@ public class BatchTransactionContextResourceTest {
         Assert.assertEquals(context.getResult().type, StatementExecutorResult.TYPE.UPDATE_COUNT_EQUALS_ONE);
     }
 
-    private void assertResult(TransactionContextResource context, long trxRowNum,long conflictRowNum, long rollbackRowNum,long recordNum){
+    private void assertResult(ApplierTransactionContextResource context, long trxRowNum,long conflictRowNum, long rollbackRowNum,long recordNum){
         assertEquals(trxRowNum, context.trxRecorder.getTrxRowNum());
         assertEquals(conflictRowNum, context.trxRecorder.getConflictRowNum());
         assertEquals(rollbackRowNum, context.trxRecorder.getRollbackRowNum());
         assertEquals(recordNum, context.trxRecorder.getCflRowLogsQueue().size());
     }
 
-    private void doConflict(TransactionContextResource context) throws Exception {
+    private void doConflict(ApplierTransactionContextResource context) throws Exception {
         context.dataSource = this.dataSource;
         Mockito.when(dataSource.getConnection()).thenReturn(connection);
         Mockito.when(preparedStatement.getUpdateCount()).thenReturn(0);
@@ -266,7 +267,7 @@ public class BatchTransactionContextResourceTest {
         );
     }
 
-    private void doConflictWithRollback(TransactionContextResource context) throws Exception {
+    private void doConflictWithRollback(ApplierTransactionContextResource context) throws Exception {
         context.dataSource = this.dataSource;
         Mockito.when(dataSource.getConnection()).thenReturn(connection);
         Mockito.when(preparedStatement.getUpdateCount()).thenReturn(0);
@@ -296,8 +297,8 @@ public class BatchTransactionContextResourceTest {
         );
     }
 
-    private TransactionContextResource getTransactionContextResource() {
-        return new TransactionContextResource();
+    private ApplierTransactionContextResource getTransactionContextResource() {
+        return new ApplierTransactionContextResource();
     }
 
     protected  <T extends Object> ArrayList<T> buildArray(T... items) {

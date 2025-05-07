@@ -84,9 +84,9 @@ public class DataSourceResourceTest {
                         conn = dataSourceResource.getConnection();
                         conn.setAutoCommit(true);
                         Statement statement = conn.createStatement();
-                        ResultSet rs = statement.executeQuery("show session variables like 'wait_timeout'");
+                        ResultSet rs = statement.executeQuery("select @@wait_timeout;");
                         rs.next();
-                        Assert.assertEquals(DrcConnectionPool.SESSION_WAIT_TIMEOUT, rs.getInt(2));
+                        Assert.assertEquals(DrcConnectionPool.SESSION_WAIT_TIMEOUT, rs.getInt(1));
                         statement.close();
                         connectionList.add(conn);
                     } catch (Exception e) {
@@ -108,9 +108,9 @@ public class DataSourceResourceTest {
             try {
                 Connection connection = dataSourceResource.getConnection();  //validate when borrow, create new connection
                 Statement statement = connection.createStatement();
-                ResultSet rs = statement.executeQuery("show session variables like 'wait_timeout'");
+                ResultSet rs = statement.executeQuery("select @@wait_timeout;");
                 rs.next();
-                Assert.assertEquals(DrcConnectionPool.SESSION_WAIT_TIMEOUT, rs.getInt(2));
+                Assert.assertEquals(DrcConnectionPool.SESSION_WAIT_TIMEOUT, rs.getInt(1));
                 connectionList.add(connection);
             } catch (Exception e){
                 logger.error("dataSource test exception" + e);

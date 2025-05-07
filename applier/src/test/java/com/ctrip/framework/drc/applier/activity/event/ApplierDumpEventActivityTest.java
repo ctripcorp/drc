@@ -1,9 +1,9 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
-import com.ctrip.framework.drc.applier.event.ApplierDrcUuidLogEvent;
-import com.ctrip.framework.drc.applier.event.ApplierPreviousGtidsLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcUuidLogEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierPreviousGtidsLogEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +29,17 @@ public class ApplierDumpEventActivityTest {
         NetworkContextResource networkContextResource = new NetworkContextResource();
         networkContextResource.initialize();
         dumpEventActivity.setContext(networkContextResource);
+    }
+
+    @Test
+    public void testCompensateGapBug() {
+        // BigTestCase 20241115
+        dumpEventActivity.updateContextGtidSet(new GtidSet("96fea537-ecf3-11ee-a79d-00163e0e00b0:2-1067864976"));
+
+        ApplierGtidEvent gtid1 = new ApplierGtidEvent("96fea537-ecf3-11ee-a79d-00163e0e00b0:1067865154");
+        dumpEventActivity.doHandleLogEvent(gtid1);
+        Assert.assertEquals(StringUtils.EMPTY, dumpEventActivity.toInitGap.toString());
+        Assert.assertEquals("96fea537-ecf3-11ee-a79d-00163e0e00b0:2-1067865153", dumpEventActivity.getContext().fetchGtidSet().toString());
     }
 
     @Test

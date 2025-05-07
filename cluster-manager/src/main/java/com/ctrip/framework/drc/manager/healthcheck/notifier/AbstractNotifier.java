@@ -16,18 +16,26 @@ import com.ctrip.framework.drc.core.entity.Instance;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.AsyncHttpClientFactory;
 import com.ctrip.framework.drc.core.http.RestTemplateFactory;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.command.AbstractCommand;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.retry.RestOperationsRetryPolicyFactory;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.MoreExecutors;
 import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import org.apache.http.HttpStatus;
 import org.apache.http.conn.ConnectTimeoutException;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.BoundRequestBuilder;
+import org.asynchttpclient.ListenableFuture;
+import org.asynchttpclient.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -50,6 +58,8 @@ public abstract class AbstractNotifier implements Notifier {
 
     protected RestOperations restTemplate = RestTemplateFactory.createRestTemplateWithSSLContext(4, 40, CONNECTION_TIMEOUT, 5000, 0, new RestOperationsRetryPolicyFactory(RETRY_INTERVAL)); //retry by Throwable
 
+    protected AsyncHttpClient asyncHttpNotifier = AsyncHttpClientFactory.create(CONNECTION_TIMEOUT,4000,6000,0,150,5000);
+    
     private KeyedOneThreadTaskExecutor<String> notifyExecutor;
 
     private static final String NOTIFY_URL = "http://%s/%s";
@@ -168,7 +178,7 @@ public abstract class AbstractNotifier implements Notifier {
     protected String getDelayMonitorRegex(int applyMode, String includeDbs) {
         String delayTableName = DRC_DELAY_MONITOR_TABLE_NAME;
         ApplyMode applyModeEnum = ApplyMode.getApplyMode(applyMode);
-        if (applyModeEnum == ApplyMode.db_transaction_table || applyModeEnum == ApplyMode.db_mq) {
+        if (applyModeEnum.isDbGranular()) {
             delayTableName = DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + includeDbs;
         }
         return DRC_MONITOR_SCHEMA_NAME + "\\." + "(" + delayTableName + ")";
@@ -198,6 +208,8 @@ public abstract class AbstractNotifier implements Notifier {
     interface HttpSend {
         ApiResult<Boolean> sendHttp() throws Exception;
 
+        ListenableFuture<Response> asyncSendHttp();
+        
         String getUrl();
     }
 
@@ -237,6 +249,15 @@ public abstract class AbstractNotifier implements Notifier {
             return response.getBody();
             //return restTemplate.postForObject(url, getBody(ipAndPort, dbCluster, false), ApiResult.class);
         }
+        
+        @Override
+        public ListenableFuture<Response> asyncSendHttp() {
+            BoundRequestBuilder builder = asyncHttpNotifier.preparePost(url);
+            return builder.setHeader("Accept", "application/json")
+                    .setHeader("Content-Type", "application/json; charset=utf-8")
+                    .setBody(JsonUtils.toJson(getBody(ipAndPort, dbCluster, false)))
+                    .execute();
+        }
     }
 
     class PutSend extends AbstractHttpSend implements HttpSend {
@@ -257,6 +278,15 @@ public abstract class AbstractNotifier implements Notifier {
             ResponseEntity<ApiResult> response = restTemplate.exchange(url, HttpMethod.PUT, entity, ApiResult.class);
             return response.getBody();
         }
+
+        @Override
+        public ListenableFuture<Response> asyncSendHttp() {
+            BoundRequestBuilder builder = asyncHttpNotifier.preparePut(url);
+            return builder.setHeader("Accept", "application/json")
+                    .setHeader("Content-Type", "application/json; charset=utf-8")
+                    .setBody(JsonUtils.toJson(getBody(ipAndPort, dbCluster, register)))
+                    .execute();
+        }
     }
 
     class DeleteSend extends AbstractHttpSend implements HttpSend {
@@ -272,6 +302,14 @@ public abstract class AbstractNotifier implements Notifier {
             headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
             restTemplate.delete(url);
             return ApiResult.getSuccessInstance(Boolean.TRUE);
+        }
+
+        @Override
+        public ListenableFuture<Response> asyncSendHttp() {
+            BoundRequestBuilder builder = asyncHttpNotifier.prepareDelete(url);
+            return builder.setHeader("Accept", "application/json")
+                    .setHeader("Content-Type", "application/json; charset=utf-8")
+                    .execute();
         }
     }
 
@@ -289,10 +327,50 @@ public abstract class AbstractNotifier implements Notifier {
         @Override
         protected void doExecute() {
             try {
-                doNotify(httpSend);
-                future().setSuccess();
+                if (!DynamicConfig.getInstance().getCMNotifyAsyncSwitch()) {
+                    doNotify(httpSend);
+                    future().setSuccess();
+                    return;
+                }
+                ListenableFuture<Response> httpFuture = httpSend.asyncSendHttp();
+                String url = httpSend.getUrl();
+                httpFuture.addListener(
+                        () ->{
+                            try {
+                                Response response = httpFuture.get();
+                                // check http status
+                                if (response.getStatusCode() != HttpStatus.SC_OK) {
+                                    NOTIFY_LOGGER.error("[Notify] {} by http with response {}", url, response);
+                                    future().setFailure(new DrcServerException("notify response httpStatus error"));
+                                } else {
+                                    // check apiResult except delete notify
+                                    if (!(httpSend instanceof DeleteSend)) {
+                                        ApiResult apiResult = JsonUtils.fromJson(response.getResponseBody(), ApiResult.class);
+                                        boolean success = (Boolean) apiResult.getData();
+                                        NOTIFY_LOGGER.info("[Notify] {} by http with result {} and msg {}", url, success, apiResult.getMessage());
+                                        if (!success) {
+                                            success = checkStatus(apiResult.getStatus());
+                                            if (!success)  {
+                                                throw new DrcServerException("checkStatus failed");
+                                            }
+                                        }
+                                    }
+                                    NOTIFY_LOGGER.info("[Future] set success for {},notify success", httpSend.getUrl());
+                                    future().setSuccess();
+                                }
+                            } catch (Throwable t) {
+                                String errMsg = String.format("[Invoke] %s throw exception", url);
+                                if (shouldExceptionAsSuccess(t)) {
+                                    future().setSuccess();
+                                    NOTIFY_LOGGER.info("[Future] set success for {} on exceptionAsSuccess {}", httpSend.getUrl(), t.getCause());
+                                } else {
+                                    NOTIFY_LOGGER.error("{}", errMsg, t);
+                                    future().setFailure(t);
+                                }
+                            }
+                        }, MoreExecutors.directExecutor());
             } catch(Throwable t){
-                if (isConnectException(t)) {
+                if (shouldExceptionAsSuccess(t)) {
                     future().setSuccess();
                     NOTIFY_LOGGER.info("[Future] set success for {} on {}", httpSend.getUrl(), t.getCause());
                 } else {
@@ -300,15 +378,19 @@ public abstract class AbstractNotifier implements Notifier {
                 }
             }
         }
-
-        private boolean isConnectException(Throwable t) {
-            DrcServerException serverException = (DrcServerException) t;
-            Throwable throwable = serverException.getCause();
+        
+        
+        // notify fail dc,connectTimout is success
+        private boolean shouldExceptionAsSuccess(Throwable t) {
+            Throwable throwable = t.getCause();
             if (throwable instanceof ResourceAccessException) {
                 Throwable cause = throwable.getCause();
                 return cause instanceof ConnectException || cause instanceof ConnectTimeoutException;
             }
-            return false;
+            if (t.getMessage().contains("handshake timed out")) {
+                return false;
+            }
+            return throwable instanceof ConnectException || throwable instanceof ConnectTimeoutException;
         }
 
         @Override

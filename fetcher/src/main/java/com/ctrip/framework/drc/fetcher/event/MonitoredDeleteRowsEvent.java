@@ -24,9 +24,12 @@ public class MonitoredDeleteRowsEvent<T extends BaseTransactionContext> extends 
     protected void doApply(T context) {
         List<List<Object>> beforeRows = getBeforePresentRowsValues();
         Bitmap beforeBitmap = Bitmap.from(getBeforeRowsKeysPresent());
-        loggerR.info(attachTags(context,"DELETE.doApply()" +
-                "\nbefore rows: " + beforeRows +
-                "\nbefore bitmap: " + beforeBitmap));
+        if (loggerR.isDebugEnabled()) {
+            loggerR.debug(attachTags(context, "DELETE.doApply()" +
+                    "\nbefore rows: " + beforeRows +
+                    "\nbefore bitmap: " + beforeBitmap));
+        }
+        context.setLogEventHeader(getLogEventHeader());
         context.delete(beforeRows, beforeBitmap, columns);
     }
 }

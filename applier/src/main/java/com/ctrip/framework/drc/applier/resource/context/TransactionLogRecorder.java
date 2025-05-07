@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.applier.resource.context;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import com.ctrip.framework.drc.fetcher.conflict.enums.ConflictResult;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.List;

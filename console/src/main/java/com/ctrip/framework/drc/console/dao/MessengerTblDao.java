@@ -70,6 +70,5 @@ public class MessengerTblDao extends AbstractDao<MessengerTbl> {
                 .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return queryList(sqlBuilder);
     }
-    
-    
+
 }

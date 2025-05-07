@@ -2,10 +2,11 @@ package com.ctrip.framework.drc.core.utils;
 
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
+import java.util.Arrays;
 
 /**
  * Created by jixinwang on 2023/11/30
@@ -39,23 +40,34 @@ public class NameUtils {
     }
 
     public static String getMessengerRegisterKey(String clusterId, Messenger messenger) {
-        String registryKey = clusterId + "." + DRC_MQ;
-        if (ApplyMode.db_mq == ApplyMode.getApplyMode(messenger.getApplyMode())) {
+        ApplyMode applyMode = ApplyMode.getApplyMode(messenger.getApplyMode());
+        MqType mqType = MqType.parseByApplyMode(applyMode);
+        String registryKey = clusterId + "." + mqType.getRegistryKeySuffix();
+        if (applyMode.isDbGranular()) {
             registryKey = registryKey + "." + messenger.getIncludedDbs();
         }
         return registryKey;
     }
 
-    public static String getMessengerRegisterKey(String clusterId, String messengerDbName) {
-        if (DRC_MQ.equals(messengerDbName)) {
-            return clusterId + "." + DRC_MQ;
-        } else {
-            return clusterId + "." + DRC_MQ + "." + messengerDbName;
-        }
+    /**
+     * format:  registryKey -> messengerLogicDbName
+     * <p>
+     * mha messenger: mha_dalcluster.mha.[suffix] -> [suffix]
+     * <p>
+     * db messenger: mha_dalcluster.mha.[suffix].[dbName] -> [suffix].[dbName]
+     */
+    public static String getMessengerRegisterKey(String clusterId, String messengerLogicDbName) {
+        return clusterId + '.' + messengerLogicDbName;
     }
 
     public static String getMessengerDbName(Messenger messenger) {
-        return ApplyMode.db_mq == ApplyMode.getApplyMode(messenger.getApplyMode()) ? messenger.getIncludedDbs() : DRC_MQ;
+        ApplyMode applyMode = ApplyMode.getApplyMode(messenger.getApplyMode());
+        MqType mqType = MqType.parseByApplyMode(applyMode);
+        String messengerLogicDbName = mqType.getRegistryKeySuffix();
+        if (applyMode.isDbGranular()) {
+            messengerLogicDbName += "." + messenger.getIncludedDbs();
+        }
+        return messengerLogicDbName;
     }
 
     public static String getMessengerDbName(String registryKey) {
@@ -63,17 +75,27 @@ public class NameUtils {
         if (split.length < 3) {
             return null;
         }
-        return split[split.length - 1];
+        return String.join(".", Arrays.copyOfRange(split, 2, split.length));
+    }
+
+    public static ApplyMode getMessengerApplyMode(String registryKey) {
+        String[] split = registryKey.split("\\.");
+        MqType mqType = MqType.parseBySuffix(split[2]);
+        if (split.length == 3) {
+            return mqType.getMhaApplyMode();
+        } else {
+            return mqType.getDbApplyMode();
+        }
+    }
+    public static MqType getMessengerMqType(String registryKey) {
+        String[] split = registryKey.split("\\.");
+        return MqType.parseBySuffix(split[2]);
     }
 
     public static String dotSchemaIfNeed(String name, int applyMode, String includedDbs) {
         String finalName = name;
-        switch (ApplyMode.getApplyMode(applyMode)) {
-            case db_transaction_table:
-            case db_mq:
-                finalName = name + "." + includedDbs;
-                break;
-            default:
+        if (ApplyMode.getApplyMode(applyMode).isDbGranular()) {
+            finalName = name + "." + includedDbs;
         }
         return finalName;
     }

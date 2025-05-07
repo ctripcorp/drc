@@ -834,30 +834,29 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
-        <RollingFile name="netty" fileName="${baseDir}/netty.log"
-                     filePattern="${baseDir}/netty-%i.log.gz">
-            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
+        <!--Auto Config appenders-->
+        <RollingFile name="AutoConfigInfo" fileName="${baseDir}/auto-config_info.log"
+                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.auto-config_info.log.gz">
+            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
             <Filters>
-                <ThresholdFilter level="DEBUG"/>
-                <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="INFO"/>
             </Filters>
             <Policies>
-                <SizeBasedTriggeringPolicy size="512 MB"/>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
             </Policies>
-            <DefaultRolloverStrategy>
+            <DefaultRolloverStrategy max="5">
                 <Delete basePath="${baseDir}" maxDepth="2">
-                    <IfFileName glob="netty-*.log.gz"/>
-                    <IfAccumulatedFileCount exceeds="3"/>
+                    <IfFileName glob="${appName}*.auto-config_info.log.gz"/>
+                    <IfLastModified age="7d"/>
                 </Delete>
             </DefaultRolloverStrategy>
         </RollingFile>
+
     </Appenders>
     <Loggers>
         <Logger name="qunar.tc.qconfig.client" level="warn" additivity="false">
             <AppenderRef ref="ClusterManagerServerRollingFileWarn"/>
-        </Logger>
-        <Logger name="io.netty" level="debug" additivity="false">
-            <AppenderRef ref="netty"/>
         </Logger>
         <Logger name="ctrip.xpipe.command" level="warn" additivity="false">
             <AppenderRef ref="ConsoleServerRollingFileInfo"/>
@@ -947,6 +946,10 @@
             <AppenderRef ref="Cat" />
             <AppenderRef ref="ConsoleMonitorRollingFileInfo"/>
             <AppenderRef ref="ConsoleMonitorRollingFileError"/>
+        </Logger>
+        <Logger name="autoConfig" additivity="false" level="info">
+            <AppenderRef ref="Cat" />
+            <AppenderRef ref="AutoConfigInfo"/>
         </Logger>
     </Loggers>
 </Configuration>

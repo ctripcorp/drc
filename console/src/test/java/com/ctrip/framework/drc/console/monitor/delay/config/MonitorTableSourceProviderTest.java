@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,28 +41,6 @@ public class MonitorTableSourceProviderTest {
 
 
     @Test
-    public void testGetBeaconFilterOut() {
-        String[] beaconFilterOut = monitorTableSourceProvider.getBeaconFilterOutMhaForMysql();
-        Assert.assertEquals(2, beaconFilterOut.length);
-        Assert.assertTrue(ArrayUtils.contains(beaconFilterOut, "mha1"));
-        Assert.assertTrue(ArrayUtils.contains(beaconFilterOut, "mha2"));
-        Assert.assertFalse(ArrayUtils.contains(beaconFilterOut, "mha3"));
-        beaconFilterOut = monitorTableSourceProvider.getBeaconFilterOutMhaForDelay();
-        Assert.assertEquals(1, beaconFilterOut.length);
-        Assert.assertTrue(ArrayUtils.contains(beaconFilterOut, "mha1"));
-        Assert.assertFalse(ArrayUtils.contains(beaconFilterOut, "mha2"));
-        Assert.assertFalse(ArrayUtils.contains(beaconFilterOut, "mha3"));
-        beaconFilterOut = monitorTableSourceProvider.getBeaconFilterOutCluster();
-        Assert.assertEquals(0, beaconFilterOut.length);
-    }
-
-    @Test
-    public void testGetFilterOutMhasForMultiSideMonitor() {
-        String[] filterOutMhasForMultiSideMonitor = monitorTableSourceProvider.getFilterOutMhasForMultiSideMonitor();
-        Assert.assertEquals(0, filterOutMhasForMultiSideMonitor.length);
-    }
-
-    @Test
     public void testProperties() {
         Assert.assertEquals("testReadUser", monitorTableSourceProvider.getReadUserVal());
         Assert.assertEquals("testReadPassword", monitorTableSourceProvider.getReadPasswordVal());
@@ -79,9 +56,6 @@ public class MonitorTableSourceProviderTest {
         Assert.assertEquals("off", monitorTableSourceProvider.getTableConsistencySwitch());
         Assert.assertEquals("on", monitorTableSourceProvider.getUpdateClusterTblSwitch());
         Assert.assertEquals("on", monitorTableSourceProvider.getMySqlMonitorSwitch());
-        Assert.assertEquals("on", monitorTableSourceProvider.getBeaconRegisterSwitch());
-        Assert.assertEquals("off", monitorTableSourceProvider.getBeaconRegisterMySqlSwitch());
-        Assert.assertEquals("off", monitorTableSourceProvider.getBeaconRegisterDelaySwitch());
         Assert.assertEquals("qconfig", monitorTableSourceProvider.getMhaDalclusterInfoSwitch());
         Assert.assertEquals("off", monitorTableSourceProvider.getDataConsistentMonitorSwitch());
         Assert.assertEquals("off", monitorTableSourceProvider.getTruncateConsistentMonitorSwitch());

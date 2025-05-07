@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.util;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
@@ -136,11 +137,8 @@ public abstract class ByteHelper {
         if (null == str) {
             throw new IllegalStateException("write variables length string by default charset, but parameter string is null.");
         }
-        if (str.length() > 255) {
-            throw new IllegalStateException("write variables length string by default charset, parameter string length must gte 0 and lte 255.");
-        }
-        // length is 1 byte, 1-255
-        out.write((byte) str.length());
+        // string is str.length byte, length is unfixed
+        writeLengthEncodeInt(str.length(), out);
         // string is str.length byte, length = [1, 255]
         out.write(str.getBytes(ISO_8859_1));
     }
@@ -340,10 +338,18 @@ public abstract class ByteHelper {
     }
 
     public static final int FORMAT_LOG_EVENT_SIZE = 119;
+    public static final int FORMAT_LOG_EVENT_SIZE_V2 = 218;
 
-    public static ByteBuf getFormatDescriptionLogEvent() {
+    public static ByteBuf getFormatDescriptionLogEvent(String registryKey) {
+        if (DynamicConfig.getInstance().getFormatDescriptionV2Switch(registryKey)) {
+            return getFormatDescriptionLogEventV2();
+        }
+        return getFormatDescriptionLogEventV1();
+    }
+
+    public static ByteBuf getFormatDescriptionLogEventV1() {
         final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(FORMAT_LOG_EVENT_SIZE);
-        byte[] bytes = new byte[] {
+        byte[] bytes = new byte[]{
                 (byte) 0x6d, (byte) 0xe3, (byte) 0x7c, (byte) 0x5d,
                 (byte) 0x0f, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x77, (byte) 0x00, (byte) 0x00,
 
@@ -367,6 +373,39 @@ public abstract class ByteHelper {
 
                 (byte) 0x2e, (byte) 0x2a, (byte) 0x00, (byte) 0x12, (byte) 0x34, (byte) 0x00, (byte) 0x01, (byte) 0xbf,
                 (byte) 0xa0, (byte) 0xb5, (byte) 0xc4
+        };
+        byteBuf.writeBytes(bytes);
+
+        return byteBuf;
+    }
+
+
+    public static ByteBuf getFormatDescriptionLogEventV2() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(FORMAT_LOG_EVENT_SIZE_V2);
+        byte[] bytes = new byte[]{
+                (byte) 0xad, (byte) 0xae, (byte) 0xb2, (byte) 0x67, (byte) 0x0f, (byte) 0xe6, (byte) 0x2f, (byte) 0x0f, (byte) 0x06, (byte) 0xda, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xde, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x04, (byte) 0x00, (byte) 0x38, (byte) 0x2e, (byte) 0x30, (byte) 0x2e, (byte) 0x33, (byte) 0x36, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x13,
+
+                /* start: mysql native types */
+                (byte) 0x00, (byte) 0x0d, (byte) 0x00, (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x04, (byte) 0x00, (byte) 0x04, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x62, (byte) 0x00, (byte) 0x04, (byte) 0x1a, (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08,
+                (byte) 0x08, (byte) 0x08, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0a, (byte) 0x0a, (byte) 0x0a, (byte) 0x2a, (byte) 0x2a, (byte) 0x00, (byte) 0x12, (byte) 0x34, (byte) 0x00, (byte) 0x0a,
+                (byte) 0x28, (byte) 0x00,
+                /* end: mysql native types */
+
+                /* start: drc events, so mysqlbinlog cmd will recognize replicator binlog*/
+                /* No. 42 */ (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* No. 58 */ (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* No. 74 */ (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* No. 90 */ (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* No.100 drc_table_map_log_event */   (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* No.110 */ (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* No.122 */ (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                /* end: drc events */
+                (byte) 0x01, (byte) 0x7f, (byte) 0xbf, (byte) 0xc9, (byte) 0xf8,
         };
         byteBuf.writeBytes(bytes);
 

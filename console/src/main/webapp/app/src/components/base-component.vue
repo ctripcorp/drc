@@ -9,16 +9,27 @@
             <Icon type="ios-navigate"></Icon>
             <span>监控大盘</span>
           </MenuItem>
+<!--          <Submenu name="base">-->
+<!--            <template slot="title">-->
+<!--              <Icon type="ios-navigate"></Icon>-->
+<!--              <span>监控大盘</span>-->
+<!--            </template>-->
+<!--            <MenuItem name="/home" to="/home">-->
+<!--              <Icon type="ios-pie"></Icon>-->
+<!--              <span>监控大盘</span>-->
+<!--            </MenuItem>-->
+<!--            <MenuItem name="/mq" to="/mq">-->
+<!--              <Icon type="ios-copy"></Icon>-->
+<!--              <span>消息投递</span>-->
+<!--            </MenuItem>-->
+<!--          </Submenu>-->
           <Submenu name="v2-0">
             <template slot="title">
               <Icon type="ios-apps"></Icon>
               元信息管理
             </template>
-            <MenuItem name="/v2/mhaReplications" to="/v2/mhaReplications">
-              <span>MHA 同步</span>
-            </MenuItem>
             <MenuItem name="/v2/mhaDbReplications" to="/v2/mhaDbReplications">
-              <span>DB 粒度同步</span>
+              <span>DB 复制链路</span>
             </MenuItem>
             <MenuItem name="/v2/messengersV2" to="/v2/messengersV2">
               <span>Messenger 同步</span>
@@ -37,6 +48,9 @@
             </MenuItem>
             <MenuItem name="/conflictLog" to="/conflictLog">
               <span>冲突处理</span>
+            </MenuItem>
+            <MenuItem name="/mq" to="/mq">
+              <span>消息投递</span>
             </MenuItem>
             <MenuItem name="/v2/operationlog" to="/v2/operationlog">
               <span>操作日志</span>
@@ -146,6 +160,7 @@ export default {
       case '/v2/dbDrcBuildV2':
       case '/v2/dbMqBuildV2':
       case '/metaMessage':
+      case '/v2/mqConfigs':
         this.openNames = ['v2-0']
         break
       case '/apply':
@@ -165,6 +180,7 @@ export default {
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
       case '/conflictLog':
+      case '/mq':
       case '/dbBlacklist':
       case '/v2/operationlog':
       case '/monitor':
@@ -182,13 +198,11 @@ export default {
         break
     }
     let activeName = this.$route.path
-    if (['/drcV2', '/v2/dbDrcBuild'].includes(this.$route.path)) {
-      activeName = '/v2/mhaReplications'
+    if (['/drcV2', '/v2/dbDrcBuild', '/v2/mhaReplications'].includes(this.$route.path)) {
+      activeName = '/v2/mhaDbReplications'
     } else if (['/v2/dbDrcBuildV2'].includes(this.$route.path)) {
       activeName = '/v2/mhaDbReplications'
-    } else if (['/v2/dbMqBuildV2'].includes(this.$route.path)) {
-      activeName = '/v2/messengersV2'
-    } else if (['/v2/buildMessengerV2'].includes(this.$route.path)) {
+    } else if (['/v2/dbMqBuildV2', '/v2/buildMessengerV2', '/v2/mqConfigs'].includes(this.$route.path)) {
       activeName = '/v2/messengersV2'
     } else if (['/drcResource'].includes(this.$route.path)) {
       activeName = '/v2/resourceV2'

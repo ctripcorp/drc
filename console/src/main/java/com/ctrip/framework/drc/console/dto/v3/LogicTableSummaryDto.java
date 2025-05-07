@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.console.dto.v3;
 
+import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class LogicTableSummaryDto {
     private List<Long> dbReplicationIds;
     private LogicTableConfig config;
+    private Timestamp datachangeLasttime;
 
     public List<Long> getDbReplicationIds() {
         return dbReplicationIds;
@@ -28,11 +31,26 @@ public class LogicTableSummaryDto {
         this.config = config;
     }
 
+    public LogicTableSummaryDto(List<Long> dbReplicationIds, LogicTableConfig config, Timestamp datachangeLasttime) {
+        this.dbReplicationIds = dbReplicationIds;
+        this.config = config;
+        this.datachangeLasttime = datachangeLasttime;
+    }
+
     public static List<LogicTableSummaryDto> fromDbReplication(List<DbReplicationDto> collect1){
         return collect1.stream()
                 .collect(Collectors.groupingBy(DbReplicationDto::getLogicTableConfig))
                 .entrySet().stream()
-                .map(entry -> new LogicTableSummaryDto(entry.getValue().stream().map(DbReplicationDto::getDbReplicationId).collect(Collectors.toList()), entry.getKey()))
+                .map(entry -> {
+                    List<DbReplicationDto> value = entry.getValue();
+                    Timestamp latestTimestamp = value.stream()
+                            .map(DbReplicationDto::getDatachangeLasttime)
+                            .filter(Objects::nonNull)
+                            .max(Timestamp::compareTo)
+                            .orElse(null);
+                    return new LogicTableSummaryDto(value.stream().map(DbReplicationDto::getDbReplicationId).collect(Collectors.toList()),
+                            entry.getKey(),latestTimestamp);
+                })
                 .collect(Collectors.toList());
     }
     public static List<LogicTableSummaryDto> from(List<MhaDbReplicationDto> mhaDbReplicationDtos){
@@ -46,5 +64,13 @@ public class LogicTableSummaryDto {
                 "dbReplicationIds=" + dbReplicationIds +
                 ", config=" + config +
                 '}';
+    }
+
+    public Timestamp getDatachangeLasttime() {
+        return datachangeLasttime;
+    }
+
+    public void setDatachangeLasttime(Timestamp datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
     }
 }

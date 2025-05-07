@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.event.transaction;
 
+import com.ctrip.framework.drc.core.service.exceptions.InvalidConnectionException;
 import com.ctrip.framework.drc.fetcher.event.FetcherEventGroup;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContext;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
@@ -24,6 +25,9 @@ public abstract class AbstractTransaction<T extends BaseTransactionContext> exte
     public TransactionData.ApplyResult apply(T context) {
         try {
             context.initialize();
+        } catch (InvalidConnectionException e) {
+            logger.warn("transaction context ({}) init fail, not mysql master. ", identifier(), e);
+            return TransactionData.ApplyResult.CONNECTION_VALIDATE_MASTER_FAILURE;
         } catch (Throwable t) {
             logger.warn("transaction context ({}) init fail: ", identifier(), t);
             return TransactionData.ApplyResult.COMMUNICATION_FAILURE;

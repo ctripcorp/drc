@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
@@ -10,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.mq.MqType;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
@@ -54,31 +53,24 @@ public interface DrcBuildServiceV2 {
 
     void deleteRowsFilter(List<Long> dbReplicationIds) throws Exception;
 
-    List<String> getMhaAppliers(String srcMhaName, String dstMhaName) throws Exception;
-
-    String getApplierGtid(String srcMhaName, String dstMhaName) throws Exception;
-
     String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
 
-    MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
-
+    // if oldMha not Blank ,copy oldMha accountInfo to newMha;otherwise init newMha and change AccountPwd
+    MhaTblV2 syncMhaInfoFormDbaApi(String newMha, String oldMha) throws SQLException;
+    
     void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha, List<MachineDto> machineDtos) throws Exception;
 
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 
     void autoConfigReplicatorsWithGtid(MhaTblV2 mhaTbl, String gtidInit) throws SQLException;
 
-    void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, String gtid) throws SQLException;
+    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid,boolean switchOnly) throws SQLException;
 
-    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException;
+    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid, MqType mqType, boolean switchOnly) throws SQLException;
 
-    void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl,
-            MhaTblV2 destMhaTbl, String mhaExecutedGtid) throws SQLException;
+    void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl,boolean switchOnly) throws SQLException;
 
-
-    void autoConfigMessenger(MhaTblV2 srcMhaTbl, String gtid) throws SQLException;
-
-    void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
+    void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl, MqType mqType, boolean switchOnly) throws SQLException;
 
     void initReplicationTables() throws Exception;
 
@@ -88,6 +80,10 @@ public interface DrcBuildServiceV2 {
 
     String configReplicatorOnly(MessengerMetaDto dto) throws Exception;
     
-    // return affect replication count
-    int compensateGtidGap(GtidCompensateParam gtidCompensateParam) throws SQLException;
+    int isolationMigrateReplicator(List<String> mhas, boolean master,String tag,String gtid) throws SQLException;
+    
+    int isolationMigrateApplier(List<String> mhas, String tag) throws  Exception;
+    
+    Pair<Boolean,String> checkIsoMigrateStatus(List<String> mhas,String tag) throws SQLException;
+    
 }

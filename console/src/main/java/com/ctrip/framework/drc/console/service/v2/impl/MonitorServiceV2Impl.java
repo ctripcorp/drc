@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.response.MhaNamesResponseVo;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -49,13 +48,6 @@ public class MonitorServiceV2Impl implements MonitorServiceV2 {
     @Override
     @PossibleRemote(path = "/api/drc/v2/monitor/mhaNames",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaNamesResponseVo.class)
     public List<String> getMhaNamesToBeMonitored() throws SQLException  {
-        List<String> mhaNamesToBeMonitored;
-        // vpc
-        Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
-        if (localConfigCloudDc.contains(consoleConfig.getRegion())) {
-            mhaNamesToBeMonitored = consoleConfig.getLocalDcMhaNamesToBeMonitored();
-            logger.info("get mha name to be monitored from local config: {}", JsonUtils.toJson(mhaNamesToBeMonitored));
-        }
         // mhas which monitor switch on
         MhaTblV2 sample = new MhaTblV2();
         sample.setDeleted(BooleanEnum.FALSE.getCode());

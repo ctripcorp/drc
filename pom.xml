@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.ctrip.framework</groupId>
         <artifactId>framework-parent</artifactId>
-        <version>1.12.0</version>
+        <version>1.27.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -20,6 +20,7 @@
         <module>core</module>
         <module>replicator</module>
         <module>applier</module>
+        <module>messenger</module>
         <module>integration-test</module>
         <module>cluster-manager</module>
         <module>console</module>
@@ -30,21 +31,20 @@
     </modules>
 
     <properties>
-        <framework.bom.version>7.43.1</framework.bom.version>
+        <framework.bom.version>9.7.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.50</dal.version>
-        <vi.version>0.11.47</vi.version>
+        <vi.version>0.11.57</vi.version>
         <ucs.version>0.7.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
         <xpipe.proxy.client.version>1.2.13</xpipe.proxy.client.version>
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
-        <netty-all.version>4.1.68.Final</netty-all.version>
+        <netty-all.version>4.1.93.Final</netty-all.version>
         <guava.version>31.0.1-jre</guava.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
         <spring-platfrom-bom.version>2.0.5.RELEASE</spring-platfrom-bom.version>
         <spring.version>4.3.4.RELEASE-ctrip.1</spring.version>
         <mariadb.version>2.4.0</mariadb.version>
@@ -59,14 +59,15 @@
         <log4j2.version>2.15.0</log4j2.version>
         <fastsql.version>2.0.0_preview_973</fastsql.version>
         <mockito-core.version>3.4.0</mockito-core.version>
+        <byte-buddy.version>1.15.3</byte-buddy.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aviator.version>5.2.7</aviator.version>
         <oro.version>2.0.8</oro.version>
         <hickwall.version>0.1.13</hickwall.version>
         <!-- mysql connector -->
         <mysql-connector.version>5.1.48</mysql-connector.version>
-        <kafka-clients.version>2.0.1</kafka-clients.version>
         <herlder-token.version>1.5.0</herlder-token.version>
+        <argLine/>
     </properties>
 
     <dependencyManagement>
@@ -135,6 +136,11 @@
             <dependency>
                 <groupId>com.ctrip.framework.drc</groupId>
                 <artifactId>applier</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ctrip.framework.drc</groupId>
+                <artifactId>messenger</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -320,12 +326,12 @@
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-test</artifactId>
                 <version>${curator.version}</version>
-<!--                <exclusions>-->
-<!--                    <exclusion>-->
-<!--                        <groupId>org.apache.zookeeper</groupId>-->
-<!--                        <artifactId>zookeeper</artifactId>-->
-<!--                    </exclusion>-->
-<!--                </exclusions>-->
+                <!--                <exclusions>-->
+                <!--                    <exclusion>-->
+                <!--                        <groupId>org.apache.zookeeper</groupId>-->
+                <!--                        <artifactId>zookeeper</artifactId>-->
+                <!--                    </exclusion>-->
+                <!--                </exclusions>-->
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -372,10 +378,32 @@
                 <version>${mockito-core.version}</version>
             </dependency>
             <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${byte-buddy.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>${byte-buddy.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-inline</artifactId>
                 <scope>test</scope>
                 <version>${mockito-core.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>net.bytebuddy</groupId>
+                        <artifactId>byte-buddy</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>net.bytebuddy</groupId>
+                        <artifactId>byte-buddy-agent</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- third party -->
@@ -465,11 +493,6 @@
                 <version>${spring-boot.version}</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-clients</artifactId>
-                <version>${kafka-clients.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -529,6 +552,35 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy-agent</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>mockito-core</artifactId>
+                    <groupId>org.mockito</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -599,8 +651,31 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                         <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+                        <argLine>@{argLine}
+                            -Xmx1024m -XX:MaxMetaspaceSize=256m
+                            -XX:+EnableDynamicAgentLoading
+                            --add-opens java.base/java.lang=ALL-UNNAMED
+                            --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                            --add-opens java.base/java.lang.invoke=ALL-UNNAMED
+                            --add-opens java.base/java.math=ALL-UNNAMED
+                            --add-opens java.base/sun.net.util=ALL-UNNAMED
+                            --add-opens java.base/java.io=ALL-UNNAMED
+                            --add-opens java.base/java.net=ALL-UNNAMED
+                            --add-opens java.base/java.nio=ALL-UNNAMED
+                            --add-opens java.base/java.security=ALL-UNNAMED
+                            --add-opens java.base/java.text=ALL-UNNAMED
+                            --add-opens java.base/java.time=ALL-UNNAMED
+                            --add-opens java.base/java.util=ALL-UNNAMED
+                            --add-opens jdk.attach/sun.tools.attach=ALL-UNNAMED
+                            --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
+                            -Dio.netty.tryReflectionSetAccessible=true
+                            --add-opens=java.management/sun.management=ALL-UNNAMED
+                            --add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED
+                            --add-opens=java.base/sun.util.calendar=ALL-UNNAMED
+                            --add-opens=java.xml/com.sun.org.apache.xerces.internal.jaxp.datatype=ALL-UNNAMED
+                        </argLine>
                     </configuration>
                 </plugin>
             </plugins>
@@ -611,26 +686,24 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <release>11</release>
-                    <source>11</source>
-                    <target>11</target>
+                    <release>21</release>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <includes>
                         <include>**/AllTests.java</include>
                     </includes>
-                    <argLine>-Xmx1024m -XX:MaxPermSize=256m ${surefireArgLine}</argLine>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.4</version>
+                <version>0.8.11</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>

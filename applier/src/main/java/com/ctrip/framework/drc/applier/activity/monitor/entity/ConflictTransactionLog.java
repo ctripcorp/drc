@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.applier.activity.monitor.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.RECORD_SIZE;
+import static com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource.RECORD_SIZE;
 
 /**
  * Created by jixinwang on 2020/10/16

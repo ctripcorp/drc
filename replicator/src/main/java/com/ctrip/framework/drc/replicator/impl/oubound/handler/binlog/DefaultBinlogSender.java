@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.sender.SenderFilte
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.sender.SenderOutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ApplierRegisterCommandHandler;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandler;
+import com.ctrip.framework.drc.replicator.store.manager.file.BinlogPosition;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -112,6 +113,11 @@ public class DefaultBinlogSender extends AbstractLifecycle implements BinlogSend
         return aviatorFilter.filter(tableName);
     }
 
+    @Override
+    public BinlogPosition getBinlogPosition() {
+        return senderContext.getBinlogPosition();
+    }
+
     private void addListener() {
         this.channel.closeFuture().addListener((ChannelFutureListener) future -> {
             running = false;
@@ -145,7 +151,10 @@ public class DefaultBinlogSender extends AbstractLifecycle implements BinlogSend
             logger.info("{} not running, stop send.", applierName);
             return;
         }
-        senderContext.refresh(context);
+        boolean refresh = senderContext.refresh(context);
+        if (!refresh) {
+            return;
+        }
         filterChain.doFilter(senderContext);
         if (senderContext.getCause() != null) {
             logger.error("{} sender error, close.", applierName, senderContext.getCause());
@@ -153,6 +162,18 @@ public class DefaultBinlogSender extends AbstractLifecycle implements BinlogSend
         }
     }
 
+    @Override
+    public void updatePosition(BinlogPosition binlogPosition) {
+        senderContext.updatePosition(binlogPosition);
+    }
+
+    @Override
+    public void refreshInExcludedGroup(OutboundLogEventContext scannerContext) {
+        if (senderContext.getBinlogPosition().canMoveForward(scannerContext.getBinlogPosition())) {
+            senderContext.setInSchemaExcludeGroup(scannerContext.isInSchemaExcludeGroup());
+            senderContext.setInGtidExcludeGroup(scannerContext.isInGtidExcludeGroup());
+        }
+    }
 
     @Override
     public ConsumeType getConsumeType() {
@@ -186,7 +207,7 @@ public class DefaultBinlogSender extends AbstractLifecycle implements BinlogSend
 
     @Override
     public String toString() {
-        return applierName;
+        return applierName + getBinlogPosition();
     }
 
     @VisibleForTesting

@@ -1,15 +1,17 @@
 package com.ctrip.framework.drc.manager.ha.meta.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.utils.NameUtils;
+import com.ctrip.framework.drc.manager.enums.ServerStateEnum;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
+import com.ctrip.framework.drc.manager.ha.cluster.impl.ClusterServerStateManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
-import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -72,6 +74,9 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
     @Mock
     private Observable observable;
 
+    @Mock
+    private ClusterServerStateManager clusterServerStateManager;
+
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("unit_test");
 
     private Set<Integer> DEFAULT_SLOT = Sets.newHashSet();
@@ -96,6 +101,8 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         currentMetaManager.initialize();
         currentMetaManager.setExecutors(executors);
         currentMetaManager.start();
+
+        when(clusterServerStateManager.getServerState()).thenReturn(ServerStateEnum.NORMAL);
     }
 
     @Test
@@ -216,23 +223,21 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         verify(handler, times(1)).applierMasterChanged(eq(clusterId), anyString(), Mockito.any());
     }
 
+
     @Test
-    public void testGetUpstreamDcClusterIdList() {
+    public void testGetUpstreamDcClusterIds() {
         DbCluster clusterMeta = MetaClone.clone(getCluster("shaoy", CLUSTER_ID));
-        List<Pair<String, String>> upstreamDcClusterIdList = currentMetaManager.getUpstreamDcClusterIdList(clusterMeta);
-        Assert.assertEquals(1, upstreamDcClusterIdList.size());
-        Assert.assertEquals("sharb", upstreamDcClusterIdList.get(0).getKey());
-        Assert.assertEquals("integration-test.fxdrcrb", upstreamDcClusterIdList.get(0).getValue());
+        Map<String, Set<String>> upstreamDcClusterIds = currentMetaManager.getUpstreamDcClusterIds(clusterMeta);
+        Assert.assertEquals(1, upstreamDcClusterIds.size());
+        Assert.assertTrue(upstreamDcClusterIds.get("sharb").contains("integration-test.fxdrcrb"));
 
         String newTargetName = "newTargetName";
         String newTargetMhaName = "newTargetMhaName";
         clusterMeta.getAppliers().add(new Applier().setTargetIdc("shajq").setTargetMhaName(newTargetMhaName).setTargetName(newTargetName));
-        upstreamDcClusterIdList = currentMetaManager.getUpstreamDcClusterIdList(clusterMeta);
-        Assert.assertEquals(2, upstreamDcClusterIdList.size());
-        Assert.assertEquals("sharb", upstreamDcClusterIdList.get(0).getKey());
-        Assert.assertEquals("integration-test.fxdrcrb", upstreamDcClusterIdList.get(0).getValue());
-        Assert.assertEquals("shajq", upstreamDcClusterIdList.get(1).getKey());
-        Assert.assertEquals(newTargetName + "." + newTargetMhaName, upstreamDcClusterIdList.get(1).getValue());
+        upstreamDcClusterIds = currentMetaManager.getUpstreamDcClusterIds(clusterMeta);
+        Assert.assertEquals(2, upstreamDcClusterIds.size());
+        Assert.assertTrue(upstreamDcClusterIds.get("sharb").contains("integration-test.fxdrcrb"));
+        Assert.assertTrue(upstreamDcClusterIds.get("shajq").contains(newTargetName + "." + newTargetMhaName));
     }
 
     @Test(expected = IllegalArgumentException.class)

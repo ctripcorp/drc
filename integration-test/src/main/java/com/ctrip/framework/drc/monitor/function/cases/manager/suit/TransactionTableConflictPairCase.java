@@ -18,7 +18,7 @@ import com.google.common.collect.Lists;
 import java.sql.ResultSet;
 import java.util.List;
 
-import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
+import static com.ctrip.framework.drc.fetcher.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 
 public class TransactionTableConflictPairCase extends AbstractMultiWriteInTransactionPairCase implements PairCase<ReadWriteSqlOperator, ReadSqlOperator<ReadResource>> {
@@ -51,7 +51,7 @@ public class TransactionTableConflictPairCase extends AbstractMultiWriteInTransa
             // 1. select src transaction table next gtid from src
             GtidSet gtidSet;
             try {
-                ReadResource select = src.select(new SingleSelectExecution("show global variables like \"gtid_executed\";"));
+                ReadResource select = src.select(new SingleSelectExecution("SELECT @@GLOBAL.gtid_executed;"));
                 ResultSet resultSet = select.getResultSet();
                 if (resultSet.next()) {
                     String gtidStr = resultSet.getString(2);
@@ -72,7 +72,7 @@ public class TransactionTableConflictPairCase extends AbstractMultiWriteInTransa
             List<GtidSet.Interval> intervals = gtidSet.getUUIDSet(uuid).getIntervals();
             Long gno = intervals.get(intervals.size() - 1).getEnd() + 1;
             Long id = gno % (TRANSACTION_TABLE_SIZE);
-            String sql = String.format("insert `drcmonitordb`.`gtid_executed` (server_uuid, id, gno) value ('%s', % d, % d) on duplicate key update `gno` = %d;", uuid, id, gno, gno);
+            String sql = String.format("insert `drcmonitordb`.`tx_drc1` (server_uuid, id, gno) value ('%s', % d, % d) on duplicate key update `gno` = %d;", uuid, id, gno, gno);
             WriteExecution writeExecution = new SingleInsertExecution(sql);
             InsertCase insertCase = new MultiStatementWriteCase(writeExecution);
             if (!(dst instanceof ReadWriteSqlOperator)) {

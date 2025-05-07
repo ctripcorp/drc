@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.service.console.service;
 
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.service.ops.AppClusterResult;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
@@ -127,7 +128,7 @@ public class OPSApiServiceImpl implements OPSApiService {
     }
 
     @Override
-    public List<HickWallMessengerDelayEntity> getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha) throws IOException {
+    public Map<String, HickWallMessengerDelayEntity>  getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha, MqType mqType) throws IOException {
 
         Map<String, Object> requestBody = Maps.newLinkedHashMap();
         requestBody.put("access_token", accessToken);
@@ -150,7 +151,7 @@ public class OPSApiServiceImpl implements OPSApiService {
         JsonObject data = jsonObject.get("data").getAsJsonObject();
         String result = JsonUtils.toJson(data.get("result"));
 
-        return JsonUtils.fromJsonToList(result, HickWallMessengerDelayEntity.class);
+        return HickWallMessengerDelayEntity.parseJson(result, mqType);
     }
 
     @Override

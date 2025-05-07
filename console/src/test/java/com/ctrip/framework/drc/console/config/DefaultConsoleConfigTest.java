@@ -7,7 +7,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -94,26 +93,8 @@ public class DefaultConsoleConfigTest {
         Assert.assertNotNull(nosuchcluster);
         Assert.assertEquals(0, nosuchcluster.size());
     }
-    
-    @Test 
-    public void testGetLocalConfigCloudDc() {
-        Set<String> localConfigCloudDc = config.getLocalConfigCloudDc();
-        Assert.assertEquals(2,localConfigCloudDc.size());
-    }
-    
-    @Test
-    public void testGetLocalDcMhaNamesToBeMonitored() {
-        List<String> localDcMhaNamesToBeMonitored = config.getLocalDcMhaNamesToBeMonitored();
-        Assert.assertNull(localDcMhaNamesToBeMonitored);
-    }
-    
-    @Test 
-    public void testGetLocalConfigMhasMap() {
-        Map<String, Long> localConfigMhasMap = config.getLocalConfigMhasMap();
-        Assert.assertNotNull(localConfigMhasMap);
-        Assert.assertEquals(0,localConfigMhasMap.size());
-    }
-    
+
+
     @Test
     public void testGetConflictMhaRecordSearchTime() {
         int conflictMhaRecordSearchTime = config.getConflictMhaRecordSearchTime();
@@ -185,5 +166,12 @@ public class DefaultConsoleConfigTest {
     public void testGetDbaApiPwdChangeUrl() {
         String dbaApiPwdChangeUrl = config.getDbaApiPwdChangeUrl();
         Assert.assertEquals("",dbaApiPwdChangeUrl);
+    }
+
+
+    @Test
+    public void testGetDrcCkafkaRegionMapping() {
+        Map<String, String> drcCkafkaRegionMapping = config.getDrcCkafkaRegionMapping();
+        Assert.assertEquals(0,drcCkafkaRegionMapping.size());
     }
 }

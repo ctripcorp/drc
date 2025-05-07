@@ -85,14 +85,14 @@ public class IndicesEventManager {
         return indexEventPosition;
     }
 
-    public long getLastIndexPosition() {
-        if (indices.isEmpty()) {
+    public long getLastNotRevisedIndexPosition() {
+        if (notRevisedIndices.isEmpty()) {
             return 0;
         }
-        return indices.get(indices.size() - 1);
+        return notRevisedIndices.getLast();
     }
 
     public boolean shouldAddIndexEvent(long position) {
-        return position / PREVIOUS_GTID_BULK > this.getIndicesSize() && position - this.getLastIndexPosition() > PREVIOUS_GTID_BULK;
+        return position / PREVIOUS_GTID_BULK > this.getIndicesSize() && position - this.getLastNotRevisedIndexPosition() > PREVIOUS_GTID_BULK;
     }
 }

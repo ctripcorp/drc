@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class DrcKeyedOneThreadTaskExecutor extends KeyedOneThreadTaskExecutor {
 
     private final static int RETRY_INTERVAL = 2000;
+    private final static int RETRY_TIMES = 5;
 
     protected ScheduledExecutorService executorService = ThreadUtils.newFixedThreadScheduledPool(OsUtils.getCpuCount(), "DrcKeyedOneThreadTaskExecutor");
 
@@ -24,7 +25,7 @@ public class DrcKeyedOneThreadTaskExecutor extends KeyedOneThreadTaskExecutor {
     }
 
     protected OneThreadTaskExecutor createTaskExecutor() {
-        return new OneThreadTaskExecutor(DefaultRetryCommandFactory.retryForever(executorService, getRetryInterval()), executors);
+        return new OneThreadTaskExecutor(DefaultRetryCommandFactory.retryNTimes(executorService, RETRY_TIMES,getRetryInterval()), executors);
     }
 
     protected int getRetryInterval() {

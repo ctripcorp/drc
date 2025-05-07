@@ -11,7 +11,7 @@ import java.sql.PreparedStatement;
  * @Author Slight
  * Jul 28, 2020
  */
-public class AccurateTransactionContextResource extends TransactionContextResource implements TransactionContext {
+public class AccurateTransactionContextResource extends ApplierTransactionContextResource implements TransactionContext {
 
     private static final String BEGIN = "begin";
 

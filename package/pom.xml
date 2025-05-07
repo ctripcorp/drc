@@ -16,6 +16,7 @@
 	    <module>drc-console-package</module>
 		<module>drc-integration-test-package</module>
 		<module>drc-performance-test-package</module>
+		<module>drc-messenger-package</module>
     </modules>
 
 	<profiles>

@@ -10,14 +10,18 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.security.HeraldService;
 import com.ctrip.framework.foundation.Foundation;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import javax.validation.constraints.NotNull;
+import java.util.Map;
 
 /**
  * @ClassName KmsServiceImpl
@@ -27,32 +31,46 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class KmsServiceImpl implements KmsService {
-    
+
     private final Logger logger = LoggerFactory.getLogger(KmsServiceImpl.class);
-    
-    private Map<String,String> tokenSecretKeyCache = new ConcurrentHashMap<>();
-    private Map<String,Account> tokenAccountCache = new ConcurrentHashMap<>();
-    
+
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
-    private HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
-    
+
+    private final HeraldService heraldService = ApiContainer.getHeraldServiceImpl();
+
+    private final LoadingCache<String, String> tokenSecretKeyCache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<>() {
+                @Override
+                public String load(@NotNull String accessToken) {
+                    return getSecretKeyByHttp(accessToken);
+                }
+            });
+
+    private final LoadingCache<String, Account> tokenAccountCache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<>() {
+                @Override
+                public Account load(@NotNull String accessToken) {
+                    return getAccountInfoByHttp(accessToken);
+                }
+            });
+
 
     @Override
-    //http://conf.ctripcorp.com/pages/viewpage.action?pageId=1732205587#id-07KMS%E6%8E%A5%E5%85%A5&QA%E6%96%87%E6%A1%A3-%E4%B8%83%E3%80%81%E6%8E%A5%E5%8F%A3%E8%B0%83%E7%94%A8
-    public String getSecretKey(String accessToken) { 
+    public String getSecretKey(String accessToken) {
+        return tokenSecretKeyCache.getUnchecked(accessToken);
+    }
+
+    private String getSecretKeyByHttp(String accessToken) {
+        //http://conf.ctripcorp.com/pages/viewpage.action?pageId=1732205587#id-07KMS%E6%8E%A5%E5%85%A5&QA%E6%96%87%E6%A1%A3-%E4%B8%83%E3%80%81%E6%8E%A5%E5%8F%A3%E8%B0%83%E7%94%A8
         // get keyValue from kms via https request, should be loaded before generate metaInfo
-        if (tokenSecretKeyCache.containsKey(accessToken)) {
-            return tokenSecretKeyCache.get(accessToken);
-        }
         String envStr = EnvUtils.getEnvStr();
         String kmsUrl = consoleConfig.getKmsUrl(envStr);
         Map<String, Object> paramsMap = Maps.newHashMap();
         paramsMap.put("token", accessToken);
         paramsMap.put("appid", Foundation.app().getAppId());
         paramsMap.put("herald-token", heraldService.getLocalHeraldToken());
-        String queryParam= "/query-key?token={token}&appid={appid}&herald-token={herald-token}";
+        String queryParam = "/query-key?token={token}&appid={appid}&herald-token={herald-token}";
         String responseBody = HttpUtils.get(kmsUrl + queryParam, String.class, paramsMap);
         JsonNode jsonNode = HttpUtils.deserialize(responseBody);
         if (jsonNode.get("code").asInt() == 0) {
@@ -60,7 +78,6 @@ public class KmsServiceImpl implements KmsService {
             if (StringUtils.isEmpty(keyValue)) {
                 throw ConsoleExceptionUtils.message("Empty key value from KMS");
             }
-            tokenSecretKeyCache.put(accessToken, keyValue);
             return keyValue;
         } else {
             logger.error(
@@ -71,19 +88,21 @@ public class KmsServiceImpl implements KmsService {
     }
 
     @Override
-    // query-pwd?token={token}&appid={appid}&herald-token={herald-token}&type={type}
     public Account getAccountInfo(String accessToken) {
+        return tokenAccountCache.getUnchecked(accessToken);
+    }
+
+
+    private Account getAccountInfoByHttp(String accessToken) {
+        // query-pwd?token={token}&appid={appid}&herald-token={herald-token}&type={type}
         // get keyValue from kms via https request, should be loaded before generate metaInfo
-        if (tokenAccountCache.containsKey(accessToken)) {
-            return tokenAccountCache.get(accessToken);
-        }
         String envStr = EnvUtils.getEnvStr();
         String kmsUrl = consoleConfig.getKmsUrl(envStr);
         Map<String, Object> paramsMap = Maps.newHashMap();
         paramsMap.put("token", accessToken);
         paramsMap.put("appid", Foundation.app().getAppId());
         paramsMap.put("herald-token", heraldService.getLocalHeraldToken());
-        String queryParam= "/query-pwd?token={token}&appid={appid}&herald-token={herald-token}";
+        String queryParam = "/query-pwd?token={token}&appid={appid}&herald-token={herald-token}";
         String responseBody = HttpUtils.getAcceptAll(kmsUrl + queryParam, String.class, paramsMap);
         JsonNode jsonNode = HttpUtils.deserialize(responseBody);
         if (jsonNode.get("code").asInt() == 0) {
@@ -93,7 +112,6 @@ public class KmsServiceImpl implements KmsService {
                 throw ConsoleExceptionUtils.message("Empty user or pwd value from KMS");
             }
             Account account = new Account(user, pwd);
-            tokenAccountCache.put(accessToken, account);
             return account;
         } else {
             logger.error(
@@ -102,6 +120,5 @@ public class KmsServiceImpl implements KmsService {
             throw ConsoleExceptionUtils.message("Error getAccountInfo from KMS");
         }
     }
-
 
 }

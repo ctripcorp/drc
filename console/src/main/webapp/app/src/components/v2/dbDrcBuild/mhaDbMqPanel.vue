@@ -203,6 +203,16 @@ export default {
           render: (h, params) => {
             return h('p', params.row.mhaMessengerDto.gtidInit)
           }
+        },
+        {
+          title: '修改时间',
+          key: 'filterFields',
+          render: (h, params) => {
+            const timestamp = params.row.mhaMessengerDto.datachangeLasttime
+            const date = new Date(timestamp)
+            const formattedDate = date.toLocaleString() // 使用本地时间格式
+            return h('span', formattedDate)
+          }
         }
       ]
     }
@@ -212,12 +222,12 @@ export default {
       this.$Message.info('还未上线，敬请期待')
     },
     async getMhaMessengerDelay () {
-      const param = {
-        mhas: this.mhaMqDtos.srcMha.name,
-        dbs: this.mhaMqDtos.mhaDbReplications.map(item => item.src.dbName).join(',')
-      }
       this.delayDataLoading = true
-      this.axios.get('/api/drc/v2/messenger/delay', { params: param })
+      this.axios.post('/api/drc/v2/messenger/delay', {
+        mqType: this.mhaMqDtos.mhaMessengerDto.mqType,
+        mhas: [this.mhaMqDtos.srcMha.name],
+        dbs: this.mhaMqDtos.mhaDbReplications.map(item => item.src.dbName)
+      })
         .then(response => {
           const delays = response.data.data[0].delayInfoDto.delay
           this.$set(this.mhaMqDtos, 'delay', delays)

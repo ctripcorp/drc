@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaReplicationQueryDto;
+import com.ctrip.framework.drc.console.vo.v2.MhaSyncView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.google.common.collect.Lists;
@@ -346,5 +347,15 @@ public class MhaReplicationController {
             }
         });
         return vos;
+    }
+
+    @GetMapping("mhaSyncCount")
+    public ApiResult<MhaSyncView> mhaSyncCount() {
+        try {
+            return ApiResult.getSuccessInstance(mhaReplicationServiceV2.mhaSyncCount());
+        } catch (Exception e) {
+            logger.error("get mhaSyncCount fail, ", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
     }
 }

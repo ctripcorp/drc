@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dao.entity;
 
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.platform.dal.dao.DalPojo;
 import com.ctrip.platform.dal.dao.annotation.Database;
 import com.ctrip.platform.dal.dao.annotation.Type;
@@ -41,8 +42,15 @@ public class MessengerGroupTbl implements DalPojo{
     @Column(name = "replicator_group_id")
     @Type(value = Types.BIGINT)
     private Long replicatorGroupId;
-    
-    
+
+    /**
+     * mq_type
+     * @see MqType
+     */
+    @Column(name = "mq_type")
+    @Type(value = Types.VARCHAR)
+    private String mqType;
+
     /**
      * gtid_executed
      */
@@ -72,6 +80,14 @@ public class MessengerGroupTbl implements DalPojo{
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+
+    public String getMqType() {
+        return mqType;
+    }
+
+    public void setMqType(String mqType) {
+        this.mqType = mqType;
+    }
 
     public Long getId() {
         return id;

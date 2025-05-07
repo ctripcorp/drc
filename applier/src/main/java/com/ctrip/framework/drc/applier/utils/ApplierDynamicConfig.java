@@ -57,6 +57,6 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     }
 
     public int getApplierInstanceModifyThread() {
-        return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 5);
+        return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 10);
     }
 }

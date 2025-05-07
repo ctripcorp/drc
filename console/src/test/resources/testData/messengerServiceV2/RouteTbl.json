@@ -4,10 +4,11 @@
     "routeOrgId": 1,
     "srcDcId": 1,
     "dstDcId": 2,
-    "srcProxyIds": "1,6",
-    "dstProxyIds": "6,13",
+    "srcProxyIds": "1",
+    "dstProxyIds": "1",
     "tag": "meta",
     "deleted": 0,
+    "globalActive": 1,
     "createTime": "2023-10-04 19:10:12",
     "datachangeLasttime": "2032-11-27 22:18:11"
   }

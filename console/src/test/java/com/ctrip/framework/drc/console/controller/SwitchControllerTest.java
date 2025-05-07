@@ -3,8 +3,8 @@ package com.ctrip.framework.drc.console.controller;
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.controller.v1.SwitchController;
 import com.ctrip.framework.drc.console.service.impl.SwitchServiceImpl;
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;
+import com.ctrip.framework.drc.core.server.config.console.dto.ClusterConfigDto;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;
@@ -46,19 +46,23 @@ public class SwitchControllerTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         /** initialization */
         MockitoAnnotations.openMocks(this);
         /** build mvc env */
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
         // for void return type mockito
-        Mockito.when(switchService.switchUpdateDb(CLUSTER_ID, new DbEndpointDto("127.0.0.1", 3306))).thenReturn(ApiResult.getSuccessInstance(""));
-        Mockito.doAnswer((o) -> null).when(switchService).switchListenReplicator(CLUSTER_ID, REP_ENDPOINT);
+        Mockito.doNothing().when(switchService).switchUpdateDb(Mockito.any());
+        Mockito.doNothing().when(switchService).switchListenReplicator(Mockito.any());
     }
 
     @Test
-    public void testNotifyMasterDb() throws Exception {
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/dbs/master").contentType(MediaType.APPLICATION_JSON_UTF8).content(DB_ENDPOINT))
+    public void testBatchNotifyMasterDb() throws Exception {
+        MvcResult mvcResult = mvc.perform(
+                MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/dbs/master")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.toJson(new ClusterConfigDto()))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
         MockHttpServletResponse response = mvcResult.getResponse();
@@ -71,9 +75,13 @@ public class SwitchControllerTest {
     }
 
     @Test
-    public void testNotifyMasterReplicator() throws Exception {
+    public void testBatchNotifyMasterReplicator() throws Exception {
         String jsonStr=JSON.toJSONString(REP_ENDPOINT);
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/testClusterId/replicators/master").contentType(MediaType.APPLICATION_JSON_UTF8).content(jsonStr))
+        MvcResult mvcResult = mvc.perform(
+                MockMvcRequestBuilders.put("/api/drc/v1/switch/clusters/replicators/master")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.toJson(new ClusterConfigDto()))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
         MockHttpServletResponse response = mvcResult.getResponse();
@@ -83,4 +91,6 @@ public class SwitchControllerTest {
         JsonNode jsonNode = objectMapper.readTree(responseStr);
         Assert.assertEquals("true", jsonNode.get("data").toString());
     }
+
+
 }

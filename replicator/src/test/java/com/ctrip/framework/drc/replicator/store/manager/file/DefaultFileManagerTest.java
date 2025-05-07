@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
-import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE_V2;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
@@ -56,7 +56,7 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  */
 public class DefaultFileManagerTest extends AbstractTransactionTest {
 
-    public static final int FILTER_LOG_EVENT_SIZE = 45;
+    public static final int FILTER_LOG_EVENT_SIZE = 49;
     private int purgeSize = 5;
 
     private GtidManager gtidManager;
@@ -99,7 +99,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         ioCache.initialize();
         ioCache.start();
 
-        transactionCache = new EventTransactionCache(ioCache, filterChain);
+        transactionCache = new EventTransactionCache(ioCache, filterChain, "ut_test");
         transactionCache.initialize();
         transactionCache.start();
     }
@@ -143,7 +143,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         for (File file : files) {
             total += file.length();
         }
-        Assert.assertEquals(total, EMPTY_PREVIOUS_GTID_EVENT_SIZE * 13 + (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE) * files.size() + count.get() * ((GTID_ZISE) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
+        Assert.assertEquals(total, EMPTY_PREVIOUS_GTID_EVENT_SIZE * 13 + (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + DrcIndexLogEvent.FIX_SIZE) * files.size() + count.get() * ((GTID_ZISE) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
     }
 
     private void doWrite(AtomicInteger count, CountDownLatch latch) {
@@ -217,7 +217,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         }
 
         if (!afterName.equalsIgnoreCase(beforeName)) {
-            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
+            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2;
         }
 
         logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
@@ -256,7 +256,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         }
 
         if (!afterName.equalsIgnoreCase(beforeName)) {
-            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
+            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2;
         }
 
         logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
@@ -295,7 +295,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         }
 
         if (!afterName.equalsIgnoreCase(beforeName)) {
-            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
+            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2;
         }
 
         logger.info("after size is {} {}", afterSize, fileManager.getCurrentLogFile().getName());
@@ -630,7 +630,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         List<ByteBuf> events = new ArrayList<>();
         events.add(compositeByteBuf);
-        fileManager.append(events, new TransactionContext(false, bigTransaction.size() / 2));
+        fileManager.append(events, new TransactionContext(false, true));
         Assert.assertTrue(((DefaultFileManager) fileManager).isInBigTransaction());
 
         List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
@@ -638,7 +638,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         for (File file : files) {
             total += file.length();
         }
-        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE) * files.size() + size);
+        Assert.assertEquals(total, (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE_V2 + DrcIndexLogEvent.FIX_SIZE) * files.size() + size);
 
     }
 
