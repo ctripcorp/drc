@@ -131,24 +131,4 @@ public class ReplicatorContainerController {
         }
     }
 
-    @RequestMapping(value = "/info/{registryKey}", method = RequestMethod.GET)
-    public ApiResult<ReplicatorDetailInfoDto> info(@PathVariable String registryKey) {
-        try {
-            return serverContainer.getInfo(registryKey);
-        } catch (Throwable t) {
-            logger.error("get info error for {}", registryKey, t);
-            return ApiResult.getFailInstance(t);
-        }
-    }
-
-    @RequestMapping(value = "/info/all", method = RequestMethod.GET)
-    public ApiResult<List<ReplicatorInfoDto>> info() {
-        try {
-            return serverContainer.getInfo();
-        } catch (Throwable t) {
-            logger.error("get info error", t);
-            return ApiResult.getFailInstance(null);
-        }
-    }
-
 }

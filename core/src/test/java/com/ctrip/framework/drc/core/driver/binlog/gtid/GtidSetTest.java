@@ -163,66 +163,6 @@ public class GtidSetTest {
     }
 
     @Test
-    public void testAddAndFillGap(){
-        GtidSet gtidSet;
-
-        gtidSet = new GtidSet("");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:4");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:4", gtidSet.toString());
-
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:4");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:5");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:4-5", gtidSet.toString());
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:4");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:6");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:4-6", gtidSet.toString());
-
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:4");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:2");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2:4", gtidSet.toString());
-
-
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:2:4");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:3");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2-4", gtidSet.toString());
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:2-5");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:4");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2-5", gtidSet.toString());
-
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:2-5");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:11");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2-11", gtidSet.toString());
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:5-10");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:2");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:2:5-10", gtidSet.toString());
-
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-8:12-15:17-20");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:10");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-10:12-15:17-20", gtidSet.toString());
-
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-9:12-15:17-20");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:10");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-10:12-15:17-20", gtidSet.toString());
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-10:12-15:17-20");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:11");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-15:17-20", gtidSet.toString());
-
-        gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:1-15:17-20");
-        gtidSet.addAndFillGap("00000000-0000-0000-0000-000000000000:22");
-        Assert.assertEquals("00000000-0000-0000-0000-000000000000:1-22", gtidSet.toString());
-    }
-
-    @Test
     public void testJoin() throws Exception {
         GtidSet gtidSet = new GtidSet("00000000-0000-0000-0000-000000000000:3-4:6-7");
         gtidSet.add("00000000-0000-0000-0000-000000000000:5");

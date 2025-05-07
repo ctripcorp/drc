@@ -1,11 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.meta.impl;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dc;
-import com.ctrip.framework.drc.core.entity.IRoute;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
@@ -25,14 +20,15 @@ import com.ctrip.xpipe.utils.StringUtil;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.ctrip.xpipe.utils.XpipeThreadFactory;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.web.client.ResourceAccessException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.client.ResourceAccessException;
 
 /**
  * @Author limingdong

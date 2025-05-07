@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.core.server.config;
 
-import static com.ctrip.framework.drc.core.http.RestTemplateFactory.SSL_PORT;
-
 import com.ctrip.framework.drc.core.server.utils.IpUtils;
 import com.ctrip.xpipe.utils.OsUtils;
 import org.slf4j.Logger;
