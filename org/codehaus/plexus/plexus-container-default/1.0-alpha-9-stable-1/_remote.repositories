@@ -1,0 +1,6 @@
+#NOTE: This is an Aether internal implementation file, its format can be changed without prior notice.
+#Thu May 08 20:24:46 CST 2025
+plexus-container-default-1.0-alpha-9-stable-1.jar>=
+plexus-container-default-1.0-alpha-9-stable-1.jar>trip-maven-prod=
+plexus-container-default-1.0-alpha-9-stable-1.pom>=
+plexus-container-default-1.0-alpha-9-stable-1.pom>trip-maven-prod=

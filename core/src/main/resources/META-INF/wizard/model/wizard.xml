@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<wizard package="com.ctrip.framework.drc">
-   <model package="com.ctrip.framework.drc.core" name="drc">
-      <sample-model>src/test/resources/drc.xml</sample-model>
-   </model>
-</wizard>

@@ -1,9 +1,0 @@
-package com.ctrip.framework.drc.manager.ha.meta;
-
-/**
- * Created by jixinwang on 2022/8/2
- */
-public interface RegionCache extends DcCache {
-
-    void clusterAdded(String dcId, String clusterId);
-}

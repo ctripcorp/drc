@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.microsoft.sqlserver</groupId>
+  <artifactId>mssql-jdbc</artifactId>
+  <versioning>
+    <release>6.4.0.jre7.ctrip</release>
+    <versions>
+      <version>6.4.0.jre7.ctrip</version>
+    </versions>
+    <lastUpdated>20250508122449</lastUpdated>
+  </versioning>
+</metadata>

@@ -57,9 +57,15 @@ currdir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$currdir"
 
 # 批量安装所有组件（自动识别类型）
-#install_artifacts "com/ctrip"
-#install_artifacts "ctripgroup"
+install_artifacts "com/ctrip"
+install_artifacts "ctripgroup"
 install_artifacts "qunar"
+install_artifacts "org/springframework"
+install_artifacts "com/dianping"
+install_artifacts "io/grpc"
+install_artifacts "org/unidal/framework"
+install_artifacts "org/codehaus/plexus/plexus-container-default"
+install_artifacts "com/microsoft/sqlserver/mssql-jdbc"
 
 echo "===== 安装完成 [$(date +"%Y-%m-%d %H:%M:%S")] ====="
 echo "详细日志见: $LOG_FILE"
