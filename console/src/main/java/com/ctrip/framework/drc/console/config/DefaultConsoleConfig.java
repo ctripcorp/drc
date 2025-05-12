@@ -145,6 +145,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DBA_QUERY_DB_OWNER_URL = "dba.get.db.owner.url";
     private static String DEFAULT_DBA_QUERY_DB_OWNER_URL = "http://osg.ops.ctripcorp.com/api/get_general_db_owner";
 
+    private static String AUTOCREATE_SAME_TABLE_CHECK = "autocreate.sametable.check";
+
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
     }
@@ -609,7 +611,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getBooleanProperty(CONFLICT_OPTIMIZE_SWITCH, false);
     }
 
-    public Set<String> getIgnoreConflictTypes() { //todo set
+    public Set<String> getIgnoreConflictTypes() {
         String ignoreStr = getProperty(IGNORE_CONFLICT_TYPES, "");
         if (StringUtils.isBlank(ignoreStr)) {
             return Sets.newHashSet();
@@ -625,5 +627,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getDbaDbOwnerUrl() {
         return getProperty(DBA_QUERY_DB_OWNER_URL, DEFAULT_DBA_QUERY_DB_OWNER_URL);
+    }
+
+    public boolean getAutoCreateSameTableCheckSwitch() {
+        return getBooleanProperty(AUTOCREATE_SAME_TABLE_CHECK, false);
     }
 }

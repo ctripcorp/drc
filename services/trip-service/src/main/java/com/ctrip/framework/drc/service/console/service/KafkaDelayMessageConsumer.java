@@ -104,20 +104,22 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         future = kafkaConsumeService.submit(() -> {
             try {
                 while (true) {
-                    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(200));
-                    for (ConsumerRecord<String, String> mqRecord : records) {
-                        executorService.submit(() -> processMessage(mqRecord));
-                    }
-                    if (!records.isEmpty()) {
-                        kafkaConsumer.commitSync();
+                    try {
+                        ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(200));
+                        for (ConsumerRecord<String, String> mqRecord : records) {
+                            executorService.submit(() -> processMessage(mqRecord));
+                        }
+                        if (!records.isEmpty()) {
+                            kafkaConsumer.commitSync();
+                        }
+                    } catch (KafkaException e) {
+                        logger.warn("[[monitor=delay,mqType=kafka]] consumer exception: ", e);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
+                        kafkaConsumer.seekToEnd(kafkaConsumer.assignment());
                     }
                 }
             } catch (WakeupException e) {
                 logger.info("going to close kafkaConsumer", e);
-            } catch (KafkaException e) {
-                logger.warn("[[monitor=delay,mqType=kafka]] consumer exception: ", e);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
-                kafkaConsumer.seekToEnd(kafkaConsumer.assignment());
             } catch (Exception e) {
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
                 logger.warn("unexpected exception occur in kafkaConsumer", e);

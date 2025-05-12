@@ -72,5 +72,5 @@ public interface DbDrcBuildService {
 
     void deleteDbMqReplication(DbMqEditDto editDto) throws Exception;
 
-    MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto createDto) throws Exception;
+    MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto requestBody);
 }

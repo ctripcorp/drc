@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
@@ -622,7 +623,7 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         }
     }
 
-    @Test(expected = ConsoleException.class)
+    @Test
     public void testAutoCreateMq() throws Exception {
         MqAutoCreateRequestDto dto = new MqAutoCreateRequestDto();
         dto.setDbName("db");
@@ -633,7 +634,8 @@ public class DbDrcBuildServiceImplTest extends CommonDataInit {
         dto.setRegion("region");
 
         Mockito.when(drcAutoBuildService.getRegionOptions(Mockito.any())).thenReturn(List.of("region"));
-        dbDrcBuildService.autoCreateMq(dto);
+        MqMetaCreateResultView  resultView = dbDrcBuildService.autoCreateMq(dto);
+        Assert.assertTrue(resultView.isFail());
     }
 
     @Test(expected = ConsoleException.class)

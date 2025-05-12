@@ -174,4 +174,10 @@ public class DefaultConsoleConfigTest {
         Map<String, String> drcCkafkaRegionMapping = config.getDrcCkafkaRegionMapping();
         Assert.assertEquals(0,drcCkafkaRegionMapping.size());
     }
+
+    @Test
+    public void testGetAutoCreateSameTableCheckSwitch() {
+        boolean autoCreateSameTableCheckSwitch = config.getAutoCreateSameTableCheckSwitch();
+        Assert.assertFalse(autoCreateSameTableCheckSwitch);
+    }
 }
