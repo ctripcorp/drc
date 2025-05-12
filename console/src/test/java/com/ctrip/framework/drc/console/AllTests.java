@@ -71,6 +71,7 @@ import com.ctrip.framework.drc.console.vo.api.DbTableDrcRegionInfoTest;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDtoTest;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultViewTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.AfterClass;
@@ -183,6 +184,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterMetaControllerTest.class,
         CentralServiceControllerTest.class,
         DbReplicationControllerTest.class,
+        DbDrcBuildControllerV2Test.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,
@@ -262,6 +264,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaReplicationPreviewDtoTest.class,
         DbMqConfigInfoDtoTest.class,
         DbTableDrcRegionInfoTest.class,
+        MqMetaCreateResultViewTest.class,
 
         //DAO
         BaseDalTableDaoTest.class,

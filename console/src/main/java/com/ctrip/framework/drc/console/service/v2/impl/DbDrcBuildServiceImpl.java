@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.response.AutoCreateMqApiRes;
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
@@ -17,11 +19,8 @@ import com.ctrip.framework.drc.console.dao.v3.MessengerGroupTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.dto.v3.*;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
-import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
-import com.ctrip.framework.drc.console.enums.DlockEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
@@ -1291,15 +1290,16 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
 
     @Override
-    public MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto createDto) throws Exception {
-        autoConfigLogger.info("[[tag=autoconfig]] start autoCreateMq: {}", createDto.toString());
-        Transaction transaction = Cat.newTransaction("DRC.autocreate.mq", createDto.getDbName());
-        transaction.addProperty("createDto", createDto.toString());
+    @PossibleRemote(path = "/api/drc/v2/autoconfig/autoCreateMqForward", forwardType = ForwardTypeEnum.TO_META_DB, responseType = AutoCreateMqApiRes.class, httpType = HttpRequestEnum.POST)
+    public MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto requestBody) {
+        autoConfigLogger.info("[[tag=autoconfig]] start autoCreateMq: {}", requestBody.toString());
+        Transaction transaction = Cat.newTransaction("DRC.autocreate.mq", requestBody.getDbName());
+        transaction.addProperty("createDto", requestBody.toString());
         try {
-            createDto.check();
-            checkKafkaTopic(createDto);
+            requestBody.check();
+            checkKafkaTopic(requestBody);
 
-            MqAutoCreateDto dto = createDto.deriveMqAutoCreateDto();
+            MqAutoCreateDto dto = requestBody.deriveMqAutoCreateDto();
             checkRegionAndCreateMhaDbReplicationForMq(dto);
             MqMetaCreateResultView view = createMqConfigAndSwitchMessenger(dto);
             autoConfigLogger.info("[[tag=autoconfig]] autoCreateMq success: {}", view);
@@ -1311,8 +1311,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 try {
                     String duplicateTable = duplicateMessage.split("\\|")[1].split(":")[0].split("\\.")[1];
                     String duplicateTopic = duplicateMessage.split("\\|")[1].split(":")[1];
-                    if (createDto.getTable().equals(duplicateTable) && createDto.getTopic().equals(duplicateTopic)) {
-                        MqMetaCreateResultView view = createDto.deriveMqAutoCreateDto().deriveMqMetaCreateResultView();
+                    if (requestBody.getTable().equals(duplicateTable) && requestBody.getTopic().equals(duplicateTopic)) {
+                        MqMetaCreateResultView view = requestBody.deriveMqAutoCreateDto().deriveMqMetaCreateResultView();
                         view.setContainTables(0);
                         autoConfigLogger.info("[[tag=autoconfig]] autoCreateMq success: {}", view);
                         return view;
@@ -1323,7 +1323,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             }
 
             transaction.setStatus(e);
-            throw e;
+            return new MqMetaCreateResultView(e.getMessage());
+
         } finally {
             transaction.complete();
         }
@@ -1371,13 +1372,14 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
             throw ConsoleExceptionUtils.message("no tables found in db or other error in finding tables");
         }
 
-        dto.setNotPermitSameTableMqConfig(true);
+        if (consoleConfig.getAutoCreateSameTableCheckSwitch()) {
+            dto.setNotPermitSameTableMqConfig(true);
+        }
 
         List<String> mhaNames = dbMqConfigInfoDto.getMhaMqDtos().stream().map(MhaMqDto::getSrcMha).map(MhaDto::getName).toList();
 
         try {
             dLockService.tryLocks(mhaNames, DlockEnum.AUTOCONFIG);
-            Thread.sleep(5000);
             this.createDbMqReplication(dto);
             List<MessengerSwitchReqDto> switchReqDtos = dbMqConfigInfoDto.getMhaMqDtos().stream()
                     .map(mhaMqDto -> {

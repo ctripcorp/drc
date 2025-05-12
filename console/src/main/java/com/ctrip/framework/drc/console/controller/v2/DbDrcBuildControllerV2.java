@@ -411,14 +411,28 @@ public class DbDrcBuildControllerV2 {
     public ApiResult<MqMetaCreateResultView> autoCreateMq(@RequestBody MqAutoCreateRequestDto createDto) {
         try {
             MqMetaCreateResultView resultMessage = dbDrcBuildService.autoCreateMq(createDto);
+            if (resultMessage.isFail()) {
+                logger.error("[autoCreateMq] createMqBinlogMessage, req: {}, err: {}", createDto, resultMessage.getErrMsg());
+                return ApiResult.getFailInstance(null, resultMessage.getErrMsg());
+            }
             if (resultMessage.getContainTables() == 0) {
                 return ApiResult.getSuccessInstance(resultMessage, "this config already existed in DRC");
             }
             return ApiResult.getSuccessInstance(resultMessage);
         } catch (Throwable e) {
-            logger.error("[meta] createMqBinlogMessage, req {}", createDto, e);
+            logger.error("[autoCreateMq] unlikely createMqBinlogMessage, req {}", createDto, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    /**
+     * for sgp/fra forward back
+     */
+    @PostMapping("autoCreateMqForward")
+    public ApiResult<MqMetaCreateResultView> autoCreateMqForward(@RequestBody MqAutoCreateRequestDto createDto) {
+        MqMetaCreateResultView resultMessage = dbDrcBuildService.autoCreateMq(createDto);
+        return ApiResult.getSuccessInstance(resultMessage);
+    }
+
 
 }
