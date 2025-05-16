@@ -57,6 +57,7 @@ currdir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$currdir"
 
 # 批量安装所有组件（自动识别类型）
+install_artifacts "org/apache/maven/plugins/maven-enforcer-plugin"
 install_artifacts "com/ctrip"
 install_artifacts "ctripgroup"
 install_artifacts "qunar"
