@@ -10,6 +10,9 @@ public enum MigrationStatusEnum {
     SUCCESS("Success"),
     FAIL("Fail"),
     CANCELED("Canceled"),
+    STARTING_SHA_TO_OVERSEA("StartingShaToOversea"),
+    STARTING_OVERSEA_TO_SHA("StartingOverseaToSha"),
+    READY_TO_DISCONNECT_DB_SYNC("ReadyToDisconnectDbSync"),
     ;
     private String status;
     

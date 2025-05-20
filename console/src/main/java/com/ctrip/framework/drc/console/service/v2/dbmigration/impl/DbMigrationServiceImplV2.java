@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.mysql.DrcDbMonitorTableCreateReq;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
@@ -257,7 +258,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public boolean preStartDbMigrationTask(Long taskId) throws SQLException {
+    public boolean preStartDbMigrationTask(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
         String oldMha = migrationTaskTbl.getOldMha();
         String newMha = migrationTaskTbl.getNewMha();
@@ -276,7 +277,9 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
         // check mha config newMhaConfig should equal newMhaTbl
         cacheMetaService.refreshMetaCache();
-        checkMhaConfig(oldMha,newMha,Sets.newHashSet());
+
+        Set<String> mhaConfigCheckIgnore = migrationTypeEnum.isCommon() ? Sets.newHashSet() : Sets.newHashSet("binlogTransactionDependencyHistorySize", "drcTables");
+        checkMhaConfig(oldMha, newMha, mhaConfigCheckIgnore);
 
         ReplicationInfo replicationInfoInOldMha = getMigrateDbReplicationInfoInOldMha(migrateDbTbls, oldMhaTbl);
         List<DbTbl> migrateDbTblsDrcRelated  = replicationInfoInOldMha.migrateDbTblsDrcRelated;
@@ -344,10 +347,16 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public boolean startDbMigrationTask(Long taskId) throws SQLException {
+    public boolean startDbMigrationTask(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
-        if (!MigrationStatusEnum.PRE_STARTED.getStatus().equals(migrationTaskTbl.getStatus())) { // migrationTaskManager
-            throw ConsoleExceptionUtils.message("task status is not exStarted, can not start! taskId: " + taskId);
+        if (migrationTypeEnum != MigrationTypeEnum.COMMON_START &&
+                migrationTypeEnum != MigrationTypeEnum.OVERSEA_START_SHA_TO_OVERSEA &&
+                migrationTypeEnum != MigrationTypeEnum.OVERSEA_START_OVERSEA_TO_SHA) {
+            throw ConsoleExceptionUtils.message("task type is not correct for" + migrationTypeEnum.name() + ", can not start! taskId: " + taskId);
+        }
+
+        if (!migrationTypeEnum.getCurValidStatus().getStatus().equals(migrationTaskTbl.getStatus())) {
+            throw ConsoleExceptionUtils.message("task status is not " + migrationTypeEnum.getCurValidStatus().getStatus() + ", can not start! taskId: " + taskId);
         }
 
         MhaTblV2 oldMhaTbl = mhaTblV2Dao.queryByMhaName(migrationTaskTbl.getOldMha());
@@ -398,7 +407,15 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
                     logger.info("[[migration=start]] task:{} autoConfigAppliers, MhaDbMappingInSrc:{}->MhaDbMappingInDest:{}, gtidInit:{}", taskId, srcMappingId, newMapping.getId(), gtidInit);
                     MhaDbMappingTbl srcMapping = mhaDbMappingTblDao.queryById(srcMappingId);
                     MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryById(srcMapping.getMhaId());
-                    dbDrcBuildService.autoConfigDbAppliers(newMhaDbReplication, aGroupV3, srcMhaTbl, newMhaTbl, gtidInit, oldConcurrency, false);
+                    switch (migrationTypeEnum) {
+                        case COMMON_START:
+                            dbDrcBuildService.autoConfigDbAppliers(newMhaDbReplication, aGroupV3, srcMhaTbl, newMhaTbl, gtidInit, oldConcurrency, false);
+                            break;
+                        case OVERSEA_START_SHA_TO_OVERSEA:
+                            dbDrcBuildService.autoConfigDbAppliersWithRealTimeGtid(newMhaDbReplication, aGroupV3, srcMhaTbl, newMhaTbl, oldConcurrency);
+                            break;
+
+                    }
                 }
             }
         }
@@ -429,7 +446,12 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
                     Integer oldConcurrency = aGroupV3Old.getConcurrency();
                     MhaDbMappingTbl destMapping = mhaDbMappingTblDao.queryById(destMappingId);
                     MhaTblV2 destMhaTbl = mhaTblV2Dao.queryById(destMapping.getMhaId());
-                    dbDrcBuildService.autoConfigDbAppliersWithRealTimeGtid(newMhaDbReplication, aGroupV3, newMhaTbl, destMhaTbl, oldConcurrency);
+                    switch (migrationTypeEnum) {
+                        case COMMON_START:
+                        case OVERSEA_START_OVERSEA_TO_SHA:
+                            dbDrcBuildService.autoConfigDbAppliersWithRealTimeGtid(newMhaDbReplication, aGroupV3, newMhaTbl, destMhaTbl, oldConcurrency);
+                            break;
+                    }
                 }
             }
         }
@@ -439,7 +461,12 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(oldMhaTbl.getId(), MqType.qmq, BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
             if (!CollectionUtils.isEmpty(messengerTbls)) {
-                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl, MqType.qmq,false);
+                switch (migrationTypeEnum) {
+                    case COMMON_START:
+                    case OVERSEA_START_SHA_TO_OVERSEA:
+                        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl, MqType.qmq,false);
+                        break;
+                }
             }
         }
         // start kafka messengers
@@ -447,22 +474,37 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(oldMhaTbl.getId(), MqType.kafka, BooleanEnum.FALSE.getCode());
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
             if (!CollectionUtils.isEmpty(messengerTbls)) {
-                drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl, MqType.kafka,false);
+                switch (migrationTypeEnum) {
+                    case COMMON_START:
+                    case OVERSEA_START_SHA_TO_OVERSEA:
+                        drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(newMhaTbl, MqType.kafka,false);
+                        break;
+                }
             }
         }
 
         try {
             // push to cm
             List<Long> mhaIdsStartRelated = Lists.newArrayList(newMhaTbl.getId());
-            mhaIdsStartRelated.addAll(otherMhaTblsInSrc.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
-            mhaIdsStartRelated.addAll(otherMhaTblsInDest.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
+            switch (migrationTypeEnum) {
+                case COMMON_START:
+                    mhaIdsStartRelated.addAll(otherMhaTblsInSrc.stream().map(MhaTblV2::getId).toList());
+                    mhaIdsStartRelated.addAll(otherMhaTblsInDest.stream().map(MhaTblV2::getId).toList());
+                    break;
+                case OVERSEA_START_SHA_TO_OVERSEA:
+                    mhaIdsStartRelated.addAll(otherMhaTblsInSrc.stream().map(MhaTblV2::getId).toList());
+                    break;
+                case OVERSEA_START_OVERSEA_TO_SHA:
+                    mhaIdsStartRelated.addAll(otherMhaTblsInDest.stream().map(MhaTblV2::getId).toList());
+                    break;
+            }
             notifyCmService.pushConfigToCM(mhaIdsStartRelated,migrationTaskTbl.getOperator(),HttpRequestEnum.PUT);
         } catch (Exception e) {
             logger.warn("[[migration=starting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId);
         }
 
         // update task status
-        migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
+        migrationTaskTbl.setStatus(migrationTypeEnum.getSuccessStatus().getStatus());
         migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,"Start task!",migrationTaskTbl.getOperator(),LocalDateTime.now()));
         migrationTaskTblDao.update(migrationTaskTbl);
         logger.info("[[migration=starting,newMha={}]] task:{} starting!", newMhaTbl.getMhaName(),taskId);
@@ -1080,8 +1122,11 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             String currentStatus = migrationTaskTbl.getStatus();
             List<String> statusCanRollback = Lists.newArrayList(
                     MigrationStatusEnum.STARTING.getStatus(),
+                    MigrationStatusEnum.STARTING_SHA_TO_OVERSEA.getStatus(),
+                    MigrationStatusEnum.STARTING_OVERSEA_TO_SHA.getStatus(),
                     MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(),
-                    MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus()
+                    MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus(),
+                    MigrationStatusEnum.READY_TO_DISCONNECT_DB_SYNC.getStatus()
             );
             List<String> statusCanCommit = Lists.newArrayList(
                     MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus()
@@ -1453,7 +1498,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public Pair<String, String> getAndUpdateTaskStatus(Long taskId,boolean careNewMha) {
+    public Pair<String, String> getAndUpdateTaskStatus(Long taskId,boolean careNewMha, MigrationTypeEnum migrationTypeEnum) {
         try {
             MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
             if (migrationTaskTbl == null) {
@@ -1464,15 +1509,19 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             String newMha = migrationTaskTbl.getNewMha();
             if (careNewMha) {
                 // not STARTING or READY_TO_SWITCH_DAL status, return
-                List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+                List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(),
+                        MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(),
+                        MigrationStatusEnum.STARTING_SHA_TO_OVERSEA.getStatus(),
+                        MigrationStatusEnum.STARTING_OVERSEA_TO_SHA.getStatus());
                 if (!statusList.contains(migrationTaskTbl.getStatus())) {
                     return Pair.of(null, migrationTaskTbl.getStatus());
                 }
-                Pair<String, Boolean> res = this.isRelatedDelaySmallDbGranularity(dbNames,Lists.newArrayList(newMha));
+                Pair<String, Boolean> res = this.isRelatedDelaySmall(dbNames,Lists.newArrayList(newMha), migrationTypeEnum);
                 String message = res.getLeft();
                 Boolean allReady = res.getRight();
                 String currStatus = migrationTaskTbl.getStatus();
-                String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
+                String targetStatus = allReady ? migrationTypeEnum.getSuccessStatus().getStatus() : migrationTypeEnum.getCurValidStatus().getStatus();
+
                 boolean needUpdate = !targetStatus.equals(currStatus);
                 if (needUpdate) {
                     migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,
@@ -1486,7 +1535,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
                 if (!statusList.contains(migrationTaskTbl.getStatus())) {
                     return Pair.of(null, migrationTaskTbl.getStatus());
                 }
-                Pair<String, Boolean> res = this.isRelatedDelaySmallDbGranularity(dbNames,Lists.newArrayList(oldMha));
+                Pair<String, Boolean> res = this.isRelatedDelaySmall(dbNames,Lists.newArrayList(oldMha), migrationTypeEnum);
                 String message = res.getLeft();
                 Boolean allReady = res.getRight();
                 String currStatus = migrationTaskTbl.getStatus();
@@ -1514,10 +1563,18 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
     }
 
 
-    private Pair<String,Boolean> isRelatedDelaySmallDbGranularity(List<String> dbNames, List<String> mhas) {
+    private Pair<String,Boolean> isRelatedDelaySmall(List<String> dbNames, List<String> mhas, MigrationTypeEnum migrationTypeEnum) {
         try {
             // 1. get mha db replication delay info
             List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNamesAndMhaNames(dbNames, mhas, DB_TO_DB);
+            switch (migrationTypeEnum) {
+                case OVERSEA_CHECK_SHA_TO_OVERSEA:
+                    mhaDbReplicationDtos = mhaDbReplicationDtos.stream().filter(e -> mhas.contains(e.getDst().getMhaName())).toList();
+                    break;
+                case OVERSEA_CHECK_OVERSEA_TO_SHA:
+                    mhaDbReplicationDtos = mhaDbReplicationDtos.stream().filter(e -> mhas.contains(e.getSrc().getMhaName())).toList();
+                    break;
+            }
             mhaDbReplicationDtos = mhaDbReplicationDtos.stream().filter(e -> Boolean.TRUE.equals(e.getDrcStatus())).collect(Collectors.toList());
             List<Long> all = mhaDbReplicationDtos.stream().map(MhaDbReplicationDto::getId).collect(Collectors.toList());
             List<MhaDbDelayInfoDto> mhaDbReplicationDelays = mhaDbReplicationService.getReplicationDelays(all);
