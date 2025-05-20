@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -226,15 +227,40 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
-    @GetMapping("getDbMqConfig")
+    @GetMapping("getDbDrcConfigs")
     @SuppressWarnings("unchecked")
-    public ApiResult<DbMqConfigInfoDto> getDbMQConfig(DrcAutoBuildReq req) {
-        logger.info("[meta] getDbMQConfig, req: {}", req);
+    public ApiResult<List<DbDrcConfigInfoDto>> getDbDrcConfigs(DrcAutoBuildReq req) {
+        logger.info("[meta] getDbDrcConfigs, req: {}", req);
         try {
-            DbMqConfigInfoDto dbMqConfig = dbDrcBuildService.getDbMqConfig(req.getDbName(), req.getSrcRegionName(), req.getMqTypeEnum());
-            return ApiResult.getSuccessInstance(dbMqConfig);
+            List<String> dbNames = getShardDatabaseInfoDto(req).getDbNames();
+            List<DbDrcConfigInfoDto> dbDrcConfigs = dbDrcBuildService.getDbDrcConfigs(dbNames, req.getSrcRegionName(), req.getDstRegionName());
+            return ApiResult.getSuccessInstance(dbDrcConfigs);
         } catch (Throwable e) {
-            logger.error("[meta] getDbMQConfig, req {}", req, e);
+            logger.error("[meta] getDbDrcConfigs, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    private ShardDatabaseInfoDto getShardDatabaseInfoDto(DrcAutoBuildReq req) {
+        if (req.getModeEnum() == DrcAutoBuildReq.BuildMode.MULTI_DB_NAME) {
+            List<String> dbNames = Arrays.stream(req.getDbName().split(",")).toList();
+            return new ShardDatabaseInfoDto(dbDrcBuildService.getDalclusterName(dbNames.getFirst()), dbNames);
+        } else {
+            return dbDrcBuildService.getDbNamesWithinSameDalCluster(req.getDbName());
+        }
+    }
+
+    @GetMapping("getDbMqConfigs")
+    @SuppressWarnings("unchecked")
+    public ApiResult<DbMqConfigInfoDto> getDbMQConfigs(DrcAutoBuildReq req) {
+        logger.info("[meta] getDbMQConfigs, req: {}", req);
+        try {
+            ShardDatabaseInfoDto shardDatabaseInfoDto = getShardDatabaseInfoDto(req);
+            List<DbMqConfigInfoDto> dbMqConfigs = dbDrcBuildService.getDbMqConfigs(shardDatabaseInfoDto.getDbNames(), req.getSrcRegionName(), req.getMqTypeEnum());
+            dbMqConfigs.forEach(e -> e.setDalclusterName(shardDatabaseInfoDto.getDalClusterName()));
+            return ApiResult.getSuccessInstance(dbMqConfigs);
+        } catch (Throwable e) {
+            logger.error("[meta] getDbMQConfigs, req {}", req, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

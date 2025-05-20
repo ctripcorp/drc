@@ -151,8 +151,14 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             futures.add(future);
         }
         try {
-            for (ListenableFuture<List<TableCheckVo>> future : futures) {
-                matchTable.addAll(future.get(60, TimeUnit.SECONDS));
+            for (int i = 0; i < futures.size(); i++) {
+                ListenableFuture<List<TableCheckVo>> future = futures.get(i);
+                List<TableCheckVo> tableCheckVos = future.get(60, TimeUnit.SECONDS);
+                if (tableCheckVos == null) {
+                    DrcAutoBuildParam drcAutoBuildParam = drcBuildParam.get(i);
+                    throw ConsoleExceptionUtils.message(drcAutoBuildParam.getSrcMhaName() + " req fail");
+                }
+                matchTable.addAll(tableCheckVos);
             }
             return matchTable;
         } catch (Throwable e) {

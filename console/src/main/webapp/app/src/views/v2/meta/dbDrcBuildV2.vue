@@ -37,6 +37,9 @@
                              :exist-replication-region-options="meta.existReplicationRegionOptions"></mha-preview>
               </Modal>
             </FormItem>
+            <FormItem label="DB 组" :required=true v-if="isShardedDb">
+              <db-shard-selector  :all-drc-configs="allDrcConfigs" @change="afterSelectDbs"></db-shard-selector>
+            </FormItem>
             <Divider orientation="left">同步表</Divider>
             <Card style="width:100%">
               <tables :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
@@ -59,9 +62,10 @@
 import tables from '@/components/v2/dbDrcBuild/tables.vue'
 import MhaReplicationPanel from '@/components/v2/dbDrcBuild/mhaReplicationPanel.vue'
 import MhaPreview from '@/components/v2/dbDrcBuild/mhaPreview.vue'
+import DbShardSelector from '@/components/v2/dbDrcBuild/dbShardSelector.vue'
 
 export default {
-  components: { MhaPreview, MhaReplicationPanel, tables },
+  components: { DbShardSelector, MhaPreview, MhaReplicationPanel, tables },
   data () {
     return {
       createModal: {
@@ -70,10 +74,12 @@ export default {
       dataLoading: false,
       configDataLoading: false,
       selectedExistReplication: this.$route.query.srcRegionName + ' -> ' + this.$route.query.dstRegionName,
+      selectedDbs: '',
       formItem: {
         srcRegionName: null,
         dstRegionName: null
       },
+      allDrcConfigs: [],
       drcConfig: {},
       meta: {
         dbName: this.$route.query.dbName,
@@ -89,7 +95,13 @@ export default {
   methods: {
     getParams: function () {
       const param = {}
-      param.dbName = this.meta.dbName
+      if (this.selectedDbs) {
+        param.dbName = this.selectedDbs
+        param.mode = 2
+      } else {
+        param.dbName = this.meta.dbName
+        param.mode = 0
+      }
       param.srcRegionName = this.meta.srcRegionName
       param.dstRegionName = this.meta.dstRegionName
       return param
@@ -121,14 +133,25 @@ export default {
         })
     },
     async selectDb () {
+      this.clearDrcConfigs()
       await this.getExistReplicationRegionOptions()
       await this.getDrcConfig()
+    },
+    clearDrcConfigs () {
+      this.drcConfig = {}
+      this.allDrcConfigs = []
+    },
+    setDrcConfigs (allConfigs) {
+      this.drcConfig = allConfigs[0] ? allConfigs[0] : {}
+      if (this.allDrcConfigs.length === 0 || allConfigs.length > 1) {
+        this.allDrcConfigs = allConfigs
+      }
     },
     async getDrcConfig () {
       this.createModal.open = false
       this.resetPath()
+      this.setDrcConfigs([])
       const params = this.getParams()
-      this.drcConfig = {}
       if (!params.dbName) {
         this.$Message.warning('请先填写数据库')
         return
@@ -140,9 +163,10 @@ export default {
         return
       }
       this.configDataLoading = true
-      await this.axios.get('/api/drc/v2/autoconfig/getDbDrcConfig', {
+      await this.axios.get('/api/drc/v2/autoconfig/getDbDrcConfigs', {
         params: {
           dbName: params.dbName,
+          mode: params.mode,
           srcRegionName: params.srcRegionName,
           dstRegionName: params.dstRegionName
         }
@@ -151,7 +175,7 @@ export default {
           const data = response.data.data
           const success = data && response.data.status === 0
           if (success) {
-            this.drcConfig = data
+            this.setDrcConfigs(data)
             this.$Message.success('查询DRC配置成功 ')
           } else {
             this.$Message.warning('查询失败：' + response.data.message)
@@ -169,6 +193,12 @@ export default {
       const ret = this.selectedExistReplication.split('->')
       this.meta.srcRegionName = ret[0].trim()
       this.meta.dstRegionName = ret[1].trim()
+      this.clearDrcConfigs()
+      this.getDrcConfig()
+    },
+    async afterSelectDbs (value) {
+      console.log('afterSelectDbs ', value)
+      this.selectedDbs = value
       this.getDrcConfig()
     },
     async getExistReplicationRegionOptions () {
@@ -232,7 +262,21 @@ export default {
       return result
     }
   },
-  computed: {},
+  computed: {
+    isShardedDb () {
+      const data = this.allDrcConfigs
+      if (!data || !(data instanceof Array) || data.length <= 0) {
+        return false
+      }
+      if (data.length > 1) {
+        return true
+      }
+      if (data[0].dbNames && data[0].dbNames.length > 1) {
+        return true
+      }
+      return false
+    }
+  },
   created () {
     // this.getRegions()
     this.axios.get('/api/drc/v2/permission/meta/mhaReplication/modify').then((response) => {

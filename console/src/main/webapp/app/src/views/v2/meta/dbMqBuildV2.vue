@@ -46,6 +46,9 @@
                              :exist-replication-region-options="meta.existReplicationRegionOptions"></mha-preview>
               </Modal>
             </FormItem>
+            <FormItem label="DB 组" :required=true v-if="isShardedDb">
+              <db-shard-selector  :all-drc-configs="allDrcConfigs" @change="afterSelectDbs"></db-shard-selector>
+            </FormItem>
             <Divider orientation="left">消息投递配置</Divider>
             <Card style="width:100%">
               <mq-tables :dalcluster-name="drcConfig.dalclusterName" :table-data="drcConfig.logicTableSummaryDtos" :data-loading="configDataLoading"
@@ -68,9 +71,10 @@
 import MhaPreview from '@/components/v2/dbDrcBuild/mhaPreview.vue'
 import MqTables from '@/components/v2/dbDrcBuild/mqTables.vue'
 import MhaMqPanel from '@/components/v2/dbDrcBuild/mhaMqPanel.vue'
+import DbShardSelector from '@/components/v2/dbDrcBuild/dbShardSelector.vue'
 
 export default {
-  components: { MhaMqPanel, MqTables, MhaPreview },
+  components: { DbShardSelector, MhaMqPanel, MqTables, MhaPreview },
   data () {
     return {
       createModal: {
@@ -80,10 +84,12 @@ export default {
       dataLoading: false,
       configDataLoading: false,
       selectedExistReplication: this.$route.query.srcRegionName,
+      selectedDbs: '',
       formItem: {
         srcRegionName: null,
         dstRegionName: null
       },
+      allDrcConfigs: [],
       drcConfig: {},
       meta: {
         mqType: this.$route.query.mqType,
@@ -101,9 +107,14 @@ export default {
   methods: {
     getParams: function () {
       const param = {}
-      param.dbName = this.meta.dbName
+      if (this.selectedDbs) {
+        param.dbName = this.selectedDbs
+        param.mode = 2
+      } else {
+        param.dbName = this.meta.dbName
+        param.mode = 0
+      }
       param.srcRegionName = this.meta.srcRegionName
-      param.dstRegionName = this.meta.dstRegionName
       param.mqType = this.meta.mqType
       return param
     },
@@ -134,14 +145,25 @@ export default {
         })
     },
     async selectDb () {
+      this.clearDrcConfigs()
       await this.getExistReplicationRegionOptions()
       await this.getDrcConfig()
+    },
+    clearDrcConfigs () {
+      this.drcConfig = {}
+      this.allDrcConfigs = []
+    },
+    setDrcConfigs (allConfigs) {
+      this.drcConfig = allConfigs[0] ? allConfigs[0] : {}
+      if (this.allDrcConfigs.length === 0 || allConfigs.length > 1) {
+        this.allDrcConfigs = allConfigs
+      }
     },
     async getDrcConfig () {
       this.createModal.open = false
       this.resetPath()
+      this.setDrcConfigs([])
       const params = this.getParams()
-      this.drcConfig = {}
       if (!params.dbName) {
         this.$Message.warning('请先填写数据库')
         return
@@ -150,10 +172,11 @@ export default {
         return
       }
       this.configDataLoading = true
-      await this.axios.get('/api/drc/v2/autoconfig/getDbMqConfig', {
+      await this.axios.get('/api/drc/v2/autoconfig/getDbMqConfigs', {
         params: {
           dbName: params.dbName,
           mqType: params.mqType,
+          mode: params.mode,
           srcRegionName: params.srcRegionName
         }
       })
@@ -162,7 +185,7 @@ export default {
           const success = data && response.data.status === 0
           if (success) {
             console.log('getDrcConfig', data)
-            this.drcConfig = data
+            this.setDrcConfigs(data)
             this.$Message.success('查询DRC配置成功 ')
           } else {
             this.$Message.warning('查询失败：' + response.data.message)
@@ -178,6 +201,12 @@ export default {
     async afterSelectExistReplication () {
       console.log('afterSelectExistReplication ', this.selectedExistReplication)
       this.meta.srcRegionName = this.selectedExistReplication.trim()
+      this.clearDrcConfigs()
+      this.getDrcConfig()
+    },
+    async afterSelectDbs (value) {
+      console.log('afterSelectDbs ', value)
+      this.selectedDbs = value
       this.getDrcConfig()
     },
     async getExistReplicationRegionOptions () {
@@ -251,6 +280,19 @@ export default {
         return 1
       }
       return type
+    },
+    isShardedDb () {
+      const data = this.allDrcConfigs
+      if (!data || !(data instanceof Array) || data.length <= 0) {
+        return false
+      }
+      if (data.length > 1) {
+        return true
+      }
+      if (data[0].dbNames && data[0].dbNames.length > 1) {
+        return true
+      }
+      return false
     }
   },
   created () {
