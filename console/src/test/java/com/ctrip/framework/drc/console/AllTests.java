@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnumTest;
 import com.ctrip.framework.drc.console.monitor.*;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.SqlOperatorTest;
@@ -185,6 +186,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         CentralServiceControllerTest.class,
         DbReplicationControllerTest.class,
         DbDrcBuildControllerV2Test.class,
+        DbMigrationControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,
@@ -274,6 +276,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ApiContainerTest.class,
         NotifyCmServiceImplTest.class,
         DlockServiceImplTest.class,
+
+        MigrationTypeEnumTest.class,
 })
 public class AllTests {
 

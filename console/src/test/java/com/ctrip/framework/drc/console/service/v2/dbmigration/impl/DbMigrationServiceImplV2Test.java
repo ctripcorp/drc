@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.NotifyCmService;
@@ -330,7 +331,7 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(mysqlServiceV2.createDrcMonitorDbTable(Mockito.any())).thenReturn(true);
 
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
-        Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
+        Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART));
         Mockito.verify(mhaDbMappingService, Mockito.times(1)).copyAndInitMhaDbMappings(Mockito.any(MhaTblV2.class), Mockito.anyList());
         Mockito.verify(mhaDbReplicationTblDao, Mockito.times(2)).batchInsert(Mockito.anyList());
         Mockito.verify(applierGroupTblV3Dao, Mockito.times(2)).insertOrReCover(Mockito.anyLong(), Mockito.isNull());
@@ -347,7 +348,7 @@ public class DbMigrationServiceImplV2Test {
 
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
-            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId());
+            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART);
         } catch (ConsoleException e) {
             Assert.assertEquals("task status is not INIT, can not exStart! taskId: 1",e.getMessage());
         }
@@ -355,7 +356,7 @@ public class DbMigrationServiceImplV2Test {
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
             mockConfigNotEqual();
-            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId());
+            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART);
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("MhaConfigs not equals!"));
         }
@@ -367,7 +368,7 @@ public class DbMigrationServiceImplV2Test {
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         Mockito.when(mysqlServiceV2.createDrcMonitorDbTable(Mockito.any())).thenReturn(false);
         try {
-            Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
+            Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART));
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("Can not create DRC Db Monitor Table"));
         }
@@ -397,7 +398,7 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.eq(mha1.getId()), Mockito.any(MqType.class), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
         Mockito.when(messengerTblDao.queryByGroupId(mha1MessengerGroup.getId())).thenReturn(Lists.newArrayList(new MessengerTbl()));
 
-        Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
+        Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_START));
 
         Mockito.verify(dbDrcBuildService, Mockito.times(1)).autoConfigDbAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(), Mockito.any(),Mockito.anyBoolean());
         Mockito.verify(dbDrcBuildService, Mockito.times(1)).autoConfigDbAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());

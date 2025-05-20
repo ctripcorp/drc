@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaApplierDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
@@ -88,7 +89,7 @@ public class DbMigrationController {
             success = "preStartDbMigrationTask with taskId:{#taskId}")
     public ApiResult preStartDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
-            boolean preStartResult = dbMigrationServiceV2.preStartDbMigrationTask(taskId);
+            boolean preStartResult = dbMigrationServiceV2.preStartDbMigrationTask(taskId, MigrationTypeEnum.COMMON_PRESTART);
             if (preStartResult) {
                 return ApiResult.getInstance(null,0,"exStartDbMigrationTask: " + taskId + " success!");
             } else {
@@ -131,7 +132,7 @@ public class DbMigrationController {
             success = "startDbMigrationTask with taskId:{#taskId}")
     public ApiResult startDbMigrationTask (@RequestParam(name = "taskId") Long taskId) {
         try {
-            boolean startResult = dbMigrationServiceV2.startDbMigrationTask(taskId);
+            boolean startResult = dbMigrationServiceV2.startDbMigrationTask(taskId, MigrationTypeEnum.COMMON_START);
             if (startResult) {
                 return ApiResult.getInstance(null,+
                         0,"startDbMigrationTask " + taskId + " success!");
@@ -153,7 +154,8 @@ public class DbMigrationController {
     public ApiResult<String> refreshAndGetTaskStatus(@RequestParam(name = "taskId") Long taskId, @RequestParam boolean careNewMha) {
         try {
             Pair<String, String> statusAndTips;
-            statusAndTips = dbMigrationServiceV2.getAndUpdateTaskStatus(taskId,careNewMha);
+            MigrationTypeEnum typeEnum = careNewMha ?  MigrationTypeEnum.COMMON_CHECK_NEW_MHA : MigrationTypeEnum.COMMON_CHECK_OLD_MHA;
+            statusAndTips = dbMigrationServiceV2.getAndUpdateTaskStatus(taskId,careNewMha, typeEnum);
             String tip = statusAndTips.getLeft();
             String status = statusAndTips.getRight();
             if (StringUtils.isEmpty(status)) {
@@ -286,4 +288,182 @@ public class DbMigrationController {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
+
+    /**
+     * 迁移sgp db步骤：
+     * 1.新增sha->new sgp DBA断临时同步
+     * 2.新增new sgp -> sha
+     * 3.删除sha<->old sgp DBA刷数据
+     * 全部都是实时位点
+     */
+
+    @PutMapping("oversea/checkAndCreateTask")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.ADD, operator = "DBA",
+            success = "overseaDbMigrationCheckAndInit with DbMigrationParam:{#dbMigrationParam.toString()}")
+    public ApiResult overseaDbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
+        try {
+            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            if (tipsAndTaskId.getRight() == null) {
+                return ApiResult.getInstance(null, 2, "no dbDrcRelated");
+            } else {
+                return ApiResult.getInstance(tipsAndTaskId.getRight(), 0, tipsAndTaskId.getLeft());
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in overseaDbMigrationCheckAndInit", e);
+            return ApiResult.getInstance(null, 1, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("overseaDbMigrationCheckAndInit forbidden", e);
+            return ApiResult.getInstance(null, 1, e.getMessage());
+        }
+    }
+
+    @PostMapping("oversea/preStart")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE, operator = "DBA",
+            success = "preStartOverseaDbMigrationTask with taskId:{#taskId}")
+    public ApiResult preStartOverseaDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            boolean preStartResult = dbMigrationServiceV2.preStartDbMigrationTask(taskId, MigrationTypeEnum.OVERSEA_PRESTART);
+            if (preStartResult) {
+                return ApiResult.getInstance(null, 0, "exStartDbMigrationTask: " + taskId + " success!");
+            } else {
+                return ApiResult.getInstance(null, 1, "exStartDbMigrationTask: " + taskId + " fail!");
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in exStartOverseaDbMigrationTask", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("exStartOverseaDbMigrationTask forbidden", e);
+            return ApiResult.getInstance(null, 1, e.getMessage());
+        }
+    }
+
+    @PostMapping("oversea/start/shaToOversea")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE, operator = "DBA",
+            success = "startShaToOversea with taskId:{#taskId}")
+    public ApiResult startShaToOversea(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            boolean startResult = dbMigrationServiceV2.startDbMigrationTask(taskId, MigrationTypeEnum.OVERSEA_START_SHA_TO_OVERSEA);
+            if (startResult) {
+                return ApiResult.getInstance(null, +
+                        0, "startShaToOversea " + taskId + " success!");
+            } else {
+                return ApiResult.getInstance(null, 1, "startDbMigrationTask " + taskId + " fail!");
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in startShaToOversea", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("startShaToOversea forbidden", e);
+            return ApiResult.getInstance(null, 1, e.getMessage());
+        }
+    }
+
+    @PostMapping("oversea/start/overseaToSha")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE, operator = "DBA",
+            success = "startOverseaToSha with taskId:{#taskId}")
+    public ApiResult startOverseaToSha(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            boolean startResult = dbMigrationServiceV2.startDbMigrationTask(taskId, MigrationTypeEnum.OVERSEA_START_OVERSEA_TO_SHA);
+            if (startResult) {
+                return ApiResult.getInstance(null, +
+                        0, "startOverseaToSha " + taskId + " success!");
+            } else {
+                return ApiResult.getInstance(null, 1, "startDbMigrationTask " + taskId + " fail!");
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in startOverseaToSha", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("startOverseaToSha forbidden", e);
+            return ApiResult.getInstance(null, 1, e.getMessage());
+        }
+    }
+
+    //查询sha -> 新海外集群的同步延迟
+    @GetMapping("oversea/shaToOverseaStatus")
+    @SuppressWarnings("unchecked")
+    public ApiResult<String> refreshAndGetShaToOverseaStatus(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            Pair<String, String> statusAndTips;
+            statusAndTips = dbMigrationServiceV2.getAndUpdateTaskStatus(taskId, true, MigrationTypeEnum.OVERSEA_CHECK_SHA_TO_OVERSEA);
+            String tip = statusAndTips.getLeft();
+            String status = statusAndTips.getRight();
+            if (StringUtils.isEmpty(status)) {
+                return ApiResult.getFailInstance(null, "task not exist: " + taskId);
+            }
+            return StringUtils.isEmpty(tip) ? ApiResult.getSuccessInstance(status) : ApiResult.getSuccessInstance(status, tip);
+        } catch (Throwable e) {
+            logger.error("getShaToOverseaStatus", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    //查询新海外集群 -> sha的同步延迟
+    @GetMapping("oversea/overseaToShaStatus")
+    @SuppressWarnings("unchecked")
+    public ApiResult<String> refreshAndGetOverseaToShaStatus(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            Pair<String, String> statusAndTips;
+            statusAndTips = dbMigrationServiceV2.getAndUpdateTaskStatus(taskId, true, MigrationTypeEnum.OVERSEA_CHECK_OVERSEA_TO_SHA);
+            String tip = statusAndTips.getLeft();
+            String status = statusAndTips.getRight();
+            if (StringUtils.isEmpty(status)) {
+                return ApiResult.getFailInstance(null, "task not exist: " + taskId);
+            }
+            return StringUtils.isEmpty(tip) ? ApiResult.getSuccessInstance(status) : ApiResult.getSuccessInstance(status, tip);
+        } catch (Throwable e) {
+            logger.error("getOverseaToShaStatus", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("oversea/cancel")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE, operator = "DBA",
+            success = "cancelOverseaDbMigrationTask with taskId:{#taskId}")
+    public ApiResult cancelOverseaDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            boolean cancelResult = dbMigrationServiceV2.cancelTask(taskId);
+            if (cancelResult) {
+                return ApiResult.getInstance(null, 0, "cancelOverseaDbMigrationTask: " + taskId + " success!");
+            } else {
+                return ApiResult.getInstance(null, 1, "cancelOverseaDbMigrationTask: " + taskId + " fail!");
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in cancelOverseaDbMigrationTask", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("cancelOverseaDbMigrationTask forbidden", e);
+            return ApiResult.getInstance(null, 1, e.getMessage());
+        } catch (Exception e) {
+            logger.error("cancelOverseaDbMigrationTask unExcepted error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("oversea/commit")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE, operator = "DBA",
+            success = "overseaDbMigrationOfflineOldDrcConfig with taskId:{#taskId}")
+    public ApiResult<String> overseaDbMigrationOfflineOldDrcConfig(@RequestParam long taskId) {
+        try {
+            dbMigrationServiceV2.offlineOldDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
+    }
+
+
+    @PostMapping("oversea/rollback")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.DELETE, operator = "DBA",
+            success = "overseaDbMigrationRollBackNewDrcConfig with taskId:{#taskId}")
+    public ApiResult<String> overseaDbMigrationRollBackNewDrcConfig(@RequestParam long taskId) {
+        try {
+            dbMigrationServiceV2.rollBackNewDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
+    }
+
+
 }
