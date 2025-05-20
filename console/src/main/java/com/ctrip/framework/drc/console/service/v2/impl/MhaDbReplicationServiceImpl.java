@@ -846,9 +846,8 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
         List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByIds(mhaIds);
 
 
-        Map<Long, Boolean> mha = mhaTblV2List.stream()
-                .collect(Collectors.toMap(MhaTblV2::getId, e -> true));
-        Set<Long> mappingId = mhaDbMappingTbls.stream().filter(e -> mha.get(e.getMhaId())).map(MhaDbMappingTbl::getId).collect(Collectors.toSet());
+        Set<Long> validMhaIds = mhaTblV2List.stream().map(MhaTblV2::getId).collect(Collectors.toSet());
+        Set<Long> mappingId = mhaDbMappingTbls.stream().filter(e -> validMhaIds.contains(e.getMhaId())).map(MhaDbMappingTbl::getId).collect(Collectors.toSet());
 
         return dbReplicationTbls.stream().filter(e -> {
             if (ReplicationTypeEnum.getByType(e.getReplicationType()).isMqType()) {

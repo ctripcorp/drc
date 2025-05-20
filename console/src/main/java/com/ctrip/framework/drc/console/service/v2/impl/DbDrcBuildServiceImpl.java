@@ -642,19 +642,45 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     }
 
     private DbDrcConfigInfoDto getDbDrcConfig(List<String> dbNames, String srcRegionName, String dstRegionName) {
+        List<DbDrcConfigInfoDto> dbDrcConfigs = this.getDbDrcConfigs(dbNames, srcRegionName, dstRegionName);
+        if (dbDrcConfigs.size() > 1) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT);
+        }
+        return dbDrcConfigs.getFirst();
+    }
+
+    @Override
+    public List<DbDrcConfigInfoDto> getDbDrcConfigs(List<String> dbNames, String srcRegionName, String dstRegionName) {
         List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, ReplicationTypeEnum.DB_TO_DB)
                 .stream().filter(e -> e.getSrc().getRegionName().equals(srcRegionName) && e.getDst().getRegionName().equals(dstRegionName)).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(mhaDbReplicationDtos)) {
             throw ConsoleExceptionUtils.message("drc config empty");
         }
 
-        // 1. logic table config consistency check
+        // 1. group by logic table config
+        Map<Set<LogicTableConfig>, List<MhaDbReplicationDto>> mhaDbReplicationsGroupByTableConfig = mhaDbReplicationDtos.stream()
+                .collect(Collectors.groupingBy(e ->
+                        Sets.newHashSet(e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).toList()))
+                );
+
+
+        List<DbDrcConfigInfoDto> list = new ArrayList<>();
+        for (List<MhaDbReplicationDto> mhaDbReplicationDtoWithSameTableConfig : mhaDbReplicationsGroupByTableConfig.values()) {
+            DbDrcConfigInfoDto dbDrcConfigInfoDto = getDbDrcConfigInfoDto(srcRegionName, dstRegionName, mhaDbReplicationDtoWithSameTableConfig);
+            list.add(dbDrcConfigInfoDto);
+        }
+        list.sort(Comparator.comparing(e -> e.getDbNames().getFirst()));
+
+        return list;
+    }
+
+    private DbDrcConfigInfoDto getDbDrcConfigInfoDto(String srcRegionName, String dstRegionName, List<MhaDbReplicationDto> mhaDbReplicationDtos) {
+        // todo by yongian need keep?
         long count = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().count();
         if (count > 1) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT);
         }
-
-        // 2. group by mha
+        // group by mha
         Map<MhaReplicationDto, List<MhaDbReplicationDto>> collect = mhaDbReplicationDtos.stream().collect(Collectors.groupingBy(e -> {
             MhaReplicationDto mhaReplicationDto = new MhaReplicationDto();
             mhaReplicationDto.setSrcMha(MhaDto.from(e.getSrc()));
@@ -675,84 +701,112 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         DbDrcConfigInfoDto dbDrcConfigInfoDto = new DbDrcConfigInfoDto(srcRegionName, dstRegionName);
         dbDrcConfigInfoDto.setMhaReplications(Lists.newArrayList(collect.keySet()));
         dbDrcConfigInfoDto.setLogicTableSummaryDtos(LogicTableSummaryDto.from(mhaDbReplicationDtos));
-        dbDrcConfigInfoDto.setDbNames(dbNames);
+        dbDrcConfigInfoDto.setDbNames(mhaDbReplicationDtos.stream().map(e -> e.getSrc().getDbName()).sorted().distinct().toList());
         return dbDrcConfigInfoDto;
     }
 
-    public DbMqConfigInfoDto getDbMqConfig(String dalclusterName, List<String> dbNames, String srcRegionName, MqType mqType) {
+
+    private DbMqConfigInfoDto getDbMqConfig(String dalclusterName, List<String> dbNames, String srcRegionName, MqType mqType) {
+        List<DbMqConfigInfoDto> dbMqDrcConfigs = this.getDbMqConfigs(dbNames, srcRegionName, mqType);
+        if (dbMqDrcConfigs.size() > 1) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT);
+        }
+        DbMqConfigInfoDto first = dbMqDrcConfigs.getFirst();
+        first.setDalclusterName(dalclusterName);
+        return first;
+    }
+
+    @Override
+    public List<DbMqConfigInfoDto> getDbMqConfigs(List<String> dbNames, String srcRegionName, MqType mqType) {
         try {
             List<MhaDbReplicationDto> mhaDbReplicationDtos = mhaDbReplicationService.queryByDbNames(dbNames, mqType.getReplicationType())
                     .stream().filter(e -> e.getSrc().getRegionName().equals(srcRegionName)).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(mhaDbReplicationDtos)) {
                 throw ConsoleExceptionUtils.message("drc mq config empty");
             }
+            // 1. group by logic table config
+            Map<Set<LogicTableConfig>, List<MhaDbReplicationDto>> mhaDbReplicationsGroupByTableConfig = mhaDbReplicationDtos.stream()
+                    .collect(Collectors.groupingBy(e ->
+                            Sets.newHashSet(e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).toList()))
+                    );
 
-            // 1. logic table config consistency check
-            List<Set<LogicTableConfig>> distinctConfig = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(
-                    e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().collect(Collectors.toList());
-            long count = distinctConfig.size();
-            if (count > 1) {
-                throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT, JsonUtils.toJson(distinctConfig));
+
+            List<DbMqConfigInfoDto> list = new ArrayList<>();
+            for (List<MhaDbReplicationDto> mhaDbReplicationDtoWithSameTableConfig : mhaDbReplicationsGroupByTableConfig.values()) {
+                DbMqConfigInfoDto dbMqConfigInfoDto = getDbMqConfigInfoDto(srcRegionName, mqType, mhaDbReplicationDtoWithSameTableConfig);
+                list.add(dbMqConfigInfoDto);
             }
-
-            // 2. group by mha
-            Map<MhaMqDto, List<MhaDbReplicationDto>> collect = mhaDbReplicationDtos.stream().collect(Collectors.groupingBy(e -> {
-                MhaMqDto mhaMqDto = new MhaMqDto();
-                mhaMqDto.setSrcMha(MhaDto.from(e.getSrc()));
-                return mhaMqDto;
-            }));
-
-            for (Map.Entry<MhaMqDto, List<MhaDbReplicationDto>> entry : collect.entrySet()) {
-                MhaMqDto mhaMqDto = entry.getKey();
-                List<MhaDbReplicationDto> list = entry.getValue();
-                mhaMqDto.setMhaDbReplications(list);
-                // drc resource info detail
-                mhaMqDto.getSrcMha().setReplicatorInfoDtos(mhaServiceV2.getMhaReplicatorsV2(mhaMqDto.getSrcMha().getName()));
-                setMhaDbMessengers(list, mqType);
-                boolean dbApplyMode = getDbDrcStatus(list.stream().map(MhaDbReplicationDto::getDbApplierDto));
-                if (!dbApplyMode) {
-                    setMhaMessengers(mhaMqDto, mqType);
-                }
-            }
-            DbMqConfigInfoDto dbDrcConfigInfoDto = new DbMqConfigInfoDto(srcRegionName);
-            dbDrcConfigInfoDto.setMhaMqDtos(Lists.newArrayList(collect.keySet()));
-            List<LogicTableSummaryDto> logicTableSummaryDtos = LogicTableSummaryDto.from(mhaDbReplicationDtos);
-            List<Long> messengerFilerIds = logicTableSummaryDtos.stream().map(e -> e.getConfig().getMessengerFilterId()).filter(Objects::nonNull).collect(Collectors.toList());
-
-            List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryByIds(messengerFilerIds);
-            Map<Long, MqConfig> idToMqConfig = messengerFilterTbls.stream().collect(Collectors.toMap(
-                    MessengerFilterTbl::getId,
-                    e -> JsonUtils.fromJson(e.getProperties(), MqConfig.class
-                    )
-            ));
-
-            List<MqLogicTableSummaryDto> mqLogicTableSummaryDtos = logicTableSummaryDtos.stream().map(e -> {
-                MqLogicTableSummaryDto mqLogicTableSummaryDto = new MqLogicTableSummaryDto(e.getDbReplicationIds(), e.getConfig(), e.getDatachangeLasttime());
-
-                Long messengerFilterId = mqLogicTableSummaryDto.getConfig().getMessengerFilterId();
-                MqConfig mqConfig = idToMqConfig.get(messengerFilterId);
-                mqLogicTableSummaryDto.setMqType(mqConfig.getMqType());
-                mqLogicTableSummaryDto.setSerialization(mqConfig.getSerialization());
-                mqLogicTableSummaryDto.setOrder(mqConfig.isOrder());
-                mqLogicTableSummaryDto.setOrderKey(mqConfig.getOrderKey());
-                mqLogicTableSummaryDto.setPersistent(mqConfig.isPersistent());
-                mqLogicTableSummaryDto.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
-                mqLogicTableSummaryDto.setDelayTime(mqConfig.getDelayTime());
-                mqLogicTableSummaryDto.setFilterFields(mqConfig.getFilterFields());
-                mqLogicTableSummaryDto.setSendOnlyUpdated(mqConfig.isSendOnlyUpdated());
-                mqLogicTableSummaryDto.setExcludeColumn(mqConfig.isExcludeColumn());
-                return mqLogicTableSummaryDto;
-            }).collect(Collectors.toList());
-            mqLogicTableSummaryDtos.sort(
-                    Comparator.comparing(MqLogicTableSummaryDto::getDatachangeLasttime, Comparator.nullsLast(Comparator.naturalOrder()))
-            );
-            dbDrcConfigInfoDto.setLogicTableSummaryDtos(mqLogicTableSummaryDtos);
-            dbDrcConfigInfoDto.setDbNames(dbNames);
-            dbDrcConfigInfoDto.setDalclusterName(dalclusterName);
-            return dbDrcConfigInfoDto;
+            list.sort(Comparator.comparing(e -> e.getDbNames().getFirst()));
+            return list;
         } catch (SQLException e) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    private DbMqConfigInfoDto getDbMqConfigInfoDto(String srcRegionName, MqType mqType, List<MhaDbReplicationDto> mhaDbReplicationDtos) throws SQLException {
+        // 1. logic table config consistency check
+        // todo by yongian need keep?
+        List<Set<LogicTableConfig>> distinctConfig = mhaDbReplicationDtos.stream().map(e -> Sets.newHashSet(
+                e.getDbReplicationDtos().stream().map(DbReplicationDto::getLogicTableConfig).collect(Collectors.toList()))).distinct().collect(Collectors.toList());
+        long count = distinctConfig.size();
+        if (count > 1) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DB_REPLICATION_NOT_CONSISTENT, JsonUtils.toJson(distinctConfig));
+        }
+
+        // 2. group by mha
+        Map<MhaMqDto, List<MhaDbReplicationDto>> collect = mhaDbReplicationDtos.stream().collect(Collectors.groupingBy(e -> {
+            MhaMqDto mhaMqDto = new MhaMqDto();
+            mhaMqDto.setSrcMha(MhaDto.from(e.getSrc()));
+            return mhaMqDto;
+        }));
+
+        for (Map.Entry<MhaMqDto, List<MhaDbReplicationDto>> entry : collect.entrySet()) {
+            MhaMqDto mhaMqDto = entry.getKey();
+            List<MhaDbReplicationDto> list = entry.getValue();
+            mhaMqDto.setMhaDbReplications(list);
+            // drc resource info detail
+            mhaMqDto.getSrcMha().setReplicatorInfoDtos(mhaServiceV2.getMhaReplicatorsV2(mhaMqDto.getSrcMha().getName()));
+            setMhaDbMessengers(list, mqType);
+            boolean dbApplyMode = getDbDrcStatus(list.stream().map(MhaDbReplicationDto::getDbApplierDto));
+            if (!dbApplyMode) {
+                setMhaMessengers(mhaMqDto, mqType);
+            }
+        }
+        DbMqConfigInfoDto dbDrcConfigInfoDto = new DbMqConfigInfoDto(srcRegionName);
+        dbDrcConfigInfoDto.setMhaMqDtos(Lists.newArrayList(collect.keySet()));
+        List<LogicTableSummaryDto> logicTableSummaryDtos = LogicTableSummaryDto.from(mhaDbReplicationDtos);
+        List<Long> messengerFilerIds = logicTableSummaryDtos.stream().map(e -> e.getConfig().getMessengerFilterId()).filter(Objects::nonNull).collect(Collectors.toList());
+
+        List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryByIds(messengerFilerIds);
+        Map<Long, MqConfig> idToMqConfig = messengerFilterTbls.stream().collect(Collectors.toMap(
+                MessengerFilterTbl::getId,
+                e -> JsonUtils.fromJson(e.getProperties(), MqConfig.class
+                )
+        ));
+
+        List<MqLogicTableSummaryDto> mqLogicTableSummaryDtos = logicTableSummaryDtos.stream().map(e -> {
+            MqLogicTableSummaryDto mqLogicTableSummaryDto = new MqLogicTableSummaryDto(e.getDbReplicationIds(), e.getConfig(), e.getDatachangeLasttime());
+
+            Long messengerFilterId = mqLogicTableSummaryDto.getConfig().getMessengerFilterId();
+            MqConfig mqConfig = idToMqConfig.get(messengerFilterId);
+            mqLogicTableSummaryDto.setMqType(mqConfig.getMqType());
+            mqLogicTableSummaryDto.setSerialization(mqConfig.getSerialization());
+            mqLogicTableSummaryDto.setOrder(mqConfig.isOrder());
+            mqLogicTableSummaryDto.setOrderKey(mqConfig.getOrderKey());
+            mqLogicTableSummaryDto.setPersistent(mqConfig.isPersistent());
+            mqLogicTableSummaryDto.setExcludeFilterTypes(mqConfig.getExcludeFilterTypes());
+            mqLogicTableSummaryDto.setDelayTime(mqConfig.getDelayTime());
+            mqLogicTableSummaryDto.setFilterFields(mqConfig.getFilterFields());
+            mqLogicTableSummaryDto.setSendOnlyUpdated(mqConfig.isSendOnlyUpdated());
+            mqLogicTableSummaryDto.setExcludeColumn(mqConfig.isExcludeColumn());
+            return mqLogicTableSummaryDto;
+        }).collect(Collectors.toList());
+        mqLogicTableSummaryDtos.sort(
+                Comparator.comparing(MqLogicTableSummaryDto::getDatachangeLasttime, Comparator.nullsLast(Comparator.naturalOrder()))
+        );
+        dbDrcConfigInfoDto.setLogicTableSummaryDtos(mqLogicTableSummaryDtos);
+        dbDrcConfigInfoDto.setDbNames(mhaDbReplicationDtos.stream().map(e -> e.getSrc().getDbName()).sorted().distinct().toList());
+        return dbDrcConfigInfoDto;
     }
 
 
@@ -1113,7 +1167,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         return true;
     }
 
-    private ShardDatabaseInfoDto getDbNamesWithinSameDalCluster(String dbName) {
+    @Override
+    public ShardDatabaseInfoDto getDbNamesWithinSameDalCluster(String dbName) {
         String dalClusterName = getDalclusterName(dbName);
         List<String> dbNamesByDalClusterName = getDbNamesByDalClusterName(dalClusterName);
         return new ShardDatabaseInfoDto(dalClusterName, dbNamesByDalClusterName);
@@ -1139,8 +1194,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
     }
 
     private final LoadingCache<String, String> cache = CacheBuilder.newBuilder()
-            .maximumSize(1000)
-            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .maximumSize(10000)
+            .expireAfterAccess(10, TimeUnit.MINUTES)
             .build(new CacheLoader<>() {
                 @Override
                 public String load(@NotNull String dbName) {
@@ -1148,7 +1203,8 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
                 }
             });
 
-    private String getDalclusterName(String dbName) {
+    @Override
+    public String getDalclusterName(String dbName) {
         try {
             cache.getUnchecked(dbName);
         } catch (Exception e) {
