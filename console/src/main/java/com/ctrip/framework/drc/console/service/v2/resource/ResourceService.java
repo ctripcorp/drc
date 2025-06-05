@@ -47,7 +47,11 @@ public interface ResourceService {
     List<ResourceView> getMhaDbAvailableResourceWithUse(String srcMhaName, String dstMhaName, int type, String subType) throws Exception;
 
     List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type, String subType) throws Exception;
-    
+
+    List<ResourceView> getReplicatorAvailableResourceWithUse(String mhaName) throws Exception;
+
+    List<ResourceView> getMqAvailableResourceWithUse(String mhaName, String mqType) throws Exception;
+
     List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
     List<ResourceView> autoConfigureMhaDbResource(DbResourceSelectParam param) throws SQLException;
 
@@ -57,7 +61,9 @@ public interface ResourceService {
 
     List<MhaView> queryMhaByReplicator(long resourceId) throws Exception;
 
-    List<ApplierReplicationView> queryReplicationByApplier(long resourceId) throws Exception;
+    List<ApplierReplicationView> queryMqReplication(long resourceId) throws Exception;
+
+    List<ApplierReplicationView> queryDbReplication(long resourceId) throws Exception;
 
     int migrateResource(String newIp, String oldIp, int type) throws Exception;
 
@@ -82,4 +88,8 @@ public interface ResourceService {
     List<ReplicatorInfoDto> getMasterReplicatorsInRegion(String region, List<String> ips);
 
     Map<String, MhaInstanceGroupDto> getMhaInstanceGroupsInAllRegions() throws Exception;
+
+    IncompatibleMessengerView getIncompatibleMessengers() throws Exception;
+
+    void migrateKafkaMessenger(KafkaMessengerMigrateParam param) throws Exception;
 }

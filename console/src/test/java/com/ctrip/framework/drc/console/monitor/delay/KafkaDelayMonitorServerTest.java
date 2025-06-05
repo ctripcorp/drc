@@ -85,7 +85,7 @@ public class KafkaDelayMonitorServerTest {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp("127.0.0.1");
         resourceTbl.setDcId(1L);
-        resourceTbl.setType(ModuleEnum.MESSENGER.getCode());
+        resourceTbl.setType(ModuleEnum.MESSENGER_QMQ.getCode());
 
         Mockito.when(centralService.queryAllResourceTbl()).thenReturn(Lists.newArrayList(resourceTbl));
         Mockito.when(monitorProvider.getKafkaDelayMonitorSwitch()).thenReturn("on");

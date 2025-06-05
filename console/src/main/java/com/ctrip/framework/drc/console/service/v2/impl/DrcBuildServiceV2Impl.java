@@ -790,7 +790,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
 
         ResourceSelectParam selectParam = new ResourceSelectParam();
-        selectParam.setType(ModuleEnum.MESSENGER.getCode());
+        selectParam.setType(ModuleEnum.getMessengerCodeByMqType(mqType));
         selectParam.setMhaName(mhaTbl.getMhaName());
         selectParam.setSelectedIps(inUseIps);
         List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);

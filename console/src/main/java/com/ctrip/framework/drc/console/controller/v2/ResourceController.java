@@ -5,10 +5,8 @@ import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
-import com.ctrip.framework.drc.console.vo.v2.ApplierReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.MhaView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceSameAzView;
-import com.ctrip.framework.drc.console.vo.v2.ResourceView;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
@@ -59,6 +57,24 @@ public class ResourceController {
     public ApiResult<List<ResourceView>> getMhaAvailableResource(@RequestParam String mhaName, @RequestParam int type, @RequestParam(required = false) String subType) {
         try {
             return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResourceWithUse(mhaName, type, subType));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("replicator/all")
+    public ApiResult<List<ResourceView>> getReplicatorAvailableResourceWithUse(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.getReplicatorAvailableResourceWithUse(mhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("mq/all")
+    public ApiResult<List<ResourceView>> getMqAvailableResourceWithUse(@RequestParam String mhaName, @RequestParam(required = false) String mqType) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.getMqAvailableResourceWithUse(mhaName, mqType));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
@@ -161,10 +177,19 @@ public class ResourceController {
         }
     }
 
-    @GetMapping("mhaReplication")
-    public ApiResult<List<ApplierReplicationView>> queryReplicationByApplier(@RequestParam long resourceId) {
+    @GetMapping("mqReplication")
+    public ApiResult<List<ApplierReplicationView>> queryMqReplication(@RequestParam long resourceId) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.queryReplicationByApplier(resourceId));
+            return ApiResult.getSuccessInstance(resourceService.queryMqReplication(resourceId));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("dbReplication")
+    public ApiResult<List<ApplierReplicationView>> queryDbReplication(@RequestParam long resourceId) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.queryDbReplication(resourceId));
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
@@ -246,9 +271,12 @@ public class ResourceController {
     @PostMapping("migrate/messenger")
     @LogRecord(type = OperateTypeEnum.DRC_RESOURCE, attr = OperateAttrEnum.UPDATE,
             success = "migrateMessenger with newIp {#newIp}, oldIp {#oldIp}")
-    public ApiResult<Integer> migrateMessenger(@RequestParam String newIp, @RequestParam String oldIp) {
+    public ApiResult<Integer> migrateMessenger(@RequestParam String newIp, @RequestParam String oldIp, @RequestParam int type) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, ModuleEnum.MESSENGER.getCode()));
+            if (!ModuleEnum.isMessenger(type)) {
+                throw ConsoleExceptionUtils.message("type is not messenger");
+            }
+            return ApiResult.getSuccessInstance(resourceService.migrateResource(newIp, oldIp, type));
         } catch (Exception e) {
             logger.error("migrateMessenger fail, ", e);
             return ApiResult.getFailInstance(0, e.getMessage());
@@ -318,6 +346,28 @@ public class ResourceController {
             return ApiResult.getSuccessInstance(res);
         } catch (Exception e) {
             logger.error("getReplicatorsInRegion, region={}, fail", region, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("incompatibleMessengers")
+    public ApiResult<IncompatibleMessengerView> getIncompatibleMessengers() {
+        try {
+            IncompatibleMessengerView res = resourceService.getIncompatibleMessengers();
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getIncompatibleMessengers fail", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("migrateKafkaMessenger")
+    public ApiResult<IncompatibleMessengerView> migrateKafkaMessenger(@RequestBody KafkaMessengerMigrateParam param) {
+        try {
+            resourceService.migrateKafkaMessenger(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("migrateKafkaMessenger fail", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

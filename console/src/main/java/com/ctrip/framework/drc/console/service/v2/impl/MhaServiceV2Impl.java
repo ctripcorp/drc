@@ -306,7 +306,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             return new ArrayList<>();
         }
 
-        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+        if (!ModuleEnum.isResource(type)) {
             logger.info("resource type: {} can only be replicator, applier or messenger", type);
             return new ArrayList<>();
         }

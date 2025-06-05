@@ -155,7 +155,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
         String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
-        STATE_LOGGER.info("[addMessenger] for {},{}", registryKey, body);
+        STATE_LOGGER.info("[addMessenger] for {}, {}", registryKey, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
             STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", registryKey);
@@ -192,7 +192,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         String registryKey = NameUtils.getMessengerRegisterKey(clusterId, messenger);
-        STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", registryKey, messenger, delete);
+        STATE_LOGGER.info("[removeMessenger] for {},delete: {},{}", registryKey, delete, messenger);
         messengerNotifier.notifyRemove(registryKey, messenger, delete);
     }
 
@@ -204,7 +204,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         String registryKey = NameUtils.getApplierRegisterKey(clusterId, applier);
-        STATE_LOGGER.info("[removeApplier] for {},{}", registryKey, applier);
+        STATE_LOGGER.info("[removeApplier] for {},delete: {}, {}", registryKey, delete, applier);
         applierNotifier.notifyRemove(registryKey, applier, delete);
     }
 
@@ -366,14 +366,6 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger, Endpoint mysqlMaster) {
-        DbCluster clone = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        if (mysqlMaster != null) {
-            setMySQL(clone, mysqlMaster);
-        }
-        return clone;
-    }
-
-    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger) {
         DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
         DbCluster clone = MetaClone.clone(dbCluster);
         clone.getMessengers().clear();
@@ -395,7 +387,14 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         replicator.setApplierPort(master.getApplierPort());
         clone.getReplicators().add(replicator);
 
+        if (mysqlMaster != null) {
+            setMySQL(clone, mysqlMaster);
+        }
         return clone;
+    }
+
+    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger) {
+        return getDbClusterWithRefreshMessenger(clusterId, messenger, getMySQLMaster(clusterId));
     }
 
     private void setMySQL(DbCluster clone, Endpoint mysqlMaster) {

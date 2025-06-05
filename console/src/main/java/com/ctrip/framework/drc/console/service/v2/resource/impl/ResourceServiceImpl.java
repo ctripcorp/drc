@@ -29,6 +29,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
@@ -118,6 +119,8 @@ public class ResourceServiceImpl implements ResourceService {
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private ResourceService resourceService;
+    @Autowired
+    private DrcBuildServiceV2 drcBuildServiceV2;
 
     private BatchInfoInquirer batchInfoInquirer = BatchInfoInquirer.getInstance();
 
@@ -203,13 +206,10 @@ public class ResourceServiceImpl implements ResourceService {
             }
         } else if (resourceTbl.getType().equals(ModuleEnum.APPLIER.getCode())) {
             List<ApplierTblV3> dbAppliers = dbApplierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            if (!CollectionUtils.isEmpty(dbAppliers)
-                    || !CollectionUtils.isEmpty(messengerTbls) || !CollectionUtils.isEmpty(messengerTblsV3)) {
+            if (!CollectionUtils.isEmpty(dbAppliers)) {
                 throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
             }
-        } else if (resourceTbl.getType().equals(ModuleEnum.MESSENGER.getCode())) {
+        } else if (ModuleEnum.isMessenger(resourceTbl.getType())) {
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
             List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
             if (!CollectionUtils.isEmpty(messengerTbls) || !CollectionUtils.isEmpty(messengerTblsV3)) {
@@ -313,7 +313,7 @@ public class ResourceServiceImpl implements ResourceService {
             messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
             messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
             applierTblV3s = dbApplierTblDao.queryByResourceIds(resourceIds);
-        } else if (resourceTbl.getType() == ModuleEnum.MESSENGER.getCode()) {
+        } else if (ModuleEnum.isMessenger(resourceTbl.getType())) {
             messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
             messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
         }
@@ -337,7 +337,7 @@ public class ResourceServiceImpl implements ResourceService {
             return new ArrayList<>();
         }
 
-        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+        if (!ModuleEnum.isResource(type)) {
             logger.info("resource type: {} can only be replicator or applier or messenger", type);
             return new ArrayList<>();
         }
@@ -348,7 +348,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<ResourceView> getMhaDbAvailableResource(String mhaName, int type) throws SQLException {
-        if (type != ModuleEnum.APPLIER.getCode() && type != ModuleEnum.MESSENGER.getCode()) {
+        if (type != ModuleEnum.APPLIER.getCode() && !ModuleEnum.isMessenger(type)) {
             logger.info("resource type: {} can only be applier or messenger", type);
             return new ArrayList<>();
         }
@@ -372,7 +372,7 @@ public class ResourceServiceImpl implements ResourceService {
         if (type == ModuleEnum.APPLIER.getCode()) {
             resourceViewsInUse.addAll(getDbAppliersInUse(srcMhaName, dstMhaName));
         }
-        if (type == ModuleEnum.MESSENGER.getCode()) {
+        if (ModuleEnum.isMessenger(type)) {
             resourceViewsInUse.addAll(getDbMessengersInUse(srcMhaName, MqType.valueOf(subType)));
         }
 
@@ -395,7 +395,7 @@ public class ResourceServiceImpl implements ResourceService {
         List<ResourceView> resourceViewsInUse = new ArrayList<>();
         if (type == ModuleEnum.REPLICATOR.getCode()) {
             resourceViewsInUse.addAll(getReplicatorsInUse(mhaTbl.getId()));
-        } else if (type == ModuleEnum.MESSENGER.getCode()) {
+        } else if (ModuleEnum.isMessenger(type)) {
             resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId(), MqType.parse(subType)));
         }
 
@@ -408,6 +408,39 @@ public class ResourceServiceImpl implements ResourceService {
             });
         }
         return resourceViews;
+    }
+
+    @Override
+    public List<ResourceView> getReplicatorAvailableResourceWithUse(String mhaName) throws Exception {
+        List<ResourceView> resourceViews = getMhaAvailableResource(mhaName, ModuleEnum.REPLICATOR.getCode());
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        List<ResourceView> resourceViewsInUse = getReplicatorsInUse(mhaTbl.getId());
+
+        addResourceInUse(resourceViews, resourceViewsInUse);
+        return resourceViews;
+    }
+
+    @Override
+    public List<ResourceView> getMqAvailableResourceWithUse(String mhaName, String mqType) throws Exception {
+        int type = ModuleEnum.getMessengerCodeByMqType(MqType.parse(mqType));
+        List<ResourceView> resourceViews = getMhaAvailableResource(mhaName, type);
+
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        List<ResourceView> resourceViewsInUse = getMessengersInUse(mhaTbl.getId(), MqType.parse(mqType));
+
+        addResourceInUse(resourceViews, resourceViewsInUse);
+        return resourceViews;
+    }
+
+    private void addResourceInUse(List<ResourceView> resourceViews, List<ResourceView> resourceViewsInUse) {
+        if (!CollectionUtils.isEmpty(resourceViewsInUse)) {
+            List<Long> resourceIds = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+            resourceViewsInUse.forEach(e -> {
+                if (!resourceIds.contains(e.getResourceId())) {
+                    resourceViews.add(e);
+                }
+            });
+        }
     }
 
     private List<ResourceView> getReplicatorsInUse(long mhaId) throws Exception {
@@ -571,12 +604,13 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ApplierReplicationView> queryReplicationByApplier(long resourceId) throws Exception {
-        List<ApplierReplicationView> views = new ArrayList<>();
-        views.addAll(queryMhaDbReplicationByApplier(resourceId));
-        views.addAll(queryMhaByMessenger(resourceId));
+    public List<ApplierReplicationView> queryMqReplication(long resourceId) throws Exception {
+        return queryMhaByMessenger(resourceId);
+    }
 
-        return views;
+    @Override
+    public List<ApplierReplicationView> queryDbReplication(long resourceId) throws Exception {
+        return queryMhaDbReplicationByApplier(resourceId);
     }
 
     public List<ApplierReplicationView> queryMhaDbReplicationByApplier(long resourceId) throws Exception {
@@ -654,15 +688,6 @@ public class ResourceServiceImpl implements ResourceService {
                         return target;
                     });
                 }).collect(Collectors.toList());
-
-//        return mhaTblV2s.stream().map(source -> {
-//            ApplierReplicationView target = new ApplierReplicationView();
-//            target.setSrcMhaName(source.getMhaName());
-//            target.setSrcDcName(dcMap.get(source.getDcId()));
-//            target.setRelatedId(messengerMap.get(mhaIdToMessengerGroupId.get(source.getId())));
-//            target.setType(ApplierTypeEnum.MESSENGER.getCode());
-//            return target;
-//        }).collect(Collectors.toList());
     }
 
     @Override
@@ -675,8 +700,8 @@ public class ResourceServiceImpl implements ResourceService {
             return migrateReplicator(newIp, oldIp, null);
         } else if (type == ModuleEnum.APPLIER.getCode()) {
             return migrateApplier(newIp, oldIp);
-        } else if (type == ModuleEnum.MESSENGER.getCode()) {
-            return migrateMessenger(newIp, oldIp);
+        } else if (ModuleEnum.isMessenger(type)) {
+            return migrateMessenger(newIp, oldIp, type);
         }
         throw ConsoleExceptionUtils.message("type not supported!");
     }
@@ -694,25 +719,16 @@ public class ResourceServiceImpl implements ResourceService {
         checkMigrateResource(newResource, oldResource, ModuleEnum.APPLIER.getCode());
 
         List<Long> dbApplierIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.DB_APPLIER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
-        List<Long> messengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
-        List<Long> dbMessengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.DB_MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
         List<ApplierTblV3> applierTblV3s = dbApplierTblDao.queryByIds(dbApplierIds);
-        List<MessengerTbl> messengerTbls = messengerTblDao.queryByIds(messengerIds);
-        List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByIds(dbMessengerIds);
 
-        int result =  0;
-        result += migrateDbApplier(newResource, applierTblV3s);
-        result += migrateMessenger(newResource, messengerTbls);
-        result += migrateDbMessenger(newResource, messengerTblsV3);
-
-        return result;
+        return migrateDbApplier(newResource, applierTblV3s);
     }
 
     @Override
     public int partialMigrateMessenger(ApplierMigrateParam param) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(param.getNewIp(), BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(param.getOldIp(), BooleanEnum.FALSE.getCode());
-        checkMigrateResource(newResource, oldResource, ModuleEnum.MESSENGER.getCode());
+        checkMigrateResource(newResource, oldResource, param.getType());
 
         List<Long> messengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
         List<Long> dbMessengerIds = param.getApplierResourceDtos().stream().filter(e -> e.getType() == ApplierTypeEnum.DB_MESSENGER.getCode()).map(ApplierResourceDto::getRelatedId).collect(Collectors.toList());
@@ -1005,10 +1021,10 @@ public class ResourceServiceImpl implements ResourceService {
         return result;
     }
 
-    private int migrateMessenger(String newIp, String oldIp) throws Exception {
+    private int migrateMessenger(String newIp, String oldIp, int type) throws Exception {
         ResourceTbl newResource = resourceTblDao.queryByIp(newIp, BooleanEnum.FALSE.getCode());
         ResourceTbl oldResource = resourceTblDao.queryByIp(oldIp, BooleanEnum.FALSE.getCode());
-        checkMigrateResource(newResource, oldResource, ModuleEnum.MESSENGER.getCode());
+        checkMigrateResource(newResource, oldResource, type);
 
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
         List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(Lists.newArrayList(oldResource.getId()));
@@ -1063,13 +1079,9 @@ public class ResourceServiceImpl implements ResourceService {
             List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
             replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
         } else if (type == ModuleEnum.APPLIER.getCode()) {
-            List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
-            List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
             List<ApplierTblV3> dbAplierTbls = dbApplierTblDao.queryByResourceIds(resourceIds);
-            messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
-            dbMessengerMap = messengerTblsV3.stream().collect(Collectors.groupingBy(MessengerTblV3::getResourceId, Collectors.counting()));
             dbApplierMap = dbAplierTbls.stream().collect(Collectors.groupingBy(ApplierTblV3::getResourceId, Collectors.counting()));
-        } else if (type == ModuleEnum.MESSENGER.getCode()) {
+        } else if (ModuleEnum.isMessenger(type)) {
             List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
             List<MessengerTblV3> messengerTblsV3 = dbMessengerTblDao.queryByResourceIds(resourceIds);
             messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
@@ -1106,11 +1118,9 @@ public class ResourceServiceImpl implements ResourceService {
             if (source.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
                 target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
             } else if (source.getType().equals(ModuleEnum.APPLIER.getCode())) {
-                long messengerNum = messengerMap.getOrDefault(source.getId(), 0L);
                 long dbApplierNum = dbApplierMap.getOrDefault(source.getId(), 0L);
-                long dbMessengerNum = dbMessengerMap.getOrDefault(source.getId(), 0L);
-                target.setInstanceNum(messengerNum + dbApplierNum + dbMessengerNum);
-            } else if (source.getType().equals(ModuleEnum.MESSENGER.getCode())) {
+                target.setInstanceNum(dbApplierNum);
+            } else if (ModuleEnum.isMessenger(source.getType())) {
                 long messengerNum = messengerMap.getOrDefault(source.getId(), 0L);
                 long dbMessengerNum = dbMessengerMap.getOrDefault(source.getId(), 0L);
                 target.setInstanceNum(messengerNum + dbMessengerNum);
@@ -1195,7 +1205,8 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs(drc, ModuleEnum.APPLIER.getCode()));
-        mhaAzView.setAz2MessengerInstance(getAppliersInAllDcs(drc, ModuleEnum.MESSENGER.getCode()));
+        mhaAzView.setAz2MessengerInstance(getAppliersInAllDcs(drc, ModuleEnum.MESSENGER_QMQ.getCode()));
+        mhaAzView.addSetAz2MessengerInstance(getAppliersInAllDcs(drc, ModuleEnum.MESSENGER_KAFKA.getCode()));
         mhaAzView.setAz2ReplicatorInstance(getReplicatorAz(drc));
         return mhaAzView;
     }
@@ -1259,7 +1270,7 @@ public class ResourceServiceImpl implements ResourceService {
                         .flatMap(dbCluster -> dbCluster.getAppliers().stream())
                         .map(Applier::getIp)
                         .collect(Collectors.toSet());
-            } else if (ModuleEnum.MESSENGER.getCode() == type) {
+            } else if (ModuleEnum.isMessenger(type)) {
                 activeApplierIpsInDc = dc.getDbClusters().values().stream()
                         .flatMap(dbCluster -> dbCluster.getMessengers().stream())
                         .map(Messenger::getIp)
@@ -1292,8 +1303,7 @@ public class ResourceServiceImpl implements ResourceService {
                     } else {
                         infoDtosInAllDc.put(entry.getKey(), infoDtos);
                     }
-                }
-                if (ModuleEnum.MESSENGER.getCode() == type) {
+                } else if (ModuleEnum.isMessenger(type)) {
                     List<MessengerInfoDto> infoDtos = resourceService.getMasterMessengersInRegion(region, entry.getValue());
                     if (infoDtos == null) {
                         EventMonitor.DEFAULT.logEvent("drc.console.instanceAzCheck.messenger.fail", region + ":" + entry.getValue());
@@ -1327,6 +1337,79 @@ public class ResourceServiceImpl implements ResourceService {
         allMhaInstanceGroups.putAll(dalService.getMhaListAli(Foundation.server().getEnv()));
         allMhaInstanceGroups.putAll(dalService.getMhaListAws(Foundation.server().getEnv()));
         return allMhaInstanceGroups;
+    }
+
+    @Override
+    public IncompatibleMessengerView getIncompatibleMessengers() throws Exception {
+        List<IncompatibleMessengerDto> qmqIncompatibleMessengerDto = getIncompatibleMessengerDto(MqType.qmq);
+        List<IncompatibleMessengerDto> kafkaIncompatibleMessengerDto = getIncompatibleMessengerDto(MqType.kafka);
+        return new IncompatibleMessengerView(qmqIncompatibleMessengerDto, kafkaIncompatibleMessengerDto);
+    }
+
+
+    private List<IncompatibleMessengerDto> getIncompatibleMessengerDto(MqType mqType) throws SQLException {
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryByMqType(mqType, BooleanEnum.FALSE.getCode());
+        List<Long> messengerGroupIds = messengerGroupTbls.stream().map(MessengerGroupTbl::getId).toList();
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllExist().stream().filter(e -> messengerGroupIds.contains(e.getMessengerGroupId())).toList();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
+        Map<Long, ResourceTbl> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity()));
+
+        int messengerType = ModuleEnum.getMessengerCodeByMqType(mqType);
+        Map<Long, List<MessengerTbl>> messengerByGroupIds = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+        Map<Long, List<String>> incompatibleMessengers = Maps.newHashMap();
+        for (Map.Entry<Long, List<MessengerTbl>> entry : messengerByGroupIds.entrySet()) {
+            List<String> messengerIps = Lists.newArrayList();
+            for (MessengerTbl messengerTbl : entry.getValue()) {
+                ResourceTbl resourceTbl = resourceTblMap.get(messengerTbl.getResourceId());
+                if (resourceTbl.getType() != messengerType) {
+                    messengerIps.add(resourceTbl.getIp());
+                }
+            }
+            if (!CollectionUtils.isEmpty(messengerIps)) {
+                incompatibleMessengers.put(entry.getKey(), messengerIps);
+            }
+        }
+
+        List<IncompatibleMessengerDto> dtos = Lists.newArrayList();
+        if (CollectionUtils.isEmpty(incompatibleMessengers)) {
+            return dtos;
+        }
+        List<Long> mhaIds = messengerGroupTbls.stream().map(MessengerGroupTbl::getMhaId).toList();
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(mhaIds);
+        Map<Long, String> mhaId2Names = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+
+        for (MessengerGroupTbl messengerGroupTbl : messengerGroupTbls) {
+            if (!incompatibleMessengers.containsKey(messengerGroupTbl.getId())) {
+                continue;
+            }
+            IncompatibleMessengerDto dto = new IncompatibleMessengerDto(mhaId2Names.get(messengerGroupTbl.getMhaId()), incompatibleMessengers.get(messengerGroupTbl.getId()));
+            dtos.add(dto);
+        }
+
+        return dtos;
+
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void migrateKafkaMessenger(KafkaMessengerMigrateParam param) throws Exception {
+        List<String> kafkaMhaNames = getIncompatibleMessengers().getKafkaMessengerDtos().stream().map(IncompatibleMessengerDto::getMhaName).toList();
+        List<String> mhaNamesToMigrate = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(param.getMhaNames())) {
+            mhaNamesToMigrate = kafkaMhaNames.stream().filter(e -> param.getMhaNames().contains(e)).toList();
+        } else if (param.getNum() != 0) {
+            mhaNamesToMigrate = kafkaMhaNames.subList(0, param.getNum());
+        } else {
+            mhaNamesToMigrate = kafkaMhaNames;
+        }
+
+        List<String> finalMigrateMhaNames = Lists.newArrayList(mhaNamesToMigrate);
+
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist().stream().filter(e -> finalMigrateMhaNames.contains(e.getMhaName())).toList();
+        for (MhaTblV2 mhaTblV2 : mhaTblV2s) {
+            drcBuildServiceV2.autoConfigMessenger(mhaTblV2, null, MqType.kafka, true);
+        }
+
     }
 
     @Override

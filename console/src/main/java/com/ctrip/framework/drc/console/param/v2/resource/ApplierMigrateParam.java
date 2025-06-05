@@ -9,6 +9,7 @@ import java.util.List;
 public class ApplierMigrateParam {
     private String oldIp;
     private String newIp;
+    private int type;
     private List<ApplierResourceDto> applierResourceDtos;
 
     public String getOldIp() {
@@ -33,6 +34,14 @@ public class ApplierMigrateParam {
 
     public void setApplierResourceDtos(List<ApplierResourceDto> applierResourceDtos) {
         this.applierResourceDtos = applierResourceDtos;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 
     @Override

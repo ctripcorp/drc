@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.PageReq;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
@@ -97,6 +98,8 @@ public class ResourceServiceTest {
     private ResourceService resourceService2;
     @Mock
     private BatchInfoInquirer batchInfoInquirer;
+    @Mock
+    private DrcBuildServiceV2 drcBuildServiceV2;
 
     @Before
     public void setUp() {
@@ -427,20 +430,14 @@ public class ResourceServiceTest {
         Mockito.when(resourceTblDao.queryByIp(Mockito.eq("newIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(1));
         Mockito.when(resourceTblDao.queryByIp(Mockito.eq("oldIp"), Mockito.anyInt())).thenReturn(resourceTbls.get(0));
 
-        Mockito.when(messengerTblDao.queryByIds(Mockito.anyList())).thenReturn(getMessengers());
-        Mockito.when(dbMessengerTblDao.queryByIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(dbApplierTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierTblV3s());
 
         Mockito.when(dbApplierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getApplierTblV3s());
-        Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
-        Mockito.when(dbMessengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(new ArrayList<>());
 
         Mockito.when(dbApplierTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
-        Mockito.when(messengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
-        Mockito.when(dbMessengerTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
 
         int result = resourceService.partialMigrateApplier(param);
-        Assert.assertEquals(result, 4);
+        Assert.assertEquals(result, 2);
     }
 
     @Test
@@ -618,6 +615,7 @@ public class ResourceServiceTest {
         ApplierMigrateParam param = new ApplierMigrateParam();
         param.setNewIp("newIp");
         param.setOldIp("oldIp");
+        param.setType(ModuleEnum.MESSENGER_QMQ.getCode());
         List<ApplierResourceDto> dtos = new ArrayList<>();
         param.setApplierResourceDtos(dtos);
         dtos.add(new ApplierResourceDto(200L, 1));
@@ -648,4 +646,94 @@ public class ResourceServiceTest {
         Map<String, MhaInstanceGroupDto> res = resourceService.getMhaInstanceGroupsInAllRegions();
         Assert.assertEquals(1, res.size());
     }
+
+    @Test
+    public void testQueryMqReplication() throws Exception{
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
+        Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessengers().get(0)));
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMhaTblV2s().get(0)));
+        Mockito.when(messengerGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMessengerGroup()));
+
+        List<ApplierReplicationView> result = resourceService.queryMqReplication(1L);
+        Assert.assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testQueryDbReplication() throws Exception{
+        Mockito.when(dbApplierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getApplierTblV3s().get(0)));
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getMhaTblV2s()));
+        Mockito.when(dbApplierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV3s());
+        Mockito.when(mhaDbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbReplicationTbls());
+        Mockito.when(mhaDbMappingTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaDbMappingTbls1());
+        Mockito.when(dbTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbTbls());
+
+        List<ApplierReplicationView> result = resourceService.queryDbReplication(1L);
+        Assert.assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testGetReplicatorAvailableResourceWithUse() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
+        Mockito.when(replicatorGroupTblDao.queryByMhaIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorGroupTbls());
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(PojoBuilder.getReplicatorTbls());
+        Mockito.when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(PojoBuilder.getResourceTbls());
+        Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
+        Mockito.when(replicatorGroupTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(PojoBuilder.getReplicatorGroupTbls().get(0));
+
+        List<ResourceView> result = resourceService.getReplicatorAvailableResourceWithUse("mha");
+        Assert.assertEquals(PojoBuilder.getResourceTbls().size(), result.size());
+
+    }
+
+    @Test
+    public void testGetMqAvailableResourceWithUse() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
+        Mockito.when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(PojoBuilder.getResourceTbls());
+        Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(dcTblDao.queryByRegionName(anyString())).thenReturn(getDcTbls());
+
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(), Mockito.any(), Mockito.anyInt())).thenReturn(getMessengerGroup());
+        Mockito.when(messengerTblDao.queryByGroupIds(Mockito.anyList())).thenReturn(Lists.newArrayList(PojoBuilder.getMessenger()));
+
+        List<ResourceView> result = resourceService.getMqAvailableResourceWithUse("mha", "qmq");
+        Assert.assertEquals(PojoBuilder.getResourceTbls().size(), result.size());
+    }
+
+    @Test
+    public void testGetIncompatibleMessengers() throws Exception{
+        Mockito.when(messengerGroupTblDao.queryByMqType(Mockito.any(), Mockito.anyInt())).thenReturn(getMessengerGroups());
+        Mockito.when(messengerTblDao.queryAllExist()).thenReturn(getMessengers());
+        Mockito.when(resourceTblDao.queryAllExist()).thenReturn(getMessengerResources());
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(PojoBuilder.getMhaTblV2s());
+
+        IncompatibleMessengerView result = resourceService.getIncompatibleMessengers();
+        Assert.assertEquals(0, result.getQmqMessengerDtos().size());
+        Assert.assertEquals(1, result.getKafkaMessengerDtos().size());
+        Assert.assertEquals(2, result.getKafkaMessengerDtos().get(0).getMessengerIps().size());
+    }
+
+    @Test
+    public void testMigrateKafkaMessenger() throws Exception{
+
+        Mockito.when(messengerGroupTblDao.queryByMqType(Mockito.any(), Mockito.anyInt())).thenReturn(getMessengerGroups());
+        Mockito.when(messengerTblDao.queryAllExist()).thenReturn(getMessengers());
+        Mockito.when(resourceTblDao.queryAllExist()).thenReturn(getMessengerResources());
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(PojoBuilder.getMhaTblV2s());
+
+        Mockito.when(mhaTblV2Dao.queryAllExist()).thenReturn(getMhaTblV2s());
+
+        Mockito.doNothing().when(drcBuildServiceV2).autoConfigMessenger(any(), any(), any(), Mockito.anyBoolean());
+        resourceService.migrateKafkaMessenger(new KafkaMessengerMigrateParam(Lists.newArrayList(), 1));
+        Mockito.verify(drcBuildServiceV2, Mockito.times(1)).autoConfigMessenger(any(), any(), any(), Mockito.anyBoolean());
+        resourceService.migrateKafkaMessenger(new KafkaMessengerMigrateParam(Lists.newArrayList(), 0));
+        Mockito.verify(drcBuildServiceV2, Mockito.times(2)).autoConfigMessenger(any(), any(), any(), Mockito.anyBoolean());
+        resourceService.migrateKafkaMessenger(new KafkaMessengerMigrateParam(Lists.newArrayList("mha200", "mha201"), 0));
+        Mockito.verify(drcBuildServiceV2, Mockito.times(3)).autoConfigMessenger(any(), any(), any(), Mockito.anyBoolean());
+
+    }
+
 }
