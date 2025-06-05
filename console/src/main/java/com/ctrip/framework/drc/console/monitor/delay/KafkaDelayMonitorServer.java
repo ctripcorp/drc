@@ -137,7 +137,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         try {
             logger.info("[[monitor=delay]] switchListenMessenger: {}", mhaToMessengerIps);
             List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
-                    .filter(e -> e.getDcId() == localDcId && e.getType() == ModuleEnum.MESSENGER.getCode())
+                    .filter(e -> e.getDcId() == localDcId && ModuleEnum.isMessenger(e.getType()))
                     .map(ResourceTbl::getIp)
                     .toList();
             Set<String> toAddMhas = Sets.newHashSet();
@@ -162,7 +162,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
 
     private Map<String, String> getAllMhasToDcRelated() throws SQLException {
         List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
-                .filter(e -> e.getDcId() == localDcId && e.getType() == ModuleEnum.MESSENGER.getCode())
+                .filter(e -> e.getDcId() == localDcId && ModuleEnum.isMessenger(e.getType()))
                 .map(ResourceTbl::getIp)
                 .toList();
         Pair<List<String>, List<String>> pair = getAllMessengerIpsInLocalRegion();

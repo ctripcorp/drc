@@ -77,6 +77,19 @@ public class MhaAzView {
         });
     }
 
+    public void addSetAz2MessengerInstance(Map<String, List<? extends FetcherInfoDto>> azFetcherInstance) {
+        if (this.az2MessengerInstance == null) {
+            this.az2MessengerInstance = Maps.newHashMap();
+        }
+        azFetcherInstance.forEach((key, value) -> {
+            List<MessengerInfoDto> infoDtos = value.stream()
+                    .filter(MessengerInfoDto.class::isInstance)
+                    .map(MessengerInfoDto.class::cast)
+                    .collect(Collectors.toList());
+            this.az2MessengerInstance.put(key, infoDtos);
+        });
+    }
+
     public Map<String, Set<String>> getAz2DrcDb() {
         return az2DrcDb;
     }

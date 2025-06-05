@@ -1058,7 +1058,8 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         if (CollectionUtils.isEmpty(messengerTbls)) {
             return;
         }
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.MESSENGER.getCode(), new ArrayList<>()));
+
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(newMha.getMhaName(), ModuleEnum.getMessengerCodeByMqType(mqType), new ArrayList<>()));
         if (resourceViews.size() != 2) {
             throw ConsoleExceptionUtils.message("cannot select tow messenger for newMha");
         }
@@ -1244,7 +1245,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryById(mhaId);
         List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
-        List<ResourceView> resourceViews = autoSwitchMessengers(resourceIds, mhaTbl.getMhaName());
+        List<ResourceView> resourceViews = autoSwitchMessengers(resourceIds, mhaTbl.getMhaName(), mqType);
         if (resourceViews.size() != messengerTbls.size()) {
             logger.warn("switchMessenger fail, mhaId: {}, mqType: {}", mhaId, mqType.name());
             DefaultEventMonitorHolder.getInstance().logEvent("switchMessengerFail", mhaTbl.getMhaName());
@@ -1267,14 +1268,13 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         return resourceViews;
     }
 
-    private List<ResourceView> autoSwitchMessengers(List<Long> resourceIds, String mhaName) throws Exception {
+    private List<ResourceView> autoSwitchMessengers(List<Long> resourceIds, String mhaName, MqType mqType) throws Exception {
         List<String> ips = resourceTblDao.queryByIds(resourceIds).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
         ResourceSelectParam selectParam = new ResourceSelectParam();
-        selectParam.setType(ModuleEnum.MESSENGER.getCode());
+        selectParam.setType(ModuleEnum.getMessengerCodeByMqType(mqType));
         selectParam.setMhaName(mhaName);
         selectParam.setSelectedIps(ips);
-        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
-        return resourceViews;
+        return resourceService.handOffResource(selectParam);
     }
 
 

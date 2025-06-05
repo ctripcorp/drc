@@ -17,6 +17,6 @@ public class MqPooledConnector extends FetcherPooledConnector implements MySQLCo
 
     @Override
     public String getModuleName() {
-        return ModuleEnum.MESSENGER.getDescription();
+        return ModuleEnum.MESSENGER_QMQ.getDescription();
     }
 }

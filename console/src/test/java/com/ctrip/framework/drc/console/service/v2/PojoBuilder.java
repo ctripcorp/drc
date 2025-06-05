@@ -561,7 +561,7 @@ public class PojoBuilder {
         resourceTbl.setType(7);
 
         ResourceTbl resourceTbl1 = new ResourceTbl();
-        resourceTbl1.setId(301L);
+        resourceTbl1.setId(201L);
         resourceTbl1.setAz("AZ");
         resourceTbl1.setIp("ip2");
         resourceTbl1.setTag("tag");

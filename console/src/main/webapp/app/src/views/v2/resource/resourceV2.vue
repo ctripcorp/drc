@@ -231,7 +231,8 @@ export default {
         {
           title: '类型',
           key: 'type',
-          width: 80,
+          width: 120,
+          sortable: true,
           render: (h, params) => {
             const row = params.row
             let text = 'none'
@@ -247,8 +248,12 @@ export default {
                 type = 'success'
                 break
               case 7:
-                text = 'M'
+                text = 'Q'
                 type = 'warning'
+                break
+              case 8:
+                text = 'K'
+                type = 'primary'
                 break
               default:
                 text = '无'
@@ -290,7 +295,6 @@ export default {
         {
           title: '启用状态',
           key: 'active',
-          sortable: true,
           align: 'center',
           render: (h, params) => {
             const row = params.row
@@ -334,8 +338,12 @@ export default {
           val: 1
         },
         {
-          name: 'Messenger',
+          name: 'Messenger_QMQ',
           val: 7
+        },
+        {
+          name: 'Messenger_KAFKA',
+          val: 8
         }
       ],
       activeList: [
@@ -386,19 +394,21 @@ export default {
                   type = 'success'
                   break
                 case 3:
-                  text = 'Messenger'
-                  type = 'warning'
+                  text = 'Messenger' + '(' + row.mqType + ')'
                   break
                 case 4:
-                  text = 'DbMessenger'
-                  type = 'primary'
+                  text = 'DbMessenger' + '(' + row.mqType + ')'
                   break
                 default:
                   text = '无'
                   disabled = true
                   break
               }
-              text = `${text} (${row.mqType})`
+              if (row.mqType === 'qmq') {
+                type = 'warning'
+              } else if (row.mqType === 'kafka') {
+                type = 'primary'
+              }
               return h('Button', {
                 props: {
                   type: type,
@@ -526,6 +536,7 @@ export default {
             title: '类型',
             key: 'type',
             width: 200,
+            sortable: true,
             render: (h, params) => {
               const row = params.row
               let text = 'none'
@@ -542,16 +553,19 @@ export default {
                   break
                 case 3:
                   text = `Messenger (${row.mqType})`
-                  type = 'warning'
                   break
                 case 4:
-                  text = 'DbMessenger'
-                  type = 'primary'
+                  text = `DbMessenger (${row.mqType})`
                   break
                 default:
                   text = '无'
                   disabled = true
                   break
+              }
+              if (row.mqType === 'qmq') {
+                type = 'warning'
+              } else if (row.mqType === 'kafka') {
+                type = 'primary'
               }
               return h('Button', {
                 props: {
@@ -747,8 +761,8 @@ export default {
             this.$Message.error('迁移失败' + res.data.message)
           }
         })
-      } else if (type === 7) {
-        this.axios.post('/api/drc/v2/resource/migrate/messenger?newIp=' + newIp + '&oldIp=' + oldIp).then(res => {
+      } else if (type === 7 || type === 8) {
+        this.axios.post('/api/drc/v2/resource/migrate/messenger?newIp=' + newIp + '&oldIp=' + oldIp + '&type=' + type).then(res => {
           if (res.data.status === 0) {
             this.migrateApplierInfo.tableData = res.data.data
             this.$Message.success('共迁移' + res.data.data + '个实例')
@@ -781,8 +795,10 @@ export default {
       const params = {
         oldIp: this.migrateApplierInfo.oldIpInfo.ip,
         newIp: this.migrateApplierInfo.newIp,
+        type: this.migrateApplierInfo.oldIpInfo.type,
         applierResourceDtos: migrateApplierInfos
       }
+      console.log(params)
       this.migrateApplierInfo.loading = true
       if (this.migrateApplierInfo.oldIpInfo.type === 1) {
         this.axios.post('/api/drc/v2/resource/partialMigrate/applier', params).then(res => {
@@ -793,7 +809,7 @@ export default {
             this.$Message.error('迁移失败' + res.data.message)
           }
         })
-      } else {
+      } else if (this.migrateApplierInfo.oldIpInfo.type === 7 || this.migrateApplierInfo.oldIpInfo.type === 8) {
         this.axios.post('/api/drc/v2/resource/partialMigrate/messenger', params).then(res => {
           if (res.data.status === 0) {
             this.migrateApplierInfo.tableData = res.data.data
@@ -837,7 +853,13 @@ export default {
     refreshMigrateApplier () {
       this.migrateApplierInfo.current = 1
       const resourceId = this.migrateApplierInfo.oldIpInfo.resourceId
-      this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + resourceId).then(res => {
+      let url
+      if (this.migrateApplierInfo.oldIpInfo.type === 1) {
+        url = '/api/drc/v2/resource/dbReplication?resourceId='
+      } else {
+        url = '/api/drc/v2/resource/mqReplication?resourceId='
+      }
+      this.axios.get(url + resourceId).then(res => {
         if (res.data.status === 0) {
           this.migrateApplierInfo.tableData = res.data.data
           console.log(this.migrateApplierInfo.tableData)
@@ -865,7 +887,7 @@ export default {
         this.showMigrateReplicator(row)
       } else if (row.type === 1) {
         this.showMigrateApplier(row)
-      } else if (row.type === 7) {
+      } else if (row.type === 7 || row.type === 8) {
         this.showMigrateApplier(row)
       }
     },
@@ -877,7 +899,14 @@ export default {
         resourceId: row.resourceId,
         type: row.type
       }
-      this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
+      this.migrateApplierInfo.newIp = ''
+      let url
+      if (row.type === 1) {
+        url = '/api/drc/v2/resource/dbReplication?resourceId='
+      } else if (row.type === 7 || row.type === 8) {
+        url = '/api/drc/v2/resource/mqReplication?resourceId='
+      }
+      this.axios.get(url + row.resourceId).then(res => {
         if (res.data.status === 0) {
           this.migrateApplierInfo.tableData = res.data.data
         } else {
@@ -960,9 +989,9 @@ export default {
       if (row.type === 0) {
         this.getRelatedMha(row)
       } else if (row.type === 1) {
-        this.getRelatedMhaReplication(row)
-      } else if (row.type === 7) {
-        this.getRelatedMhaReplication(row)
+        this.getRelatedMhaDbReplication(row)
+      } else if (row.type === 7 || row.type === 8) {
+        this.getRelatedMqReplication(row)
       }
     },
     getRegions () {
@@ -999,6 +1028,30 @@ export default {
     getRelatedMhaReplication (row) {
       this.relatedReplicationData.tableData = []
       this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.relatedReplicationData.tableData = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+          this.relatedReplicationData.tableData = []
+        }
+      })
+      this.relatedReplicationData.modal = true
+    },
+    getRelatedMqReplication (row) {
+      this.relatedReplicationData.tableData = []
+      this.axios.get('/api/drc/v2/resource/mqReplication?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.relatedReplicationData.tableData = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+          this.relatedReplicationData.tableData = []
+        }
+      })
+      this.relatedReplicationData.modal = true
+    },
+    getRelatedMhaDbReplication (row) {
+      this.relatedReplicationData.tableData = []
+      this.axios.get('/api/drc/v2/resource/dbReplication?resourceId=' + row.resourceId).then(res => {
         if (res.data.status === 0) {
           this.relatedReplicationData.tableData = res.data.data
         } else {

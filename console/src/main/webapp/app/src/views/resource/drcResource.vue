@@ -87,8 +87,12 @@ export default {
             label: 'Applier'
           },
           {
-            value: 'M',
-            label: 'Messenger'
+            value: 'MQ',
+            label: 'Messenger_QMQ'
+          },
+          {
+            value: 'MK',
+            label: 'Messenger_KAFKA'
           }
         ]
       },
