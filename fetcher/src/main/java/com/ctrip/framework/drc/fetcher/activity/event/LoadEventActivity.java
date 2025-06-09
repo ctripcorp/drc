@@ -30,7 +30,7 @@ public class LoadEventActivity extends TaskQueueActivity<FetcherRowsEvent, Boole
 
     @Override
     public FetcherRowsEvent doTask(FetcherRowsEvent task) {
-        task.tryLoad();
+        task.tryLoadAndRelease();
         return null;
     }
 

@@ -168,6 +168,7 @@ public class DomainConfig extends AbstractConfigBean {
         return EncryptUtils.decryptRawToken(getProperty(OPS_ACCESS_TOKEN, DEFAULT_OPS_ACCESS_TOKEN));
     }
 
+    //部分ops api没有测试环境版本，需要用prod的ops和prod的token
     public String getDBAApiOpsAccessToken() {
         String opsToken = getOpsAccessToken();
         String token = getProperty(DBAAPI_OPS_ACCESS_TOKEN, opsToken);

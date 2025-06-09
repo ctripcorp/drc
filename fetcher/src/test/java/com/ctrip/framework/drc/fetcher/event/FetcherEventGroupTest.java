@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.fetcher.event.config.BigTransactionThreshold;
 import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import org.junit.Assert;
@@ -327,6 +326,7 @@ public class FetcherEventGroupTest {
         t.start();
         MonitoredGtidLogEvent MonitoredGtidLogEvent = new MonitoredGtidLogEvent();
         MonitoredGtidLogEvent.setDirectMemory(mock(DirectMemory.class));
+        MonitoredGtidLogEvent.setLogEventHeader(mock(LogEventHeader.class));
         group.append(MonitoredGtidLogEvent);
     }
 
