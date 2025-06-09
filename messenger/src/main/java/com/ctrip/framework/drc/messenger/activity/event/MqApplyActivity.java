@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.messenger.activity.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.Gtid;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.activity.event.BaseApplyActivity;
 import com.ctrip.framework.drc.fetcher.event.transaction.ApplyTransaction;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
@@ -32,7 +33,8 @@ public class MqApplyActivity extends BaseApplyActivity {
             case SUCCESS:
                 return onSuccess(transaction);
             default:
-                return onRetry(transaction);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.messenger.fail", registryKey);
+                return onFailure(transaction);
         }
     }
 

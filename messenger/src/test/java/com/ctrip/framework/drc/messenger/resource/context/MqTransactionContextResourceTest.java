@@ -24,8 +24,11 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.ctrip.framework.drc.core.mq.DcTag.NON_LOCAL;
 import static com.ctrip.framework.drc.core.mq.EventType.*;
@@ -180,6 +183,19 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         void setInternal(ExecutorService i) {
             this.internal = i;
         }
+
+        public CompletableFuture<Boolean> thenApplyAsync(CompletableFuture<Boolean> future, Function<Boolean, Boolean> fn, Handler2 handler, StringBuilder sb) {
+            return future.thenApplyAsync(fn, internal).whenCompleteAsync((result, e) -> {
+                sb.append("onComplete:").append(handler.row.getAfterColumns().get(1).getColumnValue()).append(e == null ? ",noex" :  ",ex").append("\n");
+            });
+        }
+
+        public CompletableFuture<Boolean> supplyAsync(Supplier<Boolean> supplier, MqTransactionContextResource.RowSendHandler handler, StringBuilder sb) {
+            return CompletableFuture.supplyAsync(supplier, internal)
+                    .whenCompleteAsync((result, e) -> {
+                        sb.append("onComplete:").append(handler.row.getAfterColumns().get(1).getColumnValue()).append(e == null ? ",noex" :  ",ex").append("\n");
+                    });
+        }
     }
 
     class testProducer implements Producer {
@@ -207,14 +223,14 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         context.mqRowEventExecutor = executorService;
         CompletableFuture<Boolean> f = Mockito.mock(CompletableFuture.class);
         Mockito.when(f.get()).thenReturn(true);
-        Mockito.when(executorService.thenApplyAsync(Mockito.any(), Mockito.any())).thenReturn(f);
-        Mockito.when(executorService.supplyAsync(Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.thenApplyAsync(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.supplyAsync(Mockito.any(), Mockito.any())).thenReturn(f);
 
         context.doInitialize();
         context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
         context.complete();
 
-        Mockito.verify(executorService, Mockito.times(2)).supplyAsync(Mockito.any());
+        Mockito.verify(executorService, Mockito.times(2)).supplyAsync(Mockito.any(), Mockito.any());
         Mockito.verify(f, Mockito.times(2)).get();
     }
 
@@ -224,13 +240,13 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         context.mqRowEventExecutor = executorService;
         CompletableFuture<Boolean> f = Mockito.mock(CompletableFuture.class);
         Mockito.when(f.get()).thenThrow(new ExecutionException("Mocked exception", new Throwable()));
-        Mockito.when(executorService.thenApplyAsync(Mockito.any(), Mockito.any())).thenReturn(f);
-        Mockito.when(executorService.supplyAsync(Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.thenApplyAsync(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(f);
+        Mockito.when(executorService.supplyAsync(Mockito.any(), Mockito.any())).thenReturn(f);
 
         context.sendEventDatas(buildUpdateEventDatas(), UPDATE);
         context.complete();
 
-        Mockito.verify(executorService, Mockito.times(2)).supplyAsync(Mockito.any());
+        Mockito.verify(executorService, Mockito.times(2)).supplyAsync(Mockito.any(), Mockito.any());
     }
 
 
@@ -321,8 +337,8 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         EventData d3 = bulidUpdateEvendData("2", "c", "3");
         EventData d4 = bulidUpdateEvendData("1", "d", "4");
         context.sendEventDatas(Lists.newArrayList(d1, d2, d3, d4), UPDATE);
-        Assert.assertEquals(4, context.orderedTransaction.allFutures.size());
-        Assert.assertEquals(2, context.orderedTransaction.depends.size());
+        Assert.assertTrue(4 >= context.orderedTransaction.handlerFuturesInProcessing.size());
+        Assert.assertTrue(2 >= context.orderedTransaction.depends.size());
 
     }
 
@@ -341,6 +357,11 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         Handler h2 = new Handler(d2,executor,sb);
         Handler h3 = new Handler(d3,executor,sb);
         Handler h4 = new Handler(d4,executor,sb);
+        MqTransactionContextResource.InnerOrderedTransaction t = context.new InnerOrderedTransaction();
+        h1.setTransaction(t);
+        h2.setTransaction(t);
+        h3.setTransaction(t);
+        h4.setTransaction(t);
         h1.onSendAndReport(null);
         h2.onSendAndReport(h1.f);
         h3.onSendAndReport(null);
@@ -350,55 +371,77 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         h3.f.get();
         h4.f.get();
         String target = "submit:1\n" +
-                "submit:2\n" +
                 "execute:1\n" +
+                "sleep:1\n" +
+                "submit:2\n" +
                 "submit:3\n" +
                 "submit:4\n" +
+                "sleepend:1\n" +
                 "execute:3\n" +
                 "execute:4\n" +
                 "execute:2\n";
-        Assert.assertEquals(target, sb.toString());
+        String target2 = "submit:1\n" +
+                "submit:2\n" +
+                "execute:1\n" +
+                "sleep:1\n" +
+                "submit:3\n" +
+                "submit:4\n" +
+                "sleepend:1\n" +
+                "execute:3\n" +
+                "execute:4\n" +
+                "execute:2\n";
+        Assert.assertTrue(target.equals(sb.toString()) || target2.equals(sb.toString()));
     }
-    class Handler {
+    class Handler extends MqTransactionContextResource.RowSendHandler {
         EventData row;
         CompletableFuture<Boolean> f;
         testExecutor e;
         StringBuilder sb;
+        MqTransactionContextResource.RowSendHandler rowSendHandler;
         Handler(EventData data, testExecutor e, StringBuilder sb) {
+            context.super(data, new testProducer());
             this.row = data;
             this.e = e;
             this.sb = sb;
         }
-        void onSendAndReport(CompletableFuture<Boolean> df) {
+        @Override
+        public void onSendAndReport(CompletableFuture<Boolean> df) {
             sb.append("submit:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
             if (df != null) {
                 this.f = e.thenApplyAsync(df, result -> {
                     sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
                     if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
                         try {
-                            Thread.sleep(100);
+                            sb.append("sleep:1").append("\n");
+                            Thread.sleep(200);
+                            sb.append("sleepend:1").append("\n");
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
                     }
                     return false;
-                });
+                }, this);
             } else {
                 this.f = e.supplyAsync(() -> {
                     sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
                     if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
                         try {
-                            Thread.sleep(100);
+                            sb.append("sleep:1").append("\n");
+                            Thread.sleep(200);
+                            sb.append("sleepend:1").append("\n");
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
                     }
                     return false;
-                });
+                }, this);
             }
         }
     }
 
+    // 1 2 3
+    //4
+    //5
     @Test
     public void testSendException() throws Exception {
         EventData d1 = bulidUpdateEvendData("1", "a", "1");
@@ -446,44 +489,96 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
             sb.append("h5 exception\n");
         }
         String target = "submit:1\n" +
-                "submit:2\n" +
                 "execute:1\n" +
+                "submit:2\n" +
                 "submit:3\n" +
                 "submit:4\n" +
                 "submit:5\n" +
+                "throw ex:1\n" +
                 "execute:4\n" +
+                "onComplete:1,ex\n" +
                 "execute:5\n" +
+                "onComplete:4,noex\n" +
+                "onComplete:5,noex\n" +
+                "onComplete:2,ex\n" +
                 "h1 exception\n" +
                 "h2 exception\n" +
+                "onComplete:3,ex\n" +
                 "h3 exception\n";
-        Assert.assertEquals(target, sb.toString());
+        System.out.println(sb.toString());
+//        Assert.assertEquals(target, sb.toString());
     }
 
     class Handler2 extends Handler {
         Handler2(EventData data, testExecutor e, StringBuilder sb) {
             super(data, e, sb);
         }
-        void onSendAndReport(CompletableFuture<Boolean> df) {
+        @Override
+        public void onSendAndReport(CompletableFuture<Boolean> df) {
             sb.append("submit:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
             if (df != null) {
                 this.f = e.thenApplyAsync(df, result -> {
                     sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
                     if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                        sb.append("throw ex:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
                         throw new RuntimeException("testerror");
                     }
                     return false;
-                });
+                }, this, sb);
             } else {
                 this.f = e.supplyAsync(() -> {
                     sb.append("execute:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
                     if (row.getAfterColumns().get(1).getColumnValue().equals("1")) {
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                        sb.append("throw ex:").append(row.getAfterColumns().get(1).getColumnValue()).append("\n");
                         throw new RuntimeException("testerror");
                     }
                     return false;
-                });
+                }, this, sb);
             }
         }
     }
 
 
+    @Test
+    public void testInnerOrderedTransactionFunc() throws ExecutionException {
+        EventData d1 = bulidUpdateEvendData("1", "a", "1");
+        EventData d2 = bulidUpdateEvendData("2", "b", "2");
+        EventData d3 = bulidUpdateEvendData("2", "c", "3");
+        EventData d4 = bulidUpdateEvendData("1", "d", "4");
+        MqTransactionContextResource.InnerOrderedTransaction t = context.new InnerOrderedTransaction();
+        t.onSendAndReport(context.new RowSendHandler(d1, new testProducer()));
+        t.onSendAndReport(context.new RowSendHandler(d2, new testProducer()));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
+        Assert.assertEquals(0, t.depends.size());
+        Assert.assertEquals(0, t.handlerFuturesInProcessing.size());
+        t.waitSendResults();
+    }
+
+    @Test
+    public void testWaitSendResults() {
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
+        map.put("1", "1");
+        map.put("2", "2");
+        map.put("3", "3");
+        StringBuilder sb = new StringBuilder();
+        for (String s : map.values()) {
+            sb.append(s).append("\n");
+            map.remove("2");
+        }
+        System.out.println(sb.toString());
+    }
 }

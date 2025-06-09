@@ -43,7 +43,7 @@ public class LoadEventActivityTest extends MockTest {
     @Test
     public void testDoTask() {
         loadEventActivity.doTask(rowsEvent);
-        verify(rowsEvent, times(1)).tryLoad();
+        verify(rowsEvent, times(1)).tryLoadAndRelease();
         Assert.assertEquals(count, 8);  // thread size
     }
 

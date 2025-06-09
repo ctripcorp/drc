@@ -76,15 +76,12 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     @VisibleForTesting
     protected InnerOrderedTransaction orderedTransaction;
 
-    AtomicInteger rowCnt;
-
     @Override
     public void doInitialize() throws Exception {
         rowsSize = new AtomicInteger(0);
         mqType = MqType.parseByApplyMode(ApplyMode.getApplyMode(applyMode)).name();
         mode = ApplyMode.getApplyMode(applyMode);
         orderedTransaction = new InnerOrderedTransaction();
-        rowCnt = new AtomicInteger(0);
         beginTrace("t");
     }
 
@@ -94,12 +91,6 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "rows", rowsSize.intValue(), 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "gtid", 1, 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "xid", 1, 0);
-        if (mqType.equals("qmq") && (rowCnt.get() != orderedTransaction.allFutures.size())) {
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.different.row.count.future", registryKey);
-        }
-        if (mqType.equals("qmq") && (rowsSize.get() != rowCnt.get())) {
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.different.row.count.send", registryKey);
-        }
     }
 
     @Override
@@ -136,7 +127,6 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                     for (EventData data : eventDatas) {
                         orderedTransaction.onSendAndReport(new RowSendHandler(data, producer));
                     }
-                    rowCnt.getAndAdd(eventDatas.size());
                     break;
             }
 
@@ -311,49 +301,63 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
     @Override
     public TransactionData.ApplyResult complete() {
-        try {
-            orderedTransaction.waitSendResults();
-        } catch (ExecutionException e) {
-            loggerMsgSend.error("[mqRowEventExecutor] ExecutionException, in {}", registryKey,e);
-            orderedTransaction.cancelFutures();
-            throw new RuntimeException(e);
-        }
-
+        orderedTransaction.waitSendResults();
         return TransactionData.ApplyResult.SUCCESS;
     }
 
 
 
-    public static class InnerOrderedTransaction {
+    public class InnerOrderedTransaction {
         @VisibleForTesting
-        protected ConcurrentHashMap<RowSendHandler.RowKey, CompletableFuture<Boolean>> depends = new ConcurrentHashMap<>();
+        protected ConcurrentHashMap<RowSendHandler.RowKey, RowSendHandler> depends = new ConcurrentHashMap<>();
         @VisibleForTesting
-        protected List<CompletableFuture<Boolean>> allFutures = Lists.newArrayList();
-
+        protected ConcurrentHashMap<RowSendHandler, CompletableFuture<Boolean>> handlerFuturesInProcessing  = new ConcurrentHashMap<>();
+        protected Throwable ex;
 
         public void onSendAndReport(RowSendHandler handler) {
-            CompletableFuture<Boolean> dependFuture = depends.getOrDefault(handler.key, null);
+            RowSendHandler dependHandler = depends.getOrDefault(handler.key, null);
+            if (ex != null) {
+                waitSendResults();
+            }
+            handler.setTransaction(this);
+            CompletableFuture<Boolean> dependFuture = dependHandler != null ? dependHandler.sendfuture : null;
             handler.onSendAndReport(dependFuture);
-            depends.put(handler.key, handler.sendfuture);
-            allFutures.add(handler.sendfuture);
+            depends.put(handler.key, handler);
+            handlerFuturesInProcessing.put(handler, handler.sendfuture);
         }
 
-
-        public void waitSendResults() throws ExecutionException {
-            for (CompletableFuture<Boolean> future : allFutures) {
-                try {
-                    future.get();
-                } catch (InterruptedException e) {
-                    loggerMsgSend.warn("[mqRowEventExecutor] InterruptedException", e);
-                    cancelFutures();
-                    Thread.currentThread().interrupt();
-                }
+        public void onComplete(RowSendHandler handler, Throwable e) {
+            depends.remove(handler.key, handler);
+            handlerFuturesInProcessing.remove(handler);
+            if (e != null) {
+                ex = e;
             }
         }
 
-        public void cancelFutures(){
-            for (Future<Boolean> f : allFutures) {
-                f.cancel(true);
+
+        public void waitSendResults() {
+            InterruptedException interruptedException = null;
+            ExecutionException executionException = null;
+            for (CompletableFuture<Boolean> future : handlerFuturesInProcessing.values()) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    interruptedException = e;
+                } catch (ExecutionException e) {
+                    executionException = e;
+                }
+            }
+            if (interruptedException != null) {
+                loggerMsgSend.error("[mqRowEventExecutor] InterruptedException, server may stopped: {}.", registryKey, interruptedException);
+                Thread.currentThread().interrupt();
+            }
+            if (executionException != null) {
+                loggerMsgSend.error("[mqRowEventExecutor] ExecutionException, in {}.", registryKey, executionException);
+                throw new RuntimeException(executionException);
+            }
+            if (ex != null) {
+                loggerMsgSend.error("[InnerOrderedTransaction] exception, in {}.", registryKey, ex);
+                throw new RuntimeException(ex);
             }
         }
 
@@ -364,13 +368,17 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         protected final EventData row;
         private final Producer producer;
         private CompletableFuture<Boolean> sendfuture;
-        protected static final Logger logger = LoggerFactory.getLogger("ORDER TRANSACTION");
         private final RowKey key;
+        private InnerOrderedTransaction transaction;
 
         public RowSendHandler(EventData data, Producer producer) {
             this.row = data;
             this.producer = producer;
             this.key = buildKey();
+        }
+
+        public void setTransaction(InnerOrderedTransaction transaction) {
+            this.transaction = transaction;
         }
 
         public final RowKey buildKey() {
@@ -382,10 +390,21 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
         public void onSendAndReport(CompletableFuture<Boolean> dependFuture) {
             if (dependFuture != null) {
-                this.sendfuture = mqRowEventExecutor.thenApplyAsync(dependFuture, result -> sendAndReport(Lists.newArrayList(row), row.getEventType(), producer));
+                this.sendfuture = mqRowEventExecutor.thenApplyAsync(
+                        dependFuture,
+                        result -> sendAndReport(Lists.newArrayList(row), row.getEventType(), producer),
+                        this
+                );
             } else {
-                this.sendfuture = mqRowEventExecutor.supplyAsync(() -> sendAndReport(Lists.newArrayList(row), row.getEventType(), producer));
+                this.sendfuture = mqRowEventExecutor.supplyAsync(
+                        () -> sendAndReport(Lists.newArrayList(row), row.getEventType(), producer),
+                        this
+                );
             }
+        }
+
+        public void onComplete(Throwable e) {
+            transaction.onComplete(this, e);
         }
 
         public static class RowKey {

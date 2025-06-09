@@ -57,8 +57,10 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
             while(length == CAPACITY && !isClosed) {
                 notFull.await();
             }
-            if (isClosed)
+            if (isClosed) {
+                event.release();
                 return;
+            }
             events[writeIndex] = event;
             writeIndex = (writeIndex + 1) % CAPACITY;
             if (event instanceof FetcherRowsEvent) {

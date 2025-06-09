@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.event.FetcherRowsEvent;
+import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
@@ -63,6 +64,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
                 return new RowsEventPostHeader();
             }
         }.read(byteBuf);
+        writeRowsEvent.setDirectMemory(mock(DirectMemory.class));
         LinkContext linkContext = mock(LinkContext.class);
         TableKey tableKey = TableKey.from("prod", "hello");
         tableKey.setColumns(mockOriginColumns());
@@ -72,7 +74,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
         when(linkContext.fetchColumns(tableKey)).thenReturn(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
-        writeRowsEvent.tryLoad();
+        writeRowsEvent.tryLoadAndRelease();
         Assert.assertTrue(writeRowsEvent.isLoaded());
     }
 
@@ -80,6 +82,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
     public void testEnum() throws Exception {
         ByteBuf byteBuf = initEnumRowsByteBuf();
         TestEvent writeRowsEvent = (TestEvent) new TestEvent().read(byteBuf);
+        writeRowsEvent.setDirectMemory(mock(DirectMemory.class));
         LinkContext linkContext = mock(LinkContext.class);
         TableKey tableKey = TableKey.from("prod", "hello");
 
@@ -90,7 +93,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
         tableKey.setColumns(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
-        writeRowsEvent.tryLoad();
+        writeRowsEvent.tryLoadAndRelease();
         List<List<Object>> values = writeRowsEvent.getBeforePresentRowsValues();
         Assert.assertEquals(values.size(), 2);
         List<Object> firstRow = values.get(0);

@@ -56,7 +56,7 @@
         <maven-source-plugin.version>3.0.0</maven-source-plugin.version>
         <curator.version>5.1.0</curator.version>
         <zookeeper.version>3.8.2</zookeeper.version>
-        <log4j2.version>2.15.0</log4j2.version>
+        <log4j2.version>2.17.1</log4j2.version>
         <fastsql.version>2.0.0_preview_973</fastsql.version>
         <mockito-core.version>3.4.0</mockito-core.version>
         <byte-buddy.version>1.15.3</byte-buddy.version>

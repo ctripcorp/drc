@@ -73,17 +73,21 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
         }
     }
 
-    public void tryLoad() {
+    public void tryLoadAndRelease() {
         if (lock.tryLock()) {
             try {
+                if (released.get()) {
+                    return;
+                }
                 if (!isLoaded) {
                     load(columns);
                     isLoaded = true;
+                    release();
                 }
             } catch (Throwable t) {
                 ByteBuf headerByteBuf = getLogEventHeader().getHeaderBuf();
                 ByteBuf payloadByteBuf = getPayloadBuf();
-                logger.error("{}.tryLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf, 0, headerByteBuf.writerIndex()), ByteBufUtil.hexDump(payloadByteBuf, 0, headerByteBuf.writerIndex()), t);
+                logger.error("{}.tryLoadAndRelease() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf, 0, headerByteBuf.writerIndex()), ByteBufUtil.hexDump(payloadByteBuf, 0, headerByteBuf.writerIndex()), t);
             } finally {
                 lock.unlock();
             }
@@ -112,9 +116,14 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
 
     @Override
     public void release() {
-        if (released.compareAndSet(false, true)) {
-            directMemory.release(getLogEventHeader().getEventSize());
-            super.release();
+        lock.lock();
+        try {
+            if (released.compareAndSet(false, true)) {
+                directMemory.release(getLogEventHeader().getEventSize());
+                super.release();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
