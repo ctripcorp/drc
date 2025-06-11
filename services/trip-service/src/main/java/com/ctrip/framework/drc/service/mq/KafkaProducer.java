@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -67,19 +69,25 @@ public class KafkaProducer extends AbstractProducer {
     }
 
     @Override
-    public boolean send(List<EventData> eventDatas, EventType eventType) {
-        if (producerException) {
-            throw new RuntimeException(String.format("topic: %s producer error, stop server", topic));
-        }
+    public boolean sendQmq(List<EventData> eventDatas, EventType eventType) {
+        return false;
+    }
 
+    @Override
+    public boolean sendKafka(List<EventData> eventDatas, EventType eventType, Pair<Phaser, AtomicInteger> phaserAndCounter) {
         if (!CollectionUtils.isEmpty(excludeFilterTypes) && excludeFilterTypes.contains(eventType.getValue())) {
             return false;
         }
+
+        Phaser phaser = phaserAndCounter.getKey();
+        AtomicInteger counter = phaserAndCounter.getValue();
         for (EventData eventData : eventDatas) {
             Pair<String, String> messagePair = generateMessage(eventData);
             if (messagePair == null) {
                 return false;
             }
+            phaser.register();
+            counter.getAndIncrement();
 
             String partitionKey = messagePair.getKey();
             String message = messagePair.getValue();
@@ -87,15 +95,25 @@ public class KafkaProducer extends AbstractProducer {
             producer.send(new ProducerRecord<>(topic, partitionKey, message), new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata recordMetadata, Exception e) {
-                    if (e == null) {
-                        loggerMsgSend.info("[kafka]topic: {} send partitionKey:{},  message: {}, cost:{} us", topic, partitionKey, message, (System.nanoTime() - start) / 1000);
-                    } else {
-                        loggerMsgSend.error("[kafka]topic: {} send message: {} error", topic, message, e);
-                        producerException = true;
+                    try {
+                        if (e == null) {
+                            producerException = false;
+                            counter.decrementAndGet();
+                            loggerMsgSend.info("[kafka]topic: {} send partitionKey:{},  message: {}, cost:{} us", topic, partitionKey, message, (System.nanoTime() - start) / 1000);
+                        } else {
+                            loggerMsgSend.error("[kafka]topic: {} send message: {} error", topic, message, e);
+                            producerException = true;
+                        }
+                    } finally {
+                        phaser.arriveAndDeregister();
                     }
+
                 }
             });
+        }
 
+        if (producerException) {
+            throw new RuntimeException(String.format("topic: %s producer error, stop server", topic));
         }
         return true;
     }

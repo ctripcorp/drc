@@ -6,8 +6,6 @@ import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.*;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.TransactionContextResource;
 import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
@@ -27,19 +25,18 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static com.ctrip.framework.drc.messenger.activity.monitor.MqMetricsActivity.measurementDelay;
 
 /**
  * Created by jixinwang on 2022/10/12
  */
-public class MqTransactionContextResource extends TransactionContextResource implements SQLUtil {
+public abstract class MqTransactionContextResource extends TransactionContextResource implements SQLUtil {
 
-    private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
+    protected static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
 
     private static final Charset DEFAULT_BINARY_CHARSET = StandardCharsets.ISO_8859_1;
 
@@ -49,18 +46,12 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     @InstanceActivity
     public MqMetricsActivity mqMetricsActivity;
 
-    @InstanceConfig(path = "applyMode")
-    public int applyMode;
+    protected AtomicInteger rowsSize;
 
-    private AtomicInteger rowsSize;
-
-    private String mqType;
-    private ApplyMode mode;
-
-    private static final Map<String, AtomicInteger> activeThreadsMap = Maps.newConcurrentMap();
+    protected static final Map<String, AtomicInteger> activeThreadsMap = Maps.newConcurrentMap();
 
     //todo: might change to another logEventHeader when multi-thread sending different rowsEvent
-    private LogEventHeader logEventHeader;
+    protected LogEventHeader logEventHeader;
 
     public static int getConcurrency(String registryKey) {
         return activeThreadsMap.containsKey(registryKey) ? activeThreadsMap.get(registryKey).get() : 0;
@@ -72,16 +63,9 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     @InstanceResource
     public MqRowEventExecutor mqRowEventExecutor;
 
-
-    @VisibleForTesting
-    protected InnerOrderedTransaction orderedTransaction;
-
     @Override
     public void doInitialize() throws Exception {
         rowsSize = new AtomicInteger(0);
-        mqType = MqType.parseByApplyMode(ApplyMode.getApplyMode(applyMode)).name();
-        mode = ApplyMode.getApplyMode(applyMode);
-        orderedTransaction = new InnerOrderedTransaction();
         beginTrace("t");
     }
 
@@ -91,6 +75,10 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "rows", rowsSize.intValue(), 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "gtid", 1, 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "xid", 1, 0);
+    }
+
+    public void disposeResource() {
+
     }
 
     @Override
@@ -119,17 +107,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
     protected void sendEventDatas(List<EventData> eventDatas, EventType eventType) {
         List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
         for (Producer producer : producers) {
-            switch (mode) {
-                case kafka:
-                    sendAndReport(eventDatas, eventType, producer);
-                    break;
-                case mq:
-                    for (EventData data : eventDatas) {
-                        orderedTransaction.onSendAndReport(new RowSendHandler(data, producer));
-                    }
-                    break;
-            }
-
+            send(eventDatas, eventType, producer);
         }
 
         if (progress != null) {
@@ -137,20 +115,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         }
     }
 
-    @VisibleForTesting
-    protected boolean sendAndReport(List<EventData> eventDatas, EventType eventType, Producer producer) {
-        AtomicInteger atomicInteger = activeThreadsMap.computeIfAbsent(registryKey, (key) -> new AtomicInteger(0));
-        atomicInteger.getAndIncrement();
-        try {
-            reportHickWall(eventDatas,System.currentTimeMillis() - logEventHeader.getEventTimestamp() * 1000, measurementDelay, mqType);
-            boolean send = producer.send(eventDatas, eventType);
-            rowsSize.getAndAdd(eventDatas.size());
-            reportHickWall(eventDatas, producer.getTopic(), mqType, send);
-            return send;
-        } finally {
-            atomicInteger.getAndDecrement();
-        }
-    }
+    protected abstract void send(List<EventData> eventDatas, EventType eventType, Producer producer);
 
 
     private List<EventData> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Columns columns, EventType eventType) {
@@ -231,7 +196,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         return value.toString();
     }
 
-    private void reportHickWall(List<EventData> eventDatas, String topic, String mqType, boolean send) {
+    protected void reportHickWall(List<EventData> eventDatas, String topic, String mqType, boolean send) {
         if (!eventDatas.isEmpty()) {
             EventData eventData = eventDatas.get(0);
             MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag(), topic, mqType, send);
@@ -239,7 +204,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         }
     }
 
-    private void reportHickWall(List<EventData> eventDatas, long timeCost, String metricName, String mqType) {
+    protected void reportHickWall(List<EventData> eventDatas, long timeCost, String metricName, String mqType) {
         if (!eventDatas.isEmpty()) {
             EventData eventData = eventDatas.get(0);
             MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), timeCost, registryKey,metricName, mqType);
@@ -299,147 +264,5 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         this.logEventHeader = logEventHeader;
     }
 
-    @Override
-    public TransactionData.ApplyResult complete() {
-        orderedTransaction.waitSendResults();
-        return TransactionData.ApplyResult.SUCCESS;
-    }
 
-
-
-    public class InnerOrderedTransaction {
-        @VisibleForTesting
-        protected ConcurrentHashMap<RowSendHandler.RowKey, RowSendHandler> depends = new ConcurrentHashMap<>();
-        @VisibleForTesting
-        protected ConcurrentHashMap<RowSendHandler, CompletableFuture<Boolean>> handlerFuturesInProcessing  = new ConcurrentHashMap<>();
-        protected Throwable ex;
-
-        public void onSendAndReport(RowSendHandler handler) {
-            RowSendHandler dependHandler = depends.getOrDefault(handler.key, null);
-            if (ex != null) {
-                waitSendResults();
-            }
-            handler.setTransaction(this);
-            CompletableFuture<Boolean> dependFuture = dependHandler != null ? dependHandler.sendfuture : null;
-            handler.onSendAndReport(dependFuture);
-            depends.put(handler.key, handler);
-            handlerFuturesInProcessing.put(handler, handler.sendfuture);
-        }
-
-        public void onComplete(RowSendHandler handler, Throwable e) {
-            depends.remove(handler.key, handler);
-            handlerFuturesInProcessing.remove(handler);
-            if (e != null) {
-                ex = e;
-            }
-        }
-
-
-        public void waitSendResults() {
-            InterruptedException interruptedException = null;
-            ExecutionException executionException = null;
-            for (CompletableFuture<Boolean> future : handlerFuturesInProcessing.values()) {
-                try {
-                    future.get();
-                } catch (InterruptedException e) {
-                    interruptedException = e;
-                } catch (ExecutionException e) {
-                    executionException = e;
-                }
-            }
-            if (interruptedException != null) {
-                loggerMsgSend.error("[mqRowEventExecutor] InterruptedException, server may stopped: {}.", registryKey, interruptedException);
-                Thread.currentThread().interrupt();
-            }
-            if (executionException != null) {
-                loggerMsgSend.error("[mqRowEventExecutor] ExecutionException, in {}.", registryKey, executionException);
-                throw new RuntimeException(executionException);
-            }
-            if (ex != null) {
-                loggerMsgSend.error("[InnerOrderedTransaction] exception, in {}.", registryKey, ex);
-                throw new RuntimeException(ex);
-            }
-        }
-
-    }
-
-
-    public class RowSendHandler {
-        protected final EventData row;
-        private final Producer producer;
-        private CompletableFuture<Boolean> sendfuture;
-        private final RowKey key;
-        private InnerOrderedTransaction transaction;
-
-        public RowSendHandler(EventData data, Producer producer) {
-            this.row = data;
-            this.producer = producer;
-            this.key = buildKey();
-        }
-
-        public void setTransaction(InnerOrderedTransaction transaction) {
-            this.transaction = transaction;
-        }
-
-        public final RowKey buildKey() {
-            List<EventColumn> columns = row.getEventType() == EventType.INSERT ? row.getAfterColumns() : row.getBeforeColumns();
-            String primaryKeyPattern = columns.stream().filter(EventColumn::isKey).map(EventColumn::getColumnValue).collect(Collectors.joining(";"));
-            return new RowKey(row.getSchemaName(), row.getTableName(), primaryKeyPattern, producer.getTopic());
-        }
-
-
-        public void onSendAndReport(CompletableFuture<Boolean> dependFuture) {
-            if (dependFuture != null) {
-                this.sendfuture = mqRowEventExecutor.thenApplyAsync(
-                        dependFuture,
-                        result -> sendAndReport(Lists.newArrayList(row), row.getEventType(), producer),
-                        this
-                );
-            } else {
-                this.sendfuture = mqRowEventExecutor.supplyAsync(
-                        () -> sendAndReport(Lists.newArrayList(row), row.getEventType(), producer),
-                        this
-                );
-            }
-        }
-
-        public void onComplete(Throwable e) {
-            transaction.onComplete(this, e);
-        }
-
-        public static class RowKey {
-            String schemaName;
-            String tableName;
-            String primaryKey;
-            String topic;
-
-            public RowKey(String schemaName, String tableName, String primaryKey, String topic) {
-                this.schemaName = schemaName;
-                this.tableName = tableName;
-                this.primaryKey = primaryKey;
-                this.topic = topic;
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null || getClass() != obj.getClass()) {
-                    return false;
-                }
-                RowKey other = (RowKey) obj;
-                return schemaName.equals(other.schemaName) &&
-                        tableName.equals(other.tableName) &&
-                        primaryKey.equals(other.primaryKey) &&
-                        topic.equals(other.topic);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(schemaName, tableName, primaryKey, topic);
-            }
-        }
-
-    }
 }

@@ -64,8 +64,6 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     private final Map<MhaInfo, Long> receiveTimeMap = Maps.newConcurrentMap();
     private final ScheduledExecutorService checkScheduledExecutor =
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
-    private ScheduledFuture<?> checkTaskFuture;
-
     //in case duplicate consumption
     private final Map<String, Pair<Integer, Long>> mhaLastReceiveMap = Maps.newConcurrentMap();
 
@@ -87,7 +85,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             kafkaConf.put(HermesConsumerConfig.HERMES_MESSAGE_CLASS_CONFIG, String.class.getCanonicalName());
             kafkaConf.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
             kafkaConf.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-            checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss, 5, 1, TimeUnit.SECONDS);
+            checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss, 5, 1, TimeUnit.SECONDS);
             logger.info("kafka conf init over");
 
         } catch (Exception e) {
@@ -113,6 +111,9 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                             kafkaConsumer.commitSync();
                         }
                     } catch (KafkaException e) {
+                        if (e instanceof WakeupException) {
+                            throw e;
+                        }
                         logger.warn("[[monitor=delay,mqType=kafka]] consumer exception: ", e);
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
                         kafkaConsumer.seekToEnd(kafkaConsumer.assignment());
@@ -120,6 +121,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
                 }
             } catch (WakeupException e) {
                 logger.info("going to close kafkaConsumer", e);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.wakeup", e.getMessage());
             } catch (Exception e) {
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.delay.consumer.fail", e.getMessage());
                 logger.warn("unexpected exception occur in kafkaConsumer", e);
@@ -181,20 +183,24 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     }
 
     private void checkDelayLoss() {
-
-        for (String mhaName : mhasRelated) {
-            MhaInfo mhaInfo = new MhaInfo(mhaName, mha2Dc.get(mhaName), MqType.kafka.name());
-            Long receiveTime = receiveTimeMap.putIfAbsent(mhaInfo, System.currentTimeMillis());
-            if (receiveTime == null) {
-                continue;
+        try {
+            logger.info("[[monitor=delay,mqType=kafka]] start to checkDelayLoss");
+            for (String mhaName : mhasRelated) {
+                MhaInfo mhaInfo = new MhaInfo(mhaName, mha2Dc.get(mhaName), MqType.kafka.name());
+                Long receiveTime = receiveTimeMap.putIfAbsent(mhaInfo, System.currentTimeMillis());
+                if (receiveTime == null) {
+                    continue;
+                }
+                long curTime = System.currentTimeMillis();
+                long timeDiff = curTime - receiveTime;
+                if (timeDiff > TOLERANCE_TIME) {
+                    logger.error("[[monitor=delay,mqType=kafka]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
+                    DefaultReporterHolder.getInstance()
+                            .reportResetTimer(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
+                }
             }
-            long curTime = System.currentTimeMillis();
-            long timeDiff = curTime - receiveTime;
-            if (timeDiff > TOLERANCE_TIME) {
-                logger.error("[[monitor=delay,mqType=kafka]] mha:{}, delayMessageLoss ,curTime:{}, receiveTime:{}, report Huge to trigger alarm", mhaInfo.getMhaName(), curTime, receiveTime);
-                DefaultReporterHolder.getInstance()
-                        .reportResetTimer(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
-            }
+        } catch (Exception e) {
+            logger.error("checkDelayLoss error", e);
         }
     }
 
@@ -252,10 +258,9 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
     @Override
     public boolean stopConsume() {
         logger.info("[KafkaDelayMessageConsumer] stopConsume Kafka");
-        if (future == null || checkTaskFuture == null) {
+        if (future == null) {
             return false;
         }
-        checkTaskFuture.cancel(true);
         receiveTimeMap.clear();
         mhaLastReceiveMap.clear();
         if (kafkaConsumer != null) {
@@ -275,9 +280,6 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             return false;
         }
 
-        if (checkTaskFuture == null || checkTaskFuture.isCancelled() || checkTaskFuture.isDone()) {
-            checkTaskFuture = checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss, 5, 1, TimeUnit.SECONDS);
-        }
         try {
             kafkaConsumer = KafkaClientFactory.newConsumer(subject, consumerGroup, kafkaConf);
             kafkaConsumer.seekToEnd(kafkaConsumer.assignment());

@@ -11,6 +11,7 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.dianping.cat.Cat;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -23,7 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.MESSENGER_DELAY_MONITOR_TOPIC;
@@ -88,7 +91,7 @@ public class QmqProducer extends AbstractProducer {
     }
 
     @Override
-    public boolean send(List<EventData> eventDatas, EventType eventType) {
+    public boolean sendQmq(List<EventData> eventDatas, EventType eventType) {
         if (subenvSwitch && !StringUtils.isEmpty(qmqTraceSubenv) && !MESSENGER_DELAY_MONITOR_TOPIC.equals(topic)) {
             Cat.getTraceContext(true).add(SUB_ENV, qmqTraceSubenv);
         }
@@ -123,6 +126,11 @@ public class QmqProducer extends AbstractProducer {
         }
 
         return true;
+    }
+
+    @Override
+    public boolean sendKafka(List<EventData> eventDatas, EventType eventType, Pair<Phaser, AtomicInteger> phaserAndCounter) {
+        return false;
     }
 
     /**

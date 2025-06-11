@@ -11,7 +11,7 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
     private static final String KAFKA_APPID_TOKEN = "kafka.appid.token";
 
     private static final String LINGER_MS_CONFIG = "kafka.linger.ms";
-    private static final String DEFAULT_LINGER_MS_CONFIG = "500";
+    private static final String DEFAULT_LINGER_MS_CONFIG = "0";
 
     private static final String BATCH_SIZE_CONFIG = "kafka.batch.size";
     private static final String DEFAULT_BATCH_SIZE_CONFIG = "163840";
@@ -36,7 +36,6 @@ public class TripServiceDynamicConfig extends AbstractConfigBean {
 
     private static final String CKAFKA_CREATE_URL = "ckafka.topic.create.url";
     private static final String DEFAULT_CKAFKA_CREATE_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/CreateTopicInFWS";
-
 
     private TripServiceDynamicConfig() {}
 
