@@ -9,7 +9,8 @@ import com.ctrip.framework.drc.messenger.container.MqServerContainerTest;
 import com.ctrip.framework.drc.messenger.container.controller.MqServerControllerTest;
 import com.ctrip.framework.drc.messenger.container.controller.task.WatchKeyedTaskTest;
 import com.ctrip.framework.drc.messenger.mq.*;
-import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResourceTest;
+import com.ctrip.framework.drc.messenger.resource.context.KafkaTransactionContextResourceTest;
+import com.ctrip.framework.drc.messenger.resource.context.QmqTransactionContextResourceTest;
 import com.ctrip.framework.drc.messenger.server.LocalApplierServerTest;
 import com.ctrip.framework.drc.messenger.server.MessengerWatcherTest;
 import com.ctrip.framework.drc.messenger.server.MqServerInClusterTest;
@@ -48,7 +49,8 @@ import java.util.Random;
         MqPositionResourceTest.class,
         MqProviderResourceTest.class,
 
-        MqTransactionContextResourceTest.class,
+        QmqTransactionContextResourceTest.class,
+        KafkaTransactionContextResourceTest.class,
 
         //Server
         MessengerWatcherTest.class,

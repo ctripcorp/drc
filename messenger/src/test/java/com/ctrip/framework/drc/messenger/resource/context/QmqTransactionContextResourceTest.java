@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.messenger.mq.MqProvider;
 import com.ctrip.framework.drc.messenger.resource.thread.MqRowEventExecutorResource;
 import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,6 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -37,13 +40,13 @@ import static com.ctrip.framework.drc.core.mq.EventType.*;
  * Created by shiruixin
  * 2024/11/8 16:52
  */
-public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTest {
+public class QmqTransactionContextResourceTest implements ApplierColumnsRelatedTest {
     private static final String gtid = "6afbad2c-fabe-11e9-878b-fa163eb626bd";
 
     private static final String schema = "prod";
     private static final String table = "hello1";
 
-    private MqTransactionContextResource context;
+    private QmqTransactionContextResource context;
 
     private MockedStatic<MqDynamicConfig> theMockConfig;
 
@@ -59,14 +62,13 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         MqRowEventExecutorResource mqRowEventExecutorResource = new testExecutor();
         mqRowEventExecutorResource.initialize();
 
-        context = new MqTransactionContextResource();
+        context = new QmqTransactionContextResource();
         context.updateDcTag(NON_LOCAL);
         context.setTableKey(TableKey.from(schema, table));
         context.updateGtid(gtid);
         MqProvider mockProvider = Mockito.mock(MqProvider.class);
         context.mqProvider = mockProvider;
         context.registryKey = "registryKey";
-        context.applyMode = 2;
         context.mqRowEventExecutor = mqRowEventExecutorResource;
         LogEventHeader logEventHeader = Mockito.mock(LogEventHeader.class);
         context.setLogEventHeader(logEventHeader);
@@ -190,7 +192,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
             });
         }
 
-        public CompletableFuture<Boolean> supplyAsync(Supplier<Boolean> supplier, MqTransactionContextResource.RowSendHandler handler, StringBuilder sb) {
+        public CompletableFuture<Boolean> supplyAsync(Supplier<Boolean> supplier, QmqTransactionContextResource.RowSendHandler handler, StringBuilder sb) {
             return CompletableFuture.supplyAsync(supplier, internal)
                     .whenCompleteAsync((result, e) -> {
                         sb.append("onComplete:").append(handler.row.getAfterColumns().get(1).getColumnValue()).append(e == null ? ",noex" :  ",ex").append("\n");
@@ -198,7 +200,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         }
     }
 
-    class testProducer implements Producer {
+     class testProducer implements Producer {
 
         @Override
         public String getTopic() {
@@ -206,9 +208,14 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         }
 
         @Override
-        public boolean send(List<EventData> eventDatas, EventType eventType) {
+        public boolean sendQmq(List<EventData> eventDatas, EventType eventType) {
             finalEventDatas = eventDatas;
             return true;
+        }
+
+        @Override
+        public boolean sendKafka(List<EventData> eventDatas, EventType eventType, Pair<Phaser, AtomicInteger> phaserAndCounter) {
+            return false;
         }
 
         @Override
@@ -357,7 +364,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         Handler h2 = new Handler(d2,executor,sb);
         Handler h3 = new Handler(d3,executor,sb);
         Handler h4 = new Handler(d4,executor,sb);
-        MqTransactionContextResource.InnerOrderedTransaction t = context.new InnerOrderedTransaction();
+        QmqTransactionContextResource.InnerOrderedTransaction t = context.new InnerOrderedTransaction();
         h1.setTransaction(t);
         h2.setTransaction(t);
         h3.setTransaction(t);
@@ -392,12 +399,12 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
                 "execute:2\n";
         Assert.assertTrue(target.equals(sb.toString()) || target2.equals(sb.toString()));
     }
-    class Handler extends MqTransactionContextResource.RowSendHandler {
+    class Handler extends QmqTransactionContextResource.RowSendHandler {
         EventData row;
         CompletableFuture<Boolean> f;
         testExecutor e;
         StringBuilder sb;
-        MqTransactionContextResource.RowSendHandler rowSendHandler;
+        QmqTransactionContextResource.RowSendHandler rowSendHandler;
         Handler(EventData data, testExecutor e, StringBuilder sb) {
             context.super(data, new testProducer());
             this.row = data;
@@ -555,7 +562,7 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
         EventData d2 = bulidUpdateEvendData("2", "b", "2");
         EventData d3 = bulidUpdateEvendData("2", "c", "3");
         EventData d4 = bulidUpdateEvendData("1", "d", "4");
-        MqTransactionContextResource.InnerOrderedTransaction t = context.new InnerOrderedTransaction();
+        QmqTransactionContextResource.InnerOrderedTransaction t = context.new InnerOrderedTransaction();
         t.onSendAndReport(context.new RowSendHandler(d1, new testProducer()));
         t.onSendAndReport(context.new RowSendHandler(d2, new testProducer()));
         try {

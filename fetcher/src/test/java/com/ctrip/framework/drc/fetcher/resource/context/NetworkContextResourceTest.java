@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.GtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,6 +32,7 @@ public class NetworkContextResourceTest {
     public void setUp() throws Exception {
         networkContextResource.initialGtidExecuted = initialGtidExecuted;
         networkContextResource.registryKey = registryKey;
+        networkContextResource.mqPosition = new TestMqPosition();
         MockitoAnnotations.openMocks(this);
     }
 
@@ -81,13 +83,14 @@ public class NetworkContextResourceTest {
 
     @Test
     public void testQueryMessengerPositionFromDb() throws Exception {
-        NetworkContextResource networkContextResource1 = new NetworkContextResource();
+        NetworkContextResource networkContextResource1 = new TestNetworkContextResource();
+        networkContextResource1.mqPosition = new TestMqPosition();
         networkContextResource1.initialGtidExecuted = "a33ded23-6960-11eb-a8e0-fa163e02998c:1-58";
         networkContextResource1.applyMode = ApplyMode.kafka.getType();
         networkContextResource1.initialize();
         GtidSet gtidSet = networkContextResource1.fetchGtidSet();
-        Assert.assertEquals(gtidSet, new GtidSet(""));
-        Assert.assertTrue(networkContextResource1.emptyPositionFromDb);
+        Assert.assertEquals(gtidSet, new GtidSet("a33ded23-6960-11eb-a8e0-fa163e02998c:1-58"));
+        Assert.assertFalse(networkContextResource1.emptyPositionFromDb);
     }
 
 
@@ -97,7 +100,7 @@ public class NetworkContextResourceTest {
         networkContextResource1.applyMode = ApplyMode.db_transaction_table.getType();
         networkContextResource1.getExecutedGtidReaders(null);
     }
-    class TestNetworkContextResource extends NetworkContextResource{
+    static class TestNetworkContextResource extends NetworkContextResource{
 
         @Override
         protected GtidSet queryPositionFromDb() {
@@ -105,8 +108,7 @@ public class NetworkContextResourceTest {
         }
     }
 
-    class TestMqPositionResource implements MqPosition {
-
+    static class TestMqPosition implements MqPosition {
         @Override
         public void add(Gtid gtid) {
 
@@ -117,5 +119,9 @@ public class NetworkContextResourceTest {
 
         }
 
+        @Override
+        public Pair<GtidSet, Boolean> getPosition() {
+            return Pair.of(new GtidSet(StringUtils.EMPTY), false);
+        }
     }
 }
