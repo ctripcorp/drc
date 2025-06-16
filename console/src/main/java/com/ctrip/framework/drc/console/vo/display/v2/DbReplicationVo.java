@@ -12,6 +12,7 @@ public class DbReplicationVo {
     private String mhaName;
     private String dcName;
     private String mqPanelUrl;
+    private String mqConfig;
 
     public Long getDbReplicationId() {
         return dbReplicationId;
@@ -67,5 +68,13 @@ public class DbReplicationVo {
 
     public void setMqPanelUrl(String mqPanelUrl) {
         this.mqPanelUrl = mqPanelUrl;
+    }
+
+    public String getMqConfig() {
+        return mqConfig;
+    }
+
+    public void setMqConfig(String mqConfig) {
+        this.mqConfig = mqConfig;
     }
 }

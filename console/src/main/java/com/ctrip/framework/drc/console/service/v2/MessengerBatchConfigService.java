@@ -7,11 +7,11 @@ import com.ctrip.framework.drc.console.dto.v3.DbMqEditDto;
 public interface MessengerBatchConfigService {
 
 
-    void processCreateMqConfig(DbMqCreateDto createDto, DbMqConfigInfoDto currentConfig);
+    void processCreateMqConfig(DbMqCreateDto createDto, DbMqConfigInfoDto currentConfig) throws Exception;
 
-    void processDeleteMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto dbMqConfig);
+    void processDeleteMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto dbMqConfig) throws Exception;
 
-    void processUpdateMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto dbMqConfig);
+    void processUpdateMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto dbMqConfig) throws Exception;
 
-    void refreshRegistryConfig(DbMqConfigInfoDto currentConfig);
+    void refreshRegistryConfig(DbMqConfigInfoDto currentConfig) throws Exception;
 }
