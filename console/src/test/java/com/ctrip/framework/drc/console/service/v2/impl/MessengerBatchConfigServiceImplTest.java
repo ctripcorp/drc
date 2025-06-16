@@ -84,7 +84,7 @@ public class MessengerBatchConfigServiceImplTest {
     }
 
     @Test(expected = ConsoleException.class)
-    public void testDeleteException() throws SQLException {
+    public void testDeleteException() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         editDto.getOriginLogicTableConfig().setMessengerFilterId(null);
         DbMqConfigInfoDto currentConfig = getCurrentConfig();
@@ -93,7 +93,7 @@ public class MessengerBatchConfigServiceImplTest {
     }
 
     @Test(expected = ConsoleException.class)
-    public void testDelete() throws SQLException {
+    public void testDelete() throws Exception {
         DbMqEditDto editDto = getDbMqEditDto();
         DbMqConfigInfoDto currentConfig = getCurrentConfig();
 
@@ -102,7 +102,7 @@ public class MessengerBatchConfigServiceImplTest {
 
 
     @Test
-    public void testCreate() throws SQLException {
+    public void testCreate() throws Exception {
         DbMqCreateDto createDto = getDbMqCreateDto();
         LogicTableConfig logicTableConfig = new LogicTableConfig();
         logicTableConfig.setLogicTable("table1");

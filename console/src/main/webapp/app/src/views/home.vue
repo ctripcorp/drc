@@ -17,7 +17,9 @@ export default {
     const that = this
     this.dataLoading = true
     this.axios.get('/api/drc/v1/meta/panelUrl').then((response) => {
-      that.panelUrl = response.data.data
+      const currentProtocol = window.location.protocol
+      const url = response.data.data.replace(/^https?:/, currentProtocol) // 去掉冒号
+      that.panelUrl = url
       that.dataLoading = false
       console.log(that.panelUrl)
     })

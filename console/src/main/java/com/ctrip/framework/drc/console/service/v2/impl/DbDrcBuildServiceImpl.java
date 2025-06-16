@@ -1071,7 +1071,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void createDbMqReplication(DbMqCreateDto createDto) {
+    public void createDbMqReplication(DbMqCreateDto createDto) throws Exception {
         createDto.validAndTrim();
         DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(createDto.getDalclusterName(), createDto.getDbNames(), createDto.getSrcRegionName(), createDto.getMqConfig().getMqTypeEnum());
         messengerBatchConfigService.processCreateMqConfig(createDto, dbMqConfig);
@@ -1079,7 +1079,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
         this.refreshRegistryConfig(createDto);
     }
 
-    private void refreshRegistryConfig(DbMqCreateDto createDto) {
+    private void refreshRegistryConfig(DbMqCreateDto createDto) throws Exception {
         if (createDto.getMqConfig().getMqTypeEnum().notSupportDalClient()) {
             return;
         }
@@ -1091,7 +1091,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w", exceptionWrappedByDalException = false)
-    public void editDbMqReplication(DbMqEditDto editDto) {
+    public void editDbMqReplication(DbMqEditDto editDto) throws Exception {
         editDto.validAndTrim();
         DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDalclusterName(), editDto.getDbNames(), editDto.getSrcRegionName(), editDto.getMqConfig().getMqTypeEnum());
         // check original config not modified
@@ -1108,7 +1108,7 @@ public class DbDrcBuildServiceImpl implements DbDrcBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDbMqReplication(DbMqEditDto editDto) {
+    public void deleteDbMqReplication(DbMqEditDto editDto) throws Exception {
         editDto.validAndTrim();
         DbMqConfigInfoDto dbMqConfig = this.getDbMqConfig(editDto.getDalclusterName(), editDto.getDbNames(), editDto.getSrcRegionName(), editDto.getMqConfig().getMqTypeEnum());
         // check original config not modified

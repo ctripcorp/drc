@@ -88,15 +88,42 @@
       <Layout>
         <Header class="header">
           <Row>
-            <i-col span="4" style="" push="21">
+            <i-col span="8" style="" push="16">
               <Menu mode="horizontal" :active-name="activeName">
+                <Submenu name="0">
+                  <template slot="title">
+                    {{ currentEnvironment }}
+                  </template>
+                  <MenuItem>
+                    <a class="a" @click.prevent="changeEnvironment('prod')">生产环境</a>
+                  </MenuItem>
+                  <MenuItem>
+                    <a class="a" @click.prevent="changeEnvironment('fws')">测试环境</a>
+                  </MenuItem>
+                  <MenuItem>
+                    <a class="a" @click.prevent="changeEnvironment('uat')">UAT环境</a>
+                  </MenuItem>
+                </Submenu>
+                <Submenu name="1">
+                  <template slot="title">
+                    消息投递查询
+                  </template>
+                  <MenuItem>
+                    <a class="a" @click.prevent="goToShowMq('qmq')">QMQ投递</a></MenuItem>
+                  <MenuItem>
+                    <a class="a"  @click.prevent="goToShowMq('kafka')">KAFKA投递</a></MenuItem>
+
+                </Submenu>
                 <Submenu name="2">
                   <template slot="title">
                     帮助
                   </template>
+                  <MenuItem name="help0">
+                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=1338633000' target="_blank">binlog消息接入文档</a></MenuItem>
                   <MenuItem name="help1">
-                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=2130543490'>冲突自助处理</a></MenuItem>
-                  <MenuItem name="help2">帮助2</MenuItem>
+                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=2130543490' target="_blank">冲突自助处理</a></MenuItem>
+                  <MenuItem name="help2">
+                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=3795693864' target="_blank">binlog消息投递接口</a></MenuItem>
                 </Submenu>
                 <Submenu name="3">
                   <template slot="title">
@@ -143,10 +170,17 @@ export default {
       categoryIndex: 0,
       logoutUrlFirstLogin: '',
       userNameFirstLogin: '',
-      appDataFirstLogin: ''
+      appDataFirstLogin: '',
+      currentEnvironment: '',
+      urlPrefixes: {
+        prod: 'http://drc.ctripcorp.com',
+        fws: 'http://console.drc.nt.fat-1.qa.nt.ctripcorp.com',
+        uat: 'http://console.drc.nt.uat.qa.nt.ctripcorp.com'
+      }
     }
   },
   created () {
+    this.determineEnvironment()
     switch (this.$route.path) {
       default :
         this.openNames = ['']
@@ -236,6 +270,37 @@ export default {
             sessionStorage.setItem('logoutUrl', res.data.data)
           })
       }
+    },
+    goToShowMq (type) {
+      const currentUrl = window.location.href
+      const urlPrefixMatch = currentUrl.match(/^(https?:\/\/[^/]+\/#?)/)
+      const urlPrefix = urlPrefixMatch ? urlPrefixMatch[0] : ''
+      const newUrl = `${urlPrefix}/mq?mqType=${type}`
+      window.location.href = newUrl
+      window.location.reload()
+    },
+    determineEnvironment () {
+      const currentUrl = window.location.href
+      const urlWithoutProtocol = currentUrl.replace(/^https?:\/\//, '')
+      if (urlWithoutProtocol.startsWith(this.urlPrefixes.prod.replace(/^https?:\/\//, ''))) {
+        this.currentEnvironment = '生产环境'
+      } else if (urlWithoutProtocol.startsWith(this.urlPrefixes.fws.replace(/^https?:\/\//, ''))) {
+        this.currentEnvironment = '测试环境'
+      } else if (urlWithoutProtocol.startsWith(this.urlPrefixes.uat.replace(/^https?:\/\//, ''))) {
+        this.currentEnvironment = 'UAT环境'
+      } else {
+        this.currentEnvironment = '未知环境'
+      }
+    },
+    changeEnvironment (event) {
+      console.log(event)
+      const newUrlPrefix = this.urlPrefixes[event]
+      console.log(newUrlPrefix)
+      // 获取当前页面的协议
+      const currentProtocol = window.location.protocol // 'http:' 或 'https:'
+      const currentPath = window.location.hash // 获取当前页面的路径和查询参数
+      const newUrl = `${currentProtocol}//${newUrlPrefix.replace(/^https?:\/\//, '')}${currentPath}`
+      window.open(newUrl, '_blank')
     }
   },
   computed: {
