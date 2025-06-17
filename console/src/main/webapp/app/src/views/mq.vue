@@ -80,7 +80,7 @@
             @on-page-size-change="handleChangeSize"></Page>
         </div>
         <br>
-        <Drawer title="DRC配置" width="80" :closable="true" v-model="drawershow">
+        <Drawer title="DRC配置" width="80" :closable="true" v-model="drawershow" >
           <template #header>
             <span style="font-weight: bold;font-size: 16px">{{ baseConfigInShow }}</span>
           </template>
@@ -90,7 +90,7 @@
   ]" :data="configInShow" border style="width: fit-content;margin: 0 auto;"></Table><br>
           <iframe :src="detailIframeUrl"  :style="{
     width: '100%',
-    height: '1000px',
+    height: '600px',
     padding: '0px',
     marginLeft: '0px',
     marginRight: '0px',
@@ -231,20 +231,6 @@ export default {
         {
           title: '操作',
           slot: 'action',
-          // render: (h, params) => {
-          //   const row = params.row
-          //   return h('Button', {
-          //     on: {
-          //       click: () => {
-          //         window.open(row.mqPanelUrl, '_blank')
-          //       }
-          //     },
-          //     props: {
-          //       size: 'small',
-          //       type: 'success'
-          //     }
-          //   }, '延迟&TPS')
-          // },
           align: 'center'
         }
 
@@ -320,7 +306,14 @@ export default {
           value: filterValue
         })
       }
-      this.configInShow = result
+      // this.configInShow = result
+      this.configInShow = []
+      this.$nextTick(() => {
+        result.forEach(item => {
+          Vue.set(this.configInShow, this.configInShow.length, item)
+        })
+      })
+      console.log(this.configInShow)
       this.drawershow = true
     },
     resetPath () {
