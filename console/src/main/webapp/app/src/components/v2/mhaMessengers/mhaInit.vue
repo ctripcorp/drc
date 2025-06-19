@@ -22,7 +22,7 @@
         </Select>
       </FormItem>
       <FormItem label="Mha tag" prop="srcDc">
-        <Select v-model="mhaInfo.tag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
+        <Select v-model="mhaInfo.tag" filterable allow-create style="width: 200px" placeholder="选择tag">
           <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
         </Select>
       </FormItem>
@@ -66,7 +66,7 @@ export default {
         tag: 'COMMON',
         drcZoneList: this.constant.dcList
       },
-      tagList: this.constant.tagList,
+      tagList: [],
       status: '',
       dataLoading: false,
       title: '',
@@ -143,10 +143,15 @@ export default {
           this.mhaInfo.modal = true
         }
       })
+    },
+    getTags () {
+      this.axios.get('/api/drc/v2/resource/tags').then((response) => {
+        this.tagList = response.data.data
+      })
     }
   },
-  handleCreateTag (val) {
-    this.constant.tagList.push(val)
+  created () {
+    this.getTags()
   }
 }
 </script>

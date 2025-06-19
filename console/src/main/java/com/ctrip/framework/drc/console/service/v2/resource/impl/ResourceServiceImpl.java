@@ -121,6 +121,8 @@ public class ResourceServiceImpl implements ResourceService {
     private ResourceService resourceService;
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private TagTblDao tagTblDao;
 
     private BatchInfoInquirer batchInfoInquirer = BatchInfoInquirer.getInstance();
 
@@ -1410,6 +1412,21 @@ public class ResourceServiceImpl implements ResourceService {
             drcBuildServiceV2.autoConfigMessenger(mhaTblV2, null, MqType.kafka, true);
         }
 
+    }
+
+    @Override
+    public List<String> getAllTags() throws Exception {
+        return tagTblDao.queryAllExist().stream().map(TagTbl::getTag).collect(Collectors.toList());
+    }
+
+    @Override
+    public void insertTags(List<String> tags) throws Exception {
+        List<String> existedTags = getAllTags();
+        tags.removeAll(existedTags);
+        if (!CollectionUtils.isEmpty(tags)) {
+            List<TagTbl> tagTbls = tags.stream().map(TagTbl::new).collect(Collectors.toList());
+            tagTblDao.insert(tagTbls);
+        }
     }
 
     @Override

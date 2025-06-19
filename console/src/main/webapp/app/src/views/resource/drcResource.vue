@@ -108,7 +108,7 @@ export default {
         ]
       },
       drcZoneList: this.constant.dcList,
-      tagList: this.constant.tagList,
+      tagList: [],
       azList: this.constant.azList,
       result: ''
     }
@@ -160,9 +160,15 @@ export default {
       this.drcResource.az = ''
       this.result = ''
       console.log('reset input request type result: ' + this.drcResource.type + ', ip: ' + this.drcResource.ip + ', dc: ' + this.drcResource.dc + '.')
+    },
+    getTags () {
+      this.axios.get('/api/drc/v2/resource/tags').then((response) => {
+        this.tagList = response.data.data
+      })
     }
   },
   created () {
+    this.getTags()
   }
 }
 </script>

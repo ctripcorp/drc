@@ -116,7 +116,7 @@ export default {
       buildLoading: false,
       showDetail: false,
       bus: [],
-      tags: this.constant.tagList,
+      tags: [],
       regionOptions: [],
       filterTypeOpts: ['ALL', 'UDL'],
       replicationTypeOpts: [
@@ -197,10 +197,8 @@ export default {
         })
     },
     autoSetTag () {
-      if (this.buildParam.buName === 'FLT') {
-        this.buildParam.tag = 'FLT'
-      } else if (this.buildParam.buName === 'HTL') {
-        this.buildParam.tag = 'HTL'
+      if (this.tags.includes(this.buildParam.buName)) {
+        this.buildParam.tag = this.buildParam.buName
       } else {
         this.buildParam.tag = 'COMMON'
       }
@@ -313,12 +311,18 @@ export default {
         applicant: this.$route.query.applicant
       }
       this.applicationFormId = this.$route.query.applicationFormId
+    },
+    getTags () {
+      this.axios.get('/api/drc/v2/resource/tags').then((response) => {
+        this.tags = response.data.data
+      })
     }
   },
   created () {
     this.getBus()
     this.getRegions()
     this.init()
+    this.getTags()
   }
 }
 </script>

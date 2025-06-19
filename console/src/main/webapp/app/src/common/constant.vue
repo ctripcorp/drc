@@ -13,6 +13,10 @@ const dcList = [
     label: '上海日版'
   },
   {
+    value: 'shaali_default',
+    label: '上海阿里_default'
+  },
+  {
     value: 'ntgxh',
     label: 'ntgxh'
   },

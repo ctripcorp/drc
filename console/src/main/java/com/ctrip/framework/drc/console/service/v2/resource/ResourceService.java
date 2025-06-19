@@ -92,4 +92,8 @@ public interface ResourceService {
     IncompatibleMessengerView getIncompatibleMessengers() throws Exception;
 
     void migrateKafkaMessenger(KafkaMessengerMigrateParam param) throws Exception;
+
+    List<String> getAllTags() throws Exception;
+
+    void insertTags(List<String> tags) throws Exception;
 }
