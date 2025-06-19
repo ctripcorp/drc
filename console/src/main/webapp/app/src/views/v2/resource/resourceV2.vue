@@ -26,7 +26,7 @@
                   </Select>
                 </Col>
                 <Col span="4">
-                  <Select filterable clearable allow-create v-model="queryParam.tag" placeholder="tag" @on-change="getResources" @on-create="handleAddTag">
+                  <Select filterable clearable allow-create v-model="queryParam.tag" placeholder="tag" @on-change="getResources">
                     <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </Col>
@@ -357,7 +357,7 @@ export default {
         }
       ],
       regions: [],
-      tagList: this.constant.tagList,
+      tagList: [],
       deleteResourceModal: false,
       relatedReplicationData: {
         tableData: [],
@@ -1103,9 +1103,6 @@ export default {
           that.dataLoading = false
         })
     },
-    handleAddTag (val) {
-      this.constant.tagList.push(val)
-    },
     handleChangeSize (val) {
       this.size = val
       this.$nextTick(() => {
@@ -1193,6 +1190,11 @@ export default {
         }
       }
       return result
+    },
+    getTags () {
+      this.axios.get('/api/drc/v2/resource/tags').then((response) => {
+        this.tagList = response.data.data
+      })
     }
   },
   created () {
@@ -1204,6 +1206,7 @@ export default {
       console.log('still execute')
       this.getResources()
       this.getRegions()
+      this.getTags()
     })
   }
 }

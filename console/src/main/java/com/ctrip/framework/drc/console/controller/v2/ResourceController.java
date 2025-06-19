@@ -371,4 +371,26 @@ public class ResourceController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @PostMapping("tags")
+    public ApiResult<Boolean> insertTags(@RequestBody List<String> tags) {
+        try {
+            resourceService.insertTags(tags);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("insertTags fail", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+
+    @GetMapping("tags")
+    public ApiResult<List<String>> getAllTags() {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.getAllTags());
+        } catch (Exception e) {
+            logger.error("getAllTags fail", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 }
