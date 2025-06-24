@@ -21,4 +21,8 @@ public interface IKafkaDelayMessageConsumer extends Ordered {
     boolean stopConsume();
 
     boolean resumeConsume();
+
+    Map<String, Long> getMhaDelay();
+
+    void refreshMhaDelayFromOtherDc(Map<String, Long> mhaDelayMap);
 }

@@ -4,9 +4,11 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.enums.BroadcastEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.service.broadcast.HttpNotificationBroadCast;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
@@ -21,7 +23,9 @@ import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
+import com.ctrip.framework.drc.core.server.config.console.dto.MhaDelayDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -33,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -61,6 +66,8 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     private ResourceService resourceService;
     @Autowired
     private CentralService centralService;
+    @Autowired
+    private HttpNotificationBroadCast broadCast;
 
     private final IKafkaDelayMessageConsumer kafkaConsumer = ApiContainer.getKafkaDelayMessageConsumer();
     private final ScheduledExecutorService monitorMessengerChangerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
@@ -102,12 +109,34 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         synchronized (this) {
             isLeader = false;
             if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayMonitorSwitch())) {
+                forwardMhaDelay();
                 monitorMessengerChange();
                 logger.info("[[monitor=kafkaDelay]] not leader,going to stop kafkaConsumer");
                 boolean b = kafkaConsumer.stopConsume();
                 logger.info("[[monitor=kafkaDelay]] not leader, stop kafkaConsumer finished,result:{}", b);
             }
         }
+    }
+
+    public void refreshMhaDelayFromOtherDc(Map<String, Long> mhaDelay) {
+        logger.info("[[monitor=kafkaDelay]] refreshMhaDelayFromOtherDc");
+        kafkaConsumer.refreshMhaDelayFromOtherDc(mhaDelay);
+    }
+
+    protected void forwardMhaDelay() {
+        try {
+            if ("on".equalsIgnoreCase(monitorProvider.getKafkaDelayForwardSwitch())) {
+                logger.info("[[monitor=kafkaDelay]] forwardMhaDelay");
+                broadCast.broadcastWithRetry(BroadcastEnum.KAFKA_DELAY_REFRESH.getPath(),
+                        RequestMethod.PUT, JsonUtils.toJson(new MhaDelayDto(kafkaConsumer.getMhaDelay())), 1);
+            } else {
+                logger.info("[[monitor=qmqDelay]] mQDelayForwardSwitch is off");
+            }
+
+        } catch (Exception e) {
+            logger.error("[[monitor=qmqDelay]] forwardMhaDelay error", e);
+        }
+
     }
 
     private void monitorMessengerChange() {
@@ -127,38 +156,6 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         }
     }
 
-    /**
-     * @param mhaToMessengerIps key: mhaName, value: ip
-     */
-    public void switchListenMessenger(Map<String, String> mhaToMessengerIps) {
-        if (!isLeader) {
-            return;
-        }
-        try {
-            logger.info("[[monitor=delay]] switchListenMessenger: {}", mhaToMessengerIps);
-            List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
-                    .filter(e -> e.getDcId() == localDcId && ModuleEnum.isMessenger(e.getType()))
-                    .map(ResourceTbl::getIp)
-                    .toList();
-            Set<String> toAddMhas = Sets.newHashSet();
-            Set<String> toRemoveMhas = Sets.newHashSet();
-            for (Map.Entry<String, String> entry : mhaToMessengerIps.entrySet()) {
-                if (localDcMessengerIps.contains(entry.getValue())) {
-                    toAddMhas.add(entry.getKey());
-                } else {
-                    toRemoveMhas.add(entry.getKey());
-                }
-            }
-            if (!CollectionUtils.isEmpty(toAddMhas)) {
-                kafkaConsumer.addMhas(getMhasToDcs(Lists.newArrayList(toAddMhas)));
-            }
-            if (!CollectionUtils.isEmpty(toRemoveMhas)) {
-                kafkaConsumer.removeMhas(getMhasToDcs(Lists.newArrayList(toRemoveMhas)));
-            }
-        } catch (Exception e) {
-            logger.error("[[monitor=kafkaDelay]] switchListenMessenger fail", e);
-        }
-    }
 
     private Map<String, String> getAllMhasToDcRelated() throws SQLException {
         List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
@@ -193,6 +190,40 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         Map<Long, String> dcMap = centralService.queryAllDcTbl().stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
 
         return mhas.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, e -> dcMap.get(e.getDcId())));
+    }
+
+    /**
+     * @param mhaToMessengerIps key: mhaName, value: ip
+     */
+    public void switchListenMessenger(Map<String, String> mhaToMessengerIps) {
+        if (!isLeader) {
+            return;
+        }
+        try {
+            logger.info("[[monitor=delay]] switchListenMessenger: {}", mhaToMessengerIps);
+            List<String> localDcMessengerIps = centralService.queryAllResourceTbl().stream()
+                    .filter(e -> e.getDcId() == localDcId && ModuleEnum.isMessenger(e.getType()))
+                    .map(ResourceTbl::getIp)
+                    .toList();
+            Set<String> toAddMhas = Sets.newHashSet();
+            Set<String> toRemoveMhas = Sets.newHashSet();
+            for (Map.Entry<String, String> entry : mhaToMessengerIps.entrySet()) {
+                if (localDcMessengerIps.contains(entry.getValue())) {
+                    toAddMhas.add(entry.getKey());
+                } else {
+                    toRemoveMhas.add(entry.getKey());
+                }
+            }
+            if (!CollectionUtils.isEmpty(toAddMhas)) {
+                kafkaConsumer.addMhas(getMhasToDcs(Lists.newArrayList(toAddMhas)));
+            }
+            if (!CollectionUtils.isEmpty(toRemoveMhas)) {
+                forwardMhaDelay();
+                kafkaConsumer.removeMhas(getMhasToDcs(Lists.newArrayList(toRemoveMhas)));
+            }
+        } catch (Exception e) {
+            logger.error("[[monitor=kafkaDelay]] switchListenMessenger fail", e);
+        }
     }
 
 
