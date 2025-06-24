@@ -62,6 +62,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
 
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo, Long> receiveTimeMap = Maps.newConcurrentMap();
+    private Map<String, Long> receiveTimeFromOtherMap = Maps.newConcurrentMap();
     private final ScheduledExecutorService checkScheduledExecutor =
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
     //in case duplicate consumption
@@ -175,6 +176,7 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             logger.info("[[monitor=delay,mha={},mqType=kafka,partition={},offset={}]] receiveTime:{}, updateDbTime:{}, report messenger delay:{} ms", mhaName, record.partition(), record.offset(), receiveTime, updateDbTime.getTime(), delayTime);
 
             receiveTimeMap.put(mhaInfo, receiveTime);
+            receiveTimeFromOtherMap.remove(mhaInfo.getMhaName());
 
             mhaLastReceiveMap.put(mhaName, incomingMessagePair);
         } else {
@@ -187,7 +189,9 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
             logger.info("[[monitor=delay,mqType=kafka]] start to checkDelayLoss");
             for (String mhaName : mhasRelated) {
                 MhaInfo mhaInfo = new MhaInfo(mhaName, mha2Dc.get(mhaName), MqType.kafka.name());
-                Long receiveTime = receiveTimeMap.putIfAbsent(mhaInfo, System.currentTimeMillis());
+                Long receiveTimeFromOther = receiveTimeFromOtherMap.get(mhaName);
+                long initTime = receiveTimeFromOther == null ? System.currentTimeMillis() : receiveTimeFromOther;
+                Long receiveTime = receiveTimeMap.putIfAbsent(mhaInfo, initTime);
                 if (receiveTime == null) {
                     continue;
                 }
@@ -289,6 +293,28 @@ public class KafkaDelayMessageConsumer implements IKafkaDelayMessageConsumer {
         logger.info("kafka consumer init over");
 
         return startConsume();
+    }
+
+    @Override
+    public Map<String, Long> getMhaDelay() {
+        Map<String, Long> delay = Maps.newHashMap();
+        receiveTimeMap.forEach((mhaInfo, delayTime) -> {
+            delay.put(mhaInfo.getMhaName(), delayTime);
+        });
+        return delay;
+    }
+
+    @Override
+    public void refreshMhaDelayFromOtherDc(Map<String, Long> mhaDelayMap) {
+        for (Map.Entry<String, Long> entry : mhaDelayMap.entrySet()) {
+            String mhaName = entry.getKey();
+            Long delay = entry.getValue();
+
+            Long lastDelay = receiveTimeFromOtherMap.get(mhaName);
+            if (lastDelay == null || delay > lastDelay) {
+                receiveTimeFromOtherMap.put(mhaName, delay);
+            }
+        }
     }
 
     @Override

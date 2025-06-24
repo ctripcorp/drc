@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.monitor.delay.KafkaDelayMonitorServer;
 import com.ctrip.framework.drc.console.monitor.delay.MqDelayMonitorServer;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -27,6 +28,8 @@ public class MonitorV2Controller {
     private MonitorServiceV2 monitorServiceV2;
     @Autowired
     private MqDelayMonitorServer mqDelayMonitorServer;
+    @Autowired
+    private KafkaDelayMonitorServer kafkaDelayMonitorServer;
 
     @GetMapping("mhaNames")
     public ApiResult queryMhaNamesToBeMonitored() {
@@ -72,6 +75,19 @@ public class MonitorV2Controller {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("[[monitor=qmqDelay]] refreshQmqDelay fail", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @RequestMapping(value = "refreshKafkaDelay", method = RequestMethod.PUT)
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> refreshKafkaDelay(@RequestBody MhaDelayDto dto) {
+        try {
+            logger.info("[[monitor=kafkaDelay]] refreshKafkaDelay");
+            kafkaDelayMonitorServer.refreshMhaDelayFromOtherDc(dto.getMhaDelay());
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            logger.error("[[monitor=kafkaDelay]] refreshKafkaDelay fail", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

@@ -108,7 +108,6 @@ public class MqDelayMonitorServer implements DcLeaderAware, InitializingBean {
             logger.error("[[monitor=qmqDelay]] forwardMhaDelay error", e);
         }
 
-
     }
 
     public void monitorMessengerChange() {
