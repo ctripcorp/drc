@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.applier.utils;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
-
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+
+import java.util.Set;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * Created by jixinwang on 2023/4/7
@@ -19,6 +22,8 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     private static final String CONFLICT_LOG_UPLOAD_SWITCH = "conflict.log.upload.switch";
     private static final String CONFLICT_LOG_BRIEF_QUEUE_SIZE = "conflict.log.brief.queue.size";
     private static final String CONFLICT_LOG_BRIEF_REPORT_SIZE = "conflict.log.brief.report.size";
+    private static final String CONFLICT_LOG_UPLOAD_LEVEL = "conflict.log.upload.level";
+    private static final String DEFAULT_CONFLICT_LOG_UPLOAD_LEVEL = "INFO";
     private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
 
 
@@ -58,5 +63,18 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
 
     public int getApplierInstanceModifyThread() {
         return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 10);
+    }
+
+    public Set<ConflictDetail.AlertLevel> getConflictLogUpLevel() {
+        String level = getProperty(CONFLICT_LOG_UPLOAD_LEVEL, DEFAULT_CONFLICT_LOG_UPLOAD_LEVEL);
+        switch (level) {
+            case "WARN":
+                return Set.of(ConflictDetail.AlertLevel.WARN, ConflictDetail.AlertLevel.CRITICAL);
+            case "CRITICAL":
+                return Set.of(ConflictDetail.AlertLevel.CRITICAL);
+            case "INFO":
+            default:
+                return Set.of(ConflictDetail.AlertLevel.INFO, ConflictDetail.AlertLevel.WARN, ConflictDetail.AlertLevel.CRITICAL);
+        }
     }
 }

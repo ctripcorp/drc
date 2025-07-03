@@ -19,11 +19,15 @@ public enum MigrationTypeEnum {
     OVERSEA_CHECK_SHA_TO_OVERSEA(MainTypeEnum.OVERSEA, MigrationStatusEnum.READY_TO_DISCONNECT_DB_SYNC, MigrationStatusEnum.STARTING_SHA_TO_OVERSEA),
     OVERSEA_START_OVERSEA_TO_SHA(MainTypeEnum.OVERSEA, MigrationStatusEnum.STARTING_OVERSEA_TO_SHA, MigrationStatusEnum.READY_TO_DISCONNECT_DB_SYNC),
     OVERSEA_CHECK_OVERSEA_TO_SHA(MainTypeEnum.OVERSEA, MigrationStatusEnum.READY_TO_COMMIT_TASK, MigrationStatusEnum.STARTING_OVERSEA_TO_SHA),
+
+    TEST_INIT(MainTypeEnum.TEST, MigrationStatusEnum.INIT, null),
+    TEST_PRESTART(MainTypeEnum.TEST, MigrationStatusEnum.PRE_STARTING, MigrationStatusEnum.INIT),
     ;
 
     enum MainTypeEnum {
         COMMON,
-        OVERSEA
+        OVERSEA,
+        TEST,
     }
 
     private MainTypeEnum mainType;

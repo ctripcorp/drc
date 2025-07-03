@@ -186,7 +186,7 @@ public class DbMigrationServiceImplV2Test {
         try {
             mockNormalPreStartCopyAllDbReplication();
             Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyLong(), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(PojoBuilder.getMhaReplicationTbl());
-            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         } catch (ConsoleException e) {
             Assert.assertEquals("mha1->mha2 replication is in mha mode, please contact DRC team!",e.getMessage());
         }
@@ -204,14 +204,14 @@ public class DbMigrationServiceImplV2Test {
         existedTask.setNewMhaDba("mha2");
         existedTask.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList(existedTask));
-        Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         Assert.assertEquals(1L,stringLongPair1.getRight().longValue());
 
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList());
         // normal case
         Mockito.when(mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications()).thenReturn(Lists.newArrayList());
         mockMigrateDbsReplicationInfos();
-        Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         Assert.assertEquals(1L,stringLongPair.getRight().longValue());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).syncMhaInfoFormDbaApi(Mockito.eq("mha2"), Mockito.any());
         Mockito.verify(mhaTblV2Dao,Mockito.times(1)).queryByPk(Mockito.eq(1L));
@@ -219,7 +219,7 @@ public class DbMigrationServiceImplV2Test {
         // check case1:migrate dbs effect multi mha-Replication in same region is not allowed;
         try {
             mockDbMigrationCheckForbiddenCase1();
-            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         } catch (ConsoleException e) {
             Assert.assertEquals("region1: multi mhaTbs in drcReplication, please check! mha: mha4,mha3",e.getMessage());
         }
@@ -228,7 +228,7 @@ public class DbMigrationServiceImplV2Test {
         try {
             mockMigrateDbsReplicationInfos();
             mockDbMigrationCheckForbiddenCase2();
-            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         } catch (ConsoleException e) {
             Assert.assertEquals("newMha and oldMha have common mha in Replication, please check! commomMhas: mha3",e.getMessage());
         }
@@ -604,5 +604,17 @@ public class DbMigrationServiceImplV2Test {
 
         Map<String, List<Long>> result = dbMigrationService.cleanApplierDirtyData(false);
         Assert.assertEquals(2,result.size());
+    }
+
+    @Test
+    public void testCheckPreStartStatus() throws Exception {
+        MigrationTaskTbl migrationTaskTbl = MockEntityBuilder.buildMigrationTaskTbl(5L,"mha1","mha2","[\"db1\",\"db2\"]","drctest");
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTING.getStatus());
+        Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
+        Pair<Boolean, String> res  = dbMigrationService.checkPreStartStatus(migrationTaskTbl.getId());
+        Assert.assertFalse(res.getLeft());
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+        res  = dbMigrationService.checkPreStartStatus(migrationTaskTbl.getId());
+        Assert.assertTrue(res.getLeft());
     }
 }

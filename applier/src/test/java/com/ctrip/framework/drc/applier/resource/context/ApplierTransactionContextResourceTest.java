@@ -67,7 +67,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
         Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",
-                ConflictResult.COMMIT.getValue()));
+                ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.commit();
         context.dispose();
@@ -99,7 +99,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getTrxRowNum());
         assertEquals(1, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.commit();
         context.dispose();
@@ -131,7 +131,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getTrxRowNum());
         assertEquals(1, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.rollback();
         context.dispose();
@@ -150,7 +150,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getTrxRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -181,7 +181,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getTrxRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -212,7 +212,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getTrxRowNum());
         assertEquals(1, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -231,7 +231,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getTrxRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -274,7 +274,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getConflictRowNum());
         assertEquals(1, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1",ConflictResult.ROLLBACK.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.rollback();
         context.dispose();
@@ -313,7 +313,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getConflictRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor",ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor",ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.commit();
     }
@@ -427,7 +427,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getConflictRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor", ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor", ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         
         context.dispose();
@@ -453,7 +453,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(1, context.trxRecorder.getConflictRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor", ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor", ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -485,7 +485,7 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(2, context.trxRecorder.getConflictRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(1,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor", ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor", ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(2L,count.longValue());
         context.dispose();
     }
@@ -597,9 +597,9 @@ public class ApplierTransactionContextResourceTest extends ConflictTest implemen
         assertEquals(3, context.trxRecorder.getConflictRowNum());
         assertEquals(0, context.trxRecorder.getRollbackRowNum());
         assertEquals(2,context.trxRecorder.getConflictTableRowsCount().size());
-        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1", ConflictResult.COMMIT.getValue()));
+        Long count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "hello1", ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(1L,count.longValue());
-        count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor",  ConflictResult.COMMIT.getValue()));
+        count = context.trxRecorder.getConflictTableRowsCount().get(new ConflictTable("prod", "monitor",  ConflictResult.COMMIT.getValue())).getCnt();
         assertEquals(2L,count.longValue());
         context.commit();
         context.dispose();

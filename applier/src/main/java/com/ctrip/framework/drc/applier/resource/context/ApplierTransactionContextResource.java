@@ -158,26 +158,36 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
 
-                for (Map.Entry<ConflictTable, Long> entry : trxRecorder.getConflictTableRowsCount().entrySet()) {
+                for (Map.Entry<ConflictTable, TransactionLogRecorder.CflCountDetail> entry : trxRecorder.getConflictTableRowsCount().entrySet()) {
                     ConflictTable conflictRow = entry.getKey();
                     Map<String,String> tags = conflictRow.generateTags();
+                    TransactionLogRecorder.CflCountDetail cntDetail = entry.getValue();
                     if (conflictRow.getConflictRes() == ConflictResult.COMMIT.getValue()) {
                         metricsActivity.report("trx.conflict.commit", tags, 1);
-                        metricsActivity.report("rows.conflict.commit", tags, entry.getValue());
+                        metricsActivity.report("rows.conflict.commit", tags, cntDetail.getCnt());
                     } else {
                         metricsActivity.report("trx.conflict.rollback", tags, 1);
-                        metricsActivity.report("rows.conflict.rollback", tags, entry.getValue());
+                        metricsActivity.report("rows.conflict.rollback", tags, cntDetail.getCnt());
+                    }
+                    for (Map.Entry<String, Long> detailEntry : cntDetail.getConflictDetailCount().entrySet()) {
+                        Map<String,String> conflictDetailTags = conflictRow.generateTags();
+                        conflictDetailTags.put("detail", detailEntry.getKey());
+                        metricsActivity.report("rows.conflict.detail", conflictDetailTags, detailEntry.getValue());
                     }
                 }
             }
 
             if ((reportConflictActivity != null) && trxRecorder.getConflictRowNum() > 0) {
                 ConflictTransactionLog cflTrxLog = trxRecorder.summaryBeforeReport(gtid);
+                if (cflTrxLog == null) {
+                    return;
+                }
                 if (!reportConflictActivity.report(cflTrxLog)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.conflict.discard", tableKey.toString());
                 }
             }
         } catch (Throwable t) {
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.log.metric.error", t.getMessage());
             logger.error("logMetric error", t);
         }
     }
@@ -850,10 +860,28 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 conflictMark(true);
             }
             String sqlResult = (UNKNOWN_COLUMN.toString().equalsIgnoreCase(rawSqlExecuteResult) ? "missing column value is not default:" : "apply throw Exception:");
+            conflictDetail = subdivideThrowableConflictDetail(conflictDetail, errorMsg);
             overwriteMark(conflictDetail, destCurrentRecord, null, sqlResult + errorMsg);
         } catch (Throwable e) {
             logger.error("throwableLeadToRollback:{},record fail",errorMsg,e);
         }
+    }
+
+
+    private ConflictDetail subdivideThrowableConflictDetail(ConflictDetail originalConflictDetail, String errorMsg) {
+        if (errorMsg == null) {
+            return originalConflictDetail;
+        }
+        if (isConnectProblem(errorMsg)) {
+            return CONNECTION_CLOSED;
+        }
+        if (isDeadlockProblem(errorMsg)) {
+            return DEAD_LOCK;
+        }
+        if (isNoOnUpdateColumnProblem(errorMsg)) {
+            return NO_ONUPDATE_COLUMN;
+        }
+        return originalConflictDetail;
     }
 
     private void overwriteMark(ConflictDetail conflictDetail, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
@@ -936,6 +964,18 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
     @VisibleForTesting
     public StatementExecutorResult getResult() {
         return result;
+    }
+
+    private boolean isConnectProblem(String errMsg) {
+        return "No operations allowed after connection closed.".equals(errMsg) || errMsg.contains("Communications link failure.");
+    }
+
+    private boolean isDeadlockProblem(String errMsg) {
+        return errMsg.contains("Deadlock found when trying to get lock;");
+    }
+
+    private boolean isNoOnUpdateColumnProblem(String errMsg) {
+        return "No onUpdate column found.".equals(errMsg);
     }
 
 }

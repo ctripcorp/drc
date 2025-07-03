@@ -28,7 +28,7 @@ public interface DbMigrationService {
     // return null when no dbDrcRelated
     // return taskId when task create; 
     // throw ConsoleException with reason when forbidden
-    Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException;
+    Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest, MigrationTypeEnum migrationTypeEnum) throws SQLException;
 
     boolean preStartDbMigrationTask(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException;
 
@@ -62,4 +62,8 @@ public interface DbMigrationService {
     List<MhaApplierDto> getMhaDbReplicationDelayFromMigrateTask(Long taskId) throws SQLException;
 
     Map<String, List<Long>> cleanApplierDirtyData(boolean showonly) throws SQLException;
+
+    Pair<Boolean, String> checkPreStartStatus(Long taskId) throws SQLException;
+
+    void quickPassForFwsMigration(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException;
 }
