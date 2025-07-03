@@ -31,15 +31,15 @@ public class DbMigrationControllerTest {
 
     @Test
     public void testOverseaDbMigrationCheckAndInit() throws SQLException {
-        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any())).thenReturn(Pair.of("tip", 1L));
+        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any(), Mockito.any())).thenReturn(Pair.of("tip", 1L));
         ApiResult result = dbMigrationController.overseaDbMigrationCheckAndInit(new DbMigrationParam());
         Assert.assertEquals(Integer.valueOf(0), result.getStatus());
 
-        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any())).thenReturn(Pair.of("tip", null));
+        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any(), Mockito.any())).thenReturn(Pair.of("tip", null));
         result = dbMigrationController.overseaDbMigrationCheckAndInit(new DbMigrationParam());
         Assert.assertEquals(Integer.valueOf(2), result.getStatus());
 
-        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any())).thenThrow(new SQLException());
+        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any(), Mockito.any())).thenThrow(new SQLException());
         result = dbMigrationController.overseaDbMigrationCheckAndInit(new DbMigrationParam());
         Assert.assertEquals(Integer.valueOf(1), result.getStatus());
     }
@@ -110,5 +110,40 @@ public class DbMigrationControllerTest {
         Mockito.when(dbMigrationServiceV2.getAndUpdateTaskStatus(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.any())).thenReturn(Pair.of("tip", null));
         result = dbMigrationController.refreshAndGetOverseaToShaStatus(1L);
         Assert.assertEquals(Integer.valueOf(1), result.getStatus());
+    }
+
+    @Test
+    public void testCheckPreStartStatus() throws SQLException {
+        Mockito.when(dbMigrationServiceV2.checkPreStartStatus(Mockito.anyLong())).thenReturn(Pair.of(false, "PreStarting"));
+        ApiResult result = dbMigrationController.checkPreStartStatus(1L);
+        Assert.assertEquals(Integer.valueOf(0), result.getStatus());
+        Assert.assertEquals("notReady", result.getData());
+    }
+
+    @Test
+    public void testOverseaDbMigrationTaskPreStartStatus() throws SQLException  {
+        Mockito.when(dbMigrationServiceV2.checkPreStartStatus(Mockito.anyLong())).thenReturn(Pair.of(true, "PreStarted"));
+        ApiResult result = dbMigrationController.overseaDbMigrationTaskPreStartStatus(1L);
+        Assert.assertEquals(Integer.valueOf(0), result.getStatus());
+        Assert.assertEquals("PreStarted", result.getData());
+
+        Mockito.when(dbMigrationServiceV2.checkPreStartStatus(Mockito.anyLong())).thenThrow(new SQLException());
+        result = dbMigrationController.overseaDbMigrationTaskPreStartStatus(1L);
+        Assert.assertEquals(Integer.valueOf(1), result.getStatus());
+    }
+
+    @Test
+    public void testStartDbMigrationTaskTestEnv() throws Exception {
+        Mockito.when(dbMigrationServiceV2.preStartDbMigrationTask(Mockito.anyLong(), Mockito.any())).thenReturn( true);
+        Mockito.when(dbMigrationServiceV2.startDbMigrationTask(Mockito.anyLong(), Mockito.any())).thenReturn(true);
+        ApiResult result = dbMigrationController.startDbMigrationTaskTestEnv(1L);
+        Assert.assertEquals(Integer.valueOf(0), result.getStatus());
+    }
+
+    @Test
+    public void testDbMigrationCheckAndInitTestEnv() throws Exception {
+        Mockito.when(dbMigrationServiceV2.dbMigrationCheckAndCreateTask(Mockito.any(), Mockito.any())).thenReturn(Pair.of("tip", 1L));
+        ApiResult result = dbMigrationController.dbMigrationCheckAndInitTestEnv(new DbMigrationParam());
+        Assert.assertEquals(Integer.valueOf(0), result.getStatus());
     }
 }

@@ -69,7 +69,7 @@ public class DbMigrationController {
             success = "dbMigrationCheckAndInit with DbMigrationParam:{#dbMigrationParam.toString()}")
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
-            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
             if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null,2,"no dbDrcRelated");
             } else {
@@ -101,6 +101,21 @@ public class DbMigrationController {
         } catch (ConsoleException e) {
             logger.warn("exStartDbMigrationTask forbidden", e);
             return ApiResult.getInstance(null,1, e.getMessage());
+        }
+    }
+
+    @GetMapping("beforeDrcStart/preStartStatus")
+    public ApiResult checkPreStartStatus(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            Pair<Boolean, String> res = dbMigrationServiceV2.checkPreStartStatus(taskId);
+            if (res.getLeft()) {
+                return ApiResult.getSuccessInstance(res.getRight());
+            } else {
+                return ApiResult.getSuccessInstance("notReady");
+            }
+        } catch (Throwable e) {
+            logger.error("checkPreStartStatus error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
     
@@ -302,7 +317,7 @@ public class DbMigrationController {
             success = "overseaDbMigrationCheckAndInit with DbMigrationParam:{#dbMigrationParam.toString()}")
     public ApiResult overseaDbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
-            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.OVERSEA_INIT);
             if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null, 2, "no dbDrcRelated");
             } else {
@@ -336,6 +351,22 @@ public class DbMigrationController {
             return ApiResult.getInstance(null, 1, e.getMessage());
         }
     }
+
+    @GetMapping("oversea/preStartStatus")
+    public ApiResult overseaDbMigrationTaskPreStartStatus(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            Pair<Boolean, String> res = dbMigrationServiceV2.checkPreStartStatus(taskId);
+            if (res.getLeft()) {
+                return ApiResult.getSuccessInstance(res.getRight());
+            } else {
+                return ApiResult.getSuccessInstance("notReady");
+            }
+        } catch (Throwable e) {
+            logger.error("overseaDbMigrationTaskPreStartStatus error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
 
     @PostMapping("oversea/start/shaToOversea")
     @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE, operator = "DBA",
@@ -465,5 +496,68 @@ public class DbMigrationController {
         }
     }
 
+
+    @PutMapping("test/checkAndCreateTask")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.ADD,operator = "DBA",
+            success = "dbMigrationCheckAndInit with DbMigrationParam:{#dbMigrationParam.toString()}")
+    public ApiResult dbMigrationCheckAndInitTestEnv(@RequestBody DbMigrationParam dbMigrationParam) {
+        try {
+            Pair<String, Long> tipsAndTaskId = dbMigrationServiceV2.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.TEST_INIT);
+            if (tipsAndTaskId.getRight() == null) {
+                return ApiResult.getInstance(null,2,"no dbDrcRelated");
+            } else {
+                return ApiResult.getInstance(tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in dbMigrationCheckAndInit", e);
+            return ApiResult.getInstance(null,1, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("dbMigrationCheckAndInit forbidden", e);
+            return ApiResult.getInstance(null,1, e.getMessage());
+        }
+    }
+
+    @PostMapping("test/startMigrate")
+    @LogRecord(type = OperateTypeEnum.DB_MIGRATION, attr = OperateAttrEnum.UPDATE,operator = "DBA",
+            success = "startMigrate with taskId:{#taskId}")
+    public ApiResult startDbMigrationTaskTestEnv(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            boolean preStartResult = dbMigrationServiceV2.preStartDbMigrationTask(taskId, MigrationTypeEnum.TEST_PRESTART);
+            if (!preStartResult) {
+                return ApiResult.getInstance(null,1,"preStartDbMigrationTask: " + taskId + " fail!");
+            }
+        } catch (Exception e) {
+            logger.error("error in exStartDbMigrationTask", e);
+            return ApiResult.getFailInstance("preStart fail", e.getMessage());
+        }
+        try {
+            dbMigrationServiceV2.quickPassForFwsMigration(taskId, MigrationTypeEnum.TEST_PRESTART);
+        } catch (SQLException e) {
+            logger.error("sql error in quickPathForFwsMigration {}",MigrationTypeEnum.TEST_PRESTART, e);
+            return ApiResult.getFailInstance("quick pass fail", e.getMessage());
+        }
+        try {
+            boolean startResult = dbMigrationServiceV2.startDbMigrationTask(taskId, MigrationTypeEnum.COMMON_START);
+            if (!startResult) {
+                return ApiResult.getInstance("start fail",1,"startDbMigrationTask " + taskId + " fail!");
+            }
+        } catch (Exception e) {
+            logger.error("error in startDbMigrationTask", e);
+            return ApiResult.getFailInstance("start fail", e.getMessage());
+        }
+        try {
+            dbMigrationServiceV2.quickPassForFwsMigration(taskId, MigrationTypeEnum.COMMON_START);
+        } catch (SQLException e) {
+            logger.error("sql error in quickPathForFwsMigration {}",MigrationTypeEnum.COMMON_START, e);
+            return ApiResult.getFailInstance("quick pass fail", e.getMessage());
+        }
+        try {
+            dbMigrationServiceV2.offlineOldDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
+
+    }
 
 }

@@ -58,6 +58,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum.COMMON_START;
+import static com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum.TEST_PRESTART;
 import static com.ctrip.framework.drc.core.meta.ReplicationTypeEnum.*;
 
 /**
@@ -182,7 +184,7 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
+    public Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest, MigrationTypeEnum migrationTypeEnum) throws SQLException {
         logger.info("dbMigrationCheckAndCreateTask start, request: {}", JsonUtils.toJson(dbMigrationRequest));
         checkDbMigrationParam(dbMigrationRequest);
         // check task
@@ -198,9 +200,15 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
         if (migrationDrcDoNotCare(dbMigrationRequest)) {
             return Pair.of(null, null);
         }
-        MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha(),null);
-        MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha(),dbMigrationRequest.getOldMha());
 
+        MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha(),null);
+        MhaTblV2 newMhaTblV2;
+        if (migrationTypeEnum == MigrationTypeEnum.TEST_INIT) {
+            DbMigrationParam.MigrateMhaInfo mockOldMha = new DbMigrationParam.MigrateMhaInfo();
+            newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha(), mockOldMha);
+        } else {
+            newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha(),dbMigrationRequest.getOldMha());
+        }
 
         StringBuilder tips = new StringBuilder();
         StringBuilder errorInfo = new StringBuilder();
@@ -1736,5 +1744,27 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             dirtyAGroupAndApplier.put("dirtyAGroup", Lists.newArrayList());
         }
         return dirtyAGroupAndApplier;
+    }
+
+    @Override
+    public Pair<Boolean, String> checkPreStartStatus(Long taskId) throws SQLException {
+        MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
+        String status = migrationTaskTbl.getStatus();
+        if (MigrationStatusEnum.PRE_STARTED.getStatus().equals(status)) {
+            return Pair.of(true, status);
+        } else {
+            return Pair.of(false, "");
+        }
+    }
+
+    @Override
+    public void quickPassForFwsMigration(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException {
+        MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
+        if (migrationTypeEnum == TEST_PRESTART) {
+            migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+        } else if (migrationTypeEnum == COMMON_START) {
+            migrationTaskTbl.setStatus(MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
+        }
+        migrationTaskTblDao.update(migrationTaskTbl);
     }
 }
