@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.aop.log.LogRecord;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
+import com.ctrip.framework.drc.console.dto.v2.MachineDto;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
@@ -9,7 +10,6 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
-import com.ctrip.framework.drc.console.service.v2.RemoteResourceService;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.ConfigDbView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
@@ -237,5 +237,15 @@ public class DrcBuildControllerV2 {
             logger.error("configEmailGroupForDb dalCluster: {}, emailGroup: {}", dalCluster, emailGroup);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
+    }
+
+    @PostMapping("updateMachineMeta")
+    public ApiResult<Boolean> updateMachineMeta(@RequestBody MachineDto machineDto) {
+        try {
+            return ApiResult.getSuccessInstance(drcBuildServiceV2.changeMachineUuid(machineDto));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+
     }
 }

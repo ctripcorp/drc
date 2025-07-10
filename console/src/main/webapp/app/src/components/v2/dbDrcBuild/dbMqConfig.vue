@@ -58,7 +58,7 @@
               </Button>
             </template>
             <FormItem label="字段">
-              <Select v-model="formItem.orderKey" filterable allow-create @on-create="handleCreateColumn"
+              <Select v-model="formItem.orderKey" filterable multiple allow-create @on-create="handleCreateColumn"
                       style="width: 200px" placeholder="不选表示按主键投递" clearable>
                 <Option v-for="item in formItem.constants.columnsForChose" :value="item" :key="item">{{ item }}</Option>
               </Select>
@@ -179,7 +179,7 @@ export default {
         dbName: null,
         tableName: null,
         topic: null,
-        orderKey: null,
+        orderKey: [],
         excludeFilterTypes: [],
         filterFields: [],
         sendOnlyUpdated: false,
@@ -367,7 +367,7 @@ export default {
         serialization: 'json',
         persistent: false,
         order: this.formItem.switch.order,
-        orderKey: this.formItem.switch.orderKey === '' ? null : this.formItem.orderKey,
+        orderKey: (this.formItem.orderKey && this.formItem.orderKey.length === 0) ? null : this.formItem.orderKey.join(','),
         excludeFilterTypes: this.formItem.excludeFilterTypes,
         delayTime: this.formItem.delayTime,
         filterFields: this.formItem.filterFields,
@@ -393,6 +393,14 @@ export default {
         } else {
           this.formItem.constants.columnsForChose = response.data.data
           this.$Message.info('查询公共列名数：' + response.data.data.length)
+          // 确保 orderKey 中的元素都在 columnsForChose 中
+          if (method !== 'fields' && this.formItem.orderKey && this.formItem.orderKey.length > 0) {
+            this.formItem.orderKey.forEach(item => {
+              if (item && !this.formItem.constants.columnsForChose.includes(item)) {
+                this.formItem.constants.columnsForChose.push(item)
+              }
+            })
+          }
         }
       }).catch(message => {
         this.$Message.error('查询公共列名异常: ' + message)
@@ -443,7 +451,7 @@ export default {
         console.log('edit panel ', JSON.stringify(this.configData))
         this.formItem.tableName = this.configData.config.logicTable
         this.formItem.topic = this.configData.config.dstLogicTable
-        this.formItem.orderKey = this.configData.orderKey
+        this.formItem.orderKey = this.configData.orderKey ? this.configData.orderKey.split(',') : []
         this.formItem.switch.order = this.configData.order
         this.formItem.excludeFilterTypes = this.configData.excludeFilterTypes
         this.formItem.delayTime = this.configData.delayTime
@@ -475,9 +483,6 @@ export default {
       that.alertInfo.successShow = false
       that.successSubmit = false
       const params = this.getEditParams()
-      // if (!this.checkParam(params)) {
-      //   return
-      // }
       that.dataLoading = true
       await that.axios.post('/api/drc/v2/autoconfig/dbMq/' + this.formAction, params)
         .then(response => {

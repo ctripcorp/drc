@@ -121,7 +121,7 @@
                 </Col>
                 <Col span="16">
                   <FormItem v-if="mqConfig.order" label="字段">
-                    <Select v-model="mqConfig.orderKey" filterable allow-create @on-create="handleCreateColumn"
+                    <Select v-model="orderKeyArray" filterable multiple allow-create @on-create="handleCreateColumn"
                             style="width: 200px" placeholder="为空表示按主键投递" clearable>
                       <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                     </Select>
@@ -193,7 +193,7 @@
                 </Col>
                 <Col span="20">
                   <FormItem v-if="mqConfig.order" label="有序投递字段">
-                    <Select v-model="mqConfig.orderKey" filterable allow-create @on-create="handleCreateColumn"
+                    <Select v-model="orderKeyArray" filterable multiple allow-create @on-create="handleCreateColumn"
                             style="width: 200px" placeholder="为空表示按主键投递">
                       <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                     </Select>
@@ -519,7 +519,8 @@ export default {
           value: 'I',
           label: 'INSERT'
         }
-      ]
+      ],
+      orderKeyArray: [] // 新增：用于存储多选的列名数组
     }
   },
   methods: {
@@ -527,7 +528,14 @@ export default {
       this.mqInitConfigInitFormRow(row, index)
       this.check()
       this.columnsForChose = []
-      this.columnsForChose.push(row.orderKey)
+      // 修改：处理 orderKey 字符串转换为数组
+      if (row.orderKey) {
+        this.orderKeyArray = row.orderKey.split(',').map(item => item.trim()).filter(item => item)
+      } else {
+        this.orderKeyArray = []
+      }
+      // 获取所有可用的列名
+      this.getCommonColumns()
       this.selectColumns = []
       if (row.filterFields != null) {
         this.selectColumns.push(row.filterFields)
@@ -540,7 +548,14 @@ export default {
       this.mqInitConfigInitFormRow(row, index)
       this.check()
       this.columnsForChose = []
-      this.columnsForChose.push(row.orderKey)
+      // 修改：处理 orderKey 字符串转换为数组
+      if (row.orderKey) {
+        this.orderKeyArray = row.orderKey.split(',').map(item => item.trim()).filter(item => item)
+      } else {
+        this.orderKeyArray = []
+      }
+      // 获取所有可用的列名
+      this.getCommonColumns()
       this.selectColumns = []
       if (row.filterFields != null) {
         this.selectColumns.push(row.filterFields)
@@ -575,11 +590,16 @@ export default {
     goToAddMqConfig () {
       this.mqConfigInit()
       this.columnsForChose = []
+      this.orderKeyArray = [] // 确保初始化 orderKeyArray
       this.display = {
         showOnly: false,
         normalTopicForm: false,
         mqConfigModal: true,
         filterReadOnly: false
+      }
+      // 如果有库表信息，获取可用的列名
+      if (this.topic.db && this.topic.table) {
+        this.getCommonColumns()
       }
     },
     mqConfigInit () {
@@ -609,6 +629,7 @@ export default {
       }
       this.tableData = []
       this.tagInfo.inputDisplay = false
+      this.orderKeyArray = [] // 新增：初始化 orderKeyArray
     },
     mqInitConfigInitFormRow: function (row, index) {
       this.mqConfig = {
@@ -639,6 +660,12 @@ export default {
       }
       this.tagInfo.inputDisplay = row.tag != null
       this.display.normalTopicForm = row.topic.endsWith('.drc') // 判断是否为规范topic
+      // 新增：处理 orderKey 字符串转换为数组
+      if (row.orderKey) {
+        this.orderKeyArray = row.orderKey.split(',').map(item => item.trim()).filter(item => item)
+      } else {
+        this.orderKeyArray = []
+      }
     },
     goToNormalTopicApplication () {
       this.display.normalTopicForm = true
@@ -702,7 +729,19 @@ export default {
             if (this.columnsForChose.length === 0) {
               alert('查询无公共字段！')
             }
+            // 新增：将已选择的字段添加到选项中
+            if (this.orderKeyArray && this.orderKeyArray.length > 0) {
+              this.orderKeyArray.forEach(item => {
+                if (!this.columnsForChose.includes(item)) {
+                  this.columnsForChose.push(item)
+                }
+              })
+            }
           }
+        })
+        .catch(error => {
+          console.error('获取公共列名失败:', error)
+          this.columnsForChose = []
         })
     },
     doSubmitAfterCheck: async function (dto) {
@@ -785,6 +824,8 @@ export default {
       } else {
         this.mqConfig.table = this.topic.db + '\\.' + this.topic.table
       }
+      // 修改：将 orderKeyArray 转换为逗号分隔的字符串
+      const orderKeyString = this.orderKeyArray.length > 0 ? this.orderKeyArray.join(',') : ''
       const dto = {
         dbReplicationId: this.mqConfig.dbReplicationId,
         bu: this.topic.bu,
@@ -795,7 +836,7 @@ export default {
         persistent: this.mqConfig.persistent,
         persistentDb: this.mqConfig.persistentDb === '' ? null : this.mqConfig.persistentDb,
         order: this.mqConfig.order,
-        orderKey: this.mqConfig.orderKey === '' ? null : this.mqConfig.orderKey,
+        orderKey: orderKeyString === '' ? null : orderKeyString,
         delayTime: this.mqConfig.delayTime === null ? 0 : this.mqConfig.delayTime,
         processor: this.mqConfig.processor === '' ? null : this.processor,
         messengerGroupId: this.drc.messengerGroupId,

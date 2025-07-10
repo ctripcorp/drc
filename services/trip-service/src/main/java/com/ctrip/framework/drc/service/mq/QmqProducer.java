@@ -20,10 +20,7 @@ import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,6 +52,8 @@ public class QmqProducer extends AbstractProducer {
 
     private String orderKey;
 
+    private List<String> orderKeys;
+
     private String qmqTraceSubenv;
 
     private static boolean subenvSwitch;
@@ -71,6 +70,9 @@ public class QmqProducer extends AbstractProducer {
         this.delayTime = mqConfig.getDelayTime();
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
+        this.orderKeys = StringUtils.isEmpty(this.orderKey)
+                ? Lists.newArrayList()
+                : Lists.newArrayList(orderKey.toLowerCase().split(","));
         this.qmqTraceSubenv = mqConfig.getSubenv();
         this.excludeFilterTypes = mqConfig.getExcludeFilterTypes();
         this.subenvSwitch = TripServiceDynamicConfig.getInstance().isSubenvEnable();
@@ -168,27 +170,38 @@ public class QmqProducer extends AbstractProducer {
 
         List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
         if (isOrder) {
-            boolean hasOrderKey = false;
-            for (EventColumn column : changedColumns) {
-                if (column.getColumnName().equalsIgnoreCase(orderKey)) {
-                    message.setOrderKey(column.getColumnValue());
-                    hasOrderKey = true;
-                }
-                if (column.isKey()) {
-                    keys.add(column.getColumnValue());
-                }
-            }
-
             if (orderKey == null) {
-                String defaultOrderKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_",keys));
-                message.setOrderKey(defaultOrderKey);
-                hasOrderKey = true;
-            }
-
-            if (!hasOrderKey) {
-                String schemaDotTable = String.format("%s.%s", schema, table);
-                loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.order.key.absent", schemaDotTable);
+                keys = changedColumns.stream()
+                        .filter(EventColumn::isKey).map(EventColumn::getColumnValue).toList();
+                String priKeyAsOrderKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_",keys));
+                message.setOrderKey(priKeyAsOrderKey);
+            } else {
+                Map<String, EventColumn> orderKeyColumnValues = changedColumns.stream()
+                        .filter(column -> orderKeys.contains(column.getColumnName().toLowerCase()))
+                        .collect(Collectors.toMap(
+                                column -> column.getColumnName().toLowerCase(),
+                                column -> column,
+                                (existing, replacement) -> replacement
+                        ));
+                keys = orderKeys.stream()
+                        .map(orderKeyColumnValues::get)
+                        .filter(Objects::nonNull)
+                        .map(EventColumn::getColumnValue).toList();
+                if (!CollectionUtils.isEmpty(keys)) {
+                    String concatOrderKey;
+                    if (keys.size() > 1) {
+                        concatOrderKey = "_" + String.join("_", keys);
+                    } else {
+                        concatOrderKey = keys.getFirst();
+                    }
+                    message.setOrderKey(concatOrderKey);
+                } else {
+                    keys = changedColumns.stream()
+                            .filter(EventColumn::isKey).map(EventColumn::getColumnValue).toList();
+                    String schemaDotTable = String.format("%s.%s", schema, table);
+                    loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.order.key.absent", schemaDotTable);
+                }
             }
         } else {
             for (EventColumn column : changedColumns) {

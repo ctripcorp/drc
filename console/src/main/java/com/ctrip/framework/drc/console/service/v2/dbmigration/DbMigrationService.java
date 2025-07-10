@@ -66,4 +66,6 @@ public interface DbMigrationService {
     Pair<Boolean, String> checkPreStartStatus(Long taskId) throws SQLException;
 
     void quickPassForFwsMigration(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException;
+
+    void quickCheckFwsNewMha(Long taskId) throws SQLException;
 }

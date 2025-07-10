@@ -506,6 +506,7 @@ public class DbMigrationController {
             if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null,2,"no dbDrcRelated");
             } else {
+                dbMigrationServiceV2.quickCheckFwsNewMha(tipsAndTaskId.getRight());
                 return ApiResult.getInstance(tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
             }
         } catch (SQLException e) {
