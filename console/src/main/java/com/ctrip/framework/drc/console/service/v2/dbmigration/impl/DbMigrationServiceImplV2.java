@@ -135,6 +135,8 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
     private ApplierTblV3Dao dbApplierTblDao;
     @Autowired
     private NotifyCmService notifyCmService;
+    @Autowired
+    private BuTblDao buTblDao;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -1766,5 +1768,21 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             migrationTaskTbl.setStatus(MigrationStatusEnum.READY_TO_COMMIT_TASK.getStatus());
         }
         migrationTaskTblDao.update(migrationTaskTbl);
+    }
+
+    @Override
+    public void quickCheckFwsNewMha(Long taskId) throws SQLException {
+        MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
+        String oldMha = migrationTaskTbl.getOldMha();
+        String newMha = migrationTaskTbl.getNewMha();
+        MhaTblV2 oldMhaTbl = mhaTblV2Dao.queryByMhaName(oldMha);
+        MhaTblV2 newMhaTbl = mhaTblV2Dao.queryByMhaName(newMha);
+        Long newMhaBuId = newMhaTbl.getBuId();
+        BuTbl buTbl = buTblDao.queryByPk(newMhaBuId);
+        if (buTbl == null) {
+            newMhaTbl.setBuId(oldMhaTbl.getBuId());
+        }
+        newMhaTbl.setMonitorSwitch(1);
+        mhaTblV2Dao.update(newMhaTbl);
     }
 }

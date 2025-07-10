@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.param.v2.security.Account;
+import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.Data;
@@ -28,6 +29,7 @@ import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.console.service.v2.security.MetaAccountService;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
@@ -40,13 +42,11 @@ import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.util.CollectionUtils;
 import org.xml.sax.SAXException;
 
@@ -144,13 +144,19 @@ public class DrcBuildServiceV2Test {
     private MetaAccountService metaAccountService;
     @Mock
     private DbDrcBuildService dbDrcBuildService;
-
+    private MockedStatic<MySqlUtils> mockedStaticMySqlUtils;
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         when(accountService.encrypt(Mockito.anyString())).thenReturn("encryptToken");
         when(accountService.encrypt(Mockito.anyString())).thenReturn("encryptToken");
+        mockedStaticMySqlUtils = mockStatic(MySqlUtils.class);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        mockedStaticMySqlUtils.close();
     }
 
     @Test
@@ -760,5 +766,27 @@ public class DrcBuildServiceV2Test {
         return oldMha;
     }
 
-
+    @Test
+    public void testChangeMachineUuid() throws Exception {
+        MachineTbl mockMachineTbl = new MachineTbl();
+        mockMachineTbl.setMaster(1);
+        mockMachineTbl.setMhaId(1L);
+        mockMachineTbl.setUuid("");
+        Mockito.when(machineTblDao.queryByIpPort(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockMachineTbl);
+        Mockito.when(machineTblDao.update((MachineTbl) Mockito.any())).thenReturn(1);
+        MhaTblV2 mockMhaTbl = new MhaTblV2();
+        mockMhaTbl.setDeleted(0);
+        mockMhaTbl.setMhaName("mha");
+        Mockito.when(mhaTblDao.queryById(Mockito.anyLong())).thenReturn(mockMhaTbl);
+        Mockito.when(metaAccountService.getMhaAccounts(Mockito.anyString()))
+                .thenReturn(new MhaAccounts("mha1", new Account("user1", "password1"), null, null));
+        MachineDto dto = new MachineDto(3306, "ip1", true);
+        mockedStaticMySqlUtils.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("uuid");
+        boolean changeMachineUuid = drcBuildServiceV2.changeMachineUuid(dto);
+        Assert.assertTrue(changeMachineUuid);
+        mockMachineTbl.setMaster(0);
+        changeMachineUuid = drcBuildServiceV2.changeMachineUuid(dto);
+        Assert.assertFalse(changeMachineUuid);
+    }
 }

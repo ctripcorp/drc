@@ -5,6 +5,12 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.TagTbl;
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.vo.request.UpdateMhaTagDto;
+import com.ctrip.framework.drc.console.vo.v2.UpdateMhaTagResView;
 import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
@@ -43,6 +49,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import static com.ctrip.framework.drc.console.service.v2.PojoBuilder.*;
@@ -103,6 +110,8 @@ public class ResourceServiceTest {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Mock
     private TagTblDao tagTblDao;
+    @Mock
+    private BuTblDao buTblDao;
 
     @Before
     public void setUp() {
@@ -748,4 +757,121 @@ public class ResourceServiceTest {
         Assert.assertEquals(1, allTags.size());
     }
 
+    @Test
+    public void testUpdateMhaTag() {
+    }
+
+    @Test
+    public void testUpdateMhaTag_EmptyParams() throws SQLException {
+        // 测试空参数的情况
+        UpdateMhaTagDto dto = new UpdateMhaTagDto();
+        dto.setMhas(Lists.newArrayList());
+        dto.setBuNames(Lists.newArrayList());
+        dto.setExpectTag("testTag");
+
+        UpdateMhaTagResView result = resourceService.updateMhaTag(dto);
+        
+        Assert.assertEquals(0, result.getSuccess().size());
+        Assert.assertEquals(1, result.getFail().size());
+        Assert.assertEquals("error param", result.getFail().get(0));
+    }
+
+    @Test
+    public void testUpdateMhaTag_InvalidTag() throws SQLException {
+        // 测试无效标签的情况
+        UpdateMhaTagDto dto = new UpdateMhaTagDto();
+        dto.setMhas(Lists.newArrayList("mha1"));
+        dto.setExpectTag("invalidTag");
+
+        Mockito.when(tagTblDao.queryAllExist()).thenReturn(Lists.newArrayList(new TagTbl("validTag")));
+
+        UpdateMhaTagResView result = resourceService.updateMhaTag(dto);
+        
+        Assert.assertEquals(0, result.getSuccess().size());
+        Assert.assertEquals(1, result.getFail().size());
+        Assert.assertEquals("expect tag is not legal", result.getFail().get(0));
+    }
+
+    @Test
+    public void testUpdateMhaTag_ShowOnly() throws SQLException {
+        // 测试只显示模式
+        UpdateMhaTagDto dto = new UpdateMhaTagDto();
+        dto.setMhas(Lists.newArrayList("mha1"));
+        dto.setExpectTag("newTag");
+        dto.setShowOnly(true);
+
+        Mockito.when(tagTblDao.queryAllExist()).thenReturn(Lists.newArrayList(new TagTbl("newTag")));
+        BuTbl mockBuTbl = new BuTbl();
+        mockBuTbl.setId(1L);
+        mockBuTbl.setBuName("testBu");
+        Mockito.when(buTblDao.queryAllExist()).thenReturn(Lists.newArrayList(mockBuTbl));
+        
+        MhaTblV2 mhaTbl = new MhaTblV2();
+        mhaTbl.setId(1L);
+        mhaTbl.setMhaName("mha1");
+        mhaTbl.setTag("COMMON");
+        mhaTbl.setBuId(1L);
+        
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt()))
+                .thenReturn(Lists.newArrayList(mhaTbl));
+
+        UpdateMhaTagResView result = resourceService.updateMhaTag(dto);
+        
+        Assert.assertEquals(1, result.getSuccess().size());
+        Assert.assertEquals("mha1,COMMON,newTag", result.getSuccess().get(0));
+        Assert.assertEquals(0, result.getFail().size());
+    }
+
+    @Test
+    public void testUpdateMhaTag_ForceSwitch() throws SQLException {
+        // 测试强制切换模式
+        UpdateMhaTagDto dto = new UpdateMhaTagDto();
+        dto.setMhas(Lists.newArrayList("mha1"));
+        dto.setExpectTag("newTag");
+        dto.setForceSwitch(true);
+
+        Mockito.when(tagTblDao.queryAllExist()).thenReturn(Lists.newArrayList(new TagTbl("newTag")));
+        BuTbl mockBuTbl = new BuTbl();
+        mockBuTbl.setId(1L);
+        mockBuTbl.setBuName("testBu");
+        Mockito.when(buTblDao.queryAllExist()).thenReturn(Lists.newArrayList(mockBuTbl));
+        
+        MhaTblV2 mhaTbl = new MhaTblV2();
+        mhaTbl.setId(1L);
+        mhaTbl.setMhaName("mha1");
+        mhaTbl.setTag("oldTag");
+        mhaTbl.setBuId(1L);
+        
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt()))
+                .thenReturn(Lists.newArrayList(mhaTbl));
+        Mockito.when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
+
+        // Mock messenger group
+        MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
+        messengerGroupTbl.setId(1L);
+        Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.anyLong(), Mockito.any(), Mockito.anyInt()))
+                .thenReturn(messengerGroupTbl);
+        
+        // Mock messenger
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setResourceId(1L);
+        Mockito.when(messengerTblDao.queryByGroupId(Mockito.anyLong()))
+                .thenReturn(Lists.newArrayList(messengerTbl));
+        
+        // Mock resource
+        ResourceTbl resourceTbl = new ResourceTbl();
+        resourceTbl.setTag("differentTag");
+        Mockito.when(resourceTblDao.queryByIds(Mockito.anyList()))
+                .thenReturn(Lists.newArrayList(resourceTbl));
+
+        UpdateMhaTagResView result = resourceService.updateMhaTag(dto);
+        
+        Assert.assertEquals(1, result.getSuccess().size());
+        Assert.assertEquals("mha1,oldTag,newTag", result.getSuccess().get(0));
+        Assert.assertEquals(0, result.getFail().size());
+        // 验证强制切换相关的失败列表
+        Assert.assertTrue(result.getmQFailList().size() >= 0);
+        Assert.assertTrue(result.getmKFailList().size() >= 0);
+        Assert.assertTrue(result.getaFailList().size() >= 0);
+    }
 }

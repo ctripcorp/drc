@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.resource;
 
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
+import com.ctrip.framework.drc.console.vo.request.UpdateMhaTagDto;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
@@ -96,4 +97,6 @@ public interface ResourceService {
     List<String> getAllTags() throws Exception;
 
     void insertTags(List<String> tags) throws Exception;
+
+    UpdateMhaTagResView updateMhaTag(UpdateMhaTagDto dto) throws SQLException;
 }

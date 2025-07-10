@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.vo.request.UpdateMhaTagDto;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -392,5 +393,17 @@ public class ResourceController {
             logger.error("getAllTags fail", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
+    }
+
+    @PostMapping("updateMhaTag")
+    public ApiResult<UpdateMhaTagResView> updateMhaTag(@RequestBody UpdateMhaTagDto dto) {
+        try {
+            UpdateMhaTagResView view = resourceService.updateMhaTag(dto);
+            return ApiResult.getSuccessInstance(view);
+        } catch (Exception e) {
+            logger.error("adjustTag fail", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+
     }
 }

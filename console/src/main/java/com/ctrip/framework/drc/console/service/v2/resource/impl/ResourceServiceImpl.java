@@ -22,9 +22,10 @@ import com.ctrip.framework.drc.console.dao.v3.MessengerTblV3Dao;
 import com.ctrip.framework.drc.console.dao.v3.MhaDbReplicationTblDao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.DbApplierDto;
+import com.ctrip.framework.drc.console.dto.v3.DbApplierSwitchReqDto;
+import com.ctrip.framework.drc.console.dto.v3.MessengerSwitchReqDto;
 import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.resource.*;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -35,6 +36,7 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.vo.request.UpdateMhaTagDto;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -68,6 +70,9 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.enums.ResourceTagEnum.COMMON;
+import static com.ctrip.framework.drc.core.monitor.enums.ModuleEnum.*;
 
 
 /**
@@ -123,6 +128,8 @@ public class ResourceServiceImpl implements ResourceService {
     private DrcBuildServiceV2 drcBuildServiceV2;
     @Autowired
     private TagTblDao tagTblDao;
+    @Autowired
+    private BuTblDao buTblDao;
 
     private BatchInfoInquirer batchInfoInquirer = BatchInfoInquirer.getInstance();
 
@@ -1091,8 +1098,8 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, dbApplierMap, messengerMap, dbMessengerMap);
-        if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
-            return getResourceViews(dcIds, region, type, ResourceTagEnum.COMMON.getName());
+        if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(COMMON.getName())) {
+            return getResourceViews(dcIds, region, type, COMMON.getName());
         }
 
         String centerRegion = consoleConfig.getCenterRegion();
@@ -1207,7 +1214,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         mhaAzView.setAz2ApplierInstance(getAppliersInAllDcs(drc, ModuleEnum.APPLIER.getCode()));
-        mhaAzView.setAz2MessengerInstance(getAppliersInAllDcs(drc, ModuleEnum.MESSENGER_QMQ.getCode()));
+        mhaAzView.setAz2MessengerInstance(getAppliersInAllDcs(drc, MESSENGER_QMQ.getCode()));
         mhaAzView.addSetAz2MessengerInstance(getAppliersInAllDcs(drc, ModuleEnum.MESSENGER_KAFKA.getCode()));
         mhaAzView.setAz2ReplicatorInstance(getReplicatorAz(drc));
         return mhaAzView;
@@ -1494,5 +1501,159 @@ public class ResourceServiceImpl implements ResourceService {
             }
         }
         return az2ReplicatorInstance;
+    }
+
+    @Override
+    public UpdateMhaTagResView updateMhaTag(UpdateMhaTagDto dto) throws SQLException {
+        if (CollectionUtils.isEmpty(dto.getMhas()) && CollectionUtils.isEmpty(dto.getBuNames())) {
+            return new UpdateMhaTagResView(Lists.newArrayList(), Lists.newArrayList("error param"));
+        }
+        List<TagTbl> tagTbls = tagTblDao.queryAllExist();
+        List<String> legalTags = tagTbls.stream().map(TagTbl::getTag).toList();
+        if (!legalTags.contains(dto.getExpectTag())) {
+            return new UpdateMhaTagResView(Lists.newArrayList(), Lists.newArrayList("expect tag is not legal"));
+        }
+        List<String> changeMhaTagSuccessList = Lists.newArrayList();
+        List<String> changeMhaTagFailList = Lists.newArrayList();
+        List<String> switchMQFailList = Lists.newArrayList();
+        List<String> switchMKFailList = Lists.newArrayList();
+        List<String> switchAFailList = Lists.newArrayList();
+        List<String> skipList = Lists.newArrayList();
+        List<BuTbl> buTbls = buTblDao.queryAllExist();
+        if (!CollectionUtils.isEmpty(dto.getBuNames())) {
+            List<String> buNames = dto.getBuNames();
+            buTbls = buTbls.stream()
+                    .filter(buTbl -> buNames.contains(buTbl.getBuName())).toList();
+        }
+        List<Long> buIds = buTbls.stream().map(BuTbl::getId).toList();
+        List<MhaTblV2> mhaTbls;
+        if (CollectionUtils.isEmpty(dto.getMhas())) {
+            mhaTbls = mhaTblV2Dao.queryAllExist().stream()
+                    .filter(mhaTbl -> buIds.contains(mhaTbl.getBuId())).toList();
+        } else {
+            mhaTbls = mhaTblV2Dao.queryByMhaNames(dto.getMhas(), BooleanEnum.FALSE.getCode()).stream()
+                    .filter(mhaTbl -> buIds.contains(mhaTbl.getBuId())).toList();
+        }
+        for (MhaTblV2 mha : mhaTbls) {
+            boolean tagNotEqual = !mha.getTag().equals(dto.getExpectTag());
+            boolean shouldForceSwitch = dto.isForceSwitch();
+            boolean shouldChangeTag = dto.isForceChangeTag() || mha.getTag().equals(COMMON.name());
+
+            if (!tagNotEqual && !shouldForceSwitch) {
+                skipList.add(mha.getMhaName());
+                continue;
+            }
+            if (dto.isShowOnly()) {
+                if (shouldChangeTag) {
+                    changeMhaTagSuccessList.add(String.format("%s,%s,%s", mha.getMhaName(), mha.getTag(), dto.getExpectTag()));
+                }
+            } else {
+                if (!(shouldChangeTag || shouldForceSwitch)) {
+                    skipList.add(mha.getMhaName());
+                    continue;
+                }
+                if (tagNotEqual) {
+                    String oldTag = mha.getTag();
+                    mha.setTag(dto.getExpectTag());
+                    try {
+                        mhaTblV2Dao.update(mha);
+                    } catch (SQLException e) {
+                        changeMhaTagFailList.add(String.format("%s,%s,%s", mha.getMhaName(), mha.getTag(), dto.getExpectTag()));
+                        continue;
+                    }
+                    changeMhaTagSuccessList.add(String.format("%s,%s,%s", mha.getMhaName(), oldTag, dto.getExpectTag()));
+                }
+
+                if (shouldForceSwitch) {
+                    try {
+                        adjustMessengerToNewTag(mha, MESSENGER_QMQ, dto.getExpectTag());
+                    } catch (Exception e) {
+                        switchMQFailList.add(String.format("%s (%s)", mha.getMhaName(), e.getMessage()));
+                    }
+                    try {
+                        adjustMessengerToNewTag(mha, MESSENGER_KAFKA, dto.getExpectTag());
+                    } catch (Exception e) {
+                        switchMKFailList.add(String.format("%s (%s)", mha.getMhaName(), e.getMessage()));
+                    }
+                    try {
+                        adjustApplierToNewTag(mha, APPLIER, dto.getExpectTag());
+                    } catch (Exception e) {
+                        switchAFailList.add(String.format("%s (%s)", mha.getMhaName(), e.getMessage()));
+                    }
+                }
+            }
+        }
+        if (dto.isShowOnly()) {
+            return new UpdateMhaTagResView(changeMhaTagSuccessList, Lists.newArrayList());
+        }
+        return new UpdateMhaTagResView(changeMhaTagSuccessList, changeMhaTagFailList, switchMQFailList, switchMKFailList, switchAFailList, skipList);
+    }
+
+    private boolean adjustMessengerToNewTag(MhaTblV2 mhaTbl, ModuleEnum resourceType, String newTag) throws Exception {
+        if (!ModuleEnum.isMessenger(resourceType.getCode())) {
+            return false;
+        }
+        MqType mqType = resourceType == MESSENGER_QMQ ? MqType.qmq : MqType.kafka;
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaIdAndMqType(mhaTbl.getId(), mqType, BooleanEnum.FALSE.getCode());
+        if (messengerGroupTbl == null) {
+            return false;
+        }
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return false;
+        }
+        List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).distinct().toList();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+        List<String> resourceTags = resourceTbls.stream().map(ResourceTbl::getTag).distinct().toList();
+        boolean containDifferentTagResource = resourceTags.stream().anyMatch(tag -> !tag.equals(newTag));
+        if (containDifferentTagResource) {
+            MessengerSwitchReqDto dto = new MessengerSwitchReqDto();
+            dto.setSrcMhaName(mhaTbl.getMhaName());
+            dto.setMqType(mqType.name());
+            dbDrcBuildService.switchMessengers(Lists.newArrayList(dto));
+            return true;
+        }
+        return false;
+    }
+
+    private boolean adjustApplierToNewTag(MhaTblV2 mhaTbl, ModuleEnum resourceType, String newTag) throws Exception {
+        if (resourceType != ModuleEnum.APPLIER) {
+            return false;
+        }
+        List<MhaDbMappingTbl> mhaDbMappings = mhaDbMappingTblDao.queryByMhaId(mhaTbl.getId());
+        List<Long> mhaDbMappingIds = mhaDbMappings.stream().map(MhaDbMappingTbl::getId).toList();
+        List<MhaDbReplicationTbl> mhaDbReplicationTbls = mhaDbReplicationTblDao.queryByMhaDbMappingIds(mhaDbMappingIds);
+        mhaDbReplicationTbls = mhaDbReplicationTbls.stream()
+                .filter(e -> mhaDbMappingIds.contains(e.getDstMhaDbMappingId())).toList();
+        List<Long> srcMappingIds = mhaDbReplicationTbls.stream().map(MhaDbReplicationTbl::getSrcMhaDbMappingId).distinct().toList();
+        List<MhaDbMappingTbl> srcMappingTbls = mhaDbMappingTblDao.queryByIds(srcMappingIds);
+        List<Long> srcMhaIds = srcMappingTbls.stream().map(MhaDbMappingTbl::getMhaId).distinct().toList();
+        List<MhaTblV2> srcMhaTbls = mhaTblV2Dao.queryByIds(srcMhaIds);
+        for (MhaTblV2 srcMha : srcMhaTbls) {
+            List<DbApplierDto> dbApplierDtos = dbDrcBuildService.getMhaDbAppliers(srcMha.getMhaName(), mhaTbl.getMhaName());
+            if (CollectionUtils.isEmpty(dbApplierDtos)) {
+                continue;
+            }
+            List<String> dbNames = Lists.newArrayList();
+            for (DbApplierDto dto : dbApplierDtos) {
+                List<String> applierIps = dto.getIps();
+                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(applierIps);
+                List<String> resourceTags = resourceTbls.stream().map(ResourceTbl::getTag).distinct().toList();
+                //todo
+                boolean containDifferentTagResource = resourceTags.stream().anyMatch(tag -> !tag.equals(newTag));
+                if (containDifferentTagResource) {
+                    dbNames.add(dto.getDbName());
+                }
+            }
+            if (CollectionUtils.isEmpty(dbNames)) {
+                continue;
+            }
+            DbApplierSwitchReqDto dto = new DbApplierSwitchReqDto();
+            dto.setSrcMhaName(srcMha.getMhaName());
+            dto.setDstMhaName(mhaTbl.getMhaName());
+            dto.setDbNames(dbNames);
+            dbDrcBuildService.switchAppliers(Lists.newArrayList(dto));
+        }
+        return true;
     }
 }

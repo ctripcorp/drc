@@ -180,4 +180,10 @@ public class DefaultConsoleConfigTest {
         boolean autoCreateSameTableCheckSwitch = config.getAutoCreateSameTableCheckSwitch();
         Assert.assertFalse(autoCreateSameTableCheckSwitch);
     }
+
+    @Test
+    public void testGetOfflineMhaBlackList() {
+        Set<String> offlineMhaBlackList = config.getOfflineMhaBlackList();
+        Assert.assertEquals(0,offlineMhaBlackList.size());
+    }
 }

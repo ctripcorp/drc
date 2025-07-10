@@ -55,6 +55,9 @@ public class SyncOfflinedMhaTask extends AbstractLeaderAwareMonitor {
         Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap = resourceService.getMhaInstanceGroupsInAllRegions();
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
         for (MhaTblV2 mhaTblV2 : mhaTblV2s) {
+            if (consoleConfig.getOfflineMhaBlackList().contains(mhaTblV2.getMhaName())) {
+                continue;
+            }
             MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTblV2.getMhaName());
             if (mhaInstanceGroupDto == null) {
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.offline.mha", mhaTblV2.getMhaName());

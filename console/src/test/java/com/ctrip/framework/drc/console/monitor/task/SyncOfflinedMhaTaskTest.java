@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.core.monitor.reporter.CatEventMonitor;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +35,7 @@ public class SyncOfflinedMhaTaskTest {
         MockitoAnnotations.openMocks(this);
         mockedStatic = Mockito.mockStatic(DefaultEventMonitorHolder.class);
         mockedStatic.when(DefaultEventMonitorHolder::getInstance).thenReturn(catEventMonitor);
+        Mockito.when(consoleConfig.getOfflineMhaBlackList()).thenReturn(Sets.newHashSet());
     }
 
     @After

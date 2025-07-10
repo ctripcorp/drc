@@ -1761,4 +1761,25 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getDbReplicationIds()), "dbReplicationIds require not empty!");
         PreconditionUtils.checkArgument(RowsFilterModeEnum.checkMode(param.getMode()), "rowsFilter mode not support!");
     }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public boolean changeMachineUuid(MachineDto machineDto) throws Exception {
+        MachineTbl machineTbl = machineTblDao.queryByIpPort(machineDto.getIp(), machineDto.getPort());
+        if (machineTbl == null) {
+            logger.info("[changeMachineUuid] no machine in tbl");
+            return false;
+        }
+        boolean machineTblMaster = machineTbl.getMaster().equals(1);
+        if (machineTblMaster != machineDto.getMaster()) {
+            logger.info("[changeMachineUuid] master error");
+            return false;
+        }
+        MhaTblV2 mhaTblV2 = mhaTblDao.queryById(machineTbl.getMhaId());
+        if (mhaTblV2 != null && BooleanEnum.FALSE.getCode().equals(mhaTblV2.getDeleted())) {
+            MachineTbl machineTbl1 = extractFrom(machineDto, mhaTblV2.getId(), mhaTblV2.getMhaName());
+            machineTblDao.update(machineTbl1);
+        }
+        return true;
+    }
 }
