@@ -51,8 +51,8 @@
         <wiremock.version>2.23.2</wiremock.version>
         <spring-boot.version>1.5.0.RELEASE</spring-boot.version>
         <spring-boot-maven-plugin.version>1.5.0.RELEASE</spring-boot-maven-plugin.version>
-        <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
-        <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
+        <maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
         <maven-source-plugin.version>3.0.0</maven-source-plugin.version>
         <curator.version>5.1.0</curator.version>
         <zookeeper.version>3.8.2</zookeeper.version>
