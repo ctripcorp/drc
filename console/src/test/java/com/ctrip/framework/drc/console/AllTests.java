@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.dao.AbstractDaoTest;
 import com.ctrip.framework.drc.console.dao.BaseDalTableDaoTest;
 import com.ctrip.framework.drc.console.dao.OverseaDalTableDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
+import com.ctrip.framework.drc.console.dto.v2.MachineDtoTest;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
@@ -267,6 +268,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DbMqConfigInfoDtoTest.class,
         DbTableDrcRegionInfoTest.class,
         MqMetaCreateResultViewTest.class,
+        MachineDtoTest.class,
 
         //DAO
         BaseDalTableDaoTest.class,
