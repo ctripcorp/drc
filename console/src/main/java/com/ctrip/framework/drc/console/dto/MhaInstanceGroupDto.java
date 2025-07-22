@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 

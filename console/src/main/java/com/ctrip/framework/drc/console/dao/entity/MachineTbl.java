@@ -7,6 +7,7 @@ import com.ctrip.platform.dal.dao.annotation.Type;
 import javax.persistence.*;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Objects;
 
 /**
  * @author shb沈海波
@@ -17,165 +18,182 @@ import java.sql.Types;
 @Table(name = "machine_tbl")
 public class MachineTbl implements DalPojo {
 
-	/**
-	 * 主键
-	 */
-	@Id
-	@Column(name = "id")
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Type(value = Types.BIGINT)
-	private Long id;
+    /**
+     * 主键
+     */
+    @Id
+    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Type(value = Types.BIGINT)
+    private Long id;
 
-	/**
-	 * MySQL实例ip
-	 */
-	@Column(name = "ip")
-	@Type(value = Types.VARCHAR)
-	private String ip;
+    /**
+     * MySQL实例ip
+     */
+    @Column(name = "ip")
+    @Type(value = Types.VARCHAR)
+    private String ip;
 
-	/**
-	 * MySQL实例端口
-	 */
-	@Column(name = "port")
-	@Type(value = Types.INTEGER)
-	private Integer port;
+    /**
+     * MySQL实例端口
+     */
+    @Column(name = "port")
+    @Type(value = Types.INTEGER)
+    private Integer port;
 
-	/**
-	 * MySQL实例uuid
-	 */
-	@Column(name = "uuid")
-	@Type(value = Types.VARCHAR)
-	private String uuid;
+    /**
+     * MySQL实例uuid
+     */
+    @Column(name = "uuid")
+    @Type(value = Types.VARCHAR)
+    private String uuid;
 
-	/**
-	 * 主从关系, 0:从, 1:主
-	 */
-	@Column(name = "master")
-	@Type(value = Types.TINYINT)
-	private Integer master;
+    /**
+     * 主从关系, 0:从, 1:主
+     */
+    @Column(name = "master")
+    @Type(value = Types.TINYINT)
+    private Integer master;
 
-	/**
-	 * 集群mha id
-	 */
-	@Column(name = "mha_id")
-	@Type(value = Types.BIGINT)
-	private Long mhaId;
+    /**
+     * 集群mha id
+     */
+    @Column(name = "mha_id")
+    @Type(value = Types.BIGINT)
+    private Long mhaId;
 
-	/**
-	 * 是否删除, 0:否; 1:是
-	 */
-	@Column(name = "deleted")
-	@Type(value = Types.TINYINT)
-	private Integer deleted;
+    /**
+     * 是否删除, 0:否; 1:是
+     */
+    @Column(name = "deleted")
+    @Type(value = Types.TINYINT)
+    private Integer deleted;
 
-	/**
-	 * 创建时间
-	 */
-	@Column(name = "create_time")
-	@Type(value = Types.TIMESTAMP)
-	private Timestamp createTime;
+    /**
+     * 创建时间
+     */
+    @Column(name = "create_time")
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp createTime;
 
-	/**
-	 * 更新时间
-	 */
-	@Column(name = "datachange_lasttime", insertable = false, updatable = false)
-	@Type(value = Types.TIMESTAMP)
-	private Timestamp datachangeLasttime;
+    /**
+     * 更新时间
+     */
+    @Column(name = "datachange_lasttime", insertable = false, updatable = false)
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp datachangeLasttime;
 
-	public MachineTbl() {
-	}
+    public MachineTbl() {
+    }
 
-	public MachineTbl(String ip, Integer port, Integer master) {
-		this.ip = ip;
-		this.port = port;
-		this.master = master;
-	}
+    public MachineTbl(String ip, Integer port, Integer master) {
+        this.ip = ip;
+        this.port = port;
+        this.master = master;
+    }
 
-	@Override
-	public String toString() {
-		return "MachineTbl{" +
-				"id=" + id +
-				", ip='" + ip + '\'' +
-				", port=" + port +
-				", uuid='" + uuid + '\'' +
-				", master=" + master +
-				", mhaId=" + mhaId +
-				", deleted=" + deleted +
-				", createTime=" + createTime +
-				", datachangeLasttime=" + datachangeLasttime +
-				'}';
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        MachineTbl that = (MachineTbl) o;
+        return Objects.equals(ip, that.ip)
+                && Objects.equals(port, that.port)
+                && Objects.equals(uuid, that.uuid)
+                && Objects.equals(master, that.master)
+                && Objects.equals(mhaId, that.mhaId)
+                && Objects.equals(deleted, that.deleted);
+    }
 
-	public Long getId() {
-		return id;
-	}
+    @Override
+    public int hashCode() {
+        return Objects.hash(ip, port, uuid, master, mhaId, deleted);
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Override
+    public String toString() {
+        return "MachineTbl{" +
+                "id=" + id +
+                ", ip='" + ip + '\'' +
+                ", port=" + port +
+                ", uuid='" + uuid + '\'' +
+                ", master=" + master +
+                ", mhaId=" + mhaId +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
+    }
 
-	public String getIp() {
-		return ip;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setIp(String ip) {
-		this.ip = ip;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public Integer getPort() {
-		return port;
-	}
+    public String getIp() {
+        return ip;
+    }
 
-	public void setPort(Integer port) {
-		this.port = port;
-	}
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
 
-	public String getUuid() {
-		return uuid;
-	}
+    public Integer getPort() {
+        return port;
+    }
 
-	public void setUuid(String uuid) {
-		this.uuid = uuid;
-	}
+    public void setPort(Integer port) {
+        this.port = port;
+    }
 
-	public Integer getMaster() {
-		return master;
-	}
+    public String getUuid() {
+        return uuid;
+    }
 
-	public void setMaster(Integer master) {
-		this.master = master;
-	}
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
 
-	public Long getMhaId() {
-		return mhaId;
-	}
+    public Integer getMaster() {
+        return master;
+    }
 
-	public void setMhaId(Long mhaId) {
-		this.mhaId = mhaId;
-	}
+    public void setMaster(Integer master) {
+        this.master = master;
+    }
 
-	public Integer getDeleted() {
-		return deleted;
-	}
+    public Long getMhaId() {
+        return mhaId;
+    }
 
-	public void setDeleted(Integer deleted) {
-		this.deleted = deleted;
-	}
+    public void setMhaId(Long mhaId) {
+        this.mhaId = mhaId;
+    }
 
-	public Timestamp getCreateTime() {
-		return createTime;
-	}
+    public Integer getDeleted() {
+        return deleted;
+    }
 
-	public void setCreateTime(Timestamp createTime) {
-		this.createTime = createTime;
-	}
+    public void setDeleted(Integer deleted) {
+        this.deleted = deleted;
+    }
 
-	public Timestamp getDatachangeLasttime() {
-		return datachangeLasttime;
-	}
+    public Timestamp getCreateTime() {
+        return createTime;
+    }
 
-	public void setDatachangeLasttime(Timestamp datachangeLasttime) {
-		this.datachangeLasttime = datachangeLasttime;
-	}
-	
+    public void setCreateTime(Timestamp createTime) {
+        this.createTime = createTime;
+    }
+
+    public Timestamp getDatachangeLasttime() {
+        return datachangeLasttime;
+    }
+
+    public void setDatachangeLasttime(Timestamp datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
+    }
+
 }
