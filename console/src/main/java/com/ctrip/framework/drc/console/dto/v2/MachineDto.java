@@ -35,4 +35,15 @@ public class MachineDto {
         return machineDto;
     }
 
+    public void setPort(Integer port) {
+        this.port = port;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public void setMaster(Boolean master) {
+        isMaster = master;
+    }
 }
