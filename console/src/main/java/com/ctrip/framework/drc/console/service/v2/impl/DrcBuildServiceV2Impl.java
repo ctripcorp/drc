@@ -683,6 +683,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         for (MemberInfo memberInfo : memberlist) {
             machinesToBeInsert.add(extractFrom(memberInfo, mhaId, newMha));
         }
+        machinesToBeInsert = machinesToBeInsert.stream().distinct().collect(Collectors.toList());
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", newMha, Arrays.stream(ints).sum());
         mhaTobeInit.setId(mhaId);

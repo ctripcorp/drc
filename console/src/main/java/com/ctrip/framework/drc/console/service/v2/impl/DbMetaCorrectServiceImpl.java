@@ -24,7 +24,6 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +34,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -84,8 +82,9 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
         if (monitorTableSourceProvider.getSwitchSyncMhaUpdateAll().equalsIgnoreCase(SWITCH_STATUS_ON)) {
             logger.info("[[task=syncMhaTask,mha={}]] switch turn on,updateAll change to meta db",mhaName);
             if (!CollectionUtils.isEmpty(insertMachines)) {
-                this.beforeInsert(insertMachines,mhaTblV2);
-                int[] ints = machineTblDao.batchInsert(insertMachines);
+                List<MachineTbl> toInsertMachines = insertMachines.stream().distinct().collect(Collectors.toList());
+                this.beforeInsert(toInsertMachines,mhaTblV2);
+                int[] ints = machineTblDao.batchInsert(toInsertMachines);
                 loggingAction(mhaName,ints,"Insert");
             }
             if (!CollectionUtils.isEmpty(updateMachines)) {
@@ -115,8 +114,9 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
 
             String type = "DRC.syncMhaFromDba";
             if (!CollectionUtils.isEmpty(insertMachines)) {
-                this.beforeInsert(insertMachines, mhaTblV2);
-                int[] ints = machineTblDao.batchInsert(insertMachines);
+                List<MachineTbl> toInsertMachines = insertMachines.stream().distinct().collect(Collectors.toList());
+                this.beforeInsert(toInsertMachines, mhaTblV2);
+                int[] ints = machineTblDao.batchInsert(toInsertMachines);
                 loggingAction(mhaName, ints, "Insert", type);
             }
             if (!CollectionUtils.isEmpty(updateMachines)) {
