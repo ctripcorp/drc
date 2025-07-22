@@ -1779,7 +1779,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         MhaTblV2 mhaTblV2 = mhaTblDao.queryById(machineTbl.getMhaId());
         if (mhaTblV2 != null && BooleanEnum.FALSE.getCode().equals(mhaTblV2.getDeleted())) {
             MachineTbl machineTbl1 = extractFrom(machineDto, mhaTblV2.getId(), mhaTblV2.getMhaName());
-            machineTblDao.update(machineTbl1);
+            machineTbl.setUuid(machineTbl1.getUuid());
+            machineTblDao.update(machineTbl);
         }
         return true;
     }
