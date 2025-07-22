@@ -483,6 +483,7 @@ public class MhaDbReplicationServiceImpl implements MhaDbReplicationService {
             List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
             List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).distinct().collect(Collectors.toList());
             List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIds(dbIds);
+            mhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e-> e.getSubenv() == null || "".equals(e.getSubenv())).toList();
 
             List<Long> relatedMappingTbls = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(relatedMappingTbls)) {
