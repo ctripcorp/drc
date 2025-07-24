@@ -74,7 +74,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
         when(linkContext.fetchColumns(tableKey)).thenReturn(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
-        writeRowsEvent.tryLoadAndRelease();
+        writeRowsEvent.tryLoad();
         Assert.assertTrue(writeRowsEvent.isLoaded());
     }
 
@@ -93,7 +93,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
         tableKey.setColumns(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
-        writeRowsEvent.tryLoadAndRelease();
+        writeRowsEvent.tryLoad();
         List<List<Object>> values = writeRowsEvent.getBeforePresentRowsValues();
         Assert.assertEquals(values.size(), 2);
         List<Object> firstRow = values.get(0);

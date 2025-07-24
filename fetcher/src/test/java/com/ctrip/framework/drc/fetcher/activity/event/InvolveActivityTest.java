@@ -8,10 +8,13 @@ import com.ctrip.framework.drc.fetcher.event.FetcherRowsEvent;
 import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
+import com.ctrip.framework.drc.fetcher.system.AbstractSystem;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import com.ctrip.framework.drc.fetcher.system.TaskActivity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 /**
  * @Author limingdong
@@ -35,6 +38,8 @@ public class InvolveActivityTest extends MockTest {
 
     @Mock
     private TaskActivity taskActivity;
+
+    private AbstractSystem system = Mockito.mock(AbstractSystem.class);
 
     private MetaEvent metaEvent = context -> {
         linkContext.namespace();
@@ -72,6 +77,8 @@ public class InvolveActivityTest extends MockTest {
         involveActivity.loadEventActivity = loadEventActivity;
 
         involveActivity.link(taskActivity);
+
+        involveActivity.setSystem(system);
     }
 
     @Test
@@ -86,6 +93,7 @@ public class InvolveActivityTest extends MockTest {
         when(linkContext.fetchColumns(tableKey)).thenReturn(columns);
         when(linkContext.fetchColumns()).thenReturn(columns);
         when(linkContext.fetchTableKeyInMap(0L)).thenReturn(tableKey);
+        when(system.getStatus()).thenReturn(SystemStatus.RUNNABLE);
         involveActivity.doTask(rowsEvent);
         verify(loadEventActivity, times(1)).trySubmit(rowsEvent);
     }

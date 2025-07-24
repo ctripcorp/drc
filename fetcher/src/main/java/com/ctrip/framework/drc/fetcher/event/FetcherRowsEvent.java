@@ -73,21 +73,17 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
         }
     }
 
-    public void tryLoadAndRelease() {
+    public void tryLoad() {
         if (lock.tryLock()) {
             try {
-                if (released.get()) {
-                    return;
-                }
                 if (!isLoaded) {
                     load(columns);
                     isLoaded = true;
-                    release();
                 }
             } catch (Throwable t) {
                 ByteBuf headerByteBuf = getLogEventHeader().getHeaderBuf();
                 ByteBuf payloadByteBuf = getPayloadBuf();
-                logger.error("{}.tryLoadAndRelease() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf, 0, headerByteBuf.writerIndex()), ByteBufUtil.hexDump(payloadByteBuf, 0, headerByteBuf.writerIndex()), t);
+                logger.error("{}.tryLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf, 0, headerByteBuf.writerIndex()), ByteBufUtil.hexDump(payloadByteBuf, 0, headerByteBuf.writerIndex()), t);
             } finally {
                 lock.unlock();
             }
