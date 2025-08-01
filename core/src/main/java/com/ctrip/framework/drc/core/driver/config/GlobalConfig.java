@@ -40,5 +40,7 @@ public interface GlobalConfig {
 
     String DC = "SHAOY";
 
+    String DEFAULT_BU = "BU";
+
     long APP_ID = 100023498;
 }
