@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
@@ -168,6 +169,30 @@ public class CentralServiceController {
         } catch (Throwable e) {
             logger.info("[[tag=centralService]] getDcName fail");
             return ApiResult.getFailInstance(null, "getDcName fail");
+        }
+    }
+
+    @GetMapping("getAllBuTbls")
+    public ApiResult<List<BuTbl>> getAllBuTbls() {
+        try {
+            logger.info("[[tag=centralService]] getAllBuTbls");
+            List<BuTbl> buTbls = centralService.getAllBuTbls();
+            return ApiResult.getSuccessInstance(buTbls);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getAllBuTbls fail");
+            return ApiResult.getFailInstance(null, "getAllBuTbls fail");
+        }
+    }
+
+    @GetMapping("getBuFromDb")
+    public ApiResult getBuFromDb(@RequestParam String dbName) {
+        try {
+            logger.info("[[tag=centralService]] getBuFromDb");
+            String bu = centralService.getBuFromDb(dbName);
+            return ApiResult.getSuccessInstance(bu);
+        } catch (Throwable e) {
+            logger.info("[[tag=centralService]] getBuFromDb fail");
+            return ApiResult.getFailInstance(null, "getBuFromDb fail");
         }
     }
 

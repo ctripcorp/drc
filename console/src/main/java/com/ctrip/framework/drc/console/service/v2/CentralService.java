@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
@@ -38,4 +39,7 @@ public interface CentralService {
 
     String getDcName(String mhaName) throws SQLException;
 
+    List<BuTbl> getAllBuTbls() throws SQLException;
+
+    String getBuFromDb(String dbName) throws SQLException;
 }

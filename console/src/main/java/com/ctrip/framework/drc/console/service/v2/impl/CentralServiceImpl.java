@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.security.AccountService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.aop.forward.response.BuTblListResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
@@ -66,6 +67,10 @@ public class CentralServiceImpl implements CentralService {
     private ReplicatorTblDao replicatorTblDao;
     @Autowired
     private ResourceTblDao resourceTblDao;
+    @Autowired
+    private BuTblDao buTblDao;
+    @Autowired
+    private DbTblDao dbTblDao;
 
 
     @Override
@@ -222,6 +227,22 @@ public class CentralServiceImpl implements CentralService {
             return null;
         }
         return dcTblDao.queryByPk(mhaTblV2.getDcId()).getDcName();
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/getAllBuTbls", forwardType = ForwardTypeEnum.TO_META_DB, responseType = BuTblListResult.class)
+    public List<BuTbl> getAllBuTbls() throws SQLException {
+        return buTblDao.queryAllExist();
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/getBuFromDb", forwardType = ForwardTypeEnum.TO_META_DB)
+    public String getBuFromDb(String dbName) throws SQLException {
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(dbName));
+        if (dbTbls != null && !dbTbls.isEmpty()) {
+            return dbTbls.getFirst().getBuCode();
+        }
+        return null;
     }
 
     private Map<String, ReplicatorTbl> getIpReplicatorMap(String mha) throws SQLException {
