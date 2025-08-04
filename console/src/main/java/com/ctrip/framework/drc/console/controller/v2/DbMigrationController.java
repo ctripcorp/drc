@@ -422,6 +422,9 @@ public class DbMigrationController {
             if (StringUtils.isEmpty(status)) {
                 return ApiResult.getFailInstance(null, "task not exist: " + taskId);
             }
+            if (tip == null) {
+                return ApiResult.getSuccessInstance(status, MigrationTypeEnum.OVERSEA_CHECK_SHA_TO_OVERSEA.getCurValidStatus().getStatus() + " not ready");
+            }
             return StringUtils.isEmpty(tip) ? ApiResult.getSuccessInstance(status) : ApiResult.getSuccessInstance(status, tip);
         } catch (Throwable e) {
             logger.error("getShaToOverseaStatus", e);
@@ -440,6 +443,9 @@ public class DbMigrationController {
             String status = statusAndTips.getRight();
             if (StringUtils.isEmpty(status)) {
                 return ApiResult.getFailInstance(null, "task not exist: " + taskId);
+            }
+            if (tip == null) {
+                return ApiResult.getSuccessInstance(status, MigrationTypeEnum.OVERSEA_CHECK_OVERSEA_TO_SHA.getCurValidStatus().getStatus() + " not ready");
             }
             return StringUtils.isEmpty(tip) ? ApiResult.getSuccessInstance(status) : ApiResult.getSuccessInstance(status, tip);
         } catch (Throwable e) {

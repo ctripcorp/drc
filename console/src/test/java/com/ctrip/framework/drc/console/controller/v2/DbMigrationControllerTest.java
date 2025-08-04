@@ -99,6 +99,10 @@ public class DbMigrationControllerTest {
         Mockito.when(dbMigrationServiceV2.getAndUpdateTaskStatus(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.any())).thenReturn(Pair.of("tip", null));
         result = dbMigrationController.refreshAndGetShaToOverseaStatus(1L);
         Assert.assertEquals(Integer.valueOf(1), result.getStatus());
+
+        Mockito.when(dbMigrationServiceV2.getAndUpdateTaskStatus(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.any())).thenReturn(Pair.of(null, "mes"));
+        result = dbMigrationController.refreshAndGetShaToOverseaStatus(1L);
+        Assert.assertEquals(Integer.valueOf(0), result.getStatus());
     }
 
     @Test
@@ -110,6 +114,10 @@ public class DbMigrationControllerTest {
         Mockito.when(dbMigrationServiceV2.getAndUpdateTaskStatus(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.any())).thenReturn(Pair.of("tip", null));
         result = dbMigrationController.refreshAndGetOverseaToShaStatus(1L);
         Assert.assertEquals(Integer.valueOf(1), result.getStatus());
+
+        Mockito.when(dbMigrationServiceV2.getAndUpdateTaskStatus(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.any())).thenReturn(Pair.of(null, "mes"));
+        result = dbMigrationController.refreshAndGetOverseaToShaStatus(1L);
+        Assert.assertEquals(Integer.valueOf(0), result.getStatus());
     }
 
     @Test

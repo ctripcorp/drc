@@ -119,11 +119,11 @@
                     帮助
                   </template>
                   <MenuItem name="help0">
-                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=1338633000' target="_blank">binlog消息接入文档</a></MenuItem>
+                    <a class="a" href='https://trip.larkenterprise.com/wiki/LLJXwGiBDi92Y4kymghcEXZpnRe?fromScene=spaceOverview' target="_blank">binlog消息接入文档</a></MenuItem>
                   <MenuItem name="help1">
-                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=2130543490' target="_blank">冲突自助处理</a></MenuItem>
+                    <a class="a" href='https://trip.larkenterprise.com/wiki/EB2cw2YzIi3TGikBzsPcLizAnNc?fromScene=spaceOverview' target="_blank">冲突自助处理</a></MenuItem>
                   <MenuItem name="help2">
-                    <a class="a" href='http://conf.ctripcorp.com/pages/viewpage.action?pageId=3795693864' target="_blank">binlog消息投递接口</a></MenuItem>
+                    <a class="a" href='https://trip.larkenterprise.com/wiki/ZTQbwNHhFiddmKkEuJvc2nMln1b?fromScene=spaceOverview' target="_blank">binlog消息投递接口</a></MenuItem>
                 </Submenu>
                 <Submenu name="3">
                   <template slot="title">

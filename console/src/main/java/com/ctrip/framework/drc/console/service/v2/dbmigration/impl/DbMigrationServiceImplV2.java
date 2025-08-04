@@ -58,8 +58,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum.COMMON_START;
-import static com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum.TEST_PRESTART;
+import static com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum.*;
 import static com.ctrip.framework.drc.core.meta.ReplicationTypeEnum.*;
 
 /**
@@ -1520,9 +1519,12 @@ public class DbMigrationServiceImplV2 implements DbMigrationService {
             if (careNewMha) {
                 // not STARTING or READY_TO_SWITCH_DAL status, return
                 List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(),
-                        MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(),
-                        MigrationStatusEnum.STARTING_SHA_TO_OVERSEA.getStatus(),
-                        MigrationStatusEnum.STARTING_OVERSEA_TO_SHA.getStatus());
+                        MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+                if (migrationTypeEnum == OVERSEA_CHECK_SHA_TO_OVERSEA) {
+                    statusList.add(MigrationStatusEnum.STARTING_SHA_TO_OVERSEA.getStatus());
+                } else if (migrationTypeEnum == OVERSEA_CHECK_OVERSEA_TO_SHA) {
+                    statusList.add(MigrationStatusEnum.STARTING_OVERSEA_TO_SHA.getStatus());
+                }
                 if (!statusList.contains(migrationTaskTbl.getStatus())) {
                     return Pair.of(null, migrationTaskTbl.getStatus());
                 }
