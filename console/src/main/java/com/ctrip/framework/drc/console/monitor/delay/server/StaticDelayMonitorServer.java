@@ -516,19 +516,20 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     .isReplicatorMaster(isReplicatorMaster)
                     .replicatorAddress(config.getEndpoint().getSocketAddress().toString())
                     .build();
-            if (!DEFAULT_BU.equals(buName)) {
-                entityMap.put(mhaString, unidirectionalEntity);
-            }
+            entityMap.put(mhaString, unidirectionalEntity);
+        } else if (DEFAULT_BU.equals(unidirectionalEntity.getBuName())) {
+            String buName = getBuNameByMhaName(mhaString);
+            unidirectionalEntity.setBuName(buName);
         }
         return unidirectionalEntity;
     }
 
 
     private UnidirectionalEntity getUnidirectionalEntity(String mhaString, String dbName) {
-        String buName = getBuNameByDbName(dbName);
         Map<String, UnidirectionalEntity> dbMap = entityV2Map.computeIfAbsent(mhaString, k -> Maps.newConcurrentMap());
         UnidirectionalEntity unidirectionalEntity = dbMap.get(dbName);
         if (null == unidirectionalEntity) {
+            String buName = getBuNameByDbName(dbName);
             unidirectionalEntity = new UnidirectionalEntity.Builder()
                     .clusterAppId(null)
                     .buName(buName)
@@ -542,6 +543,9 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     .dbName(dbName)
                     .build();
             dbMap.put(dbName, unidirectionalEntity);
+        } else if (DEFAULT_BU.equals(unidirectionalEntity.getBuName())) {
+            String buName = getBuNameByDbName(dbName);
+            unidirectionalEntity.setBuName(buName);
         }
         return unidirectionalEntity;
     }
