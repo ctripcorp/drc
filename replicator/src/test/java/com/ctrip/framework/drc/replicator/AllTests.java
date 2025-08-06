@@ -22,14 +22,15 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserV2Test;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.DefaultBinlogScannerAndSenderFilterChainTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.BinlogScannerAndSenderTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.DefaultBinlogScannerAndSenderFilterChainTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.MergeAlgorithmV2Test;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
@@ -121,6 +122,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
 
         // ddl
         DdlParserTest.class,
+        DdlParserV2Test.class,
         RetryTaskTest.class,
         DbCreateTaskTest.class,
 //        DbDisposeTaskTest.class,

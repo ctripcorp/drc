@@ -65,7 +65,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         if (shouldRecover(fromLatestLocalBinlog)) {
             Map<String, Map<String, String>> future = snapshotLogEvent.getDdls();
             boolean res = doClone(future);
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", future, registryKey);
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result: {}, {} for {}", res, future, registryKey);
             return res;
         }
         return true;

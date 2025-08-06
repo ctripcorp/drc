@@ -6,6 +6,7 @@ import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.aop.RemoteHttpAspectTest;
 import com.ctrip.framework.drc.console.aop.log.LogRecordAspectTest;
 import com.ctrip.framework.drc.console.aop.permission.AccessTokenAspectTest;
+import com.ctrip.framework.drc.console.common.SqlTest;
 import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
@@ -250,6 +251,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ListenReplicatorTaskTest.class,
         ConflictLogManagerTest.class,
         StaticDelayMonitorServerTest2.class,
+        SqlTest.class,
         StaticDelayMonitorServerTest3.class,
 
         //entity

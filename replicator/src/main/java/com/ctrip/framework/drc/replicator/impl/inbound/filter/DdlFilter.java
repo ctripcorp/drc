@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
@@ -15,6 +16,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserV2;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
 import com.ctrip.xpipe.tuple.Pair;
@@ -104,7 +106,14 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     }
 
     private boolean doParseQueryEvent(String queryString, String schemaName, String charset, String gtid) {
-        List<DdlResult> allResults = DdlParser.parse(queryString, schemaName);
+        List<DdlResult> allResults;
+
+        if (DynamicConfig.getInstance().getDdlParseGraySwitch(registryKey)) {
+            allResults = DdlParserV2.parse(queryString, schemaName);
+        } else {
+            allResults = DdlParser.parse(queryString, schemaName);
+        }
+
         List<DdlResult> results = this.filterDdlResult(queryString, allResults);
         if (results.isEmpty()) {
             return false;
@@ -324,7 +333,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     }
 
     @VisibleForTesting
-    protected List<TableId> getRelatedTables(List<DdlResult> results) {
+    public List<TableId> getRelatedTables(List<DdlResult> results) {
         return results.stream()
                 .flatMap(e -> Stream.of(
                         new TableId(e.getSchemaName(), e.getTableName()),

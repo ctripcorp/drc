@@ -84,17 +84,17 @@ public class MysqlConfigsMonitorTest extends AbstractTest {
 
         Mockito.doReturn(Sets.newHashSet()).when(consoleConfig).getPublicCloudRegion();
         mysqlConfigsMonitor.scheduledTask();
-        verify(reporter, times(2)).resetReportCounter(
+        verify(reporter, times(2)).reportResetCounter(
                 Mockito.any(), 
                 Mockito.anyLong(), 
                 Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement())
         );
-        verify(reporter, never()).resetReportCounter(
+        verify(reporter, never()).reportResetCounter(
                 Mockito.eq(mha2MasterEndpointTags), 
                 Mockito.anyLong(), 
                 Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement())
         );
-        verify(reporter, never()).resetReportCounter(
+        verify(reporter, never()).reportResetCounter(
                 Mockito.any(),
                 Mockito.anyLong(),
                 Mockito.eq(BINLOG_RETENTION_TIME_MEASUREMENT)
@@ -102,7 +102,7 @@ public class MysqlConfigsMonitorTest extends AbstractTest {
 
         Mockito.doReturn(Sets.newHashSet(Lists.newArrayList("sha"))).when(consoleConfig).getPublicCloudRegion();
         mysqlConfigsMonitor.scheduledTask();
-        verify(reporter, times(1)).resetReportCounter(
+        verify(reporter, times(1)).reportResetCounter(
                 Mockito.any(),
                 Mockito.anyLong(),
                 Mockito.eq(BINLOG_RETENTION_TIME_MEASUREMENT)
