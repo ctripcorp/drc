@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.UnpackDecoder;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
@@ -16,8 +17,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.lang3.StringUtils;
@@ -31,8 +30,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.MASTER_HEA
  * 2019/9/21 下午9:20
  */
 public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServer {
-
-    private static final int WORK_THREAD_COUNT = 1;
 
     private static final int RECV_BUFFER_SIZE = 4096;
 
@@ -64,7 +61,7 @@ public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServe
         LifecycleHelper.initializeIfPossible(handlerManager);
         bootstrap = new ServerBootstrap();
         bossGroup = new NioEventLoopGroup(1, new NamedThreadFactory("Binlog-Acceptor-" + mySQLMasterConfig.getPort()));
-        workerGroup = new NioEventLoopGroup(WORK_THREAD_COUNT, new NamedThreadFactory("Binlog-Sender-" + mySQLMasterConfig.getPort()));
+        workerGroup = new NioEventLoopGroup(DynamicConfig.getInstance().getNettyWorkerCount(), new NamedThreadFactory("Binlog-Sender-" + mySQLMasterConfig.getPort()));
     }
 
     protected void doStart() throws Exception {

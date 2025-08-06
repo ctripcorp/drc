@@ -46,6 +46,10 @@
             <groupId>com.alibaba.fastsql</groupId>
             <artifactId>fastsql</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>commons-lang</groupId>

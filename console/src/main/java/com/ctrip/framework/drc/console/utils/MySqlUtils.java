@@ -4,7 +4,9 @@ import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
@@ -146,6 +148,7 @@ public class MySqlUtils {
     private static final String SINGLE_QUOTE = "'";
     private static final String MARKS = "`";
     public static final String PRIMARY = "PRIMARY";
+    public static final String DB_TYPE = "mysql";
 
     public static final String CREATE_GTID_TABLE_SQL = "CREATE TABLE IF NOT EXISTS `drcmonitordb`.`%s` (\n" +
             "  `id` int NOT NULL,\n" +
@@ -1465,78 +1468,16 @@ public class MySqlUtils {
     }
 
     public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns, List<String> uniqueIndexColumns) {
-        Map<String, String> parseResult = new HashMap<>();
-
-        String dbType = JdbcConstants.MYSQL;
-        String formatSql = SQLUtils.format(sql, dbType);
-        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
+        String formatSql = SQLUtils.format(sql, JdbcConstants.MYSQL);
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(formatSql, DB_TYPE);
         SQLStatement stmt = stmtList.get(0);
 
-        if (formatSql.startsWith("UPDATE") || formatSql.startsWith("DELETE")) {
-            MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
-            stmt.accept(visitor);
-            String tableName = visitor.getCurrentTable();
-            parseResult.put("tableName", tableName);
-            Map<TableStat.Name, TableStat> manipulationMap = visitor.getTables();
-            String tableNameFormat = tableName.replace("`", "");
-            TableStat.Name name = new TableStat.Name(tableNameFormat);
-            TableStat stat = manipulationMap.get(name);
-            parseResult.put("operateType", stat.toString());
-            List<TableStat.Condition> conditions = visitor.getConditions();
-            conditions = conditions.stream().filter(e -> !onUpdateColumns.contains(e.getColumn().getName())).collect(Collectors.toList());
-
-            boolean firstCondition = true;
-            StringBuilder whereCondition = new StringBuilder();
-            for (TableStat.Condition condition : conditions) {
-                if (!EQUAL.equals(condition.getOperator())) {
-                    continue;
-                }
-                if (!firstCondition) {
-                    whereCondition.append(" AND ");
-                }
-                String column = condition.getColumn().getName();
-                String value = condition.getValues().get(0).toString();
-                whereCondition.append(column + "=" + toStringVal(value));
-                firstCondition = false;
-            }
-
-            parseResult.put("conditionStr", whereCondition.toString());
-        } else if (formatSql.startsWith("INSERT")) {
-            MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
-            insertStatement.getTableSource().toString();
-            String tableName = insertStatement.getTableSource().toString();
-            parseResult.put("tableName", tableName);
-
-            List<SQLExpr> columns = insertStatement.getColumns();
-            List<SQLExpr> values = insertStatement.getValues().getValues();
-            boolean firstCondition = true;
-            StringBuilder condition = new StringBuilder();
-            for (int i = 0; i < columns.size(); i++) {
-                String columnName = columns.get(i).toString();
-                if (!uniqueIndexColumns.contains(columnName)) {
-                    continue;
-                }
-                if (onUpdateColumns.contains(columnName)) {
-                    continue;
-                }
-                SQLExpr valueExpr = values.get(i);
-                if (!firstCondition) {
-                    condition.append(" AND ");
-                }
-                if (valueExpr instanceof SQLNullExpr) {
-                    condition.append(columnName + " is " + valueExpr);
-                } else {
-                    condition.append(columnName + " = " + valueExpr);
-                }
-
-                firstCondition = false;
-            }
-
-            parseResult.put("conditionStr", condition.toString());
-            parseResult.put("operateType", "Insert");
+        if (stmt instanceof MySqlUpdateStatement || stmt instanceof MySqlDeleteStatement) {
+            return handUpdateAndDeleteSql(stmt, onUpdateColumns);
+        } else if (stmt instanceof MySqlInsertStatement) {
+            return handleInsertStatement(stmt, onUpdateColumns, uniqueIndexColumns);
         }
-
-        return parseResult;
+        return new HashMap<>();
     }
 
     public static List<List<String>> extractIndex(ResultSet resultSet) {
@@ -1567,6 +1508,81 @@ public class MySqlUtils {
         }
 
         return identifies;
+    }
+
+    public static Map<String, String> handUpdateAndDeleteSql(SQLStatement stmt, List<String> onUpdateColumns) {
+        Map<String, String> parseResult = new HashMap<>();
+
+        MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
+        stmt.accept(visitor);
+        Map<TableStat.Name, TableStat> manipulationMap = visitor.getTables();
+        TableStat.Name firstTableName = manipulationMap.keySet().iterator().next();
+        String tableName = firstTableName.getName();
+        parseResult.put("tableName", tableName);
+
+        String tableNameFormat = tableName.replace("`", "");
+        TableStat.Name name = new TableStat.Name(tableNameFormat);
+        TableStat stat = manipulationMap.get(name);
+        parseResult.put("operateType", stat.toString());
+        List<TableStat.Condition> conditions = visitor.getConditions();
+        conditions = conditions.stream().filter(e -> !onUpdateColumns.contains(e.getColumn().getName())).collect(Collectors.toList());
+
+        boolean firstCondition = true;
+        StringBuilder whereCondition = new StringBuilder();
+        for (TableStat.Condition condition : conditions) {
+            if (!EQUAL.equals(condition.getOperator())) {
+                continue;
+            }
+            if (!firstCondition) {
+                whereCondition.append(" AND ");
+            }
+            String column = condition.getColumn().getName();
+            String value = condition.getValues().get(0).toString();
+            whereCondition.append(column + "=" + toStringVal(value));
+            firstCondition = false;
+        }
+
+        parseResult.put("conditionStr", whereCondition.toString());
+        return parseResult;
+    }
+
+    public static Map<String, String> handleInsertStatement(SQLStatement stmt, List<String> onUpdateColumns, List<String> uniqueIndexColumns) {
+        Map<String, String> parseResult = new HashMap<>();
+
+        MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
+        insertStatement.getTableSource().toString();
+        String tableName = insertStatement.getTableSource().toString();
+        parseResult.put("tableName", tableName);
+
+        List<SQLExpr> columns = insertStatement.getColumns();
+        List<SQLExpr> values = insertStatement.getValues().getValues();
+        boolean firstCondition = true;
+        StringBuilder condition = new StringBuilder();
+        for (int i = 0; i < columns.size(); i++) {
+            String columnName = columns.get(i).toString();
+            if (!uniqueIndexColumns.contains(columnName)) {
+                continue;
+            }
+            if (onUpdateColumns.contains(columnName)) {
+                continue;
+            }
+            SQLExpr valueExpr = values.get(i);
+            if (!firstCondition) {
+                condition.append(" AND ");
+            }
+            if (valueExpr instanceof SQLNullExpr) {
+                condition.append(columnName + " is " + valueExpr);
+            } else {
+                condition.append(columnName + " = " + valueExpr);
+            }
+
+            firstCondition = false;
+        }
+
+        parseResult.put("conditionStr", condition.toString());
+        parseResult.put("operateType", "Insert");
+
+        return parseResult;
     }
 
     public static String toStringVal(Object val) {
