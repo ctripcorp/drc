@@ -112,6 +112,8 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DRC_CONFIG_SENDER_EMAIL = "drc.config.sender.email";
     private static final String DRC_CONFIG_CC_EMAIL = "drc.config.cc.email";
     private static final String DRC_CONFIG_DBA_EMAIL = "drc.config.dba.email";
+    private static final String DRC_CONFIG_EMAIL_FOOTER = "drc.config.email.footer";
+    private static final String DRC_CONFIG_DB_DELAY_HICKWALL_URL = "drc.config.db.delay.hickwall.url";
 
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_TOKEN = "center.region.user.dml.count.query.token";
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_URL = "center.region.user.dml.count.query.url";
@@ -316,6 +318,10 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(CFL_ALARM_HICKWALL_URL, "");
     }
 
+    public String getMhaDbDelayHickwallUrl() {
+        return getProperty(DRC_CONFIG_DB_DELAY_HICKWALL_URL, "");
+    }
+
     public String getCflAddBlacklistUrl() {
         return getProperty(CFL_ADD_BLACKLIST_URL, "");
     }
@@ -379,6 +385,10 @@ public class DomainConfig extends AbstractConfigBean {
         } else {
             return Arrays.stream(ccEmails.split(",")).collect(Collectors.toList());
         }
+    }
+
+    public String getDrcConfigEmailFooter() {
+        return getProperty(DRC_CONFIG_EMAIL_FOOTER, "");
     }
 
     public boolean getBlacklistClearSwitch(CflBlacklistType type) {

@@ -19,6 +19,7 @@ public class Email {
     private String subject;
     private String bodyContent;
     private String header;
+    private String footer;
     
     private Map<String,String> contentKeyValues;
 
@@ -106,6 +107,14 @@ public class Email {
         this.header = header;
     }
 
+    public String getFooter() {
+        return footer;
+    }
+
+    public void setFooter(String footer) {
+        this.footer = footer;
+    }
+
     @Override
     public String toString() {
         return "Email{" +
@@ -117,6 +126,7 @@ public class Email {
                 ", bodyContent='" + bodyContent + '\'' +
                 ", header='" + header + '\'' +
                 ", contentKeyValues=" + contentKeyValues +
+                ", footer='" + footer + '\'' +
                 '}';
     }
 }
