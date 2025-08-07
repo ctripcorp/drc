@@ -148,6 +148,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String AUTOCREATE_SAME_TABLE_CHECK = "autocreate.sametable.check";
 
+    private static final String DB_DELAY_ALERT_DEFAULT_OWNERS = "db.delay.alert.default.owners";
+    private static final String DB_DELAY_ALERT_SEND_TO_DRC_SWITCH = "db.delay.alert.sendtodrc.switch";
+
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
     }
@@ -640,5 +643,17 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
             return Sets.newHashSet();
         }
         return Sets.newHashSet(offlineMhaBlackList.toLowerCase().split( ","));
+    }
+
+    public List<String> getDefaultDbDelayAlertOwners() {
+        String dbDelayAlertOwners = getProperty(DB_DELAY_ALERT_DEFAULT_OWNERS, "");
+        if (StringUtils.isBlank(dbDelayAlertOwners)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(dbDelayAlertOwners.split(","));
+    }
+
+    public boolean getDbDelayAlertSendToDrcSwitch() {
+        return getBooleanProperty(DB_DELAY_ALERT_SEND_TO_DRC_SWITCH, false);
     }
 }

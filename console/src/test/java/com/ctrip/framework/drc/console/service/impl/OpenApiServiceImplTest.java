@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
@@ -12,12 +13,11 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.api.RegionInfo;
 import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.utils.FileUtils;
@@ -47,6 +47,12 @@ public class OpenApiServiceImplTest {
 
     @InjectMocks
     private OpenApiServiceImpl openApiService;
+
+    @Mock
+    private DbaApiService dbaApiService;
+
+    @Mock
+    private DefaultConsoleConfig defaultConsoleConfig;
 
 
     @Before
@@ -205,4 +211,38 @@ public class OpenApiServiceImplTest {
         return from;
     }
 
+    @Test
+    public void testGetDbOwnerForDelayAlert() {
+        Mockito.when(defaultConsoleConfig.getDbDelayAlertSendToDrcSwitch()).thenReturn(true);
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(Lists.newArrayList("owner1"));
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
+        List<String> res = openApiService.getDbOwnerForDelayAlert("db");
+        Assert.assertEquals(3, res.size());
+
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(Lists.newArrayList("drcOwner1"));
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
+        res = openApiService.getDbOwnerForDelayAlert("db");
+        Assert.assertEquals(2, res.size());
+
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(Lists.newArrayList());
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
+        res = openApiService.getDbOwnerForDelayAlert("db");
+        Assert.assertEquals(2, res.size());
+
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(null);
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
+        res = openApiService.getDbOwnerForDelayAlert("db");
+        Assert.assertEquals(2, res.size());
+
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(Lists.newArrayList("owner1"));
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList());
+        res = openApiService.getDbOwnerForDelayAlert("db");
+        Assert.assertEquals(1, res.size());
+
+        Mockito.when(defaultConsoleConfig.getDbDelayAlertSendToDrcSwitch()).thenReturn(false);
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(Lists.newArrayList("owner1"));
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
+        res = openApiService.getDbOwnerForDelayAlert("db");
+        Assert.assertEquals(1, res.size());
+    }
 }

@@ -195,4 +195,22 @@ public class DbaApiServiceImplV2Test {
         }
 
     }
+
+    @Test
+    public void testGetAllDbOwners() {
+        Mockito.when(domainConfig.getDBAApiOpsAccessToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDbaDbOwnerUrl()).thenReturn("url");
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"\", \"data\": [{\"dbname\": \"bbzbbzdrcbenchmarktmpdb\", \"db_type\": \"MySQL\", \"owner\":\n" +
+                    "\"owner1;owner2;\"}]}");
+            List<String> owners = dbaApiService.getAllDbOwners("dbName");
+            Assert.assertEquals(2, owners.size());
+        }
+
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"Invalid dbname or no result\", \"data\": []}");
+            List<String> owners = dbaApiService.getAllDbOwners("dbName");
+            Assert.assertEquals(0, owners.size());
+        }
+    }
 }

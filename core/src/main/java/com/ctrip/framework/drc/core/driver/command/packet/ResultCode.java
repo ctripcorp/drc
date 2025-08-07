@@ -31,6 +31,8 @@ public enum ResultCode {
 
     REPLICATOR_BINLOG_PURGED(9, "not able to serve, binlog file is purged"),
 
+    OSG_HANDLE_SUCCESS(10, "ok"),
+
 
     UNKNOWN_ERROR(100, "unknown error"),
 
