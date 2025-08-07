@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -185,5 +186,17 @@ public class DefaultConsoleConfigTest {
     public void testGetOfflineMhaBlackList() {
         Set<String> offlineMhaBlackList = config.getOfflineMhaBlackList();
         Assert.assertEquals(0,offlineMhaBlackList.size());
+    }
+
+    @Test
+    public void testGetDefaultDbDelayAlertOwners() {
+        List<String> defaultDbDelayAlertOwners = config.getDefaultDbDelayAlertOwners();
+        Assert.assertEquals(0,defaultDbDelayAlertOwners.size());
+    }
+
+    @Test
+    public void testGetDbDelayAlertSendToDrcSwitch() {
+        boolean dbDelayAlertSendToDrcSwitch = config.getDbDelayAlertSendToDrcSwitch();
+        Assert.assertFalse(dbDelayAlertSendToDrcSwitch);
     }
 }
