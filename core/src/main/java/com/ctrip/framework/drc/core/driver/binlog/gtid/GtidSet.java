@@ -402,10 +402,6 @@ public class GtidSet {
                 continue;
             }
             List<Interval> intervals = uuidSet.getIntervals();
-            if (intervals.get(0).start > 1) {
-                res.putUUIDSet(new GtidSet.UUIDSet(uuid,Lists.newArrayList(new Interval(1, intervals.get(0).start - 1))));
-                continue;
-            }
             if (intervals.size() > 1) {
                 res.putUUIDSet(new GtidSet.UUIDSet(uuid,Lists.newArrayList(new Interval(intervals.get(0).end + 1, intervals.get(1).start - 1))));
             }
