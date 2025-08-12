@@ -126,21 +126,31 @@ public class OpenApiController {
     @PostMapping("drcDelayAlertNotify")
     public OsgApiResult drcDelayNotify(@RequestBody NotifyReq req) {
         try {
-            return OsgApiResult.getSuccessInstance(openApiService.getDbOwnerForDelayAlert(req.getInstance()));
+            return OsgApiResult.getSuccessInstance(openApiService.getDbOwnerForDelayAlert(req.getInstanceId()));
         } catch (Exception e) {
             logger.error("drcDelayNotify error", e);
             return OsgApiResult.getFailInstance(null, e.getMessage());
         }
     }
-    static class NotifyReq {
-        private String instance;
+    public static class NotifyReq {
+        private String instanceId;
 
-        public String getInstance() {
-            return instance;
+        public String getInstanceId() {
+            return instanceId;
         }
 
-        public void setInstance(String instance) {
-            this.instance = instance;
+        public void setInstanceId(String instanceId) {
+            this.instanceId = instanceId;
+        }
+    }
+
+    @PostMapping("drcMqDelayAlertNotify")
+    public OsgApiResult drcMqDelayNotify(@RequestBody NotifyReq req) {
+        try {
+            return OsgApiResult.getSuccessInstance(openApiService.getDbOwnerForDelayAlertByMha(req.getInstanceId()));
+        } catch (Exception e) {
+            logger.error("drcMqDelayNotify error", e);
+            return OsgApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

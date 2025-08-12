@@ -23,4 +23,6 @@ public interface OpenApiService {
     DbTableDrcRegionInfo getDbTableDrcRegionInfos(@NotNull String db, @NotNull String table);
 
     List<String> getDbOwnerForDelayAlert(String db);
+
+    List<String> getDbOwnerForDelayAlertByMha(String mha);
 }
