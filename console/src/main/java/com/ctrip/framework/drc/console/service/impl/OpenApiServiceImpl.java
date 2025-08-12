@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -263,5 +264,26 @@ public class OpenApiServiceImpl implements OpenApiService {
             dbOwners = Stream.concat(dbOwners.stream(), defaultConsoleConfig.getDefaultDbDelayAlertOwners().stream()).distinct().toList();
         }
         return dbOwners;
+    }
+
+    @Override
+    public List<String> getDbOwnerForDelayAlertByMha(String mha) {
+        try {
+            List<MhaDbReplicationDto> mhaDbReplicationTbls = mhaDbReplicationService.queryMqByMha(mha, null, MqType.qmq);
+            mhaDbReplicationTbls.addAll(mhaDbReplicationService.queryMqByMha(mha, null, MqType.kafka));
+            List<String> dbNames = mhaDbReplicationTbls.stream().map(e -> e.getSrc().getDbName()).distinct().toList();
+            Set<String> allDbOwners = Sets.newHashSet();
+            dbNames.forEach(db -> allDbOwners.addAll(dbaApiService.getAllDbOwners(db)));
+            if (CollectionUtils.isEmpty(allDbOwners)) {
+                return defaultConsoleConfig.getDefaultDbDelayAlertOwners();
+            }
+            if (defaultConsoleConfig.getDbDelayAlertSendToDrcSwitch()) {
+                return Stream.concat(allDbOwners.stream(), defaultConsoleConfig.getDefaultDbDelayAlertOwners().stream()).distinct().toList();
+            }
+            return allDbOwners.stream().toList();
+        } catch (Exception e) {
+            logger.error("getDbOwnerForDelayAlertByMha error", e);
+            return defaultConsoleConfig.getDefaultDbDelayAlertOwners();
+        }
     }
 }

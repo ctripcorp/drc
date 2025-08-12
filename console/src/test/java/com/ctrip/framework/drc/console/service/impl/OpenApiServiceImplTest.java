@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
@@ -53,6 +54,9 @@ public class OpenApiServiceImplTest {
 
     @Mock
     private DefaultConsoleConfig defaultConsoleConfig;
+
+    @Mock
+    private MhaDbReplicationService mhaDbReplicationService;
 
 
     @Before
@@ -244,5 +248,15 @@ public class OpenApiServiceImplTest {
         Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
         res = openApiService.getDbOwnerForDelayAlert("db");
         Assert.assertEquals(1, res.size());
+    }
+
+    @Test
+    public void testGetDbOwnerForDelayAlertByMha() throws SQLException {
+        Mockito.when(mhaDbReplicationService.queryMqByMha(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn(Lists.newArrayList());
+        Mockito.when(defaultConsoleConfig.getDbDelayAlertSendToDrcSwitch()).thenReturn(false);
+        Mockito.when(dbaApiService.getAllDbOwners(Mockito.anyString())).thenReturn(Lists.newArrayList("owner1"));
+        Mockito.when(defaultConsoleConfig.getDefaultDbDelayAlertOwners()).thenReturn(Lists.newArrayList("drcOwner1","drcOwner2"));
+        List<String> res = openApiService.getDbOwnerForDelayAlertByMha("mha");
+        Assert.assertEquals(2, res.size());
     }
 }

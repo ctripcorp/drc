@@ -50,4 +50,13 @@ public class OpenApiControllerTest {
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
     }
+
+    @Test
+    public void testDrcMqDelayNotify() {
+        Mockito.when(openApiService.getDbOwnerForDelayAlertByMha(Mockito.anyString())).thenReturn(Lists.newArrayList("owner"));
+        OpenApiController.NotifyReq req = new OpenApiController.NotifyReq();
+        req.setInstanceId("mhaName");
+        openApiController.drcMqDelayNotify(req);
+
+    }
 }
