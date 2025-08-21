@@ -51,14 +51,14 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
 
             if (onlyCarePart && !isCare(metaKey)) {
                 logger.info("[OBSERVE][dc={}] {} not interested in {}({})", 
-                        getClass().getName(), localDcName, metaKey, masterMySQLEndpoint.getSocketAddress());
+                        getClass().getName(), localDcName, metaKey, masterMySQLEndpoint.getAddress());
                 return;
             }
             if(ActionEnum.ADD.equals(action) || ActionEnum.UPDATE.equals(action)) {
-                logger.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, masterMySQLEndpoint.getSocketAddress());
+                logger.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, masterMySQLEndpoint.getAddress());
                 MySqlEndpoint oldEndpoint = masterMySQLEndpointMap.get(metaKey);
                 if (oldEndpoint != null) {
-                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
+                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getAddress());
                     clearOldEndpointResource(oldEndpoint);
                 }
                 masterMySQLEndpointMap.put(metaKey, masterMySQLEndpoint);
@@ -67,7 +67,7 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
                 logger.info("[OBSERVE][{}] {} {}", getClass().getName(), action.name(), metaKey);
                 MySqlEndpoint oldEndpoint = masterMySQLEndpointMap.remove(metaKey);
                 if (oldEndpoint != null) {
-                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
+                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getAddress());
                     clearOldEndpointResource(oldEndpoint);
                 }
                 refreshMhasRelated();

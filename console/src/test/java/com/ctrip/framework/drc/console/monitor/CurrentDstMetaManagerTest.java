@@ -85,7 +85,6 @@ public class CurrentDstMetaManagerTest {
     public void testInit() throws SQLException {
         currentMetaManager.init();
         verify(cacheMetaService, times(0)).getMonitorMetaInfo();
-
         verify(masterMySQLEndpointObserver, times(MASTER_MYSQL_NOTIFY_OFFSET)).update(Mockito.any(), Mockito.any(MasterMySQLEndpointObservable.class));
         verify(masterMySQLEndpointObserver, times(MASTER_MYSQL_NOTIFY_OFFSET)).update(Mockito.eq(new Triple<>(metaKey, MYSQL_ENDPOINT1_MHA1DC1, ActionEnum.ADD)), Mockito.any(MasterMySQLEndpointObservable.class));
         verify(slaveMySQLEndpointObserver, times(SLAVE_MYSQL_NOTIFY_OFFSET)).update(Mockito.any(), Mockito.any(SlaveMySQLEndpointObservable.class));

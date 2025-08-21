@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplicationApprovalTbl;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -16,6 +17,7 @@ import java.util.List;
  * 2024/1/31 16:40
  */
 @Repository
+@Lazy
 public class ApplicationApprovalTblDao extends AbstractDao<ApplicationApprovalTbl> {
 
     private static final String APPLICATION_FORM_ID = "application_form_id";

@@ -46,13 +46,13 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
 
     @Autowired private DefaultCurrentMetaManager currentMetaManager;
-    
+
     @Autowired private DefaultConsoleConfig consoleConfig;
-    
+
     @Autowired private CentralService centralService;
-    
+
     @Autowired private CacheMetaService cacheMetaService;
-    
+
 
     @Autowired
     private PeriodicalUpdateDbTaskV2 periodicalUpdateDbTaskV2;
@@ -97,21 +97,21 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                 refreshMhaTblByDc(dc);
             }
         } catch (Exception e) {
-            logger.error("[[task=updateDelayTable]] error in refreshMhaTblMap",e);
+            logger.error("[[task=updateDelayTable]] error in refreshMhaTblMap", e);
         }
     }
-    
+
     private void refreshMhaTblByDc(String dcName) throws Exception {
         List<MhaTblV2> mhasByDc = centralService.getMhaTblV2s(dcName);
         mhasByDc.forEach(
-                mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(),mhaTbl.getId())
+                mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(), mhaTbl.getId())
         );
     }
-    
+
 
     @Override
     public void scheduledTask() {
-        if(isRegionLeader) {
+        if (isRegionLeader) {
             String delayMonitorSwitch = monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch();
             if ("on".equalsIgnoreCase(delayMonitorSwitch)) {
                 logger.info("[[monitor=delay]] going to update monitor table");
@@ -122,35 +122,35 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     String mhaName = metaKey.getMhaName();
                     String dcName = metaKey.getDc();
                     String region = consoleConfig.getRegionForDc(dcName);
-                    DelayInfo mhaDelayInfo = new DelayInfo(dcName, region,mhaName);
+                    DelayInfo mhaDelayInfo = new DelayInfo(dcName, region, mhaName);
                     WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
                     Long mhaId = mhaName2IdMap.get(mhaName);
                     if (mhaId == null) {
                         refreshMhaTblMap();
                         mhaId = mhaName2IdMap.get(mhaName);
                         if (mhaId == null) {
-                            logger.error("[[monitor=delay]] can not get mhaInfo for mha:{}",mhaName);
+                            logger.error("[[monitor=delay]] can not get mhaInfo for mha:{}", mhaName);
                             continue;
                         }
                     }
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String sql = String.format(UPSERT_SQL,mhaId, dcName,Codec.DEFAULT.encode(mhaDelayInfo),dcName,Codec.DEFAULT.encode(mhaDelayInfo),timestamp);
+                    String sql = String.format(UPSERT_SQL, mhaId, dcName, Codec.DEFAULT.encode(mhaDelayInfo), dcName, Codec.DEFAULT.encode(mhaDelayInfo), timestamp);
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
-                        CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
+                        CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={}:{},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, timestamp);
                         sqlOperatorWrapper.update(execution);
                         long commitTimeInMillis = System.currentTimeMillis();
                         boolean slowCommit = commitTimeInMillis - timestampInMillis > SLOW_COMMIT_THRESHOLD;
-                        CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getSocketAddress(), localDcName, registryKey, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
-                        if(slowCommit) {
+                        CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={}:{},dc={},cluster={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
+                        if (slowCommit) {
                             DatachangeLastTime datachangeLastTime = new DatachangeLastTime(registryKey, timestamp.toString());
                             commitTimeMap.put(datachangeLastTime, commitTimeInMillis);
-                            CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={},dc={},cluster={}]] Put commitTimeMap: {} -> {}", endpoint.getSocketAddress(), localDcName, registryKey, datachangeLastTime.toString(), commitTimeInMillis);
+                            CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={}:{},dc={},cluster={}]] Put commitTimeMap: {} -> {}", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, datachangeLastTime.toString(), commitTimeInMillis);
                         }
                     } catch (Throwable t) {
                         removeSqlOperator(endpoint);
-                        CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={},dc={},cluster={}]] fail update db, ", endpoint.getSocketAddress(), localDcName, registryKey, t);
+                        CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={}:{},dc={},cluster={}]] fail update db, ", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, t);
                     }
                 }
             } else {
@@ -191,7 +191,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public boolean isCare(MetaKey metaKey) {
         return this.dcsInRegion.contains(metaKey.getDc());
     }
-    
+
     @Override
     public void clearOldEndpointResource(Endpoint endpoint) {
         removeSqlOperator(endpoint);
@@ -234,7 +234,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     }
 
     @Override
-    public int getDefaultPeriod(){
+    public int getDefaultPeriod() {
         return PERIOD;
     }
 
@@ -249,12 +249,12 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
         srcMhasHasReplication.retainAll(mhaDbRelatedByDestMhaInLocalRegion);
         return srcMhasHasReplication;
     }
-    
+
     public boolean isMhaMonitorEnabled(String mha) {
         Set<String> mhaMonitorOnInLocalRegion = super.getMhasRelated();
         return mhaMonitorOnInLocalRegion.contains(mha);
     }
-    
+
     /**
      * ignore mha that has db replications & only care local region
      */

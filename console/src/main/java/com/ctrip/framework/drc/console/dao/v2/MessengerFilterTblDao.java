@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MessengerFilterTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -15,6 +16,7 @@ import java.sql.Types;
  * 2023/5/31 17:26
  */
 @Repository
+@Lazy
 public class MessengerFilterTblDao extends AbstractDao<MessengerFilterTbl> {
 
     private static final String ID = "id";

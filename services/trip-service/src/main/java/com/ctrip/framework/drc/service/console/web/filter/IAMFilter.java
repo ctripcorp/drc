@@ -31,8 +31,7 @@ import org.slf4j.LoggerFactory;
 public class IAMFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(IAMFilter.class);
-    private IAMService iamServiceImpl = ServicesUtil.getIAMService();
-    
+
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         logger.info("IAMFilter init");
@@ -41,7 +40,7 @@ public class IAMFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        if(iamServiceImpl.iamFilterEnable()) {
+        if(ServicesUtil.getIAMService().iamFilterEnable()) {
             if(hasPermission(request, response)) {
                 chain.doFilter(request, response);
             }
@@ -63,11 +62,11 @@ public class IAMFilter implements Filter {
         
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURL = req.getRequestURL().toString();
-        String apiPermissionCode = iamServiceImpl.matchApiPermissionCode(requestURL);
+        String apiPermissionCode = ServicesUtil.getIAMService().matchApiPermissionCode(requestURL);
         if (StringUtils.isBlank(apiPermissionCode)) { // no need check permission
             return true;
         }
-        Pair<Boolean, String> result = iamServiceImpl.checkPermission(Lists.newArrayList(apiPermissionCode), eid);
+        Pair<Boolean, String> result = ServicesUtil.getIAMService().checkPermission(Lists.newArrayList(apiPermissionCode), eid);
         if (result.getLeft()) {
             return true;
         } else {

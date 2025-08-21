@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.google.common.collect.Lists;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -18,6 +19,7 @@ import org.springframework.util.CollectionUtils;
  * 2023/5/25 12:00
  */
 @Repository
+@Lazy
 public class DbReplicationFilterMappingTblDao extends AbstractDao<DbReplicationFilterMappingTbl> {
 
     private static final String DB_REPLICATION_ID = "db_replication_id";

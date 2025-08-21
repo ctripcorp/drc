@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -14,6 +15,7 @@ import java.util.List;
  * @date 2020-08-11
  */
 @Repository
+@Lazy
 public class MachineTblDao extends AbstractDao<MachineTbl> {
 
     public MachineTblDao() throws SQLException {

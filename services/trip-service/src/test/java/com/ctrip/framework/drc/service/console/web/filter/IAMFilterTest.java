@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.service.console.web.filter;
 
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
+import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.infosec.sso.client.CtripSSOTools;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -8,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.util.Lists;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -20,15 +23,25 @@ public class IAMFilterTest {
     
     @InjectMocks
     private IAMFilter iamFilter;
-    
-    @Mock
-    private IAMServiceImpl iamServiceImpl;
+
+    private IAMService iamService;
+    private MockedStatic<ServicesUtil> servicesUtil;
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("iam.config.enable","off"); // skip the constructor of IAMServiceImpl
+        System.setProperty("iam.config.enable","off");
         MockitoAnnotations.openMocks(this);
-        Mockito.when(iamServiceImpl.iamFilterEnable()).thenReturn(true);
+
+        iamService = Mockito.mock(IAMService.class);
+        Mockito.when(iamService.iamFilterEnable()).thenReturn(true);
+
+        servicesUtil = Mockito.mockStatic(ServicesUtil.class);
+        servicesUtil.when(() -> ServicesUtil.getIAMService()).thenReturn(iamService);
+    }
+
+    @After
+    public void tearDown() {
+        servicesUtil.close();
     }
 
     @Test
@@ -54,7 +67,7 @@ public class IAMFilterTest {
         // case2 no need check permission
         try (MockedStatic<CtripSSOTools> mocked = Mockito.mockStatic(CtripSSOTools.class)) {
             mocked.when(CtripSSOTools::getEid).thenReturn("eid1");
-            Mockito.when(iamServiceImpl.matchApiPermissionCode(Mockito.eq("http://localhost:8080/api1/1"))).thenReturn(null);
+            Mockito.when(iamService.matchApiPermissionCode(Mockito.eq("http://localhost:8080/api1/1"))).thenReturn(null);
             iamFilter.doFilter(request, response, filterChain);
             Mockito.verify(filterChain, Mockito.times(1+1)).doFilter(Mockito.any(), Mockito.any());
         }
@@ -62,8 +75,8 @@ public class IAMFilterTest {
         // case3 ack fail / no permission
         try (MockedStatic<CtripSSOTools> mocked = Mockito.mockStatic(CtripSSOTools.class)) {
             mocked.when(CtripSSOTools::getEid).thenReturn("eid1");
-            Mockito.when(iamServiceImpl.matchApiPermissionCode(Mockito.eq("http://localhost:8080/api1/1"))).thenReturn("code1");
-            Mockito.when(iamServiceImpl.checkPermission(Mockito.eq(Lists.newArrayList("code1")),Mockito.eq("eid1"))).thenReturn(
+            Mockito.when(iamService.matchApiPermissionCode(Mockito.eq("http://localhost:8080/api1/1"))).thenReturn("code1");
+            Mockito.when(iamService.checkPermission(Mockito.eq(Lists.newArrayList("code1")),Mockito.eq("eid1"))).thenReturn(
                     Pair.of(false, "verifyByBatchCode error"));
             iamFilter.doFilter(request, response, filterChain);
             Mockito.verify(filterChain, Mockito.times(1+1+0)).doFilter(Mockito.any(), Mockito.any());
@@ -72,8 +85,8 @@ public class IAMFilterTest {
         // case4 has permission
         try (MockedStatic<CtripSSOTools> mocked = Mockito.mockStatic(CtripSSOTools.class)) {
             mocked.when(CtripSSOTools::getEid).thenReturn("eid1");
-            Mockito.when(iamServiceImpl.matchApiPermissionCode(Mockito.eq("http://localhost:8080/api1/1"))).thenReturn("code1");
-            Mockito.when(iamServiceImpl.checkPermission(Mockito.eq(Lists.newArrayList("code1")),Mockito.eq("eid1"))).thenReturn(
+            Mockito.when(iamService.matchApiPermissionCode(Mockito.eq("http://localhost:8080/api1/1"))).thenReturn("code1");
+            Mockito.when(iamService.checkPermission(Mockito.eq(Lists.newArrayList("code1")),Mockito.eq("eid1"))).thenReturn(
                     Pair.of(true, null));
             iamFilter.doFilter(request, response, filterChain);
             Mockito.verify(filterChain, Mockito.times(1+1+0+1)).doFilter(Mockito.any(), Mockito.any());

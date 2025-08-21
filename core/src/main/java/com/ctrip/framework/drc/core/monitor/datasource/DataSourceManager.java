@@ -66,7 +66,7 @@ public class DataSourceManager extends AbstractDataSource {
                 if (poolProperties == null) {
                     poolProperties = getDefaultPoolProperties(endpoint);
                 }
-                logger.info("[DataSource] create for {} with connection properties({})", endpoint.getSocketAddress(), poolProperties.getConnectionProperties());
+                logger.info("[DataSource] create for {}:{} with connection properties({})", endpoint.getHost(), endpoint.getPort(), poolProperties.getConnectionProperties());
                 setCommonProperty(poolProperties);
                 configureMonitorProperties(endpoint, poolProperties);
                 dataSource = new DrcTomcatDataSource(poolProperties);
@@ -87,7 +87,7 @@ public class DataSourceManager extends AbstractDataSource {
                 if (poolProperties == null) {
                     poolProperties = getDefaultPoolProperties(endpoint);
                 }
-                logger.info("[DataSource] create for {} with connection properties({})", endpoint.getSocketAddress(), poolProperties.getConnectionProperties());
+                logger.info("[DataSource] create for {}:{} with connection properties({})", endpoint.getHost(), endpoint.getPort(), poolProperties.getConnectionProperties());
                 setCommonProperty(poolProperties);
                 configureMonitorProperties(endpoint, poolProperties);
                 dataSource = new DrcTomcatDataSource(poolProperties);
@@ -145,7 +145,7 @@ public class DataSourceManager extends AbstractDataSource {
             DataSource dataSource = dataSourceMap.remove(endpoint);
             if (dataSource != null) {
                 dataSource.close(true);
-                logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
+                logger.info("[DataSource] close for {}:{}", endpoint.getHost(), endpoint.getPort());
             }
         } finally {
             lock.unlock();
@@ -159,7 +159,7 @@ public class DataSourceManager extends AbstractDataSource {
             DataSource dataSource = writeDataSourceMap.remove(endpoint);
             if (dataSource != null) {
                 dataSource.close(true);
-                logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
+                logger.info("[DataSource] close for {}:{}", endpoint.getHost(), endpoint.getPort());
             }
         } finally {
             lock.unlock();
@@ -176,8 +176,8 @@ public class DataSourceManager extends AbstractDataSource {
                     poolProperties = getDefaultPoolProperties(endpoint);
                 }
                 logger.info(
-                        "[DataSource] create for {} with connection properties({})",
-                        endpoint.getSocketAddress().toString() + endpoint.getUser()
+                        "[DataSource] create for {}:{} with connection properties({})",
+                        endpoint.getHost() + ":" + endpoint.getPort() + endpoint.getUser()
                         , poolProperties.getConnectionProperties()
                 );
                 setCommonProperty(poolProperties);
@@ -198,7 +198,7 @@ public class DataSourceManager extends AbstractDataSource {
             DataSource dataSource = accValidateDataSourceMap.remove(endpoint);
             if (dataSource != null) {
                 dataSource.close(true);
-                logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
+                logger.info("[DataSource] close for {}:{}", endpoint.getHost(), endpoint.getPort());
             }
         } finally {
             lock.unlock();

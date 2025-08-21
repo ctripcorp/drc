@@ -34,7 +34,6 @@ import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -55,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -73,6 +73,7 @@ import java.util.stream.Collectors;
  * 2023/9/26 16:06
  */
 @Service
+@Lazy
 public class ConflictLogServiceImpl implements ConflictLogService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -106,8 +107,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Autowired
     private DbaApiService dbaApiService;
-
-    private IAMService iamService = ServicesUtil.getIAMService();
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictLog"));
     private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newThreadExecutor(10, 50, 10000, "cflExecutorService"));
@@ -443,7 +442,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllDbReplication().getLeft()) {
+        if (!ServicesUtil.getIAMService().canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");

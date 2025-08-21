@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -15,6 +16,7 @@ import java.sql.Types;
  * @date 2020-08-12
  */
 @Repository
+@Lazy
 public class BuTblDao extends AbstractDao<BuTbl> {
 	
 	public BuTblDao() throws SQLException {

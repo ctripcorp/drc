@@ -9,6 +9,8 @@ import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import java.sql.SQLException;
+
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -22,6 +24,7 @@ import java.util.List;
  * @Version: $
  */
 @Repository
+@Lazy
 public class MigrationTaskTblDao extends AbstractDao<MigrationTaskTbl> {
     
     private static final String ID = "id";

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.ProxyTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -15,6 +16,7 @@ import java.util.List;
  * @date 2021-05-12
  */
 @Repository
+@Lazy
 public class ProxyTblDao extends AbstractDao<ProxyTbl> {
 
     private static final String URI = "uri";

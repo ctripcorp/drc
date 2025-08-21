@@ -12,13 +12,11 @@ import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
-import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
-import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallConflictCount;
 import com.google.common.collect.Lists;
@@ -69,7 +67,6 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     private static final int PERIOD = 60;
     
     private OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
-    private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private TransactionMonitor catMonitor =  DefaultTransactionMonitorHolder.getInstance();
     
     // key: db\.table
@@ -284,7 +281,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 if (!everUserTraffic) {
                     conflictLogService.addDbBlacklist(db + "\\." + table, CflBlacklistType.NO_USER_TRAFFIC,null);
                 }
-                EmailResponse emailResponse = emailService.sendEmail(email);
+                EmailResponse emailResponse = ApiContainer.getEmailServiceImpl().sendEmail(email);
                 if (emailResponse.isSuccess()) {
                     logger.info("[[task=ConflictAlarm]]send email success, db:{}, table:{}, count:{}", db, table, count);
                 } else {

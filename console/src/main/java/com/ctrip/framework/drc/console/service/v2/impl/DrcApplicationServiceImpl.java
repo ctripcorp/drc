@@ -73,7 +73,6 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     @Autowired
     private DbDrcBuildService dbDrcBuildService;
 
-    private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final long MAX_DELAY = 10000;
@@ -283,7 +282,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         String filterType = applicationForm.getFilterType().equalsIgnoreCase("ALL") ? "无" : applicationForm.getFilterType();
         email.addContentKeyValue("过滤方式", filterType);
 
-        EmailResponse emailResponse = emailService.sendEmail(email);
+        EmailResponse emailResponse = ApiContainer.getEmailServiceImpl().sendEmail(email);
         if (emailResponse.isSuccess()) {
             logger.info("[[task=drcConfigSendEmail]] send email success, applicationFormId: {}", applicationForm);
             return true;

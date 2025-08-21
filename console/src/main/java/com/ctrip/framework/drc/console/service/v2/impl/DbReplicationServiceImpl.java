@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 @Service
 public class DbReplicationServiceImpl implements DbReplicationService {
     private static final Logger logger = LoggerFactory.getLogger(DbReplicationServiceImpl.class);
-    private IAMService iamService = ServicesUtil.getIAMService();
 
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
@@ -206,7 +205,7 @@ public class DbReplicationServiceImpl implements DbReplicationService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllDbReplication().getLeft()) {
+        if (!ServicesUtil.getIAMService().canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");

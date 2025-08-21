@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * 2023/5/25 12:03
  */
 @Repository
+@Lazy
 public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
 
     private static final String SRC_MHA_ID = "src_mha_id";

@@ -57,7 +57,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private DomainConfig domainConfig;
 
-    private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
     private static final String ROW_LOG_COUNT_MEASUREMENT = "row.log.count";
@@ -232,7 +231,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             ConflictRowsLogTbl rowLog = rowLogMap.get(logCount.getRowLogId());
             ConflictTrxLogTbl trxLog = trxLogMap.get(logCount.getTrxLogId());
             Email email = generateEmail(logCount, type, rowLog, trxLog);
-            EmailResponse emailResponse = emailService.sendEmail(email);
+            EmailResponse emailResponse = ApiContainer.getEmailServiceImpl().sendEmail(email);
             if (emailResponse.isSuccess()) {
                 CONSOLE_MONITOR_LOGGER.info("[[task=ConflictSendAlarm]]send email success, logCount: {}", logCount);
             } else {

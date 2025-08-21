@@ -734,7 +734,7 @@ public class MySqlUtils {
         } catch (Throwable t) {
             logger.error("[[endpoint={}:{}]]getUuid error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
-            throw new SQLException(endpoint.getSocketAddress() + "GetUuid error,closing old dataSource .Please check error log or retry!");
+            throw new SQLException(endpoint.getHost() + ":" + endpoint.getPort() + "GetUuid error,closing old dataSource .Please check error log or retry!");
         } finally {
             if (readResource != null) {
                 readResource.close();
@@ -958,32 +958,32 @@ public class MySqlUtils {
     }
 
     public static String checkBinlogMode(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogMode", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkBinlogMode", endpoint.getHost(), endpoint.getPort());
         return getSqlResultString(endpoint, CHECK_BINLOG, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static String checkBinlogFormat(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogFormat", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkBinlogFormat", endpoint.getHost(), endpoint.getPort());
         return getSqlResultString(endpoint, CHECK_BINLOG_FORMAT, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static String checkBinlogVersion(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogVersion", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkBinlogVersion", endpoint.getHost(), endpoint.getPort());
         return getSqlResultString(endpoint, CHECK_BINLOG_VERSION1, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static String checkBinlogRowImage(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogRowImage ", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkBinlogRowImage ", endpoint.getHost(), endpoint.getPort());
         return getSqlResultString(endpoint, CHECK_BINLOG_ROW_IMAGE, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static Integer checkAutoIncrementStep(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementStep", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkAutoIncrementStep", endpoint.getHost(), endpoint.getPort());
         return getSqlResultInteger(endpoint, CHECK_INCREMENT_STEP, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static Integer checkAutoIncrementOffset(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementOffset ", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkAutoIncrementOffset ", endpoint.getHost(), endpoint.getPort());
         return getSqlResultInteger(endpoint, CHECK_INCREMENT_OFFSET, SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
@@ -997,22 +997,22 @@ public class MySqlUtils {
     }
 
     public static Integer checkDrcTables(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] checkDrcTables ", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] checkDrcTables ", endpoint.getHost(), endpoint.getPort());
         return getSqlResultInteger(endpoint, CHECK_DRC_TABLES, 1);
     }
 
     public static String checkGtidMode(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] check gtid mode", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] check gtid mode", endpoint.getHost(), endpoint.getPort());
         return getSqlResultString(endpoint, CHECK_GTID_MODE, 1);
     }
 
     public static String checkBinlogTransactionDependency(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] check writeset", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] check writeset", endpoint.getHost(), endpoint.getPort());
         return getSqlResultString(endpoint, CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING, 1);
     }
 
     public static Integer checkBtdhs(Endpoint endpoint) {
-        logger.info("[[tag=preCheck,endpoint={}]] check btdhs", endpoint.getSocketAddress());
+        logger.info("[[tag=preCheck,endpoint={}:{}]] check btdhs", endpoint.getHost(), endpoint.getPort());
         return getSqlResultInteger(endpoint, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
     }
 
@@ -1308,7 +1308,7 @@ public class MySqlUtils {
             }
             return privileges.toString();
         } catch (Throwable t) {
-            logger.error("getAccountPrivilege error,address:{},user {} ", accEndpoint.getSocketAddress(), accEndpoint.getUser(), t);
+            logger.error("getAccountPrivilege error,address:{}:{},user {} ", accEndpoint.getHost(), accEndpoint.getPort(), accEndpoint.getUser(), t);
             closeDataSource(accEndpoint);
             return null;
         } finally {
@@ -1331,8 +1331,8 @@ public class MySqlUtils {
                 sqlOperator.stop();
                 sqlOperator.dispose();
             } catch (Exception e) {
-                logger.error(" closeDataSourceForSqlOperator error,address:{},user {} ", 
-                        accEndpoint.getSocketAddress(), accEndpoint.getUser(), e);
+                logger.error(" closeDataSourceForSqlOperator error,address:{}:{},user {} ", 
+                        accEndpoint.getHost(), accEndpoint.getPort(), accEndpoint.getUser(), e);
             }
         }
     
