@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -18,6 +19,7 @@ import java.util.List;
  * 2023/4/23 19:47
  */
 @Repository
+@Lazy
 public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
 
     private static final String ID = "id";

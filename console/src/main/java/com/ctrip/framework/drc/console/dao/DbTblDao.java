@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.param.v2.DbQuery;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -21,6 +22,7 @@ import java.util.List;
  * @date 2020-08-11
  */
 @Repository
+@Lazy
 public class DbTblDao extends AbstractDao<DbTbl> {
 
 	private static final String ID = "id";

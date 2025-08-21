@@ -16,19 +16,18 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.monitor.operator.StatementExecutorResult;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -70,13 +69,25 @@ public class ConflictApprovalServiceTest {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private DbaApiService dbaApiService;
-    @Mock
+
     private IAMService iamService;
+    private MockedStatic<ServicesUtil> servicesUtil;
 
     @Before
     public void setUp() {
         System.setProperty("iam.config.enable", "off"); // skip the constructor of IAMServiceImpl
         MockitoAnnotations.openMocks(this);
+
+        iamService = Mockito.mock(IAMService.class);
+        Mockito.when(iamService.iamFilterEnable()).thenReturn(true);
+
+        servicesUtil = Mockito.mockStatic(ServicesUtil.class);
+        servicesUtil.when(() -> ServicesUtil.getIAMService()).thenReturn(iamService);
+    }
+
+    @After
+    public void tearDown() {
+        servicesUtil.close();
     }
 
     @Test

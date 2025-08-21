@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -17,6 +18,7 @@ import java.util.List;
  * @date 2020-08-28
  */
 @Repository
+@Lazy
 public class ReplicatorTblDao extends AbstractDao<ReplicatorTbl> {
 
     private static final String RESOURCE_ID = "resource_id";

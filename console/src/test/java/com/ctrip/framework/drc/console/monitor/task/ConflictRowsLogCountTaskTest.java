@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogCount;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.v2.PojoBuilder;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogCountView;
@@ -16,12 +17,10 @@ import com.ctrip.framework.drc.core.service.email.Email;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
 import org.assertj.core.util.Lists;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.util.List;
 
@@ -44,8 +43,6 @@ public class ConflictRowsLogCountTaskTest {
     @Mock
     private DomainConfig domainConfig;
     @Mock
-    private EmailService emailService;
-    @Mock
     private ConflictRowsLogTblDao conflictRowsLogTblDao;
     @Mock
     private ConflictTrxLogTblDao conflictTrxLogTblDao;
@@ -55,9 +52,27 @@ public class ConflictRowsLogCountTaskTest {
     private static final String ROW_LOG_DB_COUNT_ROLLBACK_MEASUREMENT = "row.log.db.rollback.count";
     private static final String ROW_LOG_COUNT_QUERY_TIME_MEASUREMENT = "row.log.count.query.time";
 
+    private MockedStatic<ApiContainer> apiContainer;
+    private EmailService emailService;
+
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+
+        EmailResponse response = new EmailResponse();
+        response.setSuccess(true);
+        response.setEmailIdList(Lists.newArrayList("test"));
+
+        emailService = Mockito.mock(EmailService.class);
+        Mockito.when(emailService.sendEmail(Mockito.any())).thenReturn(response);
+
+        apiContainer = Mockito.mockStatic(ApiContainer.class);
+        apiContainer.when(() -> ApiContainer.getEmailServiceImpl()).thenReturn(emailService);
+    }
+
+    @After
+    public void tearDown() {
+        apiContainer.close();
     }
 
     @Test
@@ -84,7 +99,6 @@ public class ConflictRowsLogCountTaskTest {
 
         Mockito.when(domainConfig.getConflictAlarmSendEmailSwitch()).thenReturn(true);
         Mockito.when(domainConfig.getConflictAlarmSendTimeHour()).thenReturn(0);
-        Mockito.when(emailService.sendEmail(Mockito.any(Email.class))).thenReturn(new EmailResponse());
         Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(PojoBuilder.getDbTbls());
         Mockito.when(domainConfig.getConflictAlarmSendDBOwnerSwitch()).thenReturn(true);
         Mockito.when(conflictRowsLogTblDao.queryByIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());

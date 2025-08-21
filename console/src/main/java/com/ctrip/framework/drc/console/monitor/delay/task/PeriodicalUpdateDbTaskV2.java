@@ -208,7 +208,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
                         String dbName = e.getSrc().getDbName().toLowerCase();
                         Long mappingId = e.getSrc().getMhaDbMappingId();
                         if (!sqlOperatorWrapper.getLifecycleState().isStarted()) {
-                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] skip update db, sqlOperatorWrapper state: {}.", endpoint.getSocketAddress(), localDcName, registryKey, dbName, sqlOperatorWrapper.getLifecycleState().getPhaseName());
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={}:{},dc={},cluster={},db={}]] skip update db, sqlOperatorWrapper state: {}.", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, dbName, sqlOperatorWrapper.getLifecycleState().getPhaseName());
                             return;
                         }
                         long timestampInMillis = System.currentTimeMillis();
@@ -217,20 +217,20 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
                         String sql = String.format(UPSERT_DB_SQL, dbName, mappingId, delayInfoJson, timestamp, delayInfoJson, timestamp);
                         GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                         try {
-                            CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, timestamp);
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={}:{},dc={},cluster={},db={}]][Update DB] timestamp: {}", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, dbName, timestamp);
                             sqlOperatorWrapper.update(execution);
                             long commitTimeInMillis = System.currentTimeMillis();
                             boolean slowCommit = commitTimeInMillis - timestampInMillis > SLOW_COMMIT_THRESHOLD;
-                            CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.info("[[monitor=delay_v2,endpoint={}:{},dc={},cluster={},db={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, dbName, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
                             if (slowCommit) {
                                 DatachangeLastTime datachangeLastTime = new DatachangeLastTime(registryKey, dbName, timestamp.toString());
                                 commitTimeMap.put(datachangeLastTime, commitTimeInMillis);
-                                CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] Put commitTimeMap: {} -> {}", endpoint.getSocketAddress(), localDcName, registryKey, dbName, datachangeLastTime.toString(), commitTimeInMillis);
+                                CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={}:{},dc={},cluster={},db={}]] Put commitTimeMap: {} -> {}", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, dbName, datachangeLastTime.toString(), commitTimeInMillis);
                             }
                         } catch (Throwable t) {
                             removeSqlOperator(endpoint);
                             DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.delay.update.exception", mhaName + "." + dbName + ":" + endpoint.getHost() + ":" + endpoint.getPort());
-                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={},dc={},cluster={},db={}]] fail update db, ", endpoint.getSocketAddress(), localDcName, registryKey, dbName, t);
+                            CONSOLE_DB_DELAY_MONITOR_LOGGER.warn("[[monitor=delay_v2,endpoint={}:{},dc={},cluster={},db={}]] fail update db, ", endpoint.getHost(), endpoint.getPort(), localDcName, registryKey, dbName, t);
                         }
                     }
                 };

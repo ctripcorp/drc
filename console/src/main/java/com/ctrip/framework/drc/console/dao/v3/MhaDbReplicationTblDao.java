@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.param.v2.MhaDbReplicationQuery;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 
 @Repository
+@Lazy
 public class MhaDbReplicationTblDao extends AbstractDao<MhaDbReplicationTbl> {
 
     private static final String SRC_MHA_DB_MAPPING_ID = "src_mha_db_mapping_id";

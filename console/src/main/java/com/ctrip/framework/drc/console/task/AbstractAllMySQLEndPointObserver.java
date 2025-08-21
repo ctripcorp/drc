@@ -60,15 +60,15 @@ public abstract class AbstractAllMySQLEndPointObserver extends AbstractLeaderAwa
         ActionEnum action = msg.getLast();
 
         if (onlyCarePart && !isCare(metaKey)) {
-            CONSOLE_MYSQL_LOGGER.warn("[OBSERVE][{}] localDc-{} Region not interested in {}({})", getClass().getName(), localDcName, metaKey, mySQLEndpoint.getSocketAddress());
+            CONSOLE_MYSQL_LOGGER.warn("[OBSERVE][{}] localDc-{} Region not interested in {}({})", getClass().getName(), localDcName, metaKey, mySQLEndpoint.getAddress());
             return;
         }
 
         if (ActionEnum.ADD.equals(action) || ActionEnum.UPDATE.equals(action)) {
-            CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, mySQLEndpoint.getSocketAddress());
+            CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, mySQLEndpoint.getAddress());
             MySqlEndpoint oldEndpoint = mySQLEndpointMap.get(metaKey);
             if (oldEndpoint != null) {
-                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
+                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getAddress());
                 clear(oldEndpoint,metaKey);
             }
             mySQLEndpointMap.put(metaKey, mySQLEndpoint);
@@ -76,7 +76,7 @@ public abstract class AbstractAllMySQLEndPointObserver extends AbstractLeaderAwa
             CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}", getClass().getName(), action.name(), metaKey);
             MySqlEndpoint oldEndpoint = mySQLEndpointMap.remove(metaKey);
             if (oldEndpoint != null) {
-                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
+                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getAddress());
                 clear(oldEndpoint,metaKey);
             }
         }

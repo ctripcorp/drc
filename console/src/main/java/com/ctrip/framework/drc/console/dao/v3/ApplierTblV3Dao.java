@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v3.ApplierTblV3;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
+@Lazy
 public class ApplierTblV3Dao extends AbstractDao<ApplierTblV3> {
 
     private static final String APPLIER_GROUP_ID = "applier_group_id";

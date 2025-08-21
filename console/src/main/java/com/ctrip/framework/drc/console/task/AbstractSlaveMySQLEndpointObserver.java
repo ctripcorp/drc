@@ -47,15 +47,15 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractLeaderA
             ActionEnum action = message.getLast();
 
             if(onlyCarePart && !isCare(metaKey)) {
-                logger.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, slaveMySQLEndpoint.getSocketAddress());
+                logger.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, slaveMySQLEndpoint.getAddress());
                 return;
             }
 
             if(ActionEnum.ADD.equals(action) || ActionEnum.UPDATE.equals(action)) {
-                logger.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, slaveMySQLEndpoint.getSocketAddress());
+                logger.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, slaveMySQLEndpoint.getAddress());
                 MySqlEndpoint oldEndpoint = slaveMySQLEndpointMap.get(metaKey);
                 if (oldEndpoint != null) {
-                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
+                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getAddress());
                     clearOldEndpointResource(oldEndpoint);
                 }
                 slaveMySQLEndpointMap.put(metaKey, slaveMySQLEndpoint);
@@ -63,7 +63,7 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractLeaderA
                 logger.info("[OBSERVE][{}] {} {}", getClass().getName(), action.name(), metaKey);
                 MySqlEndpoint oldEndpoint = slaveMySQLEndpointMap.remove(metaKey);
                 if (oldEndpoint != null) {
-                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
+                    logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getAddress());
                     clearOldEndpointResource(oldEndpoint);
                 }
             }

@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
@@ -37,6 +38,7 @@ import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,8 +85,6 @@ public class ConflictLogServiceTest {
     @Mock
     private DbaApiService dbaApiService;
     @Mock
-    private IAMService iamService;
-    @Mock
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private DbBlacklistCache dbBlacklistCache;
@@ -93,50 +93,25 @@ public class ConflictLogServiceTest {
     @Mock
     private ReplicationTableTblDao replicationTableTblDao;
 
+    private IAMService iamService;
+    private MockedStatic<ServicesUtil> servicesUtil;
+
     @Before
     public void setUp() {
         System.setProperty("iam.config.enable", "off"); // skip the constructor of IAMServiceImpl
         MockitoAnnotations.openMocks(this);
         Mockito.when(consoleConfig.getConflictLogQueryTimeInterval()).thenReturn(Constants.ONE_DAY);
+
+        iamService = Mockito.mock(IAMService.class);
+        Mockito.when(iamService.iamFilterEnable()).thenReturn(true);
+        servicesUtil = Mockito.mockStatic(ServicesUtil.class);
+        servicesUtil.when(() -> ServicesUtil.getIAMService()).thenReturn(iamService);
     }
-    
-//    @Test
-//    public void testCflBlacklist() throws IOException {
-//
-//        List<String> dbFilters = Lists.newArrayList();
-//        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/resources/blacklist.txt"))) {
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                dbFilters.add(line);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        String dbFilter = Joiner.on(",").join(dbFilters);
-//        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
-//        List<AviatorRegexFilter> regexFilterList = dbFilters.stream().map(AviatorRegexFilter::new).collect(Collectors.toList());
-//
-//        StopWatch stopWatch = new StopWatch();
-//        stopWatch.start("task1");
-//        
-////        regexFilter.filter("fltfullskilldb"+"."+ "asproductorder");
-//        
-//        stopWatch.stop();
-//        System.out.println(stopWatch.getLastTaskTimeMillis());
-//
-//        stopWatch.start("task2");
-//        for (int i = 0; i < 10; i++) {
-//            for (AviatorRegexFilter filter : regexFilterList) {
-//                if (filter.filter("fltfullskilldb"+"."+ "asproductorder")) {
-//                    System.out.println("match");
-//                    break;
-//                }
-//            }
-//        }
-//        System.out.println("no match");
-//        stopWatch.stop();
-//        System.out.println(stopWatch.getLastTaskTimeMillis());
-//    }
+
+    @After
+    public void tearDown() {
+        servicesUtil.close();
+    }
 
     @Test
     public void testAddDbBlacklist() throws Exception {

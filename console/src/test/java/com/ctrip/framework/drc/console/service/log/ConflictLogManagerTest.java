@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.log.ConflictDbBlackListTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictDbBlackListTbl;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.core.service.email.Email;
@@ -21,13 +22,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.util.Lists;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import static org.mockito.Mockito.*;
 
@@ -46,8 +45,7 @@ public class ConflictLogManagerTest {
     private DomainConfig domainConfig;
     @Mock
     private OPSApiService opsApiService;
-    @Mock
-    private EmailService emailService;
+
     @Mock
     private DefaultConsoleConfig consoleConfig;
     @Mock
@@ -57,13 +55,31 @@ public class ConflictLogManagerTest {
     @Mock
     private DbBlacklistCache dbBlacklistCache;
 
+    private MockedStatic<ApiContainer> apiContainer;
+    private EmailService emailService;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+
+        EmailResponse response = new EmailResponse();
+        response.setSuccess(true);
+        response.setEmailIdList(Lists.newArrayList("test"));
+
+        emailService = Mockito.mock(EmailService.class);
+        Mockito.when(emailService.sendEmail(Mockito.any())).thenReturn(response);
+        apiContainer = Mockito.mockStatic(ApiContainer.class);
+        apiContainer.when(() -> ApiContainer.getEmailServiceImpl()).thenReturn(emailService);
+    }
+
+    @After
+    public void tearDown() {
+        apiContainer.close();
     }
     
     @Test
     public void testSchedule() throws Throwable {
+
         // mock check conflictCount
         Mockito.when(domainConfig.getOpsAccessToken()).thenReturn("opsAccessToken");
         Mockito.when(domainConfig.getTrafficFromHickWall()).thenReturn("http://fat.hickwall.com");
@@ -83,7 +99,6 @@ public class ConflictLogManagerTest {
         Mockito.when(conflictLogService.isInBlackListWithCache(Mockito.eq("notBlackDb"), Mockito.anyString())).thenReturn(false);
         Mockito.when(mhaServiceV2.getRegion(Mockito.anyString())).thenReturn("region");
         Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
-        Mockito.when(emailService.sendEmail(Mockito.any(Email.class))).thenReturn(new EmailResponse());
 
         Mockito.when(opsApiService.getConflictCount(Mockito.anyString(), Mockito.anyString(),
                         Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.anyInt()))

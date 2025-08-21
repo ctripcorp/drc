@@ -8,6 +8,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -21,6 +22,7 @@ import java.util.List;
  * 2023/5/25 12:04
  */
 @Repository
+@Lazy
 public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
 
     private static final String MHA_NAME = "mha_name";

@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -16,6 +17,7 @@ import java.util.List;
  * 2023/5/25 12:05
  */
 @Repository
+@Lazy
 public class RegionTblDao extends AbstractDao<RegionTbl> {
 
     private static final String REGION_NAME = "region_name";

@@ -186,7 +186,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
 
     @VisibleForTesting
     protected void notifyMasterMySQLEndpoint(MetaKey metaKey, MySqlEndpoint endpoint, ActionEnum action) {
-        logger.info("[[monitor=monitors]][notifyMaster] mhaName is: {},endPoint is: {},action is: {}",metaKey.getMhaName(),endpoint.getSocketAddress().toString(),action.getCode());
+        logger.info("[[monitor=monitors]][notifyMaster] mhaName is: {},endPoint is: {},action is: {}",metaKey.getMhaName(),endpoint.getAddress(),action.getCode());
         for (Observer observer : observers) {
             observer.update(new Triple<>(metaKey, endpoint, action), masterMySQLEndpointObservable);
         }
@@ -194,7 +194,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
 
     @VisibleForTesting
     protected void notifySlaveMySQLEndpoint(MetaKey metaKey, MySqlEndpoint endpoint, ActionEnum action) {
-        logger.info("[[monitor=monitors]][notifySlave] mhaName is: {},endPoint is: {},action is: {}",metaKey.getMhaName(),endpoint.getSocketAddress().toString(),action.getCode());
+        logger.info("[[monitor=monitors]][notifySlave] mhaName is: {},endPoint is: {},action is: {}",metaKey.getMhaName(),endpoint.getAddress(),action.getCode());
         for (Observer observer : observers) {
             observer.update(new Triple<>(metaKey, endpoint, action), slaveMySQLEndpointObservable);
         }
@@ -205,7 +205,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
         Map.Entry<MetaKey, MySqlEndpoint> entryInSlave = getEntryByClusterId(slaveMySQLEndpoint, clusterId);
         Map.Entry<MetaKey, MySqlEndpoint> entryInMaster = getEntryByClusterId(masterMySQLEndpoint, clusterId);
         if (entryInMaster == null) {
-            logger.warn("[MASTER MYSQL ROLE] UNLIKELY, {}-{} not exist in master map", clusterId, endpoint.getSocketAddress());
+            logger.warn("[MASTER MYSQL ROLE] UNLIKELY, {}-{}:{} not exist in master map", clusterId, endpoint.getHost(), endpoint.getPort());
             return;
         }
         MetaKey metaKey = entryInMaster.getKey();
@@ -213,17 +213,17 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
         MySqlEndpoint newMasterMySQLEndpoint = new MySqlEndpoint(endpoint.getHost(), endpoint.getPort(), oldMasterMySQLEndpoint.getUser(), oldMasterMySQLEndpoint.getPassword(), true);
 
         if (entryInSlave != null && entryInSlave.getValue().equals(newMasterMySQLEndpoint)) {
-            logger.info("[MASTER MYSQL ROLE] endpoint transforms from slave to master, {}-{}", clusterId, endpoint.getSocketAddress());
+            logger.info("[MASTER MYSQL ROLE] endpoint transforms from slave to master, {}-{}:{}", clusterId, endpoint.getHost(), endpoint.getPort());
             notifySlaveMySQLEndpoint(metaKey, entryInSlave.getValue(), ActionEnum.DELETE);
             slaveMySQLEndpoint.remove(metaKey);
         }
 
         if (oldMasterMySQLEndpoint.equals(newMasterMySQLEndpoint)) {
-            logger.warn("[MASTER MYSQL ROLE] do nothing, new master endpoint equals old one, {}-{}", clusterId, endpoint.getSocketAddress());
+            logger.warn("[MASTER MYSQL ROLE] do nothing, new master endpoint equals old one, {}-{}:{}", clusterId, endpoint.getHost(), endpoint.getPort());
             return;
         }
 
-        logger.info("[MASTER MYSQL ROLE] new master endpoint, {}-{}", clusterId, endpoint.getSocketAddress());
+        logger.info("[MASTER MYSQL ROLE] new master endpoint, {}-{}:{}", clusterId, endpoint.getHost(), endpoint.getPort());
         notifyMasterMySQLEndpoint(metaKey, newMasterMySQLEndpoint, ActionEnum.UPDATE);
         masterMySQLEndpoint.put(metaKey, newMasterMySQLEndpoint);
 
@@ -239,7 +239,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
         Map.Entry<MetaKey, MySqlEndpoint> entryInSlave = getEntryByMhaName(slaveMySQLEndpoint, mhaName);
         Map.Entry<MetaKey, MySqlEndpoint> entryInMaster = getEntryByMhaName(masterMySQLEndpoint, mhaName);
         if (entryInMaster == null && entryInSlave == null) {
-            logger.warn("[SLAVE MYSQL ROLE] UNLIKELY, {} not exist in master or slave map, not able to add {}", mhaName, endpoint.getSocketAddress());
+            logger.warn("[SLAVE MYSQL ROLE] UNLIKELY, {} not exist in master or slave map, not able to add {}:{}", mhaName, endpoint.getHost(), endpoint.getPort());
             return;
         }
 

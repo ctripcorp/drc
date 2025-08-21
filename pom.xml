@@ -35,7 +35,6 @@
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.50</dal.version>
-        <vi.version>0.11.57</vi.version>
         <ucs.version>0.7.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
         <xpipe.proxy.client.version>1.2.13</xpipe.proxy.client.version>
@@ -445,17 +444,6 @@
                 <groupId>com.ctrip.ops</groupId>
                 <artifactId>hickwall-sdk</artifactId>
                 <version>${hickwall.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.ctrip.framework</groupId>
-                <artifactId>vi</artifactId>
-                <version>${vi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.ctrip.framework</groupId>
-                <artifactId>vi-core</artifactId>
-                <version>${vi.version}</version>
             </dependency>
 
             <!-- for regex expression -->

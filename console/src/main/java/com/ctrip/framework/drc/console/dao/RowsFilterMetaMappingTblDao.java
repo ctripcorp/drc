@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -18,6 +19,7 @@ import java.util.List;
  * 2023/4/23 20:05
  */
 @Repository
+@Lazy
 public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappingTbl> {
 
     private static final String META_FILTER_ID = "meta_filter_id";

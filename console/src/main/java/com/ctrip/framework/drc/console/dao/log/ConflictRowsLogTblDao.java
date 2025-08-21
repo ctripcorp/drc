@@ -10,6 +10,7 @@ import com.ctrip.platform.dal.dao.base.SQLResult;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -21,6 +22,7 @@ import java.util.List;
  * 2023/9/26 14:26
  */
 @Repository
+@Lazy
 public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
 
     private static final String CONFLICT_TRX_LOG_ID = "conflict_trx_log_id";

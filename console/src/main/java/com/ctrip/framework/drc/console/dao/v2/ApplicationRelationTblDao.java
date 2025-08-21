@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplicationRelationTbl;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -14,6 +15,7 @@ import java.util.List;
  * 2024/2/26 15:09
  */
 @Repository
+@Lazy
 public class ApplicationRelationTblDao extends AbstractDao<ApplicationRelationTbl> {
 
     private static final String APPLICATION_FORM_ID = "application_form_id";

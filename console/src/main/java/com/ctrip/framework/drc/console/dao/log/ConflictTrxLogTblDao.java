@@ -7,6 +7,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -18,6 +19,7 @@ import java.util.List;
  * 2023/9/26 14:21
  */
 @Repository
+@Lazy
 public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     private static final String SRC_MHA_NAME = "src_mha_name";

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.ReplicationTableTbl;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -17,6 +18,7 @@ import java.util.List;
  * 2024/1/23 16:31
  */
 @Repository
+@Lazy
 public class ReplicationTableTblDao extends AbstractDao<ReplicationTableTbl> {
 
     private static final String SRC_MHA = "src_mha";

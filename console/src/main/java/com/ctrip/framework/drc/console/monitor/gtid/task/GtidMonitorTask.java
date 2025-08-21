@@ -36,7 +36,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     @Autowired private DataCenterService dataCenterService;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
-    
+
     @Autowired private DefaultConsoleConfig consoleConfig;
 
     @Autowired private CacheMetaService cacheMetaService;
@@ -51,7 +51,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
 
     @Autowired
     private CheckGtid checkGtid;
-    
+
     @Override
     public void initialize() {
         super.initialize();
@@ -78,9 +78,9 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
             logger.info("[[monitor=gtid]] not a Leader, stop monitor");
             checkGtid.resourcesRelease();
         }
-        
+
     }
-    
+
     @Override
     public void setLocalDcName() {
         localDcName = dataCenterService.getDc();
@@ -116,5 +116,5 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-    
+
 }

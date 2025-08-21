@@ -15,6 +15,7 @@ public class EncryptUtilsTest {
 
     @Test
     public void generateRawToken() throws Exception {
+
         String rawToken = EncryptUtils.encryptAES_ECB("token", "appid");
     }
 

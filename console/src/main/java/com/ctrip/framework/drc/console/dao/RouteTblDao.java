@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.RouteTbl;
 import com.ctrip.framework.drc.console.param.RouteQueryParam;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -12,6 +13,7 @@ import java.sql.Types;
 import java.util.List;
 
 @Repository
+@Lazy
 public class RouteTblDao extends AbstractDao<RouteTbl> {
 
     private static final String ROUTE_ORG_ID = "route_org_id";
