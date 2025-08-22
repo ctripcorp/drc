@@ -72,6 +72,8 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
     private final IKafkaDelayMessageConsumer kafkaConsumer = ApiContainer.getKafkaDelayMessageConsumer();
     private final ScheduledExecutorService monitorMessengerChangerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
             getClass().getSimpleName() + "messengerMonitor");
+    private final ScheduledExecutorService kafkaDelayRefreshExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
+            getClass().getSimpleName() + "kafkaDelayRefreshExecutor");
 
     private volatile boolean isLeader = false;
 
@@ -83,6 +85,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
         localDc = dataCenterService.getDc();
         localDcId = centralService.queryAllDcTbl().stream().filter(e -> e.getDcName().equals(localDc)).findFirst().map(DcTbl::getId).orElse(0L);
         monitorMessengerChangerExecutor.scheduleWithFixedDelay(this::monitorMessengerChange, 5, 30, TimeUnit.SECONDS);
+        kafkaDelayRefreshExecutor.scheduleWithFixedDelay(this::forwardMhaDelay, 1, 1, TimeUnit.MINUTES);
 
         kafkaConsumer.initConsumer(
                 monitorProvider.getKafkaDelaySubject(),
@@ -130,7 +133,7 @@ public class KafkaDelayMonitorServer implements DcLeaderAware, InitializingBean 
                 broadCast.broadcastWithRetry(BroadcastEnum.KAFKA_DELAY_REFRESH.getPath(),
                         RequestMethod.PUT, JsonUtils.toJson(new MhaDelayDto(kafkaConsumer.getMhaDelay())), 1);
             } else {
-                logger.info("[[monitor=qmqDelay]] mQDelayForwardSwitch is off");
+                logger.info("[[monitor=qmqDelay]] kafkaDelayForwardSwitch is off");
             }
 
         } catch (Exception e) {
