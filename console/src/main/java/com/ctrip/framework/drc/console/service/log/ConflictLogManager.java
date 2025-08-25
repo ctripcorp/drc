@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.utils.MultiKey;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -33,6 +34,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName ConflictAlarm
@@ -220,7 +222,7 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
             if (count >= domainConfig.getBlacklistAlarmHotspotThreshold()) {
                 logger.info("[[task=ConflictAlarm]]table:{} alarm too many times:{},add to blacklist", table, count);
                 try {
-                    conflictLogService.addDbBlacklist(table, CflBlacklistType.ALARM_HOTSPOT,null);
+                    conflictLogService.addDbBlacklist(table, null, CflBlacklistType.ALARM_HOTSPOT,null);
                 } catch (Exception e) {
                     logger.error("[[task=ConflictAlarm]]{},add ALARM_HOTSPOT Blacklist error", table,e);
                 }
@@ -257,16 +259,16 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
     }
     
     private void checkConflictCountAndAlarm(List<HickWallConflictCount> cflRowCounts,ConflictCountType type) throws Exception{
-        for (HickWallConflictCount cflTableRowCount : cflRowCounts) {
-            Long count = cflTableRowCount.getCount();
+        Map<MultiKey, List<HickWallConflictCount>> conflictCountMap = cflRowCounts.stream()
+                .collect(Collectors.groupingBy(e -> new MultiKey(e.getDb(), e.getTable(), e.getSrcMha(), e.getDestMha())));
+        for (Map.Entry<MultiKey, List<HickWallConflictCount>> entry : conflictCountMap.entrySet()) {
+            List<HickWallConflictCount> hwCflCounts = entry.getValue();
+            Long count = hwCflCounts.stream().mapToLong(HickWallConflictCount::getCount).sum();
             if (isTriggerAlarm(count,type)) {
-                String db = cflTableRowCount.getDb();
-                String table = cflTableRowCount.getTable();
-                if (conflictLogService.isInBlackListWithCache(db, table)) {
-                    continue;
-                }
-                String srcMha = cflTableRowCount.getSrcMha();
-                String dstMha = cflTableRowCount.getDestMha();
+                String db = hwCflCounts.getFirst().getDb();
+                String table = hwCflCounts.getFirst().getTable();
+                String srcMha = hwCflCounts.getFirst().getSrcMha();
+                String dstMha = hwCflCounts.getFirst().getDestMha();
                 String srcRegion = mhaServiceV2.getRegion(srcMha);
                 String dstRegion = mhaServiceV2.getRegion(dstMha);
 
@@ -277,9 +279,12 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
                 long currentTimeMillis = System.currentTimeMillis();
                 long pastTime = currentTimeMillis - 1000 * 60 * 60 * 24 * 7; // one week
                 boolean everUserTraffic = dbaApiService.everUserTraffic(dstRegion, db, table, pastTime, currentTimeMillis, false);
-                Email email = generateEmail(everUserTraffic,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count);
+                String remark = type.isRowCount() ? hwCflCounts.stream()
+                        .map(HickWallConflictCount::getDetail)
+                        .collect(Collectors.joining(",")) : "";
+                Email email = generateEmail(everUserTraffic,db, table, srcMha, dstMha, srcRegion, dstRegion, type, count, remark);
                 if (!everUserTraffic) {
-                    conflictLogService.addDbBlacklist(db + "\\." + table, CflBlacklistType.NO_USER_TRAFFIC,null);
+                    conflictLogService.addDbBlacklist(db + "\\." + table, null, CflBlacklistType.NO_USER_TRAFFIC,null);
                 }
                 EmailResponse emailResponse = ApiContainer.getEmailServiceImpl().sendEmail(email);
                 if (emailResponse.isSuccess()) {
@@ -297,10 +302,11 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         tableAlarmCountHourlyMap.put(key,count + 1);
         return count >= domainConfig.getConflictAlarmLimitPerHour();
     }
-    
-   
+
+
+    @SuppressWarnings("ctrip-java:ChineseCharacterCheck")
     private Email generateEmail(boolean everUserTraffic,String db, String table, String srcMha, String dstMha,
-            String srcRegion, String dstRegion, ConflictCountType type, Long count) throws SQLException{
+            String srcRegion, String dstRegion, ConflictCountType type, Long count, String remark) throws SQLException{
         List<DbTbl> dbTbls = dbTblDao.queryByDbNames(Lists.newArrayList(db));
         if (dbTbls.isEmpty()) {
             logger.error("[[task=ConflictAlarm]]db:{} not found in drc", db);
@@ -322,8 +328,11 @@ public class ConflictLogManager extends AbstractLeaderAwareMonitor {
         email.addContentKeyValue("冲突表", db + "." + table);
         email.addContentKeyValue("同步链路", srcMha + "(" + srcRegion + ")" + "=>" + dstMha + "(" + dstRegion + ")");
         email.addContentKeyValue("冲突类型", type.name());
+        if (!StringUtils.isEmpty(remark)) {
+            email.addContentKeyValue("详细冲突类型", remark);
+        }
         email.addContentKeyValue("1min冲突统计", count.toString());
-        email.addContentKeyValue("监控", domainConfig.getConflictAlarmHickwallUrl() + "&var-mha=" + srcMha);
+        email.addContentKeyValue("监控", domainConfig.getConflictHickwallUrl() + "&var-db=" + db + "&var-table=" + table + "&var-srcMha=" + srcMha + "&var-dstMha=" + dstMha);
         email.addContentKeyValue("冲突查询", domainConfig.getConflictAlarmDrcUrl());
         email.addContentKeyValue("冲突用户文档", domainConfig.getCflUserDocumentUrl());
         email.addContentKeyValue("目标端有无用户流量？若无则自动加入黑名单" ,everUserTraffic ? "有" : "无");

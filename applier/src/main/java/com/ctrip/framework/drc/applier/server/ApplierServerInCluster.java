@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.applier.activity.event.TransactionTableApplierDum
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.event.*;
@@ -28,6 +30,7 @@ public class ApplierServerInCluster extends FetcherServer {
 
     public ApplierServerInCluster(ApplierConfigDto config) throws Exception {
         super(config);
+        parseCflLogUpLevel();
     }
 
     public void define() throws Exception {
@@ -74,7 +77,25 @@ public class ApplierServerInCluster extends FetcherServer {
     }
 
     @Override
+    protected void setConfig() {
+        setConfig(config, ApplierConfigDto.class);
+    }
+
+    @Override
     public FetcherDumpEventActivity getDumpEventActivity() {
        return ((TransactionTableApplierDumpEventActivity) activities.get("TransactionTableApplierDumpEventActivity"));
     }
+
+    protected void parseCflLogUpLevel() {
+        String registryKey = config.getRegistryKey();
+        String cflLogUpLevel = ApplierDynamicConfig.getInstance().getConflictLogUpLevel(registryKey);
+        try {
+            ConflictDetail.AlertLevel.valueOf(cflLogUpLevel);
+        } catch (Exception e) {
+            cflLogUpLevel = ApplierDynamicConfig.getInstance().getDefaultConflictLogUpLevel();
+            logger.error("[Invalid AlertLevel] {}, set to default level: {}", registryKey, cflLogUpLevel, e);
+        }
+        ((ApplierConfigDto) config).setCflUpLevel(cflLogUpLevel);
+    }
+
 }

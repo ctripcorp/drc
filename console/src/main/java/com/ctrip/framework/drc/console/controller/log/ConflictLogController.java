@@ -6,23 +6,20 @@ import com.ctrip.framework.drc.console.enums.TokenType;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.enums.operation.OperateAttrEnum;
 import com.ctrip.framework.drc.console.enums.operation.OperateTypeEnum;
-import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
-import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistDto;
-import com.ctrip.framework.drc.console.param.log.ConflictDbBlacklistQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.param.log.*;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.service.log.DbBlacklistCache;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import java.sql.Timestamp;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -251,9 +248,9 @@ public class ConflictLogController {
     @LogRecord(type = OperateTypeEnum.CONFLICT_RESOLUTION, attr = OperateAttrEnum.ADD,
             success = "addDbBlacklist with dbFilter: {#dbFilter}")
     @PostMapping("/db/blacklist")
-    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter,@RequestParam long expirationTime) {
+    public ApiResult<Boolean> addDbBlacklist(@RequestParam String dbFilter, @RequestParam(required = false, defaultValue = "") String detailFilter, @RequestParam long expirationTime) {
         try {
-            conflictLogService.addDbBlacklist(dbFilter, CflBlacklistType.USER, expirationTime);
+            conflictLogService.addDbBlacklist(dbFilter, detailFilter, CflBlacklistType.USER, expirationTime);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addDbBlacklist error, {}", e);
@@ -317,7 +314,7 @@ public class ConflictLogController {
             success = "addBlackListForTouchJob with db : {#db} and table : {#table}")
     public ApiResult<Boolean> addBlackListForTouchJob(@RequestParam String db, @RequestParam String table) {
         try {
-            conflictLogService.addDbBlacklist(db + "\\." + table, CflBlacklistType.DBA_JOB,null);
+            conflictLogService.addDbBlacklist(db + "\\." + table, null, CflBlacklistType.DBA_JOB,null);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("addBlackListForTouchJob error", e);
@@ -336,6 +333,17 @@ public class ConflictLogController {
         } catch (Exception e) {
             logger.error("deleteBlackListForTouchJob error", e);
             return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("cflDetailType/all")
+    public ApiResult getAllCflDetailType() {
+        try {
+            List<String> res = Arrays.stream(ConflictDetail.values()).map(Enum::name).toList();
+            return ApiResult.getSuccessInstance(res);
+        } catch (Exception e) {
+            logger.error("getAllCflDetailType error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

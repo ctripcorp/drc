@@ -24,7 +24,7 @@ public abstract class FetcherServer extends AbstractLink {
     public FetcherServer(FetcherConfigDto config) throws Exception {
         this.config = config;
         parseConfig(config);
-        setConfig(config, FetcherConfigDto.class);
+        setConfig();
         setName(config.getRegistryKey());
         define();
     }
@@ -42,6 +42,10 @@ public abstract class FetcherServer extends AbstractLink {
     }
 
     abstract protected int getApplyApplyConcurrency();
+
+    protected void setConfig() {
+        setConfig(config, FetcherConfigDto.class);
+    }
 
     public long getLWM() {
         return ((LWMResource) resources.get("LWM")).current();

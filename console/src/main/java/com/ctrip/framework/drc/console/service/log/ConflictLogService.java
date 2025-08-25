@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.log;
 import com.ctrip.framework.drc.console.enums.log.CflBlacklistType;
 import com.ctrip.framework.drc.console.param.log.*;
 import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -48,7 +49,7 @@ public interface ConflictLogService {
     List<ConflictAutoHandleView> createHandleSql(ConflictAutoHandleParam param) throws Exception;
 
     // addDbBlacklist ,refresh expire time when exist 
-    void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception;
+    void addDbBlacklist(String dbFilter, String detailFilter, CflBlacklistType type, Long expirationTime) throws Exception;
 
     void updateDbBlacklist(ConflictDbBlacklistDto dto) throws Exception;
 
@@ -58,7 +59,7 @@ public interface ConflictLogService {
 
     List<ConflictDbBlacklistView> getConflictDbBlacklistView(ConflictDbBlacklistQueryParam param) throws Exception;
 
-    boolean isInBlackListWithCache(String db, String table);
+    boolean isInBlackListWithCache(ConflictRowLog conflictRowLog);
 
     List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception;
 

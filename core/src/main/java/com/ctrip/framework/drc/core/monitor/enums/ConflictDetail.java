@@ -15,16 +15,16 @@ public enum ConflictDetail {
      * commit
      */
     // insert
-    INSERT_UNKNOWN_COLUMN(COMMIT, INSERT, INFO),
+    INSERT_UNKNOWN_COLUMN(COMMIT, INSERT, MINOR),
     INSERT_TO_UPDATE(COMMIT, INSERT, WARN),
     // update
-    UPDATE_UNKNOWN_COLUMN(COMMIT, UPDATE, INFO),
-    UPDATE_NO_PARAMETER(COMMIT, UPDATE, INFO),
+    UPDATE_UNKNOWN_COLUMN(COMMIT, UPDATE, MINOR),
+    UPDATE_NO_PARAMETER(COMMIT, UPDATE, CRITICAL),
     UPDATE_OLD_TO_NEW(COMMIT, UPDATE, WARN),
-    UPDATE_TO_INSERT(COMMIT, UPDATE, WARN),
+    UPDATE_TO_INSERT(COMMIT, UPDATE, NOTICE),
     // delete
     DELETE_NOT_FOUND(COMMIT, DELETE, INFO),
-    DELETE_NO_PARAMETER(COMMIT, DELETE, INFO),
+    DELETE_NO_PARAMETER(COMMIT, DELETE, CRITICAL),
 
     /**
      * rollback
@@ -32,15 +32,16 @@ public enum ConflictDetail {
     // insert
     INSERT_TO_UPDATE_SAME_EXIST(ROLLBACK, INSERT, INFO),
     INSERT_TO_UPDATE_NEWER_EXIST(ROLLBACK, INSERT, CRITICAL),
+    INSERT_DUPLICATE_KEY(ROLLBACK, INSERT, CRITICAL),
     // update
     UPDATE_SAME_EXIST(ROLLBACK, UPDATE, INFO),
     UPDATE_NEWER_EXIST(ROLLBACK, UPDATE, CRITICAL),
     UPDATE_TO_INSERT_DUPLICATE_KEY(ROLLBACK, UPDATE, CRITICAL), // UNLIKELY
 
     //connection closed
-    CONNECTION_CLOSED(ROLLBACK, null, INFO),
+    CONNECTION_CLOSED(ROLLBACK, null, MINOR),
     //dead lock
-    DEAD_LOCK(ROLLBACK, null, INFO),
+    DEAD_LOCK(ROLLBACK, null, MINOR),
     //no onUpdate column
     NO_ONUPDATE_COLUMN(ROLLBACK, null, CRITICAL),
 
@@ -89,14 +90,31 @@ public enum ConflictDetail {
     }
 
     public enum AlertLevel {
+        MINOR(0),
         /**
          * no need to inform user
          */
-        INFO,
+        INFO(1),
+        NOTICE(2),
         /**
          * data is consistent after commit,
          */
-        WARN,
-        CRITICAL,
+        WARN(3),
+        CRITICAL(4),
+        ;
+
+        private final int code;
+        AlertLevel(int code) {
+            this.code = code;
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        //return true if need record
+        public boolean equalOrHigherLevelThan(AlertLevel another) {
+            return this.code >= another.code;
+        }
     }
 }

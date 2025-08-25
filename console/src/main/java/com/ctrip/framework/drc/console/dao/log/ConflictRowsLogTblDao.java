@@ -34,6 +34,7 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String SRC_REGION = "src_region";
     private static final String DST_REGION = "dst_region";
     private static final String CREATE_TIME = "create_time";
+    private static final String ROW_RESULT_DETAIL = "row_result_detail";
     private static final String ID = "id";
     private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
     private static final String DB_QUERY_SQL = "select min(id) as row_log_id, min(conflict_trx_log_id) as trx_log_id, db_name, table_name, count(1) as count from conflict_rows_log_tbl where #CONDITDION# group by db_name, table_name order by count desc limit 100";
@@ -123,6 +124,10 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
                 .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)
                 .and().equalNullable(ROW_RESULT, param.getRowResult(), Types.TINYINT)
                 .and().equalNullable(BRIEF, param.getBrief(), Types.TINYINT);
+
+        if (param.getCflDetail() != null) {
+            sqlBuilder.and().equal(ROW_RESULT_DETAIL, param.getCflDetail(), Types.VARCHAR);
+        }
 
         if (param.isLikeSearch()) {
             if (StringUtils.isNotBlank(param.getDbName())) {

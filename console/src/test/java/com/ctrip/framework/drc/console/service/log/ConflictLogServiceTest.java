@@ -30,13 +30,14 @@ import com.ctrip.framework.drc.console.utils.Constants;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
+import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.After;
 import org.junit.Assert;
@@ -120,13 +121,13 @@ public class ConflictLogServiceTest {
         when(domainConfig.getBlacklistExpirationHour(Mockito.any())).thenReturn(1);
         doNothing().when(dbBlacklistCache).refresh(true);
         
-        conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis() + Constants.ONE_DAY);
-        conflictLogService.addDbBlacklist("db1\\.table1", CflBlacklistType.DBA_JOB,null);
+        conflictLogService.addDbBlacklist("db1\\.table1",null, CflBlacklistType.NO_USER_TRAFFIC,System.currentTimeMillis() + Constants.ONE_DAY);
+        conflictLogService.addDbBlacklist("db1\\.table1", null, CflBlacklistType.DBA_JOB,null);
 
         ConflictDbBlackListTbl db2table2 = new ConflictDbBlackListTbl();
         db2table2.setId(1L);
         when(conflictDbBlackListTblDao.queryBy(eq("db2\\.table2"),anyInt())).thenReturn(Lists.newArrayList(db2table2));
-        conflictLogService.addDbBlacklist("db2\\.table2", CflBlacklistType.DBA_JOB,null);
+        conflictLogService.addDbBlacklist("db2\\.table2", null, CflBlacklistType.DBA_JOB,null);
         verify(conflictDbBlackListTblDao,times(2)).insert(any(ConflictDbBlackListTbl.class));
         verify(dbBlacklistCache,times(3)).refresh(true);
         verify(conflictDbBlackListTblDao,times(1)).update(any(ConflictDbBlackListTbl.class));
@@ -382,9 +383,10 @@ public class ConflictLogServiceTest {
     @Test
     public void testIsInBlackListWithCache() throws Exception {
         List<AviatorRegexFilter> filters = getConflictDbBlackListTbls().stream().map(tbl -> new AviatorRegexFilter(tbl.getDbFilter())).collect(Collectors.toList());
-        Mockito.when(dbBlacklistCache.isInBlackListWithCache(anyString())).thenAnswer(
+        Mockito.when(dbBlacklistCache.isInBlackListWithCache(any())).thenAnswer(
                 p -> {
-                    String fullName = p.getArgument(0);
+                    ConflictRowLog dto = (ConflictRowLog) p.getArgument(0);
+                    String fullName = dto.getDb() + '.' + dto.getTable();
                     for (AviatorRegexFilter filter : filters) {
                         if (filter.filter(fullName)) {
                             return true;
@@ -393,9 +395,14 @@ public class ConflictLogServiceTest {
                     return false;
                 }
         );
-        Assert.assertTrue(conflictLogService.isInBlackListWithCache("db1", "table"));
-        Assert.assertTrue(conflictLogService.isInBlackListWithCache("db2", "table"));
-        Assert.assertFalse(conflictLogService.isInBlackListWithCache("db3", "table"));
+        ConflictRowLog conflictRowLog = new ConflictRowLog();
+        conflictRowLog.setDb("db1");
+        conflictRowLog.setTable("table");
+        Assert.assertTrue(conflictLogService.isInBlackListWithCache(conflictRowLog));
+        conflictRowLog.setDb("db2");
+        Assert.assertTrue(conflictLogService.isInBlackListWithCache(conflictRowLog));
+        conflictRowLog.setDb("db3");
+        Assert.assertFalse(conflictLogService.isInBlackListWithCache(conflictRowLog));
     }
 
     @Test
@@ -434,23 +441,6 @@ public class ConflictLogServiceTest {
         Assert.assertEquals(result.size(), getConflictDbBlackListTbls().size());
     }
 
-    @Test
-    public void testFilterTransactionLogs() throws Exception {
-        Mockito.when(consoleConfig.getConflictOptimizeSwitch()).thenReturn(true);
-        Mockito.when(consoleConfig.getIgnoreConflictTypes()).thenReturn(Sets.newHashSet("INSERT_UNKNOWN_COLUMN"));
-        List<ConflictTransactionLog> logs = Lists.newArrayList(buildConflictTransactionLog());
-        List<ConflictTransactionLog> result = conflictLogService.filterTransactionLogs(logs);
-        Assert.assertEquals(0, result.size());
-    }
-
-    @Test
-    public void testFilterTransactionLogs2() throws Exception {
-        Mockito.when(consoleConfig.getConflictOptimizeSwitch()).thenReturn(true);
-        Mockito.when(consoleConfig.getIgnoreConflictTypes()).thenReturn(Sets.newHashSet("INSERT_TO_UPDATE"));
-        List<ConflictTransactionLog> logs = Lists.newArrayList(buildConflictTransactionLog());
-        List<ConflictTransactionLog> result = conflictLogService.filterTransactionLogs(logs);
-        Assert.assertEquals(1, result.size());
-    }
 
     private Map<String, Object> getEmptyRecord() {
         Map<String, Object> record = getSrcResMap();
@@ -623,5 +613,73 @@ public class ConflictLogServiceTest {
         mha1.setMhaName("dstMha");
         mha1.setDcId(201L);
         return Lists.newArrayList(mha0, mha1);
+    }
+
+    @Test
+    public void testFilterTransactionLogs() {
+        List<ConflictTransactionLog> logs = Lists.newArrayList(buildConflictTransactionLog());
+        Mockito.when(dbBlacklistCache.isInBlackListWithCache(any())).thenReturn( true);
+        List<ConflictTransactionLog> result = conflictLogService.filterTransactionLogs(logs);
+        Assert.assertEquals(0, result.size());
+
+        Mockito.when(dbBlacklistCache.isInBlackListWithCache(any())).thenReturn( false);
+        result = conflictLogService.filterTransactionLogs(logs);
+        Assert.assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testCflLogsReportHickWall() {
+        List<ConflictTransactionLog> logs = Lists.newArrayList(buildConflictTransactionLog());
+        Reporter reporter = Mockito.mock(Reporter.class);
+        MockedStatic<DefaultReporterHolder> mockedStatic = Mockito.mockStatic(DefaultReporterHolder.class);
+        mockedStatic.when(DefaultReporterHolder::getInstance).thenReturn(reporter);
+        conflictLogService.cflLogsReportHickWall(logs);
+        Mockito.verify( reporter, Mockito.times(1)).reportResetCounter(Mockito.anyMap() ,Mockito.eq(1L), Mockito.eq("fx.drc.console.trx.conflict.commit"));
+        Mockito.verify( reporter, Mockito.times(1)).reportResetCounter(Mockito.anyMap() ,Mockito.eq(1L), Mockito.eq("fx.drc.console.rows.conflict.commit"));
+
+        mockedStatic.close();
+    }
+
+    @Test
+    public void testBuildDetailFilterStr() {
+        String prev = null;
+        String add = null;
+        String res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("", res);
+
+        prev = null;
+        add = "DELETE_NOT_FOUND";
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("DELETE_NOT_FOUND", res);
+
+        prev = "DELETE_NOT_FOUND";
+        add = null;
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("", res);
+
+        prev = "";
+        add = "DELETE_NOT_FOUND";
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("DELETE_NOT_FOUND", res);
+
+        prev = "";
+        add = null;
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("", res);
+
+        prev = null;
+        add = "";
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("", res);
+
+        prev = "DELETE_NOT_FOUND";
+        add = "";
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("", res);
+
+        prev = "DELETE_NOT_FOUND";
+        add = "DELETE_NOT_FOUND,INSERT_EXCEPTION";
+        res = conflictLogService.buildDetailFilterStr(prev, add);
+        Assert.assertEquals("DELETE_NOT_FOUND,INSERT_EXCEPTION", res);
     }
 }

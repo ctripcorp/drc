@@ -307,7 +307,7 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Override
     public String getDbOwner(String dbName) {
-        String token = domainConfig.getDBAApiOpsAccessToken();
+        String token = domainConfig.getProdOpsAccessToken();
         String url = consoleConfig.getDbaDbOwnerUrl();
         LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
         request.put("access_token", token);
@@ -330,7 +330,7 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Override
     public List<String> getAllDbOwners(String dbName) {
-        String token = domainConfig.getDBAApiOpsAccessToken();
+        String token = domainConfig.getProdOpsAccessToken();
         String url = consoleConfig.getDbaDbOwnerUrl();
         LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
         request.put("access_token", token);

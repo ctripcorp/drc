@@ -12,10 +12,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.PriorityQueue;
-import java.util.Set;
 
 import static com.ctrip.framework.drc.core.monitor.enums.ConflictResult.ROLLBACK;
-import static org.junit.Assert.*;
 
 /**
  * Created by shiruixin
@@ -40,14 +38,16 @@ public class TransactionLogRecorderTest {
 
     @Test
     public void testCflRowLogsQueue() {
-        Mockito.when(mockConfig.getConflictLogUpLevel()).thenReturn(Set.of(ConflictDetail.AlertLevel.WARN, ConflictDetail.AlertLevel.CRITICAL));
+        trxLogRecorder.setUploadLevel(ConflictDetail.AlertLevel.WARN);
+//        Mockito.when(mockConfig.getConflictLogUpLevel()).thenReturn(Set.of(ConflictDetail.AlertLevel.WARN, ConflictDetail.AlertLevel.CRITICAL));
         ConflictRowLog l1 = new ConflictRowLog();
         l1.setDb("db");
         l1.setTable("tb");
         l1.setRowId(1L);
         l1.setRowRes(ROLLBACK.getValue());
         l1.setConflictDetail(ConflictDetail.INSERT_TO_UPDATE_NEWER_EXIST);
-        trxLogRecorder.recordCflRowLogIfNecessary(l1);
+
+
         ConflictRowLog l2 = new ConflictRowLog();
         l2.setDb("db");
         l2.setTable("tb");
@@ -61,6 +61,8 @@ public class TransactionLogRecorderTest {
         l3.setRowId(3L);
         l3.setRowRes(ROLLBACK.getValue());
         l3.setConflictDetail(ConflictDetail.INSERT_TO_UPDATE_SAME_EXIST);
+
+        trxLogRecorder.recordCflRowLogIfNecessary(l1);
         trxLogRecorder.recordCflRowLogIfNecessary(l3);
         trxLogRecorder.recordCflRowLogIfNecessary(l2);
         PriorityQueue<ConflictRowLog> queue = trxLogRecorder.getCflRowLogsQueue();

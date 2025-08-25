@@ -185,7 +185,7 @@ public class DbaApiServiceImplV2Test {
 
     @Test
     public void testGetDbOwner() {
-        Mockito.when(domainConfig.getDBAApiOpsAccessToken()).thenReturn("token");
+        Mockito.when(domainConfig.getProdOpsAccessToken()).thenReturn("token");
         Mockito.when(consoleConfig.getDbaDbOwnerUrl()).thenReturn("url");
         try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
             theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"\", \"data\": [{\"dbname\": \"bbzbbzdrcbenchmarktmpdb\", \"db_type\": \"MySQL\", \"owner\":\n" +
@@ -198,7 +198,7 @@ public class DbaApiServiceImplV2Test {
 
     @Test
     public void testGetAllDbOwners() {
-        Mockito.when(domainConfig.getDBAApiOpsAccessToken()).thenReturn("token");
+        Mockito.when(domainConfig.getProdOpsAccessToken()).thenReturn("token");
         Mockito.when(consoleConfig.getDbaDbOwnerUrl()).thenReturn("url");
         try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
             theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"\", \"data\": [{\"dbname\": \"bbzbbzdrcbenchmarktmpdb\", \"db_type\": \"MySQL\", \"owner\":\n" +

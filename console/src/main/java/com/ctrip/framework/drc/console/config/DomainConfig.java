@@ -114,6 +114,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DRC_CONFIG_DBA_EMAIL = "drc.config.dba.email";
     private static final String DRC_CONFIG_EMAIL_FOOTER = "drc.config.email.footer";
     private static final String DRC_CONFIG_DB_DELAY_HICKWALL_URL = "drc.config.db.delay.hickwall.url";
+    private static final String DRC_CONFLICT_HICKWALL_URL = "drc.conflict.hickwall.url";
 
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_TOKEN = "center.region.user.dml.count.query.token";
     private static final String CENTER_REGION_USER_DML_COUNT_QUERY_URL = "center.region.user.dml.count.query.url";
@@ -171,7 +172,7 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     //部分ops api没有测试环境版本，需要用prod的ops和prod的token
-    public String getDBAApiOpsAccessToken() {
+    public String getProdOpsAccessToken() {
         String opsToken = getOpsAccessToken();
         String token = getProperty(DBAAPI_OPS_ACCESS_TOKEN, opsToken);
         return EncryptUtils.decryptRawToken(token);
@@ -320,6 +321,10 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getMhaDbDelayHickwallUrl() {
         return getProperty(DRC_CONFIG_DB_DELAY_HICKWALL_URL, "");
+    }
+
+    public String getConflictHickwallUrl() {
+        return getProperty(DRC_CONFLICT_HICKWALL_URL, "");
     }
 
     public String getCflAddBlacklistUrl() {

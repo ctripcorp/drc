@@ -100,6 +100,12 @@
             <FormItem label="黑名单">
               <Input v-model="dbFilter" placeholder="请输入黑名单, 支持正则" style="width: 500px"/>
             </FormItem>
+            <FormItem label="过滤类型">
+<!--              <Input v-model="detailFilter" placeholder="请输入冲突类型，逗号分隔" style="width: 500px"/>-->
+              <Select v-model="detailFilter" multiple filterable clearable style="width: 500px" placeholder="请输入冲突类型，为空表示全部过滤">
+                <Option v-for="item in cflDetailEnum" :value="item" :key="item">{{ item }}</Option>
+              </Select>
+            </FormItem>
             <FormItem label="过期时间">
               <DatePicker type="datetime" :editable="false" v-model="dbFilterExpirationTime"
                           :clearable="false" placeholder="请选择黑名单过期时间"></DatePicker>
@@ -124,6 +130,15 @@ export default {
           title: '黑名单(正则)',
           key: 'dbFilter',
           tooltip: true
+        },
+        {
+          title: '过滤类型',
+          key: 'detailFilter',
+          width: 200,
+          render: (h, params) => {
+            const detailFilter = params.row.detailFilter
+            return h('span', detailFilter === null || detailFilter === '' ? '全部' : detailFilter)
+          }
         },
         {
           title: '类型',
@@ -221,8 +236,10 @@ export default {
       blacklistId: 0,
       blacklistType: 0,
       dbFilter: this.$route.query.dbFilter,
+      detailFilter: null,
       dbFilterExpirationTime: null,
-      dataLoading: true
+      dataLoading: true,
+      cflDetailEnum: []
     }
   },
   computed: {},
@@ -297,6 +314,7 @@ export default {
       this.blacklistId = row.id
       this.blacklistType = row.type
       this.dbFilter = row.dbFilter
+      this.detailFilter = row.detailFilter ? row.detailFilter.split(',') : []
       this.dbFilterExpirationTime = row.expirationTime
       this.isUpdate = true
       this.createModal = true
@@ -341,6 +359,7 @@ export default {
         id: this.blacklistId,
         type: this.blacklistType,
         dbFilter: this.dbFilter,
+        detailFilter: Array.isArray(this.detailFilter) ? this.detailFilter.join(',') : this.detailFilter,
         expirationTime: expirationTime
       }
       this.axios.put('/api/drc/v2/log/conflict/db/blacklist', params).then(res => {
@@ -359,7 +378,15 @@ export default {
         this.$Message.warning('过期时间为空或格式不正确')
         return
       }
-      this.axios.post('/api/drc/v2/log/conflict/db/blacklist/?dbFilter=' + this.dbFilter + '&expirationTime=' + expirationTime).then(res => {
+      const params = {
+        dbFilter: this.dbFilter,
+        expirationTime: expirationTime
+      }
+      if (this.detailFilter && Array.isArray(this.detailFilter) && this.detailFilter.length > 0) {
+        params.detailFilter = this.detailFilter.join(',')
+      }
+      const queryString = new URLSearchParams(params).toString()
+      this.axios.post('/api/drc/v2/log/conflict/db/blacklist/?' + queryString).then(res => {
         if (res.data.status === 0) {
           this.$Message.success('新增成功')
           this.createModal = false
@@ -382,9 +409,16 @@ export default {
         }
       }
       return result
+    },
+    getAllDetailEnumOptions () {
+      this.axios.get('/api/drc/v2/log/conflict/cflDetailType/all')
+        .then(response => {
+          this.cflDetailEnum = response.data.data
+        })
     }
   },
   created () {
+    this.getAllDetailEnumOptions()
     this.getData()
   }
 }

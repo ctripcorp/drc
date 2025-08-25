@@ -59,6 +59,13 @@ public class ConflictDbBlackListTbl {
     @Column(name = "expiration_time")
     @Type(value = Types.TIMESTAMP)
     private Timestamp expirationTime;
+
+    /**
+     * 对冲突类型过滤
+     */
+    @Column(name = "detail_filter")
+    @Type(value = Types.VARCHAR)
+    private String detailFilter;
     
     /**
      * 创建时间
@@ -121,5 +128,13 @@ public class ConflictDbBlackListTbl {
 
     public void setExpirationTime(Timestamp expirationTime) {
         this.expirationTime = expirationTime;
+    }
+
+    public String getDetailFilter() {
+        return detailFilter;
+    }
+
+    public void setDetailFilter(String detailFilter) {
+        this.detailFilter = detailFilter;
     }
 }
