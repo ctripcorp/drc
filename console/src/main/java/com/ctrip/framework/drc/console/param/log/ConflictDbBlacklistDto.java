@@ -9,6 +9,7 @@ package com.ctrip.framework.drc.console.param.log;
 public class ConflictDbBlacklistDto {
     private Long id;
     private String dbFilter;
+    private String detailFilter;
     private Long expirationTime;
     private Integer type;
 
@@ -17,6 +18,7 @@ public class ConflictDbBlacklistDto {
         return "ConflictDbBlacklistDto{" +
                 "id=" + id +
                 ", dbFilter='" + dbFilter + '\'' +
+                ", detailFilter='" + detailFilter + '\'' +
                 ", expirationTime=" + expirationTime +
                 ", type=" + type +
                 '}';
@@ -53,5 +55,12 @@ public class ConflictDbBlacklistDto {
     public void setType(Integer type) {
         this.type = type;
     }
-    
+
+    public String getDetailFilter() {
+        return detailFilter;
+    }
+
+    public void setDetailFilter(String detailFilter) {
+        this.detailFilter = detailFilter;
+    }
 }

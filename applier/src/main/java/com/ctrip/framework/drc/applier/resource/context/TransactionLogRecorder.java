@@ -1,19 +1,16 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
-import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
 import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
 
 /**
  * @ClassName TransactionInfoRecorder
@@ -31,17 +28,11 @@ public class TransactionLogRecorder {
     private long conflictNeedRocordRowNum;
     private PriorityQueue<ConflictRowLog> cflRowLogsQueue;
     private Map<ConflictTable, CflCountDetail> conflictTableRowsCount;
-    private final String CACHE_KEY = "uploadLevel";
+    private ConflictDetail.AlertLevel uploadLevel;
 
-    private final LoadingCache<String, Set<ConflictDetail.AlertLevel>> uploadLevelCache = CacheBuilder.newBuilder()
-            .maximumSize(1)
-            .expireAfterAccess(60, TimeUnit.SECONDS)
-            .build(new CacheLoader<>() {
-                @Override
-                public Set<ConflictDetail.AlertLevel> load(String key) {
-                    return ApplierDynamicConfig.getInstance().getConflictLogUpLevel();
-                }
-            });
+    public void setUploadLevel(ConflictDetail.AlertLevel uploadLevel) {
+        this.uploadLevel = uploadLevel;
+    }
     
     public TransactionLogRecorder(int recordSize) {
         this.recordSize = recordSize;
@@ -106,14 +97,9 @@ public class TransactionLogRecorder {
     }
 
     private boolean doNeedRecord(ConflictRowLog curCflRowLog) {
-        try {
-            Set<ConflictDetail.AlertLevel> uploadLevel = uploadLevelCache.get(CACHE_KEY);
-            boolean needRecord = uploadLevel.contains(curCflRowLog.getConflictDetailEnum().getAlertLevel());
-            curCflRowLog.setNeedRecord(needRecord? 1:0);
-            return needRecord;
-        } catch (ExecutionException ignored) {
-            return true;
-        }
+        boolean needRecord = curCflRowLog.getConflictDetailEnum().getAlertLevel().equalOrHigherLevelThan(uploadLevel);
+        curCflRowLog.setNeedRecord(needRecord? 1: 0);
+        return needRecord;
     }
 
     public void trxRowNumIncrement() {

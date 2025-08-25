@@ -332,7 +332,7 @@ public class DrcBuildServiceV2Test {
         when(dbReplicationTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(getDbReplicationTbls1());
         when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
         try {
-            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.eq(
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.any(), Mockito.eq(
                     CflBlacklistType.NEW_CONFIG), Mockito.any());
         } catch (SQLException e) {
             e.printStackTrace();

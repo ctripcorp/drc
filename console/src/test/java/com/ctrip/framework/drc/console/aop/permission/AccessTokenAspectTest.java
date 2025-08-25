@@ -60,7 +60,7 @@ public class AccessTokenAspectTest {
     @Test
     public void testAccessTokenCheck() throws Exception {
         try {
-            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any(
+            Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(),Mockito.any(),Mockito.any(
                     CflBlacklistType.class),Mockito.any());
         } catch (SQLException e) {
             e.printStackTrace();

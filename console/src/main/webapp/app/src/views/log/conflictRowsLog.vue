@@ -5,26 +5,28 @@
         <Card :padding=5>
           <template #title>查询条件</template>
           <Row :gutter=10 v-show="!searchMode">
-            <Col span="2">
+            <Col span="6">
               <Select filterable clearable v-model="queryParam.srcRegion" placeholder="源region">
                 <Option v-for="item in regions" :value="item.regionName" :key="item.regionName">
                   {{ item.regionName }}
                 </Option>
               </Select>
             </Col>
-            <Col span="2">
+            <Col span="6">
               <Select filterable clearable v-model="queryParam.dstRegion" placeholder="目标region">
                 <Option v-for="item in regions" :value="item.regionName" :key="item.regionName">
                   {{ item.regionName }}
                 </Option>
               </Select>
             </Col>
-            <Col span="4">
+            <Col span="6">
               <Input prefix="ios-search" v-model="queryParam.dbName" placeholder="库名"></Input>
             </Col>
-            <Col span="4">
+            <Col span="6">
               <Input prefix="ios-search" v-model="queryParam.tableName" placeholder="表名"></Input>
             </Col>
+          </Row>
+          <Row :gutter=10 v-show="!searchMode" style="margin-top: 10px;">
             <Col span="4">
               <DatePicker :transfer="true"  type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
                           :clearable="false" placeholder="起始日期"></DatePicker>
@@ -33,14 +35,19 @@
               <DatePicker :transfer="true" type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           :confirm="false" :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
-            <Col span="2">
+            <Col span="4">
               <Select filterable clearable v-model="queryParam.brief" placeholder="日志情况">
                 <Option v-for="item in briefOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>
-            <Col span="2">
+            <Col span="4">
               <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
+              </Select>
+            </Col>
+            <Col span="8">
+              <Select filterable clearable v-model="queryParam.cflDetail" placeholder="冲突类型">
+                <Option v-for="item in cflDetailOpts" :value="item" :key="item">{{ item }}</Option>
               </Select>
             </Col>
           </Row>
@@ -80,10 +87,10 @@
           <Button icon="md-refresh" @click="resetParam">重置</Button>
           <i-switch v-model="searchMode" size="large" @on-change="searchModeChange" style="margin-left: 10px">进阶
             <template #open>
-              <span>进阶</span>
+              <span>事务</span>
             </template>
             <template #close>
-              <span>进阶</span>
+              <span>事务</span>
             </template>
           </i-switch>
         </Row>
@@ -266,7 +273,7 @@ export default {
       },
       regions: [],
       // searchMode: this.searchMode1,
-      editable: false,
+      editable: true,
       dataLoading: false,
       countLoading: false,
       queryParam: {
@@ -275,8 +282,9 @@ export default {
         dbName: this.$route.query.dbName,
         tableName: this.$route.query.tableName,
         rowResult: this.$route.query.rowResult ? Number(this.$route.query.rowResult) : null,
+        cflDetail: this.$route.query.cflDetail,
         brief: this.$route.query.brief ? Number(this.$route.query.brief) : null,
-        gtid: this.gtid,
+        gtid: this.$route.query.gtid,
         likeSearch: this.$route.query.likeSearch === true || this.$route.query.likeSearch === 'true',
         beginHandleTime: this.$route.query.beginTime ? new Date(Number(this.$route.query.beginTime)) : this.beginHandleTime,
         endHandleTime: this.$route.query.endTime ? new Date(Number(this.$route.query.endTime)) : this.endHandleTime
@@ -414,6 +422,7 @@ export default {
           val: 1
         }
       ],
+      cflDetailOpts: [],
       briefOpts: [
         {
           name: '有日志',
@@ -448,7 +457,8 @@ export default {
             brief: this.queryParam.brief,
             likeSearch: this.queryParam.likeSearch,
             beginTime: new Date(this.queryParam.beginHandleTime).getTime(),
-            endTime: new Date(this.queryParam.endHandleTime).getTime()
+            endTime: new Date(this.queryParam.endHandleTime).getTime(),
+            cflDetail: this.queryParam.cflDetail
           }
         })
       } else {
@@ -457,7 +467,8 @@ export default {
             gtid: this.queryParam.gtid,
             rowResult: this.queryParam.rowResult,
             beginTime: new Date(this.queryParam.beginHandleTime).getTime(),
-            endTime: new Date(this.queryParam.endHandleTime).getTime()
+            endTime: new Date(this.queryParam.endHandleTime).getTime(),
+            searchMode: this.searchMode
           }
         })
       }
@@ -600,11 +611,18 @@ export default {
         })
     },
     queryTrxLog (row, index) {
-      this.$emit('tabValueChanged', 'trxLog')
-      this.$emit('gtidChanged', row.gtid)
-      this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
-      this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
       // this.tabVal = 'rowsLog'
+      const detail = this.$router.resolve({
+        path: '/conflictLog', // 跳转到冲突日志主页面
+        query: {
+          tab: 'trxLog', // 指定要显示的标签页
+          gtid: row.gtid,
+          beginTime: new Date(this.queryParam.beginHandleTime).getTime(),
+          endTime: new Date(this.queryParam.endHandleTime).getTime(),
+          dbName: this.queryParam.dbName
+        }
+      })
+      window.open(detail.href, '_blank')
     },
     getUnEqualRecords () {
       this.multiData = []
@@ -653,6 +671,7 @@ export default {
         rowResult: this.queryParam.rowResult,
         srcRegion: this.queryParam.srcRegion,
         dstRegion: this.queryParam.dstRegion,
+        cflDetail: this.queryParam.cflDetail,
         beginHandleTime: beginHandleTime,
         endHandleTime: endHandleTime,
         likeSearch: this.queryParam.likeSearch,
@@ -701,6 +720,7 @@ export default {
         dstRegion: this.queryParam.dstRegion,
         beginHandleTime: beginHandleTime,
         endHandleTime: endHandleTime,
+        cflDetail: this.queryParam.cflDetail,
         likeSearch: this.queryParam.likeSearch,
         brief: this.queryParam.brief,
         pageReq: {
@@ -768,9 +788,16 @@ export default {
       this.$nextTick(() => {
         this.getData()
       })
+    },
+    getAllQueryOptions () {
+      this.axios.get('/api/drc/v2/log/conflict/cflDetailType/all')
+        .then(response => {
+          this.cflDetailOpts = response.data.data
+        })
     }
   },
   created () {
+    this.getAllQueryOptions()
     this.getTotalData()
     this.getRegions()
   }

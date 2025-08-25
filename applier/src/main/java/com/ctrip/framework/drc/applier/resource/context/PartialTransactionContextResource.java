@@ -34,7 +34,8 @@ public class PartialTransactionContextResource extends ApplierTransactionContext
 
         this.metricsActivity = parent.metricsActivity;
         this.reportConflictActivity = parent.reportConflictActivity;
-        
+
+        this.cflUpLevel = parent.cflUpLevel;
     }
 
     @Override

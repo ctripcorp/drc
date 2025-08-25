@@ -334,7 +334,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private void addConflictBlackList(String nameFilter) {
         executorService.submit(() -> {
             try {
-                conflictLogService.addDbBlacklist(nameFilter, CflBlacklistType.NEW_CONFIG,null);
+                conflictLogService.addDbBlacklist(nameFilter, null, CflBlacklistType.NEW_CONFIG,null);
             } catch (Exception e) {
                 logger.error("addDbBlacklist error", e);
             }

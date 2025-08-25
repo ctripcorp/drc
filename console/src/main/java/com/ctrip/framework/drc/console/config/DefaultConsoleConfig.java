@@ -611,18 +611,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(DRC_ADMIN_TOKEN,"");
     }
 
-    public boolean getConflictOptimizeSwitch() {
-        return getBooleanProperty(CONFLICT_OPTIMIZE_SWITCH, false);
-    }
-
-    public Set<String> getIgnoreConflictTypes() {
-        String ignoreStr = getProperty(IGNORE_CONFLICT_TYPES, "");
-        if (StringUtils.isBlank(ignoreStr)) {
-            return Sets.newHashSet();
-        }
-        return Sets.newHashSet(ignoreStr.split(","));
-    }
-
     public Map<String, String> getDrcCkafkaRegionMapping() {
         String mappingStr = getProperty(KEY_REGION_CKAFKA_MAPPING, DEFAULT_KEY_REGION_CKAFKA_MAPPING);
         return JsonCodec.INSTANCE.decode(mappingStr, new GenericTypeReference<Map<String, String>>() {

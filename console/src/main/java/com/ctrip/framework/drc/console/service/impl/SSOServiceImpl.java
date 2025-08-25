@@ -103,7 +103,7 @@ public class SSOServiceImpl implements SSOService {
     @Override
     public List<AppNode> getAppNodes(){
         String cmsGetServerUrl = domainConfig.getCmsGetServerUrl();
-        String opsAccessToken = domainConfig.getOpsAccessToken();
+        String opsAccessToken = domainConfig.getProdOpsAccessToken();
         String env = cmsGetServerUrl.contains("FAT") ? "FAT" : null;
         return opsApiService.getAppNodes(cmsGetServerUrl, opsAccessToken, Lists.newArrayList(localAppId), env);
     }
