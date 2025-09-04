@@ -178,7 +178,6 @@ public class DrcBuildServiceV2Test {
         MachineDto masterInDstMha = new MachineDto(3306, "ip2", true);
         when(accountService.mhaAccountV2ChangeAndRecord(Mockito.any(MhaTblV2.class), Mockito.anyString(), Mockito.anyInt())).thenReturn(true);
 
-
         drcBuildServiceV2.buildMhaAndReplication(new DrcMhaBuildParam(
                 "srcMha", "dstMha",
                 "srcDc", "dstDc",
@@ -331,6 +330,7 @@ public class DrcBuildServiceV2Test {
         when(mysqlServiceV2.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("db200.table"));
         when(dbReplicationTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(getDbReplicationTbls1());
         when(consoleConfig.getCflBlackListAutoAddSwitch()).thenReturn(true);
+        when(consoleConfig.getRegexFilterBatch()).thenReturn(50);
         try {
             Mockito.doNothing().when(conflictLogService).addDbBlacklist(Mockito.anyString(), Mockito.any(), Mockito.eq(
                     CflBlacklistType.NEW_CONFIG), Mockito.any());

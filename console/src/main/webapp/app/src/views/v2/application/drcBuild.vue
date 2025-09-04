@@ -572,7 +572,7 @@ export default {
         regions: [],
         regionOptions: [],
         dbOptions: [],
-        tags: this.constant.tagList,
+        tags: [],
         selectedDb: {}
       },
       drawer: {
@@ -901,10 +901,8 @@ export default {
       }
     },
     autoSetTag () {
-      if (this.formItem.buName === 'FLT') {
-        this.formItem.tag = 'FLT'
-      } else if (this.formItem.buName === 'HTL') {
-        this.formItem.tag = 'HTL'
+      if (this.meta.tags.includes(this.formItem.buName)) {
+        this.formItem.tag = this.formItem.buName
       } else {
         this.formItem.tag = 'COMMON'
       }
@@ -1375,6 +1373,11 @@ export default {
           this.getCommonColumns('UDL')
         }
       })
+    },
+    getTags () {
+      this.axios.get('/api/drc/v2/resource/tags').then((response) => {
+        this.meta.tags = response.data.data
+      })
     }
   },
   computed: {
@@ -1430,6 +1433,7 @@ export default {
         return
       }
       this.getBus()
+      this.getTags()
     })
     this.applicationFormId = this.$route.query.applicationFormId
     this.init()

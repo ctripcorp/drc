@@ -39,6 +39,14 @@ const dcList = [
   {
     value: 'cftrb',
     label: 'cftrb'
+  },
+  {
+    value: 'pcixy',
+    label: 'pcixy'
+  },
+  {
+    value: 'pcirb',
+    label: 'pcirb'
   }
 ]
 const tagList = [
@@ -65,7 +73,9 @@ const azList = [
   'SGP-ALI-B',
   'SGP-ALI-C',
   'CFTXY',
-  'CFTRB'
+  'CFTRB',
+  'PCIRB',
+  'PCIXY'
 ]
 const replicationType = {
   DB_TO_DB: 0,

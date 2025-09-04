@@ -151,6 +151,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static final String DB_DELAY_ALERT_DEFAULT_OWNERS = "db.delay.alert.default.owners";
     private static final String DB_DELAY_ALERT_SEND_TO_DRC_SWITCH = "db.delay.alert.sendtodrc.switch";
 
+    private static final String REGEX_FILTER_BATCH = "regex.filter.batch";
+
+
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
     }
@@ -643,5 +646,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getDbDelayAlertSendToDrcSwitch() {
         return getBooleanProperty(DB_DELAY_ALERT_SEND_TO_DRC_SWITCH, false);
+    }
+
+    public int getRegexFilterBatch() {
+        return getIntProperty(REGEX_FILTER_BATCH, 50);
     }
 }
