@@ -1250,9 +1250,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 .filter(e -> !excludeDbReplicationIds.contains(e.getId()))
                 .collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(existDbReplications)) {   //check contain same table
-            String allNameFilter = buildNameFilterByDbReplications(existDbReplications, srcDbMappingMap, srcDbMap);
-            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(allNameFilter);
-            List<String> existTableList = tableList.stream().filter(aviatorRegexFilter::filter).collect(Collectors.toList());
+            List<String> allNameFilters = buildNameFiltersByDbReplications(existDbReplications, srcDbMappingMap, srcDbMap);
+            List<String> existTableList = new ArrayList<>();
+            allNameFilters.forEach(nameFilter -> {
+                AviatorRegexFilter regexFilter = new AviatorRegexFilter(nameFilter);
+                existTableList.addAll(tableList.stream().filter(regexFilter::filter).collect(Collectors.toList()));
+            });
 
             if (!CollectionUtils.isEmpty(existTableList)) {
                 throw ConsoleExceptionUtils.message(String.format("tables: %s has already been configured", existTableList));
@@ -1267,22 +1270,30 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbNameToSrcMhaDbMappingId;
     }
 
-    private String buildNameFilterByDbReplications(List<DbReplicationTbl> dbReplicationTbls, Map<Long, Long> mhaDbMappingMap, Map<Long, String> dbMap) {
-        StringBuilder nameFilterBuilder = new StringBuilder();
-        int size = dbReplicationTbls.size();
-        for (int i = 0; i < size; i++) {
-            DbReplicationTbl dbReplicationTbl = dbReplicationTbls.get(i);
-            long dbId = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
-            String dbName = dbMap.get(dbId);
-            String nameFilter = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
-            nameFilterBuilder.append(nameFilter);
+    private List<String> buildNameFiltersByDbReplications(List<DbReplicationTbl> dbReplicationTbls, Map<Long, Long> mhaDbMappingMap, Map<Long, String> dbMap) {
+        List<List<DbReplicationTbl>> partitions = Lists.partition(dbReplicationTbls, consoleConfig.getRegexFilterBatch());
 
-            if (i != size - 1) {
-                nameFilterBuilder.append(",");
+        List<String> nameFilters = new ArrayList<>();
+
+        for (List<DbReplicationTbl> partition : partitions) {
+            StringBuilder nameFilterBuilder = new StringBuilder();
+            int size = partition.size();
+            for (int i = 0; i < size; i++) {
+                DbReplicationTbl dbReplicationTbl = partition.get(i);
+                long dbId = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
+                String dbName = dbMap.get(dbId);
+                String nameFilter = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
+                nameFilterBuilder.append(nameFilter);
+
+                if (i != size - 1) {
+                    nameFilterBuilder.append(",");
+                }
             }
+            nameFilters.add(nameFilterBuilder.toString());
         }
 
-        return nameFilterBuilder.toString();
+
+        return nameFilters;
     }
 
     private List<DbReplicationTbl> getExistDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
