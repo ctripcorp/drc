@@ -56,7 +56,6 @@
         <curator.version>5.1.0</curator.version>
         <zookeeper.version>3.8.2</zookeeper.version>
         <log4j2.version>2.17.1</log4j2.version>
-        <fastsql.version>2.0.0_preview_973</fastsql.version>
         <druid.version>1.2.25</druid.version>
         <mockito-core.version>3.4.0</mockito-core.version>
         <byte-buddy.version>1.15.3</byte-buddy.version>
@@ -428,11 +427,6 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.fastsql</groupId>
-                <artifactId>fastsql</artifactId>
-                <version>${fastsql.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
