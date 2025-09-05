@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
@@ -16,7 +15,6 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserV2;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
 import com.ctrip.xpipe.tuple.Pair;
@@ -66,10 +64,13 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     private boolean parseDrcDdl = false;
 
-    public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey) {
+    private boolean isMaster;
+
+    public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey, boolean isMaster) {
         this.schemaManager = schemaManager;
         this.monitorManager = monitorManager;
         this.registryKey = registryKey;
+        this.isMaster = isMaster;
     }
 
     @Override
@@ -106,14 +107,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     }
 
     private boolean doParseQueryEvent(String queryString, String schemaName, String charset, String gtid) {
-        List<DdlResult> allResults;
-
-        if (DynamicConfig.getInstance().getDdlParseGraySwitch(registryKey)) {
-            allResults = DdlParserV2.parse(queryString, schemaName);
-        } else {
-            allResults = DdlParser.parse(queryString, schemaName);
-        }
-
+        List<DdlResult> allResults = DdlParser.parse(queryString, schemaName);
         List<DdlResult> results = this.filterDdlResult(queryString, allResults);
         if (results.isEmpty()) {
             return false;
@@ -133,6 +127,11 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         String schemaInBinlog = ddlResult.getOriSchemaName() != null ? ddlResult.getOriSchemaName() : schemaName;
         String tableName = ddlResult.getTableName();
         ApplyResult applyResult = schemaManager.apply(schemaInBinlog, tableName, queryString, type, gtid);
+
+        if (ApplyResult.Status.FAIL == applyResult.getStatus()) {
+            DefaultEventMonitorHolder.getInstance().logEvent(String.format("DRC.ddl.failed.%s", isMaster), String.format("DDL:%s\nEXCEPTION", queryString));
+        }
+
         if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
             DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
             return false;

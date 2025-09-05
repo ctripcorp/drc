@@ -17,7 +17,6 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserV2;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -486,13 +485,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
                         if (shouldRecoverFromDdl) {
-                            List<DdlResult> ddlResults;
-                            if (DynamicConfig.getInstance().getDdlParseGraySwitch(registryKey)) {
-                                ddlResults = DdlParserV2.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
-                            } else {
-                                ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
-                            }
-
+                            List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
                             ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlResults.get(0).getTableName(), ddlLogEvent.getDdl(), ddlResults.get(0).getType(), gtid);
                             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                                 DDL_LOGGER.info("[Recover][{}] skip DDL {} for table partition in {}", registryKey, ddlLogEvent.getDdl(), getClass().getSimpleName());
