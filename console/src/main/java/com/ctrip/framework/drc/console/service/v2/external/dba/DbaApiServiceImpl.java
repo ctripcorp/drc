@@ -294,8 +294,9 @@ public class DbaApiServiceImpl implements DbaApiService {
 
                     String resString = HttpUtils.post(consoleConfig.getDbaApiPwdChangeUrl(), params, String.class);
                     JsonObject res = JsonUtils.parseObject(resString);
-                    String status = res.get("status").getAsString();
-                    if ("success".equalsIgnoreCase(status)) {
+                    logger.info("changePassword, mha:{}, masterNode:{}, response:{}", mhaName, masterNode, resString);
+                    boolean success = res.get("success").getAsBoolean();
+                    if (success) {
                         DefaultEventMonitorHolder.getInstance().logEvent("drc.console.changePassword.success", mhaName);
                         return true;
                     }
