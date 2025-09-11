@@ -1,10 +1,10 @@
 package com.ctrip.framework.drc.applier.container.controller.task;
 
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
-import com.ctrip.framework.drc.fetcher.activity.monitor.BaseWatchActivity;
-import com.ctrip.framework.drc.fetcher.container.controller.task.BaseWatchKeyedTask;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.fetcher.activity.monitor.BaseWatchActivity;
+import com.ctrip.framework.drc.fetcher.container.controller.task.BaseWatchKeyedTask;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,6 +34,7 @@ public class WatchKeyedTask extends BaseWatchKeyedTask {
             logger.info("[watch] applier instance({}) ", registryKey);
             super.doExecute();
             future().setSuccess();
+            logger.info("[watch] applier instance({}) success", registryKey);
         } catch (Throwable t) {
             logger.error("[watch] applier instance({}) error", registryKey, t);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.instance.error", "watch");

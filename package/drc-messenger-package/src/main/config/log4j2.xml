@@ -210,6 +210,20 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="watch" fileName="${baseDir}/watch.log"
+                     filePattern="${baseDir}/watch-%i.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="512 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="watch-*.log.gz"/>
+                    <IfAccumulatedFileCount exceeds="10"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
         <RollingFile name="messenger" fileName="${baseDir}/messenger.log"
                      filePattern="${baseDir}/messenger-%i.log.gz">
             <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
@@ -479,6 +493,9 @@
         </Logger>
         <Logger name="TRANSACTION TABLE" additivity="false">
             <AppenderRef ref="transaction.table"/>
+        </Logger>
+        <Logger name="WATCH" additivity="false">
+            <AppenderRef ref="watch"/>
         </Logger>
         <Logger name="MESSENGER" additivity="false">
             <AppenderRef ref="messenger"/>

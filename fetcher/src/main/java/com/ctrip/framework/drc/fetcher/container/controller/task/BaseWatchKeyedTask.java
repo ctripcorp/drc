@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.container.FetcherServerContainer;
 import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
+import com.ctrip.xpipe.command.LogIgnoreCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,9 +17,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by shiruixin
  * 2024/11/20 15:30
  */
-public class BaseWatchKeyedTask extends FetcherKeyedTask {
+public class BaseWatchKeyedTask extends FetcherKeyedTask implements LogIgnoreCommand {
 
     protected final Logger loggerP = LoggerFactory.getLogger("PROGRESS");
+
+    protected Logger logger = LoggerFactory.getLogger("WATCH");
 
     protected ConcurrentHashMap<String, BaseWatchActivity.LastLWM> lastLWMHashMap;
 
