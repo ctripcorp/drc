@@ -34,6 +34,7 @@ public class WatchKeyedTask extends BaseWatchKeyedTask {
             logger.info("[watch] messenger instance({}) ", registryKey);
             super.doExecute();
             future().setSuccess();
+            logger.info("[watch] messenger instance({}) success", registryKey);
         } catch (Throwable t) {
             logger.error("[watch] messenger instance({}) error", registryKey, t);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.messenger.instance.error", "watch");
