@@ -701,7 +701,13 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             if (append) {  //new file and append DrcIndexLogEvent
                 doWriteLogEvent(indicesEventManager.createIndexEvent(logChannel.position()));
             } else {
-                if (!bigTransaction && !inBigTransaction && indicesEventManager.shouldAddIndexEvent(position)) {
+                boolean shouldAddIndexEvent = !bigTransaction && !inBigTransaction;
+                if (DynamicConfig.getInstance().getIndexEventV2Switch(registryKey)) {
+                    shouldAddIndexEvent &= indicesEventManager.shouldAddIndexEventV2(position);
+                } else {
+                    shouldAddIndexEvent &= indicesEventManager.shouldAddIndexEvent(position);
+                }
+                if (shouldAddIndexEvent) {
                     writePreviousGtid(false);
                     DrcIndexLogEvent indexLogEvent = indicesEventManager.updateIndexEvent(position);
 
