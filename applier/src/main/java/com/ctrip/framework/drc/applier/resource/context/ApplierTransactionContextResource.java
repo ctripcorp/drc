@@ -533,10 +533,11 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                     if (result != null) {
                         while (result.next()) {
                             rowCount += 1;
-                            String log = "|";
+                            StringBuilder logBuilder = new StringBuilder("|");
                             for (String columnName : columns.getNames()) {
-                                log = log + result.getString(columnName) + "|";
+                                logBuilder.append(result.getString(columnName)).append("|");
                             }
+                            String log = logBuilder.toString();
                             addLogs(log);
                             if (doLog) {
                                 destCurrentRecord = log;
