@@ -21,6 +21,9 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String SCANNER_SPLIT_EVENT_THRESHOLD = "binlog.scanner.split.event.threshold";
     private static final String CONSOLE_LOG_DELAY_THRESHOLD = "console.log.delay.threshold";
 
+    private static final String REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH = "replicator.binlog.index.event.v2.switch";
+    private static final String REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH_KEY = "replicator.binlog.index.event.v2.switch.%s";
+
     private static final String DATASOURCE_SOCKET_TIMEOUT = "datasource.socket.timeout";
 
     private static final String TABLE_PARTITION_SWITCH = "table.partition.switch";
@@ -179,6 +182,11 @@ public class DynamicConfig extends AbstractConfigBean {
             return Boolean.parseBoolean(value);
         }
         return getBooleanProperty(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH, true);
+    }
+
+    public boolean getIndexEventV2Switch(String key) {
+        return getBooleanProperty(REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH, false)
+                || getBooleanProperty(String.format(REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH_KEY, key), false);
     }
 
     public String getKafkaDelaySubject() {
