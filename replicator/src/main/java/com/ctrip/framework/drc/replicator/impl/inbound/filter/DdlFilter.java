@@ -129,7 +129,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         ApplyResult applyResult = schemaManager.apply(schemaInBinlog, tableName, queryString, type, gtid);
 
         if (ApplyResult.Status.FAIL == applyResult.getStatus()) {
-            DefaultEventMonitorHolder.getInstance().logEvent(String.format("DRC.ddl.failed.%s", isMaster), String.format("DDL:%s\nEXCEPTION", queryString));
+            DefaultEventMonitorHolder.getInstance().logEvent(String.format("DRC.ddl.failed.%s", isMaster), registryKey);
         }
 
         if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
