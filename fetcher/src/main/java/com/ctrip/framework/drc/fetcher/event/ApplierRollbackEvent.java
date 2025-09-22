@@ -9,7 +9,7 @@ public class ApplierRollbackEvent extends ApplierXidEvent {
         loggerED.info(
                 "RECONNECT R(" + context.fetchGtid() + ") delay: " + (System.currentTimeMillis() - createdTime) + "ms");
         context.rollback();
-        return ApplyResult.SUCCESS;
+        return ApplyResult.DISCARDED_TRANSACTION_SUCCESS;
     }
 
     @Override
