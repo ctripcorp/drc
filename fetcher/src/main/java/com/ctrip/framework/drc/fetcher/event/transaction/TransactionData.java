@@ -21,6 +21,7 @@ public interface TransactionData<T extends BaseTransactionContext> extends Trace
         LOAD,
         UNKNOWN,
         BATCH_ERROR,
+        DISCARDED_TRANSACTION_SUCCESS,
     }
 
     default void transformer(TransformerContext transformerContext) {}

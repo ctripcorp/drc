@@ -19,6 +19,8 @@ public interface TransactionTable {
 
     void commit(String gtid);
 
+    void commitWithoutSubmitGtid(String gtid);
+
     void merge(GtidSet gtidSet);
 
     void recordToMemory(Gtid gtid);

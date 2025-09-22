@@ -197,4 +197,10 @@ public class TransactionTableResourceTest extends ConflictTest {
         });
         latch.await();
     }
+
+    @Test
+    public void testCommitWithoutSubmitGtid() {
+        transactionTable.commitWithoutSubmitGtid("uuid1:1");
+        Assert.assertTrue(transactionTable.getCommitState().get(1));
+    }
 }

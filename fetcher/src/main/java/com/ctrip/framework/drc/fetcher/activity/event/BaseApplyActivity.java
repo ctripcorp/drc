@@ -23,6 +23,10 @@ public abstract class BaseApplyActivity extends EventActivity<ApplyTransaction, 
         return hand(transaction);
     }
 
+    protected ApplyTransaction onSuccessDiscardedTransaction(ApplyTransaction transaction) throws InterruptedException {
+        return hand(transaction);
+    }
+
     protected ApplyTransaction onFailure(ApplyTransaction transaction) throws InterruptedException {
         logger.error("apply failed: {}, shutdown server", registryKey);
         logger.info("apply activity status is stopped for {}", registryKey);

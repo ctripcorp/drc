@@ -25,6 +25,12 @@ public class TransactionTableApplyActivity extends ApplyActivity {
     }
 
     @Override
+    protected ApplyTransaction onSuccessDiscardedTransaction(ApplyTransaction transaction) throws InterruptedException {
+        transactionTable.commitWithoutSubmitGtid(batch.fetchGtid());
+        return super.onSuccessDiscardedTransaction(transaction);
+    }
+
+    @Override
     protected ApplyTransaction onDeadLock(ApplyTransaction transaction) throws InterruptedException {
         logger.info("deadlock gtid is: {} for: {}", batch.fetchGtid(), registryKey);
         transactionTable.rollback(batch.fetchGtid());

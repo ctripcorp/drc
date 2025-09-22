@@ -52,6 +52,8 @@ public class MqApplyActivity extends BaseApplyActivity {
         switch (transaction.apply(transactionContext)) {
             case SUCCESS:
                 return onSuccess(transaction);
+            case DISCARDED_TRANSACTION_SUCCESS:
+                return onSuccessDiscardedTransaction(transaction);
             default:
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.messenger.fail", registryKey);
                 return onRetry(transaction);
@@ -62,6 +64,11 @@ public class MqApplyActivity extends BaseApplyActivity {
     protected ApplyTransaction onSuccess(ApplyTransaction transaction) throws InterruptedException {
         mqPosition.add(new Gtid(transactionContext.fetchGtid()));
         return super.onSuccess(transaction);
+    }
+
+    @Override
+    protected ApplyTransaction onSuccessDiscardedTransaction(ApplyTransaction transaction) throws InterruptedException {
+        return super.onSuccessDiscardedTransaction(transaction);
     }
 
     protected ApplyTransaction onRetry(ApplyTransaction transaction) throws InterruptedException {
