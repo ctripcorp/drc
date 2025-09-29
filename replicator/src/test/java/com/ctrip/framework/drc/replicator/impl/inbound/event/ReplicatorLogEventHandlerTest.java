@@ -251,7 +251,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
                 return null;
             }
             @Override
-            public void onHeartHeat() {
+            public void onHeartBeat() {
 
             }
         };

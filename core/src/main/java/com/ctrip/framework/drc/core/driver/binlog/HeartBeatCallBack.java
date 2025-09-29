@@ -23,7 +23,7 @@ public interface HeartBeatCallBack extends Disposable {
 
     Channel getChannel();
 
-    default void onHeartHeat() {
+    default void onHeartBeat() {
         Channel channel = getChannel();
         try {
             ChannelConfig channelConfig = channel.config();
