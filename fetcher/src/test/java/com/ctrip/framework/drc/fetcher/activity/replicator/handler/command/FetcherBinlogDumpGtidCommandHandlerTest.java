@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.command.impl.replicator.ComBinlogDumpGtidCommand;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.exception.LogEventException;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.MockTest;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
@@ -19,14 +20,21 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.HANDLE_FAIL;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * @Author limingdong
@@ -136,5 +144,18 @@ public class FetcherBinlogDumpGtidCommandHandlerTest extends MockTest {
         byteBuf.writeBytes(bytes);
 
         return byteBuf;
+    }
+
+    @Test
+    public void testLogEventCallBackOnFailureException() {
+        try (MockedStatic<ThreadUtils> mocked = mockStatic(ThreadUtils.class)) {
+            ScheduledExecutorService mockScheduledExecutorService = mock(ScheduledExecutorService.class);
+            mocked.when(() -> ThreadUtils.newSingleThreadScheduledExecutor(anyString())).thenReturn(mockScheduledExecutorService);
+            when(mockScheduledExecutorService.scheduleAtFixedRate(Mockito.any(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any())).thenThrow(new RejectedExecutionException());
+            ChannelConfig config = mock(ChannelConfig.class);
+            when(config.isAutoRead()).thenReturn(false);
+            when(channel.config()).thenReturn(config);
+            logEventCallBack.onFailure();
+        }
     }
 }

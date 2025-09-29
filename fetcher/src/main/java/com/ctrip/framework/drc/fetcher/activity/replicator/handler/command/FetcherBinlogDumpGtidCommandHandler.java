@@ -10,6 +10,7 @@ import com.ctrip.xpipe.utils.MapUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -35,21 +36,34 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
                     return new LogEventCallBack() {
                         private ScheduledExecutorService scheduledExecutorService;
                         private ScheduledFuture future;
+                        private final Object flag = new Object();
 
                         @Override
                         public void onSuccess() {
-                            toggleAutoRead(channel, true);
-                            dispose();
-                            onHeartHeat();
+                            synchronized (flag) {
+                                toggleAutoRead(channel, true);
+                                dispose();
+                            }
+                            onHeartBeat();
                         }
 
                         @Override
                         public void onFailure() {
-                            toggleAutoRead(channel, false);
-                            if (scheduledExecutorService == null) {
-                                scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                            synchronized (flag) {
+                                toggleAutoRead(channel, false);
+                                if (scheduledExecutorService == null) {
+                                    scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                                }
+                                if (future != null && !future.isCancelled()) {
+                                    return;
+                                }
+                                try {
+                                    future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartBeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
+                                } catch (RejectedExecutionException e) {
+                                    logger.error("hearthBeat task submit fail when autoRead is false, channel: {}", channel ,e);
+                                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.commit.heartbeat.task.fail", channel.toString());
+                                }
                             }
-                            future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartHeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
                         }
 
                         @Override

@@ -40,7 +40,7 @@ public class EventTypeFilter extends AbstractLogEventFilter<InboundLogEventConte
         boolean skip = SKIP_EVENT_TYPE.contains(logEventType) || logEvent instanceof DrcUnknownEvent;
 
         if (DRC_HEARTBEAT_EVENT_TYPE.contains(logEventType)) {
-            value.getCallBack().onHeartHeat();
+            value.getCallBack().onHeartBeat();
             skip = true;
         } else if (NOT_SKIP_EVENT_TYPE.contains(logEventType)) {  //when receive drc_ddl_log_event, not set inExcludeGroup, or will exclude gtid event.
             value.reset();

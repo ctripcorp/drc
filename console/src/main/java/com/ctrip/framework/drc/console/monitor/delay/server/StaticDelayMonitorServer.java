@@ -208,7 +208,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             }
         } else if (logEvent instanceof DrcHeartbeatLogEvent) {
             try {
-                logEventCallBack.onHeartHeat();
+                logEventCallBack.onHeartBeat();
             } finally {
                 try {
                     logEvent.release();
