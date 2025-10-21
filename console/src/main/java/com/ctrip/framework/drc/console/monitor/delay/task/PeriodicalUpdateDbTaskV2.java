@@ -2,8 +2,6 @@ package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
-import com.ctrip.framework.drc.console.utils.StreamUtils;
-import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -12,15 +10,15 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOpera
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.monitor.column.DbDelayDto;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -78,11 +76,12 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
     private final ExecutorService updateExecutor = ThreadUtils.newThreadExecutor(20, 20, 10000, "updateTaskV2");
 
+    private static final String CACHE_KEY = "cache_key";
+
     public static final String UPSERT_DB_SQL = "INSERT INTO `drcmonitordb`.`" + DRC_DB_DELAY_MONITOR_TABLE_NAME_PREFIX + "%s`(`id`, `delay_info`, `datachange_lasttime`) VALUES (%s, '%s', '%s') " +
             "ON DUPLICATE KEY UPDATE delay_info = '%s', datachange_lasttime = '%s';";
 
     // src mha name -> mha db replications
-    private final Supplier<Map<String, Map<String, List<MhaDbReplicationDto>>>> mhaDbMapCache = Suppliers.memoizeWithExpiration(this::refreshAndGetMhaDbMap, 10, TimeUnit.SECONDS);
     private Map<String, Map<String, List<MhaDbReplicationDto>>> mhaDbMapBackUp = Maps.newHashMap();
 
     // dst mha name -> (srcMha -> relatedDbs)
@@ -94,6 +93,17 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
                 @Override
                 public Map<String, Set<String>> load(@NotNull String dstMha) {
                     return getMhaDbRelatedByDestMhaInner(dstMha);
+                }
+            });
+
+    private final LoadingCache<String, Map<String, Map<String, List<MhaDbReplicationDto>>>> mhaDbMapCache = CacheBuilder.newBuilder()
+            .maximumSize(1)
+            .initialCapacity(1)
+            .expireAfterWrite(10, TimeUnit.SECONDS)
+            .build(new CacheLoader<>() {
+                @Override
+                public Map<String, Map<String, List<MhaDbReplicationDto>>> load(@NotNull String key) {
+                    return refreshAndGetMhaDbMap();
                 }
             });
 
@@ -154,7 +164,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
     }
 
     public Map<String, Set<String>> getMhaDbRelatedByDestMhaInner(String dstMha) {
-        Map<String, Map<String, List<MhaDbReplicationDto>>> stringListMap = mhaDbMapCache.get();
+        Map<String, Map<String, List<MhaDbReplicationDto>>> stringListMap = mhaDbMapCache.getUnchecked(CACHE_KEY);
         Map<String, Set<String>> ret = new HashMap<>();
         for (Map.Entry<String, Map<String, List<MhaDbReplicationDto>>> entry : stringListMap.entrySet()) {
             String srcMha = entry.getKey();
@@ -178,7 +188,7 @@ public class PeriodicalUpdateDbTaskV2 extends AbstractMasterMySQLEndpointObserve
 
         logger.info("[[monitor=delay_v2]] start updateDbDelay");
         Set<Map.Entry<MetaKey, MySqlEndpoint>> entries = masterMySQLEndpointMap.entrySet();
-        Map<String, List<MhaDbReplicationDto>> mhaDbReplicationMap = mhaDbMapCache.get().entrySet().stream()
+        Map<String, List<MhaDbReplicationDto>> mhaDbReplicationMap = mhaDbMapCache.getUnchecked(CACHE_KEY).entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         e -> e.getValue().values().stream().flatMap(Collection::stream).collect(Collectors.toList()))
                 );
