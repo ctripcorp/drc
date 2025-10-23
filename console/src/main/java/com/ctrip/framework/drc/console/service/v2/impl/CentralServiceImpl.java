@@ -6,10 +6,12 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
+import com.ctrip.framework.drc.console.param.MhaDbInstanceDto;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
@@ -35,6 +37,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +74,8 @@ public class CentralServiceImpl implements CentralService {
     private BuTblDao buTblDao;
     @Autowired
     private DbTblDao dbTblDao;
+    @Autowired
+    private MachineTblDao machineTblDao;
 
 
     @Override
@@ -158,6 +163,41 @@ public class CentralServiceImpl implements CentralService {
             logger.debug("replicator master ip not change,mha:{},ip:{}", mhaName, newIp);
         }
         return false;
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/centralService/db/batch", httpType = HttpRequestEnum.POST, forwardType = ForwardTypeEnum.TO_META_DB)
+    public Boolean batchMhaMasterDbChange(MhaDbInstanceDto requestBody) throws SQLException {
+        List<MhaInstanceGroupDto> mhaInstanceGroupDtos = requestBody.getMhaInstanceGroupDtos();
+        List<String> mhaNames = mhaInstanceGroupDtos.stream().map(MhaInstanceGroupDto::getMhaName).collect(Collectors.toList());
+        logger.info("mhaMasterDbChange mhaName: {}", mhaNames);
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(mhaNames, BooleanEnum.FALSE.getCode());
+        List<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+
+        Map<String, MhaInstanceGroupDto> mhaDtoMap = mhaInstanceGroupDtos.stream().collect(Collectors.toMap(MhaInstanceGroupDto::getMhaName, Function.identity()));
+        Map<Long, String> mhaIdToName = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaIds(mhaIds);
+        Map<Long, List<MachineTbl>> machineMap = machineTbls.stream().collect(Collectors.groupingBy(MachineTbl::getMhaId));
+
+        for (Map.Entry<Long, List<MachineTbl>> entry : machineMap.entrySet()) {
+            long mhaId = entry.getKey();
+            List<MachineTbl> machines = entry.getValue();
+
+            MhaInstanceGroupDto mhaInstanceGroupDto = mhaDtoMap.get(mhaIdToName.get(mhaId));
+            String masterIp = mhaInstanceGroupDto.getMaster().getIp();
+            int masterPort = mhaInstanceGroupDto.getMaster().getPort();
+            for (MachineTbl machineTbl : machines) {
+                if (machineTbl.getIp().equalsIgnoreCase(masterIp) && machineTbl.getPort() == masterPort) {
+                    machineTbl.setMaster(BooleanEnum.TRUE.getCode());
+                } else {
+                    machineTbl.setMaster(BooleanEnum.FALSE.getCode());
+                }
+            }
+        }
+
+        machineTblDao.update(machineTbls);
+        return true;
     }
 
     @Override
