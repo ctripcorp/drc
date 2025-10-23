@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
+import com.ctrip.framework.drc.console.param.MhaDbInstanceDto;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.service.v2.CentralService;
@@ -110,6 +111,17 @@ public class CentralServiceController {
         } catch (Throwable e) {
             logger.info("updateMasterReplicatorIfChange fail,requestBody:{}, {}", requestBody);
             return ApiResult.getFailInstance(null, "updateMasterReplicatorIfChange fail: " + requestBody);
+        }
+    }
+
+    @PostMapping("db/batch")
+    public ApiResult batchMhaMasterDbChange(@RequestBody MhaDbInstanceDto requestBody) {
+        try {
+            logger.info("[batchMhaMasterDbChange] requestBody: {}", requestBody);
+            return ApiResult.getSuccessInstance(centralService.batchMhaMasterDbChange(requestBody));
+        } catch (Throwable e) {
+            logger.info("batchMhaMasterDbChange fail,requestBody:{}, {}", requestBody);
+            return ApiResult.getFailInstance(null, "batchMhaMasterDbChange fail: " + requestBody);
         }
     }
 

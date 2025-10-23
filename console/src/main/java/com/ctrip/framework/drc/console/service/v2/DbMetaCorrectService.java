@@ -13,8 +13,4 @@ public interface DbMetaCorrectService {
     void mhaInstancesChange(MhaInstanceGroupDto mhaInstanceGroupDto, MhaTblV2 mhaTblV2) throws Exception;
 
     void mhaInstancesChange(List<MachineTbl> machinesInDba, MhaTblV2 mhaTblV2);
-
-    ApiResult mhaMasterDbChange(String mhaName, String ip, int port);
-
-    void batchMhaMasterDbChange(List<MhaInstanceGroupDto> mhaInstanceGroupDtos) throws Exception;
 }

@@ -192,39 +192,6 @@ public class DbMetaCorrectServiceImplTest {
 
     }
 
-    @Test
-    public void testMhaMasterDbChange() throws Exception {
-        MhaTblV2 mhaTblV2 = MockEntityBuilder.buildMhaTblV2();
-        List<MachineTbl> machineTbls = MockEntityBuilder.buildMachineTbls();
-
-        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"))).thenReturn(mhaTblV2);
-        Mockito.when(machineTblDao.queryByMhaId(Mockito.eq(1L),Mockito.eq(0))).thenReturn(machineTbls);
-        Mockito.when(machineTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[] {1,1});
-
-        List<MachineTbl> machineTblToBeUpdated = dbMetaCorrectService.checkMachinesInUse(1L, "mha", "ip2", 2);
-        Assert.assertEquals(2,machineTblToBeUpdated.size());
-
-        ApiResult apiResult = dbMetaCorrectService.mhaMasterDbChange("mha", "ip2", 2);
-        Assert.assertEquals(0,apiResult.getData());
-        apiResult = dbMetaCorrectService.mhaMasterDbChange("mha", "ip1", 1);
-        Assert.assertEquals(2,apiResult.getData());
-    }
-
-    @Test
-    public void testBatchMhaMasterDbChange() throws Exception {
-        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(MockEntityBuilder.buildMhaTblV2()));
-        Mockito.when(machineTblDao.queryByMhaIds(Mockito.anyList())).thenReturn(MockEntityBuilder.buildMachineTbls());
-        Mockito.when(machineTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
-
-        MhaInstanceGroupDto mhaInstanceGroupDto = new MhaInstanceGroupDto();
-        mhaInstanceGroupDto.setMhaName("mha");
-        MhaInstanceGroupDto.MySQLInstance master = new MhaInstanceGroupDto.MySQLInstance();
-        master.setIp("ip");
-        master.setPort(1);
-        mhaInstanceGroupDto.setMaster(master);
-
-        dbMetaCorrectService.batchMhaMasterDbChange(Lists.newArrayList(mhaInstanceGroupDto));
-    }
 
     @Test
     public void testMhaInstancesChange2() throws Exception {

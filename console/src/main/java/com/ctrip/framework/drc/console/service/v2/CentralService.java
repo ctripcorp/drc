@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
+import com.ctrip.framework.drc.console.param.MhaDbInstanceDto;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
@@ -28,6 +29,8 @@ public interface CentralService {
     MhaAccounts getMhaAccounts(String mhaName) throws SQLException;
 
     Boolean updateMasterReplicatorIfChange(MhaReplicatorEntity requestBody)  throws SQLException;
+
+    Boolean batchMhaMasterDbChange(MhaDbInstanceDto requestBody) throws SQLException;
 
     Boolean batchUpdateMasterReplicatorIfChange(MhaReplicatorEntity requestBody)  throws SQLException;
 

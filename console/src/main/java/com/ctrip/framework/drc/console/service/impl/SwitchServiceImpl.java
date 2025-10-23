@@ -6,8 +6,10 @@ import com.ctrip.framework.drc.console.enums.BroadcastEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.KafkaDelayMonitorServer;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTask;
+import com.ctrip.framework.drc.console.param.MhaDbInstanceDto;
 import com.ctrip.framework.drc.console.service.SwitchService;
 import com.ctrip.framework.drc.console.service.broadcast.HttpNotificationBroadCast;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
@@ -46,9 +48,6 @@ public class SwitchServiceImpl implements SwitchService {
     private ListenReplicatorTask listenReplicatorTask;
 
     @Autowired
-    private DbMetaCorrectService dbMetaCorrectService;
-
-    @Autowired
     private HttpNotificationBroadCast httpBoardCast;
 
     @Autowired
@@ -56,6 +55,9 @@ public class SwitchServiceImpl implements SwitchService {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+
+    @Autowired
+    private CentralService centralService;
 
     private ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("SwitchServiceImpl"));
     private static final int RETRY_TIME = 1;
@@ -77,7 +79,7 @@ public class SwitchServiceImpl implements SwitchService {
             executorService.submit(() -> currentMetaManager.updateMasterMySQL(cluster, new DefaultEndPoint(ip, port)));
         }
         if (clusterConfigDto.isFirstHand()) {
-            dbMetaCorrectService.batchMhaMasterDbChange(mhaInstanceGroupDtos);
+            centralService.batchMhaMasterDbChange(new MhaDbInstanceDto(mhaInstanceGroupDtos));
             ClusterConfigDto copyDto = new ClusterConfigDto(clusterConfigDto.getClusterMap(), false);
             executorService.submit(() -> httpBoardCast.broadcastWithRetry(BroadcastEnum.MYSQL_MASTER_CHANGE.getPath(), RequestMethod.PUT, JsonUtils.toJson(copyDto), RETRY_TIME));
         }
