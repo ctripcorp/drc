@@ -23,6 +23,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.util.Attribute;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import org.mockito.Mockito;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory.KEY_LAST_PROCESS_TIME;
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.HANDLE_FAIL;
 import static org.mockito.Mockito.mockStatic;
 
@@ -67,10 +69,14 @@ public class FetcherBinlogDumpGtidCommandHandlerTest extends MockTest {
 
     private LogEventCallBack logEventCallBack;
 
+    @Mock
+    private Attribute<Long> lastProcessTimeAttr;
+
     @Before
     public void setUp() throws Exception {
         super.initMocks();
         when(channel.closeFuture()).thenReturn(channelFuture);
+        when(channel.attr(KEY_LAST_PROCESS_TIME)).thenReturn(lastProcessTimeAttr);
         binlogDumpGtidClientCommandHandler = new FetcherBinlogDumpGtidCommandHandler(logEventHandler, byteBufConverter);
         logEventCallBack = binlogDumpGtidClientCommandHandler.getLogEventCallBack(channel);
     }

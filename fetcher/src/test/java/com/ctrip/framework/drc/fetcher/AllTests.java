@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivityTest;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivityTest;
 import com.ctrip.framework.drc.fetcher.activity.replicator.driver.FetcherConnectionTest;
 import com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.FetcherBinlogDumpGtidCommandHandlerTest;
+import com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.FetcherCommandResultHandlerTest;
 import com.ctrip.framework.drc.fetcher.event.*;
 import com.ctrip.framework.drc.fetcher.resource.condition.*;
 import com.ctrip.framework.drc.fetcher.resource.context.*;
@@ -34,6 +35,7 @@ import org.junit.runners.Suite;
 
         FetcherConnectionTest.class,
         FetcherBinlogDumpGtidCommandHandlerTest.class,
+        FetcherCommandResultHandlerTest.class,
 
         FetcherEventGroupTest.class,
 

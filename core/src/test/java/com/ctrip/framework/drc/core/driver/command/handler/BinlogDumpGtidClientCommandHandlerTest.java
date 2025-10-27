@@ -19,11 +19,13 @@ import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.util.Attribute;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.HANDLE_FAIL;
+import static com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory.KEY_LAST_PROCESS_TIME;
 
 /**
  * @Author limingdong
@@ -54,10 +56,14 @@ public class BinlogDumpGtidClientCommandHandlerTest extends MockTest {
     @Mock
     private ChannelFuture channelFuture;
 
+    @Mock
+    private Attribute<Long> lastProcessTimeAttr;
+
     @Before
     public void setUp() throws Exception {
         super.initMocks();
         when(channel.closeFuture()).thenReturn(channelFuture);
+        when(channel.attr(KEY_LAST_PROCESS_TIME)).thenReturn(lastProcessTimeAttr);
         binlogDumpGtidClientCommandHandler = new BinlogDumpGtidClientCommandHandler(logEventHandler, byteBufConverter);
     }
 
