@@ -26,17 +26,17 @@ public class WatchKeyedTask extends BaseWatchKeyedTask {
     public void doExecute() throws Throwable {
         try {
             if (!serverContainer.containServer(registryKey)) {
-                logger.info("[watch] messenger instance({}) already remove by last Task,no need patrol", registryKey);
+                loggerW.info("[watch] messenger instance({}) already remove by last Task,no need patrol", registryKey);
                 future().setSuccess();
                 return;
             }
             
-            logger.info("[watch] messenger instance({}) ", registryKey);
+            loggerW.info("[watch] messenger instance({}) ", registryKey);
             super.doExecute();
             future().setSuccess();
-            logger.info("[watch] messenger instance({}) success", registryKey);
+            loggerW.info("[watch] messenger instance({}) success", registryKey);
         } catch (Throwable t) {
-            logger.error("[watch] messenger instance({}) error", registryKey, t);
+            loggerW.error("[watch] messenger instance({}) error", registryKey, t);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.messenger.instance.error", "watch");
             future().setFailure(t);
         }

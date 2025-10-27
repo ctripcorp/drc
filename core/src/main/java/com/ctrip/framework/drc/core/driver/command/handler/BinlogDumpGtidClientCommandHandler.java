@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_error_log_event;
+import static com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory.KEY_LAST_PROCESS_TIME;
 
 /**
  * for replicator master dump binlog from mysql
@@ -91,6 +92,7 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
                 }
                 LogEventHandler logEventHandler = handler;
                 for (LogEvent logEvent : logEvents) {
+                    message.getValue().attr(KEY_LAST_PROCESS_TIME).set(System.currentTimeMillis());
                     logEventHandler.onLogEvent(logEvent, getLogEventCallBack(message.getValue()), null);
                 }
             } else {

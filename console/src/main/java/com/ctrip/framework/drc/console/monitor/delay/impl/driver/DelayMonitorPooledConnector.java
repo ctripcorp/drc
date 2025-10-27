@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.AbstractMySQLConnector;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.DrcChannelHandlerFactory;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.activity.replicator.handler.FetcherChannelHandlerFactory;
@@ -27,7 +28,7 @@ public class DelayMonitorPooledConnector extends AbstractMySQLConnector implemen
 
     @Override
     protected ChannelHandlerFactory getChannelHandlerFactory() {
-        return new FetcherChannelHandlerFactory();
+        return new DrcChannelHandlerFactory();
     }
 
     @Override

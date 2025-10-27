@@ -20,9 +20,9 @@ import org.slf4j.LoggerFactory;
  */
 public class CommandResultHandler extends ChannelDuplexHandler {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private ByteBufReadPolicy byteBufReadPolicy = new RetryByteBufReadPolicy();
+    protected ByteBufReadPolicy byteBufReadPolicy = new RetryByteBufReadPolicy();
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -46,6 +46,10 @@ public class CommandResultHandler extends ChannelDuplexHandler {
         logger.error("[Caught] exception", cause);
     }
 
+    /**
+     * if making changes here, please also make changes in FetcherCommandResultHandler
+     * @see com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.FetcherCommandResultHandler#userEventTriggered(ChannelHandlerContext, Object)
+     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {

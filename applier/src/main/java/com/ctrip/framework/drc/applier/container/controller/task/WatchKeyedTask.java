@@ -26,17 +26,17 @@ public class WatchKeyedTask extends BaseWatchKeyedTask {
     public void doExecute() throws Throwable {
         try {
             if (!serverContainer.containServer(registryKey)) {
-                logger.info("[watch] applier instance({}) already remove by last Task,no need patrol", registryKey);
+                loggerW.info("[watch] applier instance({}) already remove by last Task,no need patrol", registryKey);
                 future().setSuccess();
                 return;
             }
             
-            logger.info("[watch] applier instance({}) ", registryKey);
+            loggerW.info("[watch] applier instance({}) ", registryKey);
             super.doExecute();
             future().setSuccess();
-            logger.info("[watch] applier instance({}) success", registryKey);
+            loggerW.info("[watch] applier instance({}) success", registryKey);
         } catch (Throwable t) {
-            logger.error("[watch] applier instance({}) error", registryKey, t);
+            loggerW.error("[watch] applier instance({}) error", registryKey, t);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.instance.error", "watch");
             future().setFailure(t);
         }

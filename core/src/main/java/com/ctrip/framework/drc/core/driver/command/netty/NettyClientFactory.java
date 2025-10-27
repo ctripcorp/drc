@@ -29,6 +29,8 @@ public class NettyClientFactory extends AbstractStartStoppable implements Pooled
 
     public static final AttributeKey<NettyClientWithEndpoint> KEY_CLIENT = AttributeKey.newInstance(NettyClientFactory.class.getSimpleName() + "-MySQL-Client");
 
+    public static final AttributeKey<Long> KEY_LAST_PROCESS_TIME = AttributeKey.newInstance(NettyClientFactory.class.getSimpleName() + "-Last-Process-Time");
+
     protected int connectTimeoutMilli = 1000;
 
     private ChannelHandlerFactory handlerFactory;
@@ -83,6 +85,7 @@ public class NettyClientFactory extends AbstractStartStoppable implements Pooled
         ChannelFuture channelFuture = b.connect(target.getHost(), target.getPort()).awaitUninterruptibly();
         NettyClientWithEndpoint nettyClient = new AsyncNettyClientWithEndpoint(channelFuture, target);
         channelFuture.channel().attr(KEY_CLIENT).set(nettyClient);
+        channelFuture.channel().attr(KEY_LAST_PROCESS_TIME).set(System.currentTimeMillis());
         channelFuture.addListener(connFuture -> {
             if (connFuture.isSuccess()) {
                 if (!autoRead) {
