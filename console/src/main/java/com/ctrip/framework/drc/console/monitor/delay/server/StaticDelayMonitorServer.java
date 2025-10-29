@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.server;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
@@ -45,7 +47,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
+import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.DEFAULT_BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
 /**
@@ -120,6 +122,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private static final String CLOG_TAGS = "[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},role={}]]";
     private static final String CLOG_TAGS_V2 = "[[monitor=delay_v2,db={},direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},role={}]]";
+
+    private static Map<String, Long> mhaBuIdMap = Maps.newConcurrentMap();
+    private static Map<Long, String> buMap = Maps.newConcurrentMap();
+    private static Map<String, String> dbBuMap = Maps.newConcurrentMap();
 
     public void setConfig(DelayMonitorSlaveConfig config) {
         this.config = config;
@@ -202,7 +208,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             }
         } else if (logEvent instanceof DrcHeartbeatLogEvent) {
             try {
-                logEventCallBack.onHeartHeat();
+                logEventCallBack.onHeartBeat();
             } finally {
                 try {
                     logEvent.release();
@@ -498,9 +504,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private UnidirectionalEntity getUnidirectionalEntity(String mhaString) {
         UnidirectionalEntity unidirectionalEntity = entityMap.get(mhaString);
         if (null == unidirectionalEntity) {
+            String buName = getBuNameByMhaName(mhaString);
             unidirectionalEntity = new UnidirectionalEntity.Builder()
                     .clusterAppId(null)
-                    .buName(BU)
+                    .buName(buName)
                     .srcDcName(config.getDc())
                     .destDcName(config.getDestDc())
                     .clusterName(config.getCluster())
@@ -510,6 +517,9 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     .replicatorAddress(config.getEndpoint().getSocketAddress().toString())
                     .build();
             entityMap.put(mhaString, unidirectionalEntity);
+        } else if (DEFAULT_BU.equals(unidirectionalEntity.getBuName())) {
+            String buName = getBuNameByMhaName(mhaString);
+            unidirectionalEntity.setBuName(buName);
         }
         return unidirectionalEntity;
     }
@@ -519,9 +529,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         Map<String, UnidirectionalEntity> dbMap = entityV2Map.computeIfAbsent(mhaString, k -> Maps.newConcurrentMap());
         UnidirectionalEntity unidirectionalEntity = dbMap.get(dbName);
         if (null == unidirectionalEntity) {
+            String buName = getBuNameByDbName(dbName);
             unidirectionalEntity = new UnidirectionalEntity.Builder()
                     .clusterAppId(null)
-                    .buName(BU)
+                    .buName(buName)
                     .srcDcName(config.getDc())
                     .destDcName(config.getDestDc())
                     .clusterName(config.getCluster())
@@ -531,9 +542,57 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     .replicatorAddress(config.getEndpoint().getSocketAddress().toString())
                     .dbName(dbName)
                     .build();
-            dbMap.put(mhaString, unidirectionalEntity);
+            dbMap.put(dbName, unidirectionalEntity);
+        } else if (DEFAULT_BU.equals(unidirectionalEntity.getBuName())) {
+            String buName = getBuNameByDbName(dbName);
+            unidirectionalEntity.setBuName(buName);
         }
         return unidirectionalEntity;
+    }
+
+    @VisibleForTesting
+    protected String getBuNameByDbName(String dbName) {
+        if (!dbBuMap.containsKey(dbName)) {
+            try {
+                String bu = centralService.getBuFromDb(dbName);
+                if (!StringUtils.isEmpty(bu)) {
+                    dbBuMap.put(dbName, bu);
+                }
+            } catch (Exception e) {
+                logger.warn("[[tag=getBuNameByDbName]] {} centralService getBuFromDb fail", dbName, e);
+            }
+        }
+        return dbBuMap.get(dbName) != null ? dbBuMap.get(dbName) : DEFAULT_BU;
+    }
+    @VisibleForTesting
+    protected String getBuNameByMhaName(String mhaString) {
+        if (!mhaBuIdMap.containsKey(mhaString)) {
+            try {
+                List<MhaTblV2> allMhaTbls = centralService.queryAllMhaTblV2();
+                if (!CollectionUtils.isEmpty(allMhaTbls)) {
+                    mhaBuIdMap = allMhaTbls.stream()
+                            .collect(Collectors.toMap(MhaTblV2::getMhaName, MhaTblV2::getBuId));
+                }
+            } catch (Exception e) {
+                logger.warn("[[tag=getBuNameByMhaName]] {} centralService queryAllMhaTblV2 fail", mhaString, e);
+            }
+        }
+        Long buId = mhaBuIdMap.get(mhaString);
+        if (buId == null) {
+            return DEFAULT_BU;
+        }
+        if (!buMap.containsKey(buId)) {
+            try {
+                List<BuTbl> allBuTbls = centralService.getAllBuTbls();
+                if (!CollectionUtils.isEmpty(allBuTbls)) {
+                    buMap = allBuTbls.stream().collect(Collectors.toMap(BuTbl::getId, BuTbl::getBuName));
+                }
+            } catch (Exception e) {
+                logger.warn("[[tag=getBuNameByMhaName]] {} centralService getAllBuTbls fail", mhaString, e);
+            }
+        }
+
+        return buMap.get(buId) != null ? buMap.get(buId) : DEFAULT_BU;
     }
 
     protected void reportHickwall(String gtid, List<List<Object>> rowValues, SimpleDateFormat formatter) {

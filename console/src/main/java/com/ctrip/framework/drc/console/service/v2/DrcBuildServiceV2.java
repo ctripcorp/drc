@@ -85,5 +85,7 @@ public interface DrcBuildServiceV2 {
     int isolationMigrateApplier(List<String> mhas, String tag) throws  Exception;
     
     Pair<Boolean,String> checkIsoMigrateStatus(List<String> mhas,String tag) throws SQLException;
+
+    boolean changeMachineUuid(MachineDto machineDto) throws Exception;
     
 }

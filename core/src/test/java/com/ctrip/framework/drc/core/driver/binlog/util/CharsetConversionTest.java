@@ -13,6 +13,9 @@ public class CharsetConversionTest {
     public void getCharsetTest() {
         String charset = CharsetConversion.getJavaCharset("utf8", "utf8_unicode_ci");
         Assert.assertEquals("UTF-8", charset);
+
+        charset = CharsetConversion.getJavaCharset("utf8mb3", "utf8mb3_unicode_ci");
+        Assert.assertEquals("UTF-8", charset);
     }
 
 }

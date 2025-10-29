@@ -38,7 +38,7 @@ public class DbGtidMonitorTask extends AbstractMasterMySQLEndpointObserver imple
     @Autowired private DataCenterService dataCenterService;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
-    
+
     @Autowired private DefaultConsoleConfig consoleConfig;
 
     @Autowired private CacheMetaService cacheMetaService;
@@ -56,7 +56,7 @@ public class DbGtidMonitorTask extends AbstractMasterMySQLEndpointObserver imple
 
     @Autowired
     private CheckDbGtid checkDbGtid;
-    
+
     @Override
     public void initialize() {
         super.initialize();
@@ -84,7 +84,7 @@ public class DbGtidMonitorTask extends AbstractMasterMySQLEndpointObserver imple
         Map<String, Map<String, Set<String>>> mhaDbUuidsMap = cacheMetaService.getMhaDbUuidsMap(dcsInRegion, drc);
         checkDbGtid.checkDbGtidGap(mhaDbUuidsMap, masterMySQLEndpointMap);
     }
-    
+
     @Override
     public void setLocalDcName() {
         localDcName = dataCenterService.getDc();
@@ -120,5 +120,5 @@ public class DbGtidMonitorTask extends AbstractMasterMySQLEndpointObserver imple
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-    
+
 }

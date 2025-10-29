@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
  */
 public abstract class GroupActivity extends EventActivity<TransactionEvent, Transaction> {
 
-    private Transaction current;
+    protected Transaction current;
 
     @Override
     public TransactionEvent doTask(TransactionEvent event) throws InterruptedException {

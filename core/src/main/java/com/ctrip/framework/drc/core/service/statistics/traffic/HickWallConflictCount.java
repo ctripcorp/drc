@@ -18,6 +18,7 @@ public class HickWallConflictCount {
         String destMha;
         String db;
         String table;
+        String detail;
     }
     
     public Long getCount() {
@@ -40,6 +41,10 @@ public class HickWallConflictCount {
     
     public String getTable() {
         return metric.table;
+    }
+
+    public String getDetail() {
+        return metric.detail;
     }
     
 }

@@ -43,6 +43,9 @@ public class Columns extends ArrayList<Column> {
 
     public Bitmap getLastBitmapOnUpdate() {
         List<Bitmap> bitmaps = getBitmapsOnUpdate();
+        if (standardOnUpdate == null && bitmaps.isEmpty()) {
+            throw new IndexOutOfBoundsException("No onUpdate column found.");
+        }
         return (standardOnUpdate == null ? bitmaps.get(bitmaps.size() - 1) : standardOnUpdate);
     }
 

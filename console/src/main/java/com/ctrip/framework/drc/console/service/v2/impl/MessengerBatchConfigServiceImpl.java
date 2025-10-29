@@ -60,13 +60,13 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
 
 
     @Override
-    public void processDeleteMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto currentConfig) {
+    public void processDeleteMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto currentConfig) throws Exception {
         // 1. delete from db
         this.deleteDbReplicationAndFilterMapping(editDto, currentConfig.getMhaMqDtos());
     }
 
     @Override
-    public void processCreateMqConfig(DbMqCreateDto createDto, DbMqConfigInfoDto currentConfig) {
+    public void processCreateMqConfig(DbMqCreateDto createDto, DbMqConfigInfoDto currentConfig) throws Exception {
         // 1. check duplicate configuration
         this.preCheck(createDto, currentConfig);
         // 2. rpc init topic/producer
@@ -76,7 +76,7 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
     }
 
     @Override
-    public void processUpdateMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto currentConfig) {
+    public void processUpdateMqConfig(DbMqEditDto editDto, DbMqConfigInfoDto currentConfig) throws Exception {
         // 1. check duplicate configuration
         this.preCheck(editDto, currentConfig);
         // 2. rpc init topic/producer
@@ -182,7 +182,7 @@ public class MessengerBatchConfigServiceImpl implements MessengerBatchConfigServ
      * @param currentConfig
      */
     @Override
-    public void refreshRegistryConfig(DbMqConfigInfoDto currentConfig) {
+    public void refreshRegistryConfig(DbMqConfigInfoDto currentConfig) throws Exception {
         Map<String, String> config = generateRegistryConfig(currentConfig);
 
         List<String> dcNames = currentConfig.getMhaMqDtos().stream().map(e -> e.getSrcMha().getDcName()).distinct().collect(Collectors.toList());

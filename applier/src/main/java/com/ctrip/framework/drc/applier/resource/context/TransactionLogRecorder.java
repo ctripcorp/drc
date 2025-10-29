@@ -1,10 +1,12 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
 import com.google.common.collect.Maps;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +25,14 @@ public class TransactionLogRecorder {
     private long trxRowNum;
     private long conflictRowNum;
     private long rollbackRowNum;
+    private long conflictNeedRocordRowNum;
     private PriorityQueue<ConflictRowLog> cflRowLogsQueue;
-    private Map<ConflictTable,Long> conflictTableRowsCount;
+    private Map<ConflictTable, CflCountDetail> conflictTableRowsCount;
+    private ConflictDetail.AlertLevel uploadLevel;
+
+    public void setUploadLevel(ConflictDetail.AlertLevel uploadLevel) {
+        this.uploadLevel = uploadLevel;
+    }
     
     public TransactionLogRecorder(int recordSize) {
         this.recordSize = recordSize;
@@ -32,14 +40,26 @@ public class TransactionLogRecorder {
         this.trxRowNum = 0L;
         this.conflictRowNum = 0L;
         this.rollbackRowNum = 0L;
+        this.conflictNeedRocordRowNum = 0L;
         this.cflRowLogsQueue = new PriorityQueue<>(recordSize);
         this.conflictTableRowsCount = Maps.newHashMap();
     }
-    
+
+    /**
+     * @return null if no need to report
+     */
     public ConflictTransactionLog summaryBeforeReport(String gtid) {
         List<ConflictRowLog> cflLogs = new ArrayList<>(cflRowLogsQueue.size());
+        //record situation that other normal rows affected by roll back rows
+        boolean needTotalReport = (rollbackRowNum != 0 && trxRowNum != rollbackRowNum);
         while (cflRowLogsQueue.size() > 0) {
-            cflLogs.add(0,cflRowLogsQueue.poll());
+            ConflictRowLog rowLog = cflRowLogsQueue.poll();
+            if (needTotalReport || rowLog.getNeedRecord() == 1) {
+                cflLogs.add(0, rowLog);
+            }
+        }
+        if (cflLogs.isEmpty()) {
+            return null;
         }
         cflTrxLog.setCflLogs(cflLogs);
         cflTrxLog.setTrxRes(rollbackRowNum == 0 ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
@@ -52,10 +72,14 @@ public class TransactionLogRecorder {
     // rowsRes: commit out first, then rowsId: bigger one out first
     public boolean recordCflRowLogIfNecessary(ConflictRowLog curCflRowLog) {
         cflTableCount(curCflRowLog);
+        doNeedRecord(curCflRowLog);
         conflictRowNum++;
         if (ConflictResult.ROLLBACK.getValue() == curCflRowLog.getRowRes()) {
             rollbackRowNum++;
-            if (rollbackRowNum > recordSize) {
+            if (curCflRowLog.getNeedRecord() == 1) {
+                conflictNeedRocordRowNum++;
+            }
+            if (conflictNeedRocordRowNum > recordSize) {
                 return false;
             }
             cflRowLogsQueue.add(curCflRowLog);
@@ -71,7 +95,12 @@ public class TransactionLogRecorder {
             return true;
         }
     }
-    
+
+    private boolean doNeedRecord(ConflictRowLog curCflRowLog) {
+        boolean needRecord = curCflRowLog.getConflictDetailEnum().getAlertLevel().equalOrHigherLevelThan(uploadLevel);
+        curCflRowLog.setNeedRecord(needRecord? 1: 0);
+        return needRecord;
+    }
 
     public void trxRowNumIncrement() {
         trxRowNum++;
@@ -122,20 +151,44 @@ public class TransactionLogRecorder {
         this.cflRowLogsQueue = cflRowLogsQueue;
     }
 
-    public Map<ConflictTable, Long> getConflictTableRowsCount() {
+    public Map<ConflictTable, CflCountDetail> getConflictTableRowsCount() {
         return conflictTableRowsCount;
     }
 
     public void setConflictTableRowsCount(
-            Map<ConflictTable, Long> conflictTableRowsCount) {
+            Map<ConflictTable, CflCountDetail> conflictTableRowsCount) {
         this.conflictTableRowsCount = conflictTableRowsCount;
     }
 
-    
+
     private void cflTableCount(ConflictRowLog curCflRowLog) {
         // for hickWall report
         ConflictTable thisRow =  new ConflictTable(curCflRowLog.getDb(),curCflRowLog.getTable(), curCflRowLog.getRowRes());
-        Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);
-        conflictTableRowsCount.put(thisRow,++count);
+        CflCountDetail cflCountDetail = conflictTableRowsCount.computeIfAbsent(thisRow, key -> new CflCountDetail());
+        cflCountDetail.add(curCflRowLog.getConflictDetail());
+    }
+
+    public static class CflCountDetail {
+        private Long cnt;
+        private Map<String,Long> conflictDetailCount;
+
+        public CflCountDetail() {
+            cnt = 0L;
+            conflictDetailCount = Maps.newHashMap();
+        }
+
+        public void add(String conflictDetail) {
+            cnt++;
+            Long detailCount = conflictDetailCount.getOrDefault(conflictDetail, 0L);
+            conflictDetailCount.put(conflictDetail, ++detailCount);
+        }
+
+        public Long getCnt() {
+            return cnt;
+        }
+
+        public Map<String, Long> getConflictDetailCount() {
+            return conflictDetailCount;
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.messenger.event.mq;
 import com.ctrip.framework.drc.core.mq.DcTag;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 
 /**
  * Created by jixinwang on 2022/10/12
@@ -13,6 +14,13 @@ public class MqApplierGtidEvent extends ApplierGtidEvent {
 
     public MqApplierGtidEvent(DcTag dcTag) {
         this.dcTag = dcTag;
+    }
+
+    @Override
+    public TransactionData.ApplyResult apply(TransactionContext context) {
+        super.apply(context);
+        context.begin();
+        return TransactionData.ApplyResult.SUCCESS;
     }
 
     @Override

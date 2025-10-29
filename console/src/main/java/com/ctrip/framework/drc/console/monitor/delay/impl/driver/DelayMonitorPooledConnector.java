@@ -4,9 +4,16 @@ import com.ctrip.framework.drc.core.driver.AbstractMySQLConnector;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.DrcChannelHandlerFactory;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.activity.replicator.handler.FetcherChannelHandlerFactory;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+
+import java.util.concurrent.ExecutorService;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
+import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
 /**
  * @author shenhaibo
@@ -21,7 +28,7 @@ public class DelayMonitorPooledConnector extends AbstractMySQLConnector implemen
 
     @Override
     protected ChannelHandlerFactory getChannelHandlerFactory() {
-        return new FetcherChannelHandlerFactory();
+        return new DrcChannelHandlerFactory();
     }
 
     @Override
@@ -32,5 +39,9 @@ public class DelayMonitorPooledConnector extends AbstractMySQLConnector implemen
     @Override
     protected NettyClientFactory getNettyClientFactory(String threadPrefix, boolean autoRead) {
         return new DelayMonitorNettyClientFactory(this.endpoint, threadPrefix, autoRead());
+    }
+
+    protected ExecutorService getExecutorService() {
+        return ThreadUtils.newThreadExecutorWithCoreTimeout(PROCESSORS_SIZE, getThreadName(THREAD_NAME_PREFIX, threadNamePostfix));
     }
 }

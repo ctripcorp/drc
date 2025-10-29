@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.KafkaDelayMonitorServer;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTask;
 import com.ctrip.framework.drc.console.service.broadcast.HttpNotificationBroadCast;
+import com.ctrip.framework.drc.console.service.v2.CentralService;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.server.config.console.dto.ClusterConfigDto;
 import org.junit.Before;
@@ -35,9 +36,6 @@ public class SwitchServiceImplTest {
     private DefaultCurrentMetaManager currentMetaManager;
 
     @Mock
-    private DbMetaCorrectService dbMetaCorrectService;
-
-    @Mock
     private ListenReplicatorTask listenReplicatorTask;
 
     @Mock
@@ -45,6 +43,9 @@ public class SwitchServiceImplTest {
 
     @Mock
     private KafkaDelayMonitorServer kafkaDelayMonitorServer;
+
+    @Mock
+    private CentralService centralService;
 
     @Before
     public void setUp() {
@@ -60,11 +61,11 @@ public class SwitchServiceImplTest {
         map.put(CLUSTER_ID1, IP1 + ":" + MYSQL_PORT);
         clusterConfigDto.setClusterMap(map);
         clusterConfigDto.setFirstHand(true);
-        Mockito.doNothing().when(dbMetaCorrectService).batchMhaMasterDbChange(Mockito.anyList());
+        Mockito.doReturn(true).when(centralService).batchMhaMasterDbChange(Mockito.any());
         switchService.switchUpdateDb(clusterConfigDto);
         Thread.sleep(1000);
         verify(currentMetaManager, times(1)).updateMasterMySQL(Mockito.anyString(), Mockito.any());
-        verify(dbMetaCorrectService, times(1)).batchMhaMasterDbChange(Mockito.anyList());
+        verify(centralService, times(1)).batchMhaMasterDbChange(Mockito.any());
         verify(broadCast, times(1)).broadcastWithRetry(Mockito.anyString(), Mockito.any(RequestMethod.class), Mockito.anyString(), Mockito.anyInt());
     }
 

@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.console.dto.v3.MhaDbDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.NotifyCmService;
@@ -185,7 +186,7 @@ public class DbMigrationServiceImplV2Test {
         try {
             mockNormalPreStartCopyAllDbReplication();
             Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyLong(), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(PojoBuilder.getMhaReplicationTbl());
-            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         } catch (ConsoleException e) {
             Assert.assertEquals("mha1->mha2 replication is in mha mode, please contact DRC team!",e.getMessage());
         }
@@ -203,14 +204,14 @@ public class DbMigrationServiceImplV2Test {
         existedTask.setNewMhaDba("mha2");
         existedTask.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList(existedTask));
-        Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         Assert.assertEquals(1L,stringLongPair1.getRight().longValue());
 
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList());
         // normal case
         Mockito.when(mhaReplicationServiceV2.queryAllHasActiveMhaDbReplications()).thenReturn(Lists.newArrayList());
         mockMigrateDbsReplicationInfos();
-        Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         Assert.assertEquals(1L,stringLongPair.getRight().longValue());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).syncMhaInfoFormDbaApi(Mockito.eq("mha2"), Mockito.any());
         Mockito.verify(mhaTblV2Dao,Mockito.times(1)).queryByPk(Mockito.eq(1L));
@@ -218,7 +219,7 @@ public class DbMigrationServiceImplV2Test {
         // check case1:migrate dbs effect multi mha-Replication in same region is not allowed;
         try {
             mockDbMigrationCheckForbiddenCase1();
-            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         } catch (ConsoleException e) {
             Assert.assertEquals("region1: multi mhaTbs in drcReplication, please check! mha: mha4,mha3",e.getMessage());
         }
@@ -227,7 +228,7 @@ public class DbMigrationServiceImplV2Test {
         try {
             mockMigrateDbsReplicationInfos();
             mockDbMigrationCheckForbiddenCase2();
-            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam, MigrationTypeEnum.COMMON_INIT);
         } catch (ConsoleException e) {
             Assert.assertEquals("newMha and oldMha have common mha in Replication, please check! commomMhas: mha3",e.getMessage());
         }
@@ -330,7 +331,7 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(mysqlServiceV2.createDrcMonitorDbTable(Mockito.any())).thenReturn(true);
 
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
-        Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
+        Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART));
         Mockito.verify(mhaDbMappingService, Mockito.times(1)).copyAndInitMhaDbMappings(Mockito.any(MhaTblV2.class), Mockito.anyList());
         Mockito.verify(mhaDbReplicationTblDao, Mockito.times(2)).batchInsert(Mockito.anyList());
         Mockito.verify(applierGroupTblV3Dao, Mockito.times(2)).insertOrReCover(Mockito.anyLong(), Mockito.isNull());
@@ -347,7 +348,7 @@ public class DbMigrationServiceImplV2Test {
 
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
-            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId());
+            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART);
         } catch (ConsoleException e) {
             Assert.assertEquals("task status is not INIT, can not exStart! taskId: 1",e.getMessage());
         }
@@ -355,7 +356,7 @@ public class DbMigrationServiceImplV2Test {
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
             mockConfigNotEqual();
-            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId());
+            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART);
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("MhaConfigs not equals!"));
         }
@@ -367,7 +368,7 @@ public class DbMigrationServiceImplV2Test {
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         Mockito.when(mysqlServiceV2.createDrcMonitorDbTable(Mockito.any())).thenReturn(false);
         try {
-            Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
+            Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_PRESTART));
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("Can not create DRC Db Monitor Table"));
         }
@@ -397,7 +398,7 @@ public class DbMigrationServiceImplV2Test {
         Mockito.when(messengerGroupTblDao.queryByMhaIdAndMqType(Mockito.eq(mha1.getId()), Mockito.any(MqType.class), Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
         Mockito.when(messengerTblDao.queryByGroupId(mha1MessengerGroup.getId())).thenReturn(Lists.newArrayList(new MessengerTbl()));
 
-        Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
+        Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId(), MigrationTypeEnum.COMMON_START));
 
         Mockito.verify(dbDrcBuildService, Mockito.times(1)).autoConfigDbAppliers(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(), Mockito.any(),Mockito.anyBoolean());
         Mockito.verify(dbDrcBuildService, Mockito.times(1)).autoConfigDbAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
@@ -603,5 +604,17 @@ public class DbMigrationServiceImplV2Test {
 
         Map<String, List<Long>> result = dbMigrationService.cleanApplierDirtyData(false);
         Assert.assertEquals(2,result.size());
+    }
+
+    @Test
+    public void testCheckPreStartStatus() throws Exception {
+        MigrationTaskTbl migrationTaskTbl = MockEntityBuilder.buildMigrationTaskTbl(5L,"mha1","mha2","[\"db1\",\"db2\"]","drctest");
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTING.getStatus());
+        Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
+        Pair<Boolean, String> res  = dbMigrationService.checkPreStartStatus(migrationTaskTbl.getId());
+        Assert.assertFalse(res.getLeft());
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+        res  = dbMigrationService.checkPreStartStatus(migrationTaskTbl.getId());
+        Assert.assertTrue(res.getLeft());
     }
 }

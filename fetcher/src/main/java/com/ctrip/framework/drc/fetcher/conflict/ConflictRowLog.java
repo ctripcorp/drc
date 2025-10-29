@@ -24,6 +24,7 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
      */
     private String conflictDetail;
     private long rowId;
+    private int needRecord = 1; //0-no record 1-record
     
     public void brief () {
         rawSql = null;
@@ -36,6 +37,9 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
     @Override
     public int compareTo(ConflictRowLog another) {
         // compare rowRes first, then rowId ,rollback > commit, rowId desc
+        if (this.needRecord != another.needRecord) {
+            return this.needRecord - another.needRecord;
+        }
         if (this.rowRes == another.rowRes) {
             return (int) (another.getRowId() - this.rowId);
         } else {
@@ -81,6 +85,13 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
 
     public void setConflictDetail(ConflictDetail conflictDetail) {
         this.conflictDetail = conflictDetail.name();
+    }
+
+    public ConflictDetail getConflictDetailEnum() {
+        if (conflictDetail != null) {
+            return ConflictDetail.valueOf(conflictDetail);
+        }
+        return null;
     }
 
     public String getDb() {
@@ -153,5 +164,13 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
 
     public void setRowId(long rowId) {
         this.rowId = rowId;
+    }
+
+    public int getNeedRecord() {
+        return needRecord;
+    }
+
+    public void setNeedRecord(int needRecord) {
+        this.needRecord = needRecord;
     }
 }

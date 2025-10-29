@@ -31,16 +31,20 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.XML_FILE_META;
 
 public class CacheMetaServiceImplTest {
 
-    @InjectMocks private CacheMetaServiceImpl cacheMetaService;
+    @InjectMocks
+    private CacheMetaServiceImpl cacheMetaService;
 
-    @Mock private MetaProviderV2 metaProviderV2;
+    @Mock
+    private MetaProviderV2 metaProviderV2;
 
-    @Mock private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
-    @Mock private MonitorServiceV2 monitorServiceV2;
+    @Mock
+    private MonitorServiceV2 monitorServiceV2;
 
     private Drc expectedDrc;
-    
+
 
     @Before
     public void setUp() throws Exception {
@@ -52,54 +56,54 @@ public class CacheMetaServiceImplTest {
         Mockito.when(metaProviderV2.getDrc()).thenReturn(expectedDrc);
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("dbcluster2.mha3dc2"))).thenReturn(expectedDrc.findDc("dc2"));
     }
-    
+
     @Test
     public void testGetDrcFail() {
         Mockito.when(metaProviderV2.getDrc()).thenReturn(null);
         try {
             cacheMetaService.getMonitorMetaInfo();
         } catch (Exception e) {
-            Assert.assertEquals("get drc fail",e.getMessage());
+            Assert.assertEquals("get drc fail", e.getMessage());
         }
     }
 
     @Test
     public void testGetAllReplicatorsInLocalRegion() {
-        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>(){{
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>() {{
             add("dc1");
             add("dc2");
         }});
 
         Map<String, List<ReplicatorWrapper>> allReplicators = cacheMetaService.getAllReplicatorsInLocalRegion();
-        Assert.assertEquals(6,allReplicators.size());
+        Assert.assertEquals(6, allReplicators.size());
     }
 
     @Test
     public void testGetMasterReplicatorsToBeMonitored() {
-        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>(){{
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>() {{
             add("dc1");
             add("dc2");
         }});
-        List<String> mhas = Lists.newArrayList("mha1dc1","mha2dc1","mha3dc1","mha1dc2","mha2dc2","mha3dc2","mha3dc3");
+        List<String> mhas = Lists.newArrayList("mha1dc1", "mha2dc1", "mha3dc1", "mha1dc2", "mha2dc2", "mha3dc2", "mha3dc3");
         Map<String, ReplicatorWrapper> masterReplicatorsToBeMonitored = cacheMetaService.getMasterReplicatorsToBeMonitored(
                 mhas);
-        Assert.assertEquals(7,masterReplicatorsToBeMonitored.size());
-        
-        
-        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>(){{
+        Assert.assertEquals(7, masterReplicatorsToBeMonitored.size());
+
+
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>() {{
             add("dc2");
             add("dc3");
         }});
         masterReplicatorsToBeMonitored = cacheMetaService.getMasterReplicatorsToBeMonitored(mhas);
-        Assert.assertEquals(5,masterReplicatorsToBeMonitored.size());
-        
-        
-        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>(){{
+        Assert.assertEquals(5, masterReplicatorsToBeMonitored.size());
+
+
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>() {{
             add("dc1");
             add("dc3");
         }});
         masterReplicatorsToBeMonitored = cacheMetaService.getMasterReplicatorsToBeMonitored(mhas);
-        
+
     }
 
 
@@ -111,21 +115,21 @@ public class CacheMetaServiceImplTest {
         Map<String, Map<String, Set<String>>> mhaDbUuidsMapExpect = new HashMap<>();
         mhaDbUuidsMapExpect.computeIfAbsent(mhaName, k -> new HashMap<>()).put("db1", Sets.newHashSet("14345678-1234-abcd-abcd-123456789abc", "24345678-1234-abcd-abcd-123456789abc"));
         mhaDbUuidsMapExpect.get("mha3dc3").put("db2", Sets.newHashSet("14345678-1234-abcd-abcd-123456789abc", "24345678-1234-abcd-abcd-123456789abc"));
-        Assert.assertEquals(mhaDbUuidsMapExpect,mhaDbUuidsMap);
+        Assert.assertEquals(mhaDbUuidsMapExpect, mhaDbUuidsMap);
     }
 
     @Test
     public void testGetMonitorMetaInfo() throws SQLException {
-        List<String> mhas = Lists.newArrayList("mha1dc1","mha2dc1","mha3dc1","mha1dc2","mha2dc2","mha3dc2","mha3dc3");
+        List<String> mhas = Lists.newArrayList("mha1dc1", "mha2dc1", "mha3dc1", "mha1dc2", "mha2dc2", "mha3dc2", "mha3dc3");
         Mockito.when(monitorServiceV2.getMhaNamesToBeMonitored()).thenReturn(mhas);
 
         MonitorMetaInfo monitorMetaInfo = cacheMetaService.getMonitorMetaInfo();
         Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint = monitorMetaInfo.getMasterMySQLEndpoint();
         Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint = monitorMetaInfo.getSlaveMySQLEndpoint();
         Map<MetaKey, Endpoint> masterReplicatorEndpoint = monitorMetaInfo.getMasterReplicatorEndpoint();
-        Assert.assertEquals(7,masterMySQLEndpoint.size());
-        Assert.assertEquals(7,slaveMySQLEndpoint.size());
-        Assert.assertEquals(7,masterReplicatorEndpoint.size());
+        Assert.assertEquals(7, masterMySQLEndpoint.size());
+        Assert.assertEquals(7, slaveMySQLEndpoint.size());
+        Assert.assertEquals(7, masterReplicatorEndpoint.size());
 
     }
 
@@ -133,6 +137,6 @@ public class CacheMetaServiceImplTest {
     public void testRefreshReplicationInfo() {
         Map<String, Set<String>> stringSetMap = cacheMetaService.refreshMhaReplicationInfo();
         System.out.println(stringSetMap.entrySet());
-        Assert.assertEquals(7,stringSetMap.size());
+        Assert.assertEquals(7, stringSetMap.size());
     }
 }

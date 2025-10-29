@@ -73,7 +73,7 @@ export default {
         srcTag: 'COMMON',
         dstTag: 'COMMON'
       },
-      tagList: this.constant.tagList,
+      tagList: [],
       ruleBuild: {
         srcMhaName: [
           { required: true, message: '源集群名不能为空', trigger: 'blur' }
@@ -153,7 +153,15 @@ export default {
     },
     handleCreateTag (val) {
       this.constant.tagList.push(val)
+    },
+    getTags () {
+      this.axios.get('/api/drc/v2/resource/tags').then((response) => {
+        this.tagList = response.data.data
+      })
     }
+  },
+  created () {
+    this.getTags()
   }
 }
 </script>

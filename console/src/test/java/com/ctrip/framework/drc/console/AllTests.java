@@ -6,6 +6,7 @@ import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.aop.RemoteHttpAspectTest;
 import com.ctrip.framework.drc.console.aop.log.LogRecordAspectTest;
 import com.ctrip.framework.drc.console.aop.permission.AccessTokenAspectTest;
+import com.ctrip.framework.drc.console.common.SqlTest;
 import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
@@ -16,10 +17,12 @@ import com.ctrip.framework.drc.console.dao.AbstractDaoTest;
 import com.ctrip.framework.drc.console.dao.BaseDalTableDaoTest;
 import com.ctrip.framework.drc.console.dao.OverseaDalTableDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
+import com.ctrip.framework.drc.console.dto.v2.MachineDtoTest;
 import com.ctrip.framework.drc.console.dto.v2.MhaDbDelayInfoDtoTest;
 import com.ctrip.framework.drc.console.dto.v3.*;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnumTest;
 import com.ctrip.framework.drc.console.monitor.*;
 import com.ctrip.framework.drc.console.monitor.consistency.cases.RangeQueryCheckPairCaseTest;
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.SqlOperatorTest;
@@ -32,6 +35,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPoo
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServerTest2;
+import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServerTest3;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskV2Test;
@@ -71,6 +75,7 @@ import com.ctrip.framework.drc.console.vo.api.DbTableDrcRegionInfoTest;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbQueryDtoTest;
 import com.ctrip.framework.drc.console.vo.request.MhaDbReplicationQueryDtoTest;
+import com.ctrip.framework.drc.console.vo.v2.MqMetaCreateResultViewTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.AfterClass;
@@ -183,6 +188,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterMetaControllerTest.class,
         CentralServiceControllerTest.class,
         DbReplicationControllerTest.class,
+        DbDrcBuildControllerV2Test.class,
+        DbMigrationControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,
@@ -244,6 +251,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ListenReplicatorTaskTest.class,
         ConflictLogManagerTest.class,
         StaticDelayMonitorServerTest2.class,
+        SqlTest.class,
+        StaticDelayMonitorServerTest3.class,
 
         //entity
         MhaInstanceGroupDtoTest.class,
@@ -262,6 +271,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaReplicationPreviewDtoTest.class,
         DbMqConfigInfoDtoTest.class,
         DbTableDrcRegionInfoTest.class,
+        MqMetaCreateResultViewTest.class,
+        MachineDtoTest.class,
 
         //DAO
         BaseDalTableDaoTest.class,
@@ -271,6 +282,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ApiContainerTest.class,
         NotifyCmServiceImplTest.class,
         DlockServiceImplTest.class,
+
+        MigrationTypeEnumTest.class,
 })
 public class AllTests {
 

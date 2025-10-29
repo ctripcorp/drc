@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.vo.api.DbTableDrcRegionInfo;
 import com.ctrip.framework.drc.console.vo.api.SingleDbTableDrcCheckResponse;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.OsgApiResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,4 +122,36 @@ public class OpenApiController {
             this.configText = configText;
         }
     }
+
+    @PostMapping("drcDelayAlertNotify")
+    public OsgApiResult drcDelayNotify(@RequestBody NotifyReq req) {
+        try {
+            return OsgApiResult.getSuccessInstance(openApiService.getDbOwnerForDelayAlert(req.getInstanceId()));
+        } catch (Exception e) {
+            logger.error("drcDelayNotify error", e);
+            return OsgApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+    public static class NotifyReq {
+        private String instanceId;
+
+        public String getInstanceId() {
+            return instanceId;
+        }
+
+        public void setInstanceId(String instanceId) {
+            this.instanceId = instanceId;
+        }
+    }
+
+    @PostMapping("drcMqDelayAlertNotify")
+    public OsgApiResult drcMqDelayNotify(@RequestBody NotifyReq req) {
+        try {
+            return OsgApiResult.getSuccessInstance(openApiService.getDbOwnerForDelayAlertByMha(req.getInstanceId()));
+        } catch (Exception e) {
+            logger.error("drcMqDelayNotify error", e);
+            return OsgApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
 }

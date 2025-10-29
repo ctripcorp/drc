@@ -24,7 +24,6 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +34,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -84,8 +82,9 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
         if (monitorTableSourceProvider.getSwitchSyncMhaUpdateAll().equalsIgnoreCase(SWITCH_STATUS_ON)) {
             logger.info("[[task=syncMhaTask,mha={}]] switch turn on,updateAll change to meta db",mhaName);
             if (!CollectionUtils.isEmpty(insertMachines)) {
-                this.beforeInsert(insertMachines,mhaTblV2);
-                int[] ints = machineTblDao.batchInsert(insertMachines);
+                List<MachineTbl> toInsertMachines = insertMachines.stream().distinct().collect(Collectors.toList());
+                this.beforeInsert(toInsertMachines,mhaTblV2);
+                int[] ints = machineTblDao.batchInsert(toInsertMachines);
                 loggingAction(mhaName,ints,"Insert");
             }
             if (!CollectionUtils.isEmpty(updateMachines)) {
@@ -115,8 +114,9 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
 
             String type = "DRC.syncMhaFromDba";
             if (!CollectionUtils.isEmpty(insertMachines)) {
-                this.beforeInsert(insertMachines, mhaTblV2);
-                int[] ints = machineTblDao.batchInsert(insertMachines);
+                List<MachineTbl> toInsertMachines = insertMachines.stream().distinct().collect(Collectors.toList());
+                this.beforeInsert(toInsertMachines, mhaTblV2);
+                int[] ints = machineTblDao.batchInsert(toInsertMachines);
                 loggingAction(mhaName, ints, "Insert", type);
             }
             if (!CollectionUtils.isEmpty(updateMachines)) {
@@ -132,82 +132,7 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
         }
     }
 
-    @Override
-    public ApiResult mhaMasterDbChange(String mhaName, String ip, int port) {
-        try {
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
-            if (null == mhaTblV2) {
-                logger.error("[[mha={}]]no such mha", mhaName);
-                return ApiResult.getInstance(0, ResultCode.HANDLE_FAIL.getCode(), "no such mha " + mhaName);
-            }
-            List<MachineTbl> machineTblToBeUpdated = checkMachinesInUse(mhaTblV2.getId(), mhaName, ip, port);
-            if (machineTblToBeUpdated.size() == 0) {
-                return ApiResult.getInstance(0, ResultCode.HANDLE_SUCCESS.getCode(), mhaName + ' ' + ip + ':' + port + " already master");
-            }
-            int[] affectedUpdateArr = machineTblDao.batchUpdate(machineTblToBeUpdated);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.master.switch." + mhaName, ip);
-            int updateAffected = Arrays.stream(affectedUpdateArr).sum();
-            return SHOULD_AFFECTED_ROWS == updateAffected ? 
-                    ApiResult.getInstance(updateAffected, ResultCode.HANDLE_SUCCESS.getCode(), "update " + mhaName + " master instance succeeded") :
-                    ApiResult.getInstance(updateAffected, ResultCode.HANDLE_FAIL.getCode(), mhaName + ", updated: " + updateAffected);
-        } catch (Throwable t) {
-            logger.error("Fail update {} master instance", mhaName, t);
-            return ApiResult.getInstance(0, ResultCode.HANDLE_FAIL.getCode(), "Fail update master instance as " + t);
-        }
-    }
 
-    @Override
-    public void batchMhaMasterDbChange(List<MhaInstanceGroupDto> mhaInstanceGroupDtos) throws Exception {
-        List<String> mhaNames = mhaInstanceGroupDtos.stream().map(MhaInstanceGroupDto::getMhaName).collect(Collectors.toList());
-        logger.info("mhaMasterDbChange mhaName: {}", mhaNames);
-        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(mhaNames, BooleanEnum.FALSE.getCode());
-        List<Long> mhaIds = mhaTblV2s.stream().map(MhaTblV2::getId).collect(Collectors.toList());
-
-        Map<String, MhaInstanceGroupDto> mhaDtoMap = mhaInstanceGroupDtos.stream().collect(Collectors.toMap(MhaInstanceGroupDto::getMhaName, Function.identity()));
-        Map<Long, String> mhaIdToName = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
-
-        List<MachineTbl> machineTbls = machineTblDao.queryByMhaIds(mhaIds);
-        Map<Long, List<MachineTbl>> machineMap = machineTbls.stream().collect(Collectors.groupingBy(MachineTbl::getMhaId));
-
-        for (Map.Entry<Long, List<MachineTbl>> entry : machineMap.entrySet()) {
-            long mhaId = entry.getKey();
-            List<MachineTbl> machines = entry.getValue();
-
-            MhaInstanceGroupDto mhaInstanceGroupDto = mhaDtoMap.get(mhaIdToName.get(mhaId));
-            String masterIp = mhaInstanceGroupDto.getMaster().getIp();
-            int masterPort = mhaInstanceGroupDto.getMaster().getPort();
-            for (MachineTbl machineTbl : machines) {
-                if (machineTbl.getIp().equalsIgnoreCase(masterIp) && machineTbl.getPort() == masterPort) {
-                    machineTbl.setMaster(BooleanEnum.TRUE.getCode());
-                } else {
-                    machineTbl.setMaster(BooleanEnum.FALSE.getCode());
-                }
-            }
-        }
-
-        machineTblDao.update(machineTbls);
-    }
-
-    @VisibleForTesting
-    protected List<MachineTbl> checkMachinesInUse(Long mhaId, String mhaName, String ip, int port) throws SQLException {
-        List<MachineTbl> machineTblToBeUpdated = Lists.newArrayList();
-        List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId,BooleanEnum.FALSE.getCode());
-        for (MachineTbl machineTbl : machineTbls) {
-            if (ip.equalsIgnoreCase(machineTbl.getIp()) && port == machineTbl.getPort()) {
-                if (machineTbl.getMaster().equals(BooleanEnum.FALSE.getCode())) {
-                    machineTbl.setMaster(BooleanEnum.TRUE.getCode());
-                    machineTblToBeUpdated.add(machineTbl);
-                    logger.info("[[mha={}]]todo slave->master: {} ", mhaName, machineTbl.getIp() + ":" + machineTbl.getPort());
-                }
-            } else if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
-                machineTbl.setMaster(BooleanEnum.FALSE.getCode());
-                machineTblToBeUpdated.add(machineTbl);
-                logger.info("[[mha={}]]todo master->slave: {} ", mhaName,  machineTbl.getIp() + ":" + machineTbl.getPort());
-            }
-        }
-        return machineTblToBeUpdated;
-    }
-    
     private void loggingAction(String mha,int[] effects,String action) {
         int affectRows = Arrays.stream(effects).sum();
         logger.info("[[task=syncMhaTask,mha={},action={}]] affectRows:{}",mha,action,affectRows);

@@ -61,6 +61,10 @@
         </Row>
         <br>
         <Table :columns="columns" :data="records" :loading="dataLoading" border>
+          <template slot-scope="{ row, index }"  slot="action">
+            <Button type="success" size="small" style="margin-right: 5px" @click="showHickwallPanel(row, index)">TPS</Button>
+            <Button type="primary" size="small" style="margin-right: 5px" @click="showConfig(row, index)">详情</Button>
+          </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
           <Page
@@ -76,6 +80,24 @@
             @on-page-size-change="handleChangeSize"></Page>
         </div>
         <br>
+        <Drawer title="DRC配置" width="80" :closable="true" v-model="drawershow" >
+          <template #header>
+            <span style="font-weight: bold;font-size: 16px">{{ baseConfigInShow }}</span>
+          </template>
+          <Table :columns="[
+    { title: '配置项', key: 'key', align: 'center' },
+    { title: '值', key: 'value', align: 'center' }
+  ]" :data="configInShow" border style="width: fit-content;margin: 0 auto;"></Table><br>
+          <iframe :src="detailIframeUrl"  :style="{
+    width: '100%',
+    height: '600px',
+    padding: '0px',
+    marginLeft: '0px',
+    marginRight: '0px',
+    border: 'none'
+  }">
+          </iframe>
+        </Drawer>
       </div>
     </Content>
   </base-component>
@@ -87,11 +109,27 @@ import 'codemirror/mode/xml/xml.js'
 
 import 'codemirror/addon/fold/foldgutter.css'
 import 'codemirror/addon/fold/foldgutter.js'
+import Vue from 'vue'
+import prettyMilliseconds from 'pretty-ms'
 
 export default {
   name: 'mq',
   data () {
     return {
+      drawershow: false,
+      configKeyMapping: {
+        mqType: '消息类型',
+        order: '有序投递',
+        orderKey: '有序字段',
+        delayTime: '延迟投递(s)',
+        excludeFilterTypes: '过滤类型'
+      },
+      configColomns: [
+        {
+          title: '消息类型',
+          key: 'mqType'
+        }
+      ],
       totalData: [
         {
           title: 'otter 接入DB数',
@@ -111,6 +149,52 @@ export default {
         }
       ],
       columns: [
+        {
+          title: '延迟',
+          key: 'delay',
+          align: 'center',
+          width: 150,
+          resizable: true,
+          renderHeader: (h, params) => {
+            return h('span', [
+              h('span', '延迟'),
+              h('Button', {
+                on: {
+                  click: async () => {
+                    await this.getDelay()
+                  }
+                },
+                props: {
+                  loading: this.delayDataLoading,
+                  size: 'small',
+                  shape: 'circle',
+                  type: 'default',
+                  icon: 'md-refresh'
+                }
+              })
+            ])
+          },
+          render: (h, params) => {
+            const row = params.row
+            let color, text
+            if (row.delay != null) {
+              text = prettyMilliseconds(row.delay, { compact: false })
+              if (row.delay > 10000) {
+                color = 'warning'
+              } else {
+                color = 'success'
+              }
+            } else {
+              text = '查询中'
+              color = 'blue'
+            }
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
         {
           title: 'DB名',
           key: 'dbName',
@@ -145,22 +229,8 @@ export default {
           align: 'center'
         },
         {
-          title: '看板(hickwall)',
-          slot: 'panel',
-          render: (h, params) => {
-            const row = params.row
-            return h('Button', {
-              on: {
-                click: () => {
-                  window.open(row.mqPanelUrl, '_blank')
-                }
-              },
-              props: {
-                size: 'small',
-                type: 'success'
-              }
-            }, '延迟&TPS')
-          },
+          title: '操作',
+          slot: 'action',
           align: 'center'
         }
 
@@ -186,10 +256,66 @@ export default {
       records: [],
 
       dataLoading: false,
-      totalCountLoading: false
+      totalCountLoading: false,
+      configInShow: [],
+      baseConfigInShow: '',
+      detailIframeUrl: ''
     }
   },
   methods: {
+    showHickwallPanel (row, index) {
+      console.log(row)
+      window.open(row.mqPanelUrl, '_blank')
+    },
+    showConfig (row, index) {
+      this.baseConfigInShow = row.dbName + '.' + row.srcLogicTableName + ' ==> ' + row.dstLogicTableName + ' (' + row.dcName + ')'
+      const currentProtocol = window.location.protocol
+      this.detailIframeUrl = row.mqPanelUrl.replace(/^https?:/, currentProtocol) // 去掉冒号
+      console.log(this.detailIframeUrl)
+      const parsedData = JSON.parse(row.mqConfig)
+      console.log(parsedData)
+      const result = Object.keys(this.configKeyMapping).map(key => {
+        let value
+        // eslint-disable-next-line no-prototype-builtins
+        if (parsedData.hasOwnProperty(key)) {
+          value = parsedData[key]
+        } else {
+          value = '-'
+        }
+        if (key === 'orderKey') {
+          // eslint-disable-next-line no-prototype-builtins
+          if (parsedData.hasOwnProperty('order') && parsedData.order === true) {
+            // eslint-disable-next-line no-prototype-builtins
+            if (!parsedData.hasOwnProperty('orderKey') || parsedData.orderKey === null || parsedData.orderKey === '') {
+              value = '主键'
+            }
+          }
+        }
+        return {
+          key: this.configKeyMapping[key],
+          value: value
+        }
+      })
+      // eslint-disable-next-line no-prototype-builtins
+      if (parsedData.hasOwnProperty('excludeColumn')) {
+        const isExclude = !!parsedData.excludeColumn
+        const filterValue = parsedData.filterFields ? parsedData.filterFields : '全部字段'
+
+        result.push({
+          key: isExclude ? '订阅排除字段' : '订阅字段',
+          value: filterValue
+        })
+      }
+      // this.configInShow = result
+      this.configInShow = []
+      this.$nextTick(() => {
+        result.forEach(item => {
+          Vue.set(this.configInShow, this.configInShow.length, item)
+        })
+      })
+      console.log(this.configInShow)
+      this.drawershow = true
+    },
     resetPath () {
       this.$router.replace({
         query: {
@@ -269,10 +395,52 @@ export default {
       this.srcTbl = null
       this.dstTopic = null
       this.dbNames = null
+    },
+    getDelay () {
+      const param = {
+        mqType: this.mqType,
+        mhas: [...new Set(this.records.map(item => item.mhaName))],
+        dbs: [],
+        noNeedDbAndSrcTime: true
+      }
+      console.log(param)
+      this.delayDataLoading = true
+      this.axios.post('/api/drc/v2/messenger/delay', param)
+        .then(response => {
+          // const delays = response.data.data[0].delayInfoDto.delay
+          // this.$set(this.mhaMqDtos, 'delay', delays)
+          const delays = response.data.data
+          const emptyResult = delays == null || !Array.isArray(delays) || delays.length === 0
+          if (emptyResult) {
+            return
+          }
+          const dataMap = new Map(delays.map(e => [e.srcMha.name, e.delayInfoDto.delay]))
+          this.records.forEach(line => {
+            Vue.set(line, 'delay', dataMap.get(line.mhaName))
+          })
+
+          console.log(this.records)
+        })
+        .catch(message => {
+          console.log(message)
+          this.$Message.error('查询延迟异常: ' + message)
+        })
+        .finally(() => {
+          this.delayDataLoading = false
+        })
     }
   },
   created () {
     this.getReplications()
+    this.getDelay()
+    this.timerId = setInterval(() => this.getDelay(), 5000)
+    setTimeout(() => { clearInterval(this.timerId) }, 30 * 60 * 1000)
+  },
+  beforeDestroy () {
+    if (this.timerId) {
+      clearInterval(this.timerId)
+      this.timerId = null
+    }
   }
 }
 </script>

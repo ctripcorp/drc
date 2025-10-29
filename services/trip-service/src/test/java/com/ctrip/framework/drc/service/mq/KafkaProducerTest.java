@@ -39,6 +39,13 @@ public class KafkaProducerTest {
         Producer<String, String> producer = Mockito.mock(Producer.class);
         theMock = Mockito.mockStatic(KafkaClientFactory.class);
         theMock.when(() -> KafkaClientFactory.newProducer(Mockito.anyString(), Mockito.any(Properties.class))).thenReturn(producer);
+        Mockito.when(mockConfig.getKafkaLingerMs(Mockito.anyString())).thenReturn("0");
+        Mockito.when(mockConfig.getKafkaBatchSize(Mockito.anyString())).thenReturn("0");
+        Mockito.when(mockConfig.getKafkaBufferMemory(Mockito.anyString())).thenReturn("0");
+        Mockito.when(mockConfig.getKafkaMaxRequestSize(Mockito.anyString())).thenReturn("0");
+        Mockito.when(mockConfig.getAddKafkaCodecTypeSwitch(Mockito.anyString())).thenReturn(false);
+        Mockito.when(mockConfig.getCompressionType(Mockito.anyString())).thenReturn("gzip");
+        Mockito.when(mockConfig.getAcks(Mockito.anyString())).thenReturn("all");
     }
 
     @After

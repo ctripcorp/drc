@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.DbReplicationRouteMappingTbl;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -13,6 +14,7 @@ import java.util.List;
  * 2025/4/1 14:33
  */
 @Repository
+@Lazy
 public class DbReplicationRouteMappingTblDao extends AbstractDao<DbReplicationRouteMappingTbl> {
 
     private static final String ROUTE_ID = "route_id";

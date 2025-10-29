@@ -8,6 +8,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * 2023/10/30 20:17
  */
 @Repository
+@Lazy
 public class ConflictApprovalTblDao extends AbstractDao<ConflictApprovalTbl> {
 
     private static final String APPLICANT = "applicant";

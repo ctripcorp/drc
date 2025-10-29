@@ -237,7 +237,7 @@ public abstract class FetcherDumpEventActivity extends DumpEventActivity<Fetcher
                 progress.tick();
                 HEARTBEAT_LOGGER.info("{} - Tick - {}", registryKey, logEvent.getClass().getSimpleName());
             }
-            logEventCallBack.onHeartHeat();
+            logEventCallBack.onHeartBeat();
             try {
                 logEvent.release();
             } catch (Exception e) {

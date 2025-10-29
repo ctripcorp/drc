@@ -334,7 +334,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private void addConflictBlackList(String nameFilter) {
         executorService.submit(() -> {
             try {
-                conflictLogService.addDbBlacklist(nameFilter, CflBlacklistType.NEW_CONFIG,null);
+                conflictLogService.addDbBlacklist(nameFilter, null, CflBlacklistType.NEW_CONFIG,null);
             } catch (Exception e) {
                 logger.error("addDbBlacklist error", e);
             }
@@ -683,6 +683,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         for (MemberInfo memberInfo : memberlist) {
             machinesToBeInsert.add(extractFrom(memberInfo, mhaId, newMha));
         }
+        machinesToBeInsert = machinesToBeInsert.stream().distinct().collect(Collectors.toList());
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", newMha, Arrays.stream(ints).sum());
         mhaTobeInit.setId(mhaId);
@@ -790,7 +791,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
 
         ResourceSelectParam selectParam = new ResourceSelectParam();
-        selectParam.setType(ModuleEnum.MESSENGER.getCode());
+        selectParam.setType(ModuleEnum.getMessengerCodeByMqType(mqType));
         selectParam.setMhaName(mhaTbl.getMhaName());
         selectParam.setSelectedIps(inUseIps);
         List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
@@ -1249,9 +1250,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 .filter(e -> !excludeDbReplicationIds.contains(e.getId()))
                 .collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(existDbReplications)) {   //check contain same table
-            String allNameFilter = buildNameFilterByDbReplications(existDbReplications, srcDbMappingMap, srcDbMap);
-            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(allNameFilter);
-            List<String> existTableList = tableList.stream().filter(aviatorRegexFilter::filter).collect(Collectors.toList());
+            List<String> allNameFilters = buildNameFiltersByDbReplications(existDbReplications, srcDbMappingMap, srcDbMap);
+            List<String> existTableList = new ArrayList<>();
+            allNameFilters.forEach(nameFilter -> {
+                AviatorRegexFilter regexFilter = new AviatorRegexFilter(nameFilter);
+                existTableList.addAll(tableList.stream().filter(regexFilter::filter).collect(Collectors.toList()));
+            });
 
             if (!CollectionUtils.isEmpty(existTableList)) {
                 throw ConsoleExceptionUtils.message(String.format("tables: %s has already been configured", existTableList));
@@ -1266,22 +1270,30 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbNameToSrcMhaDbMappingId;
     }
 
-    private String buildNameFilterByDbReplications(List<DbReplicationTbl> dbReplicationTbls, Map<Long, Long> mhaDbMappingMap, Map<Long, String> dbMap) {
-        StringBuilder nameFilterBuilder = new StringBuilder();
-        int size = dbReplicationTbls.size();
-        for (int i = 0; i < size; i++) {
-            DbReplicationTbl dbReplicationTbl = dbReplicationTbls.get(i);
-            long dbId = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
-            String dbName = dbMap.get(dbId);
-            String nameFilter = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
-            nameFilterBuilder.append(nameFilter);
+    private List<String> buildNameFiltersByDbReplications(List<DbReplicationTbl> dbReplicationTbls, Map<Long, Long> mhaDbMappingMap, Map<Long, String> dbMap) {
+        List<List<DbReplicationTbl>> partitions = Lists.partition(dbReplicationTbls, consoleConfig.getRegexFilterBatch());
 
-            if (i != size - 1) {
-                nameFilterBuilder.append(",");
+        List<String> nameFilters = new ArrayList<>();
+
+        for (List<DbReplicationTbl> partition : partitions) {
+            StringBuilder nameFilterBuilder = new StringBuilder();
+            int size = partition.size();
+            for (int i = 0; i < size; i++) {
+                DbReplicationTbl dbReplicationTbl = partition.get(i);
+                long dbId = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
+                String dbName = dbMap.get(dbId);
+                String nameFilter = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
+                nameFilterBuilder.append(nameFilter);
+
+                if (i != size - 1) {
+                    nameFilterBuilder.append(",");
+                }
             }
+            nameFilters.add(nameFilterBuilder.toString());
         }
 
-        return nameFilterBuilder.toString();
+
+        return nameFilters;
     }
 
     private List<DbReplicationTbl> getExistDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
@@ -1760,5 +1772,27 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private void checkRowsFilterCreateParam(RowsFilterCreateParam param) {
         PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getDbReplicationIds()), "dbReplicationIds require not empty!");
         PreconditionUtils.checkArgument(RowsFilterModeEnum.checkMode(param.getMode()), "rowsFilter mode not support!");
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public boolean changeMachineUuid(MachineDto machineDto) throws Exception {
+        MachineTbl machineTbl = machineTblDao.queryByIpPort(machineDto.getIp(), machineDto.getPort());
+        if (machineTbl == null) {
+            logger.info("[changeMachineUuid] no machine in tbl");
+            return false;
+        }
+        boolean machineTblMaster = machineTbl.getMaster().equals(1);
+        if (machineTblMaster != machineDto.getMaster()) {
+            logger.info("[changeMachineUuid] master error");
+            return false;
+        }
+        MhaTblV2 mhaTblV2 = mhaTblDao.queryById(machineTbl.getMhaId());
+        if (mhaTblV2 != null && BooleanEnum.FALSE.getCode().equals(mhaTblV2.getDeleted())) {
+            MachineTbl machineTbl1 = extractFrom(machineDto, mhaTblV2.getId(), mhaTblV2.getMhaName());
+            machineTbl.setUuid(machineTbl1.getUuid());
+            machineTblDao.update(machineTbl);
+        }
+        return true;
     }
 }

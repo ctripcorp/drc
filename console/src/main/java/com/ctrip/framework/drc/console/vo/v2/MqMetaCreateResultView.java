@@ -12,6 +12,17 @@ public class MqMetaCreateResultView {
     String region;
     String table;
     String topic;
+    boolean fail;
+    String errMsg;
+
+    public MqMetaCreateResultView() {
+
+    }
+
+    public MqMetaCreateResultView(String errMsg) {
+        this.fail = true;
+        this.errMsg = errMsg;
+    }
 
     public int getContainTables() {
         return containTables;
@@ -51,6 +62,22 @@ public class MqMetaCreateResultView {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public boolean isFail() {
+        return fail;
+    }
+
+    public void setFail(boolean fail) {
+        this.fail = fail;
+    }
+
+    public String getErrMsg() {
+        return errMsg;
+    }
+
+    public void setErrMsg(String errMsg) {
+        this.errMsg = errMsg;
     }
 
     @Override

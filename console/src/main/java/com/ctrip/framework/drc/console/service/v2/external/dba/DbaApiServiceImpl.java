@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -293,8 +294,9 @@ public class DbaApiServiceImpl implements DbaApiService {
 
                     String resString = HttpUtils.post(consoleConfig.getDbaApiPwdChangeUrl(), params, String.class);
                     JsonObject res = JsonUtils.parseObject(resString);
-                    String status = res.get("status").getAsString();
-                    if ("success".equalsIgnoreCase(status)) {
+                    logger.info("changePassword, mha:{}, masterNode:{}, response:{}", mhaName, masterNode, resString);
+                    boolean success = res.get("success").getAsBoolean();
+                    if (success) {
                         DefaultEventMonitorHolder.getInstance().logEvent("drc.console.changePassword.success", mhaName);
                         return true;
                     }
@@ -306,7 +308,7 @@ public class DbaApiServiceImpl implements DbaApiService {
 
     @Override
     public String getDbOwner(String dbName) {
-        String token = domainConfig.getDBAApiOpsAccessToken();
+        String token = domainConfig.getProdOpsAccessToken();
         String url = consoleConfig.getDbaDbOwnerUrl();
         LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
         request.put("access_token", token);
@@ -324,6 +326,29 @@ public class DbaApiServiceImpl implements DbaApiService {
         } catch (Exception e) {
             autoConfigLogger.error("[[tag=autoconfig]] getDbOwner error", e);
             return null;
+        }
+    }
+
+    @Override
+    public List<String> getAllDbOwners(String dbName) {
+        String token = domainConfig.getProdOpsAccessToken();
+        String url = consoleConfig.getDbaDbOwnerUrl();
+        LinkedHashMap<String, Object> request = Maps.newLinkedHashMap();
+        request.put("access_token", token);
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("dbtype", "MySQL");
+        jsonObject.addProperty("dbname", dbName);
+        JsonArray jsonArray = new JsonArray();
+        jsonArray.add(jsonObject);
+        request.put("request_body", new Gson().toJson(jsonArray));
+        try {
+            String responseString = HttpUtils.post(url, request, String.class);
+            autoConfigLogger.info("[[tag=autoconfig]] getAllDbOwners resp: {}", responseString);
+            String owners = JSON.parseObject(responseString).getJSONArray("data").getJSONObject(0).getString("owner");
+            return Arrays.stream(owners.split(";")).toList();
+        } catch (Exception e) {
+            autoConfigLogger.error("[[tag=autoconfig]] getAllDbOwners error", e);
+            return Lists.newArrayList();
         }
     }
 }

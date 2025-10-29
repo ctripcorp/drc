@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.log;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictAutoHandleTbl;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -14,6 +15,7 @@ import java.util.List;
  * 2023/10/30 20:15
  */
 @Repository
+@Lazy
 public class ConflictAutoHandleTblDao extends AbstractDao<ConflictAutoHandleTbl> {
 
     private static final String BATCH_ID = "batch_id";

@@ -9,6 +9,7 @@ import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
  * 2023/5/25 12:01
  */
 @Repository
+@Lazy
 public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
 
     private static final String SRC_MHA_DB_MAPPING_ID = "src_mha_db_mapping_id";

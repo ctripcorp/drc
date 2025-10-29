@@ -57,7 +57,6 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private DomainConfig domainConfig;
 
-    private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
     private static final String ROW_LOG_COUNT_MEASUREMENT = "row.log.count";
@@ -232,7 +231,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
             ConflictRowsLogTbl rowLog = rowLogMap.get(logCount.getRowLogId());
             ConflictTrxLogTbl trxLog = trxLogMap.get(logCount.getTrxLogId());
             Email email = generateEmail(logCount, type, rowLog, trxLog);
-            EmailResponse emailResponse = emailService.sendEmail(email);
+            EmailResponse emailResponse = ApiContainer.getEmailServiceImpl().sendEmail(email);
             if (emailResponse.isSuccess()) {
                 CONSOLE_MONITOR_LOGGER.info("[[task=ConflictSendAlarm]]send email success, logCount: {}", logCount);
             } else {
@@ -241,6 +240,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         }
     }
 
+    @SuppressWarnings("ctrip-java:ChineseCharacterCheck")
     private Email generateEmail(ConflictRowsLogCount count, ConflictCountType type, ConflictRowsLogTbl rowLog, ConflictTrxLogTbl trxLog) throws SQLException {
         String dbName = count.getDbName();
         String tableName = count.getTableName();
@@ -253,8 +253,7 @@ public class ConflictRowsLogCountTask extends AbstractLeaderAwareMonitor {
         Email email = new Email();
         email.setSubject("DRC 数据同步冲突告警");
         email.setSender(domainConfig.getConflictAlarmSenderEmail());
-        boolean inBlacklist = conflictLogService.isInBlackListWithCache(dbName, tableName);
-        if (domainConfig.getConflictAlarmSendDBOwnerSwitch() && !inBlacklist) {
+        if (domainConfig.getConflictAlarmSendDBOwnerSwitch()) {
             email.addRecipient(dbTbl.getDbOwner() + "@trip.com");
             domainConfig.getConflictAlarmCCEmails().forEach(email::addCc);
             if (StringUtils.isNotBlank(dbTbl.getEmailGroup())) {

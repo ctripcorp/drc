@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPool;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ProxyEnabled;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;

@@ -64,10 +64,13 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     private boolean parseDrcDdl = false;
 
-    public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey) {
+    private boolean isMaster;
+
+    public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey, boolean isMaster) {
         this.schemaManager = schemaManager;
         this.monitorManager = monitorManager;
         this.registryKey = registryKey;
+        this.isMaster = isMaster;
     }
 
     @Override
@@ -124,6 +127,11 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         String schemaInBinlog = ddlResult.getOriSchemaName() != null ? ddlResult.getOriSchemaName() : schemaName;
         String tableName = ddlResult.getTableName();
         ApplyResult applyResult = schemaManager.apply(schemaInBinlog, tableName, queryString, type, gtid);
+
+        if (ApplyResult.Status.FAIL == applyResult.getStatus()) {
+            DefaultEventMonitorHolder.getInstance().logEvent(String.format("DRC.ddl.failed.%s", isMaster), registryKey);
+        }
+
         if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
             DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
             return false;
@@ -324,7 +332,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     }
 
     @VisibleForTesting
-    protected List<TableId> getRelatedTables(List<DdlResult> results) {
+    public List<TableId> getRelatedTables(List<DdlResult> results) {
         return results.stream()
                 .flatMap(e -> Stream.of(
                         new TableId(e.getSchemaName(), e.getTableName()),

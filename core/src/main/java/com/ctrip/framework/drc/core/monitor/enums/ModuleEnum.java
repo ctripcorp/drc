@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.monitor.enums;
 
+import com.ctrip.framework.drc.core.mq.MqType;
+
 /**
  * @author shenhaibo
  * @version 1.0
@@ -21,7 +23,9 @@ public enum ModuleEnum {
 
     PROXY(6, "P", 100013684L),
 
-    MESSENGER(7, "M", 100059182L);
+    MESSENGER_QMQ(7, "MQ", 100059182L),
+
+    MESSENGER_KAFKA(8, "MK", 100059182L);
 
     private int code;
 
@@ -35,9 +39,25 @@ public enum ModuleEnum {
         this.appId = appId;
     }
 
+
+    public static boolean isMessenger(int code) {
+        return code == MESSENGER_QMQ.code || code == MESSENGER_KAFKA.code;
+    }
+
+    public static boolean isResource(int code) {
+        return code == REPLICATOR.code || code == APPLIER.code || code == MESSENGER_QMQ.code || code == MESSENGER_KAFKA.code;
+    }
+
+    public static int getMessengerCodeByMqType(MqType mqType) {
+        return switch (mqType) {
+            case qmq -> MESSENGER_QMQ.code;
+            case kafka -> MESSENGER_KAFKA.code;
+        };
+    }
+
     public static ModuleEnum getModuleEnum(String description) throws Exception {
-        for(ModuleEnum moduleEnum: ModuleEnum.values()){
-            if(description.equals(moduleEnum.getDescription())){
+        for (ModuleEnum moduleEnum : ModuleEnum.values()) {
+            if (description.equals(moduleEnum.getDescription())) {
                 return moduleEnum;
             }
         }

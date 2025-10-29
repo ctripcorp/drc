@@ -24,4 +24,6 @@ public interface DbaApiService {
     MhaAccounts accountV2PwdChange(String mhaName, String masterNodeIp,Integer masterNodePort);
 
     String getDbOwner(String dbName);
+
+    List<String> getAllDbOwners(String dbName);
 }

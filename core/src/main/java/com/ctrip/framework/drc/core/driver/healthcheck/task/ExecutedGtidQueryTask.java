@@ -46,12 +46,14 @@ public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
                 try (Connection connection = dataSource.getConnection()){
                     return gtidReader.getExecutedGtids(connection);
                 } catch (Exception e) {
-                    logger.warn("query executedGtid of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
+                    logger.warn("query executedGtid of {}:{} error, clear dataSource", endpoint.getHost(), endpoint.getPort(), e);
+                    dataSourceManager.clearDataSource(endpoint);
                 }
                 return StringUtils.EMPTY;
             });
         } catch (Exception e) {
-            logger.error("query executedGtid of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
+            logger.error("query executedGtid of {}:{} error, clear dataSource", endpoint.getHost(), endpoint.getPort(), e);
+            dataSourceManager.clearDataSource(endpoint);
             return StringUtils.EMPTY;
         }
     }

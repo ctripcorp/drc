@@ -6,14 +6,17 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.user.IAMService;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
@@ -32,17 +35,18 @@ import static org.mockito.Mockito.when;
 public class DbReplicationServiceImplTest extends CommonDataInit{
     public static final String VPC_MHA_NAME = "vpcMha1";
     @Mock
-    DbClusterApiService dbClusterService;
+    private DbClusterApiService dbClusterService;
     @Mock
-    OPSApiService opsApiServiceImpl;
+    private OPSApiService opsApiServiceImpl;
     @Mock
-    MhaServiceV2Impl mhaServiceV2;
+    private MhaServiceV2Impl mhaServiceV2;
     @Mock
-    MhaDbReplicationServiceImpl mhaDbReplicationService;
+    private MhaDbReplicationServiceImpl mhaDbReplicationService;
     @Mock
-    DbaApiService dbaApiService;
-    @Mock
-    IAMService iamService;
+    private DbaApiService dbaApiService;
+
+    private IAMService iamService;
+    private MockedStatic<ServicesUtil> servicesUtil;
 
     @Before
     public void setUp() throws IOException, SQLException {
@@ -52,7 +56,18 @@ public class DbReplicationServiceImplTest extends CommonDataInit{
         when(qConfigService.addOrUpdateDalClusterMqConfig(anyString(),any(),any(),any(),anyList())).thenReturn(true);
         when(defaultConsoleConfig.getConsoleMqPanelUrl()).thenReturn("");
         doNothing().when(mhaDbReplicationService).maintainMhaDbReplication(Mockito.anyList());
+
+        iamService = Mockito.mock(IAMService.class);
+        Mockito.when(iamService.iamFilterEnable()).thenReturn(true);
+
+        servicesUtil = Mockito.mockStatic(ServicesUtil.class);
+        servicesUtil.when(() -> ServicesUtil.getIAMService()).thenReturn(iamService);
         super.setUp();
+    }
+
+    @After
+    public void tearDown() {
+        servicesUtil.close();
     }
 
     @Test

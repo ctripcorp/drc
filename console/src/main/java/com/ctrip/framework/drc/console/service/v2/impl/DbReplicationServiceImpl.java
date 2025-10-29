@@ -1,19 +1,18 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MqReplicationQuery;
-import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.DbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.DbReplicationVo;
 import com.ctrip.framework.drc.console.vo.request.MqReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -41,7 +40,6 @@ import java.util.stream.Collectors;
 @Service
 public class DbReplicationServiceImpl implements DbReplicationService {
     private static final Logger logger = LoggerFactory.getLogger(DbReplicationServiceImpl.class);
-    private IAMService iamService = ServicesUtil.getIAMService();
 
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
@@ -57,6 +55,10 @@ public class DbReplicationServiceImpl implements DbReplicationService {
     private DcTblDao dcTblDao;
     @Autowired
     private DbaApiService dbaApiService;
+    @Autowired
+    private DbReplicationFilterMappingTblDao  dbReplicationFilterMappingTblDao;
+    @Autowired
+    private MessengerFilterTblDao  messengerFilterTblDao;
 
     @Override
     public PageResult<DbReplicationVo> queryMqReplicationsByPage(MqReplicationQueryDto queryDto) throws SQLException {
@@ -129,6 +131,7 @@ public class DbReplicationServiceImpl implements DbReplicationService {
             // query replication
             PageResult<DbReplicationTbl> tblPageResult = this.queryByPage(query);
             List<DbReplicationTbl> data = tblPageResult.getData();
+            List<Long> dbReplicationIds = data.stream().map(DbReplicationTbl::getId).toList();
             if (tblPageResult.getTotalCount() == 0) {
                 return PageResult.emptyResult();
             }
@@ -148,12 +151,26 @@ public class DbReplicationServiceImpl implements DbReplicationService {
             Map<Long,DbTbl> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, e -> e));
             List<DcTbl> dcTbls = dcTblDao.queryAll();
             Map<Long,DcTbl> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, e -> e));
+            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+            List<Long> messengerFilterTblIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getMessengerFilterId).filter(NumberUtils::isPositive).toList();
+            List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryByIds(messengerFilterTblIds);
+            Map<Long,MessengerFilterTbl> messengerFilterTblMap = messengerFilterTbls.stream().collect(Collectors.toMap(MessengerFilterTbl::getId, e -> e));
+            Map<Long,MessengerFilterTbl> dbReplicationId2MessengerFilterTblId = dbReplicationFilterMappingTbls.stream()
+                    .collect(Collectors.toMap(
+                            DbReplicationFilterMappingTbl::getDbReplicationId,
+                            mapping -> messengerFilterTblMap.get(mapping.getMessengerFilterId()),
+                            (existing, replacement) -> existing
+                            ));
 
             List<DbReplicationVo> result = data.stream().map( e -> {
                 DbReplicationVo dbReplicationVo = new DbReplicationVo();
                 dbReplicationVo.setDbReplicationId(e.getId());
                 dbReplicationVo.setSrcLogicTableName(e.getSrcLogicTableName());
                 dbReplicationVo.setDstLogicTableName(e.getDstLogicTableName());
+
+                MessengerFilterTbl mft = dbReplicationId2MessengerFilterTblId.get(e.getId());
+                String mqConfigJson = mft == null ? null : mft.getProperties();
+                dbReplicationVo.setMqConfig(mqConfigJson);
 
                 MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingMap.get(e.getSrcMhaDbMappingId());
                 DbTbl dbTbl = dbMap.get(mhaDbMappingTbl.getDbId());
@@ -188,7 +205,7 @@ public class DbReplicationServiceImpl implements DbReplicationService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllDbReplication().getLeft()) {
+        if (!ServicesUtil.getIAMService().canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");

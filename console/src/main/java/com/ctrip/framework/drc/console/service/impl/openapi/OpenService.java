@@ -53,7 +53,7 @@ public class OpenService {
     @VisibleForTesting
     protected JsonArray getDbArray(Map<String, Object> body) throws Exception {
         Map<String, Object> requestBody = Maps.newLinkedHashMap();
-        requestBody.put("access_token", domainConfig.getOpsAccessToken());
+        requestBody.put("access_token", domainConfig.getProdOpsAccessToken());
         requestBody.put("request_body", body);
         String response = HttpUtils.post(domainConfig.getCmsGetDbInfoUrl(),requestBody,String.class);
         JsonObject jsonObject = gson.fromJson(response, JsonObject.class);

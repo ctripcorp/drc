@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.DlockTbl;
 import com.ctrip.platform.dal.dao.DalHints;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
  * 2025/4/21 17:08
  */
 @Repository
+@Lazy
 public class DlockTblDao extends AbstractDao<DlockTbl> {
     private static final String MHA_NAME = "mha_name";
     private static final String LOCK_NAME = "lock_name";

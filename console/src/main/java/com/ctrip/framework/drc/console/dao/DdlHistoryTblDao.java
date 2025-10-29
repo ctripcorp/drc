@@ -7,6 +7,8 @@ import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
+
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -16,6 +18,7 @@ import java.sql.SQLException;
  * @date 2021-01-04
  */
 @Repository
+@Lazy
 public class DdlHistoryTblDao extends AbstractDao<DdlHistoryTbl> {
     public static final String CREATE_TIME = "create_time";
     

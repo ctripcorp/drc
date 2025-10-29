@@ -31,20 +31,21 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictDetail;
+import com.ctrip.framework.drc.core.monitor.enums.ConflictResult;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -55,6 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -62,7 +64,6 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -73,6 +74,7 @@ import java.util.stream.Collectors;
  * 2023/9/26 16:06
  */
 @Service
+@Lazy
 public class ConflictLogServiceImpl implements ConflictLogService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -107,10 +109,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Autowired
     private DbaApiService dbaApiService;
 
-    private IAMService iamService = ServicesUtil.getIAMService();
-
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictLog"));
     private final ListeningExecutorService cflExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newThreadExecutor(10, 50, 10000, "cflExecutorService"));
+    private final ListeningExecutorService reportService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "reportConflict"));
+
 
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
@@ -125,18 +127,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final String EMPTY_SQL = "EMPTY_SQL";
     private static final String CELL_CLASS_TYPE = "cell-class-type";
     private static final String CELL_CLASS_NAME = "cellClassName";
-    private static final String IGNORE_CONFLICT_TYPES = "ignoreConflictType";
-
-    private final LoadingCache<String, Set<String>> ignoreConflictTypesCache = CacheBuilder.newBuilder()
-            .maximumSize(1)
-            .expireAfterAccess(30, TimeUnit.SECONDS)
-            .build(new CacheLoader<>() {
-                @Override
-                public Set<String> load(String key) {
-                    return consoleConfig.getIgnoreConflictTypes();
-                }
-            });
-
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -326,6 +316,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return;
         }
 
+        List<ConflictTransactionLog> reportTasks = trxLogs;
+        reportService.submit(() -> cflLogsReportHickWall(reportTasks));
+
         List<ConflictTrxLogTbl> conflictTrxLogTbls = trxLogs.stream().map(this::buildConflictTrxLog).collect(Collectors.toList());
         conflictTrxLogTbls = conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
         Map<String, Long> trxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getGtid, ConflictTrxLogTbl::getId));
@@ -371,6 +364,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (param.getEndHandleTime() <= param.getBeginHandleTime()) {
             throw ConsoleExceptionUtils.message("endTime must be greater than beginTime");
         }
+        if (param.getCflDetail() != null) {
+            ConflictDetail.valueOf(param.getCflDetail());
+        }
         param.setCreateBeginTime(DateUtils.getStartDateOfDay(param.getBeginHandleTime()));
         param.setCreateEndTime(DateUtils.getEndDateOfDay(param.getEndHandleTime() - 1));
 
@@ -386,32 +382,58 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @VisibleForTesting
-    protected List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) throws Exception {
-        trxLogs.stream().forEach(trxLog -> {
-            List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream()
-                    .filter(cflLog -> !isInBlackListWithCache(cflLog.getDb(), cflLog.getTable()))
-                    .filter(cflLog -> {
-                        if (consoleConfig.getConflictOptimizeSwitch()) {
-                            String confilctDetail = cflLog.getConflictDetail();
-                            Set<String> ignoreList;
-                            try {
-                                ignoreList = ignoreConflictTypesCache.get(IGNORE_CONFLICT_TYPES);
-                            } catch (ExecutionException e) {
-                                logger.error("[filterTransactionLogs] get ignoreConflictTypesCache fail");
-                                ignoreList = Sets.newHashSet();;
-                            }
-                            if (confilctDetail != null && ignoreList.contains(confilctDetail)) {
-                                return false;
-                            }
-                            return true;
-                        }
-                        return true;
-                    })
-                    .collect(Collectors.toList());
-            trxLog.setCflLogs(cflLogs);
-            trxLog.setCflRowsNum((long) cflLogs.size());
+    protected List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) {
+        List<ConflictTransactionLog> filteredTrxLogs = Lists.newArrayList();
+        trxLogs.forEach(trxLog -> {
+            List<ConflictRowLog> cflLogs = trxLog.getCflLogs();
+            List<ConflictRowLog> filteredCflLogs = cflLogs.stream().filter(cflLog -> !isInBlackListWithCache(cflLog)).toList();
+            // filter trx only if the whole trx is in blacklist
+            if (!CollectionUtils.isEmpty(filteredCflLogs)) {
+                filteredTrxLogs.add(trxLog);
+            }
         });
-        return trxLogs.stream().filter(trxLog -> !CollectionUtils.isEmpty(trxLog.getCflLogs())).collect(Collectors.toList());
+
+        return filteredTrxLogs;
+    }
+
+    @VisibleForTesting
+    protected void cflLogsReportHickWall(List<ConflictTransactionLog> trxLogs) {
+        for (ConflictTransactionLog trxLog : trxLogs) {
+            String trxResType = trxLog.getTrxRes().intValue() == ConflictResult.COMMIT.getValue() ? "commit" : "rollback";
+            String metricNameTrx = "fx.drc.console.trx.conflict." + trxResType;
+            String metricNameRow = "fx.drc.console.rows.conflict." + trxResType;
+            Set<Pair<String, String>> uniqueDbTablePairs = trxLog.getCflLogs().stream()
+                    .map(log -> Pair.of(log.getDb(), log.getTable()))
+                    .collect(Collectors.toSet());
+            uniqueDbTablePairs.forEach(pair -> {
+                Map<String, String> tags = Maps.newHashMap();
+                tags.put("db", pair.getLeft());
+                tags.put("table", pair.getRight());
+                tags.put("srcMha", trxLog.getSrcMha());
+                tags.put("destMha", trxLog.getDstMha());
+                DefaultReporterHolder.getInstance().reportResetCounter(tags, 1L, metricNameTrx);
+            });
+
+            Map<String, Long> dbTableDetailCounts = trxLog.getCflLogs().stream()
+                    .map(log -> log.getDb() + "," + log.getTable() + "," + log.getConflictDetail())
+                    .collect(Collectors.groupingBy(key -> key, Collectors.counting()));
+
+            dbTableDetailCounts.forEach((key, value) -> {
+                String[] keyParts = key.split(",");
+                if (keyParts.length == 3) {
+                    Map<String, String> tags = Maps.newHashMap();
+                    tags.put("db", keyParts[0]);
+                    tags.put("table", keyParts[1]);
+                    tags.put("detail", keyParts[2]);
+                    tags.put("srcMha", trxLog.getSrcMha());
+                    tags.put("destMha", trxLog.getDstMha());
+                    DefaultReporterHolder.getInstance().reportResetCounter(tags, value, metricNameRow);
+                } else {
+                    logger.error("invalid key in reporting cfl logs: {}, {}", key, value);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.console.conflict.error", key);
+                }
+            });
+        }
     }
 
     @Override
@@ -443,7 +465,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllDbReplication().getLeft()) {
+        if (!ServicesUtil.getIAMService().canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");
@@ -581,8 +603,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void addDbBlacklist(String dbFilter, CflBlacklistType type, Long expirationTime) throws Exception {
-        logger.info("addDbBlacklist dbFilter: {}, type: {}, expirationTime: {}", dbFilter, type, expirationTime);
+    public void addDbBlacklist(String dbFilter, String detailFilter, CflBlacklistType type, Long expirationTime) throws Exception {
+        logger.info("addDbBlacklist dbFilter: {}, detailFilter: {}, type: {}, expirationTime: {}", dbFilter, detailFilter, type, expirationTime);
         List<ConflictDbBlackListTbl> tbls = conflictDbBlackListTblDao.queryBy(dbFilter, type.getCode());
         ConflictDbBlackListTbl tbl;
         tbl =  CollectionUtils.isEmpty(tbls) ? new ConflictDbBlackListTbl() : tbls.get(0);
@@ -599,8 +621,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (tbl.getId() == null || tbl.getId() == 0L) {
             tbl.setDbFilter(dbFilter);
             tbl.setType(type.getCode());
+            tbl.setDetailFilter(buildDetailFilterStr(tbl.getDetailFilter(), detailFilter));
             conflictDbBlackListTblDao.insert(tbl);
         } else {
+            tbl.setDetailFilter(buildDetailFilterStr(tbl.getDetailFilter(), detailFilter));
             conflictDbBlackListTblDao.update(tbl);
         }
         
@@ -613,6 +637,20 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             }
         }
         dbBlacklistCache.refresh(true);
+    }
+
+    @VisibleForTesting
+    protected String buildDetailFilterStr(String prev, String newFilter) {
+        if (StringUtils.isEmpty(newFilter)) {
+            return "";
+        }
+        Set<String> newFilters = Arrays.stream(newFilter.split(",")).collect(Collectors.toSet());
+        Set<String> existFilters = Sets.newHashSet();
+        if (StringUtils.isNotEmpty(prev)) {
+            existFilters = Arrays.stream(prev.split(",")).collect(Collectors.toSet());
+        }
+        newFilters.addAll(existFilters);
+        return CollectionUtils.isEmpty(newFilters) ? "" : String.join(",", newFilters);
     }
 
     @Override
@@ -632,6 +670,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         tbl.setId(dto.getId());
         tbl.setDbFilter(dto.getDbFilter());
+        tbl.setDetailFilter(StringUtils.isEmpty(dto.getDetailFilter()) ? "" : dto.getDetailFilter());
         tbl.setType(dto.getType());
         conflictDbBlackListTblDao.update(tbl);
         dbBlacklistCache.refresh(true);
@@ -669,7 +708,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setType(source.getType());
             target.setCreateTime(DateUtils.longToString(source.getCreateTime().getTime()));
             target.setExpirationTime(source.getExpirationTime() == null ? "" : DateUtils.longToString(source.getExpirationTime().getTime()));
-
+            target.setDetailFilter(source.getDetailFilter() == null ? "" : source.getDetailFilter());
             return target;
         }).collect(Collectors.toList());
         return views;
@@ -697,9 +736,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public boolean isInBlackListWithCache(String db, String table) {
-        return dbBlacklistCache.isInBlackListWithCache(db + "." + table);
+    public boolean isInBlackListWithCache(ConflictRowLog conflictRowLog) {
+        return dbBlacklistCache.isInBlackListWithCache(conflictRowLog);
     }
+
     
     @Override
     public List<ConflictRowRecordCompareEqualView> compareRowRecordsEqual(List<Long> conflictRowLogIds) throws Exception {

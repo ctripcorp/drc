@@ -12,6 +12,7 @@ public enum BroadcastEnum {
     REPLICATOR_CHANGE("/api/drc/v1/switch/clusters/replicators/master"),
     MESSENGER_MASTER_CHANGE("/api/drc/v1/switch/clusters/messengers/master"),
     QMQ_DELAY_REFRESH("/api/drc/v2/monitor/refreshQmqDelay"),
+    KAFKA_DELAY_REFRESH("/api/drc/v2/monitor/refreshKafkaDelay"),
     ;
     
     private String path;

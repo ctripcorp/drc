@@ -1,12 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.v2.DrcTmpconninfoDao;
@@ -23,19 +16,20 @@ import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class DbaApiServiceTest {
 
@@ -228,10 +222,14 @@ public class DbaApiServiceTest {
         when(consoleConfig.getDbaApiPwdChangeUrl()).thenReturn("changePwdUrl");
         when(drcTmpconninfoDao.queryByHostPort(anyString(),anyString(),anyInt())).thenReturn(new MhaAccounts());
         try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
-            theMock.when(() -> HttpUtils.post(eq("changePwdUrl"), any(), any())).thenReturn("{\n"
-                    + "    \"status\": \"success\",\n"
-                    + "    \"query\": \"\"\n"
-                    + "}");
+            theMock.when(() -> HttpUtils.post(eq("changePwdUrl"), any(), any())).thenReturn("{\n" +
+                    "  \"data\": {\n" +
+                    "    \"query\": \"Execute Successfully!\",\n" +
+                    "    \"status\": \"T\"\n" +
+                    "  },\n" +
+                    "  \"message\": \"ok\",\n" +
+                    "  \"success\": true\n" +
+                    "}");
             MhaAccounts mhaAccounts = dbaApiService.accountV2PwdChange(MockEntityBuilder.buildMhaTblV2());
             Assert.assertNotNull(mhaAccounts);
         }

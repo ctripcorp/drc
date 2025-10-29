@@ -7,10 +7,13 @@ import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.param.MhaDbInstanceDto;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MockEntityBuilder;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,12 +44,18 @@ public class CentralServiceImplTest {
     private MhaDbReplicationService mhaDbReplicationService;
     @Mock
     private MachineService machineService;
-    @Mock private ReplicatorGroupTblDao rGroupTblDao;
+    @Mock
+    private ReplicatorGroupTblDao rGroupTblDao;
 
-    @Mock private ReplicatorTblDao replicatorTblDao;
+    @Mock
+    private ReplicatorTblDao replicatorTblDao;
 
-    @Mock private ResourceTblDao resourceTblDao;
-    
+    @Mock
+    private ResourceTblDao resourceTblDao;
+
+    @Mock
+    private MachineTblDao machineTblDao;
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -55,12 +64,12 @@ public class CentralServiceImplTest {
     @Test
     public void testGetUuidInMetaDb() throws SQLException {
         Mockito.when(machineService.getUuid(Mockito.anyString(), Mockito.anyInt())).thenReturn("test");
-        Assert.assertEquals("test", centralServiceImpl.getUuidInMetaDb("test", "ip",1));
+        Assert.assertEquals("test", centralServiceImpl.getUuidInMetaDb("test", "ip", 1));
     }
 
     @Test
     public void testCorrectMachineUuid() throws SQLException {
-        Mockito.when(machineService.correctUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.anyString())).thenReturn(1);
+        Mockito.when(machineService.correctUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString())).thenReturn(1);
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setIp("ip");
         machineTbl.setUuid("uuid");
@@ -79,15 +88,31 @@ public class CentralServiceImplTest {
         resourceTbl2.setIp("ip2");
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"))).thenReturn(mhaTblV2);
         Mockito.when(rGroupTblDao.queryByMhaId(Mockito.eq(1L))).thenReturn(rGroupTbl);
-        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(),Mockito.anyInt())).thenReturn(replicatorTbls);
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(replicatorTbls);
         Mockito.when(resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl1);
         Mockito.when(resourceTblDao.queryByPk(Mockito.eq(2L))).thenReturn(resourceTbl2);
-        Mockito.when(replicatorTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[] {1,1});
+        Mockito.when(replicatorTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[]{1, 1});
 
         boolean b = centralServiceImpl.updateMasterReplicatorIfChange(new MhaReplicatorEntity("mha", "ip2"));
         boolean b1 = centralServiceImpl.updateMasterReplicatorIfChange(new MhaReplicatorEntity("mha", "ip2"));
         Assert.assertTrue(b);
         Assert.assertFalse(b1);
+    }
+
+    @Test
+    public void testBatchMhaMasterDbChange() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaNames(Mockito.anyList(), Mockito.anyInt())).thenReturn(Lists.newArrayList(MockEntityBuilder.buildMhaTblV2()));
+        Mockito.when(machineTblDao.queryByMhaIds(Mockito.anyList())).thenReturn(MockEntityBuilder.buildMachineTbls());
+        Mockito.when(machineTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+
+        MhaInstanceGroupDto mhaInstanceGroupDto = new MhaInstanceGroupDto();
+        mhaInstanceGroupDto.setMhaName("mha");
+        MhaInstanceGroupDto.MySQLInstance master = new MhaInstanceGroupDto.MySQLInstance();
+        master.setIp("ip");
+        master.setPort(1);
+        mhaInstanceGroupDto.setMaster(master);
+
+        centralServiceImpl.batchMhaMasterDbChange(new MhaDbInstanceDto(Lists.newArrayList(mhaInstanceGroupDto)));
     }
 
     @Test

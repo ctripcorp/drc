@@ -11,19 +11,19 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormBuildParam;
 import com.ctrip.framework.drc.console.param.v2.application.ApplicationFormQueryParam;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcApplicationServiceImpl;
 import com.ctrip.framework.drc.console.vo.v2.ApplicationFormView;
 import com.ctrip.framework.drc.core.service.email.EmailResponse;
 import com.ctrip.framework.drc.core.service.email.EmailService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import org.assertj.core.util.Lists;
+import org.checkerframework.checker.units.qual.A;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -48,17 +48,33 @@ public class DrcApplicationServiceTest {
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
     @Mock
     private DomainConfig domainConfig;
-    @Mock
-    private EmailService emailService;
+
     @Mock
     private UserService userService;
     @Mock
     private DbDrcBuildService dbDrcBuildService;
 
+    private MockedStatic<ApiContainer> apiContainer;
+
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        EmailResponse response = new EmailResponse();
+        response.setSuccess(true);
+        response.setEmailIdList(Lists.newArrayList("test"));
+
+        EmailService emailService = Mockito.mock(EmailService.class);
+        Mockito.when(emailService.sendEmail(Mockito.any())).thenReturn(response);
+
+        apiContainer = Mockito.mockStatic(ApiContainer.class);
+        apiContainer.when(() -> ApiContainer.getEmailServiceImpl()).thenReturn(emailService);
+    }
+
+    @After
+    public void tearDown() {
+        apiContainer.close();
     }
 
     @Test
@@ -104,6 +120,7 @@ public class DrcApplicationServiceTest {
 
     @Test
     public void testSendEmail() throws Exception {
+
         Mockito.when(applicationFormTblDao.queryById(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationFormTbl());
         Mockito.when(applicationApprovalTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(PojoBuilder.buildApplicationApprovalTbl1());
         Mockito.when(applicationRelationTblDao.queryByApplicationFormId(Mockito.anyLong())).thenReturn(Lists.newArrayList(PojoBuilder.buildApplicationRelationTbl()));
@@ -116,10 +133,6 @@ public class DrcApplicationServiceTest {
         Mockito.when(domainConfig.getDrcConfigEmailSendSwitch()).thenReturn(true);
         Mockito.when(domainConfig.getDrcConfigCcEmail()).thenReturn(Lists.newArrayList("cc"));
         Mockito.when(domainConfig.getDrcConfigDbaEmail()).thenReturn("dba");
-
-        EmailResponse response = new EmailResponse();
-        response.setSuccess(true);
-        Mockito.when(emailService.sendEmail(Mockito.any())).thenReturn(response);
 
         boolean result = drcApplicationService.sendEmail(1L);
         Assert.assertTrue(result);
@@ -149,7 +162,6 @@ public class DrcApplicationServiceTest {
 
         EmailResponse response = new EmailResponse();
         response.setSuccess(true);
-        Mockito.when(emailService.sendEmail(Mockito.any())).thenReturn(response);
 
         Mockito.when(applicationFormTblDao.update(Mockito.any(ApplicationFormTbl.class))).thenReturn(1);
         boolean result = drcApplicationService.manualSendEmail(1L);

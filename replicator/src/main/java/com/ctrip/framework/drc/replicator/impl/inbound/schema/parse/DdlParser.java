@@ -1,15 +1,14 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema.parse;
 
-import com.alibaba.fastsql.sql.SQLUtils;
-import com.alibaba.fastsql.sql.ast.SQLExpr;
-import com.alibaba.fastsql.sql.ast.SQLStatement;
-import com.alibaba.fastsql.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.fastsql.sql.ast.expr.SQLPropertyExpr;
-import com.alibaba.fastsql.sql.ast.statement.*;
-import com.alibaba.fastsql.sql.dialect.mysql.ast.statement.MySqlRenameTableStatement;
-import com.alibaba.fastsql.sql.dialect.mysql.ast.statement.MySqlRenameTableStatement.Item;
-import com.alibaba.fastsql.sql.parser.ParserException;
-import com.alibaba.fastsql.util.JdbcConstants;
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlRenameTableStatement;
+import com.alibaba.druid.sql.parser.ParserException;
+import com.alibaba.druid.util.JdbcConstants;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -20,8 +19,8 @@ import java.util.List;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter.DEFAULT_CHARACTER_SET_SERVER;
 
 /**
- * @Author limingdong
- * @create 2020/2/24
+ * Created by dengquanliang
+ * 2025/7/21 16:28
  */
 public class DdlParser {
 
@@ -125,7 +124,7 @@ public class DdlParser {
                 }
             } else if (statement instanceof MySqlRenameTableStatement) {
                 MySqlRenameTableStatement rename = (MySqlRenameTableStatement) statement;
-                for (Item item : rename.getItems()) {
+                for (MySqlRenameTableStatement.Item item : rename.getItems()) {
                     DdlResult ddlResult = new DdlResult();
                     processName(ddlResult, schmeaName, item.getName(), true);
                     processName(ddlResult, schmeaName, item.getTo(), false);
@@ -246,16 +245,5 @@ public class DdlParser {
         return name;
     }
 
-    public static String unescapeQuotaName(String name) {
-        if (name != null && name.length() > 2) {
-            char c0 = name.charAt(0);
-            char x0 = name.charAt(name.length() - 1);
-            if (c0 == '\'' && x0 == '\'') {
-                return name.substring(1, name.length() - 1);
-            }
-        }
-
-        return name;
-    }
 
 }

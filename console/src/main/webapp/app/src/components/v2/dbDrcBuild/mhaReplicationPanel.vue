@@ -95,7 +95,6 @@ export default {
   },
   created () {
     this.openDetailModal = Array(this.mhaReplications.length).fill(false)
-    console.log('mhaReplications.length', this.mhaReplications)
     if (this.mhaReplications && this.mhaReplications.length === 1) {
       this.value = ['0']
     }

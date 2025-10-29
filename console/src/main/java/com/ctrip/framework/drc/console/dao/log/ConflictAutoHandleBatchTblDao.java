@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -17,6 +18,7 @@ import java.util.List;
  * 2023/10/30 20:18
  */
 @Repository
+@Lazy
 public class ConflictAutoHandleBatchTblDao extends AbstractDao<ConflictAutoHandleBatchTbl> {
 
     private static final String DB_NAME = "db_name";

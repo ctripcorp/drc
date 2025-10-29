@@ -73,7 +73,6 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
     @Autowired
     private DbDrcBuildService dbDrcBuildService;
 
-    private EmailService emailService = ApiContainer.getEmailServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
 
     private static final long MAX_DELAY = 10000;
@@ -251,7 +250,7 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         return target;
     }
 
-
+    @SuppressWarnings("ctrip-java:ChineseCharacterCheck")
     private boolean sendEmail(ApplicationFormTbl applicationForm, ApplicationApprovalTbl approvalTbl, List<MhaReplicationDto> mhaReplicationDtos, List<String> dbNames, List<ReplicationTableTbl> newAddTables) {
         Email email = new Email();
         email.setSubject("DRC同步配置变更");
@@ -271,18 +270,19 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         }
         if (applicationForm.getFlushExistingData().equals(BooleanEnum.TRUE.getCode())) {
             email.setHeader("DRC同步已配置，请DBA处理存量数据!</br>");
+            email.setFooter(domainConfig.getDrcConfigEmailFooter());
         } else {
             email.setHeader("DRC同步已配置，请业务验证!</br>");
         }
-        email.addContentKeyValue("延迟监控", buildMhaDelayUrl(mhaReplicationDtos));
-        email.addContentKeyValue("同步DB", Joiner.on(",").join(dbNames));
+        email.addContentKeyValue("同步方向", buildMhaReplicationDescription(mhaReplicationDtos));
+        email.addContentKeyValue("同步DB(延迟监控)", buildMhaDbDelayUrl(dbNames));
 
         List<String> tableNames = newAddTables.stream().map(ReplicationTableTbl::getTableName).collect(Collectors.toList());
         email.addContentKeyValue("新增表", Joiner.on(",").join(tableNames) + "共" + tableNames.size() + "张表");
         String filterType = applicationForm.getFilterType().equalsIgnoreCase("ALL") ? "无" : applicationForm.getFilterType();
         email.addContentKeyValue("过滤方式", filterType);
 
-        EmailResponse emailResponse = emailService.sendEmail(email);
+        EmailResponse emailResponse = ApiContainer.getEmailServiceImpl().sendEmail(email);
         if (emailResponse.isSuccess()) {
             logger.info("[[task=drcConfigSendEmail]] send email success, applicationFormId: {}", applicationForm);
             return true;
@@ -292,15 +292,28 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         }
     }
 
-    private String buildMhaDelayUrl(List<MhaReplicationDto> mhaReplicationDtos) {
+    private String buildMhaReplicationDescription(List<MhaReplicationDto> mhaReplicationDtos) {
         StringBuilder stringBuilder = new StringBuilder();
         int size = mhaReplicationDtos.size();
         for (int i = 0; i < size; i++) {
             MhaReplicationDto mhaReplicationDto = mhaReplicationDtos.get(i);
             MhaDto srcMha = mhaReplicationDto.getSrcMha();
             MhaDto dstMha = mhaReplicationDto.getDstMha();
-            stringBuilder.append("<a href='").append(domainConfig.getConflictAlarmHickwallUrl() + "&var-mha=" + srcMha.getName() + "'>")
-                    .append(srcMha.getName() + "(" + srcMha.getRegionName() + ")" + "=>" + dstMha.getName() + "(" + dstMha.getRegionName() + ")").append("</a>");
+            stringBuilder.append(srcMha.getName() + "(" + srcMha.getRegionName() + ")" + "=>" + dstMha.getName() + "(" + dstMha.getRegionName() + ")");
+            if (i != size - 1) {
+                stringBuilder.append("</br>");
+            }
+        }
+        return stringBuilder.toString();
+    }
+
+    private String buildMhaDbDelayUrl(List<String> dbNames) {
+        StringBuilder stringBuilder = new StringBuilder();
+        int size = dbNames.size();
+        for (int i = 0; i < size; i++) {
+            String dbName = dbNames.get(i);
+            stringBuilder.append("<a href='").append(domainConfig.getMhaDbDelayHickwallUrl() + "&var-db=" + dbName + "'>")
+                    .append(dbName).append("</a>");
             if (i != size - 1) {
                 stringBuilder.append("</br>");
             }

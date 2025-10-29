@@ -1,9 +1,5 @@
 package com.ctrip.framework.drc.core.server.config.applier.dto;
 
-import com.ctrip.framework.drc.core.meta.ApplierMeta;
-import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
-import com.ctrip.framework.drc.core.utils.NameUtils;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
@@ -13,6 +9,15 @@ import java.util.Objects;
  * Nov 07, 2019
  */
 public class ApplierConfigDto extends FetcherConfigDto {
+    protected String cflUpLevel;
+
+    public void setCflUpLevel(String cflUpLevel) {
+        this.cflUpLevel = cflUpLevel;
+    }
+
+    public String getCflUpLevel() {
+        return cflUpLevel;
+    }
 
     @Override
     public String toString() {

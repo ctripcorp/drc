@@ -7,6 +7,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -20,6 +21,7 @@ import java.util.List;
  * @date 2020-08-11
  */
 @Repository
+@Lazy
 public class ResourceTblDao extends AbstractDao<ResourceTbl> {
 
     private static final String TYPE = "type";
@@ -108,7 +110,7 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         if (param.getType() != null && param.getType() > -1) {
             sqlBuilder.and().equal(TYPE, param.getType(), Types.TINYINT);
         } else {
-            sqlBuilder.and().in(TYPE, Lists.newArrayList(ModuleEnum.APPLIER.getCode(), ModuleEnum.REPLICATOR.getCode(), ModuleEnum.MESSENGER.getCode()), Types.TINYINT);
+            sqlBuilder.and().in(TYPE, Lists.newArrayList(ModuleEnum.APPLIER.getCode(), ModuleEnum.REPLICATOR.getCode(), ModuleEnum.MESSENGER_QMQ.getCode(), ModuleEnum.MESSENGER_KAFKA.getCode()), Types.TINYINT);
         }
         if (StringUtils.isNotBlank(param.getTag())) {
             sqlBuilder.and().equal(TAG, param.getTag(), Types.VARCHAR);

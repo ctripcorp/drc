@@ -68,7 +68,7 @@ public class DdlFilterTest extends MockTest {
         doNothing().when(schemaManager).persistDdl(anyString(), anyString(), anyString());
         doNothing().when(monitorManager).onDdlEvent(anyString(), anyString(), anyString(), any(QueryType.class));
 
-        ddlFilter = new DdlFilter(schemaManager, monitorManager, "registryKey");
+        ddlFilter = new DdlFilter(schemaManager, monitorManager, "registryKey", true);
         value = new InboundLogEventContext(queryLogEvent, null, new TransactionFlags(), gtid);
 
         logEventHeader = new LogEventHeader(query_log_event.getType(), 1L, 64, 12246);

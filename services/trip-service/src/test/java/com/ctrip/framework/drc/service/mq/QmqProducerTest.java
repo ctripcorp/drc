@@ -123,7 +123,7 @@ public class QmqProducerTest {
     }
 
     @Test
-    public void testGenerateMessageSendByPks()  {
+    public void testGenerateMessageSendKafkaByPks()  {
         MqConfig config = new MqConfig();
         config.setTopic("drc.test.topic");
         config.setOrder(true);

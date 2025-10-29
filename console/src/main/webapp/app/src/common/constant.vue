@@ -13,6 +13,10 @@ const dcList = [
     label: '上海日版'
   },
   {
+    value: 'shaali_default',
+    label: '上海阿里_default'
+  },
+  {
     value: 'ntgxh',
     label: 'ntgxh'
   },
@@ -25,12 +29,24 @@ const dcList = [
     label: '上海阿里'
   },
   {
-    value: 'sinaws',
-    label: 'sinaws'
-  },
-  {
     value: 'sgpali',
     label: 'sgpali'
+  },
+  {
+    value: 'cftxy',
+    label: 'cftxy'
+  },
+  {
+    value: 'cftrb',
+    label: 'cftrb'
+  },
+  {
+    value: 'pcixy',
+    label: 'pcixy'
+  },
+  {
+    value: 'pcirb',
+    label: 'pcirb'
   }
 ]
 const tagList = [
@@ -47,9 +63,6 @@ const routeTags = ['meta', 'console']
 const azList = [
   'SHARB',
   'SHAXY',
-  'SIN-AWS-B',
-  'SIN-AWS-C',
-  'SIN-VPC',
   'FRA-AWS-A',
   'FRA-AWS-B',
   'FRA-AWS-C',
@@ -58,7 +71,11 @@ const azList = [
   'ALI-VPC',
   'NTGXH',
   'SGP-ALI-B',
-  'SGP-ALI-C'
+  'SGP-ALI-C',
+  'CFTXY',
+  'CFTRB',
+  'PCIRB',
+  'PCIXY'
 ]
 const replicationType = {
   DB_TO_DB: 0,

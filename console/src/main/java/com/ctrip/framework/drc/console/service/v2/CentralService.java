@@ -1,10 +1,12 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
+import com.ctrip.framework.drc.console.param.MhaDbInstanceDto;
 import com.ctrip.framework.drc.console.param.MhaReplicatorEntity;
 import com.ctrip.framework.drc.console.param.mysql.DdlHistoryEntity;
 import com.ctrip.framework.drc.console.param.v2.security.MhaAccounts;
@@ -28,6 +30,8 @@ public interface CentralService {
 
     Boolean updateMasterReplicatorIfChange(MhaReplicatorEntity requestBody)  throws SQLException;
 
+    Boolean batchMhaMasterDbChange(MhaDbInstanceDto requestBody) throws SQLException;
+
     Boolean batchUpdateMasterReplicatorIfChange(MhaReplicatorEntity requestBody)  throws SQLException;
 
     List<DcTbl> queryAllDcTbl() throws SQLException;
@@ -38,4 +42,7 @@ public interface CentralService {
 
     String getDcName(String mhaName) throws SQLException;
 
+    List<BuTbl> getAllBuTbls() throws SQLException;
+
+    String getBuFromDb(String dbName) throws SQLException;
 }

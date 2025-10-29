@@ -5,8 +5,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * @Author limingdong
- * @create 2020/2/24
+ * Created by dengquanliang
+ * 2025/7/21 16:35
  */
 public class DdlParserTest {
 
@@ -362,5 +362,72 @@ public class DdlParserTest {
         Assert.assertNotNull(result);
         Assert.assertNull(result.getTableName());
         Assert.assertEquals("test_db", result.getSchemaName());
+    }
+
+    @Test
+    public void test() {
+        String queryString = "CREATE TABLE `sales_order_flight_detail_8` (\n" +
+                "  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '自增主键',\n" +
+                "  `orderid` bigint NOT NULL DEFAULT '0' COMMENT '订单号',\n" +
+                "  `sales_order_id` bigint NOT NULL DEFAULT '0' COMMENT '销货单号ID',\n" +
+                "  `segment` int NOT NULL DEFAULT '0' COMMENT '行程段ID',\n" +
+                "  `sequence` int NOT NULL DEFAULT '0' COMMENT '航段号',\n" +
+                "  `flight_no` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '航班号',\n" +
+                "  `depart_airport_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '出发机场code',\n" +
+                "  `arrive_airport_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '到达机场code',\n" +
+                "  `depart_time` datetime DEFAULT NULL COMMENT '出发时间',\n" +
+                "  `arrive_time` datetime DEFAULT NULL COMMENT '到达时间',\n" +
+                "  `relation_segment` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '关联的行程段',\n" +
+                "  `depart_terminal` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '出发航站楼',\n" +
+                "  `arrival_terminal` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '到达航站楼',\n" +
+                "  `seat_class` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '仓等',\n" +
+                "  `sub_class` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '子仓位',\n" +
+                "  `flight_style` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '机型信息',\n" +
+                "  `stops` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '经停信息',\n" +
+                "  `stop_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '经停名称',\n" +
+                "  `datachange_createtime` datetime(3) DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                "  `stop_info` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '经停信息（Json格式）',\n" +
+                "  `d_city_id` bigint DEFAULT '0' COMMENT '出发城市ID',\n" +
+                "  `a_city_id` bigint DEFAULT '0' COMMENT '到达城市ID',\n" +
+                "  `airline_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '原始航司',\n" +
+                "  `sub_airline_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '子航司',\n" +
+                "  `userdata_location` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '用于存储数据写入的初始区域，可能的值样例:HK,US,KR,JP,TW,SG,TH,MY,AU,FR等;国内的默认为空值; 如有出海需求，海外数据建议添加该字段',\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  UNIQUE KEY `uniq_salesorderid_segment_sequence` (`sales_order_id`,`segment`,`sequence`),\n" +
+                "  KEY `ix_salesorderid` (`sales_order_id`) /*!80000 INVISIBLE */,\n" +
+                "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`),\n" +
+                "  KEY `ix_segment` (`segment`),\n" +
+                "  KEY `ix_sequence` (`sequence`),\n" +
+                "  KEY `ix_orderid` (`orderid`),\n" +
+                "  KEY `idx_depart_time_flight_no` (`depart_time`,`flight_no`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=25746 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='机票航班信息表'\n";
+
+        DdlResult ddlResult = DdlParser.parse(queryString, "tourorderresourceshard05db").get(0);
+        Assert.assertEquals(ddlResult.getSchemaName(), "tourorderresourceshard05db");
+        Assert.assertEquals(ddlResult.getTableName(), "sales_order_flight_detail_8");
+        System.out.println(ddlResult);
+
+    }
+
+    @Test
+    public void testParseDdl() {
+        String queryString = "CREATE TABLE `test_invisible` (\n" +
+                "  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',\n" +
+                "  `name` varchar(62) NOT NULL DEFAULT'name' COMMENT 'name',\n" +
+                "  `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  KEY `idx_name` (`name`) /*!80000 INVISIBLE */,\n" +
+                "  KEY `ix_datachange_lasttime` (`datachange_lasttime`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3 COMMENT='test_invisible'";
+
+        parseDdl(queryString, "testdb");
+    }
+
+    private void parseDdl(String queryString, String db) {
+        DdlResult ddlResult = DdlParser.parse(queryString, db).get(0);
+        Assert.assertEquals(ddlResult.getSchemaName(), "testdb");
+        Assert.assertEquals(ddlResult.getTableName(), "test_invisible");
     }
 }

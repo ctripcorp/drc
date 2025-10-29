@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.KeyedEndPoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
-import com.ctrip.framework.drc.fetcher.resource.position.MessengerGtidQueryTask;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -113,7 +112,9 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     }
 
     private GtidSet unionMessengerPositionFromDb(GtidSet gtidSet) {
-        GtidSet positionFromMessenger = queryMessengerPositionFromDb();
+        Pair<GtidSet, Boolean> executedGtidPosition = mqPosition.getPosition();
+        GtidSet positionFromMessenger = executedGtidPosition.getLeft();
+        emptyPositionFromDb = executedGtidPosition.getRight();
         logger.info("[{}][NETWORK GTID] db messenger position: {}", registryKey, positionFromMessenger);
         return gtidSet.union(positionFromMessenger);
     }
@@ -126,14 +127,6 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         String gtidSet = queryTask.doQuery();
         emptyPositionFromDb = StringUtils.isBlank(gtidSet);
         return new GtidSet(gtidSet);
-    }
-
-    protected GtidSet queryMessengerPositionFromDb() {
-        Endpoint endpoint = new KeyedEndPoint(registryKey, new DefaultEndPoint(ip, port, username, password));
-        MessengerGtidQueryTask gtidQueryTask = new MessengerGtidQueryTask(endpoint, registryKey);
-        Pair<String, Boolean> executedGtid = gtidQueryTask.getExecutedGtid();
-        emptyPositionFromDb = !executedGtid.getRight();
-        return new GtidSet(executedGtid.getLeft());
     }
 
     @VisibleForTesting

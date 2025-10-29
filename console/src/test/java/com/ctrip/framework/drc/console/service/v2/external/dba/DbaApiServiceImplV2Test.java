@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
+import com.ctrip.framework.drc.console.service.v2.security.KmsService;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import org.junit.After;
@@ -29,6 +31,8 @@ public class DbaApiServiceImplV2Test {
     private DomainConfig domainConfig;
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    @Mock
+    private KmsService kmsService;
 
 
     @Before
@@ -185,13 +189,68 @@ public class DbaApiServiceImplV2Test {
 
     @Test
     public void testGetDbOwner() {
-        Mockito.when(domainConfig.getDBAApiOpsAccessToken()).thenReturn("token");
+        Mockito.when(domainConfig.getProdOpsAccessToken()).thenReturn("token");
         Mockito.when(consoleConfig.getDbaDbOwnerUrl()).thenReturn("url");
         try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
             theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"\", \"data\": [{\"dbname\": \"bbzbbzdrcbenchmarktmpdb\", \"db_type\": \"MySQL\", \"owner\":\n" +
                     "\"owner1;owner2;\"}]}");
             String owner = dbaApiService.getDbOwner("dbName");
             Assert.assertEquals("owner1", owner);
+        }
+
+    }
+
+    @Test
+    public void testGetAllDbOwners() {
+        Mockito.when(domainConfig.getProdOpsAccessToken()).thenReturn("token");
+        Mockito.when(consoleConfig.getDbaDbOwnerUrl()).thenReturn("url");
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"\", \"data\": [{\"dbname\": \"bbzbbzdrcbenchmarktmpdb\", \"db_type\": \"MySQL\", \"owner\":\n" +
+                    "\"owner1;owner2;\"}]}");
+            List<String> owners = dbaApiService.getAllDbOwners("dbName");
+            Assert.assertEquals(2, owners.size());
+        }
+
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn("{\"status\": true, \"message\": \"Invalid dbname or no result\", \"data\": []}");
+            List<String> owners = dbaApiService.getAllDbOwners("dbName");
+            Assert.assertEquals(0, owners.size());
+        }
+    }
+
+    @Test
+    public void testDoChangeAccountV2Pwd() throws Exception {
+        Mockito.when(consoleConfig.getKMSAccessToken(Mockito.eq("dba.account"))).thenReturn("token");
+        Mockito.when(kmsService.getSecretKey(Mockito.anyString())).thenReturn("secret");
+        Mockito.when(consoleConfig.getDbaApiPwdChangeUrl()).thenReturn("url");
+        String returnStr = "{\n" +
+                "  \"data\": {\n" +
+                "    \"query\": \"Execute Successfully!\",\n" +
+                "    \"status\": \"T\"\n" +
+                "  },\n" +
+                "  \"message\": \"ok\",\n" +
+                "  \"success\": true\n" +
+                "}";
+        String returnStrFail = "{\n" +
+                "  \"data\": {\n" +
+                "    \"query\": \"failure:(1133, \\\"Can't find any matching row in the user table\\\")\",\n" +
+                "    \"status\": \"F\"\n" +
+                "  },\n" +
+                "  \"message\": \"ok\",\n" +
+                "  \"success\": false\n" +
+                "}";
+
+        MachineTbl machineTbl = new MachineTbl();
+        machineTbl.setIp("10.10.10.10");
+        machineTbl.setPort(3306);
+        try (MockedStatic<HttpUtils> theMock = mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn(returnStr);
+            boolean result = dbaApiService.doChangeAccountV2Pwd("mhaName", machineTbl);
+            Assert.assertTrue(result);
+
+            theMock.when(() -> HttpUtils.post(any(String.class), any(), eq(String.class))).thenReturn(returnStrFail);
+            result = dbaApiService.doChangeAccountV2Pwd("mhaName", machineTbl);
+            Assert.assertFalse(result);
         }
 
     }

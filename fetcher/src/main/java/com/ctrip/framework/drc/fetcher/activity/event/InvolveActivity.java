@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +41,9 @@ public class InvolveActivity extends EventActivity<FetcherEvent, TransactionEven
         if (!(event instanceof TransactionEvent)) {
             return finish(event);
         }
-        tryPreload(event);
+        if (getSystem().getStatus() != SystemStatus.STOPPED) {
+            tryPreload(event);
+        }
         return hand((TransactionEvent) event);
     }
 

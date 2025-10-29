@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -102,9 +101,7 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
     
     protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) throws Exception {
-        MhaTblV2 condition = new MhaTblV2();
-        condition.setDeleted(BooleanEnum.FALSE.getCode());
-        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryBy(condition);
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
 
         boolean updateFail = false;
         for (MhaTblV2 mhaTblV2 : mhaTblV2s) {

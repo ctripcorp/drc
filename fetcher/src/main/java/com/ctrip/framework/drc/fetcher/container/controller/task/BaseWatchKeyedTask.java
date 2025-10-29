@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.container.FetcherServerContainer;
 import com.ctrip.framework.drc.fetcher.server.FetcherServer;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import com.ctrip.framework.drc.fetcher.system.qconfig.FetcherDynamicConfig;
+import com.ctrip.xpipe.command.LogIgnoreCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,9 +17,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by shiruixin
  * 2024/11/20 15:30
  */
-public class BaseWatchKeyedTask extends FetcherKeyedTask {
+public class BaseWatchKeyedTask extends FetcherKeyedTask implements LogIgnoreCommand {
 
     protected final Logger loggerP = LoggerFactory.getLogger("PROGRESS");
+
+    protected Logger loggerW = LoggerFactory.getLogger("WATCH");
+
+    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected ConcurrentHashMap<String, BaseWatchActivity.LastLWM> lastLWMHashMap;
 
@@ -46,7 +51,7 @@ public class BaseWatchKeyedTask extends FetcherKeyedTask {
             BaseWatchActivity.LastLWM lastLWM = lastLWMHashMap.computeIfAbsent(key, k -> new BaseWatchActivity.LastLWM(currentLWM, currentProgress, currentTimeMillis));
             if (lastLWM.lwm == currentLWM && lastLWM.progress == currentProgress) {
                 if (currentTimeMillis - lastLWM.lastTimeMillis > bearingTimeMillis) {
-                    logger.info("lwm does not raise since {}ms with bearing time {}s, going to remove server ({})", lastLWM.lastTimeMillis, bearingTimeMillis / 1000, key);
+                    loggerW.info("lwm does not raise since {}ms with bearing time {}s, going to remove server ({})", lastLWM.lastTimeMillis, bearingTimeMillis / 1000, key);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("alert", "lwm does not raise for a long time.", 1, 0);
                     removeServer(key);
                 }
@@ -55,11 +60,12 @@ public class BaseWatchKeyedTask extends FetcherKeyedTask {
                 loggerP.info("go ahead ({}): lwm {} progress {}", key, currentLWM, currentProgress);
             }
             if (server.getStatus() == SystemStatus.STOPPED) {
+                loggerW.info("server status is stopped, going to remove server ({})", key);
                 logger.info("server status is stopped, going to remove server ({})", key);
                 removeServer(key);
             }
         } catch (Throwable t) {
-            logger.error("patrol water mark error for: {}", key, t);
+            loggerW.error("patrol water mark error for: {}", key, t);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.instance.error", "watch");
         }
     }
@@ -69,6 +75,6 @@ public class BaseWatchKeyedTask extends FetcherKeyedTask {
         serverContainer.removeServer(key, true);
         serverContainer.registerServer(key);
         lastLWMHashMap.remove(key);
-        logger.info("watch activity remove serve({}) cost time: {}ms", key, System.currentTimeMillis() - startTime);
+        loggerW.info("watch activity remove serve({}) cost time: {}ms", key, System.currentTimeMillis() - startTime);
     }
 }

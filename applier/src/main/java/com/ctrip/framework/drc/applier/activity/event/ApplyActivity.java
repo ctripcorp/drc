@@ -45,6 +45,8 @@ public class ApplyActivity extends BaseApplyActivity {
             case CONNECTION_VALIDATE_MASTER_FAILURE:
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.validate.master.fail", registryKey);
                 return onFailure(transaction);
+            case DISCARDED_TRANSACTION_SUCCESS:
+                return onSuccessDiscardedTransaction(transaction);
             default:
                 if (bigTransaction) {
                     logger.error("BIG TRANSACTION error for {}", transaction.identifier());

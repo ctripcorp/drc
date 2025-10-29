@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.param.log;
 
 import com.ctrip.framework.drc.core.http.PageReq;
-import org.springframework.beans.BeanUtils;
 
 import java.util.List;
 
@@ -26,6 +25,7 @@ public class ConflictRowsLogQueryParam {
     private Integer brief;
     private boolean likeSearch;
     private PageReq pageReq;
+    private String cflDetail;
 
     public String getCreateBeginTime() {
         return createBeginTime;
@@ -155,6 +155,14 @@ public class ConflictRowsLogQueryParam {
         this.brief = brief;
     }
 
+    public String getCflDetail() {
+        return cflDetail;
+    }
+
+    public void setCflDetail(String cflDetail) {
+        this.cflDetail = cflDetail;
+    }
+
     @Override
     public String toString() {
         return "ConflictRowsLogQueryParam{" +
@@ -163,6 +171,7 @@ public class ConflictRowsLogQueryParam {
                 ", admin=" + admin +
                 ", dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +
+                ", cflDetail='" + cflDetail + '\'' +
                 ", beginHandleTime=" + beginHandleTime +
                 ", endHandleTime=" + endHandleTime +
                 ", srcRegion='" + srcRegion + '\'' +

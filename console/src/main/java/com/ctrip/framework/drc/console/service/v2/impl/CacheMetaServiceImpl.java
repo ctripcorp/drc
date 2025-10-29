@@ -13,10 +13,12 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -26,9 +28,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.validation.constraints.NotNull;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -41,19 +47,34 @@ import java.util.stream.Collectors;
  */
 @Service
 public class CacheMetaServiceImpl implements CacheMetaService {
-    
-    @Autowired private MetaProviderV2 metaProviderV2;
 
-    @Autowired private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
 
-    @Autowired private MonitorServiceV2 monitorServiceV2;
-    @Autowired private MachineService machineService;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+
+    @Autowired
+    private MonitorServiceV2 monitorServiceV2;
+    @Autowired
+    private MachineService machineService;
+
+    private static final String CACHE_KEY = "cache_key";
 
     // key: dstMha value: srcMhasHasReplication
-    private final Supplier<Map<String,Set<String>>> mhaReplicationInfo = Suppliers.memoizeWithExpiration(this::refreshMhaReplicationInfo, 60, TimeUnit.SECONDS);
-    private Map<String,Set<String>> mhaReplicationInfoBackUp = Maps.newHashMap();
-    
-    
+    private Map<String, Set<String>> mhaReplicationInfoBackUp = Maps.newHashMap();
+    private final LoadingCache<String, Map<String, Set<String>>> mhaReplicationInfoCache =  CacheBuilder.newBuilder()
+            .maximumSize(1)
+            .initialCapacity(1)
+            .expireAfterWrite(60, TimeUnit.SECONDS)
+            .build(new CacheLoader<>() {
+                @Override
+                public Map<String, Set<String>> load(@NotNull String key) {
+                    return refreshMhaReplicationInfo();
+                }
+            });
+
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
@@ -107,7 +128,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         for (String localDcName : dcNames) {
             List<DbCluster> localDbClusters = Lists.newArrayList(drc.findDc(localDcName).getDbClusters().values());
 
-            for(DbCluster dbCluster :  localDbClusters) {
+            for (DbCluster dbCluster : localDbClusters) {
                 String localMhaName = dbCluster.getMhaName();
                 for (Applier applier : dbCluster.getAppliers()) {
                     DbCluster remoteDbCluster = getRemoteDbCluster(drc, applier);
@@ -188,7 +209,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     private MonitorMetaInfo getMonitorMetaInfo(Set<String> mhaNamesToBeMonitored) {
         MonitorMetaInfo monitorMetaInfo = new MonitorMetaInfo();
         Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint = Maps.newConcurrentMap();
-        Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint= Maps.newConcurrentMap();
+        Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint = Maps.newConcurrentMap();
         Map<MetaKey, Endpoint> masterReplicatorEndpoint = Maps.newConcurrentMap();
         monitorMetaInfo.setMasterMySQLEndpoint(masterMySQLEndpoint);
         monitorMetaInfo.setSlaveMySQLEndpoint(slaveMySQLEndpoint);
@@ -196,14 +217,14 @@ public class CacheMetaServiceImpl implements CacheMetaService {
 
         try {
             Drc drc = metaProviderV2.getDrc();
-            if(drc == null) {
+            if (drc == null) {
                 logger.info("[getMonitorMetaInfo] return drc null");
                 throw new RuntimeException("get drc fail");
             }
-            for(Dc dc : drc.getDcs().values()) {
-                for(DbCluster dbCluster : dc.getDbClusters().values()) {
+            for (Dc dc : drc.getDcs().values()) {
+                for (DbCluster dbCluster : dc.getDbClusters().values()) {
                     String mhaName = dbCluster.getMhaName();
-                    if(!mhaNamesToBeMonitored.contains(mhaName)) {
+                    if (!mhaNamesToBeMonitored.contains(mhaName)) {
                         continue;
                     }
                     MetaKey metaKey = new MetaKey.Builder()
@@ -225,21 +246,21 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                     Db slaveDb = dbList.stream()
                             .filter(db -> !db.isMaster()).findFirst().orElse(null);
 
-                    if(masterReplicator != null) {
+                    if (masterReplicator != null) {
                         masterReplicatorEndpoint.put(metaKey, new DefaultEndPoint(masterReplicator.getIp(), masterReplicator.getApplierPort()));
-                        logger.info("[META] one masterReplicatorEndpoint mhaName is {},ipPort is {}:{}",metaKey.getMhaName(),masterReplicator.getIp(), masterReplicator.getApplierPort());
+                        logger.info("[META] one masterReplicatorEndpoint mhaName is {},ipPort is {}:{}", metaKey.getMhaName(), masterReplicator.getIp(), masterReplicator.getApplierPort());
                     } else {
                         logger.warn("[NO META] no master replicator for: {}", metaKey);
                     }
-                    if(masterDb != null) {
+                    if (masterDb != null) {
                         masterMySQLEndpoint.put(metaKey, new MySqlEndpoint(masterDb.getIp(), masterDb.getPort(), monitorUser, monitorPassword, true));
-                        logger.info("[META] one masterMySQLEndpoint mhaName is {},ipPort is {}:{}",metaKey.getMhaName(),masterDb.getIp(), masterDb.getPort());
+                        logger.info("[META] one masterMySQLEndpoint mhaName is {},ipPort is {}:{}", metaKey.getMhaName(), masterDb.getIp(), masterDb.getPort());
                     } else {
                         logger.warn("[NO META] no master mysql for: {}", metaKey);
                     }
-                    if(slaveDb != null) {
+                    if (slaveDb != null) {
                         slaveMySQLEndpoint.put(metaKey, new MySqlEndpoint(slaveDb.getIp(), slaveDb.getPort(), monitorUser, monitorPassword, false));
-                        logger.info("[META] one slaveMySQLEndpoint mhaName is {},ipPort is {}:{}",metaKey.getMhaName(),slaveDb.getIp(), slaveDb.getPort());
+                        logger.info("[META] one slaveMySQLEndpoint mhaName is {},ipPort is {}:{}", metaKey.getMhaName(), slaveDb.getIp(), slaveDb.getPort());
                     } else {
                         logger.warn("[NO META] no slave mysql for: {}", metaKey);
                     }
@@ -255,10 +276,10 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     @Override
     public Endpoint getMasterEndpoint(String mha) {
         Map<String, Dc> dcs = getDcs();
-        for(Dc dc : dcs.values()) {
+        for (Dc dc : dcs.values()) {
             Map<String, DbCluster> dbClusters = dc.getDbClusters();
             DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
-            if(null != dbCluster) {
+            if (null != dbCluster) {
                 return getMaster(dbCluster);
             }
         }
@@ -268,10 +289,10 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     @Override
     public Endpoint getMasterEndpointForWrite(String mha) {
         Map<String, Dc> dcs = getDcs();
-        for(Dc dc : dcs.values()) {
+        for (Dc dc : dcs.values()) {
             Map<String, DbCluster> dbClusters = dc.getDbClusters();
             DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
-            if(null != dbCluster) {
+            if (null != dbCluster) {
                 return getMasterForWrite(dbCluster);
             }
         }
@@ -281,16 +302,16 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     @Override
     public List<Endpoint> getMasterEndpointsInAllAccounts(String mha) {
         Map<String, Dc> dcs = getDcs();
-        for(Dc dc : dcs.values()) {
+        for (Dc dc : dcs.values()) {
             Map<String, DbCluster> dbClusters = dc.getDbClusters();
             DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
-            if(null != dbCluster) {
+            if (null != dbCluster) {
                 return getAllAccountsMaster(dbCluster);
             }
         }
         return machineService.getMasterEndpointsInAllAccounts(mha);
     }
-    
+
 
     @Override
     public boolean refreshMetaCache() {
@@ -300,7 +321,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
 
     @Override
     public Set<String> getSrcMhasHasReplication(String dstMha) {
-        Map<String, Set<String>> stringSetMap = mhaReplicationInfo.get();
+        Map<String, Set<String>> stringSetMap = mhaReplicationInfoCache.getUnchecked(CACHE_KEY);
         Set<String> srcMhas = stringSetMap.get(dstMha);
         if (CollectionUtils.isEmpty(srcMhas)) {
             logger.error("[getSrcMhasHasReplication] srcMhas is empty for dstMha:{}", dstMha);
@@ -309,20 +330,20 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         return srcMhas;
     }
 
-    protected Map<String,Set<String>> refreshMhaReplicationInfo() {
+    protected Map<String, Set<String>> refreshMhaReplicationInfo() {
         Drc drc = metaProviderV2.getDrc();
-        if(drc == null) {
+        if (drc == null) {
             logger.info("[getMonitorMetaInfo] return drc null");
             return mhaReplicationInfoBackUp;
         }
-        Map<String,Set<String>> currentMhaReplicationInfo = Maps.newHashMap();
+        Map<String, Set<String>> currentMhaReplicationInfo = Maps.newHashMap();
         for (Entry<String, Dc> dcEntry : drc.getDcs().entrySet()) {
             for (Entry<String, DbCluster> dbClusterEntry : dcEntry.getValue().getDbClusters().entrySet()) {
                 DbCluster dbCluster = dbClusterEntry.getValue();
                 String dstMha = dbCluster.getMhaName();
                 for (Applier applier : dbCluster.getAppliers()) {
                     String srcMha = applier.getTargetMhaName();
-                    if(currentMhaReplicationInfo.containsKey(dstMha)) {
+                    if (currentMhaReplicationInfo.containsKey(dstMha)) {
                         currentMhaReplicationInfo.get(dstMha).add(srcMha);
                     } else {
                         Set<String> srcMhas = Sets.newHashSet();
@@ -340,8 +361,8 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         Dbs dbs = dbCluster.getDbs();
         List<Db> dbList = dbs.getDbs();
         List<Endpoint> endpoints = Lists.newArrayList();
-        for(Db db : dbList) {
-            if(db.isMaster()) {
+        for (Db db : dbList) {
+            if (db.isMaster()) {
                 endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue()));
                 endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getReadUser(), dbs.getReadPassword(), BooleanEnum.TRUE.isValue()));
                 endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getWriteUser(), dbs.getWritePassword(), BooleanEnum.TRUE.isValue()));
@@ -358,8 +379,8 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     public Endpoint getMaster(DbCluster dbCluster) {
         Dbs dbs = dbCluster.getDbs();
         List<Db> dbList = dbs.getDbs();
-        for(Db db : dbList) {
-            if(db.isMaster()) {
+        for (Db db : dbList) {
+            if (db.isMaster()) {
                 return new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue());
             }
         }
@@ -369,8 +390,8 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     public Endpoint getMasterForWrite(DbCluster dbCluster) {
         Dbs dbs = dbCluster.getDbs();
         List<Db> dbList = dbs.getDbs();
-        for(Db db : dbList) {
-            if(db.isMaster()) {
+        for (Db db : dbList) {
+            if (db.isMaster()) {
                 return new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getWriteUser(), dbs.getWritePassword(), BooleanEnum.TRUE.isValue());
             }
         }
@@ -405,13 +426,13 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                         replicators.put(
                                 dbCluster.getId(),
                                 new ReplicatorWrapper(
-                                        dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
+                                        MetaClone.clone(dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0))),
                                         srcDc,
                                         dcName,
                                         dbCluster.getName(),
                                         applier.getTargetMhaName(),
                                         dbCluster.getMhaName(),
-                                        routes
+                                        MetaClone.cloneList(routes)
                                 )
                         );
                         break;
@@ -438,16 +459,16 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         }).collect(Collectors.toList());
     }
 
-    private Map<String,List<ReplicatorWrapper>> getAllReplicatorInDc(String dcInRegion) {
+    private Map<String, List<ReplicatorWrapper>> getAllReplicatorInDc(String dcInRegion) {
         Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
         Dc dc = metaProviderV2.getDrc().findDc(dcInRegion);
         String dcName = dc.getId();
         for (DbCluster dbCluster : dc.getDbClusters().values()) {
             String mhaName = dbCluster.getMhaName();
             List<ReplicatorWrapper> rWrappers = Lists.newArrayList();
-            for (Replicator replicator: dbCluster.getReplicators()) {
+            for (Replicator replicator : dbCluster.getReplicators()) {
                 ReplicatorWrapper rWrapper = new ReplicatorWrapper(
-                        replicator,
+                        MetaClone.clone(replicator),
                         dcName,
                         dcName,
                         dbCluster.getName(),

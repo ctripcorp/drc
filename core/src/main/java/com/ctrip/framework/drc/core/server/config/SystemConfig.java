@@ -59,6 +59,10 @@ public class SystemConfig {
 
     public static final int MASTER_HEARTBEAT_PERIOD_SECONDS = 10;
 
+    public static final int APPLIER_HEARTBEAT_PERIOD_SECONDS_WRITEIDLE = MASTER_HEARTBEAT_PERIOD_SECONDS * 2;
+
+    public static final int APPLIER_PROCESS_EVENT_MAX_IDLE_TIMEOUT = 3000; //3s
+
     public static final int CONNECTION_IDLE_TIMEOUT_SECOND = MASTER_HEARTBEAT_PERIOD_SECONDS * 3;
 
     public static final long SLOW_COMMIT_THRESHOLD = 500L;

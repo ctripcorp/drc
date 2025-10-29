@@ -50,14 +50,14 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     @Autowired private DefaultCurrentMetaManager currentMetaManager;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
-    
+
     @Autowired private DefaultConsoleConfig consoleConfig;
 
     public static final String BINLOG_RETENTION_TIME_MEASUREMENT = "fx.drc.binlog.retention.time";
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
-    
-    
+
+
     @Override
     public void initialize() {
         super.initialize();
@@ -69,7 +69,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
         if (isRegionLeader) {
             logger.info("[[monitor=mysqlConfigs]] is a leader,going to monitor");
             String mysqlConfigsMonitorSwitch = monitorTableSourceProvider.getMysqlConfigsMonitorSwitch();
-            if(!SWITCH_STATUS_ON.equalsIgnoreCase(mysqlConfigsMonitorSwitch)) {
+            if (!SWITCH_STATUS_ON.equalsIgnoreCase(mysqlConfigsMonitorSwitch)) {
                 logger.info("[[monitor=mysqlConfigs]]  switch close");
                 return;
             }
@@ -84,13 +84,13 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
                     monitorBinlogRetentionTime(entry);
                 }
             }
-            
+
         } else {
             reporter.removeRegister(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
             reporter.removeRegister(BINLOG_RETENTION_TIME_MEASUREMENT);
             logger.info("[[monitor=mysqlConfigs]] not leader,remove monitor");
         }
-        
+
     }
 
     private void monitorBtdhs(Map.Entry<MetaKey, MySqlEndpoint> entry) {
@@ -100,19 +100,19 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
         BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
         Map<String, String> entityTags = entity.getTags();
         try {
-            Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper.getDataSource()),1).call();
-            reporter.resetReportCounter(
+            Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
+            reporter.reportResetCounter(
                     entityTags,
-                    binlogTxDependencyHistSize == null ? -1L: binlogTxDependencyHistSize, 
+                    binlogTxDependencyHistSize == null ? -1L : binlogTxDependencyHistSize,
                     BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement()
             );
-            cLog(entityTags, "BTDHS="+binlogTxDependencyHistSize, INFO, null);
+            cLog(entityTags, "BTDHS=" + binlogTxDependencyHistSize, INFO, null);
         } catch (Throwable t) {
             cLog(entityTags, "Fail to get binlog_transaction_dependency_history_size", ERROR, t);
             removeSqlOperator(mySqlEndpoint);
         }
     }
-    
+
     private void monitorBinlogRetentionTime(Map.Entry<MetaKey, MySqlEndpoint> entry) {
         MetaKey metaKey = entry.getKey();
         MySqlEndpoint mySqlEndpoint = entry.getValue();
@@ -121,29 +121,30 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
         Map<String, String> entityTags = entity.getTags();
         try {
             Long retentionHours = getBinlogRetentionTime(sqlOperatorWrapper);
-            reporter.resetReportCounter(entityTags, 
-                    retentionHours == null ? -1L: retentionHours,
-                    BINLOG_RETENTION_TIME_MEASUREMENT);
-            cLog(entityTags,"BINLOG_RETENTION_TIME=" + retentionHours , INFO, null);
+            if (retentionHours != null) {
+                reporter.reportResetCounter(entityTags, retentionHours, BINLOG_RETENTION_TIME_MEASUREMENT);
+            }
+
+            cLog(entityTags, "BINLOG_RETENTION_TIME=" + retentionHours, INFO, null);
         } catch (SQLException e) {
-            cLog(entityTags,"BINLOG_RETENTION_TIME query error" , ERROR, e);
+            cLog(entityTags, "BINLOG_RETENTION_TIME query error", ERROR, e);
             removeSqlOperator(mySqlEndpoint);
         }
     }
-    
-    
+
+
     private Long getBinlogRetentionTime(WriteSqlOperatorWrapper sqlOperatorWrapper) throws SQLException {
         Long res = new RetryTask<>(new AwsBinlogRetentionTimeQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
-        if (res  == null || res == -1L) {
+        if (res == null || res == -1L) {
             res = new RetryTask<>(new AliBinlogRetentionTimeQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
-        } 
+        }
         return res;
     }
-    
+
 
     protected BaseEndpointEntity getEntity(Endpoint endpoint, MetaKey metaKey) {
         BaseEndpointEntity entity;
-        if(null == (entity = entityMap.get(endpoint))) {
+        if (null == (entity = entityMap.get(endpoint))) {
             entity = new BaseEndpointEntity.Builder()
                     .dcName(metaKey.getDc())
                     .clusterName(metaKey.getClusterName())
@@ -159,7 +160,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
 
     @Override
     public void clearResource(Endpoint endpoint, MetaKey metaKey) {
-        reporter.removeRegister(getEntity(endpoint,metaKey).getTags(),BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
+        reporter.removeRegister(getEntity(endpoint, metaKey).getTags(), BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
     }
 
     @Override
@@ -182,5 +183,5 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     public boolean isCare(MetaKey metaKey) {
         return dcsInRegion.contains(metaKey.getDc());
     }
-    
+
 }

@@ -40,6 +40,12 @@ public class ThreadUtils {
         return Executors.newFixedThreadPool(qty, newThreadFactory(processName));
     }
 
+    public static ExecutorService newThreadExecutorWithCoreTimeout(int qty, String processName) {
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(qty, qty, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), newThreadFactory(processName));
+        threadPoolExecutor.allowCoreThreadTimeOut(true);
+        return threadPoolExecutor;
+    }
+
     public static ScheduledExecutorService newSingleThreadScheduledExecutor(String processName) {
         return Executors.newSingleThreadScheduledExecutor(newThreadFactory(processName));
     }

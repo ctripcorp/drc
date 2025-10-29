@@ -184,9 +184,10 @@ public class TransactionTableResource extends AbstractResource implements Transa
                     loggerTT.info("[TT] [USED][{}] merge gtid start", registryKey);
                     mergeGtid(true);
                     loggerTT.info("[TT] [USED][{}] merge gtid end, current gtid is: {}, index is: {}， commit state is: {}", registryKey, gtid, id, commitState.get(id));
+                    break;
                 }
             }
-
+            commitState.set(id, false);
             beginState.set(id, true);
             loggerTT.debug("[TT][{}] set begin, gno is: {}, index is: {}", registryKey, gno, id);
         }
@@ -323,6 +324,16 @@ public class TransactionTableResource extends AbstractResource implements Transa
         loggerTT.debug("[TT][{}] set commit, gno is: {}, id is: {}", registryKey, gno, index);
     }
 
+    //no need to commit gtid, just set commit state
+    @Override
+    public void commitWithoutSubmitGtid(String gtid) {
+        String[] uuidAndGno = gtid.split(":");
+        long gno = Long.parseLong(uuidAndGno[1]);
+        int index = (int) (gno % TRANSACTION_TABLE_SIZE);
+        setCommitState(index);
+        loggerTT.debug("[TT][{}] set commit discarded transaction, gno is: {}, id is: {}", registryKey, gno, index);
+    }
+
     private synchronized boolean needMerged() {
         if (++commitCount >= TRANSACTION_TABLE_MERGE_SIZE) {
             commitCount = 0;
@@ -392,6 +403,11 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @VisibleForTesting
     public AtomicBooleanArray getBeginState() {
         return beginState;
+    }
+
+    @VisibleForTesting
+    public AtomicBooleanArray getCommitState() {
+        return commitState;
     }
 
     @Override

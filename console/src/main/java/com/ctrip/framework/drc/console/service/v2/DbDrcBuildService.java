@@ -52,6 +52,10 @@ public interface DbDrcBuildService {
 
     DbMqConfigInfoDto getDbMqConfig(String dbName, String srcRegionName, MqType mqType);
 
+    List<DbDrcConfigInfoDto> getDbDrcConfigs(List<String> dbNames, String srcRegionName, String dstRegionName);
+
+    List<DbMqConfigInfoDto> getDbMqConfigs(List<String> dbNames, String srcRegionName, MqType mqType);
+
     RowsFilterConfigView getRowsConfigViewById(long rowsFilterId);
 
     ColumnsConfigView getColumnsConfigViewById(long colsFilterId);
@@ -72,5 +76,9 @@ public interface DbDrcBuildService {
 
     void deleteDbMqReplication(DbMqEditDto editDto) throws Exception;
 
-    MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto createDto) throws Exception;
+    ShardDatabaseInfoDto getDbNamesWithinSameDalCluster(String dbName);
+
+    String getDalclusterName(String dbName);
+
+    MqMetaCreateResultView autoCreateMq(MqAutoCreateRequestDto requestBody);
 }

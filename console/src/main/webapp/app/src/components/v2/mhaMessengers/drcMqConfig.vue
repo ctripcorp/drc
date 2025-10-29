@@ -20,7 +20,7 @@
         </FormItem>
         <FormItem  v-if="showMhaApplierConfig()" label="选择Messenger" prop="messenger">
           <Select v-model="drc.messengers" multiple style="width: 300px" :key="drc.currentInstances.messenger" placeholder="选择集群Messenger">
-            <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }}  [{{ item.type === 1 ? 'A' : (item.type === 7 ? 'M' : '') }}] — {{ item.az }}
+            <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }}  [{{ item.type === 8 ? 'K' : (item.type === 7 ? 'Q' : '') }}] — {{ item.az }}
               {{getRole(item.ip, drc.currentInstances.messenger)}}
             </Option>
           </Select>
@@ -199,7 +199,13 @@ export default {
         })
     },
     autoConfigMessenger () {
-      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=7' + '&selectedIps=' + this.drc.messengers)
+      let type
+      if (this.drc.mqType === 'qmq') {
+        type = 7
+      } else if (this.drc.mqType === 'kafka') {
+        type = 8
+      }
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=' + type + '&selectedIps=' + this.drc.messengers)
         .then(response => {
           console.log(response.data)
           this.drc.messengers = []
@@ -208,12 +214,12 @@ export default {
     },
     async getResources () {
       this.drc.messengerList = []
-      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=0')
+      this.axios.get('/api/drc/v2/resource/replicator/all?mhaName=' + this.drc.mhaName)
         .then(response => {
           console.log(response.data)
           this.drc.replicatorList = response.data.data
         })
-      await this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=7&subType=' + this.drc.mqType)
+      await this.axios.get('/api/drc/v2/resource/mq/all?mhaName=' + this.drc.mhaName + '&mqType=' + this.drc.mqType)
         .then(response => {
           const applierData = response.data.data
           applierData.forEach(a => {

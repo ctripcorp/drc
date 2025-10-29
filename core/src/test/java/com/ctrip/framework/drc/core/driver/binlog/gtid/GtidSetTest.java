@@ -902,20 +902,21 @@ public class GtidSetTest {
 
     @Test
     public void testFindFirstGap() {
-        GtidSet gap1 = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:2-100");
+        GtidSet noGap = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:2-100");
         GtidSet gap2 = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-100:102-105");
         GtidSet gap3 = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:2-100:102-105,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-39:100-200");
-        GtidSet noGap = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-1005");
-        Assert.assertEquals(1, gap1.findFirstGap().getUUIDSets().size());
-        Assert.assertEquals("2764f97a-7ee6-11ee-8eea-fa163e991b93:1", gap1.findFirstGap().toString());
-        
+        GtidSet noGap1 = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:1-1005");
+        GtidSet noGap2 = new GtidSet("2764f97a-7ee6-11ee-8eea-fa163e991b93:2-100,c4fff537-2a2a-11eb-aae0-506b4b4791b4:1-200");
+        Assert.assertEquals(0, noGap.findFirstGap().getUUIDSets().size());
+        Assert.assertEquals(0, noGap2.findFirstGap().getUUIDSets().size());
+
         Assert.assertEquals(1, gap2.findFirstGap().getUUIDSets().size());
         Assert.assertEquals("2764f97a-7ee6-11ee-8eea-fa163e991b93:101", gap2.findFirstGap().toString());
 
         Assert.assertEquals(2, gap3.findFirstGap().getUUIDSets().size());
-        Assert.assertEquals("2764f97a-7ee6-11ee-8eea-fa163e991b93:1,c4fff537-2a2a-11eb-aae0-506b4b4791b4:40-99", gap3.findFirstGap().toString());
+        Assert.assertEquals("2764f97a-7ee6-11ee-8eea-fa163e991b93:101,c4fff537-2a2a-11eb-aae0-506b4b4791b4:40-99", gap3.findFirstGap().toString());
 
-        Assert.assertEquals(0, noGap.findFirstGap().getUUIDSets().size());
-        Assert.assertEquals("", noGap.findFirstGap().toString());
+        Assert.assertEquals(0, noGap1.findFirstGap().getUUIDSets().size());
+        Assert.assertEquals("", noGap1.findFirstGap().toString());
     }
 }

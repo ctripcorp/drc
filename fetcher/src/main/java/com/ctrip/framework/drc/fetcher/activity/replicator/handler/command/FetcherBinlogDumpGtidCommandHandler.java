@@ -5,16 +5,9 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.converter.ByteBufConverter;
 import com.ctrip.framework.drc.core.driver.command.handler.DrcBinlogDumpGtidCommandHandler;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.utils.MapUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
-
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.MASTER_HEARTBEAT_PERIOD_SECONDS;
 
 /**
  * for applier dump binlog from replicator
@@ -33,23 +26,22 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
                 () -> {
                     addCloseListener(channel);
                     return new LogEventCallBack() {
-                        private ScheduledExecutorService scheduledExecutorService;
-                        private ScheduledFuture future;
+                        private final Object flag = new Object();
 
                         @Override
                         public void onSuccess() {
-                            toggleAutoRead(channel, true);
-                            dispose();
-                            onHeartHeat();
+                            synchronized (flag) {
+                                toggleAutoRead(channel, true);
+                                dispose();
+                            }
+                            onHeartBeat();
                         }
 
                         @Override
                         public void onFailure() {
-                            toggleAutoRead(channel, false);
-                            if (scheduledExecutorService == null) {
-                                scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                            synchronized (flag) {
+                                toggleAutoRead(channel, false);
                             }
-                            future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartHeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
                         }
 
                         @Override
@@ -59,13 +51,6 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
 
                         @Override
                         public void dispose() {
-                            if (future != null) {
-                                future.cancel(false);
-                            }
-                            if (scheduledExecutorService != null) {
-                                scheduledExecutorService.shutdownNow();
-                                scheduledExecutorService = null;
-                            }
                         }
                     };
                 }

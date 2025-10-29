@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
@@ -17,10 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +34,8 @@ public class KafkaProducer extends AbstractProducer {
     private boolean isOrder;
 
     private String orderKey;
+
+    private List<String> orderKeys;
 
     private List<String> excludeFilterTypes;
 
@@ -55,6 +57,9 @@ public class KafkaProducer extends AbstractProducer {
         this.producer = KafkaProducerFactory.createProducer(topic);
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
+        this.orderKeys = StringUtils.isEmpty(this.orderKey)
+                ? Lists.newArrayList()
+                : Lists.newArrayList(orderKey.toLowerCase().split(","));
         this.filterFields = Optional.ofNullable(mqConfig.getFilterFields()).orElse(Lists.newArrayList())
                 .stream().map(String::toLowerCase).collect(Collectors.toSet());
         this.sendOnlyUpdated = mqConfig.isSendOnlyUpdated();
@@ -67,19 +72,25 @@ public class KafkaProducer extends AbstractProducer {
     }
 
     @Override
-    public boolean send(List<EventData> eventDatas, EventType eventType) {
-        if (producerException) {
-            throw new RuntimeException(String.format("topic: %s producer error, stop server", topic));
-        }
+    public boolean sendQmq(List<EventData> eventDatas, EventType eventType) {
+        return false;
+    }
 
+    @Override
+    public boolean sendKafka(List<EventData> eventDatas, EventType eventType, Pair<Phaser, AtomicInteger> phaserAndCounter) {
         if (!CollectionUtils.isEmpty(excludeFilterTypes) && excludeFilterTypes.contains(eventType.getValue())) {
             return false;
         }
+
+        Phaser phaser = phaserAndCounter.getKey();
+        AtomicInteger counter = phaserAndCounter.getValue();
         for (EventData eventData : eventDatas) {
             Pair<String, String> messagePair = generateMessage(eventData);
             if (messagePair == null) {
                 return false;
             }
+            phaser.register();
+            counter.getAndIncrement();
 
             String partitionKey = messagePair.getKey();
             String message = messagePair.getValue();
@@ -87,15 +98,25 @@ public class KafkaProducer extends AbstractProducer {
             producer.send(new ProducerRecord<>(topic, partitionKey, message), new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata recordMetadata, Exception e) {
-                    if (e == null) {
-                        loggerMsgSend.info("[kafka]topic: {} send partitionKey:{},  message: {}, cost:{} us", topic, partitionKey, message, (System.nanoTime() - start) / 1000);
-                    } else {
-                        loggerMsgSend.error("[kafka]topic: {} send message: {} error", topic, message, e);
-                        producerException = true;
+                    try {
+                        if (e == null) {
+                            producerException = false;
+                            counter.decrementAndGet();
+                            loggerMsgSend.info("[kafka]topic: {} send partitionKey:{},  message: {}, cost:{} us", topic, partitionKey, message, (System.nanoTime() - start) / 1000);
+                        } else {
+                            loggerMsgSend.error("[kafka]topic: {} send message: {} error", topic, message, e);
+                            producerException = true;
+                        }
+                    } finally {
+                        phaser.arriveAndDeregister();
                     }
+
                 }
             });
+        }
 
+        if (producerException) {
+            throw new RuntimeException(String.format("topic: %s producer error, stop server", topic));
         }
         return true;
     }
@@ -126,26 +147,35 @@ public class KafkaProducer extends AbstractProducer {
 
         List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
         if (isOrder) {
-            boolean hasOrderKey = false;
-            for (EventColumn column : changedColumns) {
-                if (column.getColumnName().equalsIgnoreCase(orderKey)) {
-                    partitionKey = column.getColumnValue();
-                    hasOrderKey = true;
-                }
-                if (column.isKey()) {
-                    keys.add(column.getColumnValue());
-                }
-            }
-
             if (orderKey == null) {
-                partitionKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_", keys));
-                hasOrderKey = true;
-            }
-
-            if (!hasOrderKey) {
-                String schemaDotTable = String.format("%s.%s", schema, table);
-                loggerMsg.error("[KAFKA] order key is absent for table: {}", schemaDotTable);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.kafka.order.key.absent", schemaDotTable);
+                keys = changedColumns.stream()
+                        .filter(EventColumn::isKey).map(EventColumn::getColumnValue).toList();
+                partitionKey = CollectionUtils.isEmpty(keys) ? String.format("%s.%s", schema, table) : String.format("%s.%s_%s", schema, table, String.join("_",keys));
+            } else {
+                Map<String, EventColumn> orderKeyColumnValues = changedColumns.stream()
+                        .filter(column -> orderKeys.contains(column.getColumnName().toLowerCase()))
+                        .collect(Collectors.toMap(
+                                column -> column.getColumnName().toLowerCase(),
+                                column -> column,
+                                (existing, replacement) -> replacement
+                        ));
+                keys = orderKeys.stream()
+                        .map(orderKeyColumnValues::get)
+                        .filter(Objects::nonNull)
+                        .map(EventColumn::getColumnValue).toList();
+                if (!CollectionUtils.isEmpty(keys)) {
+                    if (keys.size() > 1) {
+                        partitionKey = "_" + String.join("_", keys);
+                    } else {
+                        partitionKey = keys.getFirst();
+                    }
+                } else {
+                    keys = changedColumns.stream()
+                            .filter(EventColumn::isKey).map(EventColumn::getColumnValue).toList();
+                    String schemaDotTable = String.format("%s.%s", schema, table);
+                    loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.order.key.absent", schemaDotTable);
+                }
             }
         } else {
             for (EventColumn column : changedColumns) {

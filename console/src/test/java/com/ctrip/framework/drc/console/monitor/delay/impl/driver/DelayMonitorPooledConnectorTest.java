@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.impl.driver;
 
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
-import com.ctrip.framework.drc.fetcher.activity.replicator.handler.FetcherChannelHandlerFactory;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.DrcChannelHandlerFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -14,6 +14,6 @@ public class DelayMonitorPooledConnectorTest {
     @Test
     public void testGetChannelHandlerFactory() {
         ChannelHandlerFactory channelHandlerFactory = connector.getChannelHandlerFactory();
-        Assert.assertTrue(channelHandlerFactory instanceof FetcherChannelHandlerFactory);
+        Assert.assertTrue(channelHandlerFactory instanceof DrcChannelHandlerFactory);
     }
 }

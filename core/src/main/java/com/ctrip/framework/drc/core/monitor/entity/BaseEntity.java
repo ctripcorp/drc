@@ -38,6 +38,10 @@ public class BaseEntity {
         return buName;
     }
 
+    public void setBuName(String buName) {
+        this.buName = buName;
+    }
+
     public String getDcName() {
         return dcName;
     }

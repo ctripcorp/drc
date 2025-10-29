@@ -85,7 +85,7 @@ public class KafkaDelayMonitorServerTest {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp("127.0.0.1");
         resourceTbl.setDcId(1L);
-        resourceTbl.setType(ModuleEnum.MESSENGER.getCode());
+        resourceTbl.setType(ModuleEnum.MESSENGER_QMQ.getCode());
 
         Mockito.when(centralService.queryAllResourceTbl()).thenReturn(Lists.newArrayList(resourceTbl));
         Mockito.when(monitorProvider.getKafkaDelayMonitorSwitch()).thenReturn("on");
@@ -117,9 +117,18 @@ public class KafkaDelayMonitorServerTest {
     @Test
     public void testSwitchListenMessenger() throws Exception {
         Map<String, String> map = Maps.newHashMap();
+        kafkaDelayMonitorServer.isleader();
         map.put("ob_zyn_test", "127.0.0.1");
         map.put("test", "127.0.0.2");
         kafkaDelayMonitorServer.switchListenMessenger(map);
+    }
+
+    @Test
+    public void testForwardMhaDelay() {
+        Mockito.when(monitorProvider.getKafkaDelayForwardSwitch()).thenReturn("off");
+        kafkaDelayMonitorServer.forwardMhaDelay();
+        Mockito.when(monitorProvider.getKafkaDelayForwardSwitch()).thenReturn("on");
+        kafkaDelayMonitorServer.forwardMhaDelay();
     }
 
     private static String getXml() {

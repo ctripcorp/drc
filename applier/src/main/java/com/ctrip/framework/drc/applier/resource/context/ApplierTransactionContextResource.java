@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.fetcher.resource.position.TransactionTable;
 import com.ctrip.framework.drc.fetcher.resource.position.TransactionTableRepeatedUpdateException;
 import com.ctrip.framework.drc.fetcher.system.Derived;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
+import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -31,10 +32,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 import static com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult.TYPE.*;
 import static com.ctrip.framework.drc.core.monitor.enums.ConflictDetail.*;
@@ -66,6 +64,9 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
 
     @InstanceResource
     public TransactionTable transactionTable;
+
+    @InstanceConfig(path = "cflUpLevel")
+    public String cflUpLevel = "NOTICE";
 
     @Derived
     public DataSource dataSource;
@@ -158,26 +159,36 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
 
-                for (Map.Entry<ConflictTable, Long> entry : trxRecorder.getConflictTableRowsCount().entrySet()) {
+                for (Map.Entry<ConflictTable, TransactionLogRecorder.CflCountDetail> entry : trxRecorder.getConflictTableRowsCount().entrySet()) {
                     ConflictTable conflictRow = entry.getKey();
                     Map<String,String> tags = conflictRow.generateTags();
+                    TransactionLogRecorder.CflCountDetail cntDetail = entry.getValue();
                     if (conflictRow.getConflictRes() == ConflictResult.COMMIT.getValue()) {
                         metricsActivity.report("trx.conflict.commit", tags, 1);
-                        metricsActivity.report("rows.conflict.commit", tags, entry.getValue());
+                        metricsActivity.report("rows.conflict.commit", tags, cntDetail.getCnt());
                     } else {
                         metricsActivity.report("trx.conflict.rollback", tags, 1);
-                        metricsActivity.report("rows.conflict.rollback", tags, entry.getValue());
+                        metricsActivity.report("rows.conflict.rollback", tags, cntDetail.getCnt());
+                    }
+                    for (Map.Entry<String, Long> detailEntry : cntDetail.getConflictDetailCount().entrySet()) {
+                        Map<String,String> conflictDetailTags = conflictRow.generateTags();
+                        conflictDetailTags.put("detail", detailEntry.getKey());
+                        metricsActivity.report("rows.conflict.detail", conflictDetailTags, detailEntry.getValue());
                     }
                 }
             }
 
             if ((reportConflictActivity != null) && trxRecorder.getConflictRowNum() > 0) {
                 ConflictTransactionLog cflTrxLog = trxRecorder.summaryBeforeReport(gtid);
+                if (cflTrxLog == null) {
+                    return;
+                }
                 if (!reportConflictActivity.report(cflTrxLog)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.conflict.discard", tableKey.toString());
                 }
             }
         } catch (Throwable t) {
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.log.metric.error", t.getMessage());
             logger.error("logMetric error", t);
         }
     }
@@ -188,6 +199,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
         connection = dataSource.getConnection();
         logs = new CircularFifoQueue<>(RECORD_SIZE);
         trxRecorder = new TransactionLogRecorder(RECORD_SIZE);
+        trxRecorder.setUploadLevel(AlertLevel.valueOf(cflUpLevel));
         lastUnbearable = null;
         costTimeNS = 0;
         beginTrace("t");
@@ -496,19 +508,19 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private int/*row count*/ selectCount(List<Object> identifier, Bitmap bitmap0,
                                     Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
-        return select(identifier, Lists.<Bitmap>newArrayList(bitmap0), columns, comment, preparedStatementExecutor).size();
+        return select(identifier, Lists.<Bitmap>newArrayList(bitmap0), columns, comment, preparedStatementExecutor, true);
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private List<List<Object>>/*rows*/ select(List<Object> identifier, Bitmap bitmap0,
-                                    Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
-        return select(identifier, Lists.<Bitmap>newArrayList(bitmap0), columns, comment, preparedStatementExecutor);
+    private int/*row count*/ selectCountWithoutLog(List<Object> identifier, Bitmap bitmap0,
+                                         Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
+        return select(identifier, Lists.<Bitmap>newArrayList(bitmap0), columns, comment, preparedStatementExecutor, false);
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private List<List<Object>>/*row count*/ select(List<Object> identifier, List<Bitmap> bitmaps,
-                                    Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor) {
-        List<List<Object>> rowValuesInDb = Lists.newArrayList();
+    private int/*row count*/ select(List<Object> identifier, List<Bitmap> bitmaps,
+                                    Columns columns, String comment, PreparedStatementExecutor preparedStatementExecutor, boolean doLog) {
+        int rowCount = 0;
         for (Bitmap bitmap : bitmaps) {
             try (PreparedStatement statement = prepareSelect(
                     columns.getNames(),
@@ -520,16 +532,16 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 try (ResultSet result = statement.getResultSet()) {
                     if (result != null) {
                         while (result.next()) {
-                            List<Object> values = Lists.newArrayList();
-                            rowValuesInDb.add(values);
-                            String log = "|";
+                            rowCount += 1;
+                            StringBuilder logBuilder = new StringBuilder("|");
                             for (String columnName : columns.getNames()) {
-                                Object resultObject = result.getObject(columnName);
-                                values.add(resultObject);
-                                log = log + resultObject + "|";
+                                logBuilder.append(result.getString(columnName)).append("|");
                             }
+                            String log = logBuilder.toString();
                             addLogs(log);
-                            destCurrentRecord = log;
+                            if (doLog) {
+                                destCurrentRecord = log;
+                            }
                             loggerS.info("(" + fetchGtid() + ")" + log);
                         }
                     }
@@ -538,12 +550,11 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 logger.warn("fail to select current row at conflict - IGNORE -", t);
             }
         }
-        int rowCount = rowValuesInDb.size();
         addLogs("related rows count: " + rowCount);
-        if (rowCount == 0) {
+        if (rowCount == 0 && doLog) {
             destCurrentRecord = "related rows count is 0";
         }
-        return rowValuesInDb;
+        return rowCount;
     }
 
     @Override
@@ -577,6 +588,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 }
                 Bitmap bitmapOfValueOnUpdate = this.columns.getLastBitmapOnUpdate();
                 List<Object> valueOnUpdate = this.beforeBitmap.onBitmap(bitmapOfValueOnUpdate).on(this.beforeRows.get(i));
+                boolean rowExist = false;
                 for (int j = this.columns.getBitmapsOfIdentifier().size() - 1; j >= 0; j--) {
                     Bitmap bitmapOfIdentifier = this.columns.getBitmapsOfIdentifier().get(j);
                     List<Object> identifier = this.beforeBitmap.onBitmap(bitmapOfIdentifier).on(this.beforeRows.get(i));
@@ -584,6 +596,7 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                             identifier, bitmapOfIdentifier,
                             this.columns, "DRC INSERT CONFLICT", preparedStatementExecutor
                     )) {
+                        rowExist = true;
                         if (update1(
                                 this.beforeRows.get(i), this.beforeBitmap,
                                 identifier, bitmapOfIdentifier,
@@ -592,15 +605,20 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                             overwriteMark(INSERT_TO_UPDATE, destCurrentRecord, conflictHandleSql, conflictHandleSqlResult);
                             continue STATEMENT;
                         }
-                        if (1 == selectCount(this.beforeRows.get(i),
+                        if (1 == selectCountWithoutLog(this.beforeRows.get(i),
                                 this.beforeBitmap, this.columns,
                                 "DRC INSERT CONFLICT", preparedStatementExecutor)) {
                             overwriteMark(INSERT_TO_UPDATE_SAME_EXIST, destCurrentRecord, null, "same data exist");
                             continue STATEMENT;
                         }
+                        break;
                     }
                 }
-                overwriteMark(INSERT_TO_UPDATE_NEWER_EXIST, destCurrentRecord, null, "handle conflict failed");
+                if (rowExist) {
+                    overwriteMark(INSERT_TO_UPDATE_NEWER_EXIST, destCurrentRecord, null, "handle conflict failed, newer data exist");
+                } else {
+                    overwriteMark(INSERT_DUPLICATE_KEY, destCurrentRecord, rawSql, rawSqlExecuteResult);
+                }
             }
         } catch (Throwable e) {
             throwableLeadToRollback(INSERT_EXCEPTION, e.getMessage());
@@ -693,12 +711,13 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                             overwriteMark(UPDATE_OLD_TO_NEW, destCurrentRecord, conflictHandleSql, conflictHandleSqlResult);
                             continue STATEMENT;
                         }
-                        if (1 == selectCount(this.afterRows.get(i),
+                        if (1 == selectCountWithoutLog(this.afterRows.get(i),
                                 this.afterBitmap, this.columns,
                                 "DRC INSERT CONFLICT", preparedStatementExecutor)) {
-                            overwriteMark(INSERT_TO_UPDATE_SAME_EXIST, destCurrentRecord, null, "same data exist");
+                            overwriteMark(UPDATE_SAME_EXIST, destCurrentRecord, null, "same data exist");
                             continue STATEMENT;
                         }
+                        break;
                     }
                 }
                 // row exists, no need try insert
@@ -767,15 +786,16 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                         continue STATEMENT;
                     }
                 }
-
-                Bitmap bitmapOfIdentifier = columns.getBitmapsOfIdentifier().get(0);
-                List<Object> identifier = beforeBitmap
-                        .onBitmap(bitmapOfIdentifier)
-                        .on(beforeRows.get(i));
-                selectCount(
-                        identifier, bitmapOfIdentifier,
-                        columns, "DRC DELETE CONFLICT", preparedStatementExecutor
-                );
+                if (DELETE_NOT_FOUND.getAlertLevel().equalOrHigherLevelThan(AlertLevel.valueOf(cflUpLevel))) {
+                    Bitmap bitmapOfIdentifier = columns.getBitmapsOfIdentifier().get(0);
+                    List<Object> identifier = beforeBitmap
+                            .onBitmap(bitmapOfIdentifier)
+                            .on(beforeRows.get(i));
+                    selectCount(
+                            identifier, bitmapOfIdentifier,
+                            columns, "DRC DELETE CONFLICT", preparedStatementExecutor
+                    );
+                }
                 overwriteMark(DELETE_NOT_FOUND, destCurrentRecord, null, "ignore conflict");
             }
         } catch (Throwable e) {
@@ -850,10 +870,28 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
                 conflictMark(true);
             }
             String sqlResult = (UNKNOWN_COLUMN.toString().equalsIgnoreCase(rawSqlExecuteResult) ? "missing column value is not default:" : "apply throw Exception:");
+            conflictDetail = subdivideThrowableConflictDetail(conflictDetail, errorMsg);
             overwriteMark(conflictDetail, destCurrentRecord, null, sqlResult + errorMsg);
         } catch (Throwable e) {
             logger.error("throwableLeadToRollback:{},record fail",errorMsg,e);
         }
+    }
+
+
+    private ConflictDetail subdivideThrowableConflictDetail(ConflictDetail originalConflictDetail, String errorMsg) {
+        if (errorMsg == null) {
+            return originalConflictDetail;
+        }
+        if (isConnectProblem(errorMsg)) {
+            return CONNECTION_CLOSED;
+        }
+        if (isDeadlockProblem(errorMsg)) {
+            return DEAD_LOCK;
+        }
+        if (isNoOnUpdateColumnProblem(errorMsg)) {
+            return NO_ONUPDATE_COLUMN;
+        }
+        return originalConflictDetail;
     }
 
     private void overwriteMark(ConflictDetail conflictDetail, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
@@ -936,6 +974,18 @@ public class ApplierTransactionContextResource extends TransactionContextResourc
     @VisibleForTesting
     public StatementExecutorResult getResult() {
         return result;
+    }
+
+    private boolean isConnectProblem(String errMsg) {
+        return errMsg.contains("No operations allowed after connection closed") || errMsg.contains("Communications link failure");
+    }
+
+    private boolean isDeadlockProblem(String errMsg) {
+        return errMsg.contains("Deadlock found when trying to get lock");
+    }
+
+    private boolean isNoOnUpdateColumnProblem(String errMsg) {
+        return "No onUpdate column found.".equals(errMsg);
     }
 
 }

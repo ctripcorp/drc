@@ -56,6 +56,9 @@ public class ConflictAlterEmailTemplate implements TripEmailTemplate {
             String value = next.getValue();
             content.append(key).append(": ").append(value).append(iterator.hasNext() ? "</br>" : "");
         }
+        if (StringUtils.isNotBlank(email.getFooter())) {
+            content.append("</br></br>" + email.getFooter() + "</br>");
+        }
         String bodyContent = String.format(XML_FORMATTER, content);
         email.setBodyContent(bodyContent);
     }

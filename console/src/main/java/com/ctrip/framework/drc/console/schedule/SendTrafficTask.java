@@ -98,8 +98,6 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
 
-    private TrafficStatisticsService statisticsService = ApiContainer.getTrafficStatisticsService();
-
     private String accessToken;
 
     private String hickWallUrl;
@@ -193,7 +191,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.set_schema_version(schemaVersion);
 
             try {
-                statisticsService.send(metric);
+                ApiContainer.getTrafficStatisticsService().send(metric);
             } catch (Exception e) {
                 logger.error("[[task=sendTraffic]] send relation to kafka error: {}", metric, e);
             }
@@ -302,7 +300,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.set_schema_version(schemaVersion);
 
             try {
-                statisticsService.send(metric);
+                ApiContainer.getTrafficStatisticsService().send(metric);
                 dbsSended.add(dbName);
             } catch (Exception e) {
                 logger.error("[[task=sendTraffic]] send to kafka error: {}", metric, e);
@@ -337,7 +335,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             List<Object> value = (List<Object>) (cost.getValues().get(0));
             metric.setCount("1");
             metric.setSize(Long.parseLong(value.get(1).toString()));
-            statisticsService.send(metric);
+            ApiContainer.getTrafficStatisticsService().send(metric);
             dbsSended.add(dbName);
         }
     }

@@ -46,7 +46,7 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
                                         : new TransactionTableFilter();
         eventTypeFilter.setSuccessor(circularBreakFilter);
 
-        DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager(), context.getRegistryKey());
+        DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager(), context.getRegistryKey(), context.isMaster());
         circularBreakFilter.setSuccessor(ddlFilter);
 
         BlackTableNameFilter tableNameFilter = new BlackTableNameFilter(context.getInboundMonitorReport(), context.getTableNames());

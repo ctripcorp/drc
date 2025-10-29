@@ -67,7 +67,7 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
     @Override
     public String toString() {
         return "FetcherSlaveConfig{" +
-                "endpoint=" + getEndpoint().getSocketAddress() +
+                "endpoint=" + getEndpoint().getHost() + ":" + getEndpoint().getPort() +
                 "registryKey=" + getRegistryKey() +
                 "slaveId=" + getSlaveId() +
                 ", gtidSet=" + getGtidSet() +

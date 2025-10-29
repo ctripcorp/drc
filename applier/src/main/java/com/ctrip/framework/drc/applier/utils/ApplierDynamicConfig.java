@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.applier.utils;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
-
 import com.ctrip.xpipe.config.AbstractConfigBean;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * Created by jixinwang on 2023/4/7
@@ -19,6 +19,9 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     private static final String CONFLICT_LOG_UPLOAD_SWITCH = "conflict.log.upload.switch";
     private static final String CONFLICT_LOG_BRIEF_QUEUE_SIZE = "conflict.log.brief.queue.size";
     private static final String CONFLICT_LOG_BRIEF_REPORT_SIZE = "conflict.log.brief.report.size";
+    private static final String CONFLICT_LOG_UPLOAD_LEVEL = "conflict.log.upload.level";
+    private static final String DEFAULT_CONFLICT_LOG_UPLOAD_LEVEL = "NOTICE";
+    private static final String CONFLICT_LOG_UPLOAD_LEVEL_PATTERN = "conflict.log.upload.level.%s";
     private static final String APPLIER_INSTANCE_MODIFY_THREAD = "applier.instance.modify.thread";
 
 
@@ -58,5 +61,14 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
 
     public int getApplierInstanceModifyThread() {
         return getIntProperty(APPLIER_INSTANCE_MODIFY_THREAD, PROCESSORS_SIZE * 10);
+    }
+
+    public String getConflictLogUpLevel(String registryKey) {
+        String defaultLevel = getProperty(CONFLICT_LOG_UPLOAD_LEVEL, DEFAULT_CONFLICT_LOG_UPLOAD_LEVEL);
+        return getProperty(String.format(CONFLICT_LOG_UPLOAD_LEVEL_PATTERN, registryKey), defaultLevel);
+    }
+
+    public String getDefaultConflictLogUpLevel() {
+        return getProperty(CONFLICT_LOG_UPLOAD_LEVEL, DEFAULT_CONFLICT_LOG_UPLOAD_LEVEL);
     }
 }

@@ -31,14 +31,13 @@
     </modules>
 
     <properties>
-        <framework.bom.version>9.7.0</framework.bom.version>
+        <framework.bom.version>9.18.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.50</dal.version>
-        <vi.version>0.11.57</vi.version>
         <ucs.version>0.7.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
-        <xpipe.proxy.client.version>1.2.13</xpipe.proxy.client.version>
+        <xpipe.proxy.client.version>1.2.14</xpipe.proxy.client.version>
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
         <netty-all.version>4.1.93.Final</netty-all.version>
@@ -51,13 +50,13 @@
         <wiremock.version>2.23.2</wiremock.version>
         <spring-boot.version>1.5.0.RELEASE</spring-boot.version>
         <spring-boot-maven-plugin.version>1.5.0.RELEASE</spring-boot-maven-plugin.version>
-        <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
-        <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
+        <maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
         <maven-source-plugin.version>3.0.0</maven-source-plugin.version>
         <curator.version>5.1.0</curator.version>
         <zookeeper.version>3.8.2</zookeeper.version>
-        <log4j2.version>2.15.0</log4j2.version>
-        <fastsql.version>2.0.0_preview_973</fastsql.version>
+        <log4j2.version>2.17.1</log4j2.version>
+        <druid.version>1.2.25</druid.version>
         <mockito-core.version>3.4.0</mockito-core.version>
         <byte-buddy.version>1.15.3</byte-buddy.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -430,26 +429,15 @@
                 <version>${guava.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.fastsql</groupId>
-                <artifactId>fastsql</artifactId>
-                <version>${fastsql.version}</version>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid</artifactId>
+                <version>${druid.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.ctrip.ops</groupId>
                 <artifactId>hickwall-sdk</artifactId>
                 <version>${hickwall.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.ctrip.framework</groupId>
-                <artifactId>vi</artifactId>
-                <version>${vi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.ctrip.framework</groupId>
-                <artifactId>vi-core</artifactId>
-                <version>${vi.version}</version>
             </dependency>
 
             <!-- for regex expression -->

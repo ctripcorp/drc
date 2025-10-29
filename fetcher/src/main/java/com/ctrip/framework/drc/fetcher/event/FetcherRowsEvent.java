@@ -112,9 +112,14 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
 
     @Override
     public void release() {
-        if (released.compareAndSet(false, true)) {
-            directMemory.release(getLogEventHeader().getEventSize());
-            super.release();
+        lock.lock();
+        try {
+            if (released.compareAndSet(false, true)) {
+                directMemory.release(getLogEventHeader().getEventSize());
+                super.release();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

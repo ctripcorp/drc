@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tomcat.jdbc.pool.DataSource;
@@ -22,6 +23,7 @@ import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -65,6 +67,8 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     private GtidSet executedGtidSet = new GtidSet(StringUtils.EMPTY);
 
+    private GtidSet executedGtidSetFromDb = new GtidSet(StringUtils.EMPTY);
+
     private ExecutorService gtidService = ThreadUtils.newSingleThreadExecutor("MQ-Update-Position");
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("MQ-Persist-Position-Task");
@@ -84,6 +88,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
             logger.info("query gtid from db fail,transaction table status is stopped for {}", registryKey);
             getSystem().setStatus(SystemStatus.STOPPED);
         } else {
+            executedGtidSetFromDb = new GtidSet(executedGtidFromDb);
             executedGtidSet = new GtidSet(executedGtidFromDb).union(new GtidSet(initialGtidExecuted));
             loggerMsg.info("[MQ][{}] start update position schedule", registryKey);
             startUpdatePositionSchedule();
@@ -103,6 +108,11 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
         gtidService.submit(() -> {
             executedGtidSet = executedGtidSet.union(gtidSet);
         });
+    }
+
+    @Override
+    public Pair<GtidSet, Boolean> getPosition() {
+        return Pair.of(executedGtidSetFromDb, emptyPositionFromDb);
     }
 
     private String get() {
@@ -133,8 +143,8 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     private void updatePositionInDb(boolean needRetry) {
         String currentPosition = getCurrentPosition();
-        if (StringUtils.isEmpty(currentPosition)) {
-            loggerMsg.warn("[MQ][{}] currentPosition is empty", registryKey);
+        if (StringUtils.isEmpty(currentPosition) || emptyPositionFromDb) {
+            loggerMsg.warn("[MQ][{}] currentPosition is empty, emptyPositionFromDb: {}, currentPosition: {}", registryKey, emptyPositionFromDb, currentPosition);
             return;
         }
         loggerMsg.info("[MQ][{}] persist mq position to db with position: {}", registryKey, currentPosition);

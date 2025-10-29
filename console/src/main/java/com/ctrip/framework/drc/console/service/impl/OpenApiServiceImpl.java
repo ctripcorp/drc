@@ -1,14 +1,15 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.v3.DbReplicationDto;
 import com.ctrip.framework.drc.console.dto.v3.MhaDbReplicationDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.OpenApiService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbReplicationService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.utils.MultiKey;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.DbTableDrcRegionInfo;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
@@ -18,6 +19,7 @@ import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.ReplicationTypeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -32,11 +34,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
-import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_DOT_REGEX;
 
 /**
  * @ClassName OpenApiServiceImpl
@@ -55,6 +60,10 @@ public class OpenApiServiceImpl implements OpenApiService {
     private MhaDbReplicationService mhaDbReplicationService;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private DbaApiService dbaApiService;
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @Override
     public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
@@ -245,5 +254,36 @@ public class OpenApiServiceImpl implements OpenApiService {
 
     }
 
+    @Override
+    public List<String> getDbOwnerForDelayAlert(String db) {
+        List<String> dbOwners = dbaApiService.getAllDbOwners(db);
+        if (CollectionUtils.isEmpty(dbOwners)) {
+            return defaultConsoleConfig.getDefaultDbDelayAlertOwners();
+        }
+        if (defaultConsoleConfig.getDbDelayAlertSendToDrcSwitch()) {
+            dbOwners = Stream.concat(dbOwners.stream(), defaultConsoleConfig.getDefaultDbDelayAlertOwners().stream()).distinct().toList();
+        }
+        return dbOwners;
+    }
 
+    @Override
+    public List<String> getDbOwnerForDelayAlertByMha(String mha) {
+        try {
+            List<MhaDbReplicationDto> mhaDbReplicationTbls = mhaDbReplicationService.queryMqByMha(mha, null, MqType.qmq);
+            mhaDbReplicationTbls.addAll(mhaDbReplicationService.queryMqByMha(mha, null, MqType.kafka));
+            List<String> dbNames = mhaDbReplicationTbls.stream().map(e -> e.getSrc().getDbName()).distinct().toList();
+            Set<String> allDbOwners = Sets.newHashSet();
+            dbNames.forEach(db -> allDbOwners.addAll(dbaApiService.getAllDbOwners(db)));
+            if (CollectionUtils.isEmpty(allDbOwners)) {
+                return defaultConsoleConfig.getDefaultDbDelayAlertOwners();
+            }
+            if (defaultConsoleConfig.getDbDelayAlertSendToDrcSwitch()) {
+                return Stream.concat(allDbOwners.stream(), defaultConsoleConfig.getDefaultDbDelayAlertOwners().stream()).distinct().toList();
+            }
+            return allDbOwners.stream().toList();
+        } catch (Exception e) {
+            logger.error("getDbOwnerForDelayAlertByMha error", e);
+            return defaultConsoleConfig.getDefaultDbDelayAlertOwners();
+        }
+    }
 }

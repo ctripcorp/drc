@@ -86,6 +86,7 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         ApplierTest.class,
         ApplierTestWithMockedEvents.class,
         ApplierServerControllerTest.class,
+        TransactionLogRecorderTest.class,
 
         //activity
         WatchKeyedTaskTest.class,

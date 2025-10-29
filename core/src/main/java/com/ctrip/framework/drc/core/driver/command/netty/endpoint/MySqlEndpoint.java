@@ -6,7 +6,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
  * @Author: hbshen
  * @Date: 2021/4/20
  */
-public class MySqlEndpoint extends DefaultEndPoint implements Endpoint {
+public class MySqlEndpoint extends LazyEndPoint implements Endpoint {
 
     private boolean master;
 

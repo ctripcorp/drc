@@ -5,27 +5,29 @@
         <Card :padding=5>
           <template #title>查询条件</template>
           <Row :gutter=10>
-            <Col span="6">
+            <Col span="16">
               <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"></Input>
             </Col>
-            <Col span="4">
+            <Col span="8">
               <Input prefix="ios-search" v-model="queryParam.db" placeholder="库名"></Input>
             </Col>
-            <Col span="3">
+          </Row>
+          <Row :gutter=10 style="margin-top: 10px;">
+            <Col span="4">
               <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"></Input>
             </Col>
-            <Col span="3">
+            <Col span="4">
               <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"></Input>
             </Col>
-            <Col span="3">
+            <Col span="4">
               <DatePicker :transfer="true" type="datetime" :editable="editable"  v-model="queryParam.beginHandleTime"
                           placeholder="起始日期"></DatePicker>
             </Col>
-            <Col span="3">
+            <Col span="4">
               <DatePicker :transfer="true" type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
                           placeholder="结束日期"></DatePicker>
             </Col>
-            <Col span="2">
+            <Col span="4">
               <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
@@ -88,11 +90,17 @@ export default {
       queryParam: {
         srcMhaName: null,
         dstMhaName: null,
-        gtid: this.gtid,
-        beginHandleTime: this.beginHandleTime,
-        endHandleTime: this.endHandleTime,
-        db: null,
-        trxResult: null
+        gtid: this.$route.query.gtid,
+        beginHandleTime: this.$route.query.beginTime ? new Date(Number(this.$route.query.beginTime)) : null,
+        endHandleTime: this.$route.query.endTime ? new Date(Number(this.$route.query.endTime)) : null,
+        db: this.$route.query.dbName,
+        trxResult: null,
+        srcRegion: this.$route.query.srcRegion,
+        dstRegion: this.$route.query.dstRegion,
+        tableName: this.$route.query.tableName,
+        cflDetail: this.$route.query.cflDetail,
+        brief: this.$route.query.brief ? Number(this.$route.query.brief) : null,
+        likeSearch: this.$route.query.likeSearch === true || this.$route.query.likeSearch === 'true'
       },
       tableData: [],
       columns: [
@@ -170,7 +178,8 @@ export default {
           name: 'rollBack',
           val: 1
         }
-      ]
+      ],
+      cflDetailOpts: []
     }
   },
   methods: {
@@ -188,6 +197,7 @@ export default {
       if (isNaN(beginHandleTime) || isNaN(endHandleTime)) {
         return
       }
+      console.log('srxsrx: ')
       const params = {
         gtId: this.queryParam.gtid,
         db: this.queryParam.db,
@@ -201,6 +211,9 @@ export default {
           pageIndex: this.current
         }
       }
+      console.log('1>>>')
+      console.log(params)
+      console.log('1<<<')
       const reqParam = this.flattenObj(params)
       this.countLoading = true
       this.axios.get('/api/drc/v2/log/conflict/trx/count', { params: reqParam })
@@ -284,12 +297,25 @@ export default {
       }
     },
     queryRowsLog (row, index) {
-      this.$emit('tabValueChanged', 'rowsLog')
-      this.$emit('gtidChanged', row.gtid)
-      this.$emit('searchModeChanged', true)
-      this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
-      this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
+      // this.$emit('tabValueChanged', 'rowsLog')
+      // this.$emit('gtidChanged', row.gtid)
+      // this.$emit('searchModeChanged', true)
+      // this.$emit('beginHandleTimeChanged', this.queryParam.beginHandleTime)
+      // this.$emit('endHandleTimeChanged', this.queryParam.endHandleTime)
       // this.tabVal = 'rowsLog'
+      const detail = this.$router.resolve({
+        path: '/conflictLog',
+        query: {
+          searchMode: true,
+          gtid: row.gtid,
+          beginTime: new Date(this.queryParam.beginHandleTime).getTime(), // long value of time
+          endTime: new Date(this.queryParam.endHandleTime).getTime(),
+          dbName: this.queryParam.db
+        }
+      })
+      console.log('冲突行跳转')
+      console.log(detail.href)
+      window.open(detail.href, '_blank')
     },
     getLogDetail (row, index) {
       const detail = this.$router.resolve({
@@ -306,9 +332,20 @@ export default {
       this.$nextTick(() => {
         this.getTrxData()
       })
+    },
+    getAllQueryOptions () {
+      this.axios.get('/api/drc/v2/log/conflict/cflDetailType/all')
+        .then(response => {
+          this.cflDetailOpts = response.data.data
+        })
     }
   },
   created () {
+    console.log('-----conflictTrxLog-----') // todo
+    console.log(this.queryParam)
+    console.log(this.$route.query)
+    console.log('-----end conflictTrxLog-----')
+    this.getAllQueryOptions()
     this.getTotalData()
   }
 }

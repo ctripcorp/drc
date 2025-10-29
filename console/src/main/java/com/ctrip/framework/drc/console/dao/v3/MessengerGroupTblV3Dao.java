@@ -8,6 +8,7 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.google.common.collect.Lists;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -20,6 +21,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Repository
+@Lazy
 public class MessengerGroupTblV3Dao extends AbstractDao<MessengerGroupTblV3> {
 
     private static final String MHA_DB_REPLICATION_ID = "mha_db_replication_id";

@@ -23,7 +23,6 @@ import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiRequest;
 import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
-import com.ctrip.framework.drc.core.service.user.IAMService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.base.Joiner;
@@ -34,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
  * 2023/10/31 11:21
  */
 @Service
+@Lazy
 public class ConflictApprovalServiceImpl implements ConflictApprovalService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -76,7 +77,6 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     @Autowired
     private DbaApiService dbaApiService;
 
-    private IAMService iamService = ServicesUtil.getIAMService();
     private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
     private UserService userService = ApiContainer.getUserServiceImpl();
 
@@ -128,7 +128,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     }
 
     private Pair<Boolean, List<String>> getPermissionAndDbsCanQuery() {
-        if (!iamService.canQueryAllDbReplication().getLeft()) {
+        if (!ServicesUtil.getIAMService().canQueryAllDbReplication().getLeft()) {
             List<String> dbsCanQuery = dbaApiService.getDBsWithQueryPermission();
             if (CollectionUtils.isEmpty(dbsCanQuery)) {
                 throw ConsoleExceptionUtils.message("no db with DOT permission!");

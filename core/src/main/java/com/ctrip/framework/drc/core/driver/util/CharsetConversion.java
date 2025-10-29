@@ -16,6 +16,8 @@ import java.util.Objects;
 public final class CharsetConversion {
 
     private final static Logger logger = LoggerFactory.getLogger(CharsetConversion.class);
+    public static final String UTF8MB3 = "utf8mb3";
+    public static final String UTF8 = "utf8";
 
     static final class Entry {
 
@@ -75,6 +77,11 @@ public final class CharsetConversion {
                 javaCharset, mbmaxlen);
         entries[charsetId] = entry;
         entryMap.put(new CharsetKey(mysqlCharset, mysqlCollation), entry);
+        if (mysqlCharset.equals(UTF8)) {
+            // MySQL has used utf8 in the past as an alias for the utf8mb3 character set
+            // in MySQL 8.0 SHOW statements and columns of INFORMATION_SCHEMA tables display utf8mb3 instead.
+            entryMap.put(new CharsetKey(UTF8MB3, mysqlCollation.replace(UTF8, UTF8MB3)), entry);
+        }
     }
 
     // Load character set data statically.

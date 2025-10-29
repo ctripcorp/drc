@@ -96,6 +96,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DB_REPLICATION_CONSISTENCY_CHECK_SWITCH = "db.replication.consistency.check.switch";
     private static String RESOURCE_AZ_CHECK_SWITCH = "resource.az.check.switch";
     private static String SYNC_OFFLINED_MHA_SWITCH = "sync.offlined.mha.switch";
+    private static String OFFLINED_MHA_BLACK_LIST = "sync.offlined.mha.blacklist";
     private static String MHA_SYNC_STATUS_CHECK_SWITCH = "mha.sync.status.check.switch";
     private static String INSTANCE_AZ_CHECK_SWITCH = "instance.az.check.switch";
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
@@ -144,6 +145,14 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String DBA_QUERY_DB_OWNER_URL = "dba.get.db.owner.url";
     private static String DEFAULT_DBA_QUERY_DB_OWNER_URL = "http://osg.ops.ctripcorp.com/api/get_general_db_owner";
+
+    private static String AUTOCREATE_SAME_TABLE_CHECK = "autocreate.sametable.check";
+
+    private static final String DB_DELAY_ALERT_DEFAULT_OWNERS = "db.delay.alert.default.owners";
+    private static final String DB_DELAY_ALERT_SEND_TO_DRC_SWITCH = "db.delay.alert.sendtodrc.switch";
+
+    private static final String REGEX_FILTER_BATCH = "regex.filter.batch";
+
 
     private static class ConfigHolder {
         public static final DefaultConsoleConfig INSTANCE = new DefaultConsoleConfig();
@@ -605,18 +614,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(DRC_ADMIN_TOKEN,"");
     }
 
-    public boolean getConflictOptimizeSwitch() {
-        return getBooleanProperty(CONFLICT_OPTIMIZE_SWITCH, false);
-    }
-
-    public Set<String> getIgnoreConflictTypes() { //todo set
-        String ignoreStr = getProperty(IGNORE_CONFLICT_TYPES, "");
-        if (StringUtils.isBlank(ignoreStr)) {
-            return Sets.newHashSet();
-        }
-        return Sets.newHashSet(ignoreStr.split(","));
-    }
-
     public Map<String, String> getDrcCkafkaRegionMapping() {
         String mappingStr = getProperty(KEY_REGION_CKAFKA_MAPPING, DEFAULT_KEY_REGION_CKAFKA_MAPPING);
         return JsonCodec.INSTANCE.decode(mappingStr, new GenericTypeReference<Map<String, String>>() {
@@ -625,5 +622,33 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getDbaDbOwnerUrl() {
         return getProperty(DBA_QUERY_DB_OWNER_URL, DEFAULT_DBA_QUERY_DB_OWNER_URL);
+    }
+
+    public boolean getAutoCreateSameTableCheckSwitch() {
+        return getBooleanProperty(AUTOCREATE_SAME_TABLE_CHECK, false);
+    }
+
+    public Set<String> getOfflineMhaBlackList() {
+        String offlineMhaBlackList = getProperty(OFFLINED_MHA_BLACK_LIST, "");
+        if (StringUtils.isBlank(offlineMhaBlackList)) {
+            return Sets.newHashSet();
+        }
+        return Sets.newHashSet(offlineMhaBlackList.toLowerCase().split( ","));
+    }
+
+    public List<String> getDefaultDbDelayAlertOwners() {
+        String dbDelayAlertOwners = getProperty(DB_DELAY_ALERT_DEFAULT_OWNERS, "");
+        if (StringUtils.isBlank(dbDelayAlertOwners)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(dbDelayAlertOwners.split(","));
+    }
+
+    public boolean getDbDelayAlertSendToDrcSwitch() {
+        return getBooleanProperty(DB_DELAY_ALERT_SEND_TO_DRC_SWITCH, false);
+    }
+
+    public int getRegexFilterBatch() {
+        return getIntProperty(REGEX_FILTER_BATCH, 50);
     }
 }

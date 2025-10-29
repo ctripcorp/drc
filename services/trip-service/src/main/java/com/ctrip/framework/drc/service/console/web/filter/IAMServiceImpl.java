@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
  */
 public class IAMServiceImpl implements IAMService,ConfigChangeListener {
 
-    private IAMFacadeServiceClient iamSoaService = IAMFacadeServiceClient.getInstance();
     private static final String CONFIG_FILE_NAME = "iamfilter.properties";
     private static final String IAM_FILTER_SWITCH = "iam.filter.switch";
     private static final String QUERY_ALL_DB_PERMISSION_CODE = "query.all.db.permission.code";
@@ -60,7 +59,7 @@ public class IAMServiceImpl implements IAMService,ConfigChangeListener {
     public Pair<Boolean,String> checkPermission(List<String> permissionCodes, String eid) {
         VerifyByBatchCodeRequestType verifyRequest = new VerifyByBatchCodeRequestType(Lists.newArrayList(permissionCodes), eid);
         try {
-            VerifyByBatchCodeResponseType verifyResponse = iamSoaService.verifyByBatchCode(verifyRequest);
+            VerifyByBatchCodeResponseType verifyResponse = IAMFacadeServiceClient.getInstance().verifyByBatchCode(verifyRequest);
             if (!verifyResponse.getResponseStatus().ack.equals(AckCodeType.Success)) {
                 logger.error("verifyByBatchCode error,request:{}",verifyRequest);
                 return Pair.of(false, "verifyByBatchCode error");

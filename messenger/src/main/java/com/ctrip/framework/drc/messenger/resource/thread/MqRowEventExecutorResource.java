@@ -4,9 +4,13 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
+import com.ctrip.framework.drc.messenger.resource.context.MqTransactionContextResource;
+import com.ctrip.framework.drc.messenger.resource.context.QmqTransactionContextResource;
 import com.ctrip.framework.drc.messenger.utils.MqDynamicConfig;
 
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -38,18 +42,14 @@ public class MqRowEventExecutorResource extends AbstractResource implements MqRo
     }
 
     @Override
-    public Future<Boolean> submit(Callable<Boolean> callable) {
-        return internal.submit(callable);
+    public CompletableFuture<Boolean> supplyAsync(Supplier<Boolean> supplier, QmqTransactionContextResource.RowSendHandler handler) {
+        return CompletableFuture.supplyAsync(supplier, internal)
+                .whenCompleteAsync((result, e) -> handler.onComplete(e));
     }
 
     @Override
-    public CompletableFuture<Boolean> supplyAsync(Supplier<Boolean> supplier) {
-        return CompletableFuture.supplyAsync(supplier, internal);
-    }
-
-    @Override
-    public CompletableFuture<Boolean> thenApplyAsync(CompletableFuture<Boolean> future, Function<Boolean,Boolean> fn) {
-        return future.thenApplyAsync(fn, internal);
+    public CompletableFuture<Boolean> thenApplyAsync(CompletableFuture<Boolean> future, Function<Boolean,Boolean> fn, QmqTransactionContextResource.RowSendHandler handler) {
+        return future.thenApplyAsync(fn, internal).whenCompleteAsync((result, e) -> handler.onComplete(e));
     }
 
 

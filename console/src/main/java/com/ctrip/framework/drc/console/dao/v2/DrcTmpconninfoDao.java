@@ -11,6 +11,8 @@ import com.ctrip.platform.dal.dao.DalResultSetExtractor;
 import com.ctrip.platform.dal.dao.StatementParameters;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Repository;
  * @Version: $
  */
 @Repository
+@Lazy
 public class DrcTmpconninfoDao extends AbstractDao<DrcTmpconninfo> {
 
     private static final String READ_ACCOUNT_USER= "m_drcv1_r";

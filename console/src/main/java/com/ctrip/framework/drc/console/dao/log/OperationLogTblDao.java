@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Repository;
  * @Version: $
  */
 @Repository
+@Lazy
 public class OperationLogTblDao extends AbstractDao<OperationLogTbl> {
     
     public static final String ID = "id";

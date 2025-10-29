@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.dbmigration;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.*;
+import com.ctrip.framework.drc.console.enums.v2.MigrationTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
 import org.apache.commons.lang3.tuple.Pair;
@@ -27,11 +28,11 @@ public interface DbMigrationService {
     // return null when no dbDrcRelated
     // return taskId when task create; 
     // throw ConsoleException with reason when forbidden
-    Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException;
-    
-    boolean preStartDbMigrationTask(Long taskId) throws SQLException;
+    Pair<String, Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest, MigrationTypeEnum migrationTypeEnum) throws SQLException;
 
-    boolean startDbMigrationTask(Long taskId) throws SQLException;
+    boolean preStartDbMigrationTask(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException;
+
+    boolean startDbMigrationTask(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException;
     
     /**
      * 
@@ -39,7 +40,7 @@ public interface DbMigrationService {
      * @param careNewMha true: care NewMha delay ; false: care OldMha delay
      * @return pair(tip, status)
      */
-    Pair<String, String> getAndUpdateTaskStatus(Long taskId,boolean careNewMha);
+    Pair<String, String> getAndUpdateTaskStatus(Long taskId,boolean careNewMha, MigrationTypeEnum migrationTypeEnum);
 
     PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query);
 
@@ -61,4 +62,10 @@ public interface DbMigrationService {
     List<MhaApplierDto> getMhaDbReplicationDelayFromMigrateTask(Long taskId) throws SQLException;
 
     Map<String, List<Long>> cleanApplierDirtyData(boolean showonly) throws SQLException;
+
+    Pair<Boolean, String> checkPreStartStatus(Long taskId) throws SQLException;
+
+    void quickPassForFwsMigration(Long taskId, MigrationTypeEnum migrationTypeEnum) throws SQLException;
+
+    void quickCheckFwsNewMha(Long taskId) throws SQLException;
 }

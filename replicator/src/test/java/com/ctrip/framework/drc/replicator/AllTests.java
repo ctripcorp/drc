@@ -28,8 +28,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.DefaultBinlogScannerAndSenderFilterChainTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.BinlogScannerAndSenderTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.DefaultBinlogScannerAndSenderFilterChainTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.binlog.MergeAlgorithmV2Test;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;

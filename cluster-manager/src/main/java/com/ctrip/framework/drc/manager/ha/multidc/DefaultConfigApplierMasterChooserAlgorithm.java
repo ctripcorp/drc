@@ -31,6 +31,7 @@ public class DefaultConfigApplierMasterChooserAlgorithm extends AbstractApplierM
     protected Pair<String, Integer> doChoose() {
         Pair<String, Integer> replicator = clusterManagerConfig.getApplierMaster(backupClusterId + "." + targetIdc);
         if (replicator != null) {
+            logger.warn("getApplierMaster empty, clusterId: {}, backupClusterId: {}", clusterId, backupClusterId);
             return replicator;
         }
         String fileName = System.getProperty(MEMORY_META_SERVER_DAO_KEY, "memory_meta_server_dao_file.xml");
