@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.core.server.config.replicator.dto;
 
 import com.ctrip.framework.drc.core.server.config.MonitorConfig;
+
+import java.net.InetSocketAddress;
 import java.util.List;
 
 /**
@@ -12,6 +14,8 @@ import java.util.List;
 public class ReplicatorConfigDtoV2 extends MonitorConfig {
 
     private DbDto master;
+
+    private String resolvedDbIp;
 
     private List<String> uuids;
 
@@ -35,6 +39,20 @@ public class ReplicatorConfigDtoV2 extends MonitorConfig {
 
     private int applyMode;
 
+    public String getResolvedDbIp() {
+        return resolvedDbIp;
+    }
+
+    public void setResolvedDbIp(String resolvedDbIp) {
+        this.resolvedDbIp = resolvedDbIp;
+    }
+
+    public void setResolvedDbIp() {
+        if (this.master != null) {
+            InetSocketAddress address = new InetSocketAddress(this.master.getIp(), this.master.getPort());
+            this.resolvedDbIp = address.getAddress().getHostAddress();
+        }
+    }
 
     public DbDto getMaster() {
         return master;

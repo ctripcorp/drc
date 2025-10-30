@@ -35,6 +35,7 @@ public class ApplierConfigDto extends FetcherConfigDto {
                 ", mhaName=" + mhaName +
                 ", replicator=" + replicator +
                 ", target=" + target +
+                ", resolvedDbIp=" + resolvedDbIp +
                 ", name='" + name + '\'' +
                 ", port=" + port +
                 ", ip='" + ip + '\'' +
@@ -64,7 +65,8 @@ public class ApplierConfigDto extends FetcherConfigDto {
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
                 applyMode == that.applyMode &&
-                Objects.equals(properties, that.properties);
+                Objects.equals(properties, that.properties) &&
+                Objects.equals(resolvedDbIp, that.resolvedDbIp);
     }
 
     @Override
@@ -84,7 +86,8 @@ public class ApplierConfigDto extends FetcherConfigDto {
                 Objects.equals(nameMapping, that.nameMapping) &&
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
-                applyMode == that.applyMode;
+                applyMode == that.applyMode &&
+                Objects.equals(resolvedDbIp, that.resolvedDbIp);
     }
 
     @Override

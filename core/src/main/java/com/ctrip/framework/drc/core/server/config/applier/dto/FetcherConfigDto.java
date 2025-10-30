@@ -4,8 +4,8 @@ import com.ctrip.framework.drc.core.meta.ApplierMeta;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
 import com.ctrip.framework.drc.core.utils.NameUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.apache.commons.lang3.StringUtils;
 
+import java.net.InetSocketAddress;
 import java.util.Objects;
 
 /**
@@ -26,8 +26,24 @@ public abstract class FetcherConfigDto extends ApplierMeta {
     protected String skipEvent;
     protected int applyMode;
     protected String properties;
+    protected String resolvedDbIp;
 
     protected int applyConcurrency;
+
+    public String getResolvedDbIp() {
+        return resolvedDbIp;
+    }
+
+    public void setResolvedDbIp(String resolvedDbIp) {
+        this.resolvedDbIp = resolvedDbIp;
+    }
+
+    public void setResolvedDbIp() {
+        if (this.target != null) {
+            InetSocketAddress address = new InetSocketAddress(this.target.getIp(), this.target.getPort());
+            this.resolvedDbIp = address.getAddress().getHostAddress();
+        }
+    }
 
     public String getManagerIp() {
         return managerIp;
@@ -151,7 +167,7 @@ public abstract class FetcherConfigDto extends ApplierMeta {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode, properties);
+        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode, properties, resolvedDbIp);
     }
 
     abstract public boolean equalsIgnoreProperties(Object o);

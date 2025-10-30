@@ -66,6 +66,7 @@
         <!-- mysql connector -->
         <mysql-connector.version>5.1.48</mysql-connector.version>
         <herlder-token.version>1.5.0</herlder-token.version>
+        <dns-cache-manipulator.version>1.8.3</dns-cache-manipulator.version>
         <argLine/>
     </properties>
 
@@ -83,6 +84,11 @@
                 </exclusions>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>dns-cache-manipulator</artifactId>
+                <version>${dns-cache-manipulator.version}</version>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>

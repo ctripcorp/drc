@@ -1,10 +1,12 @@
 package com.ctrip.framework.drc.messenger.container.controller;
 
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.MessengerInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.DnsCacheUtils;
 import com.ctrip.framework.drc.messenger.container.MqServerContainer;
 import com.ctrip.framework.drc.messenger.container.controller.task.AddKeyedTask;
 import com.ctrip.framework.drc.messenger.container.controller.task.DeleteKeyedTask;
@@ -48,6 +50,10 @@ public class MqServerControllerV2 {
     @RequestMapping(method = RequestMethod.POST)
     public ApiResult post(@RequestBody MessengerConfigDto config) {
         logger.info("[http] post messenger: " + config);
+        String registryKey = config.getRegistryKey();
+        if (DynamicConfig.getInstance().getDnsCacheRefreshSwitch(registryKey)) {
+            DnsCacheUtils.setDnsCache(config.getTarget().getIp(), config.getTarget().getPort(), config.getResolvedDbIp());
+        }
         return doAddServer(config);
     }
 

@@ -35,8 +35,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
     protected void doMonitor() {
 
         for (Map.Entry<String, AtomicLong> entry : outboundGtid.entrySet()) {
-            AtomicLong atomicLong = entry.getValue();
-            DefaultEventMonitorHolder.getInstance().logEvent(OUTBOUND_GTID, entry.getKey(), atomicLong.getAndSet(0));
+            long count = entry.getValue().getAndSet(0);
+            report(OUTBOUND_GTID, entry.getKey(), count, 0);
         }
 
         for (Map.Entry<TableKey, RowsFilterEntity> entry : rowsFilterEntityMap.entrySet()) {
