@@ -93,10 +93,6 @@ public class IndicesEventManager {
     }
 
     public boolean shouldAddIndexEvent(long position) {
-        return position / PREVIOUS_GTID_BULK > this.getIndicesSize() && position - this.getLastNotRevisedIndexPosition() > PREVIOUS_GTID_BULK;
-    }
-
-    public boolean shouldAddIndexEventV2(long position) {
         return indexEventPosition > 0 && position / PREVIOUS_GTID_BULK > this.getIndicesSize() && position - this.getLastNotRevisedIndexPosition() > PREVIOUS_GTID_BULK;
     }
 }

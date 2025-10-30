@@ -307,6 +307,12 @@ export default {
           }
         },
         {
+          title: '操作人',
+          key: 'operator',
+          width: 200,
+          sortable: true
+        },
+        {
           title: '操作',
           slot: 'action',
           width: 200,

@@ -7,12 +7,15 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MachineDto;
+import com.ctrip.framework.drc.console.enums.DlockEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.param.v2.ColumnsFilterCreateParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq.TblsFilterDetail;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.NotifyCmService;
 import com.ctrip.framework.drc.console.service.v2.DbDrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -65,6 +68,8 @@ public class DrcAutoBuildServiceImplTest {
     DrcAutoBuildServiceImpl drcAutoBuildServiceImpl;
     @Mock
     DbDrcBuildService dbDrcBuildService;
+    @Mock
+    NotifyCmService notifyCmService;
 
     public static final String TEST_DB_NAME = "testDb";
     public static final String TEST_DB_NAME2 = "testDb_2";
@@ -332,6 +337,8 @@ public class DrcAutoBuildServiceImplTest {
         req.setRowsFilterDetail(new RowsFilterCreateParam());
         req.setOpenColsFilterConfig(true);
         req.setColsFilterDetail(new ColumnsFilterCreateParam());
+
+        Mockito.doNothing().when(notifyCmService).pushConfigToCM(Mockito.anyList(), Mockito.any(DlockEnum.class), Mockito.any(HttpRequestEnum.class));
 
         // mock mha
         String mhaJson = "[{\"id\":1,\"mhaName\":\"mha1\",\"clusterName\":\"test_dalcluster\",\"dcId\":1,\"buId\":1,\"monitorSwitch\":0,\"applyMode\":0,\"deleted\":0},{\"id\":2,\"mhaName\":\"mha2\",\"clusterName\":\"test_dalcluster\",\"dcId\":2,\"buId\":1,\"monitorSwitch\":0,\"applyMode\":0,\"deleted\":0},{\"id\":3,\"mhaName\":\"sin1\",\"clusterName\":\"test_dalcluster\",\"dcId\":3,\"buId\":1,\"monitorSwitch\":0,\"applyMode\":0,\"deleted\":0}]";

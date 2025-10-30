@@ -139,7 +139,9 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         TransactionOffsetFilterTest.class,
 
         //controller
-        ReplicatorContainerControllerTest.class
+        ReplicatorContainerControllerTest.class,
+
+        DnsCacheManipulatorTest.class
 
 })
 public class AllTests {

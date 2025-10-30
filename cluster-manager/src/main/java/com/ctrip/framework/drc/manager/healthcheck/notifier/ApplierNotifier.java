@@ -79,6 +79,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
         config.target.cluster = dbCluster.getName();
         config.target.mhaName = dbCluster.getMhaName();
         config.target.idc = System.getProperty(DefaultFoundationService.DATA_CENTER_KEY, "unknown");
+        config.setResolvedDbIp();
 
         //incorrect naming, should use 'sourceIdc'.
         String targetIdc = null;

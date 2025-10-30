@@ -91,6 +91,9 @@ public class DrcApplicationServiceImpl implements DrcApplicationService {
         approvalTbl.setApplicationFormId(applicationFormId);
         approvalTbl.setApprovalResult(ApprovalResultEnum.NOT_APPROVED.getCode());
         approvalTbl.setApplicant(param.getApplicant());
+
+        String username = userService.getInfo();
+        approvalTbl.setOperator(username);
         applicationApprovalTblDao.insert(approvalTbl);
     }
 
