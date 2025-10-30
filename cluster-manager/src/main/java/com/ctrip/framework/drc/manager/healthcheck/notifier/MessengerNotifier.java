@@ -21,7 +21,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
  */
 public class MessengerNotifier extends AbstractNotifier implements Notifier {
 
-    private static final String URL_PATH = "appliers";
+    private static final String URL_PATH = "messengers";
 
     private MessengerNotifier() {
         super();
@@ -62,6 +62,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
         config.target.cluster = dbCluster.getName();
         config.target.mhaName = dbCluster.getMhaName();
         config.target.idc = System.getProperty(DefaultFoundationService.DATA_CENTER_KEY, "unknown");
+        config.setResolvedDbIp();
 
         config.replicator = new InstanceInfo();
 

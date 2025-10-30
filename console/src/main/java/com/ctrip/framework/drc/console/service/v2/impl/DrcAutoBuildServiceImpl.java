@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
 import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.NotifyCmService;
 import com.ctrip.framework.drc.console.service.assistant.MysqlConfigCheckAssistant;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.*;
@@ -94,6 +95,8 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
+    @Autowired
+    private NotifyCmService notifyCmService;
 
     private UserService userService = ApiContainer.getUserServiceImpl();
 
@@ -778,6 +781,10 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
         // 6. end
         logger.info("build success: {}", param);
+
+
+        List<String> mhaNames = Lists.newArrayList(param.getSrcMhaName(), param.getDstMhaName());
+        notifyCmService.pushConfigToCM(mhaNames, DlockEnum.AUTOCONFIG, HttpRequestEnum.PUT);
     }
 
     private void checkGtidLegal(MhaTblV2 srcMhaTbl, String gtidInit) {

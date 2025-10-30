@@ -24,6 +24,7 @@ public class MessengerConfigDto extends FetcherConfigDto {
                 ", managerPort=" + managerPort +
                 ", mhaName=" + mhaName +
                 ", replicator=" + replicator +
+                "  resolvedDbIp=" + resolvedDbIp +
                 ", target=" + target +
                 ", name='" + name + '\'' +
                 ", port=" + port +
@@ -54,7 +55,8 @@ public class MessengerConfigDto extends FetcherConfigDto {
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
                 applyMode == that.applyMode &&
-                Objects.equals(properties, that.properties);
+                Objects.equals(properties, that.properties) &&
+                Objects.equals(resolvedDbIp, that.resolvedDbIp);
     }
 
     public boolean equalsIgnoreProperties(Object o) {
@@ -73,7 +75,8 @@ public class MessengerConfigDto extends FetcherConfigDto {
                 Objects.equals(nameMapping, that.nameMapping) &&
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
-                applyMode == that.applyMode;
+                applyMode == that.applyMode &&
+                Objects.equals(resolvedDbIp, that.resolvedDbIp);
     }
 
     public boolean equalsProperties(Object o) {

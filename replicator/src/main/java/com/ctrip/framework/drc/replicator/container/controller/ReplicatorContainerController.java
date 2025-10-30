@@ -1,13 +1,17 @@
 package com.ctrip.framework.drc.replicator.container.controller;
 
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
+import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorDetailInfoDto;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorInfoDto;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.DnsCacheUtils;
 import com.ctrip.framework.drc.replicator.container.controller.task.AddKeyedTask;
 import com.ctrip.framework.drc.replicator.container.controller.task.DeleteKeyedTask;
 import com.ctrip.framework.drc.replicator.container.controller.task.RegisterKeyedTask;
@@ -72,8 +76,13 @@ public class ReplicatorContainerController {
 
     @RequestMapping(method = RequestMethod.POST)
     public ApiResult<Boolean> restart(@RequestBody ReplicatorConfigDto replicatorConfigDto) {
+        String registryKey = RegistryKey.from(replicatorConfigDto.getClusterName(), replicatorConfigDto.getMhaName());
+        if (DynamicConfig.getInstance().getDnsCacheRefreshSwitch(registryKey)) {
+            Db master = replicatorConfigDto.getMaster();
+            DnsCacheUtils.setDnsCache(master.getIp(), master.getPort(), replicatorConfigDto.getResolvedDbIp());
+        }
+
         ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
-        String registryKey = replicatorConfig.getRegistryKey();
         try {
             logger.info("[Receive][Restart] replicator instance({}) with config {}", registryKey, replicatorConfigDto);
             notifyExecutor.execute(registryKey, new AddKeyedTask(registryKey, replicatorConfig, serverContainer));

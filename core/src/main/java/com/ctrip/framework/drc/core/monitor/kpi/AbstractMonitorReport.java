@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.monitor.kpi;
 
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 
@@ -48,7 +49,7 @@ public abstract class AbstractMonitorReport extends AbstractMonitorResource {
                     logger.error("monitor error", e);
                 }
             }
-        }, 30, 30, TimeUnit.SECONDS);
+        }, 30, 60, TimeUnit.SECONDS);
     }
 
     protected void doStart() throws Exception{
@@ -83,6 +84,12 @@ public abstract class AbstractMonitorReport extends AbstractMonitorResource {
 
     public void setDelayMonitorReport(DelayMonitorReport delayMonitorReport) {
         this.delayMonitorReport = delayMonitorReport;
+    }
+
+    public void report(String type, String name, long count, long countLowerLimit) {
+        if (count > countLowerLimit) {
+            DefaultEventMonitorHolder.getInstance().logEvent(type, name, count);
+        }
     }
 
     protected abstract void doMonitor();

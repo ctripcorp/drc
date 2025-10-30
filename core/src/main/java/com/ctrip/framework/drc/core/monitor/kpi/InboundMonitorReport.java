@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.monitor.kpi;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.google.common.collect.Maps;
@@ -60,24 +61,24 @@ public class InboundMonitorReport extends AbstractMonitorReport {
     protected void doMonitor() {
         //Cat
         for (Map.Entry<String, AtomicLong> entry : dbCount.entrySet()) {
-            AtomicLong atomicLong = entry.getValue();
-            DefaultEventMonitorHolder.getInstance().logEvent(INBOUND_DB, entry.getKey(), atomicLong.getAndSet(0));
+            long count  = entry.getValue().getAndSet(0);
+            report(INBOUND_DB, entry.getKey(), count, 0);
         }
 
         for (Map.Entry<String, AtomicLong> entry : tableCount.entrySet()) {
-            AtomicLong atomicLong = entry.getValue();
-            DefaultEventMonitorHolder.getInstance().logEvent(INBOUND_TABLE, entry.getKey(), atomicLong.getAndSet(0));
+            long count  = entry.getValue().getAndSet(0);
+            report(INBOUND_TABLE, entry.getKey(), count, DynamicConfig.getInstance().getReplicatorInboundTableThreshold());
         }
 
 
         for (Map.Entry<String, AtomicLong> entry : dbFilter.entrySet()) {
-            AtomicLong atomicLong = entry.getValue();
-            DefaultEventMonitorHolder.getInstance().logEvent(DB_FILTER, entry.getKey(), atomicLong.getAndSet(0));
+            long count  = entry.getValue().getAndSet(0);
+            report(DB_FILTER, entry.getKey(), count, 0);
         }
 
         for (Map.Entry<String, AtomicLong> entry : ghostDbFilter.entrySet()) {
-            AtomicLong atomicLong = entry.getValue();
-            DefaultEventMonitorHolder.getInstance().logEvent(GHOST_DB_FILTER, entry.getKey(), atomicLong.getAndSet(0));
+            long count  = entry.getValue().getAndSet(0);
+            report(GHOST_DB_FILTER, entry.getKey(), count, 0);
         }
 
         DefaultEventMonitorHolder.getInstance().logEvent(INBOUND_GTID, clusterName, inboundGtid.getAndSet(0));

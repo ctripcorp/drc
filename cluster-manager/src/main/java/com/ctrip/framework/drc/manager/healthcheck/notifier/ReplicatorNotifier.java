@@ -87,6 +87,7 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
             configDto.setApplierPort(notifyReplicator.getApplierPort());
         }
 
+        configDto.setResolvedDbIp();
         configDto.setReadUser(dbs.getReadUser());
         configDto.setReadPassward(dbs.getReadPassword());
         configDto.setUuids(uuids);

@@ -21,9 +21,6 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String SCANNER_SPLIT_EVENT_THRESHOLD = "binlog.scanner.split.event.threshold";
     private static final String CONSOLE_LOG_DELAY_THRESHOLD = "console.log.delay.threshold";
 
-    private static final String REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH = "replicator.binlog.index.event.v2.switch";
-    private static final String REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH_KEY = "replicator.binlog.index.event.v2.switch.%s";
-
     private static final String DATASOURCE_SOCKET_TIMEOUT = "datasource.socket.timeout";
 
     private static final String TABLE_PARTITION_SWITCH = "table.partition.switch";
@@ -57,6 +54,11 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String KAFKA_DELAY_MONITOR_SUBJECT = "kafka.delay.monitor.subject";
     private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
     private static final String NETTY_WORKER_COUNT = "netty.worker.count";
+
+    private static final String DNS_CACHE_REFRESH_SWITCH = "dns.cache.refresh.switch";
+    private static final String DNS_CACHE_REFRESH_SWITCH_KEY = DNS_CACHE_REFRESH_SWITCH + ".%s";
+
+    private static final String REPLICATOR_INBOUND_TABLE_THRESHOLD = "replicator.inbound.table.threshold";
 
     // 100MB
     public static final int DEFAULT_MERGE_GAP_MAX = 100 * 1024 * 1024;
@@ -184,16 +186,20 @@ public class DynamicConfig extends AbstractConfigBean {
         return getBooleanProperty(REPLICATOR_BINLOG_FORMAT_DESCRIPTION_EVENT_V2_SWITCH, true);
     }
 
-    public boolean getIndexEventV2Switch(String key) {
-        return getBooleanProperty(REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH, false)
-                || getBooleanProperty(String.format(REPLICATOR_BINLOG_INDEX_EVENT_V2_SWITCH_KEY, key), false);
-    }
-
     public String getKafkaDelaySubject() {
         return getProperty(KAFKA_DELAY_MONITOR_SUBJECT, DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
     }
 
     public int getNettyWorkerCount() {
         return getIntProperty(NETTY_WORKER_COUNT, 4);
+    }
+
+    public boolean getDnsCacheRefreshSwitch(String key) {
+        return getBooleanProperty(DNS_CACHE_REFRESH_SWITCH, false)
+                || getBooleanProperty(String.format(DNS_CACHE_REFRESH_SWITCH_KEY, key), false);
+    }
+
+    public long getReplicatorInboundTableThreshold() {
+        return getLongProperty(REPLICATOR_INBOUND_TABLE_THRESHOLD, 100L);
     }
 }

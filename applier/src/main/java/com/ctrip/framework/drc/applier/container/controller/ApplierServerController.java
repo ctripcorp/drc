@@ -7,10 +7,12 @@ import com.ctrip.framework.drc.applier.container.controller.task.RegisterKeyedTa
 import com.ctrip.framework.drc.applier.container.controller.task.RestartKeyedTask;
 import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierInfoDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.DnsCacheUtils;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,10 @@ public class ApplierServerController {
     @RequestMapping(method = RequestMethod.POST)
     public ApiResult post(@RequestBody ApplierConfigDto config) {
         logger.info("[http] post applier: " + config);
+        String registryKey = config.getRegistryKey();
+        if (DynamicConfig.getInstance().getDnsCacheRefreshSwitch(registryKey)) {
+            DnsCacheUtils.setDnsCache(config.getTarget().getIp(), config.getTarget().getPort(), config.getResolvedDbIp());
+        }
         return doAddServer(config);
     }
 

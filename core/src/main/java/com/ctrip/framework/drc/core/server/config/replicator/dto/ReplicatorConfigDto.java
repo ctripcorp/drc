@@ -26,6 +26,8 @@ public class ReplicatorConfigDto extends MonitorConfig {
 
     private Db master;
 
+    private String resolvedDbIp;
+
     private List<String> uuids;
 
     private List<String> tableNames;
@@ -47,6 +49,14 @@ public class ReplicatorConfigDto extends MonitorConfig {
     private String previousMaster;
 
     private int applyMode;
+
+    public String getResolvedDbIp() {
+        return resolvedDbIp;
+    }
+
+    public void setResolvedDbIp(String resolvedDbIp) {
+        this.resolvedDbIp = resolvedDbIp;
+    }
 
     public Db getMaster() {
         return master;
@@ -178,6 +188,7 @@ public class ReplicatorConfigDto extends MonitorConfig {
     public String toString() {
         return "ReplicatorConfigDto{" +
                 "master=" + master +
+                ", resolvedDbIp=" + resolvedDbIp +
                 ", uuids=" + uuids +
                 ", tableNames=" + tableNames +
                 ", applierPort=" + applierPort +
